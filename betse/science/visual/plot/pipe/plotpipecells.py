@@ -237,12 +237,12 @@ class PlotCellsPipe(PlotPipeABC):
         self._export_prep()
 
         plotutil.plotStreamField(
-            1e9*self._phase.sim.u_cells_x,
-            1e9*self._phase.sim.u_cells_y,
+            1e6*self._phase.sim.u_cells_x,
+            1e6*self._phase.sim.u_cells_y,
             self._phase.cells, self._phase.p,
             plot_ecm=False,
             title='Final Fluid Velocity in Cell Collective',
-            cb_title='Velocity [nm/s]',
+            cb_title='Velocity [um/s]',
             colorAutoscale=conf.is_color_autoscaled,
             minColor=conf.color_min,
             maxColor=conf.color_max,

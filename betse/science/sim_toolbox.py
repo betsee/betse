@@ -1289,13 +1289,15 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
 
         # # electroosmotic fluid velocity:
-        if p.fluid_flow is True:
-            ux = sim.u_cells_x[cells.mem_to_cells]
-            uy = sim.u_cells_y[cells.mem_to_cells]
+        # if p.fluid_flow is True:
+        #     ux = sim.u_cells_x[cells.mem_to_cells]
+        #     uy = sim.u_cells_y[cells.mem_to_cells]
+        #
+        # else:
 
-        else:
-            ux = 0
-            uy = 0
+        # fluid flow will never affect concentration of ions as it's divergence free; therefore, set this to zero:
+        ux = 0
+        uy = 0
 
 
         fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -sim.E_gj_x,
@@ -1343,15 +1345,16 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
-        if p.fluid_flow is True:
+        # if p.fluid_flow is True:
+        #
+        #     ux = sim.u_env_x.reshape(cells.X.shape)
+        #     uy = sim.u_env_y.reshape(cells.X.shape)
+        #
+        # else:
 
-            ux = sim.u_env_x.reshape(cells.X.shape)
-            uy = sim.u_env_y.reshape(cells.X.shape)
-
-        else:
-
-            ux = 0.0
-            uy = 0.0
+        # Fluid flow will never change ion concentrations as it's divergence free; therefore set this term to zero:
+        ux = 0.0
+        uy = 0.0
 
 
         fx, fy = nernst_planck_flux(cenv, gcx, gcy, -sim.E_env_x, -sim.E_env_y, ux, uy,
@@ -1573,222 +1576,4 @@ def single_cell_div_free(cfluxo, cells):
     return cflux
 
 
-#----------------------------------------------------------------------------------------------------------------
-# WASTELANDS
-#---------------------------------------------------------------------------------------------------------------
-# def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
-#     """
-#     Perform electrodiffusion on intracellular vertices
-#     to update concentration around the cell interior
-#     in response to interior voltage and concentration
-#     gradients, in addition to any electroosmotic flows.
-#
-#     """
-#
-#     # x and y components of membrane tangent unit vectors
-#     nx = cells.mem_vects_flat[:, 2]
-#     ny = cells.mem_vects_flat[:, 3]
-#
-#     if p.fluid_flow is True and p.run_sim is True:
-#         # get intracellular fluid flow vector
-#         ux_mem = sim.u_cells_x[cells.mem_to_cells]
-#         uy_mem = sim.u_cells_y[cells.mem_to_cells]
-#
-#         # component of fluid flow velocity normal to the membrane:
-#         u = ux_mem*nx + uy_mem*ny
-#
-#     else:
-#         u = 0
-#
-#     # get the gradient of rho concentration for each cell centre wrt to each membrane midpoint:
-#     grad_c = (cX_mems - cX_cells[cells.mem_to_cells])/cells.chords
-#     # grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
-#
-#     # field-modulate the grad_v to account for screening (assumes motion primarily near the double layer):
-#     # grad_v = (1.0e-9/p.d_cell)*grad_v
-#     # grad_v = p.field_modulation*grad_v
-#
-#     # obtain an average concentration at the pie-slice midpoints:
-#     c_at_mids = (cX_mems + cX_cells[cells.mem_to_cells])/2
-#
-#     # flux_intra = - D_x * p.cell_delay_const * grad_c + u * c_at_mids
-#     flux_intra = nernst_planck_vector(c_at_mids, grad_c, grad_v, u, D_x, zx, sim.T, p)
-#
-#     # net flux across inner centroid surfaces of each cell:
-#     net_flux = flux_intra * (cells.mem_sa / 2)
-#
-#     # sum of the flux entering each centroid region:
-#     flux_sum = np.dot(cells.M_sum_mems, net_flux)
-#
-#     # divergence of the flux wrt the centroid region:
-#     divF_centroid = flux_sum/cells.centroid_vol
-#
-#     # divergence of the flux wrt each membrane region
-#     divF_mems = net_flux/cells.mem_vol
-#
-#     # update concentrations with the appropriate divergence:
-#     cX_mems = cX_mems + divF_mems * p.dt
-#     cX_cells = cX_cells - divF_centroid * p.dt
-#
-#     # # use finite volume method to integrate each region:
-#     # # values at centroid mids:
-#     # c_at_mids = (cX_memso + cX_cellso[cells.mem_to_cells]) / 2
-#     #
-#     # # finite volume integral of membrane pie-box values:
-#     # cX_mems = np.dot(cells.M_int_mems, cX_memso) + (1 / 2) * c_at_mids
-#     # cX_cells = (1 / 2) * cX_cellso + np.dot(cells.M_sum_mems, c_at_mids) / (2 * cells.num_mems)
-#
-#     return cX_mems, cX_cells, net_flux
 
-# MACS METHOD for environmental handling:
-
-# if p.closed_bound is True:
-#     btag = 'closed'
-#
-# else:
-#     btag = 'open'
-#
-# # make v_env and cc_env into 2d matrices
-# cenv = cX_env_o
-# denv = Do * np.ones(len(cells.xypts))
-#
-# v_env = sim.v_env.reshape(cells.X.shape)
-#
-# v_env[:, 0] = sim.bound_V['L']
-# v_env[:, -1] = sim.bound_V['R']
-# v_env[0, :] = sim.bound_V['B']
-# v_env[-1, :] = sim.bound_V['T']
-#
-# cenv = cenv.reshape(cells.X.shape)
-#
-# # prepare concentrations and diffusion constants for MACs grid format
-# # by resampling the values at the u v coordinates of the flux:
-# cenv_x = np.zeros(cells.grid_obj.u_shape)
-# cenv_y = np.zeros(cells.grid_obj.v_shape)
-#
-# # create the proper shape for the concentrations and state appropriate boundary conditions::
-# cenv_x[:, 1:] = cenv[:]
-# cenv_x[:, 0] = cenv_x[:, 1]
-# cenv_y[1:, :] = cenv[:]
-# cenv_y[0, :] = cenv_y[1, :]
-#
-# if p.closed_bound is True:  # insulation boundary conditions
-#
-#     cenv_x[:, 0] = cenv_x[:, 1]
-#     cenv_x[:, -1] = cenv_x[:, -2]
-#     cenv_x[0, :] = cenv_x[1, :]
-#     cenv_x[-1, :] = cenv_x[-2, :]
-#
-#     cenv_y[0, :] = cenv_y[1, :]
-#     cenv_y[-1, :] = cenv_y[-2, :]
-#     cenv_y[:, 0] = cenv_y[:, 1]
-#     cenv_y[:, -1] = cenv_y[:, -2]
-#
-# else:  # open and electrically grounded boundary conditions
-#     cenv_x[:, 0] = c_bound
-#     cenv_x[:, -1] = c_bound
-#     cenv_x[0, :] = c_bound
-#     cenv_x[-1, :] = c_bound
-#
-#     cenv_y[0, :] = c_bound
-#     cenv_y[-1, :] = c_bound
-#     cenv_y[:, 0] = c_bound
-#     cenv_y[:, -1] = c_bound
-#
-# denv = denv.reshape(cells.X.shape)
-#
-# denv_x = interp.griddata((cells.xypts[:, 0], cells.xypts[:, 1]), denv.ravel(),
-#     (cells.grid_obj.u_X, cells.grid_obj.u_Y), method='nearest', fill_value=Do)
-#
-# denv_y = interp.griddata((cells.xypts[:, 0], cells.xypts[:, 1]), denv.ravel(),
-#     (cells.grid_obj.v_X, cells.grid_obj.v_Y), method='nearest', fill_value=Do)
-#
-# if ignoreTJ is False:
-#
-#     denv_x = denv_x * sim.D_env_weight_u
-#     denv_y = denv_y * sim.D_env_weight_v
-#
-# # calculate gradients in the environment
-# grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env, bounds='closed')
-#
-# grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv, bounds=btag)
-#
-# # calculate fluxes for electrodiffusive transport in environment:
-#
-# if p.fluid_flow is True:
-#
-#     uenvx = np.zeros(cells.grid_obj.u_shape)
-#     uenvy = np.zeros(cells.grid_obj.v_shape)
-#
-#     uenvx[:, 1:] = sim.u_env_x
-#     uenvy[1:, :] = sim.u_env_y
-#
-#     if p.closed_bound is False:
-#
-#         uenvx[:, 0] = uenvx[:, 1]
-#         uenvx[:, -1] = uenvx[:, -2]
-#         uenvx[0, :] = uenvx[1, :]
-#         uenvx[-1, :] = uenvx[-2, :]
-#
-#         uenvy[:, 0] = uenvy[:, 1]
-#         uenvy[:, -1] = uenvy[:, -2]
-#         uenvy[0, :] = uenvy[1, :]
-#         uenvy[-1, :] = uenvy[-2, :]
-#
-#     else:
-#
-#         uenvx[:, 0] = 0
-#         uenvx[:, -1] = 0
-#         uenvx[0, :] = 0
-#         uenvx[-1, :] = 0
-#
-#         uenvy[:, 0] = 0
-#         uenvy[:, -1] = 0
-#         uenvy[0, :] = 0
-#         uenvy[-1, :] = 0
-#
-# else:
-#     uenvx = 0
-#     uenvy = 0
-#
-# field_mod = 1.0
-#
-# f_env_x_X, f_env_y_X = np_flux_special(cenv_x, cenv_y, grad_cc_env_x, grad_cc_env_y,
-#     field_mod*grad_V_env_x, field_mod*grad_V_env_y, uenvx, uenvy, denv_x, denv_y, z, sim.T, p)
-#
-#
-# # calculate the divergence of the total (negative) flux to obtain the total change per unit time:
-# d_fenvx = -(f_env_x_X[:, 1:] - f_env_x_X[:, 0:-1]) / cells.delta
-# d_fenvy = -(f_env_y_X[1:, :] - f_env_y_X[0:-1, :]) / cells.delta
-#
-# delta_c = d_fenvx + d_fenvy
-#
-# cenv = cenv + delta_c * p.dt
-#
-# if p.closed_bound is True:
-#     # Neumann boundary condition (flux at boundary)
-#     # zero flux boundaries for concentration:
-#     cenv[:, -1] = cenv[:, -2]
-#     cenv[:, 0] = cenv[:, 1]
-#     cenv[0, :] = cenv[1, :]
-#     cenv[-1, :] = cenv[-2, :]
-#
-# elif p.closed_bound is False:
-#     # if the boundary is open, set the concentration at the boundary
-#     # open boundary
-#     cenv[:, -1] = c_bound
-#     cenv[:, 0] = c_bound
-#     cenv[0, :] = c_bound
-#     cenv[-1, :] = c_bound
-#
-# if smoothECM is True:
-#
-#     cenv = gaussian_filter(cenv, p.smooth_level)
-#
-# # reshape the matrices into vectors:
-# # self.v_env = self.v_env.ravel()
-# cX_env_o = cenv.ravel()
-#
-# # average flux at the midpoint of the MACs grid:
-# fenvx = (f_env_x_X[:, 1:] + f_env_x_X[:, 0:-1]) / 2
-# fenvy = (f_env_y_X[1:, :] + f_env_y_X[0:-1, :]) / 2

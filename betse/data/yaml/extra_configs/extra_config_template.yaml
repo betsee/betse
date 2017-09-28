@@ -46,11 +46,13 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
     Do: 1.0e-10          # free diffusion constant in extra and intracellular spaces [m2/s]
     Dgj: 1.0e-16        # effective diffusion constant through gap junctions
+    Mu_mem: 0.0          # assumes substance embeds in membrane and has fininte electrophoretic mobility
     u_mtube: 0.0           # rate of transport via motor proteins (max of about 5.0e-6 m/s)
     z: -2               # charge (oxidation state)
     env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
     cell conc: 1.5     # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L] (if mit enabled!)
+    transmem: False   # substance embeded in membrane (and therefore movable by extracellular fields, flow?)
     initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
     TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
     GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)

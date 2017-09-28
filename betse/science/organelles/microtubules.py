@@ -213,8 +213,18 @@ class Mtubes(object):
         gEyx = gEy*cells.nn_tx
         gEyy = gEy*cells.nn_ty
 
-
         q_tube = self.charge_mtube
+
+        # if p.fluid_flow:
+        #
+        #     # force from any fluid flow mapped to membranes:
+        #     Fdux = sim.u_cells_x[cells.mem_to_cells]*self.C_perp*self.L*p.cytoplasm_viscocity
+        #     Fduy = sim.u_cells_y[cells.mem_to_cells]*self.C_perp*self.L*p.cytoplasm_viscocity
+        #
+        # else:
+
+        Fdux = np.zeros(sim.mdl)
+        Fduy = np.zeros(sim.mdl)
 
         if p.tethered_tubule is False:
 
@@ -225,7 +235,7 @@ class Mtubes(object):
                                q_tube * (vi) * (gExx.ravel() * ui + gExy.ravel() * vi))
 
             # fiber will also align such that ends are at the same voltage:
-            torque_monopole = (q_tube * (ui) * Ex.ravel() + q_tube * (vi) * Ey.ravel())
+            torque_monopole = (q_tube*(ui)*Ex.ravel() + q_tube*(vi)*Ey.ravel()) + (ui*Fduy.ravel() + vi*Fdux.ravel())
 
             # fiber will also align via its dipole in the electric field:
             torque_dipole = -(self.p_ind * ui_hat * Ey.ravel() - self.p_ind * vi_hat * Ex.ravel())
@@ -234,7 +244,7 @@ class Mtubes(object):
         # if fiber is tethered, any perpendicular force will represent a torque:
         else:
 
-            torque_tether = (q_tube * ui * Ey.ravel() - q_tube * vi * Ex.ravel())
+            torque_tether = (q_tube * ui * Ey.ravel() - q_tube * vi * Ex.ravel()) + (ui*Fduy.ravel() - vi*Fdux.ravel())
 
             # gradient of the field will torque the monopole by applying different forces at ends:
             torque_gradient = np.zeros(sim.mdl)
@@ -303,6 +313,9 @@ class Mtubes(object):
 
         dra2 = np.delete(self.drag_r, target_inds_mem)
         self.drag_r = dra2*1
+
+        cpa2 = np.delete(self.C_perp, target_inds_mem)
+        self.C_perp = cpa2*1
 
         d2 = np.delete( self.Dr, target_inds_mem)
         self.Dr = d2*1

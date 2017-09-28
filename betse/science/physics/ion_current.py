@@ -34,8 +34,27 @@ def get_current(sim, cells, p):
     # normal component of J_cell at the membranes:
     sim.Jc = sim.J_cell_x[cells.mem_to_cells]*cells.mem_vects_flat[:,2] + sim.J_cell_y[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
 
+    # divergence base:
+    divJo = np.dot(cells.M_sum_mems, sim.Jn * cells.mem_sa)
+
     # divergence of cell current (for use in calculations, not actually true divergence):
-    sim.divJ_cell = np.dot(cells.M_sum_mems, -sim.Jn * cells.mem_sa) / cells.cell_sa
+    sim.divJ_cell =  -divJo/ cells.cell_sa
+
+    # Electric field calculation:
+    divJc = divJo / cells.cell_vol
+
+    # Change to long-range voltage in intracellular spaces:
+    sim.v_cell += np.dot(cells.lapGJ_P_inv, divJc)*p.dt
+
+    # Calculate electric field in intracellular spaces:
+    Eco = (sim.v_cell[cells.cell_nn_i[:, 1]] - sim.v_cell[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+
+    Exo = cells.mem_vects_flat[:,2]*Eco
+    Eyo = cells.mem_vects_flat[:,3]*Eco
+
+    # average electric field to cell centres
+    sim.E_cell_x = np.dot(cells.M_sum_mems, Exo * cells.mem_sa) / cells.cell_sa
+    sim.E_cell_y = np.dot(cells.M_sum_mems, Eyo * cells.mem_sa) / cells.cell_sa
 
 
     # Current in the environment --------------------------------------------------------------------------------------
@@ -59,7 +78,7 @@ def get_current(sim, cells, p):
         # # Method #2-------------------------------
         #
         # # take the divergence:
-        # divJ = fd.divergence(J_env_x_o/ (sim.Chi*p.eo), J_env_y_o / (sim.Chi*p.eo), cells.delta, cells.delta)
+        # divJ = fd.divergence(J_env_x_o, J_env_y_o, cells.delta, cells.delta)
         #
         # # calculate the rate of change of polarization (macroscopic) voltage:
         # dPhi = np.dot(cells.lapENV_P_inv, divJ.ravel())
@@ -68,21 +87,24 @@ def get_current(sim, cells, p):
         #
         # # gradient of the polarization voltage yields the electric field
         # gdPhix, gdPhiy = fd.gradient(dPhi, cells.delta)
-        #
-        # # correct the current by the polarization field:
-        # J_env_x_o = J_env_x_o - sim.Chi * p.eo * gdPhix
-        # J_env_y_o = J_env_y_o - sim.Chi * p.eo * gdPhiy
 
         #---------------------------------------------
 
         #Helmholtz-Hodge decomposition to obtain divergence-free projection of actual currents (zero n_hat at boundary):
         _, sim.J_env_x, sim.J_env_y, BB, Jbx, Jby = stb.HH_Decomp(J_env_x_o, J_env_y_o, cells)
 
-        sim.v_env = -BB
+        # add to the environmental voltage:
+        sim.v_env += BB*p.dt
 
-        # add in currents from any applied voltage:
-        sim.J_env_x += sim.E_env_x*sim.sigma
-        sim.J_env_y += sim.E_env_y*sim.sigma
+        # gradient of the polarization voltage yields the electric field
+        gVex, gVey = fd.gradient(sim.v_env.reshape(cells.X.shape), cells.delta)
+
+        sim.E_env_x = -gVex
+        sim.E_env_y = -gVey
+
+        # smooth field:
+        sim.E_env_x = gaussian_filter(sim.E_env_x, 2)
+        sim.E_env_y = gaussian_filter(sim.E_env_y, 2)
 
         # smooth currents
         sim.J_env_x = gaussian_filter(sim.J_env_x, 2)
@@ -90,7 +112,7 @@ def get_current(sim, cells, p):
 
 
         # Method #1 -----------------------------------------
-
+        # Change in free current density at each membrane:
         sim.Jtx = sim.J_env_x + Jbx
         sim.Jty = sim.J_env_y + Jby
 
@@ -98,10 +120,10 @@ def get_current(sim, cells, p):
         sim.Jme = (sim.Jtx.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
                sim.Jty.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
-        # # Method #2 ------------------------------------------
-        #
-        # dPx = -sim.Chi.ravel()*p.eo*gdPhix.ravel()
-        # dPy = -sim.Chi.ravel()*p.eo*gdPhiy.ravel()
+        # Method #2 ------------------------------------------
+
+        # dPx = -gdPhix.ravel()
+        # dPy = -gdPhiy.ravel()
         #
         # # map current from extracellular space to membrane normal
         # sim.Jme = (dPx[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
@@ -109,10 +131,9 @@ def get_current(sim, cells, p):
 
         #-------------------------------------------------------
 
-
-        # Calculate any field resulting from an applied voltage:
-        sim.E_env_x = -((sim.bound_V['R'] - sim.bound_V['L'])/(cells.xmax - cells.xmin))*np.ones(cells.X.shape)
-        sim.E_env_y = -((sim.bound_V['T'] - sim.bound_V['B'])/(cells.ymax - cells.ymin))*np.ones(cells.X.shape)
+        # Add in any electric field resulting from an applied voltage:
+        sim.E_env_x += -((sim.bound_V['R'] - sim.bound_V['L'])/(cells.xmax - cells.xmin))*np.ones(cells.X.shape)
+        sim.E_env_y += -((sim.bound_V['T'] - sim.bound_V['B'])/(cells.ymax - cells.ymin))*np.ones(cells.X.shape)
 
     else:
 
@@ -121,7 +142,7 @@ def get_current(sim, cells, p):
         Jox = np.zeros(len(cells.xypts))
         Joy = np.zeros(len(cells.xypts))
 
-        Jox[cells.map_cell2ecm] = sim.J_cell_x  # this is an approximation for environmental currents
+        Jox[cells.map_cell2ecm] = sim.J_cell_x
         Joy[cells.map_cell2ecm] = sim.J_cell_y
 
         Jox = Jox.reshape(cells.X.shape)
@@ -129,21 +150,22 @@ def get_current(sim, cells, p):
 
         # # recalculate a voltage and field based on a media conductivity that may vary in space:
         divJo = fd.divergence(Jox, Joy, cells.delta, cells.delta)
-        dPhi = np.dot(cells.lapENV_P_inv, (divJo).ravel())
+        dPhi = np.dot(cells.lapENV_P_inv, (divJo/sigma).ravel())
 
         gdpx, gdpy = fd.gradient(dPhi.reshape(cells.X.shape), cells.delta)
 
+        # this is an approximation for environmental free currents:
         Jox = -gdpx
         Joy = -gdpy
 
         _, sim.J_env_x, sim.J_env_y, BB, _, _ = stb.HH_Decomp(Jox.reshape(cells.X.shape),
                                                               Joy.reshape(cells.X.shape), cells)
 
-        sim.v_env = -BB
+        # incrementally add in change to environmental voltage due to current flux:
+        sim.v_env = BB*p.dt
 
         sim.J_cell_x = Jox.ravel()[cells.map_cell2ecm]
         sim.J_cell_y = Joy.ravel()[cells.map_cell2ecm]
-
 
         # dPx = -sim.Chi.ravel()*p.eo*gdpx.ravel()
         # dPy = -sim.Chi.ravel()*p.eo*gdpy.ravel()

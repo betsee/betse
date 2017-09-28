@@ -1262,38 +1262,42 @@ class TissueHandler(object):
 
         # if p.is_ecm is True:
 
-        # if desire for cut away space to lack tight junctions, remove new bflags from set:
-        new_bcells = np.copy(cells.bflags_cells)
-        new_bmems = np.copy(cells.bflags_mems)
+        # if desire for cut away space due to lack of tight junctions, remove bflags on wound from set:
+        if p.break_TJ is True:
 
-        searchTree = sps.KDTree(cells.cell_centres)
-        original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
-        cells.bflags_cells = original_pt_inds
+            new_bcells = np.copy(cells.bflags_cells)
+            new_bmems = np.copy(cells.bflags_mems)
 
-        searchTree_m = sps.KDTree(cells.mem_mids_flat)
-        original_pt_inds_m = list(searchTree_m.query(old_bflag_memxy))[1]
-        cells.bflags_mems = original_pt_inds_m
+            searchTree = sps.KDTree(cells.cell_centres)
+            original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
+            cells.bflags_cells = original_pt_inds
 
-        # calculate indices to tag TJ at boundary in terms of original boundary flags
-        neigh_to_bcells, _, _ = tb.flatten(cells.cell_nn[cells.bflags_cells])
-        all_bound_mem_inds_o = cells.cell_to_mems[cells.bflags_cells]
-        interior_bound_mem_inds_o = cells.cell_to_mems[neigh_to_bcells]
-        interior_bound_mem_inds_o, _, _ = tb.flatten(interior_bound_mem_inds_o)
-        all_bound_mem_inds_o, _, _ = tb.flatten(all_bound_mem_inds_o)
+            searchTree_m = sps.KDTree(cells.mem_mids_flat)
+            original_pt_inds_m = list(searchTree_m.query(old_bflag_memxy))[1]
+            cells.bflags_mems = original_pt_inds_m
 
-        cells.all_bound_mem_inds = cells.map_mem2ecm[all_bound_mem_inds_o]
-        cells.interior_bound_mem_inds = cells.map_mem2ecm[interior_bound_mem_inds_o]
-        cells.inds_outmem = cells.map_mem2ecm[cells.bflags_mems]
-        cells.ecm_inds_bound_cell = cells.map_cell2ecm[cells.bflags_cells]
+            # calculate indices to tag TJ at boundary in terms of original boundary flags
+            neigh_to_bcells, _, _ = tb.flatten(cells.cell_nn[cells.bflags_cells])
+            all_bound_mem_inds_o = cells.cell_to_mems[cells.bflags_cells]
+            interior_bound_mem_inds_o = cells.cell_to_mems[neigh_to_bcells]
+            interior_bound_mem_inds_o, _, _ = tb.flatten(interior_bound_mem_inds_o)
+            all_bound_mem_inds_o, _, _ = tb.flatten(all_bound_mem_inds_o)
+
+            cells.all_bound_mem_inds = cells.map_mem2ecm[all_bound_mem_inds_o]
+            cells.interior_bound_mem_inds = cells.map_mem2ecm[interior_bound_mem_inds_o]
+            cells.inds_outmem = cells.map_mem2ecm[cells.bflags_mems]
+            cells.ecm_inds_bound_cell = cells.map_cell2ecm[cells.bflags_cells]
 
 
         # if hole_tag is False: # if we're not defining a hole at the beginning, reassign to new bflags
 
         sim.initDenv(cells,p)
 
-        # re-assign the boundary flags to the new configuration:
-        cells.bflags_cells = new_bcells
-        cells.bflags_mems = new_bmems
+        if p.break_TJ is True:
+
+            # re-assign the boundary flags to the new configuration:
+            cells.bflags_cells = new_bcells
+            cells.bflags_mems = new_bmems
 
         sim.conc_J_x = np.zeros(len(cells.xypts))
         sim.conc_J_y = np.zeros(len(cells.xypts))
@@ -1319,16 +1323,27 @@ class TissueHandler(object):
 
                 sim.move_pumps_channels.remove_data(target_inds_cell)
 
+        # calculate targets for wound channel:
+        match_inds = (sim.hurt_mask == 1.0).nonzero()
+
+        mem_match_inds = tb.flatten(cells.cell_to_mems[match_inds[0]])[0]
+
+        self.targets_vgWound = mem_match_inds
+
+        if p.break_TJ is True:
+
+            ecmtarg = cells.map_mem2ecm[sim.dyna.targets_vgWound]
+
+            Dw = np.copy(sim.D_env_weight.ravel())
+            Dw[ecmtarg] = 1.0
+
+            sim.D_env_weight = Dw.reshape(cells.X.shape)*1
+
         # WOUND CHANNEL FINALIZATION-----------------------------------------
 
         if p.use_wound_channel is True:
 
-            # recalculate targets for wound channel:
-            match_inds = (sim.hurt_mask == 1.0).nonzero()
 
-            mem_match_inds = tb.flatten(cells.cell_to_mems[match_inds[0]])[0]
-
-            self.targets_vgWound = mem_match_inds
 
             self.maxDmWound = p.wound_Dmax   # FIXME add to params and config!
 

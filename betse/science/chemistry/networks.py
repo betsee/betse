@@ -288,14 +288,18 @@ class MasterOfNetworks(object):
                 # otherwise, get the name of the Molecule instance we're looking for as an alias:
                 mol = self.molecules[name]
 
-                mol.Dm = mol_dic['Dm']  # membrane diffusion coefficient [m2/s]
-                mol.Do = mol_dic['Do']  # free diffusion constant in extra and intracellular spaces [m2/s]
-                mol.Dgj = mol_dic.get('Dgj', 1.0e-16)  # effective diffusion coefficient of substance through GJ
-                mol.z = mol_dic['z']  # charge (oxidation state)
+                mol.Dm = float(mol_dic['Dm'])  # membrane diffusion coefficient [m2/s]
+                mol.Do = float(mol_dic['Do'])  # free diffusion constant in extra and intracellular spaces [m2/s]
+                mol.Dgj = float(mol_dic.get('Dgj', 1.0e-16))  # effective diffusion coefficient of substance through GJ
+                mol.z = float(mol_dic['z'])  # charge (oxidation state)
 
 
                 # factors describing potential transport along current-aligned microtubules
                 mol.u_mt = float(mol_dic.get('u_mtube', 0.0))
+                mol.Mu_mem = float(mol_dic.get('Mu_mem', 0.0))
+
+                # is substance a transmembrane protein?
+                mol.transmem = mol_dic.get('transmem', False)
 
                 self.zmol[name] = mol.z
                 self.Dmem[name] = mol.Dm
@@ -5141,16 +5145,59 @@ class Molecule(object):
         cp = (cav + cmi) / 2  # concentration at midpoint between cell centre and membrane
         cg = (cmi - cav) / cells.R_rads  # concentration gradients
 
-        # normal component of electric field at membranes:
+        # normal component of electric field at membranes from intracellular current/field:
         En = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
               sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+
+        if p.fluid_flow is True and self.transmem is True:
+
+            # normal component of fluid flow at membranes from *extra*cellular flow:
+
+            fxo = sim.u_env_x.ravel()[cells.map_mem2ecm]
+            fyo = sim.u_env_y.ravel()[cells.map_mem2ecm]
+
+            fxi = (np.dot(cells.M_sum_mems, fxo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+            fyi = (np.dot(cells.M_sum_mems, fyo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+
+            uflow = fxi * cells.mem_vects_flat[:, 2] + fyi * cells.mem_vects_flat[:, 3]
+
+
+            # uflow = (sim.u_cells_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+            #       sim.u_cells_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+
+        else:
+
+            uflow = 0.0
+
+        if self.transmem is True:
+
+            # normal component of electric field at membranes from extracellular current/field mapped to cell collective:
+            Exo = sim.E_env_x.ravel()[cells.map_mem2ecm]
+            Eyo = sim.E_env_y.ravel()[cells.map_mem2ecm]
+
+            Exi = (np.dot(cells.M_sum_mems, Exo*cells.mem_sa)/cells.cell_sa)[cells.mem_to_cells]
+            Eyi = (np.dot(cells.M_sum_mems, Eyo*cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+
+            Eecm = Exi*cells.mem_vects_flat[:, 2] + Eyi*cells.mem_vects_flat[:, 3]
+
+        else:
+
+            Eecm = 0.0
 
         # calculate normal component of microtubules at membrane:
         umx, umy = sim.mtubes.mtubes_to_cell(cells, p)
         umtn = umx[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + umy[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
 
-        cfluxo = (-Do * cg + ((Do * p.q * cp * z) / (p.kb * sim.T)) * En + umtn * self.u_mt * cp)
-        # cfluxo = (-Do*cg  + umtn*self.u_mt*cp)
+        if self.transmem:
+
+            # diffuse in concentration gradient, via extracellular field and via extracellular flow:
+
+            cfluxo = (-Do*cg + self.Mu_mem*cmi*Eecm + uflow*cmi)
+
+        else:
+
+            cfluxo = (-Do*cg + self.Mu_mem*cmi*En + umtn*self.u_mt*cmi)
+
 
         # as no net mass must leave this intracellular movement, make the flux divergence-free:
         cflux = stb.single_cell_div_free(cfluxo, cells)
@@ -5159,11 +5206,8 @@ class Molecule(object):
         self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
 
         # smooth the concentration:
+        # print(sim.smooth_weight_mem.mean(), sim.smooth_weight_o.mean())
         self.cc_at_mem = sim.smooth_weight_mem*self.cc_at_mem + sim.smooth_weight_o*cav
-
-        # # calculate the divergence so we can update the centre concentration:
-        # divJ = np.dot(cells.M_sum_mems, -cflux*cells.mem_sa)/cells.cell_vol
-        # self.c_cells = self.c_cells + divJ*p.dt
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
         indsZ = (self.cc_at_mem < 0.0).nonzero()

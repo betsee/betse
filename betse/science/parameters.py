@@ -416,6 +416,7 @@ class Parameters(YamlFileABC):
             self.scheduled_options['ecmJ'] = ecmj
 
         # Parameterize the cutting event if enabled.
+        self.break_TJ = self._conf['cutting event'].get('break TJ', True)
         wc = self._conf['cutting event']['wound channel']
         self.use_wound_channel = wc['use channel']
         self.wound_Dmax = float(wc['max conductivity'])

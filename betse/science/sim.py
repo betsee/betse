@@ -515,7 +515,7 @@ class Simulator(object):
 
         self.P_cells = np.zeros(self.cdl)  # initialize pressure in cells
 
-        self.v_cell = np.zeros(self.mdl)  # initialize intracellular voltage
+        self.v_cell = np.zeros(self.cdl)  # initialize intracellular (long range) voltage
         self.vm = np.zeros(self.mdl)     # initialize vmem
         self.rho_cells = np.zeros(self.cdl)
 
@@ -765,10 +765,17 @@ class Simulator(object):
         self.mtubes = Mtubes(self, cells, p)
 
         # smoothing weights for membrane and central values:
-        self.smooth_weight_mem = ((2*cells.num_mems[cells.mem_to_cells] -1)/(2*cells.num_mems[cells.mem_to_cells]))
-        self.smooth_weight_o = 1/(2*cells.num_mems[cells.mem_to_cells])
+        nfrac = 100
+        self.smooth_weight_mem = ((nfrac*cells.num_mems[cells.mem_to_cells] -1)/(nfrac*cells.num_mems[cells.mem_to_cells]))
+        self.smooth_weight_o = 1/(nfrac*cells.num_mems[cells.mem_to_cells])
 
         self.cedl = 0.8  # electrical double layer capacitance #FIXME recalculate this
+
+        self.u_cells_x = 0.0
+        self.u_cells_y = 0.0
+
+        self.u_env_x = 0.0
+        self.u_env_y = 0.0
 
     def init_tissue(self, cells, p):
         '''
@@ -1835,8 +1842,8 @@ class Simulator(object):
         # smooth voltages at the membrane:
         self.vm = self.smooth_weight_mem*self.vm + self.vm_ave[cells.mem_to_cells]*self.smooth_weight_o
 
-        self.E_cell_x = self.J_cell_x*(1/(self.sigma*0.1 + 1.0e-6))
-        self.E_cell_y = self.J_cell_y*(1/(self.sigma*0.1 + 1.0e-6))
+        # self.E_cell_x = self.J_cell_x*(1/(self.sigma*0.1 + 1.0e-6))
+        # self.E_cell_y = self.J_cell_y*(1/(self.sigma*0.1 + 1.0e-6))
 
     def acid_handler(self, cells, p) -> None:
         '''
@@ -1906,7 +1913,6 @@ class Simulator(object):
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
 
         self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
-        # self.vgj = self.v_cell[cells.nn_i]- self.v_cell[cells.mem_i]
 
         self.Egj = -self.vgj/cells.gj_len
 
@@ -1934,14 +1940,14 @@ class Simulator(object):
         c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
 
         # electroosmotic fluid velocity at gap junctions:
-        if p.fluid_flow is True:
-            ux = self.u_cells_x[cells.mem_to_cells]
-            uy = self.u_cells_y[cells.mem_to_cells]
+        # if p.fluid_flow is True:
+        #     ux = self.u_cells_x[cells.mem_to_cells]
+        #     uy = self.u_cells_y[cells.mem_to_cells]
+        #
+        # else:
 
-        else:
-
-            ux = 0
-            uy = 0
+        ux = 0
+        uy = 0
 
 
         fgj_x, fgj_y = stb.nernst_planck_flux(c, gcx, gcy, -self.E_gj_x,
@@ -1980,19 +1986,21 @@ class Simulator(object):
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
-        if p.fluid_flow is True:
+        # if p.fluid_flow is True:
+        #
+        #     ux = self.u_env_x
+        #     uy = self.u_env_y
+        #
+        # else:
 
-            ux = self.u_env_x
-            uy = self.u_env_y
+        ux = np.zeros(cells.X.shape)
+        uy = np.zeros(cells.X.shape)
 
-        else:
-
-            ux = np.zeros(cells.X.shape)
-            uy = np.zeros(cells.X.shape)
+        denv = self.D_free[i]*self.D_env_weight
 
         # this equation assumes environmental transport is electrodiffusive--------------------------------------------:
         fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, ux, uy,
-                                          self.D_env[i].reshape(cells.X.shape), self.zs[i], self.T, p)
+                                          denv, self.zs[i], self.T, p)
 
         self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fy.ravel()  # store ecm junction flux for this ion
@@ -2006,11 +2014,6 @@ class Simulator(object):
         self.cc_env[i] = cenv.ravel()
 
     def update_intra(self, cells, p, i):
-
-        # With the new method of calculating cell polarization in terms of Maxwell's current equation, we don't
-        # need to do this as it's intrinsically handled.
-
-        # print(self.cc_cells[self.iNa].mean())
 
         cav = self.cc_cells[i][cells.mem_to_cells]  # concentration at cell centre
         # cmi = self.cc_at_mem[i]  # concentration at membrane

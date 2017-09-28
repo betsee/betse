@@ -18,8 +18,8 @@ def getFlow(sim, cells, p):
     if p.is_ecm is True:
 
         # electrostatic body forces in environment:
-        FFx = sim.rho_env.reshape(cells.X.shape)*sim.J_env_x*(1/sim.sigma)
-        FFy = sim.rho_env.reshape(cells.X.shape)*sim.J_env_y*(1/sim.sigma)
+        FFx = sim.rho_env.reshape(cells.X.shape)*sim.E_env_x
+        FFy = sim.rho_env.reshape(cells.X.shape)*sim.E_env_y
 
         # non-divergence free currents using Stokes flow equation:
         muFx = ((1/p.mu_water)*sim.D_env_weight)*FFx
@@ -38,11 +38,14 @@ def getFlow(sim, cells, p):
 
     # -------Next do flow through gap junction connected cells-------------------------------------------------------
 
-    sigma = np.dot((((sim.zs ** 2) * p.q * p.F * sim.D_free) / (p.kb * p.T)), sim.cc_cells)
+    # sigma = np.dot((((sim.zs ** 2) * p.q * p.F * sim.D_free) / (p.kb * p.T)), sim.cc_cells)
+
+    # Charge density per unit volume:
+    rho_cells = np.dot(sim.zs * p.F, sim.cc_cells) + sim.extra_rho_cells
 
     # net force is the electrostatic body force on net volume charge in cells:
-    Fxc = sim.J_cell_x*sim.rho_cells*(1/p.mu_water)*sigma
-    Fyc = sim.J_cell_y*sim.rho_cells*(1/p.mu_water)*sigma
+    Fxc = sim.E_cell_x*rho_cells*(1/p.mu_water)
+    Fyc = sim.E_cell_y*rho_cells*(1/p.mu_water)
 
     # Calculate flow under body forces using Stokes flow:
     u_gj_xo = np.dot(cells.lapGJinv, -Fxc)

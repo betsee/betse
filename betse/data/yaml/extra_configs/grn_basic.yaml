@@ -40,7 +40,7 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
   - name: 'Gene 1'    # give the substance a unique identifier of your choice.
 
     Dm: 0.0              #  membrane diffusion coefficient [m2/s]
-    Do: 1.0e-9           # free diffusion constant in extra and intracellular spaces [m2/s]
+    Do: 1.0e-12           # free diffusion constant in extra and intracellular spaces [m2/s]
     z: 0                 # charge (oxidation state)
     env conc: 0.0        # initial concentration in the environment [mmol/L]
     cell conc: 0.0       # initial concentration in the cytoplasm [mmol/L]
@@ -73,7 +73,7 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
   - name: 'Gene 2'    # give the substance a unique identifier of your choice.
 
     Dm: 0.0              #  membrane diffusion coefficient [m2/s]
-    Do: 1.0e-9           # free diffusion constant in extra and intracellular spaces [m2/s]
+    Do: 1.0e-12           # free diffusion constant in extra and intracellular spaces [m2/s]
     z: 0                 # charge (oxidation state)
     env conc: 0.0        # initial concentration in the environment [mmol/L]
     cell conc: 0.0        # initial concentration in the cytoplasm [mmol/L]
@@ -105,7 +105,7 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
   - name: 'Gene 3'    # give the substance a unique identifier of your choice.
 
     Dm: 0.0          #  membrane diffusion coefficient [m2/s]
-    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    Do: 1.0e-12          # free diffusion constant in extra and intracellular spaces [m2/s]
     z: 0               # charge (oxidation state)
     env conc: 0.0        # initial concentration in the environment [mmol/L]
     cell conc: 0.0    # initial concentration in the cytoplasm [mmol/L]
