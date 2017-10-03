@@ -445,7 +445,7 @@ class SimConfigTestWrapper(object):
 
         # Enable all features required by these channels.
         self._p.is_ecm = True
-        self.ion_profile = 'animal'
+        self.ion_profile = 'mammal'
 
         # For stability, decrease both the time step and sampling rates.
         self.sim_time_step =   1e-4
@@ -629,7 +629,7 @@ class SimConfigTestWrapper(object):
         variable = self._p._conf['variable settings']
 
         # Enable all simulation features required by these exports.
-        self.ion_profile = 'animal'
+        self.ion_profile = 'mammal'
         self._p._conf['apply pressure']['event happens'] = True
         variable['channel electroosmosis']['turn on'] = True
         variable['deformation']['turn on'] = True

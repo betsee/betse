@@ -654,14 +654,10 @@ class Simulator(object):
                         self.z_array_er.append(self.zM_er)
 
         # Do H+ separately as it's complicated by the bicarbonate buffer.
-        if p.ions_dict['H'] == 1 and p.ion_profile != 'customized':
-
+        if p.ions_dict['H'] == 1 and p.ion_profile != 'custom':
             i = i + 1
-
             self.iH = i
-
             self.ionlabel[self.iH] = 'protons'
-
             # self.movingIons.append(self.iH)
 
             # create concentration arrays of dissolved carbon dioxide (carbonic acid, non-dissociated):
@@ -804,8 +800,7 @@ class Simulator(object):
 
                     if p.cbnd is not None:
                         self.c_env_bound[ion_i] = p.cbnd[key]
-
-                elif val ==1 and key == 'H' and p.ion_profile != 'customized':
+                elif val == 1 and key == 'H' and p.ion_profile != 'custom':
                     self.c_env_bound[self.iH] = p.env_concs['H']
 
         self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
@@ -1742,9 +1737,9 @@ class Simulator(object):
         logs.log_info('This world contains ' + str(cells.cell_number) + ' cells.')
         logs.log_info('Each cell has an average of ' + str(round(cells.average_nn, 2)) + ' nearest-neighbours.')
 
-        logs.log_info('You are running the ion profile: ' + p.ion_profile)
-
-        logs.log_info('Ions in this simulation: ' + str(self.ionlabel))
+        logs.log_info(
+            'You are running the ion profile: %s', str(p.ion_profile).lower())
+        logs.log_info('Ions in this simulation: %s', str(self.ionlabel))
         logs.log_info(
             'If you have selected features using other ions, '
             'they will be ignored.')
@@ -1854,8 +1849,7 @@ class Simulator(object):
         by the current simulation configuration.
         '''
 
-        if p.ion_profile != 'customized':
-
+        if p.ion_profile != 'custom':
             # IdM = np.ones(self.mdl)
 
             # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
