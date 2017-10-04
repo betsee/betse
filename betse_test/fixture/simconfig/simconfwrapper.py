@@ -31,6 +31,7 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 # until *AFTER* test collection, this submodule is intentionally segregated.
 from betse.exceptions import BetseNumericException
 from betse.science.config import confio
+from betse.science.config.confenum import IonProfileType
 from betse.science.parameters import Parameters
 from betse.science.simulate.pipe import piperunreq
 from betse.science.visual.anim.animpipe import AnimCellsPipe
@@ -271,33 +272,6 @@ class SimConfigTestWrapper(object):
         # Coerce the passed number to a float for safety.
         self._p._conf['sim time settings']['time step'] = float(sim_time_step)
 
-    # ..................{ PROPERTIES ~ ion profile           }..................
-    @property
-    def ion_profile(self) -> str:
-        '''
-        Name of the currently enabled ion profile for this configuration.
-        '''
-
-        return self._p._conf['general options']['ion profile']
-
-
-    #FIXME: Validate the passed string. Presumably, we have logic elsewhere
-    #already doing so. Leverage such logic here.
-    @ion_profile.setter
-    @type_check
-    def ion_profile(self, ion_profile_name: str) -> None:
-        '''
-        Set the ion profile for this configuration to that with the passed name.
-
-        Parameters
-        ----------
-        ion_profile_name : str
-            Name of the ion profile to be enabled. See the default simulation
-            configuration file for a list of all supported strings.
-        '''
-
-        self._p._conf['general options']['ion profile'] = ion_profile_name
-
     # ..................{ MINIMIZERS                         }..................
     def minify(self) -> None:
         '''
@@ -445,7 +419,7 @@ class SimConfigTestWrapper(object):
 
         # Enable all features required by these channels.
         self._p.is_ecm = True
-        self.ion_profile = 'mammal'
+        self._p.ion_profile = IonProfileType.MAMMAL
 
         # For stability, decrease both the time step and sampling rates.
         self.sim_time_step =   1e-4
@@ -629,7 +603,7 @@ class SimConfigTestWrapper(object):
         variable = self._p._conf['variable settings']
 
         # Enable all simulation features required by these exports.
-        self.ion_profile = 'mammal'
+        self._p.ion_profile = IonProfileType.MAMMAL
         self._p._conf['apply pressure']['event happens'] = True
         variable['channel electroosmosis']['turn on'] = True
         variable['deformation']['turn on'] = True

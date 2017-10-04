@@ -267,13 +267,12 @@ class Parameters(YamlFileABC):
         "['sim time settings']['sampling rate']", float)
 
     # ..................{ ALIASES ~ ion                      }..................
-    #FIXME: Rename to "ion_profile" on obsoleting the "ion_profile" variable.
     #FIXME: Docstring us up.
     #FIXME: Consider shifting all ion-centric functionality into a dedicated
     #"ion" instance variable, instantiated to be an instance of a newly defined
     #"SimConfIonProfile" class. Ion handling currently appears to consume in
     #upwards of a third of this entire submodule.
-    _ion_profile = yaml_enum_alias(
+    ion_profile = yaml_enum_alias(
         "['general options']['ion profile']", IonProfileType)
 
     # ..................{ ALIASES ~ scalar                   }..................
@@ -993,11 +992,8 @@ class Parameters(YamlFileABC):
 
         self.vm_ph = 0.1             # rate constant for bicarbonate buffer [mol/s] 5.0e-5 originally
 
-        # set ion profile to be used: 'basic', 'basic_Ca', 'animal', 'xenopus', 'scratch'
-        self.ion_profile = self._conf['general options']['ion profile']
-
-        # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
-        if self.ion_profile == 'basic':
+        # simplest ion profile giving realistic results with minimal ions (Na+ & K+ focus):
+        if self.ion_profile is IonProfileType.BASIC:
             self.cNa_env = 145.0
             self.cK_env = 5.0
             self.cP_env = 10.0
@@ -1029,7 +1025,7 @@ class Parameters(YamlFileABC):
             self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'P':self.M_P,'M':self.M_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','P':'proteins','M':'anion'}
 
-        elif self.ion_profile == 'basic_ca':
+        elif self.ion_profile is IonProfileType.BASIC_CA:
             self.cNa_env = 145.0
             self.cK_env = 5.0
             self.cCa_env = 1.0
@@ -1067,8 +1063,7 @@ class Parameters(YamlFileABC):
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','P':'proteins','M':'anion'}
 
         # default environmental and cytoplasmic initial values mammalian cells
-        elif self.ion_profile == 'mammal':
-
+        elif self.ion_profile is IonProfileType.MAMMAL:
             # initialize proton concentrations to "None" placeholders
             self.cH_cell = None
             self.cH_env = None
@@ -1125,8 +1120,8 @@ class Parameters(YamlFileABC):
                                   'H':'protons','P':'proteins','M':'anion'}
 
         #FIXME: Xenopus are, like all frogs, vertebrates. Let's clarify this.
-        # default environmental and cytoplasm values invertebrate cells
-        elif self.ion_profile == 'amphibian':
+        # default environmental and cytoplasm values for invertebrate xenopus cells
+        elif self.ion_profile is IonProfileType.AMPHIBIAN:
             # initialize proton concentrations to "None" placeholders
             self.cH_cell = None
             self.cH_env = None
@@ -1177,43 +1172,8 @@ class Parameters(YamlFileABC):
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride',
                                   'H':'protons','P':'proteins','M':'anion'}
 
-        elif self.ion_profile == 'scratch':
-            self.cNa_env = 145.0
-            self.cK_env = 5.0
-            self.cCl_env = 105.0
-            self.cP_env = 10.0
-
-            zs = [self.z_Na, self.z_K, self.z_Cl, self.z_P]
-
-            conc_env = [self.cNa_env,self.cK_env, self.cCl_env, self.cP_env]
-            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
-
-            assert self.z_M_env == -1
-
-            self.cNa_cell = 120.0
-            self.cCl_cell = 60.0
-            self.cK_cell = 30.0
-            self.cP_cell = 80.0
-
-            conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell,self.cP_cell]
-
-            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
-
-            assert self.z_M_cell == -1
-
-            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':0,'H':0,'P':1,'M':1}
-
-            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Cl':self.cCl_cell,'P':self.cP_cell,'M':self.cM_cell}
-            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Cl':self.cCl_env,'P':self.cP_env,'M':self.cM_env}
-            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Cl':self.Dm_Cl ,'P':self.Dm_P,'M':self.Dm_M}
-            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Cl':self.z_Cl,'P':self.z_P,'M':self.z_M}
-            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Cl':self.Do_Cl,'P':self.Do_P,'M':self.Do_M}
-            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Cl':self.M_Cl,'P':self.M_P,'M':self.M_M}
-            self.ion_long_name = {'Na':'sodium','K':'potassium','Cl':'chloride','P':'proteins','M':'anion'}
-
         # user-specified environmental and cytoplasm values (customized)
-        elif self.ion_profile == 'custom':
-
+        elif self.ion_profile is IonProfileType.CUSTOM:
             # initialize proton concentrations to "None" placeholders
             self.cH_cell = None
             self.cH_env = None

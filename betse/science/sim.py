@@ -12,6 +12,7 @@ from betse.science.channels.gap_junction import Gap_Junction
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.metabolism import  MasterOfMetabolism
 from betse.science.chemistry.molecules import MasterOfMolecules
+from betse.science.config.confenum import IonProfileType
 from betse.science.math import finitediff as fd
 from betse.science.organelles.endo_retic import EndoRetic
 from betse.science.physics.deform import (
@@ -654,7 +655,7 @@ class Simulator(object):
                         self.z_array_er.append(self.zM_er)
 
         # Do H+ separately as it's complicated by the bicarbonate buffer.
-        if p.ions_dict['H'] == 1 and p.ion_profile != 'custom':
+        if p.ions_dict['H'] == 1 and p.ion_profile is not IonProfileType.CUSTOM:
             i = i + 1
             self.iH = i
             self.ionlabel[self.iH] = 'protons'
@@ -681,7 +682,7 @@ class Simulator(object):
             DgjH = np.zeros(len(cells.nn_i))
             DgjH[:] = p.free_diff['H']
 
-            if p.is_ecm is True:
+            if p.is_ecm:
                 self.zH2 = np.zeros(len(cells.xypts))
                 self.zH2[:] = p.z_H
 
@@ -787,21 +788,25 @@ class Simulator(object):
         if p.v_sensitive_gj:
             self.gj_funk = Gap_Junction(self, cells, p)
 
-        # Initialize diffusion constants for the extracellular transport:
+        # Initialize diffusion constants for the extracellular transport.
         self.initDenv(cells, p)
 
+        # Re-initialize global boundary fixed concentrations.
         if p.is_ecm:
-            # re-init global boundary fixed concentrations:
+            # For each possible ion...
             for key, val in p.ions_dict.items():
+                # If this ion is enabled...
+                if val == 1:
+                    # If this is *NOT* the H+ ion...
+                    if key != 'H':
+                        ion_i = self.get_ion(key)
+                        # print("resetting c_env from ", self.c_env_bound[ion_i], 'to ', p.cbnd[key], "for ", key)
 
-                if val == 1 and key != 'H':
-                    ion_i = self.get_ion(key)
-                    # print("resetting c_env from ", self.c_env_bound[ion_i], 'to ', p.cbnd[key], "for ", key)
-
-                    if p.cbnd is not None:
-                        self.c_env_bound[ion_i] = p.cbnd[key]
-                elif val == 1 and key == 'H' and p.ion_profile != 'custom':
-                    self.c_env_bound[self.iH] = p.env_concs['H']
+                        if p.cbnd is not None:
+                            self.c_env_bound[ion_i] = p.cbnd[key]
+                    # Else if this is the H+ ion *NOT* under a custom profile...
+                    elif p.ion_profile is not IonProfileType.CUSTOM:
+                        self.c_env_bound[self.iH] = p.env_concs['H']
 
         self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles
@@ -1849,7 +1854,7 @@ class Simulator(object):
         by the current simulation configuration.
         '''
 
-        if p.ion_profile != 'custom':
+        if p.ion_profile is not IonProfileType.CUSTOM:
             # IdM = np.ones(self.mdl)
 
             # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
