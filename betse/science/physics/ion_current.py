@@ -34,27 +34,12 @@ def get_current(sim, cells, p):
     # normal component of J_cell at the membranes:
     sim.Jc = sim.J_cell_x[cells.mem_to_cells]*cells.mem_vects_flat[:,2] + sim.J_cell_y[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
 
-    # divergence base:
-    divJo = np.dot(cells.M_sum_mems, sim.Jn * cells.mem_sa)
-
     # divergence of cell current (for use in calculations, not actually true divergence):
-    sim.divJ_cell =  -divJo/ cells.cell_sa
+    sim.divJ_cell =  -np.dot(cells.M_sum_mems, sim.Jn * cells.mem_sa)/ cells.cell_sa
 
-    # Electric field calculation:
-    divJc = divJo / cells.cell_vol
-
-    # Change to long-range voltage in intracellular spaces:
-    sim.v_cell += np.dot(cells.lapGJ_P_inv, divJc)*p.dt
-
-    # Calculate electric field in intracellular spaces:
-    Eco = (sim.v_cell[cells.cell_nn_i[:, 1]] - sim.v_cell[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
-
-    Exo = cells.mem_vects_flat[:,2]*Eco
-    Eyo = cells.mem_vects_flat[:,3]*Eco
-
-    # average electric field to cell centres
-    sim.E_cell_x = np.dot(cells.M_sum_mems, Exo * cells.mem_sa) / cells.cell_sa
-    sim.E_cell_y = np.dot(cells.M_sum_mems, Eyo * cells.mem_sa) / cells.cell_sa
+    # this approximation assumes that the intracellular space is slightly lower conductivity than free media:
+    sim.E_cell_x = sim.J_cell_x*(1/(sim.sigma*0.1))
+    sim.E_cell_y = sim.J_cell_y*(1/(sim.sigma*0.1))
 
 
     # Current in the environment --------------------------------------------------------------------------------------
@@ -67,34 +52,27 @@ def get_current(sim, cells, p):
         J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x)
         J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y)
 
-        # add in cell currents
-        # J_env_x_o[cells.map_cell2ecm] += sim.J_cell_x
-        # J_env_y_o[cells.map_cell2ecm] += sim.J_cell_y
-
         # reshape the matrix:
         J_env_x_o = J_env_x_o.reshape(cells.X.shape)
         J_env_y_o = J_env_y_o.reshape(cells.X.shape)
-
-        # # Method #2-------------------------------
-        #
-        # # take the divergence:
-        # divJ = fd.divergence(J_env_x_o, J_env_y_o, cells.delta, cells.delta)
-        #
-        # # calculate the rate of change of polarization (macroscopic) voltage:
-        # dPhi = np.dot(cells.lapENV_P_inv, divJ.ravel())
-        #
-        # dPhi = dPhi.reshape(cells.X.shape)
-        #
-        # # gradient of the polarization voltage yields the electric field
-        # gdPhix, gdPhiy = fd.gradient(dPhi, cells.delta)
 
         #---------------------------------------------
 
         #Helmholtz-Hodge decomposition to obtain divergence-free projection of actual currents (zero n_hat at boundary):
         _, sim.J_env_x, sim.J_env_y, BB, Jbx, Jby = stb.HH_Decomp(J_env_x_o, J_env_y_o, cells)
 
-        # add to the environmental voltage:
-        sim.v_env += BB*p.dt
+        # sim.v_env = np.dot(cells.lapENVinv, -(sim.rho_env.ravel() / (sim.ko_env * p.er * p.eo)))
+
+        # The solution to the Screened Poisson Equation in the limit of large screening constant Ko, is simply
+        # Phi = f/Ko2. This makes a perfect voltage estimate for the extracellular space.
+
+        if p.smooth_level > 0.0:
+
+            sim.v_env = (gaussian_filter(sim.rho_env.reshape(cells.X.shape), p.smooth_level).ravel())/((sim.ko_env**2)*p.er*p.eo)
+
+        else:
+
+            sim.v_env = (sim.rho_env.ravel()) / ((sim.ko_env ** 2) * p.er * p.eo)
 
         # gradient of the polarization voltage yields the electric field
         gVex, gVey = fd.gradient(sim.v_env.reshape(cells.X.shape), cells.delta)
@@ -102,13 +80,11 @@ def get_current(sim, cells, p):
         sim.E_env_x = -gVex
         sim.E_env_y = -gVey
 
-        # smooth field:
-        sim.E_env_x = gaussian_filter(sim.E_env_x, 2)
-        sim.E_env_y = gaussian_filter(sim.E_env_y, 2)
+        if p.smooth_level > 0.0:
 
-        # smooth currents
-        sim.J_env_x = gaussian_filter(sim.J_env_x, 2)
-        sim.J_env_y = gaussian_filter(sim.J_env_y, 2)
+            # smooth currents
+            sim.J_env_x = gaussian_filter(sim.J_env_x, p.smooth_level)
+            sim.J_env_y = gaussian_filter(sim.J_env_y, p.smooth_level)
 
 
         # Method #1 -----------------------------------------
@@ -120,14 +96,6 @@ def get_current(sim, cells, p):
         sim.Jme = (sim.Jtx.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
                sim.Jty.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
-        # Method #2 ------------------------------------------
-
-        # dPx = -gdPhix.ravel()
-        # dPy = -gdPhiy.ravel()
-        #
-        # # map current from extracellular space to membrane normal
-        # sim.Jme = (dPx[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-        #        dPy[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
         #-------------------------------------------------------
 
@@ -135,47 +103,38 @@ def get_current(sim, cells, p):
         sim.E_env_x += -((sim.bound_V['R'] - sim.bound_V['L'])/(cells.xmax - cells.xmin))*np.ones(cells.X.shape)
         sim.E_env_y += -((sim.bound_V['T'] - sim.bound_V['B'])/(cells.ymax - cells.ymin))*np.ones(cells.X.shape)
 
+        # sim.Jme = (sim.E_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+        #        sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+
     else:
 
         sigma = sim.sigma*sim.D_env_weight
 
-        Jox = np.zeros(len(cells.xypts))
-        Joy = np.zeros(len(cells.xypts))
+        # add in the contribution from cell charge exchange across membranes:
+        divJc = np.dot(cells.M_sum_mems, sim.Jn * cells.mem_sa) / cells.cell_vol
 
-        Jox[cells.map_cell2ecm] = sim.J_cell_x
-        Joy[cells.map_cell2ecm] = sim.J_cell_y
+        vcell = np.dot(cells.lapGJ_P_inv, divJc)
 
-        Jox = Jox.reshape(cells.X.shape)
-        Joy = Joy.reshape(cells.Y.shape)
+        sim.v_env = np.zeros(len(cells.xypts))
 
-        # # recalculate a voltage and field based on a media conductivity that may vary in space:
-        divJo = fd.divergence(Jox, Joy, cells.delta, cells.delta)
-        dPhi = np.dot(cells.lapENV_P_inv, (divJo/sigma).ravel())
+        sim.v_env[cells.map_cell2ecm] = vcell
 
-        gdpx, gdpy = fd.gradient(dPhi.reshape(cells.X.shape), cells.delta)
+        # gradient of the polarization voltage yields the electric field
+        gVex, gVey = fd.gradient(sim.v_env.reshape(cells.X.shape), cells.delta)
 
-        # this is an approximation for environmental free currents:
-        Jox = -gdpx
-        Joy = -gdpy
+        sim.E_env_x = -gVex
+        sim.E_env_y = -gVey
+
+        # approximate environmental free currents:
+        Jox = sim.E_env_x*sigma
+        Joy = sim.E_env_y*sigma
 
         _, sim.J_env_x, sim.J_env_y, BB, _, _ = stb.HH_Decomp(Jox.reshape(cells.X.shape),
                                                               Joy.reshape(cells.X.shape), cells)
 
-        # incrementally add in change to environmental voltage due to current flux:
-        sim.v_env = BB*p.dt
+        # incrementally add in change to environmental voltage due to current flux in environment:
+        # sim.v_env += BB*p.dt*(1/sim.cedl_env)
 
-        sim.J_cell_x = Jox.ravel()[cells.map_cell2ecm]
-        sim.J_cell_y = Joy.ravel()[cells.map_cell2ecm]
-
-        # dPx = -sim.Chi.ravel()*p.eo*gdpx.ravel()
-        # dPy = -sim.Chi.ravel()*p.eo*gdpy.ravel()
-        #
-        # # map current from extracellular space to membrane normal
-        # sim.Jme = (dPx[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-        #        dPy[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
-
-        # Jtx = Jax + Jbx
-        # Jty = Jay + Jby
 
         # map current from extracellular space to membrane normal
         sim.Jme = (Jox.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +

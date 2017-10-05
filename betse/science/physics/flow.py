@@ -36,6 +36,29 @@ def getFlow(sim, cells, p):
         sim.u_env_y = Uy
 
 
+        # Gxo = FFx.ravel()[cells.map_mem2ecm]
+        # Gyo = FFy.ravel()[cells.map_mem2ecm]
+        #
+        # Gx = (np.dot(cells.M_sum_mems, Gxo*cells.mem_sa)/cells.cell_sa)
+        # Gy = (np.dot(cells.M_sum_mems, Gyo*cells.mem_sa) / cells.cell_sa)
+        #
+        # # Calculate flow under body forces using Stokes flow:
+        # u_gj_xo = np.dot(cells.lapGJinv, -Gx*(1/p.mu_water))
+        # u_gj_yo = np.dot(cells.lapGJinv, -Gy*(1/p.mu_water))
+        #
+        # # Flow must be made divergence-free: use the Helmholtz-Hodge decomposition method:
+        # _, ux, uy, _, _, _ = cells.HH_cells(u_gj_xo, u_gj_yo, rot_only=True)
+        #
+        # u_env_x = np.zeros(sim.edl)
+        # u_env_y = np.zeros(sim.edl)
+        #
+        # u_env_x[cells.map_cell2ecm] = ux*1
+        # u_env_y[cells.map_cell2ecm] = uy*1
+        #
+        # sim.u_env_x = u_env_x.reshape(cells.X.shape)
+        # sim.u_env_y = u_env_y.reshape(cells.X.shape)
+
+
     # -------Next do flow through gap junction connected cells-------------------------------------------------------
 
     # sigma = np.dot((((sim.zs ** 2) * p.q * p.F * sim.D_free) / (p.kb * p.T)), sim.cc_cells)

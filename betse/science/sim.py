@@ -766,8 +766,6 @@ class Simulator(object):
         self.smooth_weight_mem = ((nfrac*cells.num_mems[cells.mem_to_cells] -1)/(nfrac*cells.num_mems[cells.mem_to_cells]))
         self.smooth_weight_o = 1/(nfrac*cells.num_mems[cells.mem_to_cells])
 
-        self.cedl = 0.8  # electrical double layer capacitance #FIXME recalculate this
-
         self.u_cells_x = 0.0
         self.u_cells_y = 0.0
 
@@ -1048,6 +1046,7 @@ class Simulator(object):
         self.cedl_env = p.er*p.eo*self.ko_env
         self.cedl_cell = p.er*p.eo*self.ko_cell
 
+        self.cedl = p.er*p.eo*self.ko_env  # electrical double layer capacitance
 
         # calculate a basic system conductivity:
         self.sigma = np.asarray([((z**2)*p.q*p.F*cc*D)/(p.kb*p.T) for
@@ -1787,60 +1786,54 @@ class Simulator(object):
 
         self.get_rho_mem(cells, p)
 
-        if p.is_ecm is False:
 
-            if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
+        if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
-                # change in charge density at the membrane:
-                self.vm = self.vm + (1/p.cm)*self.divJ_cell[cells.mem_to_cells]*p.dt
+            # change in charge density at the membrane:
+            self.vm = self.vm + (1/p.cm)*self.divJ_cell[cells.mem_to_cells]*p.dt
 
-            else:
+        else:
 
-                drho_mem = np.dot(cells.M_sum_mems, -self.Jmem * cells.mem_sa) / cells.cell_sa
-                drho_gj = np.dot(cells.M_sum_mems, -self.Jgj * cells.mem_sa) / cells.cell_sa
+            drho_mem = np.dot(cells.M_sum_mems, -self.Jmem * cells.mem_sa) / cells.cell_sa
+            drho_gj = np.dot(cells.M_sum_mems, -self.Jgj * cells.mem_sa) / cells.cell_sa
 
-                self.vm = (self.vm
-                           +(1/p.cm)*drho_mem[cells.mem_to_cells] * p.dt  # current across the membrane from pumps/channels
-                           # - (1/p.cm)*self.Jmem*p.dt
-                           + (1 / self.cgj) * drho_gj[cells.mem_to_cells] * p.dt
-                           + (1/self.cedl)*self.Jme*p.dt*p.cell_polarizability
+            self.vm = (self.vm
+                       +(1/p.cm)*drho_mem[cells.mem_to_cells] * p.dt  # current across the membrane from pumps/channels
+                       # - (1/p.cm)*self.Jmem*p.dt
+                       + (1 / self.cgj) * drho_gj[cells.mem_to_cells] * p.dt
+                       + (1/self.cedl)*self.Jme*p.dt*p.cell_polarizability
+                       # - self.Eme*1.0e6*p.eo
 
-                           )
+                       )
 
 
-        else: # if simulating extracellular spaces
+        # average vm:
+        self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
 
-            if p.cell_polarizability == 0.0: # allow users to have "simple" case behaviour
+        # smooth voltages at the membrane:
+        self.vm = self.smooth_weight_mem * self.vm + self.vm_ave[cells.mem_to_cells] * self.smooth_weight_o
 
-                drho_gj = np.dot(cells.M_sum_mems, -self.Jgj*cells.mem_sa) / cells.cell_sa
 
-                self.vm = (self.vm + (1/p.cm)*self.divJ_cell[cells.mem_to_cells]*p.dt
-                          + (1/self.cgj)*drho_gj[cells.mem_to_cells]*p.dt
-
-                           )
-
-            else:
-
-                drho_mem = np.dot(cells.M_sum_mems, -self.Jmem*cells.mem_sa)/cells.cell_sa
-                drho_gj = np.dot(cells.M_sum_mems, -self.Jgj*cells.mem_sa) / cells.cell_sa
-
-                self.vm = (self.vm
-                           + (1/p.cm)*drho_mem[cells.mem_to_cells]*p.dt # current across the membrane from pumps/channels
-                           # - (1 / p.cm) * self.Jmem * p.dt  # current across the membrane from pumps/channels
-                          + (1/self.cgj)*drho_gj[cells.mem_to_cells]*p.dt # current from GJ
-                          + (1/p.cm)*self.Jme*p.dt*p.cell_polarizability
-                           # + (1 /self.cedl) * self.Jme * p.dt * p.cell_polarizability
-                           )
-
+        # # electric field inside cells:
+        # vg = (self.vm - self.vm_ave[cells.mem_to_cells]) / cells.R_rads.mean()  # voltage gradient
+        #
+        # # electric field at membranes:
+        # Ecx = -vg*cells.mem_vects_flat[:,2]
+        # Ecy = -vg*cells.mem_vects_flat[:,3]
+        #
+        # # average electric field to cell centres
+        # self.E_cell_x = np.dot(cells.M_sum_mems, Ecx * cells.mem_sa) / cells.cell_sa
+        # self.E_cell_y = np.dot(cells.M_sum_mems, Ecy * cells.mem_sa) / cells.cell_sa
+        #
+        # print(self.E_cell_x.max(), self.E_cell_x.min(), self.E_cell_x.mean())
+        # print(self.vm.mean())
 
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt
 
-        # average vm:
-        self.vm_ave = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
 
-        # smooth voltages at the membrane:
-        self.vm = self.smooth_weight_mem*self.vm + self.vm_ave[cells.mem_to_cells]*self.smooth_weight_o
+
+
 
         # self.E_cell_x = self.J_cell_x*(1/(self.sigma*0.1 + 1.0e-6))
         # self.E_cell_y = self.J_cell_y*(1/(self.sigma*0.1 + 1.0e-6))
@@ -1975,8 +1968,8 @@ class Simulator(object):
         cenv = self.cc_env[i]
         cenv = cenv.reshape(cells.X.shape)
 
-        if p.smooth_level > 0.0 and p.smooth_concs is True:
-            cenv = gaussian_filter(cenv, p.smooth_level, mode = 'constant', cval= self.c_env_bound[i])
+        # if p.smooth_level > 0.0 and p.smooth_concs is True:
+        #     cenv = gaussian_filter(cenv, p.smooth_level, mode = 'constant', cval= self.c_env_bound[i])
 
         cenv[:,0] =  self.c_env_bound[i]
         cenv[:,-1] =  self.c_env_bound[i]
@@ -1985,15 +1978,15 @@ class Simulator(object):
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
-        # if p.fluid_flow is True:
-        #
-        #     ux = self.u_env_x
-        #     uy = self.u_env_y
-        #
-        # else:
+        if p.fluid_flow is True:
 
-        ux = np.zeros(cells.X.shape)
-        uy = np.zeros(cells.X.shape)
+            ux = self.u_env_x
+            uy = self.u_env_y
+
+        else:
+
+            ux = np.zeros(cells.X.shape)
+            uy = np.zeros(cells.X.shape)
 
         denv = self.D_free[i]*self.D_env_weight
 

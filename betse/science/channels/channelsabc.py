@@ -34,7 +34,7 @@ class ChannelsABC(object, metaclass=ABCMeta):
         '''
         pass
 
-    def update_charge(self, ion_index, delta_Q, targets, sim, cells, p):
+    def update_charge(self, ion_index, delta_Qo, targets, sim, cells, p):
 
         """
         A general helper function to update charge in the cell and environment
@@ -43,7 +43,7 @@ class ChannelsABC(object, metaclass=ABCMeta):
         Parameters
         ----------------
         ion_index:  index of an ion in the sim module (i.e. sim.iNa, sim.iK, sim.iCl, etc)
-        delta_Q:    GHK flux component for the channel state
+        delta_Qo:    GHK flux component for the channel state
         targets:    Indices to the cell membrane targets for the channel (e.g. dyna.targets_vgNa)
         sim:        Instance of sim object
         cells:      Instance of cells object
@@ -57,34 +57,38 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         targets = np.asarray(targets) # convert targets into an array so we can index with it
 
+        # derive the targeted expression for delta_Q:
+        delta_Q = np.zeros(sim.mdl)
+        delta_Q[targets] = delta_Qo[targets]
+
 
         # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
         # which is described by the GHK flux equation.
 
         # update the fluxes across the membrane to account for charge transfer from channel flux:
-        sim.fluxes_mem[ion_index][targets] = sim.fluxes_mem[ion_index][targets] + delta_Q[targets]
+        sim.fluxes_mem[ion_index] = sim.fluxes_mem[ion_index] + delta_Q
 
         # update the concentrations of ion in cells and environment using GHK derived flux delta_Q:
         master_inds = cells.cell_i[cells.mem_to_cells][targets]
 
-        ccell =  sim.cc_cells[ion_index][master_inds]
+        ccell =  sim.cc_cells[ion_index]
 
         # take the divergence of the flux:
         divQ = np.dot(cells.M_sum_mems, delta_Q*cells.mem_sa)/cells.cell_vol
 
         # first in cells:
-        sim.cc_cells[ion_index][master_inds] = (ccell + divQ[master_inds]*p.dt)
+        sim.cc_cells[ion_index] = (ccell + divQ*p.dt)
 
         # next on membranes:
-        sim.cc_at_mem[ion_index][targets] = (sim.cc_at_mem[ion_index][targets] +
-                                             delta_Q[targets]*(cells.mem_sa[targets]/cells.mem_vol[targets])*p.dt)
+        sim.cc_at_mem[ion_index] = (sim.cc_at_mem[ion_index] +
+                                             delta_Q*(cells.mem_sa/cells.mem_vol)*p.dt)
 
         if p.is_ecm is False:
 
             # transfer charge directly to the environment:
-            sim.cc_env[ion_index][targets] = (
-                sim.cc_env[ion_index][targets] -
-                delta_Q[targets] * (cells.mem_sa[targets] / cells.mem_vol[targets]) * p.dt)
+            sim.cc_env[ion_index] = (
+                sim.cc_env[ion_index] -
+                delta_Q * (cells.mem_sa / cells.mem_vol) * p.dt)
 
             # assume auto-mixing of environmental concs
             sim.cc_env[ion_index][:] = sim.cc_env[ion_index].mean()
@@ -92,7 +96,7 @@ class ChannelsABC(object, metaclass=ABCMeta):
         else:
 
             flux_env = np.zeros(sim.edl)
-            flux_env[cells.map_mem2ecm][targets] = -delta_Q[targets]
+            flux_env[cells.map_mem2ecm] = -delta_Q
 
             # save values at the cluster boundary:
             bound_vals = flux_env[cells.ecm_bound_k]

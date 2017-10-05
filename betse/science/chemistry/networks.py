@@ -301,6 +301,12 @@ class MasterOfNetworks(object):
                 # is substance a transmembrane protein?
                 mol.transmem = mol_dic.get('transmem', False)
 
+                # smoothing fraction for substance:
+                mol.sharp = float(mol_dic.get('sharpness', 2.0))
+                mol.smooth_weight_mem = (
+                (mol.sharp * cells.num_mems[cells.mem_to_cells] - 1) / (mol.sharp * cells.num_mems[cells.mem_to_cells]))
+                mol.smooth_weight_o = 1 / (mol.sharp * cells.num_mems[cells.mem_to_cells])
+
                 self.zmol[name] = mol.z
                 self.Dmem[name] = mol.Dm
 
@@ -5149,7 +5155,7 @@ class Molecule(object):
         En = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
               sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
 
-        if p.fluid_flow is True and self.transmem is True:
+        if p.fluid_flow is True:
 
             # normal component of fluid flow at membranes from *extra*cellular flow:
 
@@ -5167,11 +5173,23 @@ class Molecule(object):
 
         else:
 
-            uflow = 0.0
+            # curl component of current is a fluid-flow; get the membrane normal component:
+
+            fxo = (sim.J_env_x.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
+            fyo = (sim.J_env_y.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
+
+            fxi = (np.dot(cells.M_sum_mems, fxo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+            fyi = (np.dot(cells.M_sum_mems, fyo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+
+            uflow = fxi * cells.mem_vects_flat[:, 2] + fyi * cells.mem_vects_flat[:, 3]
+
 
         if self.transmem is True:
 
             # normal component of electric field at membranes from extracellular current/field mapped to cell collective:
+            # Exo = sim.J_env_x.ravel()[cells.map_mem2ecm]*(1/sim.sigma)
+            # Eyo = sim.J_env_y.ravel()[cells.map_mem2ecm]*(1/sim.sigma)
+
             Exo = sim.E_env_x.ravel()[cells.map_mem2ecm]
             Eyo = sim.E_env_y.ravel()[cells.map_mem2ecm]
 
@@ -5191,12 +5209,12 @@ class Molecule(object):
         if self.transmem:
 
             # diffuse in concentration gradient, via extracellular field and via extracellular flow:
-
-            cfluxo = (-Do*cg + self.Mu_mem*cmi*Eecm + uflow*cmi)
+            cfluxo = (-Do*cg + ((Do*p.q*z)/(p.kb*sim.T))*cp*Eecm + self.Mu_mem*cp*Eecm + uflow*cp)
 
         else:
 
-            cfluxo = (-Do*cg + self.Mu_mem*cmi*En + umtn*self.u_mt*cmi)
+            # move with conc gradient, via intracellular field (Einstein coefficient or mobility), or motor proteins:
+            cfluxo = (-Do*cg + ((Do*p.q*z)/(p.kb*sim.T))*cp*En + self.Mu_mem*cp*En + umtn*self.u_mt*cp)
 
 
         # as no net mass must leave this intracellular movement, make the flux divergence-free:
@@ -5207,7 +5225,7 @@ class Molecule(object):
 
         # smooth the concentration:
         # print(sim.smooth_weight_mem.mean(), sim.smooth_weight_o.mean())
-        self.cc_at_mem = sim.smooth_weight_mem*self.cc_at_mem + sim.smooth_weight_o*cav
+        self.cc_at_mem = self.smooth_weight_mem*self.cc_at_mem + self.smooth_weight_o*cav
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
         indsZ = (self.cc_at_mem < 0.0).nonzero()
@@ -5368,6 +5386,16 @@ class Molecule(object):
         cgx2 = np.delete(self.flux_intra, target_inds_mem)
         # reassign the new data vector to the object:
         self.cc_grad_x = cgx2[:]
+
+        # remove cells from the smoothing list:
+        swm2 = np.delete(self.smooth_weight_mem, target_inds_mem)
+        # reassign the new data vector to the object:
+        self.smooth_weight_mem = swm2[:]
+
+        # remove cells from the smoothing list:
+        swo2 = np.delete(self.smooth_weight_o, target_inds_mem)
+        # reassign the new data vector to the object:
+        self.smooth_weight_o = swo2[:]
 
         # # remove cells from the mems concentration list:
         # cmems2 = np.delete(self.c_mems, target_inds_mem)

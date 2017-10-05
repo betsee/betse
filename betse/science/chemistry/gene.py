@@ -197,6 +197,9 @@ class MasterOfGenes(object):
         sim.conc_J_x = np.zeros(sim.edl)
         sim.conc_J_y = np.zeros(sim.edl)
 
+        sim.J_env_x = np.zeros(sim.edl)
+        sim.J_env_y = np.zeros(sim.edl)
+
         # set molecules to not affect charge for sim-grn test-drives:
         p.substances_affect_charge = False
 

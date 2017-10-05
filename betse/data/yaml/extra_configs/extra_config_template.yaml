@@ -53,6 +53,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     cell conc: 1.5     # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L] (if mit enabled!)
     transmem: False   # substance embeded in membrane (and therefore movable by extracellular fields, flow?)
+    sharpness: 100    # specify an inverse smoothing coefficient for intracellular polarity (2 is high smoothing, 100 is low)
     initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
     TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
     GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)

@@ -424,6 +424,7 @@ class Parameters(YamlFileABC):
 
         # Parameterize the cutting event if enabled.
         self.break_TJ = self._conf['cutting event'].get('break TJ', True)
+        self.wound_TJ = float(self._conf['cutting event'].get('wound TJ', 0.1))
         wc = self._conf['cutting event']['wound channel']
         self.use_wound_channel = wc['use channel']
         self.wound_Dmax = float(wc['max conductivity'])

@@ -1233,6 +1233,17 @@ class TissueHandler(object):
         if p.is_ecm is True:  # set environnment data length
             sim.edl = len(cells.xypts)
 
+            # # set environmental voltage outside of tissue to zero to avoid "ghosting"
+            # v_env = np.zeros(sim.edl)
+            # v_env[cells.envInds_inClust] = sim.v_env[cells.envInds_inClust]
+            # sim.v_env = v_env*1
+
+            # for i, ccc in enumerate(sim.cc_env):
+            #
+            #     ccc2 = np.ones(sim.edl)*
+
+
+
         else:
             sim.edl = len(cells.mem_mids_flat)
 
@@ -1335,7 +1346,7 @@ class TissueHandler(object):
             ecmtarg = cells.map_mem2ecm[sim.dyna.targets_vgWound]
 
             Dw = np.copy(sim.D_env_weight.ravel())
-            Dw[ecmtarg] = 1.0
+            Dw[ecmtarg] = 1.0*p.wound_TJ
 
             sim.D_env_weight = Dw.reshape(cells.X.shape)*1
 

@@ -128,8 +128,8 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):
 
 
     # calculate the reaction coefficient Q:
-    Qnumo = cADP * cPi * (cNao ** 3) * (cKi ** 2)
-    Qdenomo = cATP * (cNai ** 3) * (cKo ** 2)
+    Qnumo = (cADP*1e-3)*(cPi*1e-3)*((cNao*1e-3)**3)*((cKi*1e-3)**2)
+    Qdenomo = (cATP*1e-3)*((cNai*1e-3)**3)*((cKo*1e-3)** 2)
 
     # ensure no chance of dividing by zero:
     inds_Z = (Qdenomo == 0.0).nonzero()
@@ -1332,8 +1332,8 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         cenv = cX_env_o
         cenv = cenv.reshape(cells.X.shape)
 
-        if smoothECM is True and p.smooth_level > 0.0:
-            cenv = gaussian_filter(cenv, p.smooth_level, mode='constant', cval = c_bound)
+        # if smoothECM is True and p.smooth_level > 0.0:
+        #     cenv = gaussian_filter(cenv, p.smooth_level, mode='constant', cval = c_bound)
 
         cenv[:, 0] = c_bound
         cenv[:, -1] = c_bound
@@ -1345,17 +1345,15 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
-        # if p.fluid_flow is True:
-        #
-        #     ux = sim.u_env_x.reshape(cells.X.shape)
-        #     uy = sim.u_env_y.reshape(cells.X.shape)
-        #
-        # else:
+        if p.fluid_flow is True:
 
-        # Fluid flow will never change ion concentrations as it's divergence free; therefore set this term to zero:
-        ux = 0.0
-        uy = 0.0
+            ux = sim.u_env_x.reshape(cells.X.shape)
+            uy = sim.u_env_y.reshape(cells.X.shape)
 
+        else:
+
+            ux = 0.0
+            uy = 0.0
 
         fx, fy = nernst_planck_flux(cenv, gcx, gcy, -sim.E_env_x, -sim.E_env_y, ux, uy,
                                         denv, z, sim.T, p)

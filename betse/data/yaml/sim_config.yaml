@@ -375,6 +375,7 @@ cutting event:
     event happens: True      # enable (True) or disable (False) this event?
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
     break TJ: True           # break tight junctions? (otherwise assumes instant barrier healing)
+    wound TJ: 1.0e-1         # how leaky are the tight junctions at the wound (max 1.0)
     wound channel:
       use channel: False      # use a channel associated with wounding (mechanosensitive Na channel)
       max conductivity: 1.0e-8   # maximum conductivity of the channel to sodium when fully open

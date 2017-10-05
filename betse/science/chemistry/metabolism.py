@@ -249,6 +249,9 @@ class MasterOfMetabolism(object):
         sim.rho_pump = 1.0
         sim.rho_channel = 1.0
 
+        sim.J_env_x = np.zeros(sim.edl)
+        sim.J_env_y = np.zeros(sim.edl)
+
         # p.substances_affect_charge = False
 
         # specify a time vector
