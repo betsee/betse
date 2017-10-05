@@ -31,9 +31,8 @@ IonProfileType = make_enum(
     class_name='IonProfileType', member_names=(
         'BASIC', 'BASIC_CA', 'MAMMAL', 'AMPHIBIAN', 'CUSTOM',))
 '''
-Enumeration of all supported types of **ion profiles** (i.e., predefined sets
-containing all extracellular and cytosolic ion types enabled by this
-simulation).
+Enumeration of all supported types of **ion profiles** (i.e., predefined sets of
+all extracellular and cytosolic ions enabled by this simulation).
 
 Note that *all* ion profiles unconditionally enable an unidentified
 charge-balance anion denoted M-, as required for both simulation stability and

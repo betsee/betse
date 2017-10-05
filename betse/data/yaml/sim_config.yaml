@@ -123,6 +123,8 @@ general options:
     extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
     extracellular Cl- concentration: 105.0          # extracellular chloride [mmol/L]
     extracellular Ca2+ concentration: 1.0           # extracellular calcium [mmol/L]
+
+    #FIXME: Rename to "extracellular M- concentration".
     extracellular HCO3- concentration: 36.0         # extracellular bicarbonate [mmol/L]
     extracellular protein- concentration: 10.0       # extracellular protein [mmol/L]
 
@@ -130,6 +132,8 @@ general options:
     cytosolic K+ concentration: 125.00              # intracellular potassium [mmol/L]
     cytosolic Cl- concentration: 20.0                # intracellular chloride [mmol/L]
     cytosolic Ca2+ concentration: 1.0e-4            # intracellular calcium [mmol/L]
+
+    #FIXME: Rename to "cytosolic M- concentration".
     cytosolic HCO3- concentration: 13.0             # intracellular bicarbonate [mmol/L]
     cytosolic protein- concentration: 100.0         # intracellular protein [mmol/L]
 

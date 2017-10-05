@@ -29,7 +29,6 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 # and is thus *NOT* safely importable in a fixture submodule directly imported
 # by a "conftest" plugin module. To defer the importation of this submodule
 # until *AFTER* test collection, this submodule is intentionally segregated.
-from betse.exceptions import BetseNumericException
 from betse.science.config import confio
 from betse.science.config.confenum import IonProfileType
 from betse.science.parameters import Parameters
@@ -37,7 +36,7 @@ from betse.science.simulate.pipe import piperunreq
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
 from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
-from betse.util.type.types import type_check, NumericTypes
+from betse.util.type.types import type_check
 
 # ....................{ SUPERCLASSES                       }....................
 class SimConfigTestWrapper(object):
@@ -186,92 +185,6 @@ class SimConfigTestWrapper(object):
         # Coerce the passed number to a float for safety.
         self._p._conf['world options']['world size'] = float(environment_size)
 
-    # ..................{ PROPERTIES ~ time : sim : getter   }..................
-    @property
-    def sim_sample_rate(self) -> float:
-        '''
-        Simulation-specific sample rate in seconds for this configuration.
-        '''
-
-        # Coerce the current number to a float for safety.
-        return float(self._p._conf['sim time settings']['sampling rate'])
-
-
-    @property
-    def sim_time(self) -> float:
-        '''
-        Simulation-specific duration in seconds for this configuration.
-        '''
-
-        # Coerce the current number to a float for safety.
-        return float(self._p._conf['sim time settings']['total time'])
-
-
-    @property
-    def sim_time_step(self) -> float:
-        '''
-        Simulation-specific time step in seconds for this configuration.
-        '''
-
-        # Coerce the current number to a float for safety.
-        return float(self._p._conf['sim time settings']['time step'])
-
-    # ..................{ PROPERTIES ~ time : sim : setter   }..................
-    @sim_sample_rate.setter
-    @type_check
-    def sim_sample_rate(self, sim_sample_rate: NumericTypes) -> None:
-        '''
-        Set the simulation-specific time step in seconds for this configuration
-        to the passed integer or float.
-        '''
-
-        # If this sample rate is less than the current time step, raise an
-        # exception.
-        if sim_sample_rate < self.sim_time_step:
-            raise BetseNumericException(
-                'Simulation sample rate {} < time step {}.'.format(
-                    sim_sample_rate, self.sim_time_step))
-
-        # Coerce the passed number to a float for safety.
-        self._p._conf['sim time settings']['sampling rate'] = float(
-            sim_sample_rate)
-
-
-    @sim_time.setter
-    @type_check
-    def sim_time(self, sim_time: NumericTypes) -> None:
-        '''
-        Set the simulation-specific duration in seconds for this configuration
-        to the passed integer or float.
-        '''
-
-        # If this duration is less than the current sample rate, raise an
-        # exception.
-        if sim_time < self.sim_sample_rate:
-            raise BetseNumericException(
-                'Simulation duration {} < sample rate {}.'.format(
-                    sim_time, self.sim_sample_rate))
-
-        # Coerce the passed number to a float for safety.
-        self._p._conf['sim time settings']['total time'] = float(sim_time)
-
-
-    @sim_time_step.setter
-    @type_check
-    def sim_time_step(self, sim_time_step: NumericTypes) -> None:
-        '''
-        Set the simulation-specific time step in seconds for this configuration
-        to the passed integer or float.
-        '''
-
-        # If this time step is non-positive, raise an exception.
-        if sim_time_step <= 0:
-            raise BetseNumericException(
-                'Simulation time step {} <= 0.'.format(sim_time_step))
-
-        # Coerce the passed number to a float for safety.
-        self._p._conf['sim time settings']['time step'] = float(sim_time_step)
-
     # ..................{ MINIMIZERS                         }..................
     def minify(self) -> None:
         '''
@@ -289,22 +202,27 @@ class SimConfigTestWrapper(object):
         # Minify initialization time to exactly ten sampled time steps. For
         # safety, permit currently defined options smaller than the minimums
         # defined below to override these minimums.
-        init = self._p._conf['init time settings']
+
         # Duration of each time step in seconds.
-        init['time step'] = min(float(init['time step']), 1.0e-3)
+        self._p.init_time_step = min(self._p.init_time_step, 1.0e-3)
+
         # Interval to sample such steps at in seconds.
-        init['sampling rate'] = min(
-            float(init['sampling rate']), init['time step'])
+        self._p.init_time_sampling = min(
+            self._p.init_time_sampling, self._p.init_time_step)
+
         # Total simulation time in seconds. The first digit effectively defines
         # the number of sampled time steps, by the above choice of time step.
-        init['total time'] = min(float(init['total time']), 3.0e-3)
+        self._p.init_time_total = min(self._p.init_time_total, 3.0e-3)
 
         # Minify simulation time to the same durations. To ensure that
         # property setter validation compares durations in the expected manner,
         # properties are assigned in order of increasing duration.
-        self.sim_time_step =   min(self.sim_time_step, init['time step'])
-        self.sim_sample_rate = min(self.sim_sample_rate, self.sim_time_step)
-        self.sim_time =        min(self.sim_time, init['total time'])
+        self._p.sim_time_step = min(
+            self._p.sim_time_step, self._p.init_time_step)
+        self._p.sim_time_sampling = min(
+            self._p.sim_time_sampling, self._p.sim_time_step)
+        self._p.sim_time_total = min(
+            self._p.sim_time_total, self._p.init_time_total)
 
         # Minify the physical dimensions of the cell cluster in meters. By
         # experimentation, the default simulation configuration both:
@@ -422,11 +340,11 @@ class SimConfigTestWrapper(object):
         self._p.ion_profile = IonProfileType.MAMMAL
 
         # For stability, decrease both the time step and sampling rates.
-        self.sim_time_step =   1e-4
-        self.sim_sample_rate = 1e-3
+        self._p.sim_time_step     = 1e-4
+        self._p.sim_time_sampling = 1e-3
 
         # For completeness, increase both the duration and cell count.
-        self.sim_time = 50e-3
+        self._p.sim_time_total = 50e-3
         self.environment_size = 250e-6
 
         # Enable the intervention increasing sodium membrane permeability.

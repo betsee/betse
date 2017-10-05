@@ -607,13 +607,13 @@ class TissueHandler(object):
                 )
             else:
                 sim.cc_env[sim.iK][:] = (
-                    self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env)
+                    self.mem_mult_Kenv*effector_Kenv*p.conc_env_k + p.conc_env_k)
 
         if p.global_options['Cl_env'] != 0 and p.ions_dict['Cl'] == 1:
             effector_Clenv = tb.pulse(t,self.t_on_Clenv,self.t_off_Clenv,self.t_change_Clenv)
 
             if p.is_ecm is False:
-                sim.cc_env[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
+                sim.cc_env[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.conc_env_cl + p.conc_env_cl
 
             elif p.is_ecm is True:  # simulate addition of sodium chloride to remain charge neutral
                 sim.c_env_bound[sim.iCl] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Cl']
@@ -623,7 +623,7 @@ class TissueHandler(object):
             effector_Naenv = tb.pulse(t,self.t_on_Naenv,self.t_off_Naenv,self.t_change_Naenv)
 
             if p.is_ecm is False:
-                sim.cc_env[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
+                sim.cc_env[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.conc_env_na + p.conc_env_na
 
             elif p.is_ecm is True: # simulate addition of sodium salt to remain charge neutral
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['Na']
