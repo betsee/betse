@@ -99,20 +99,10 @@ general options:
   ion profile: basic   # ion profile options:
                        # 'basic' (Na+, K+, M-, and proteins-)
                        # 'basic_Ca' (Na+, K+, Ca2+, M- and proteins-)
-                       # 'mammal' (Na+, K+, Cl-, Ca2+, H+, HCO3- and proteins-) typical mammal
+                       # 'mammal' (Na+, K+, Cl-, Ca2+, H+, M- and proteins-) typical mammal
+                       # 'amphibian' (Na+, K+, Cl-, Ca2+, H+, M- and proteins-) Xenopus
                        # 'custom' (user-specified settings, see below)
                        # (all profiles contain an unidentified charge-balance anion, M-)
-
-  ion profile: basic   # Type of ion profile (i.e., predefined set of all
-                       # extracellular and cytosolic ions to be simulated), as
-                       # any following string:
-                       # * "basic" for:      M-, Na+, K+, and proteins- ions.
-                       # * "basic_ca' for:   M-, Na+, K+, proteins-, and Ca2+ ions.
-                       # * "mammal" for:     M-, Na+, K+, proteins-, Ca2+, Cl-, and H+ ions
-                       #   expressed in amniotic environmental concentrations.
-                       # * "amphibian" for:  M-, Na+, K+, proteins-, Ca2+, Cl-, and H+ ions
-                       #   expressed in aquatic environmental concentrations.
-                       # * "custom" for custom ion concentrations defined below.
 
   customized ion profile:      # set user-defined initial values of ion concentrations
                                # for the initialization run

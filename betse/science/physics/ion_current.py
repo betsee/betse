@@ -4,7 +4,6 @@
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
-
 from betse.science import sim_toolbox as stb
 from betse.science.math import finitediff as fd
 
