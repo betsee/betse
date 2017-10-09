@@ -14,9 +14,7 @@ from scipy import interpolate as interp
 import math
 import copy
 
-#FIXME: For disambiguity, rename to flatten_list_of_lists(). Whereas the
-#np.flatten() function flattens an array of arbitrary dimensionality, this
-#function only flattens the first and second dimensions of a list of lists.
+
 def flatten(ls_of_ls: list) -> tuple:
     """
     Flattens (i.e., un-nests) a doubly-nested Python "list of lists."
@@ -36,8 +34,6 @@ def flatten(ls_of_ls: list) -> tuple:
 
     Examples
     ----------
-    >>> from betse.science.math import toolbox as tb
-    >>> tb.flatten([['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h', 'i']])
     (['a',   'b',   'c',   'd',   'e',   'f',   'g',   'h',   'i'],
      [[0,0], [0,1], [0,2], [1,0], [1,1], [1,2], [2,0], [2,1], [2,2]])
 
@@ -478,3 +474,20 @@ def RK4(f):
             )(dt * f(y + dy2 / 2))
         )(dt * f(y + dy1 / 2))
     )(dt * f(y))
+
+
+def clip_vals(F, max_value):
+
+    """
+    For an array, F, this ensures that min and max values are bounded by
+    the value +/- max_val.
+
+    """
+
+    inds_over = (F > max_value).nonzero()
+    inds_under = (F < -max_value).nonzero()
+
+    F[inds_over] = max_value
+    F[inds_under] = -max_value
+
+    return F

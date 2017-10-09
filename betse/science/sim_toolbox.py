@@ -8,7 +8,7 @@ import numpy as np
 import numpy.ma as ma
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-
+from betse.science.math import toolbox as tb
 from betse.exceptions import BetseSimInstabilityException
 from betse.science.math import finitediff as fd
 
@@ -1273,7 +1273,6 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         f_X_ED[cells.bflags_mems] = 0
 
     # update concentrations due to electrodiffusion:
-
     cX_cells, cX_mems, cX_env_o = update_Co(sim, cX_cells, cX_mems, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
 
     # ------------------------------------------------------------
@@ -1300,8 +1299,12 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         uy = 0
 
 
-        fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -sim.E_gj_x,
-                                          -sim.E_gj_y, ux, uy,
+        Egjx = tb.clip_vals(sim.E_gj_x, 5.0e5)
+        Egjy = tb.clip_vals(sim.E_gj_y, 5.0e5)
+
+
+        fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -Egjx,
+                                          -Egjy, ux, uy,
                                           sim.gjopen*Dgj*sim.gj_block, z, sim.T, p)
 
         fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]

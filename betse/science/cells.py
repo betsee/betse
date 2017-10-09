@@ -1663,12 +1663,6 @@ class Cells(object):
         self.xypts = self.grid_obj.xy_cents
         self.map_ij2k = self.grid_obj.map_ij2k_cents
 
-        #FIXME: The following complex assignment can be reduced to simply:
-        #
-        #    self.index_k = range(len(self.xypts))
-        #
-        #Neat-o, eh?
-
         # linear k index:
         self.index_k = [x for x in range(0,len(self.xypts))]
 

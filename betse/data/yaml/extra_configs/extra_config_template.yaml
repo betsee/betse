@@ -54,6 +54,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L] (if mit enabled!)
     transmem: False   # substance embeded in membrane (and therefore movable by extracellular fields, flow?)
     sharpness: 100    # specify an inverse smoothing coefficient for intracellular polarity (2 is high smoothing, 100 is low)
+    update intracellular: False  # allows you to shut of intracellular transport for fast diffusion with stability
     initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
     TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
     GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)
@@ -177,10 +178,12 @@ channels:
     activator Km: [0.1]
     activator n: [3.0]
     activator zone: ['cell']
+    activator max: 0.75             # saturating fraction of the activation
     channel inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
     inhibitor Km: [1.5]
     inhibitor n: [3.0]
     inhibitor zone: ['cell']
+    inhibitor max: 0.3              # saturating fraction of inhibition
 
     # type for channel class Na: Nav1p2, Nav1p3, NavRat1, NavRat2, Nav1p6, NaLeak
     #                        K: K_Slow, K_Fast, Kv1p1, Kv1p2, Kv1p3, Kv1.4, Kv1.5, Kv1.6,

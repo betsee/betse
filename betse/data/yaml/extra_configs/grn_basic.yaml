@@ -62,7 +62,6 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
       inhibitors: ['Gene 3']   # list of defined substances or simulation ions inhibiting expression
       Km inhibitors: [0.01]      # list of half-maximum values for inhibitors
       n inhibitors: [1]        # list of Hill exponent of inhibitors
-
     plotting:
       plot 2D: True         # create a unique set of plots for the substance
       animate: True         # animate the substance during the sampled time-steps of the simulation

@@ -293,6 +293,9 @@ class MasterOfNetworks(object):
                 mol.Dgj = float(mol_dic.get('Dgj', 1.0e-16))  # effective diffusion coefficient of substance through GJ
                 mol.z = float(mol_dic['z'])  # charge (oxidation state)
 
+                # does the substance update in the intracellular region?
+                mol.update_intra_conc = mol_dic.get('update intracellular', True)
+
 
                 # factors describing potential transport along current-aligned microtubules
                 mol.u_mt = float(mol_dic.get('u_mtube', 0.0))
@@ -929,11 +932,13 @@ class MasterOfNetworks(object):
             obj.channel_activators_Km = chan_dic.get('activator Km', None)
             obj.channel_activators_n = chan_dic.get('activator n', None)
             obj.channel_activators_zone = chan_dic.get('activator zone', None)
+            obj.channel_activators_max = chan_dic.get('activator max', None)
 
             obj.channel_inhibitors_list = chan_dic.get('channel inhibitors', None)
             obj.channel_inhibitors_Km = chan_dic.get('inhibitor Km', None)
             obj.channel_inhibitors_n = chan_dic.get('inhibitor n', None)
             obj.channel_inhibitors_zone = chan_dic.get('inhibitor zone', None)
+            obj.channel_inhibitors_max = chan_dic.get('inhibitor max', None)
 
             obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, sim, cells, p)
 
@@ -949,11 +954,23 @@ class MasterOfNetworks(object):
             Km_a_list = obj.channel_activators_Km
             n_a_list = obj.channel_activators_n
             zone_a = obj.channel_activators_zone
+            max_a = obj.channel_activators_max
 
             i_list = obj.channel_inhibitors_list
             Km_i_list = obj.channel_inhibitors_Km
             n_i_list = obj.channel_inhibitors_n
             zone_i = obj.channel_inhibitors_zone
+            max_i = obj.channel_inhibitors_max
+
+            if max_a is None and a_list is not None:
+
+                max_a = np.ones(len(a_list))
+
+            if max_i is None and i_list is not None:
+
+                max_i = np.zeros(len(i_list))
+
+
 
             tex_vars = []
 
@@ -961,7 +978,8 @@ class MasterOfNetworks(object):
                                                                     a_list, Km_a_list, n_a_list, i_list,
                                                                     Km_i_list, n_i_list, tex_list = tex_vars,
                                                                     reaction_zone='mem', zone_tags_a=zone_a,
-                                                                    zone_tags_i=zone_i, in_mem_tag=True)
+                                                                    zone_tags_i=zone_i, in_mem_tag=True,
+                                                                    max_activators = max_a, max_inhibitors = max_i)
 
 
             obj.alpha_eval_string = "(" + all_alpha + ")"
@@ -2655,7 +2673,9 @@ class MasterOfNetworks(object):
 
             # calculate concentrations at membranes:
             obj = self.molecules[mol]
-            obj.update_intra(sim, cells, p)
+
+            if obj.update_intra_conc:
+                obj.update_intra(sim, cells, p)
 
             # calculate rates of growth/decay:
             gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, globalo, localo))
@@ -4563,7 +4583,8 @@ class MasterOfNetworks(object):
         return graphicus_maximus
 
     def get_influencers(self, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-        n_i_list, tex_list = None, reaction_zone='cell', zone_tags_a = None, zone_tags_i = None, in_mem_tag = False):
+        n_i_list, tex_list = None, reaction_zone='cell', zone_tags_a = None, zone_tags_i = None, in_mem_tag = False,
+                        max_activators = None, max_inhibitors = None):
 
         """
         Given lists of activator and inhibitor names, with associated
@@ -4630,6 +4651,16 @@ class MasterOfNetworks(object):
 
         else:
             raise BetseSimConfigException("Reaction zone requested not an existing option!")
+
+        # if max_inhibitors or max_activators lists are not supplied (and therefore None) default to original
+        if max_activators is None and a_list != 'None' and a_list is not None:
+            max_activators = np.zeros(len(a_list))
+
+
+        if max_inhibitors is None and i_list != 'None' and i_list is not None:
+
+            max_inhibitors = np.zeros(len(i_list))
+
 
 
         if a_list is not None and a_list != 'None' and len(a_list) > 0:
@@ -4841,10 +4872,18 @@ class MasterOfNetworks(object):
         if i_list is not None and i_list != 'None' and len(i_list) > 0:
 
             # Next, construct the inhibitors net effect term:
-            for i, (name, Kmo, n, zone_tag) in enumerate(zip(i_list, Km_i_list, n_i_list, zone_tags_i)):
+            for i, (name, Kmo, n, zone_tag, max_i) in enumerate(zip(i_list, Km_i_list, n_i_list, zone_tags_i,
+                                                                    max_inhibitors)):
 
+                if max_i != 0.0 and max_i is not None:
 
-                # Check for and deal with accessory name tag flags:
+                    maxI = str(max_i)
+
+                else:
+
+                    maxI = "0.0"
+
+                # Check for and deal with accessory name-tag flags:
                 if name.endswith('*'):
                     # capture the original name that will work in dictionaries:
                     name = name[:-1]
@@ -4884,13 +4923,20 @@ class MasterOfNetworks(object):
                 denomo_string_i = ""
                 direct_string_i = ""
 
+                if maxI == "0.0":
+                    numo_string_i = "1"
+
+                else:
+
+                    numo_string_i += ("(1" + "-" + maxI + ")")
+
+
                 if reaction_zone == 'cell':
 
                     if zone_tag == 'cell':
 
                         tex_name = name
 
-                        numo_string_i += "1"
                         denomo_string_i += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Kmc, n)
 
                         direct_string_i += "-self.cell_concs['{}']".format(name)
@@ -4899,7 +4945,6 @@ class MasterOfNetworks(object):
 
                         tex_name = name + '_{env}'
 
-                        numo_string_i += "1"
                         denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Kme, n)
                         direct_string_i += "-self.env_concs['{}'][cells.map_cell2ecm]".format(name)
 
@@ -4909,7 +4954,6 @@ class MasterOfNetworks(object):
 
                         tex_name = name
 
-                        numo_string_i += "1"
                         denomo_string_i += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Kmc, n)
 
                         direct_string_i += "-self.mem_concs['{}']".format(name)
@@ -4918,7 +4962,6 @@ class MasterOfNetworks(object):
 
                         tex_name = name + '_{env}'
 
-                        numo_string_i += "1"
                         denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Kme, n)
 
                         direct_string_i += "-self.env_concs['{}'][cells.map_mem2ecm]".format(name)
@@ -4927,7 +4970,6 @@ class MasterOfNetworks(object):
 
                     tex_name = name + '_{mit}'
 
-                    numo_string_i += "1"
                     denomo_string_i += "(1 + (self.mit_concs['{}']/{})**{})".format(name, Kmo, n)
 
                     direct_string_i += "-self.mit_concs['{}']".format(name)
@@ -4938,8 +4980,6 @@ class MasterOfNetworks(object):
 
                         tex_name = name
 
-                        numo_string_i += "1"
-
                         denomo_string_i += "1"
 
                         direct_string_i += "1"
@@ -4948,18 +4988,34 @@ class MasterOfNetworks(object):
 
                         tex_name = name + '_{env}'
 
-                        numo_string_i += "1"
                         denomo_string_i += "(1 + (self.env_concs['{}']/{})**{})".format(name, Kme, n)
                         direct_string_i += "-self.env_concs['{}']".format(name)
 
-                numo_tex_i = "1"
+                if maxI == "0.0":
+                    numo_tex_i = "1"
+
+                else:
+                    numo_tex_i = ("(1" + "-" + maxI + ")")
+
                 denomo_tex_i = r"1+\left(\frac{[%s]}{K_{%s}^{i}}\right)^{n_{%s}^{i}}" % (tex_name, tex_name, tex_name)
 
                 direct_tex_i =  r"[%s]" % (tex_name)
 
-                term = "(" + numo_string_i + "/" + denomo_string_i + ")"
+                if maxI == "0.0":
 
-                tex_term = r"\left(\frac{%s}{%s}\right)" % (numo_tex_i, denomo_tex_i)
+                    term = "(" + numo_string_i + "/" + denomo_string_i + ")"
+
+                else:
+
+                    term = "(" + numo_string_i + "/" + denomo_string_i + ")" + "+" + maxI
+
+
+                if maxI == "0.0":
+
+                    tex_term = r"\left(\frac{%s}{%s}\right)" % (numo_tex_i, denomo_tex_i)
+
+                else:
+                    tex_term = r"\left(\frac{%s}{%s}\right) + {%s}" % (numo_tex_i, denomo_tex_i, maxI)
 
                 # write fixed parameter values to LaTeX----------
                 # FIXME differentiate between Kme and Kmc here
@@ -5143,6 +5199,8 @@ class Molecule(object):
 
     def update_intra(self, sim, cells, p):
 
+        max_move = 1.0e-5  # sets a maximum value for any transport coefficient
+
         cav = self.c_cells[cells.mem_to_cells]  # concentration at cell centre
         cmi = self.cc_at_mem  # concentration at membrane
         z = self.z  # charge of ion
@@ -5175,13 +5233,15 @@ class Molecule(object):
 
             # curl component of current is a fluid-flow; get the membrane normal component:
 
-            fxo = (sim.J_env_x.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
-            fyo = (sim.J_env_y.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
+            # fxo = (sim.J_env_x.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
+            # fyo = (sim.J_env_y.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
+            #
+            # fxi = (np.dot(cells.M_sum_mems, fxo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+            # fyi = (np.dot(cells.M_sum_mems, fyo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+            #
+            # uflow = fxi * cells.mem_vects_flat[:, 2] + fyi * cells.mem_vects_flat[:, 3]
 
-            fxi = (np.dot(cells.M_sum_mems, fxo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-            fyi = (np.dot(cells.M_sum_mems, fyo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-
-            uflow = fxi * cells.mem_vects_flat[:, 2] + fyi * cells.mem_vects_flat[:, 3]
+            uflow = 0.0
 
 
         if self.transmem is True:
@@ -5208,13 +5268,26 @@ class Molecule(object):
 
         if self.transmem:
 
+            c_diffusion = tb.clip_vals(-Do*cg, max_move)
+            c_ephoresis_A = tb.clip_vals((Do*p.q*z)/(p.kb*sim.T)*cp*Eecm, max_move)
+            c_ephoresis_B = tb.clip_vals(self.Mu_mem*cp*Eecm, max_move)
+            c_eosmo = tb.clip_vals(uflow*cp, max_move)
+
+
             # diffuse in concentration gradient, via extracellular field and via extracellular flow:
-            cfluxo = (-Do*cg + ((Do*p.q*z)/(p.kb*sim.T))*cp*Eecm + self.Mu_mem*cp*Eecm + uflow*cp)
+            cfluxo = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_eosmo)
+
 
         else:
 
+            c_diffusion = tb.clip_vals(-Do*cg, max_move)
+            c_ephoresis_A = tb.clip_vals((Do*p.q*z)/(p.kb*sim.T)*cp*En, max_move)
+            c_ephoresis_B = tb.clip_vals(self.Mu_mem*cp*En, max_move)
+            c_motor = tb.clip_vals(umtn*self.u_mt*cp, max_move)
+
+
             # move with conc gradient, via intracellular field (Einstein coefficient or mobility), or motor proteins:
-            cfluxo = (-Do*cg + ((Do*p.q*z)/(p.kb*sim.T))*cp*En + self.Mu_mem*cp*En + umtn*self.u_mt*cp)
+            cfluxo = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_motor)
 
 
         # as no net mass must leave this intracellular movement, make the flux divergence-free:
@@ -5224,7 +5297,6 @@ class Molecule(object):
         self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
 
         # smooth the concentration:
-        # print(sim.smooth_weight_mem.mean(), sim.smooth_weight_o.mean())
         self.cc_at_mem = self.smooth_weight_mem*self.cc_at_mem + self.smooth_weight_o*cav
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
