@@ -23,7 +23,17 @@ def test_get_precision() -> None:
     #
     # * A large float formatted in scientific notation by the str() builtin.
     # * A small float formatted in scientific notation by the str() builtin.
-    # * A small float formatted in decimal notation by the str() builtin.
+    # * A small float with a leading digit formatted in decimal notation by the
+    #   str() builtin.
+    # * A small float with no leading digit formatted in decimal notation by the
+    #   str() builtin.
+    #
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # CAUTION: Python implicitly reformats all floating point numbers smaller
+    # than 0.0001 when converted to strings in scientific rather than decimal
+    # notation. Hence, small floats should be no smaller than 0.0001.
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     assert floats.get_precision(7.77e+66) == 66
     assert floats.get_precision(6.66e-77) == 77
     assert floats.get_precision(0.000123456789) == 12
+    assert floats.get_precision( .000123456789) == 12

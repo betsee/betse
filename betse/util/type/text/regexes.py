@@ -104,10 +104,23 @@ def get_match_groups_named(
     the beginning of the passed string against the passed regular expression if
     a match exists or raise an exception otherwise.
 
-    Unmatched groups will have the value `None`. Unnamed (i.e., only numbered)
-    groups will be ignored and hence absent from this dictionary, regardless of
-    whether any such group matched. If this is undesirable, consider calling
-    `get_match_groups_numbered()` instead.
+    For each capture group of the form ``(?P<group_name>...)`` in this regular
+    expression, this dictionary contains a key-value pair whose:
+
+    * Key is this named group's ``group_name``.
+    * Value is either:
+      * ``None`` if this group is unmatched by this string.
+      * The matched substring otherwise.
+
+    Unnamed (i.e., only numbered) groups are ignored and hence excluded from
+    this dictionary, regardless of whether any of these groups matched. If
+    undesirable, call the :func:`get_match_groups_numbered` function instead.
+
+    Caveats
+    ----------
+    Python does *not* support the increasingly standardized named group form
+    ``(?<group_name>...)`` -- only the Python-specific form
+    ``(?P<group_name>...)``.
 
     Parameters
     ----------
