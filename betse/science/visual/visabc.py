@@ -9,7 +9,6 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 #FIXME: Refactor all procedural cell cluster-specific
 #"betse.science.visual.plot.plotutil" functions into subclasses of the
 #"LayerCellsABC" base class defined elsewhere.
-#
 #Ultimate power fights the dark deceit!
 
 # ....................{ IMPORTS                            }....................
@@ -34,7 +33,8 @@ from betse.util.type.types import (
     IterableTypes,
     NoneType,
     NumericOrNoneTypes,
-    SequenceTypes, SequenceOrNoneTypes,
+    SequenceTypes,
+    SequenceOrNoneTypes,
     StrOrNoneTypes,
 )
 from matplotlib import pyplot

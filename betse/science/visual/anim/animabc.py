@@ -97,7 +97,7 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
-from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
+from betse.lib.matplotlib.writer.mplcls import ImageMovieWriter, NoopMovieWriter
 from betse.science.visual.layer.vectorfield.lyrvecfldabc import (
     LayerCellsFieldColorlessABC)
 from betse.science.visual.layer.vectorfield.lyrvecfldstream import (
@@ -346,7 +346,7 @@ class AnimCellsABC(VisualCellsABC):
             #method, where the actual frame count is finally passed.
 
             # Template expanding to the basename of each image to be saved.
-            # The "ImageWriter" class subsequently expands the "{{"- and
+            # The "ImageMovieWriter" class subsequently expands the "{{"- and
             # "}}"-delimited substring to the 0-based index of the current
             # frame number.
             save_frame_template_basename = '{}_{{:07d}}.{}'.format(
@@ -358,7 +358,7 @@ class AnimCellsABC(VisualCellsABC):
                 save_dirname, save_frame_template_basename)
 
             # Object writing animation frames as images.
-            self._writer_images = ImageWriter()
+            self._writer_images = ImageMovieWriter()
 
             # Log this preparation.
             logs.log_debug(
@@ -669,13 +669,13 @@ class AnimCellsABC(VisualCellsABC):
                 # method a writer reducing to a noop, circumventing conflicts
                 # with the manual saving performed by our plot_frame() method.
                 self._anim.save(
-                    # Note that, since "NoopWriter" maintains no state, a
-                    # singleton "NoopWriter" instance could technically be
+                    # Note that, since "NoopMovieWriter" maintains no state, a
+                    # singleton "NoopMovieWriter" instance could technically be
                     # shared amongst all animation classes. However, since
-                    # "NoopWriter" construction is trivially fast, there are no
+                    # "NoopMovieWriter" construction is trivially fast, there are no
                     # demonstrable advantages and arguable disadvantages to
                     # doing so (e.g., code complexity, space consumption).
-                    writer=NoopWriter(),
+                    writer=NoopMovieWriter(),
 
                     # Pass an ignorable filename. To guarantee that an
                     # exception is raised on this method attempting to read or

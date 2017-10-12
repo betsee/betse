@@ -71,7 +71,7 @@ def get_precision(number: float) -> int:
         significand_frac = (
             number_text_groups['significand_frac_empty'] or
             number_text_groups['significand_frac_nonempty'] or '')
-        logs.log_debug('significand (fractional): %s', significand_frac)
+        # logs.log_debug('significand (fractional): %s', significand_frac)
         # print('significand (fractional): %s' % significand_frac)
 
         # This number's precision is the number of digits in this part.
@@ -134,7 +134,7 @@ def get_float_regex() -> RegexCompiledType:
     from betse.util.type.text import regexes
 
     # Create, return, and cache this expression.
-    return regexes.compile(
+    return regexes.compile_regex(
         # Significand (captured).
         r'(?P<significand>'
             # Negative or positive prefix (optional).
@@ -163,53 +163,4 @@ def get_float_regex() -> RegexCompiledType:
                 r'\d+'
             r')'
         r')?'
-    )
-
-
-#FIXME: Obsoleted by the above regular expression.
-@callable_cached
-def get_float_scientific_notation_regex() -> RegexCompiledType:
-    '''
-    Compiled regular expression matching a floating point number in scientific
-    notation encapsulated as a string (e.g., ``6.6e9``).
-
-    This expression captures the following positional match groups (in order):
-
-    1. Significand of this number (e.g., ``6.6`` in the case of ``6.6e9``).
-    1. Exponent of this number (e.g., ``9`` in the case of ``6.6e9``).
-
-    See Also
-    ----------
-    https://stackoverflow.com/a/658662/2809027
-        StackOverflow answer strongly inspiring this implementation.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.type.text import regexes
-
-    # Create, return, and cache this expression.
-    return regexes.compile(
-        # Significand (captured).
-        r'('
-            # Significand sign (optional).
-            r'[+-]?'
-            # Non-fractional part of the significand. Either:
-            r'(?:'
-                # Zero.
-                r'0|'
-                # One or more digits whose first digit is *NOT* zero.
-                r'[1-9]\d*'
-            r')'
-            # Fractional part of the significand (optional).
-            r'(?:\.\d*)?'
-        r')'
-        # Exponent prefix.
-        r'[eE]'
-        # Exponent (captured).
-        r'('
-            # Exponent sign (optional).
-            r'[+-]?'
-            # Exponent digits.
-            r'\d+'
-        r')'
     )

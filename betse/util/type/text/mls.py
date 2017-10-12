@@ -34,7 +34,7 @@ def get_tag_regex() -> RegexCompiledType:
     from betse.util.type.text import regexes
 
     # Create, return, and cache this expression.
-    return regexes.compile(
+    return regexes.compile_regex(
         # Tag prefix.
         r'<'
         # Tag closure prefix (optional).

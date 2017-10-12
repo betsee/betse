@@ -69,17 +69,13 @@ def is_match(text: str, regex: RegexTypes, **kwargs) -> bool:
 
 def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
     '''
-    ``True`` only if at least one line of the passed string match the passed
-    regular expression.
-
-    This function implicitly enables the :data:`FLAG_MULTILINE` flag for this
-    match, ensuring that `^` and `$` match both at the start and end of this
-    string _and_ at the start and end of each line of this string.
+    ``True`` only if one or more lines of the passed subject string match the
+    passed regular expression.
 
     Parameters
     ----------
     text : str
-        String to match.
+        Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * :class:`str`, signifying an uncompiled regular expression.
@@ -92,9 +88,14 @@ def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
     ----------
     bool
         ``True`` only if this string matches this regular expression.
+
+    See Also
+    ----------
+    :func:`get_match_line_first_if_any`
+        Further details.
     '''
 
-    return get_match_line_if_any(text, regex, **kwargs) is not None
+    return get_match_line_first_if_any(text, regex, **kwargs) is not None
 
 # ....................{ MATCHERS ~ group : named           }....................
 def get_match_groups_named(
@@ -156,9 +157,9 @@ def get_match_groups_named(
 def get_match_groups_numbered(
     text: str, regex: RegexTypes, **kwargs) -> SequenceTypes:
     '''
-    List of all groups matched anchored to the beginning of the passed string
-    against the passed regular expression (ordered by the left-to-right lexical
-    position at which each such group was matched) if any _or_ raise an
+    List of all groups matched anchored to the beginning of the passed subject
+    string against the passed regular expression (ordered by the left-to-right
+    lexical position at which each such group was matched) if any *or* raise an
     exception otherwise.
 
     Unmatched groups will have the value `None`.
@@ -166,7 +167,7 @@ def get_match_groups_numbered(
     Parameters
     ----------
     text : str
-        String to match.
+        Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * :class:`str`, signifying an uncompiled regular expression.
@@ -188,7 +189,7 @@ def get_match_groups_numbered(
     See Also
     ----------
     :func:`get_match_if_any`
-        Further details on regular expressions and keyword arguments.
+        Further details.
     '''
 
     return get_match(text, regex, **kwargs).groups()
@@ -197,9 +198,9 @@ def get_match_groups_numbered(
 def get_match_groups_numbered_if_any(
     text: str, regex: RegexTypes, **kwargs) -> SequenceOrNoneTypes:
     '''
-    List of all groups matched anchored to the beginning of the passed string
-    against the passed regular expression (ordered by the left-to-right lexical
-    position at which each such group was matched) if any *or* ``None``
+    List of all groups matched anchored to the beginning of the passed subject
+    string against the passed regular expression (ordered by the left-to-right
+    lexical position at which each such group was matched) if any *or* ``None``
     otherwise.
 
     Unmatched groups will have the value ``None``.
@@ -207,7 +208,7 @@ def get_match_groups_numbered_if_any(
     Parameters
     ----------
     text : str
-        String to match.
+        Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * :class:`str`, signifying an uncompiled regular expression.
@@ -227,23 +228,60 @@ def get_match_groups_numbered_if_any(
     See Also
     ----------
     :func:`get_match_if_any`
-        Further details on regular expressions and keyword arguments.
+        Further details.
     '''
 
     match = get_match_if_any(text, regex, **kwargs)
     return match.groups() if match is not None else None
 
-# ....................{ MATCHERS ~ object                  }....................
-def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
+# ....................{ MATCHERS ~ full : first            }....................
+def get_match_full_first_if_any(
+    text: str, regex: RegexTypes, **kwargs) -> SequenceOrNoneTypes:
     '''
-    Match object obtained by matching zero or more characters anchored to the
-    beginning of the passed string against the passed regular expression if any
-    match exists _or_ raise an exception otherwise.
+    First complete substring matched anchored to the beginning of the passed
+    subject string against the passed regular expression if any *or* ``None``
+    otherwise.
 
     Parameters
     ----------
     text : str
-        String to match.
+        Subject string to match.
+    regex : RegexTypes
+        Regular expression to be matched. This object should be either of type:
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
+
+    This function accepts the same optional keyword arguments as the
+    :func:`re.match` function.
+
+    Returns
+    ----------
+    SequenceOrNoneTypes
+        Either:
+        * If this string matches this regular expression, the first complete
+          substring matched from this string.
+        * Else, ``None``.
+
+    See Also
+    ----------
+    :func:`get_match_if_any`
+        Further details.
+    '''
+
+    match = get_match_if_any(text, regex, **kwargs)
+    return match.group(0) if match is not None else None
+
+# ....................{ MATCHERS ~ obj                     }....................
+def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
+    '''
+    Match object obtained by matching zero or more characters anchored to the
+    beginning of the passed subject string against the passed regular expression
+    if any match exists *or* raise an exception otherwise.
+
+    Parameters
+    ----------
+    text : str
+        Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * :class:`str`, signifying an uncompiled regular expression.
@@ -255,7 +293,7 @@ def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
     Returns
     ----------
     RegexMatchType
-        Match object.
+        This match object.
 
     Raises
     ----------
@@ -268,17 +306,18 @@ def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
         Further details on calling conventions.
     '''
 
-    # Match group of this string against this expression.
+    # Object matching this string against this expression.
     match = get_match_if_any(text, regex, **kwargs)
 
-    # If no match was found, convert the non-fatal "None" returned by re.match()
-    # into a fatal exception. By design, no callables of the standard re module
-    # raise exceptions.
+    # If no match was found, convert the non-fatal "None" returned by the
+    # re.match() function into a fatal exception. By design, no callables in the
+    # "re" module raise exceptions.
     if match is None:
         raise BetseRegexException(
             'Subject string "{}" not matched by '
             'regular expression "{}".'.format(text, regex))
 
+    # Return this match.
     return match
 
 
@@ -287,13 +326,13 @@ def get_match_if_any(
     text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
     '''
     Match object obtained by matching zero or more characters anchored to the
-    beginning of the passed string against the passed regular expression if any
-    match exists *or* ``None`` otherwise.
+    beginning of the passed subject string against the passed regular expression
+    if any match exists *or* ``None`` otherwise.
 
     Parameters
     ----------
     text : str
-        String to match.
+        Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * :class:`str`, signifying an uncompiled regular expression.
@@ -313,7 +352,7 @@ def get_match_if_any(
     Returns
     ----------
     RegexMatchOrNoneTypes
-        Match object if a match exists *or* ``None`` otherwise.
+        This match object if a match exists *or* ``None`` otherwise.
 
     See Also
     ----------
@@ -324,27 +363,72 @@ def get_match_if_any(
     # Sanitize the passed match flags.
     _init_kwargs_flags(regex, kwargs)
 
-    # Match group of this string against this expression.
+    # Return the only object matching this string against this expression.
     return re.match(regex, text, **kwargs)
 
-# ....................{ MATCHERS ~ object : line           }....................
+# ....................{ MATCHERS ~ obj : first             }....................
 @type_check
-def get_match_line_if_any(
+def get_match_first_if_any(
     text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
     '''
-    Match object obtained by matching the passed string against the passed
-    regular expression in a line-oriented manner if any such match exists *or*
-    ``None`` otherwise.
-
-    To ensure that only single lines are matched, this regular expression should
-    typically be prefixed by the ``^`` special character and/or suffixed by the
-    ``$`` special character, thus anchoring matches to the start and/or end of
-    this string as a whole and each line of this string.
+    First match object obtained by matching the passed subject string against
+    the passed regular expression if any match exists *or* ``None`` otherwise.
 
     Parameters
     ----------
     text : str
-        String to match.
+        Subject string to match.
+    regex : RegexTypes
+        Regular expression to be matched. This object should be either of type:
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
+
+    This function accepts the same optional keyword arguments as
+    :func:`re.match`.
+
+    Match Flags
+    ----------
+    For convenience, the following match flags will be enabled by default:
+
+    * :data:`re.DOTALL`, forcing the ``.`` special character to match any
+      character including newline. By default, this character matches any
+      character excluding newline. The former is almost always preferable.
+
+    Returns
+    ----------
+    RegexMatchOrNoneTypes
+        This match object if a match exists *or* ``None`` otherwise.
+
+    See Also
+    ----------
+    https://docs.python.org/3/library/re.html#re.match
+        Further details on regular expressions and keyword arguments.
+    '''
+
+    # Sanitize the passed match flags.
+    _init_kwargs_flags(regex, kwargs)
+
+    # Return the first object matching this string against this expression.
+    return re.search(regex, text, **kwargs)
+
+# ....................{ MATCHERS ~ obj : line : first      }....................
+@type_check
+def get_match_line_first_if_any(
+    text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
+    '''
+    First match object obtained by matching the passed subject string against
+    the passed regular expression in a line-oriented manner if any such match
+    exists *or* ``None`` otherwise.
+
+    To ensure that only single lines are matched, this regular expression should
+    typically be prefixed by the ``^`` special character and/or suffixed by the
+    ``$`` special character, anchoring matches to the start and/or end of this
+    subject string as a whole and each line of this string.
+
+    Parameters
+    ----------
+    text : str
+        Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * :class:`str`, signifying an uncompiled regular expression.
@@ -365,7 +449,7 @@ def get_match_line_if_any(
     Returns
     ----------
     RegexMatchOrNoneTypes
-        Match object if a match exists *or* ``None`` otherwise.
+        This match object if a match exists *or* ``None`` otherwise.
 
     See Also
     ----------
@@ -376,7 +460,7 @@ def get_match_line_if_any(
     # Sanitize the passed match flags for line-oriented matching.
     _init_kwargs_flags_line(regex, kwargs)
 
-    # Match group of this string against this expression.
+    # Return the first object matching this string against this expression.
     return re.search(regex, text, **kwargs)
 
 # ....................{ ITERATORS                          }....................
@@ -617,14 +701,14 @@ def replace_substrs_line(
 
 # ....................{ COMPILERS                          }....................
 @type_check
-def compile(regex: str, **kwargs) -> RegexCompiledType:
+def compile_regex(regex: str, **kwargs) -> RegexCompiledType:
     '''
     Compile the passed uncompiled regular expression.
 
     Parameters
     ----------
-    text : str
-        String to match.
+    regex : str
+        Uncompiled regular expression to be compiled.
 
     All remaining keyword parameters are passed as is to the :func:`re.compile`
     function.
@@ -632,7 +716,7 @@ def compile(regex: str, **kwargs) -> RegexCompiledType:
     Returns
     ----------
     RegexCompiledType
-        Compiled regular expression.
+        This compiled regular expression.
     '''
 
     # Return this regular expression compiled.
