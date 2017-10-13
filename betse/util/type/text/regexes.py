@@ -589,7 +589,6 @@ def remove_substrs(text: str, regex: RegexTypes, **kwargs) -> str:
     return replace_substrs(text=text, regex=regex, replacement='', **kwargs)
 
 # ....................{ REPLACERS                          }....................
-#FIXME: For disambiguity, rename to replace_substrs_nonline().
 @type_check
 def replace_substrs(
     text: str,
@@ -598,8 +597,8 @@ def replace_substrs(
     **kwargs
 ) -> str:
     '''
-    Passed string with all substrings matching the passed regular expression
-    globally replaced with the passed substitution in a non-line-oriented
+    Passed subject string with all substrings matching the passed regular
+    expression replaced by the passed substitution in a non-line-oriented
     manner.
 
     Match Flags
@@ -613,7 +612,7 @@ def replace_substrs(
     Parameters
     ----------
     text : str
-        String to perform these replacements in.
+        Subject string to replace these substrings of.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * :class:`str`, signifying an uncompiled regular expression.
@@ -653,8 +652,8 @@ def replace_substrs_line(
     **kwargs
 ) -> str:
     '''
-    Passed string with all substrings matching the passed regular expression
-    globally replaced with the passed substitution in a line-oriented manner.
+    Passed subject string with all substrings matching the passed regular
+    expression replaced by the passed substitution in a line-oriented manner.
 
     Match Flags
     ----------
@@ -668,7 +667,7 @@ def replace_substrs_line(
     Parameters
     ----------
     text : str
-        String to perform these replacements in.
+        Subject string to replace these substrings of.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * :class:`str`, signifying an uncompiled regular expression.

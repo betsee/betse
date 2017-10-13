@@ -116,6 +116,15 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     _colormap : Colormap
         Matplotlib colormap with which to create this animation's colorbar.
 
+    Attributes (Private: Saving)
+    ----------
+    _writer_savefig_kwargs : dict
+        Dictionary of all keyword arguments to be passed to the
+        :meth:`Figure.savefig` method called to save each visual frame for
+        both still images and animated video. By default, this dictionary:
+        * Enables the ``transparent`` argument, painting frame backgrounds
+          transparently rather than as a solid color (usually, white).
+
     Attributes (Private: Time)
     ----------
     _is_time_step_first : bool
@@ -245,6 +254,12 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Default all remaining attributes.
         self._is_time_step_first = True
+
+        # Dictionary of keyword arguments to be passed to Figure.savefig().
+        self._writer_savefig_kwargs = {
+            # Visualize frame backgrounds transparently rather than solid.
+            'transparent': True,
+        }
 
         # Initialize this plot's figure *AFTER* defining all attributes.
         self._init_figure()

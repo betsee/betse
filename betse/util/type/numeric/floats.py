@@ -8,9 +8,24 @@ Low-level floating point facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.io.log import logs
+from sys import float_info
+# from betse.util.io.log import logs
 from betse.util.type.call.memoizers import callable_cached
 from betse.util.type.types import type_check, RegexCompiledType
+
+# ....................{ CONSTANTS                          }....................
+FLOAT_MIN = float_info.min
+'''
+Minimum representable finite floating point number under the active Python
+interpreter.
+'''
+
+
+FLOAT_MAX = float_info.max
+'''
+Maximum representable finite floating point number under the active Python
+interpreter.
+'''
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -95,9 +110,9 @@ def get_precision(number: float) -> int:
 @callable_cached
 def get_float_regex() -> RegexCompiledType:
     '''
-    Compiled regular expression matching a floating point number in either
-    decimal notation (e.g., ``6.69``) *or* scientific notation (e.g., ``6.6e9``)
-    encapsulated as a string.
+    Compiled regular expression matching a floating point number represented as
+    a string in either decimal notation (e.g., ``6.69``) *or* scientific
+    notation (e.g., ``6.6e9``).
 
     This expression captures the following named match groups (in order):
 
@@ -164,3 +179,126 @@ def get_float_regex() -> RegexCompiledType:
             r')'
         r')?'
     )
+
+
+@callable_cached
+def _get_float_exponent_regex() -> RegexCompiledType:
+    '''
+    Compiled regular expression matching the exponent of a floating point number
+    represented as a string in scientific notation, typically produced by the
+    ``{:g}`` format specifier (e.g., ``6.6e+09``).
+
+    This expression captures the following named match groups (in order):
+
+    1. ``negation``, yielding the optional negative sign prefixing this number's
+       exponent if any or the empty string otherwise (e.g., ``-`` given
+       ``6.7e-09``).
+    1. ``magnitude``, yielding the mandatory magnitude of this number's exponent
+       excluding optional prefixing zero (e.g., ``9`` given ``6.7e+09``).
+
+    See Also
+    ----------
+    https://jdreaver.com/posts/2014-07-28-scientific-notation-spin-box-pyside.html
+        Blog article partially inspiring this implementation.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text import regexes
+
+    # Create, return, and cache this expression.
+    return regexes.compile_regex(
+        # Exponent prefix.
+        r'e'
+        # Exponent sign, either:
+        r'(?:'
+            # Ignorable positive sign. Since exponents lacking an explicit
+            # sign default to positive, this sign is extraneous for purposes
+            # of producing human-readable strings from floats.
+            r'\+'
+            r'|'
+            # Non-ignorable negative sign.
+            r'(?P<negation>-)'
+        r')'
+        # Exponent digits.
+        #
+        # Ignorable zero prefix (optional). For unclear reasons, the "{:g}"
+        # format specifier prefixes all exponnet magnitudes in the
+        # single-digit range [1, 9] with a zero, which is extraneous for
+        # purposes of producing human-readable strings from floats.
+        r'0?'
+        # Non-ignorable exponent magnitude.
+        r'(?P<magnitude>\d+)'
+        # Exponent end.
+        r'$'
+    )
+
+# ....................{ CONVERTERS                         }....................
+@type_check
+def to_str(number: float) -> str:
+    '''
+    Human-readable string losslessly converted from the passed floating point
+    number.
+
+    This function effectively pretty-prints floats, reducing the unnecessarily
+    verbose strings produced by the ``{:g}`` format specifier as follows:
+
+    * The extraneous positive sign preceding positive exponents is removed
+      (e.g., reducing ``6.66e+77`` to simply ``6.66e77``).
+    * The extraneous zero preceding single-digit exponents is removed (e.g.,
+      reducing ``6.66e-07`` to simply ``6.66e-7``).
+
+    Parameters
+    ----------
+    number : float
+        Floating point number to be stringified.
+
+    Returns
+    ----------
+    str
+        Human-readable string losslessly converted from this number.
+
+    See Also
+    ----------
+    https://jdreaver.com/posts/2014-07-28-scientific-notation-spin-box-pyside.html
+        Blog article partially inspiring this implementation.
+
+    Examples
+    ----------
+        >>> from betse.util.type.numeric import floats
+        >>> print(floats.to_str(6.66e7))
+        6.66e7
+        >>> print('{:g}'.format(6.66e7))
+        6.66e+07
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text import regexes
+
+    # Mostly human-readable string losslessly converted from this number.
+    number_str = '{:g}'.format(number)
+
+    # Improve this string's readability by removing all extraneous syntax.
+    number_str = regexes.replace_substrs(
+        text=number_str,
+        regex=_get_float_exponent_regex(),
+
+        # Callable passed the object matching the exponent of this floating
+        # point number if any. Ideally, a raw string resembling the following
+        # would be passed:
+        #
+        #     replacement=r'e\g<negation>\g<magnitude>',
+        #
+        # In Python 3.6, this would be feasible. In prior versions of Python,
+        # however, this is infeasible. Why? Whereas Python 3.6 expands unmatched
+        # backreferences to the empty string, Python < 3.6 expands unmatched
+        # backreferences to None, raising the following exception:
+        #
+        #     sre_constants.error: unmatched group
+        replacement=lambda match:
+            'e' +
+            (match.group('negation') or '') +
+            match.group('magnitude')
+    )
+
+    # Return this string.
+    return number_str

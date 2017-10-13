@@ -145,28 +145,24 @@ class AnimCellsABC(VisualCellsABC):
         0-based index of the current frame, yields the absolute path of the
         image file to be saved for that frame.
     _writer_images : MovieWriter
-        Matplotlib object saving animation frames as images if doing so _or_
-        `None` otherwise.
-    _writer_savefig_kwargs : dict
-        Dictionary of all keyword arguments to be passed to the
-        `Figure.savefig()` method called to save each animation frame for both
-        images and video.
+        Matplotlib object saving animation frames as images if doing so *or*
+        ``None`` otherwise.
     _writer_video : MovieWriter
-        Matplotlib object saving animation frames as video if doing so _or_
-        `None` otherwise.
+        Matplotlib object saving animation frames as video if doing so *or*
+        ``None`` otherwise.
 
     Attributes (Private: Current)
     ----------
     _is_current_overlayable : BoolOrNoneTypes
-        `True` if overlaying either electric current or concentration flux
-        streamlines on this animation when requested by the current
-        simulation configuration (as governed by the `p.I_overlay`
-        parameter) _or_ `False` otherwise.
+        ``True`` only if overlaying either electric current or concentration
+        flux streamlines on this animation when requested by the current
+        simulation configuration (as governed by the :attr:`p.I_overlay`
+        parameter) *or* ``False`` otherwise.
     _is_current_overlay_only_gj : bool
-        `True` only if overlaying intracellular current _or_ `False` otherwise
-        (i.e., if overlaying both intra- and extracellular current). Ignored
-        unless overlaying current (i.e., if `_is_current_overlay` is
-        `True`).
+        ``True`` only if overlaying intracellular current *or* ``False``
+        otherwise (i.e., if overlaying both intra- and extracellular current).
+        Ignored unless overlaying current (i.e., if :attr:`_is_current_overlay`
+        is ``True``).
     '''
 
     # ..................{ LIFECYCLE                          }..................
@@ -299,8 +295,17 @@ class AnimCellsABC(VisualCellsABC):
             simulation configuration. Defaults to a suitably generic basename.
         '''
 
-        # If this animation is unsaved, noop.
-        if not self._is_save:
+        # Animation configuration localized for convenience.
+        anim_config = self._phase.p.anim
+
+        # If it is *NOT* the case that...
+        if not (
+            # This animation is being saved...
+            self._is_save and (
+            # ...as either images or video.
+            anim_config.is_images_save or anim_config.is_video_save)
+        # Then this animation is unsaved. In this case, silently noop.
+        ):
             return
 
         #FIXME: This is silly. Rather than prohibiting animation names
@@ -313,28 +318,10 @@ class AnimCellsABC(VisualCellsABC):
         # separators and hence is *NOT* a valid basename, raise an exception.
         pathnames.die_unless_basename(self._label)
 
-        # Animation configuration localized for convenience.
-        anim_config = self._phase.p.anim
-
-        # If saving animation frames as either images or video, prepare to do
-        # so in a manner common to both.
-        if anim_config.is_images_save or anim_config.is_video_save:
-            # Dictionary of all keyword arguments to be passed to the
-            # `Figure.savefig()` method called to save each animation frame for
-            # both images and video.
-            self._writer_savefig_kwargs = {
-                # Plot the background of each animation frame as transparent
-                # rather than pure white.
-                'transparent': True,
-            }
-
-            # Path of the subdirectory to which these files will be saved,
-            # creating this subdirectory and all parents thereof if needed.
-            save_dirname = dirs.canonicalize_and_make_unless_dir(pathnames.join(
-                self._phase.save_dirname,
-                save_dir_parent_basename,
-                self._label,
-            ))
+        # Path of the subdirectory to which these files will be saved,
+        # creating this subdirectory and all parents thereof if needed.
+        save_dirname = dirs.canonicalize_and_make_unless_dir(pathnames.join(
+            self._phase.save_dirname, save_dir_parent_basename, self._label))
 
         # If saving animation frames as images, prepare to do so.
         if anim_config.is_images_save:
