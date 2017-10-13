@@ -33,6 +33,8 @@ from matplotlib import cm
 from matplotlib import colors
 from scipy.ndimage.filters import gaussian_filter
 from scipy.optimize import basinhopping
+import sys
+import importlib.util
 
 # ....................{ CLASSES                            }....................
 # FIXME: if moving to have unpacked membrane concs, update transporters...
@@ -92,7 +94,8 @@ class MasterOfNetworks(object):
         self.conc_shape = 'oval'
 
         self.extra_J_mem = np.zeros(sim.mdl)
-        self.extra_J_env = np.zeros(sim.edl)
+        self.extra_Jenv_x = np.zeros(sim.edl)
+        self.extra_Jenv_y = np.zeros(sim.edl)
 
 
     #------------Initializers-------------------------------------------------------------------------------------------
@@ -313,7 +316,12 @@ class MasterOfNetworks(object):
                 self.zmol[name] = mol.z
                 self.Dmem[name] = mol.Dm
 
+                # level to re-scale concentrations of molecule for current, charge and other calculations:
+                mol.scale_factor = float(mol_dic.get('scale factor', 1.0))
+
                 mol.ignore_ECM_pump = mol_dic['ignore ECM']
+
+                # mol.ignore_ECM_pump = True
 
                 mol.ignoreTJ = mol_dic['TJ permeable']  # ignore TJ?
                 mol.ignoreGJ = mol_dic['GJ impermeable'] # ignore GJ?
@@ -487,11 +495,11 @@ class MasterOfNetworks(object):
 
                 mol = self.molecules[name]
 
-                Qcells += mol.c_cello * mol.z
-                Qenv += mol.c_envo * mol.z
+                Qcells += mol.c_cello * mol.z*mol.scale_factor
+                Qenv += mol.c_envo * mol.z*mol.scale_factor
 
                 if self.mit_enabled:
-                    Qmit += mol.c_mito * mol.z
+                    Qmit += mol.c_mito * mol.z*mol.scale_factor
 
             self.bal_charge(Qcells, sim, 'cell', p)
             self.bal_charge(Qenv, sim, 'env', p)
@@ -2649,7 +2657,10 @@ class MasterOfNetworks(object):
         self.extra_rho_env = np.zeros(sim.edl)
         self.extra_rho_mit = np.zeros(sim.cdl)
         self.extra_J_mem = np.zeros(sim.mdl)
-        self.extra_J_env = np.zeros(sim.edl)
+        # self.extra_J_env = np.zeros(sim.edl)
+
+        self.extra_Jenv_x = np.zeros(sim.edl)
+        self.extra_Jenv_y = np.zeros(sim.edl)
 
     def run_loop(self, t, sim, cells, p):
         """
@@ -2674,8 +2685,7 @@ class MasterOfNetworks(object):
             # calculate concentrations at membranes:
             obj = self.molecules[mol]
 
-            if obj.update_intra_conc:
-                obj.update_intra(sim, cells, p)
+            obj.update_intra(sim, cells, p)
 
             # calculate rates of growth/decay:
             gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, globalo, localo))
@@ -2780,10 +2790,12 @@ class MasterOfNetworks(object):
 
                 if p.substances_affect_charge:
                     # calculate the charge density this substance contributes to cell and environment:
-                    self.extra_rho_cells[:] += p.F*obj.c_cells*obj.z
-                    self.extra_rho_env[:] += p.F*obj.c_env*obj.z
-                    # self.extra_J_mem[:] +=  -obj.z*obj.f_mem*p.F + obj.z*obj.f_gj*p.F
-                    self.extra_rho_mems[:] += p.F*obj.cc_at_mem*obj.z
+                    self.extra_rho_cells[:] += p.F*obj.c_cells*obj.z*obj.scale_factor
+                    self.extra_rho_env[:] += p.F*obj.c_env*obj.z*obj.scale_factor
+                    self.extra_J_mem[:] +=  -obj.z*obj.f_mem*p.F*obj.scale_factor + obj.z*obj.f_gj*p.F*obj.scale_factor
+                    self.extra_rho_mems[:] += p.F*obj.cc_at_mem*obj.z*obj.scale_factor
+                    self.extra_Jenv_x += obj.fenvx.ravel()*obj.z*p.F*obj.scale_factor
+                    self.extra_Jenv_y += obj.fenvy.ravel()*obj.z*p.F*obj.scale_factor
 
 
             if self.mit_enabled and len(self.reactions_mit)>0:
@@ -2808,6 +2820,8 @@ class MasterOfNetworks(object):
             sim.extra_rho_mems = self.extra_rho_mems*cells.diviterm[cells.mem_to_cells]
             sim.extra_rho_env = self.extra_rho_env
             sim.extra_J_mem = self.extra_J_mem
+            sim.extra_Jenv_x = self.extra_Jenv_x
+            sim.extra_Jenv_y = self.extra_Jenv_y
 
 
         if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
@@ -3832,7 +3846,7 @@ class MasterOfNetworks(object):
 
             obj = self.molecules['H+']
 
-            ph = -np.log10(1.0e-3*obj.c_cells.mean())
+            ph = -np.log10(1.0e-3*obj.scale_factor*obj.c_cells.mean())
 
             logs.log_info('Average pH in the cell: ' +
                           str(np.round(ph, 2)))
@@ -5171,7 +5185,7 @@ class Molecule(object):
         """
 
 
-        self.c_env, self.c_cells, self.cc_at_mem, self.f_mem, self.f_gj, fenvx, fenvy = stb.molecule_mover(sim,
+        self.c_env, self.c_cells, self.cc_at_mem, self.f_mem, self.f_gj, self.fenvx, self.fenvy = stb.molecule_mover(sim,
                                                                 self.c_env,
                                                                 self.c_cells,
                                                                 cells, p,
@@ -5209,106 +5223,114 @@ class Molecule(object):
         cp = (cav + cmi) / 2  # concentration at midpoint between cell centre and membrane
         cg = (cmi - cav) / cells.R_rads  # concentration gradients
 
-        # normal component of electric field at membranes from intracellular current/field:
-        En = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
-              sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+        if self.update_intra_conc is False:
+            # if user does not want update intra, assume intracellular mixing is instant and update:
+            self.cc_at_mem = cav*1
 
-        if p.fluid_flow is True:
+        elif self.update_intra_conc is True:
 
-            # normal component of fluid flow at membranes from *extra*cellular flow:
+            # carry out the operation as usual
 
-            fxo = sim.u_env_x.ravel()[cells.map_mem2ecm]
-            fyo = sim.u_env_y.ravel()[cells.map_mem2ecm]
+            # normal component of electric field at membranes from intracellular current/field:
+            En = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+                  sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
 
-            fxi = (np.dot(cells.M_sum_mems, fxo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-            fyi = (np.dot(cells.M_sum_mems, fyo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+            if p.fluid_flow is True:
 
-            uflow = fxi * cells.mem_vects_flat[:, 2] + fyi * cells.mem_vects_flat[:, 3]
+                # normal component of fluid flow at membranes from *extra*cellular flow:
 
+                fxo = sim.u_env_x.ravel()[cells.map_mem2ecm]
+                fyo = sim.u_env_y.ravel()[cells.map_mem2ecm]
 
-            # uflow = (sim.u_cells_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
-            #       sim.u_cells_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+                fxi = (np.dot(cells.M_sum_mems, fxo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+                fyi = (np.dot(cells.M_sum_mems, fyo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
 
-        else:
-
-            # curl component of current is a fluid-flow; get the membrane normal component:
-
-            # fxo = (sim.J_env_x.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
-            # fyo = (sim.J_env_y.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
-            #
-            # fxi = (np.dot(cells.M_sum_mems, fxo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-            # fyi = (np.dot(cells.M_sum_mems, fyo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-            #
-            # uflow = fxi * cells.mem_vects_flat[:, 2] + fyi * cells.mem_vects_flat[:, 3]
-
-            uflow = 0.0
+                uflow = fxi * cells.mem_vects_flat[:, 2] + fyi * cells.mem_vects_flat[:, 3]
 
 
-        if self.transmem is True:
+                # uflow = (sim.u_cells_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+                #       sim.u_cells_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
 
-            # normal component of electric field at membranes from extracellular current/field mapped to cell collective:
-            # Exo = sim.J_env_x.ravel()[cells.map_mem2ecm]*(1/sim.sigma)
-            # Eyo = sim.J_env_y.ravel()[cells.map_mem2ecm]*(1/sim.sigma)
+            else:
 
-            Exo = sim.E_env_x.ravel()[cells.map_mem2ecm]
-            Eyo = sim.E_env_y.ravel()[cells.map_mem2ecm]
+                # curl component of current is a fluid-flow; get the membrane normal component:
 
-            Exi = (np.dot(cells.M_sum_mems, Exo*cells.mem_sa)/cells.cell_sa)[cells.mem_to_cells]
-            Eyi = (np.dot(cells.M_sum_mems, Eyo*cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+                # fxo = (sim.J_env_x.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
+                # fyo = (sim.J_env_y.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
+                #
+                # fxi = (np.dot(cells.M_sum_mems, fxo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+                # fyi = (np.dot(cells.M_sum_mems, fyo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+                #
+                # uflow = fxi * cells.mem_vects_flat[:, 2] + fyi * cells.mem_vects_flat[:, 3]
 
-            Eecm = Exi*cells.mem_vects_flat[:, 2] + Eyi*cells.mem_vects_flat[:, 3]
-
-        else:
-
-            Eecm = 0.0
-
-        # calculate normal component of microtubules at membrane:
-        umx, umy = sim.mtubes.mtubes_to_cell(cells, p)
-        umtn = umx[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + umy[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
-
-        if self.transmem:
-
-            c_diffusion = tb.clip_vals(-Do*cg, max_move)
-            c_ephoresis_A = tb.clip_vals((Do*p.q*z)/(p.kb*sim.T)*cp*Eecm, max_move)
-            c_ephoresis_B = tb.clip_vals(self.Mu_mem*cp*Eecm, max_move)
-            c_eosmo = tb.clip_vals(uflow*cp, max_move)
+                uflow = 0.0
 
 
-            # diffuse in concentration gradient, via extracellular field and via extracellular flow:
-            cfluxo = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_eosmo)
+            if self.transmem is True:
+
+                # normal component of electric field at membranes from extracellular current/field mapped to cell collective:
+                # Exo = sim.J_env_x.ravel()[cells.map_mem2ecm]*(1/sim.sigma)
+                # Eyo = sim.J_env_y.ravel()[cells.map_mem2ecm]*(1/sim.sigma)
+
+                Exo = sim.E_env_x.ravel()[cells.map_mem2ecm]
+                Eyo = sim.E_env_y.ravel()[cells.map_mem2ecm]
+
+                Exi = (np.dot(cells.M_sum_mems, Exo*cells.mem_sa)/cells.cell_sa)[cells.mem_to_cells]
+                Eyi = (np.dot(cells.M_sum_mems, Eyo*cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+
+                Eecm = Exi*cells.mem_vects_flat[:, 2] + Eyi*cells.mem_vects_flat[:, 3]
+
+            else:
+
+                Eecm = 0.0
+
+            # calculate normal component of microtubules at membrane:
+            umx, umy = sim.mtubes.mtubes_to_cell(cells, p)
+            umtn = umx[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + umy[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
+
+            if self.transmem:
+
+                c_diffusion = tb.clip_vals(-Do*cg, max_move)
+                c_ephoresis_A = tb.clip_vals((Do*p.q*z)/(p.kb*sim.T)*cp*Eecm, max_move)
+                c_ephoresis_B = tb.clip_vals(self.Mu_mem*cp*Eecm, max_move)
+                c_eosmo = tb.clip_vals(uflow*cp, max_move)
 
 
-        else:
-
-            c_diffusion = tb.clip_vals(-Do*cg, max_move)
-            c_ephoresis_A = tb.clip_vals((Do*p.q*z)/(p.kb*sim.T)*cp*En, max_move)
-            c_ephoresis_B = tb.clip_vals(self.Mu_mem*cp*En, max_move)
-            c_motor = tb.clip_vals(umtn*self.u_mt*cp, max_move)
+                # diffuse in concentration gradient, via extracellular field and via extracellular flow:
+                cfluxo = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_eosmo)
 
 
-            # move with conc gradient, via intracellular field (Einstein coefficient or mobility), or motor proteins:
-            cfluxo = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_motor)
+            else:
+
+                c_diffusion = tb.clip_vals(-Do*cg, max_move)
+                c_ephoresis_A = tb.clip_vals((Do*p.q*z)/(p.kb*sim.T)*cp*En, max_move)
+                c_ephoresis_B = tb.clip_vals(self.Mu_mem*cp*En, max_move)
+                c_motor = tb.clip_vals(umtn*self.u_mt*cp, max_move)
 
 
-        # as no net mass must leave this intracellular movement, make the flux divergence-free:
-        cflux = stb.single_cell_div_free(cfluxo, cells)
+                # move with conc gradient, via intracellular field (Einstein coefficient or mobility), or motor proteins:
+                cfluxo = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_motor)
 
-        # calculate the actual concentration at membranes by unpacking to concentration vectors:
-        self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
 
-        # smooth the concentration:
-        self.cc_at_mem = self.smooth_weight_mem*self.cc_at_mem + self.smooth_weight_o*cav
+            # as no net mass must leave this intracellular movement, make the flux divergence-free:
+            cflux = stb.single_cell_div_free(cfluxo, cells)
 
-        # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
-        indsZ = (self.cc_at_mem < 0.0).nonzero()
+            # calculate the actual concentration at membranes by unpacking to concentration vectors:
+            self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
 
-        if len(indsZ[0]):
+            # smooth the concentration:
+            self.cc_at_mem = self.smooth_weight_mem*self.cc_at_mem + self.smooth_weight_o*cav
 
-            raise BetseSimInstabilityException("Network concentration " + self.name + " on membrane below zero! Your simulation has"
-                                               " become unstable.")
+            # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
+            indsZ = (self.cc_at_mem < 0.0).nonzero()
 
-        # update the main matrices:
-        self.flux_intra = cflux*1
+            if len(indsZ[0]):
+
+                raise BetseSimInstabilityException("Network concentration " + self.name + " on membrane below zero! Your simulation has"
+                                                   " become unstable.")
+
+            # update the main matrices:
+            self.flux_intra = cflux*1
 
     def pump(self, sim, cells, p):
 

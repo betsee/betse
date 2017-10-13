@@ -1344,7 +1344,12 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         cenv[-1, :] = c_bound
 
         denv = Do * np.ones(len(cells.xypts))
-        denv = denv.reshape(cells.X.shape)*sim.D_env_weight
+
+        if ignoreTJ is False:
+            denv = denv.reshape(cells.X.shape)*sim.D_env_weight
+
+        else:
+            denv = denv.reshape(cells.X.shape)
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 

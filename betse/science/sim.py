@@ -409,7 +409,7 @@ class Simulator(object):
 
         #FIXME: Define all other instance attributes as well.
         # Default all remaining attributes.
-        self.ignore_ecm = False
+        self.ignore_ecm = True
 
         #FIXME: Defer until later. To quote the "simrunner" module, which
         #explicitly calls this public method:
@@ -467,6 +467,9 @@ class Simulator(object):
         self.extra_rho_mems = np.zeros(self.mdl)
         self.extra_rho_env = np.zeros(self.edl)
         self.extra_J_mem = np.zeros(self.mdl)
+
+        self.extra_Jenv_x = np.zeros(self.edl)
+        self.extra_Jenv_y = np.zeros(self.edl)
 
         self.extra_rho_cells_o = np.zeros(self.cdl)
 
@@ -1051,6 +1054,20 @@ class Simulator(object):
         # calculate a basic system conductivity:
         self.sigma = np.asarray([((z**2)*p.q*p.F*cc*D)/(p.kb*p.T) for
                                  (z, cc, D) in zip(self.zs, self.cc_cells, self.D_free)]).mean()
+
+        # calculate specific maps of conductivity in cells and environment
+        # conductivity of cells is assumed to be 0.1x lower than that of free environment:
+        self.sigma_cell = np.asarray([((z ** 2) * p.q * p.F * cc * D * 0.1) / (p.kb * p.T) for (z, cc, D) in
+                                 zip(self.zs, self.cc_cells, self.D_free)]).mean(axis=0)
+        # conductivity map for environment:
+        self.sigma_env = np.asarray(
+            [((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in zip(self.zs, self.cc_env, self.D_env)]).mean(
+            axis=0)
+
+        if p.is_ecm:
+
+            # environmental conductivity matrix needs to be smoothed to assured simulation stability:
+            self.sigma_env = gaussian_filter(self.sigma_env.reshape(cells.X.shape), 1).ravel()
 
         # calculate a geometric resistivity factor:
         self.rho_factor = cells.mem_sa/cells.R_rads
@@ -1794,15 +1811,34 @@ class Simulator(object):
 
         else:
 
+            # recalculate the conductivity as it will change every itteration:
+            # calculate specific maps of conductivity in cells and environment
+            # conductivity of cells is assumed to be 0.1x lower than that of free environment:
+            self.sigma_cell = np.asarray([((z ** 2) * p.q * p.F * cc * D * 0.1) / (p.kb * p.T) for (z, cc, D) in
+                                          zip(self.zs, self.cc_cells, self.D_free)]).mean(axis=0)
+            # conductivity map for environment:
+            self.sigma_env = np.asarray(
+                [((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
+                 zip(self.zs, self.cc_env, self.D_env)]).mean(
+                axis=0)
+
+
+            if p.is_ecm:
+
+                # environmental conductivity matrix needs to be smoothed to assured simulation stability:
+                self.sigma_env = gaussian_filter(self.sigma_env.reshape(cells.X.shape), 1).ravel()
+
             drho_mem = np.dot(cells.M_sum_mems, -self.Jmem * cells.mem_sa) / cells.cell_sa
             drho_gj = np.dot(cells.M_sum_mems, -self.Jgj * cells.mem_sa) / cells.cell_sa
 
+            polar_factor_env = (cells.memSa_per_envSquare[cells.map_mem2ecm]/cells.delta)*(1/self.sigma_env[cells.map_mem2ecm])
+            polar_factor_cells = self.rho_factor*(1/self.sigma_cell.mean())
+
             self.vm = (self.vm
                        +(1/p.cm)*drho_mem[cells.mem_to_cells] * p.dt  # current across the membrane from pumps/channels
-                       # - (1/p.cm)*self.Jmem*p.dt
-                       + (1 / self.cgj) * drho_gj[cells.mem_to_cells] * p.dt
-                       + (1/self.cedl)*self.Jme*p.dt*p.cell_polarizability
-                       # - self.Eme*1.0e6*p.eo
+                       + (1 / self.cgj) * drho_gj[cells.mem_to_cells] * p.dt    # for current across gj-coupled cells
+                       + (1/self.cedl_env)*self.Jme*p.dt*p.cell_polarizability*polar_factor_env # for env current (long-range)
+                       + (1/self.cedl_cell)*self.Jn*p.dt*p.cell_polarizability*polar_factor_cells # for intracellular current (long-range)
 
                        )
 
@@ -1988,7 +2024,9 @@ class Simulator(object):
             ux = np.zeros(cells.X.shape)
             uy = np.zeros(cells.X.shape)
 
-        denv = self.D_free[i]*self.D_env_weight
+        # denv = self.D_free[i]*self.D_env_weight
+
+        denv = self.D_env[i].reshape(cells.X.shape)
 
         # this equation assumes environmental transport is electrodiffusive--------------------------------------------:
         fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, ux, uy,
@@ -2115,10 +2153,6 @@ class Simulator(object):
                 Denv_o[cells.interior_bound_mem_inds] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
                 Denv_o[cells.ecm_inds_bound_cell] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
 
-                # Denv_o[cells.inds_outmem] = self.D_free[i]
-
-                # Denv_o = gaussian_filter(Denv_o.reshape(cells.X.shape), 1).ravel()
-
                 # create an ecm diffusion grid filled with the environmental values
                 self.D_env[i] = Denv_o*1.0
 
@@ -2137,6 +2171,8 @@ class Simulator(object):
             Denv_o[cells.ecm_inds_bound_cell] = p.D_tj
 
             Denv_o = gaussian_filter(Denv_o.reshape(cells.X.shape), 1.0)
+
+            self.D_env = np.copy(self.D_free)
 
 
             # create a matrix that weights the relative transport efficiency in the world space:

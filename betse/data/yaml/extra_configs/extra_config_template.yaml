@@ -60,6 +60,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)
     TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
     ignore ECM: True    # treat extracellular spaces as full grid square volume (True)?
+    scale factor: 1.0e-3  # amount to scale molecule concentration by
     growth and decay:    # settings for production/decay of substances (standard GRN model)
       production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
       decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm

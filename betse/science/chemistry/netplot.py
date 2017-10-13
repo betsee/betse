@@ -17,6 +17,8 @@ and plot.
 from betse.exceptions import BetsePyDotException
 from betse.lib import libs
 from betse.util.io.log import logs
+import sys
+import importlib.util
 
 
 def set_net_opts(self, net_plot_opts, p):

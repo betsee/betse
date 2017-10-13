@@ -21,8 +21,8 @@ from betse.util.io.log import logs
 from betse.util.type import types
 from betse.util.type.types import type_check
 from random import shuffle
-from scipy import interpolate as interp
 from scipy import spatial as sps
+from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ CLASSES                            }....................
 class TissueHandler(object):
@@ -997,8 +997,8 @@ class TissueHandler(object):
         # open_TJ = True
 
         # Subtract this bitmap's clipping mask from the global cluster mask.
-        bitmap_mask = tissue_picker.get_bitmapper(cells).clipping_matrix
-        cells.cluster_mask = cells.cluster_mask - bitmap_mask
+        # bitmap_mask = tissue_picker.get_bitmapper(cells).clipping_matrix
+        # cells.cluster_mask = cells.cluster_mask - bitmap_mask
 
         # FIXME, if deformation is too much, the following line will crash as the "target_inds_cell" is null. Rayse
         # an uman weedable eggseption.
@@ -1341,7 +1341,7 @@ class TissueHandler(object):
 
         self.targets_vgWound = mem_match_inds
 
-        if p.break_TJ is True:
+        if p.break_TJ is True: # we need to redo the TJ barrier at the wound site:
 
             ecmtarg = cells.map_mem2ecm[sim.dyna.targets_vgWound]
 
@@ -1349,6 +1349,30 @@ class TissueHandler(object):
             Dw[ecmtarg] = 1.0*p.wound_TJ
 
             sim.D_env_weight = Dw.reshape(cells.X.shape)*1
+
+            if p.is_ecm:
+
+                for i, dmat in enumerate(sim.D_env):
+                    Denv_o = np.copy(dmat)
+
+                    Denv_o[ecmtarg] = sim.D_free[i]*p.wound_TJ*sim.Dtj_rel[i]
+
+                    # re-assign the ecm diffusion grid filled with the environmental values at wound site:
+                    sim.D_env[i] = Denv_o*1.0
+
+            # re-calculate specific maps of conductivity in cells and environment
+            sim.sigma_cell = np.asarray([((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
+                                          zip(sim.zs, sim.cc_cells, sim.D_free)]).mean(axis=0)
+
+            sim.sigma_env = np.asarray(
+                [((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
+                 zip(sim.zs, sim.cc_env, sim.D_env)]).mean(
+                axis=0)
+
+            if p.is_ecm:
+
+                # environmental conductivity matrix needs to be smoothed to assured simulation stability:
+                sim.sigma_env = gaussian_filter(sim.sigma_env.reshape(cells.X.shape), 1).ravel()
 
         # WOUND CHANNEL FINALIZATION-----------------------------------------
 

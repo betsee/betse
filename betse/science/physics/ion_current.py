@@ -36,9 +36,9 @@ def get_current(sim, cells, p):
     # divergence of cell current (for use in calculations, not actually true divergence):
     sim.divJ_cell =  -np.dot(cells.M_sum_mems, sim.Jn * cells.mem_sa)/ cells.cell_sa
 
-    # this approximation assumes that the intracellular space is slightly lower conductivity than free media:
-    sim.E_cell_x = sim.J_cell_x*(1/(sim.sigma*0.1))
-    sim.E_cell_y = sim.J_cell_y*(1/(sim.sigma*0.1))
+    # calculate electric field in cells using net intracellular current and cytosol conductivity:
+    sim.E_cell_x = sim.J_cell_x*(1/(sim.sigma_cell))
+    sim.E_cell_y = sim.J_cell_y*(1/(sim.sigma_cell))
 
 
     # Current in the environment --------------------------------------------------------------------------------------
@@ -48,8 +48,8 @@ def get_current(sim, cells, p):
         sim.rho_env = np.dot(sim.zs * p.F, sim.cc_env) + sim.extra_rho_env
 
         # diffusive component of current densities in the environment:
-        J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x)
-        J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y)
+        J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x) + sim.extra_Jenv_x
+        J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y) + sim.extra_Jenv_y
 
         # reshape the matrix:
         J_env_x_o = J_env_x_o.reshape(cells.X.shape)
@@ -60,7 +60,6 @@ def get_current(sim, cells, p):
         #Helmholtz-Hodge decomposition to obtain divergence-free projection of actual currents (zero n_hat at boundary):
         _, sim.J_env_x, sim.J_env_y, BB, Jbx, Jby = stb.HH_Decomp(J_env_x_o, J_env_y_o, cells)
 
-        # sim.v_env = np.dot(cells.lapENVinv, -(sim.rho_env.ravel() / (sim.ko_env * p.er * p.eo)))
 
         # The solution to the Screened Poisson Equation in the limit of large screening constant Ko, is simply
         # Phi = f/Ko2. This makes a perfect voltage estimate for the extracellular space.
