@@ -105,7 +105,7 @@ def die_unless(*objects) -> None:
             raise BetseIntException(
                 'Object "{}" not an integer.'.format(obj))
 
-
+# ....................{ TESTERS ~ range                    }....................
 @type_check
 def die_unless_positive(*numbers: int, label: str = 'Integer') -> None:
     '''
@@ -118,12 +118,12 @@ def die_unless_positive(*numbers: int, label: str = 'Integer') -> None:
         Tuple of all integers to be validated.
     label : optional[str]
         Human-readable label prefixing exception messages raised by this method.
-        Defaults to a general-purpose string.
+        Defaults to a rather sensible string.
 
     Raises
     ----------
     BetseIntException
-        If any passed object is _not_ a positive integer.
+        If any passed integer is non-positive.
     '''
 
     # For each passed integer...
@@ -133,7 +133,36 @@ def die_unless_positive(*numbers: int, label: str = 'Integer') -> None:
             raise BetseIntException(
                 '{} "{}" not positive.'.format(label.capitalize(), number))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS ~ size                     }....................
+@type_check
+def die_unless_byte(*numbers: int, label: str = 'Integer') -> None:
+    '''
+    Raise an exception prefixed by the passed label unless all passed objects
+    are in the range ``[0, 255]``.
+
+    Parameters
+    ----------
+    numbers : tuple
+        Tuple of all integers to be validated.
+    label : optional[str]
+        Human-readable label prefixing exception messages raised by this method.
+        Defaults to a rather sensible string.
+
+    Raises
+    ----------
+    BetseIntException
+        If any passed integer is *not* in the range ``[0, 255]``.
+    '''
+
+    # For each passed integer...
+    for number in numbers:
+        # If this integer is non-positive, raise an exception.
+        if not is_byte(number):
+            raise BetseIntException(
+                '{} "{}" not a byte (i.e., not in the range [0, 255]).'.format(
+                    label.capitalize(), number))
+
+# ....................{ TESTERS ~ parity                   }....................
 @type_check
 def is_even(number: int) -> bool:
     '''
@@ -150,3 +179,21 @@ def is_odd(number: int) -> bool:
     '''
 
     return number % 2 == 1
+
+# ....................{ TESTERS ~ size                     }....................
+@type_check
+def is_byte(number: int) -> bool:
+    '''
+    ``True`` only if the passed integer is in the range ``[0, 255]``.
+
+    Caveats
+    ----------
+    Equivalently, this function returns ``True`` only if this integer could
+    technically occupy no more space than that required by a byte. Since
+    integers in Python occupy a dynamic amount of space only loosely related to
+    the current value they contain, a ``True`` return value does *not*
+    necessarily imply this integer to consume exactly a byte's worth of space.
+    '''
+
+    # That was deceptively easy. Cue: "It's a trap!"
+    return 0 <= number <= 255

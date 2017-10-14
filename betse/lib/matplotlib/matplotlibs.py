@@ -220,11 +220,17 @@ class MplConfig(object):
             Matplotlib configuration details.
         '''
 
+        # Avoid circular import dependencies.
+        from betse.lib.matplotlib import mplcolormap
+
         # Initialize matplotlib in a safe manner.
         self._init_matplotlib()
 
         # Set the default matplotlib backend *AFTER* initializing matplotlib.
         self._init_backend(backend_name=backend_name)
+
+        # Register all custom colormaps *AFTER* initializing matplotlib.
+        mplcolormap.init()
 
         # Import all animation writer classes *AFTER* establishing the backend,
         # thus implicitly registering these classes with matplotlib. This, in

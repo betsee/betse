@@ -4,9 +4,9 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level support facilities for matplotlib-specific **z-order** (i.e., positive
-integers ordering artist drawing, such that artists with larger z-orders are
-drawn over artists with smaller z-orders).
+Matplotlib-specific **z-order** (i.e., positive integers ordering artist
+drawing, such that artists with larger z-orders are drawn over artists with
+smaller z-orders) facilities.
 
 See Also
 ----------

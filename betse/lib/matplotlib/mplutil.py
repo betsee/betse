@@ -31,6 +31,11 @@ def deprecations_ignored() -> GeneratorType:
     return warnings_ignored(warning_class=MatplotlibDeprecationWarning)
 
 # ....................{ GETTERS                            }....................
+#FIXME: Awful. Replace everywhere with either direct use of the
+#colormaps.get_cmap() function *OR* a higher-level wrapper wrapping that
+#function. That said, that function is sufficiently straightforward that *NO*
+#wrapper should be required. (Probably.)
+#FIXME: Indeed. Just call colormaps.get_cmap(), which more than suffices.
 @type_check
 def get_colormap(colormap_name: str) -> Colormap:
     '''

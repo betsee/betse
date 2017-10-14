@@ -881,8 +881,8 @@ class Parameters(YamlFileABC):
         self.gj_cm = mplutil.get_colormap(ro['gj colormap'])
 
         # new options for plotting reaction network graphs:
-        self.plot_network = ro.get('plot networks', False)
-        self.network_cm = mplutil.get_colormap(ro.get('network colormap', 'coolwarm'))
+        self.plot_network = ro['plot networks']
+        self.network_cm = mplutil.get_colormap(ro['network colormap'])
 
         # Colors.
         self.vcolor = ro['vector and stream color']  # color of vector and streamlines
@@ -1434,6 +1434,12 @@ class Parameters(YamlFileABC):
             # Default the value for this dictionary key to the empty list.
             results_dict['plot networks single cell'] = results_dict[
                 'plot single cell graphs']
+
+        # Support newly introduced networks plotting.
+        if 'plot networks' not in results_dict:
+            results_dict['plot networks'] = False
+        if 'network colormap' not in results_dict:
+            results_dict['network colormap'] = 'coolwarm'
 
         # Patch old- to new-style cell lattice types.
         if world_dict['lattice type'] == 'hex':
