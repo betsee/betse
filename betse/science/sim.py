@@ -548,6 +548,7 @@ class Simulator(object):
             # Initialize environmental volume:
             self.envV = np.zeros(self.mdl)
             self.envV[:] = p.vol_env
+            self.v_env = np.zeros(len(cells.xypts))
 
         ion_names = list(p.ions_dict.keys())
 
@@ -1801,78 +1802,55 @@ class Simulator(object):
         # get the currents and in-cell and environmental voltages:
         get_current(self, cells, p)
 
-        self.get_rho_mem(cells, p)
-
+        # self.get_rho_mem(cells, p)
 
         if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
             # change in charge density at the membrane:
-            self.vm = self.vm + (1/p.cm)*self.divJ_cell[cells.mem_to_cells]*p.dt
+            # self.vm = self.vm + (1/p.cm)*self.divJ_cell[cells.mem_to_cells]*p.dt
+
+            rho_surf = self.rho_cells*cells.diviterm
+
+            # voltage across the membrane depends on surface charge inside cells:
+            self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
 
         else:
 
-            # recalculate the conductivity as it will change every itteration:
-            # calculate specific maps of conductivity in cells and environment
-            # conductivity of cells is assumed to be 0.1x lower than that of free environment:
-            self.sigma_cell = np.asarray([((z ** 2) * p.q * p.F * cc * D * 0.1) / (p.kb * p.T) for (z, cc, D) in
-                                          zip(self.zs, self.cc_cells, self.D_free)]).mean(axis=0)
-            # conductivity map for environment:
-            self.sigma_env = np.asarray(
-                [((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
-                 zip(self.zs, self.cc_env, self.D_env)]).mean(
-                axis=0)
+
+            # Electrical polarization charge component created by extracellular electric field:
+            P_env = p.cell_polarizability*self.Jme*(1/self.sigma_env.ravel()[cells.map_mem2ecm])
+
+            # Electrical polarization charge component created by intracellular electric field:
+            P_cells = p.cell_polarizability*self.Jn*(1/self.sigma_cell[cells.mem_to_cells])
+
+            # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
+            # convert volume charge density to surface charge density:
+            rho_surf = self.rho_cells*cells.diviterm
+
+            self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
 
 
-            if p.is_ecm:
-
-                # environmental conductivity matrix needs to be smoothed to assured simulation stability:
-                self.sigma_env = gaussian_filter(self.sigma_env.reshape(cells.X.shape), 1).ravel()
-
-            drho_mem = np.dot(cells.M_sum_mems, -self.Jmem * cells.mem_sa) / cells.cell_sa
-            drho_gj = np.dot(cells.M_sum_mems, -self.Jgj * cells.mem_sa) / cells.cell_sa
-
-            polar_factor_env = (cells.memSa_per_envSquare[cells.map_mem2ecm]/cells.delta)*(1/self.sigma_env[cells.map_mem2ecm])
-            polar_factor_cells = self.rho_factor*(1/self.sigma_cell.mean())
-
-            self.vm = (self.vm
-                       +(1/p.cm)*drho_mem[cells.mem_to_cells] * p.dt  # current across the membrane from pumps/channels
-                       + (1 / self.cgj) * drho_gj[cells.mem_to_cells] * p.dt    # for current across gj-coupled cells
-                       + (1/self.cedl_env)*self.Jme*p.dt*p.cell_polarizability*polar_factor_env # for env current (long-range)
-                       + (1/self.cedl_cell)*self.Jn*p.dt*p.cell_polarizability*polar_factor_cells # for intracellular current (long-range)
-
-                       )
+            # drho_mem = np.dot(cells.M_sum_mems, -self.Jmem * cells.mem_sa) / cells.cell_sa
+            # drho_gj = np.dot(cells.M_sum_mems, -self.Jgj * cells.mem_sa) / cells.cell_sa
+            #
+            #
+            # self.vm = (self.vm
+            #            +(1/p.cm)*drho_mem[cells.mem_to_cells] * p.dt  # current across the membrane from pumps/channels
+            #            + (1/self.cgj) * drho_gj[cells.mem_to_cells] * p.dt    # for current across gj-coupled cells
+            #            + (1/p.cm)*P_env*p.dt# for env current (long-range)
+            #            + (1/p.cm)*P_cells*p.dt # for intracellular current (long-range)
+            #
+            #            )
 
 
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
 
         # smooth voltages at the membrane:
-        self.vm = self.smooth_weight_mem * self.vm + self.vm_ave[cells.mem_to_cells] * self.smooth_weight_o
-
-
-        # # electric field inside cells:
-        # vg = (self.vm - self.vm_ave[cells.mem_to_cells]) / cells.R_rads.mean()  # voltage gradient
-        #
-        # # electric field at membranes:
-        # Ecx = -vg*cells.mem_vects_flat[:,2]
-        # Ecy = -vg*cells.mem_vects_flat[:,3]
-        #
-        # # average electric field to cell centres
-        # self.E_cell_x = np.dot(cells.M_sum_mems, Ecx * cells.mem_sa) / cells.cell_sa
-        # self.E_cell_y = np.dot(cells.M_sum_mems, Ecy * cells.mem_sa) / cells.cell_sa
-        #
-        # print(self.E_cell_x.max(), self.E_cell_x.min(), self.E_cell_x.mean())
-        # print(self.vm.mean())
+        # self.vm = self.smooth_weight_mem * self.vm + self.vm_ave[cells.mem_to_cells] * self.smooth_weight_o
 
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt
-
-
-
-
-
-        # self.E_cell_x = self.J_cell_x*(1/(self.sigma*0.1 + 1.0e-6))
-        # self.E_cell_y = self.J_cell_y*(1/(self.sigma*0.1 + 1.0e-6))
 
     def acid_handler(self, cells, p) -> None:
         '''
@@ -2029,7 +2007,7 @@ class Simulator(object):
         denv = self.D_env[i].reshape(cells.X.shape)
 
         # this equation assumes environmental transport is electrodiffusive--------------------------------------------:
-        fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, ux, uy,
+        fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, self.gVex, self.gVey, ux, uy,
                                           denv, self.zs[i], self.T, p)
 
         self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
@@ -2098,11 +2076,11 @@ class Simulator(object):
         # uncomment this to skip the above computational loop ---------------
         self.cc_at_mem[i] = cav*1
 
-    def get_rho_mem(self, cells, p):
-
-        self.rho_at_mem = (np.dot(self.zs*p.F, self.cc_at_mem)*cells.diviterm[cells.mem_to_cells])  + self.extra_rho_mems
-
-        self.rho_cells = (np.dot(cells.M_sum_mems, self.rho_at_mem)/cells.num_mems)
+    # def get_rho_mem(self, cells, p):
+    #
+    #     self.rho_at_mem = (np.dot(self.zs*p.F, self.cc_at_mem)*cells.diviterm[cells.mem_to_cells])  + self.extra_rho_mems
+    #
+    #     self.rho_cells = (np.dot(cells.M_sum_mems, self.rho_at_mem)/cells.num_mems)
 
     def get_ion(self, ion_name: str) -> int:
         '''

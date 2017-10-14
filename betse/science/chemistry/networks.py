@@ -2653,7 +2653,7 @@ class MasterOfNetworks(object):
 
 
         self.extra_rho_cells = np.zeros(sim.cdl)
-        self.extra_rho_mems = np.zeros(sim.mdl)
+        # self.extra_rho_mems = np.zeros(sim.mdl)
         self.extra_rho_env = np.zeros(sim.edl)
         self.extra_rho_mit = np.zeros(sim.cdl)
         self.extra_J_mem = np.zeros(sim.mdl)
@@ -2793,7 +2793,7 @@ class MasterOfNetworks(object):
                     self.extra_rho_cells[:] += p.F*obj.c_cells*obj.z*obj.scale_factor
                     self.extra_rho_env[:] += p.F*obj.c_env*obj.z*obj.scale_factor
                     self.extra_J_mem[:] +=  -obj.z*obj.f_mem*p.F*obj.scale_factor + obj.z*obj.f_gj*p.F*obj.scale_factor
-                    self.extra_rho_mems[:] += p.F*obj.cc_at_mem*obj.z*obj.scale_factor
+                    # self.extra_rho_mems[:] += p.F*obj.cc_at_mem*obj.z*obj.scale_factor
                     self.extra_Jenv_x += obj.fenvx.ravel()*obj.z*p.F*obj.scale_factor
                     self.extra_Jenv_y += obj.fenvy.ravel()*obj.z*p.F*obj.scale_factor
 
@@ -2817,7 +2817,7 @@ class MasterOfNetworks(object):
 
         if p.substances_affect_charge:
             sim.extra_rho_cells = self.extra_rho_cells
-            sim.extra_rho_mems = self.extra_rho_mems*cells.diviterm[cells.mem_to_cells]
+            # sim.extra_rho_mems = self.extra_rho_mems*cells.diviterm[cells.mem_to_cells]
             sim.extra_rho_env = self.extra_rho_env
             sim.extra_J_mem = self.extra_J_mem
             sim.extra_Jenv_x = self.extra_Jenv_x
