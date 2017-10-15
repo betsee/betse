@@ -97,7 +97,8 @@ def add_colormap(
 
     # Register this colormap with matplotlib. Again, for portability, the most
     # succinct variant of this function is intentionally called.
-    colormaps.register_cmap(colormap_name, colormap)
+    # colormaps.register_cmap(colormap_name, colormap)  cmap=blue_red2
+    colormaps.register_cmap(cmap = colormap)
 
     # Return this colormap.
     return colormap

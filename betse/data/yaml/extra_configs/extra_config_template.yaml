@@ -203,6 +203,7 @@ modulators:
 
     target: GJ       # sim entity targeted: GJ (for gap junctions), Na/K-ATP, or MT (for microtubule dynamics)
     max effect: 1.0        # maximum value of modulation
+    target ion: K         # specific ion to target (applicable to TJ modultion only)
     activators: ['ADP']  # additional defined substances or ions increasing activity of transporter
     activator Km: [0.1]
     activator n: [3.0]

@@ -1017,6 +1017,9 @@ class MasterOfNetworks(object):
             obj = self.modulators[name]
 
             obj.target_label = str(mod_dic['target'])
+
+            obj.target_ion = mod_dic.get('target ion', None)
+
             # obj.zone = str(mod_dic['zone'])
             obj.max_val = float(mod_dic['max effect'])
             obj.modulator_activators_list = mod_dic.get('activators', None)
@@ -1051,10 +1054,17 @@ class MasterOfNetworks(object):
 
             tex_vars = []
 
+            if obj.target_label == 'TJ':
+                r_zone = 'env'
+
+            else:
+
+                r_zone = 'mem'
+
             all_alpha, alpha_tex, tex_vars = self.get_influencers(a_list, Km_a_list,
                                                                     n_a_list, i_list,
                                                                     Km_i_list, n_i_list, tex_list=tex_vars,
-                                                                    reaction_zone='mem', zone_tags_a = zone_a,
+                                                                    reaction_zone=r_zone, zone_tags_a = zone_a,
                                                                     zone_tags_i=zone_i, in_mem_tag=False)
 
             obj.alpha_eval_string = "(" + all_alpha + ")"
@@ -2988,13 +2998,6 @@ class MasterOfNetworks(object):
             # calculate the value of the channel modulation constant:
             modulator = obj.max_val*eval(obj.alpha_eval_string, globalo, localo)
 
-            # # make size alteration for case of true environment:
-            # if p.is_ecm is True and obj.zone == 'env':
-            #     modulator = modulator[cells.map_mem2ecm]
-
-            # print(modulator.min())
-            # print("-----------")
-
             if obj.target_label == 'GJ':
 
                 sim.gj_block = modulator
@@ -3007,6 +3010,25 @@ class MasterOfNetworks(object):
 
                 sim.mtubes.modulator = modulator
 
+            elif obj.target_label == 'TJ':
+
+
+                if obj.ion_i is None:
+
+                    # if no target ion is supplied, apply TJ modulation to all ions:
+
+                    # obj.test_modulator = modulator
+
+                    sim.TJ_modulator[:, sim.TJ_targets] = modulator[sim.TJ_targets]
+
+                    # tj_moddy = np.copy(sim.TJ_modulator)
+                    # for i, modo in enumerate(tj_moddy):
+                    #     tj_moddy[i, sim.TJ_targets] = modulator[sim.TJ_targets]
+                    # sim.TJ_modulator = tj_moddy*1
+
+                else:
+
+                    sim.TJ_modulator[obj.ion_i][sim.TJ_targets] = modulator[sim.TJ_targets]
 
             else:
 
@@ -6061,6 +6083,7 @@ class Modulator(object):
 
         self.target_label = None
         self.max_val = None
+        self.target_ion = None
 
         self.modulator_activators_list = None
         self.modulator_activators_Km = None
@@ -6083,7 +6106,17 @@ class Modulator(object):
 
             sim.mtubes.modulator = np.ones(sim.mdl)
 
+        elif self.target_label == 'TJ':
 
+            # if tight junction modulation is requested, initialize the object by simply getting the ion index:
+
+            if self.target_ion is None or self.target_ion == 'None':
+
+                self.ion_i = None
+
+            else:
+                # get the sim object's index for this ion name:
+                self.ion_i = sim.get_ion(self.target_ion)
 
         else:
 

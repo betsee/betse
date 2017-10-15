@@ -58,13 +58,15 @@ def get_colormap(colormap_name: str) -> Colormap:
         List of supported colormaps.
     '''
 
-    # Colormap with the passed name if any or "None" otherwise.
-    colormap = getattr(colormaps, colormap_name, None)
+    # # Colormap with the passed name if any or "None" otherwise.
+    # colormap = getattr(colormaps, colormap_name, None)
+    #
+    # # If no such colprmap exists, raise an exception.
+    # if not isinstance(colormap, Colormap):
+    #     raise BetseMatplotlibException(
+    #         'Matplotlib colormap "{}" not found.'.format(colormap_name))
 
-    # If no such colprmap exists, raise an exception.
-    if not isinstance(colormap, Colormap):
-        raise BetseMatplotlibException(
-            'Matplotlib colormap "{}" not found.'.format(colormap_name))
+    return colormaps.get_cmap(colormap_name)
 
     # Return this colormap.
-    return colormap
+    # return colormap

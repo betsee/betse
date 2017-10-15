@@ -191,15 +191,6 @@ class Mtubes(object):
         ui_hat = self.mtubes_x
         vi_hat = self.mtubes_y
 
-        # Jx = sim.J_env_x*1
-        # Jy = sim.J_env_y*1
-        #
-        # Exo = Jx.ravel()[cells.map_mem2ecm]*(1/(sim.sigma + 1.0e-6))
-        # Eyo = Jy.ravel()[cells.map_mem2ecm]*(1/(sim.sigma + 1.0e-6))
-        #
-        # Ex = (np.dot(cells.M_sum_mems, Exo*cells.mem_sa)/cells.cell_sa)[cells.mem_to_cells]
-        # Ey = (np.dot(cells.M_sum_mems, Eyo*cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-
         Ex = sim.E_cell_x[cells.mem_to_cells]
         Ey = sim.E_cell_y[cells.mem_to_cells]
 

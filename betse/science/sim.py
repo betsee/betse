@@ -529,6 +529,8 @@ class Simulator(object):
         self.E_cell_x = np.zeros(self.mdl)   # intracellular electric field components (macro-field)
         self.E_cell_y = np.zeros(self.mdl)
 
+        self.TJ_modulator = None # register the tight junction modulator field to a 'None" object
+
         if p.is_ecm:  # special items specific to simulation of extracellular spaces only:
 
             # vectors storing separate cell and env voltages
@@ -2004,7 +2006,7 @@ class Simulator(object):
 
         # denv = self.D_free[i]*self.D_env_weight
 
-        denv = self.D_env[i].reshape(cells.X.shape)
+        denv = self.D_env[i].reshape(cells.X.shape)*self.TJ_modulator[i].reshape(cells.X.shape)
 
         # this equation assumes environmental transport is electrodiffusive--------------------------------------------:
         fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, self.gVex, self.gVey, ux, uy,
@@ -2076,12 +2078,6 @@ class Simulator(object):
         # uncomment this to skip the above computational loop ---------------
         self.cc_at_mem[i] = cav*1
 
-    # def get_rho_mem(self, cells, p):
-    #
-    #     self.rho_at_mem = (np.dot(self.zs*p.F, self.cc_at_mem)*cells.diviterm[cells.mem_to_cells])  + self.extra_rho_mems
-    #
-    #     self.rho_cells = (np.dot(cells.M_sum_mems, self.rho_at_mem)/cells.num_mems)
-
     def get_ion(self, ion_name: str) -> int:
         '''
         0-based index assigned to the ion with the passed name (e.g., ``Na``) if
@@ -2139,6 +2135,9 @@ class Simulator(object):
             self.D_env_weight = D_env_weight.reshape(cells.X.shape)
             self.D_env_weight_base = np.copy(self.D_env_weight)
 
+            self.TJ_modulator = np.ones(self.D_env.shape)
+
+
         else:
 
             Denv_o = np.ones(len(cells.xypts))
@@ -2156,6 +2155,9 @@ class Simulator(object):
             # create a matrix that weights the relative transport efficiency in the world space:
             self.D_env_weight = Denv_o.reshape(cells.X.shape)
             self.D_env_weight_base = np.copy(self.D_env_weight)
+
+        self.TJ_targets = np.hstack(
+            (cells.all_bound_mem_inds, cells.interior_bound_mem_inds, cells.ecm_inds_bound_cell))
 
         self.Chi = np.ones(len(cells.xypts)) * p.er  # electrical susceptibility of pure water
         # self.Chi[cells.envInds_inClust] = 2.0e5  # electrical susceptibility of tissue
