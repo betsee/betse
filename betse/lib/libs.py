@@ -18,8 +18,10 @@ such dependencies.
 # the top-level of this module may import *ONLY* from packages guaranteed to
 # exist at installation time (i.e., standard Python and application packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 from betse import metadeps
 from betse.exceptions import BetseLibException
+from betse.util.io.log import logs
 from betse.util.type.types import type_check, MappingType, StrOrNoneTypes
 
 # ....................{ GLOBALS                            }....................
@@ -496,6 +498,11 @@ def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
     from betse.lib.matplotlib.matplotlibs import mpl_config
     from betse.lib.numpy import numpys
     from betse.lib.yaml import yamls
+
+    # Log this initialization. Since initializing heavyweight third-party
+    # dependencies (especially matplotlib) consumes non-trivial time, this
+    # logging is intentionally elevated to the "INFO" level.
+    logs.log_info('Initializing third-party dependencies...')
 
     # Initialize these dependencies.
     mpl_config.init(backend_name=matplotlib_backend_name)

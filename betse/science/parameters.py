@@ -6,7 +6,7 @@
 import numpy as np
 from betse import pathtree
 from betse.exceptions import BetseSimConfigException, BetseSimPhaseException
-from betse.lib.matplotlib import mplutil
+from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.yamlabc import YamlFileABC
 from betse.science.config.confenum import (
@@ -874,15 +874,15 @@ class Parameters(YamlFileABC):
         self.plot_cutlines = ro['plot cutlines']
 
         # Colormaps.
-        self.default_cm = mplutil.get_colormap(ro['default colormap'])
-        self.background_cm = mplutil.get_colormap(ro['background colormap'])
+        self.default_cm    = mplcolormap.get_colormap(ro['default colormap'])
+        self.background_cm = mplcolormap.get_colormap(ro['background colormap'])
 
         # Colormap for plotting gj currents on top of default colormap.
-        self.gj_cm = mplutil.get_colormap(ro['gj colormap'])
+        self.gj_cm = mplcolormap.get_colormap(ro['gj colormap'])
 
         # new options for plotting reaction network graphs:
         self.plot_network = ro['plot networks']
-        self.network_cm = mplutil.get_colormap(ro['network colormap'])
+        self.network_cm = mplcolormap.get_colormap(ro['network colormap'])
 
         # Colors.
         self.vcolor = ro['vector and stream color']  # color of vector and streamlines
@@ -1257,6 +1257,7 @@ class Parameters(YamlFileABC):
                 'Ion profile type "{}" unrecognized.'.format(self.ion_profile))
 
     # ..................{ INIT ~ backward                    }..................
+    #FIXME: Relocate into a new "betse.science.config.confcompat" submodule.
     def _init_backward_compatibility(self) -> None:
         '''
         Attempt to preserve backward compatibility with prior configuration

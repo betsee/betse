@@ -394,7 +394,12 @@ class CLIABC(object, metaclass=ABCMeta):
         log_config.filename = self._args.log_filename
         log_config.file_level = LogLevel[self._args.log_level.upper()]
 
-        # Display a human-readable synopsis of this application.
+        # Log (and hence display, by default) a human-readable synopsis of this
+        # application. Since logging depends on parsing logging operations, this
+        # logging is intentionally deferred from the earliest time at which
+        # logging could technically be performed (namely, the body of the
+        # betse.ignition.ignite() function) to here. The disadvantage of this
+        # otherwise sane approach, of course, is that this logging is deferred.
         self._show_header()
 
         # Log all string arguments passed to this command.
