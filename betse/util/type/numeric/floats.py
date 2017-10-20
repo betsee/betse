@@ -12,6 +12,7 @@ from sys import float_info
 # from betse.util.io.log import logs
 from betse.util.type.call.memoizers import callable_cached
 from betse.util.type.types import type_check, RegexCompiledType
+from decimal import Decimal
 
 # ....................{ CONSTANTS                          }....................
 FLOAT_MIN = float_info.min
@@ -45,23 +46,141 @@ def is_float_str(text: str) -> bool:
     # Return True only if this string matches a floating point format.
     return regexes.is_match(text=text, regex=get_float_regex())
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS ~ base 10                  }....................
 @type_check
-def get_precision(number: float) -> int:
+def get_base_10_exponent(number: float) -> int:
     '''
-    Precision of the passed floating point number.
+    **Base-10 exponent** (i.e., integer power of ten to which raising a
+    corresponding real mantissa yields a floating point number) of the passed
+    floating point number.
 
-    Precision is defined as the length of this number's significand (excluding
-    leading hidden digit 1), equivalent to the number of base-10 digits in the
+    Equivalently, this function returns the quantity ``exponent`` in the
+    following equation, where ``number`` is the passed number, ``mantissa`` is
+    this number's mantissa, and ``exponent`` is this number's exponent:
+
+    .. code:: python
+
+       number = mantissa * 10**exponent
+
+    Examples
+    ----------
+        >>> from betse.util.type.numeric import floats
+        >>> floats.get_base_10_exponent(110001000000000009)
+        17
+        >>> floats.get_base_10_exponent(1)
+        1
+        >>> floats.get_base_10_exponent(0.1)
+        -1
+        >>> floats.get_base_10_exponent(0.110001000000000009)
+        -1
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/45359185/2809027
+        StackOverflow post strongly inspiring this implementation.
+    '''
+
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # NOTE: This function is intentionally implemented in terms of the
+    # high-level "Decimals" class rather than low-level primitives (e.g.,
+    # "float", "str"). Doing so necessitates converting from the latter to the
+    # former, which necessarily introduces IEEE 754 rounding errors. While these
+    # errors are inexcusable in most cases, they are entirely ignorable in this
+    # case. Why? Because the exponent of a floating point number is a
+    # sufficiently coarse-grained quantity that no accumulation of these errors
+    # is likely to permute this quantity. That is, the exponent is robust
+    # against rounding errors. While alternatives to a "Decimals"-based approach
+    # do technically exist, their complexity and hence fragility warrants the
+    # terseness of the current approach.
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    # Base-10 fixed-point number equivalent to this floating point number.
+    number_fixed = Decimal(number)
+
+    # Components of this fixed-point number:
+    #
+    # * "sign", either:
+    #   * 0 if this number is positive.
+    #   * 1 if this number is negative.
+    # * "digits", a tuple of all base-10 digits comprising this number.
+    # * "exponent", the integer power of ten to which raising the integer
+    #   produced by concatenating the digits of "digits" yields this number.
+    #
+    # This number is thus given by:
+    #
+    #     number = (-1)**sign * digits * 10**exponent
+    #
+    # For the purposes of calculating the desired exponent to be returned, note
+    # that the the "sign" term is safely ignorable. Ergo, "f" reduces to:
+    #
+    #     number = digits * 10**exponent
+    #
+    # Further note that the form of this expression is equivalent to that of the
+    # similar expression in this function's docstring. The difference is that:
+    #
+    # * The "digits" term is a non-negative integer (i.e., >= 0).
+    # * The "mantissa" term in that similar expression is a real number
+    #   satisfying the inequality: "10 < mantissa <= 1".
+    #
+    # Converting the integer "exponent" term in this expression to the real
+    # number "exponent" term in that similar expression thus reduces to the
+    # following iterative salgorithm:
+    #
+    # * If the decimal place in the "digits" term is *NOT* currently to the
+    #   right of the leftmost digit in this term:
+    #   1. Shift this decimal place left by one digit, thus decreasing this
+    #      number by a power of ten.
+    #   2. Increment this "exponent" term by one, thus increasing this number by
+    #      a power of ten. Since doing so is the inverse of the prior operation,
+    #      this number's actual value remains unchanged.
+    #
+    # Note that the decimal place in this "digits" term begins to the right of
+    # the rightmost digit in this term. The number of algorithm iterations (and
+    # hence incrementations of this "exponent" term) to be performed is thus
+    # the number of digits in this "digits" term minus one.
+    #
+    # Q.E.D.
+    _, digits, exponent_decimals = number_fixed.as_tuple()
+
+    # Base-10 exponent of this floating point number, converted from the
+    # base-10 exponent of this fixed-point number via the trivial incrementation
+    # scheme given above. And now you know why we use the "Decimals" class.
+    exponent_float = exponent_decimals + len(digits) - 1
+
+    # Return this exponent.
+    return exponent_float
+
+
+@type_check
+def get_base_10_precision(number: float) -> int:
+    '''
+    **Base-10 precision** (i.e., length of a floating point number's significand
+    excluding leading hidden digit 1) of the passed floating point number.
+
+    Equivalently, this function returns the number of base-10 digits in the
     fractional segment of this number *after* accounting for approximation
     errors in floating point arithmetic.
 
     Examples
     ----------
         >>> from betse.util.type.numeric import floats
-        >>> floats.get_precision(0.110001000000000009)
+        >>> floats.get_base_10_precision(0)
+        0
+        >>> floats.get_base_10_precision(0.1)
+        1
+        >>> floats.get_base_10_precision(0.110001000000000009)
         17
     '''
+
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # WARNING: This function is intentionally implemented in terms of low-level
+    # primitives (e.g., "float", "str") rather than higher-level classes --
+    # notably, "Decimals". While this function could superficially be
+    # reimplemented in terms of the latter rather than the former, doing so
+    # would return blatantly incorrect and overly large precisions for arbitrary
+    # floating point numbers due to IEEE 754 rounding errors. Ergo, the current
+    # approach actually is the sane approach (as insane as it inarguably is).
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     # Avoid circular import dependencies.
     from betse.util.type.text import regexes

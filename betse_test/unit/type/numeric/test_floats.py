@@ -10,10 +10,27 @@ Unit tests exercising floating point functionality.
 # ....................{ IMPORTS                            }....................
 # import pytest
 
-# ....................{ TESTS                              }....................
-def test_get_precision() -> None:
+# ....................{ TESTS ~ base 10                    }....................
+def test_get_base_10_exponent() -> None:
     '''
-    Unit test the :func:`betse.util.type.numeric.floats.get_precision` getter.
+    Unit test the :func:`betse.util.type.numeric.floats.get_base_10_exponent`
+    getter.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.util.type.numeric import floats
+
+    # Assert this getter to behave as expected on common edge cases.
+    assert floats.get_base_10_exponent(7.77e+66) == 66
+    assert floats.get_base_10_exponent(6.66e-77) == -77
+    assert floats.get_base_10_exponent(0.000123456789) == -4
+    assert floats.get_base_10_exponent(100001234567.9) == 11
+
+
+def test_get_base_10_precision() -> None:
+    '''
+    Unit test the :func:`betse.util.type.numeric.floats.get_base_10_precision`
+    getter.
     '''
 
     # Defer heavyweight imports.
@@ -33,7 +50,7 @@ def test_get_precision() -> None:
     # than 0.0001 when converted to strings in scientific rather than decimal
     # notation. Hence, small floats should be no smaller than 0.0001.
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    assert floats.get_precision(7.77e+66) == 66
-    assert floats.get_precision(6.66e-77) == 77
-    assert floats.get_precision(0.000123456789) == 12
-    assert floats.get_precision( .000123456789) == 12
+    assert floats.get_base_10_precision(7.77e+66) == 66
+    assert floats.get_base_10_precision(6.66e-77) == 77
+    assert floats.get_base_10_precision(0.000123456789) == 12
+    assert floats.get_base_10_precision( .000123456789) == 12
