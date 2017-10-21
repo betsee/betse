@@ -113,18 +113,12 @@ general options:
     extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
     extracellular Cl- concentration: 105.0          # extracellular chloride [mmol/L]
     extracellular Ca2+ concentration: 1.0           # extracellular calcium [mmol/L]
-
-    #FIXME: Rename to "extracellular M- concentration".
-    extracellular HCO3- concentration: 36.0         # extracellular bicarbonate [mmol/L]
     extracellular protein- concentration: 10.0       # extracellular protein [mmol/L]
 
     cytosolic Na+ concentration: 8.0                # intracellular sodium [mmol/L]
     cytosolic K+ concentration: 125.00              # intracellular potassium [mmol/L]
     cytosolic Cl- concentration: 20.0                # intracellular chloride [mmol/L]
     cytosolic Ca2+ concentration: 1.0e-4            # intracellular calcium [mmol/L]
-
-    #FIXME: Rename to "cytosolic M- concentration".
-    cytosolic HCO3- concentration: 13.0             # intracellular bicarbonate [mmol/L]
     cytosolic protein- concentration: 100.0         # intracellular protein [mmol/L]
 
     endoplasmic reticulum Ca2+: 0.1             # starting level of Ca2+ in the ER store [mmol/L]
@@ -1081,11 +1075,6 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     flux threshold: 1.0e-4     # flux cut off maximum
 
-#    calcium gated K:
-#
-#        hill K_half: 7.5e-4         # half-maxium activity coefficient for Hill function [mmol/L]
-#        hill n: 3                   # Hill function coefficient
-
     stretch gated Na:          # parameters for the mechano-sensitive ion channel
 
         hill K_half: 0.2         # half-maxium activity coefficient for Hill function (as level of cell strain)
@@ -1108,7 +1097,7 @@ internal parameters:
 
   alpha_NaK:  1.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
 
-  alpha_Ca:  1.0e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_Ca:  5.0e-8    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
   gaussian smoothing: 0.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
 
@@ -1121,7 +1110,6 @@ internal parameters:
   membrane capacitance: 0.1 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
 
   cell polarizability: 0.0  # cell polarizability constant in electric fields (0.0 to 5.0e-4 [F/m])
-
 
 
 # Configuration file version that this file conforms to. For reliable
