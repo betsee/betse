@@ -1220,7 +1220,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
     return cX_cell_1, cX_env_1, f_X
 
-def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, Dgj=1.0e-12, c_bound=1.0e-6,
+def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, Dgj=1.0e-12, Ftj = 1.0, c_bound=1.0e-6,
                    ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, cmems = None):
 
     """
@@ -1237,6 +1237,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
     z                   Charge state of molecule
     Dm                  Membrane diffusion constant [m2/s]
     Do                  Free diffusion constant [m2/s]
+    Ftj                 Factor influencing relative diffusion of substance across tight junction barrier
     c_bound             Concentration of molecule at global bounds (required for is_ecm True only)
 
     Returns
@@ -1287,20 +1288,13 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         # midpoint concentration:
         cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
 
-        # # electroosmotic fluid velocity:
-        # if p.fluid_flow is True:
-        #     ux = sim.u_cells_x[cells.mem_to_cells]
-        #     uy = sim.u_cells_y[cells.mem_to_cells]
-        #
-        # else:
-
         # fluid flow will never affect concentration of ions as it's divergence free; therefore, set this to zero:
         ux = 0
         uy = 0
 
 
-        Egjx = tb.clip_vals(sim.E_gj_x, 5.0e5)
-        Egjy = tb.clip_vals(sim.E_gj_y, 5.0e5)
+        Egjx = sim.E_gj_x
+        Egjy = sim.E_gj_y
 
 
         fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -Egjx,
@@ -1343,20 +1337,24 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         cenv[0, :] = c_bound
         cenv[-1, :] = c_bound
 
-        denv = Do * np.ones(len(cells.xypts))
+        denv_multiplier = np.ones(len(cells.xypts))
 
         if ignoreTJ is False:
-            denv = denv.reshape(cells.X.shape)*sim.D_env_weight
+            # if tight junction barrier applies, create a mask that defines relative strength of barrier:
+            denv_multiplier = denv_multiplier.reshape(cells.X.shape)*sim.D_env_weight
+
+            # at the cluster boundary, further modify the env diffusion map by a relative TJ diffusion factor:
+            denv_multiplier.ravel()[sim.TJ_targets] = denv_multiplier.ravel()[sim.TJ_targets]*Ftj
 
         else:
-            denv = denv.reshape(cells.X.shape)
+            denv_multiplier = denv_multiplier.reshape(cells.X.shape)
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
         if p.fluid_flow is True:
 
-            ux = sim.u_env_x.reshape(cells.X.shape)
-            uy = sim.u_env_y.reshape(cells.X.shape)
+            ux = sim.u_env_x.reshape(cells.X.shape)*denv_multiplier
+            uy = sim.u_env_y.reshape(cells.X.shape)*denv_multiplier
 
         else:
 
@@ -1364,7 +1362,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
             uy = 0.0
 
         fx, fy = nernst_planck_flux(cenv, gcx, gcy, -sim.E_env_x, -sim.E_env_y, ux, uy,
-                                        denv, z, sim.T, p)
+                                        denv_multiplier*Do, z, sim.T, p)
 
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
 

@@ -739,7 +739,7 @@ class Parameters(YamlFileABC):
 
         self.tethered_tubule = (mtb.get('tethered tubule', True))
 
-        self.cytoplasm_viscocity = 1.0e-3
+        self.cytoplasm_viscocity = 1.0e-2
 
         self.D_mtube = float(mtb.get('microtubule diffusion', 1.0))
 
@@ -910,10 +910,14 @@ class Parameters(YamlFileABC):
 
         self.interp_type = 'nearest'
 
+        # gaussian smoothing factor for 2D maps of voltage and current
         self.smooth_level = float(iu['gaussian smoothing'])
 
-        self.smooth_concs = iu['smooth concentrations']
+        # gaussian smoothing factor for 2D map of system conductivity:
+        self.smooth_level_sigma_map = float(iu.get('conductivity map smoothing', 1))
 
+        # self.smooth_concs = iu['smooth concentrations']
+        self.smooth_concs = False
         # self.media_rho = float(iu['media resistivity'])
         self.tissue_rho = 0.03
 
@@ -1211,7 +1215,7 @@ class Parameters(YamlFileABC):
             self.cK_env = float(cip['extracellular K+ concentration'])
             self.conc_env_cl = float(cip['extracellular Cl- concentration'])
             self.cCa_env = float(cip['extracellular Ca2+ concentration'])
-            self.conc_env_m = float(cip['extracellular HCO3- concentration'])   # FIXME change in config to be 'anion'
+            # self.conc_env_m = float(cip['extracellular HCO3- concentration'])   # FIXME change in config to be 'anion'
             self.cP_env = float(cip['extracellular protein- concentration'])
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]
@@ -1223,7 +1227,7 @@ class Parameters(YamlFileABC):
             self.cK_cell = float(cip['cytosolic K+ concentration'])
             self.cCl_cell = float(cip['cytosolic Cl- concentration'])
             self.cCa_cell = float(cip['cytosolic Ca2+ concentration'])
-            self.cM_cell = float(cip['cytosolic HCO3- concentration'])
+            # self.cM_cell = float(cip['cytosolic HCO3- concentration'])
             self.cP_cell = float(cip['cytosolic protein- concentration'])
 
             conc_cell = [self.cNa_cell, self.cK_cell, self.cCl_cell, self.cCa_cell, self.cP_cell]

@@ -1233,17 +1233,6 @@ class TissueHandler(object):
         if p.is_ecm is True:  # set environnment data length
             sim.edl = len(cells.xypts)
 
-            # # set environmental voltage outside of tissue to zero to avoid "ghosting"
-            # v_env = np.zeros(sim.edl)
-            # v_env[cells.envInds_inClust] = sim.v_env[cells.envInds_inClust]
-            # sim.v_env = v_env*1
-
-            # for i, ccc in enumerate(sim.cc_env):
-            #
-            #     ccc2 = np.ones(sim.edl)*
-
-
-
         else:
             sim.edl = len(cells.mem_mids_flat)
 
@@ -1271,44 +1260,41 @@ class TissueHandler(object):
 
             sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
-        # if p.is_ecm is True:
-
         # if desire for cut away space due to lack of tight junctions, remove bflags on wound from set:
-        if p.break_TJ is True:
-
-            new_bcells = np.copy(cells.bflags_cells)
-            new_bmems = np.copy(cells.bflags_mems)
-
-            searchTree = sps.KDTree(cells.cell_centres)
-            original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
-            cells.bflags_cells = original_pt_inds
-
-            searchTree_m = sps.KDTree(cells.mem_mids_flat)
-            original_pt_inds_m = list(searchTree_m.query(old_bflag_memxy))[1]
-            cells.bflags_mems = original_pt_inds_m
-
-            # calculate indices to tag TJ at boundary in terms of original boundary flags
-            neigh_to_bcells, _, _ = tb.flatten(cells.cell_nn[cells.bflags_cells])
-            all_bound_mem_inds_o = cells.cell_to_mems[cells.bflags_cells]
-            interior_bound_mem_inds_o = cells.cell_to_mems[neigh_to_bcells]
-            interior_bound_mem_inds_o, _, _ = tb.flatten(interior_bound_mem_inds_o)
-            all_bound_mem_inds_o, _, _ = tb.flatten(all_bound_mem_inds_o)
-
-            cells.all_bound_mem_inds = cells.map_mem2ecm[all_bound_mem_inds_o]
-            cells.interior_bound_mem_inds = cells.map_mem2ecm[interior_bound_mem_inds_o]
-            cells.inds_outmem = cells.map_mem2ecm[cells.bflags_mems]
-            cells.ecm_inds_bound_cell = cells.map_cell2ecm[cells.bflags_cells]
+        # if p.break_TJ is True:
+        #
+        #     new_bcells = np.copy(cells.bflags_cells)
+        #     new_bmems = np.copy(cells.bflags_mems)
+        #
+        #     searchTree = sps.KDTree(cells.cell_centres)
+        #     original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
+        #     cells.bflags_cells = original_pt_inds
+        #
+        #     searchTree_m = sps.KDTree(cells.mem_mids_flat)
+        #     original_pt_inds_m = list(searchTree_m.query(old_bflag_memxy))[1]
+        #     cells.bflags_mems = original_pt_inds_m
+        #
+        #     # calculate indices to tag TJ at boundary in terms of original boundary flags
+        #     neigh_to_bcells, _, _ = tb.flatten(cells.cell_nn[cells.bflags_cells])
+        #     all_bound_mem_inds_o = cells.cell_to_mems[cells.bflags_cells]
+        #     interior_bound_mem_inds_o = cells.cell_to_mems[neigh_to_bcells]
+        #     interior_bound_mem_inds_o, _, _ = tb.flatten(interior_bound_mem_inds_o)
+        #     all_bound_mem_inds_o, _, _ = tb.flatten(all_bound_mem_inds_o)
+        #
+        #     cells.all_bound_mem_inds = cells.map_mem2ecm[all_bound_mem_inds_o]
+        #     cells.interior_bound_mem_inds = cells.map_mem2ecm[interior_bound_mem_inds_o]
+        #     cells.inds_outmem = cells.map_mem2ecm[cells.bflags_mems]
+        #     cells.ecm_inds_bound_cell = cells.map_cell2ecm[cells.bflags_cells]
 
 
         # if hole_tag is False: # if we're not defining a hole at the beginning, reassign to new bflags
-
         sim.initDenv(cells,p)
 
-        if p.break_TJ is True:
-
-            # re-assign the boundary flags to the new configuration:
-            cells.bflags_cells = new_bcells
-            cells.bflags_mems = new_bmems
+        # if p.break_TJ is True:
+        #
+        #     # re-assign the boundary flags to the new configuration:
+        #     cells.bflags_cells = new_bcells
+        #     cells.bflags_mems = new_bmems
 
         sim.conc_J_x = np.zeros(len(cells.xypts))
         sim.conc_J_y = np.zeros(len(cells.xypts))
@@ -1343,13 +1329,29 @@ class TissueHandler(object):
 
         if p.break_TJ is True: # we need to redo the TJ barrier at the wound site:
 
-            ecmtarg = cells.map_mem2ecm[sim.dyna.targets_vgWound]
+            # first identify indices of exterior and interior extracellular grid sites corresponding to the wound TJ:
+            cell_wound_inds = (sim.hurt_mask == 1.0).nonzero()
+            neigh_to_wound_cells, _, _ = tb.flatten(cells.cell_nn[cell_wound_inds])
+
+            interior_wound_inds = cells.cell_to_mems[neigh_to_wound_cells]
+            interior_wound_inds, _, _ = tb.flatten(interior_wound_inds)
+
+            ecmtarg_a = cells.map_mem2ecm[self.targets_vgWound]
+            ecmtarg_b = cells.map_mem2ecm[interior_wound_inds]
+
+            ecmtarg = np.hstack((ecmtarg_a, ecmtarg_b))
+            # ecmtarg = ecmtarg_a
+
 
             Dw = np.copy(sim.D_env_weight.ravel())
+
+            # assign the wound TJ to the user's requested value:
             Dw[ecmtarg] = 1.0*p.wound_TJ
 
+            # re-assign the environmental weight matrix:
             sim.D_env_weight = Dw.reshape(cells.X.shape)*1
 
+            # furthermore, recalculate the individual ion diffusion maps:
             if p.is_ecm:
 
                 for i, dmat in enumerate(sim.D_env):
@@ -1360,19 +1362,19 @@ class TissueHandler(object):
                     # re-assign the ecm diffusion grid filled with the environmental values at wound site:
                     sim.D_env[i] = Denv_o*1.0
 
-            # re-calculate specific maps of conductivity in cells and environment
-            sim.sigma_cell = np.asarray([((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
-                                          zip(sim.zs, sim.cc_cells, sim.D_free)]).mean(axis=0)
-
-            sim.sigma_env = np.asarray(
-                [((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
-                 zip(sim.zs, sim.cc_env, sim.D_env)]).mean(
-                axis=0)
-
-            if p.is_ecm:
-
-                # environmental conductivity matrix needs to be smoothed to assured simulation stability:
-                sim.sigma_env = gaussian_filter(sim.sigma_env.reshape(cells.X.shape), 1).ravel()
+            # # re-calculate specific maps of conductivity in cells and environment
+            # sim.sigma_cell = np.asarray([((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
+            #                               zip(sim.zs, sim.cc_cells, sim.D_free)]).mean(axis=0)
+            #
+            # sim.sigma_env = np.asarray(
+            #     [((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
+            #      zip(sim.zs, sim.cc_env, sim.D_env)]).mean(
+            #     axis=0)
+            #
+            # if p.is_ecm:
+            #
+            #     # environmental conductivity matrix needs to be smoothed to assured simulation stability:
+            #     sim.sigma_env = gaussian_filter(sim.sigma_env.reshape(cells.X.shape), 1).ravel()
 
         # WOUND CHANNEL FINALIZATION-----------------------------------------
 

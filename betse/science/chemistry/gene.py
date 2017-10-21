@@ -186,6 +186,10 @@ class MasterOfGenes(object):
 
     def run_core_sim(self, sim, cells, p):
 
+        # FIXME update this so that the user can load a pre-run BETSE init or sim pickle, specified in networks
+        # this will allow us to piggy-back a Networks functionality on top of a stable bioelectrical configuration
+        # with greater computational speed.
+
         sim.vm = -50e-3*np.ones(sim.mdl)
 
         sim.time = []
@@ -228,9 +232,6 @@ class MasterOfGenes(object):
 
             if self.transporters:
                 self.core.run_loop_transporters(t, sim, cells, p)
-
-            # if self.modulators:
-            #     self.core.run_loop_modulators(sim, self.core, cells, p)
 
             self.core.run_loop(t, sim, cells, p)
 

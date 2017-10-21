@@ -2004,7 +2004,6 @@ class Simulator(object):
             ux = np.zeros(cells.X.shape)
             uy = np.zeros(cells.X.shape)
 
-        # denv = self.D_free[i]*self.D_env_weight
 
         denv = self.D_env[i].reshape(cells.X.shape)*self.TJ_modulator[i].reshape(cells.X.shape)
 

@@ -1112,7 +1112,7 @@ internal parameters:
 
   gaussian smoothing: 0.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
 
-  smooth concentrations: False   # apply gaussian smoothing to concentrations?
+  conductivity map smoothing: 1.0   # apply gaussian smoothing to conductivities?
 
   substances affect Vmem: False  # do ionic biochemicals, metabolites and gene products affect charge state?
 
@@ -1121,6 +1121,7 @@ internal parameters:
   membrane capacitance: 0.1 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
 
   cell polarizability: 0.0  # cell polarizability constant in electric fields (0.0 to 5.0e-4 [F/m])
+
 
 
 # Configuration file version that this file conforms to. For reliable

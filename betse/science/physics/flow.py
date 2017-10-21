@@ -17,18 +17,23 @@ def getFlow(sim, cells, p):
 
     if p.is_ecm is True:
 
-        # electrostatic body forces in environment:
-        FFx = sim.rho_env.reshape(cells.X.shape)*sim.E_env_x
-        FFy = sim.rho_env.reshape(cells.X.shape)*sim.E_env_y
+        # conversion to consider only surface charge on cell membranes (rather than volume density):
+        scaleF = cells.memSa_per_envSquare.reshape(cells.X.shape) / cells.delta
 
-        # non-divergence free currents using Stokes flow equation:
+        # electrostatic body forces in environment:
+        FFx = sim.rho_env.reshape(cells.X.shape)*sim.E_env_x*scaleF
+        FFy = sim.rho_env.reshape(cells.X.shape)*sim.E_env_y*scaleF
+        # FFx = -sim.rho_env.reshape(cells.X.shape)*sim.gVex*scaleF
+        # FFy = -sim.rho_env.reshape(cells.X.shape)*sim.gVey*scaleF
+
+        # volume forces scaled by water viscocity and environmental weight map defining TJ barrier:
         muFx = ((1/p.mu_water)*sim.D_env_weight)*FFx
         muFy = ((1/p.mu_water)*sim.D_env_weight)*FFy
 
         Uxo = np.dot(cells.lapENVinv, -muFx.ravel())
         Uyo = np.dot(cells.lapENVinv, -muFy.ravel())
 
-        # Helmholtz-Hodge decomposition to obtain divergence-free projection of flow (zero at boundary):
+        # Helmholtz-Hodge decomposition to obtain divergence-free projection of flow (zero at external boundary):
         _, Ux, Uy, _, _, _ = stb.HH_Decomp(Uxo.reshape(cells.X.shape),
                                             Uyo.reshape(cells.X.shape), cells)
 

@@ -82,10 +82,10 @@ def get_current(sim, cells, p):
         v_env = v_env.reshape(cells.X.shape)
 
         # add in extra boundary conditions for the case of an externally-applied voltage event:
-        v_env[:, -1] += sim.bound_V['R']
-        v_env[:, 0] += sim.bound_V['L']
-        v_env[-1, :] += sim.bound_V['T']
-        v_env[0, :] += sim.bound_V['B']
+        v_env[:, -1] = sim.bound_V['R']
+        v_env[:, 0] = sim.bound_V['L']
+        v_env[-1, :] = sim.bound_V['T']
+        v_env[0, :] = sim.bound_V['B']
 
         # gradient of the polarization voltage yields the electric field:
         gVex, gVey = fd.gradient(v_env, cells.delta)
@@ -125,13 +125,14 @@ def get_current(sim, cells, p):
              zip(sim.zs, sim.cc_env, sim.D_env)]).mean(
             axis=0)
 
-        # environmental conductivity matrix needs to be smoothed to assured simulation stability:
-        sim.sigma_env = gaussian_filter(sim.sigma_env.reshape(cells.X.shape), 1)
+        if p.smooth_level_sigma_map > 0.0:
+            # environmental conductivity matrix needs to be smoothed to assured simulation stability:
+            sim.sigma_env = gaussian_filter(sim.sigma_env.reshape(cells.X.shape), p.smooth_level_sigma_map)
 
 
         # calculate electric field components; these are smoothed and more ideal for other environmental updates:
-        sim.E_env_x = sim.Jtx*(1/sim.sigma_env)
-        sim.E_env_y = sim.Jty*(1/sim.sigma_env)
+        sim.E_env_x = sim.Jtx*(1/sim.sigma_env.reshape(cells.X.shape))
+        sim.E_env_y = sim.Jty*(1/sim.sigma_env.reshape(cells.X.shape))
 
         # # Add in any electric field resulting from an applied voltage:
         # sim.E_env_x += -((sim.bound_V['R'] - sim.bound_V['L'])/(cells.xmax - cells.xmin))*np.ones(cells.X.shape)

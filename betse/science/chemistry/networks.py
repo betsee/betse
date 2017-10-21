@@ -326,7 +326,7 @@ class MasterOfNetworks(object):
                 mol.ignoreTJ = mol_dic['TJ permeable']  # ignore TJ?
                 mol.ignoreGJ = mol_dic['GJ impermeable'] # ignore GJ?
 
-                mol.TJ_factor = float(mol_dic['TJ factor'])
+                mol.TJ_factor = float(mol_dic['TJ factor']) # relative movement of substance across TJ barrier
 
                 # factors involving growth and decay (gad) in the cytoplasm
                 gad = mol_dic.get('growth and decay', None)
@@ -3637,13 +3637,13 @@ class MasterOfNetworks(object):
                 sim.cc_cells[sim.iK] = sim.cc_cells[sim.iK] - np.abs(Q)
 
             elif Q < 0 and np.abs(Q) > sim.cc_mems[sim.iP].mean():  # if net charge is anionic
-                raise BetseSimConfigException("You've defined way more anionic charge in"
-                                               "the extra substances than we can "
+                raise BetseSimConfigException("You've defined way more anionic charge in "
+                                               "the extra substances (cell region) than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
             elif Q > 0 and np.abs(Q) > sim.cc_cells[sim.iK].mean():
                 raise BetseSimConfigException("You've defined way more cationic charge in"
-                                               "the extra substances than we can "
+                                               "the extra substances (cell region) than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
 
@@ -3656,13 +3656,13 @@ class MasterOfNetworks(object):
             elif Q > 0 and np.abs(Q) <= sim.cc_env[sim.iK].mean():
                 sim.cc_env[sim.iK] = sim.cc_env[sim.iK] - np.abs(Q)
             elif Q < 0 and np.abs(Q) > sim.cc_env[sim.iP].mean():  # if net charge is anionic
-                raise BetseSimConfigException("You've defined way more anionic charge in"
-                                               "the extra substances than we can "
+                raise BetseSimConfigException("You've defined way more anionic charge in "
+                                               "the extra substances (env region) than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
             elif Q > 0 and np.abs(Q) > sim.cc_env[sim.iK].mean():
-                raise BetseSimConfigException("You've defined way more cationic charge in"
-                                               "the extra substances than we can "
+                raise BetseSimConfigException("You've defined way more cationic charge in "
+                                               "the extra substances (env region) than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
 
@@ -5220,6 +5220,7 @@ class Molecule(object):
                                                                 smoothECM = p.smooth_concs,
                                                                 ignoreTJ = self.ignoreTJ,
                                                                 ignoreGJ = self.ignoreGJ,
+                                                                Ftj = self.TJ_factor,
                                                                 rho = sim.rho_channel,
                                                                 cmems=self.cc_at_mem)
 
@@ -5270,20 +5271,7 @@ class Molecule(object):
                 uflow = fxi * cells.mem_vects_flat[:, 2] + fyi * cells.mem_vects_flat[:, 3]
 
 
-                # uflow = (sim.u_cells_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
-                #       sim.u_cells_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
-
             else:
-
-                # curl component of current is a fluid-flow; get the membrane normal component:
-
-                # fxo = (sim.J_env_x.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
-                # fyo = (sim.J_env_y.ravel()[cells.map_mem2ecm])/(p.F*sim.zs.mean()*sim.cc_env.mean())
-                #
-                # fxi = (np.dot(cells.M_sum_mems, fxo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-                # fyi = (np.dot(cells.M_sum_mems, fyo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-                #
-                # uflow = fxi * cells.mem_vects_flat[:, 2] + fyi * cells.mem_vects_flat[:, 3]
 
                 uflow = 0.0
 
@@ -5312,10 +5300,10 @@ class Molecule(object):
 
             if self.transmem:
 
-                c_diffusion = tb.clip_vals(-Do*cg, max_move)
-                c_ephoresis_A = tb.clip_vals((Do*p.q*z)/(p.kb*sim.T)*cp*Eecm, max_move)
-                c_ephoresis_B = tb.clip_vals(self.Mu_mem*cp*Eecm, max_move)
-                c_eosmo = tb.clip_vals(uflow*cp, max_move)
+                c_diffusion = (-Do*cg)
+                c_ephoresis_A = ((Do*p.q*z)/(p.kb*sim.T)*cp*Eecm)
+                c_ephoresis_B = (self.Mu_mem*cp*Eecm)
+                c_eosmo = (uflow*cp)
 
 
                 # diffuse in concentration gradient, via extracellular field and via extracellular flow:
@@ -5324,10 +5312,10 @@ class Molecule(object):
 
             else:
 
-                c_diffusion = tb.clip_vals(-Do*cg, max_move)
-                c_ephoresis_A = tb.clip_vals((Do*p.q*z)/(p.kb*sim.T)*cp*En, max_move)
-                c_ephoresis_B = tb.clip_vals(self.Mu_mem*cp*En, max_move)
-                c_motor = tb.clip_vals(umtn*self.u_mt*cp, max_move)
+                c_diffusion = (-Do*cg)
+                c_ephoresis_A = ((Do*p.q*z)/(p.kb*sim.T)*cp*En)
+                c_ephoresis_B = (self.Mu_mem*cp*En)
+                c_motor = (umtn*self.u_mt*cp)
 
 
                 # move with conc gradient, via intracellular field (Einstein coefficient or mobility), or motor proteins:

@@ -19,29 +19,29 @@ skip_unless_networkable = skip_unless_lib_runtime_optional('networkx', 'pydot')
 
 # ....................{ TESTS                              }....................
 #FIXME: Enable plots and animations for these tests.
+# @skip_unless_networkable
+# def test_cli_brn(betse_cli_sim: 'CLISimTester') -> None:
+#     '''
+#     Test simulating the default biochemical reaction network (BRN) isolated away
+#     from all bioelectrical phenomena.
+#
+#     Parameters
+#     ----------
+#     betse_cli_sim : CLISimTester
+#         Object running BETSE CLI simulation subcommands.
+#     '''
+#
+#     # Enable the saving of visuals, preventing the "plot sim-brn" subcommand
+#     # tested below from silently reducing to a noop.
+#     betse_cli_sim.sim_state.config.enable_visuals_save()
+#
+#     # Test all BRN-specific subcommands with this configuration.
+#     betse_cli_sim.run_subcommands(
+#         ('seed',), ('sim-brn',), ('plot', 'sim-brn',),)
+
+
 @skip_unless_networkable
-def test_cli_brn(betse_cli_sim: 'CLISimTester') -> None:
-    '''
-    Test simulating the default biochemical reaction network (BRN) isolated away
-    from all bioelectrical phenomena.
-
-    Parameters
-    ----------
-    betse_cli_sim : CLISimTester
-        Object running BETSE CLI simulation subcommands.
-    '''
-
-    # Enable the saving of visuals, preventing the "plot sim-brn" subcommand
-    # tested below from silently reducing to a noop.
-    betse_cli_sim.sim_state.config.enable_visuals_save()
-
-    # Test all BRN-specific subcommands with this configuration.
-    betse_cli_sim.run_subcommands(
-        ('seed',), ('sim-brn',), ('plot', 'sim-brn',),)
-
-
-@skip_unless_networkable
-def test_cli_grn(betse_cli_sim: 'CLISimTester') -> None:
+def test_cli_grn_isolated(betse_cli_sim: 'CLISimTester') -> None:
     '''
     Test simulating the default gene regulatory network (GRN) isolated away from
     all bioelectrical phenomena.
@@ -62,10 +62,10 @@ def test_cli_grn(betse_cli_sim: 'CLISimTester') -> None:
 
 
 @skip_unless_networkable
-def test_cli_sim_brn_grn(betse_cli_sim: 'CLISimTester') -> None:
+def test_cli_sim_grn_integrated(betse_cli_sim: 'CLISimTester') -> None:
     '''
-    Test simulating the default biochemical reaction network (BRN) *and*
-    gene regulatory network (GRN) alongside all bioelectrical phenomena.
+    Test simulating the default gene regulatory network (GRN) alongside all
+    bioelectrical phenomena.
 
     Parameters
     ----------
