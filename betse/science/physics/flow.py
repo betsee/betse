@@ -23,15 +23,17 @@ def getFlow(sim, cells, p):
         # electrostatic body forces in environment:
         FFx = sim.rho_env.reshape(cells.X.shape)*sim.E_env_x*scaleF
         FFy = sim.rho_env.reshape(cells.X.shape)*sim.E_env_y*scaleF
-        # FFx = -sim.rho_env.reshape(cells.X.shape)*sim.gVex*scaleF
-        # FFy = -sim.rho_env.reshape(cells.X.shape)*sim.gVey*scaleF
 
         # volume forces scaled by water viscocity and environmental weight map defining TJ barrier:
         muFx = ((1/p.mu_water)*sim.D_env_weight)*FFx
         muFy = ((1/p.mu_water)*sim.D_env_weight)*FFy
 
-        Uxo = np.dot(cells.lapENVinv, -muFx.ravel())
-        Uyo = np.dot(cells.lapENVinv, -muFy.ravel())
+        # Uxo = np.dot(cells.lapENVinv, -muFx.ravel())
+        # Uyo = np.dot(cells.lapENVinv, -muFy.ravel())
+
+        # Electroosmotic velocity in terms of slip velocity with charge at the screening layer:
+        Uxo = muFx*(1/sim.ko_env)
+        Uyo = muFy*(1/sim.ko_env)
 
         # Helmholtz-Hodge decomposition to obtain divergence-free projection of flow (zero at external boundary):
         _, Ux, Uy, _, _, _ = stb.HH_Decomp(Uxo.reshape(cells.X.shape),
@@ -76,8 +78,12 @@ def getFlow(sim, cells, p):
     Fyc = sim.E_cell_y*rho_cells*(1/p.mu_water)
 
     # Calculate flow under body forces using Stokes flow:
-    u_gj_xo = np.dot(cells.lapGJinv, -Fxc)
-    u_gj_yo = np.dot(cells.lapGJinv, -Fyc)
+    # u_gj_xo = np.dot(cells.lapGJinv, -Fxc)
+    # u_gj_yo = np.dot(cells.lapGJinv, -Fyc)
+
+    # Electroosmotic velocity in terms of slip velocity with charge at the screening layer:
+    u_gj_xo = Fxc*(1/sim.ko_cell)
+    u_gj_yo = Fyc*(1/sim.ko_cell)
 
     # Flow must be made divergence-free: use the Helmholtz-Hodge decomposition method:
     _, sim.u_cells_x, sim.u_cells_y, _, _, _ = cells.HH_cells(u_gj_xo, u_gj_yo, rot_only=True)
