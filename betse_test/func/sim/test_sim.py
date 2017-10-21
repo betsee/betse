@@ -123,9 +123,6 @@ def test_cli_sim_video(
         Filetype of videos to encode with this writer (e.g., `mkv`, `mp4`).
     '''
 
-    # Enable encoding of one animation to this filetype with this writer..
-    betse_cli_sim.sim_state.config.enable_anim_video(writer_name, filetype)
-
     # Test the minimum number of simulation-specific subcommands required to
     # exercise video encoding with this configuration. Since the "init"
     # subcommand requiring the "seed" subcommand satisfies this constraint, all

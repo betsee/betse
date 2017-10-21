@@ -15,7 +15,7 @@ from pytest import fixture
 from py._path.local import LocalPath
 
 # ....................{ CLASSES                            }....................
-#FIXME: All use of the increasingly obsolete "SimTestState.config" wrapper
+#FIXME: Most use of the increasingly obsolete "SimTestState.config" wrapper
 #attribute (both here and everywhere else) should be replaced by use of the new
 #"SimTestState.p" property, which increasingly provides all test functionality.
 
@@ -32,37 +32,62 @@ class SimTestState(object):
     config : SimConfigWrapper
         Simulation configuration wrapper wrapping the low-level dictionary
         deserialized from the YAML-formatted simulation configuration file with
-        path :attr:`config_filepath`. Note the contents of this dictionary may
+        path :attr:`conf_filepath`. Note the contents of this dictionary may
         be desynchronized from those of this file. For efficiency, callers may
         modify this dictionary to suite test requirements *before* reserializing
         this dictionary back to this file.
-    config_filepath : LocalPath
+
+    Attributes (Path)
+    ----------
+    conf_filename : str
         Absolute path of a temporary simulation configuration file specific to
-        the parent fixture as a `py.path.local` instance, defining an
-        object-oriented superset of the non-object-oriented `os.path` module.
+        the parent fixture, equivalent to ``str(self.conf_filepath)``.
+    conf_filepath : LocalPath
+        Absolute path of a temporary simulation configuration file specific to
+        the parent fixture as a :class:`py.path.local` instance, defining an
+        object-oriented superset of the non-object-oriented :mod:`os.path`
+        module.
 
     See Also
     ----------
     https://py.readthedocs.org/en/latest/path.html
-        Official `py.path` class documentation.
+        Official :mod:`py.path` submodule documentation.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, config_filepath: LocalPath) -> None:
+    def __init__(self, conf_filepath: LocalPath) -> None:
         '''
         Initialize this simulation configuration context.
 
-        This method copies BETSE's default simulation configuration file,
-        complete with all external assets (e.g., geometry masks) referenced and
-        required by this file, to the passed path.
+        This method (in order):
+
+        #. Copies BETSE's default simulation configuration file, complete with
+           all external assets (e.g., geometry masks) referenced and required by
+           this file, to the passed path.
+        #. Sanitizes the copied simulation configuration file for all child
+           fixtures and tests by unconditionally:
+           * Disabling configuration options either:
+             * Requiring interactive input.
+             * Displaying interactive output.
+           * Minimizing the space and time costs associated with running
+             simulations configured by this configuration while preserving all
+             fundamental configuration features.
+
+        Caveats
+        ----------
+        For efficiency, note that the configuration changes applied by this
+        method (listed above) reside *only* in-memory; they have yet to be
+        written back to disk. Callers are required to do so manually (e.g., the
+        ``is_overwriting_config`` parameter passed to the
+        :meth:`CLISimTester.run_subcommands` method).
 
         Parameters
         ----------
-        config_filepath : LocalPath
+        conf_filepath : LocalPath
             Absolute path to which this method copies BETSE's default simulation
-            configuration file as a `py.path.local` instance. If this file
-            already exists, an exception is raised.
+            configuration file as a :class:`py.path.local` instance. If this
+            file already exists, an exception is raised.
         '''
 
         # Defer heavyweight imports. This subclass inherits a class defined by
@@ -73,20 +98,15 @@ class SimTestState(object):
         # Classify the passed parameters. While the "self.config" object
         # classified below provides this filename as a low-level string, this
         # high-level "py.path.local" instance is useful in fixtures and tests.
-        self.config_filepath = config_filepath
+        self.conf_filepath = conf_filepath
+        self.conf_filename = str(conf_filepath)
 
         # Configuration deserialized from this file, reducing this filename from
         # a high-level "py.path.local" instance to a low-level string.
         self.config = SimConfigTestWrapper.wrap_new_default(
-            filename=str(config_filepath))
+            filename=self.conf_filename)
 
-        # For all child fixtures and tests, unconditionally:
-        #
-        # * Disable configuration options either requiring interactive input
-        #   *OR* displaying interactive output.
-        # * Minimize the space and time costs associated with running the
-        #   simulation configured by this configuration while preserving all
-        #   fundamental configuration features.
+        # Sanitize this configuration for all child fixtures and tests.
         self.config.disable_interaction()
         self.config.minify()
 
@@ -179,10 +199,10 @@ def betse_sim_config(betse_temp_dir: LocalPath) -> SimTestState:
     '''
 
     # Absolute path of this configuration file in this temporary directory.
-    sim_config_filepath = betse_temp_dir.join('sim_config.yaml')
+    sim_conf_filepath = betse_temp_dir.join('sim_config.yaml')
 
     # Test-specific object encapsulating this simulation configuration file.
-    sim_state = SimTestState(config_filepath=sim_config_filepath)
+    sim_state = SimTestState(conf_filepath=sim_conf_filepath)
 
     # Return this object.
     return sim_state

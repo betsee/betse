@@ -22,12 +22,66 @@ from betse_test.fixture.igniter import betse_init
 from betse_test.fixture.tempdirer import betse_temp_dir
 from betse_test.fixture.simconfig.simconfer import betse_sim_config
 
+# ....................{ HOOKS ~ option                     }....................
+def pytest_addoption(parser: '_pytest.config.Parser') -> None:
+    '''
+    Hook run immediately on :mod:`pytest` startup *before* parsing command-line
+    arguments, typically registering test suite-specific :mod:`argparse`-style
+    options and ini-style config values.
+
+    Options
+    ----------
+    After :mod:`pytest` parses these options, the globally accessible
+    :attr:`pytest.config.option.{option_var_name}` attribute provides the value
+    of the argument accepted by each option (if any), where
+    ``{option_var_name}`` is the value of the ``dest`` keyword argument passed
+    to the :meth:`parser.add_option` method in the body of this hook.
+
+    Specifically, the following option variables are guaranteed to be defined:
+
+    * :attr:`pytest.config.option.export_sim_conf_dirname`, the value of the
+      ``--export-sim-conf-dir`` command-line option if passed *or* ``None``
+      otherwise.
+
+    Caveats
+    ----------
+    This hook should be implemented *only* in plugins or ``conftest.py`` files
+    situated at the top-level tests directory for this application (e.g., like
+    the current file), due to plugin discovery by :mod:`pytest` at startup.
+
+    Parameters
+    ----------
+    parser : _pytest.config.Parser
+        :mod:`pytest`-specific command-line argument parser, inspired by the
+        :mod:`argparse` API.
+    '''
+
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # CAUTION: The name of this option is assumed to *NOT* change across Git
+    # commits.  Changing this name would violate this assumption and hence
+    # forwards compatibility with future versions of this test suite.
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    # String argument options (i.e., options requiring a string argument),
+    # disabled unless explicitly passed.
+    parser.addoption(
+        '--export-sim-conf-dir',
+        dest='export_sim_conf_dirname',
+        default=None,
+        help=(
+            'target directory into which all '
+            'source simulation configuration directories produced by '
+            '"@skip_unless_export_sim_conf"-marked tests are to be copied'
+        ),
+        metavar='DIRNAME',
+    )
+
 # ....................{ HOOKS ~ session                    }....................
 #FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?
 def pytest_sessionstart(session):
     '''
-    Hook run immediately _before_ starting the current test session (i.e.,
-    calling the `pytest.session.main()` function).
+    Hook run immediately *before* starting the current test session (i.e.,
+    calling the :func:`pytest.session.main` function).
     '''
 
     pass
@@ -36,8 +90,8 @@ def pytest_sessionstart(session):
 #FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?
 def pytest_sessionfinish(session, exitstatus):
     '''
-    Hook run immediately _after_ completing the current test session (i.e.,
-    calling the `pytest.session.main()` function).
+    Hook run immediately *after* completing the current test session (i.e.,
+    calling the :func:`pytest.session.main` function).
     '''
 
     pass
@@ -45,22 +99,22 @@ def pytest_sessionfinish(session, exitstatus):
 # ....................{ HOOKS ~ plugin                     }....................
 def pytest_configure(config):
     '''
-    Hook run immediately _after_ both parsing all `py.test` command-line options
-    and loading all third-party `py.test` plugins (including
-    application-specific `conftest` scripts).
+    Hook run immediately *after* both parsing all :mod:`pytest` command-line
+    options and loading all third-party :mod:`pytest` plugins (including
+    application-specific ``conftest`` scripts).
 
     Specifically:
 
-    * The BETSE-specific `betse._is_pytest` global boolean is set to `True`,
-      informing the main codebase that tests are currently being run. Logic
-      elsewhere then performs test-specific handling if this boolean is enabled
-      (e.g., defaulting to a non-interactive matplotlib backend suitable for
-      usage in this possibly non-interactive test environment).
-    * If the external `${DISPLAY}` environment variable is currently set (e.g.,
-      to the X11-specific socket to be connected to display GUI components),
-      unset this variable. Permitting this variable to remain set would permit
-      tests erroneously attempting to connect to an X11 server to locally
-      succeed but remotely fail, as headless continuous integration (CI)
+    * The BETSE-specific :attr:`betse._is_pytest` global boolean is set to
+      ``True``, informing the main codebase that tests are currently being run.
+      Logic elsewhere then performs test-specific handling if this boolean is
+      enabled (e.g., defaulting to a non-interactive matplotlib backend suitable
+      for usage in this possibly non-interactive test environment).
+    * If the external ``${DISPLAY}`` environment variable is currently set
+      (e.g., to the X11-specific socket to be connected to display GUI
+      components), unset this variable. Permitting this variable to remain set
+      would permit tests erroneously attempting to connect to an X11 server to
+      locally succeed but remotely fail, as headless continuous integration (CI)
       typically has no access to an X11 server. Unsetting this variable ensures
       orthogonality between these cases by coercing the former to fail as well.
     '''
@@ -94,26 +148,28 @@ def pytest_configure(config):
 
 def pytest_unconfigure(config):
     '''
-    Hook run immediately _before_ exiting the current `py.test` test session.
+    Hook run immediately *before* exiting the current :mod:`pytest` test
+    session.
 
     Specifically:
 
-    * The BETSE-specific `betse._is_pytest` global boolean is set to `False`,
-      informing the main codebase that tests are no longer currently being run.
+    * The BETSE-specific :attr:`betse._is_pytest` global boolean is set to
+      ``False``, informing the main codebase that tests are no longer currently
+      being run.
     '''
 
     metadata._IS_TESTING = False
 
 # ....................{ HOOKS ~ test                       }....................
-def pytest_runtest_setup(item: 'pytest.main.Item'):
+def pytest_runtest_setup(item: 'pytest.main.Item') -> None:
     '''
-    Hook run immediately _before_ running the passed test.
+    Hook run immediately *before* running the passed test.
 
     Specifically:
 
     * If this is a **serial test** (i.e., test method bound to an instance of
-      the the `SerialTestABC` superclass) for which a prior serial test in the
-      same test class was recorded as failing by the
+      the :class:`SerialTestABC` superclass) for which a prior serial test in
+      the same test class was recorded as failing by the
       :func:`pytest_runtest_makereport` hook, this hook marks this test as
       xfailing.
 
@@ -191,11 +247,11 @@ def pytest_runtest_setup(item: 'pytest.main.Item'):
 def pytest_runtest_makereport(
     item: 'pytest.main.Item', call: 'pytest.runner.CallInfo'):
     '''
-    Hook run immediately _after_ the passed test returned the passed result.
+    Hook run immediately *after* the passed test returned the passed result.
 
     If this is a **serial test** (i.e., test method bound to an instance of the
-    the `SerialTestABC` superclass) that failed, this hook records this failure
-    for subsequent analysis by the `pytest_runtest_setup()` hook.
+    the :class:`SerialTestABC` superclass) that failed, this hook records this
+    failure for subsequent analysis by the :func:`pytest_runtest_setup` hook.
 
     Parameters
     ----------

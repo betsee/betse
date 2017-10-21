@@ -17,7 +17,6 @@ command line interface (CLI) options.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from abc import ABCMeta
-
 from betse.cli import cliutil
 from betse.exceptions import BetseCLIArgException
 from betse.util.py import pyident
@@ -30,7 +29,6 @@ from betse.util.type.types import (
     MappingOrNoneTypes,
     StrOrNoneTypes,
 )
-
 
 # ....................{ SUPERCLASSES                       }....................
 class CLIOptionABC(object, metaclass=ABCMeta):

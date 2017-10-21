@@ -64,10 +64,9 @@ BETSE CLI in the active Python interpreter.
 #to just call "betse config". Simple, if tedious.
 
 # ....................{ IMPORTS                            }....................
-from pytest import fixture
-
 from betse.util.path.command import cmdexit
 from betse.util.type.types import type_check
+from pytest import fixture
 
 # ....................{ CONSTANTS                          }....................
 _CLI_OPTIONS_MANDATORY = (
@@ -120,7 +119,7 @@ class CLITester(object):
       :data:`_CLI_OPTIONS_MANDATORY` tuple global.
     '''
 
-
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self) -> None:
         '''
@@ -129,7 +128,7 @@ class CLITester(object):
 
         pass  # Well, that was easy.
 
-
+    # ..................{ RUNNERS                            }..................
     @type_check
     def run(self, *args: str) -> None:
         '''

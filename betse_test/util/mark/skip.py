@@ -40,15 +40,15 @@ def skip(reason: str):
     Unconditionally skip the decorated test with the passed human-readable
     justification.
 
-    This decorator is intended to be called both directly as a function _and_
+    This decorator is intended to be called both directly as a function *and*
     indirectly as a decorator, which differs from both:
 
-    * `pytest.skip()`, intended to be called only directly as a function.
+    * :func:`pytest.skip`, intended to be called only directly as a function.
       Attempting to call this function indirectly as a decorator produces
       extraneous ignorable messages on standard output resembling
-      `SKIP [1] betse_test/unit/test_import.py:66: could not import 'xdist'`,
+      ``"SKIP [1] betse_test/unit/test_import.py:66: could not import 'xdist'"``,
       for unknown (and probably uninteresting) reasons.
-    * `pytest.mark.skip()`, intended to be called only indirectly as a
+    * :func:`pytest.mark.skip`, intended to be called only indirectly as a
       decorator. Attempting to call this decorator directly as a function
       reduces to a noop, for unknown (and probably uninteresting) reasons.
 
@@ -68,7 +68,7 @@ def skip_unless_command(pathname: str):
 
     This is the case if this path is neither:
 
-    * The basename of an executable file in the current `${PATH}`.
+    * The basename of an executable file in the current ``${PATH}``.
     * The relative or absolute path of an executable file.
 
     This decorator is typically applied to tests requiring optional third-party
@@ -102,8 +102,9 @@ def skip_unless_command(pathname: str):
 def skip_unless_matplotlib_anim_writer(writer_name: str):
     '''
     Skip the decorated test unless the external command underlying the
-    matplotlib animation writer with the passed name is in the current `${PATH}`
-    (e.g., for the "imagemagick" writer, if the "convert" command  is found).
+    matplotlib animation writer with the passed name is in the current
+    ``${PATH}`` (e.g., for the ``imagemagick`` writer, if the ``convert``
+    command  is found).
 
     Parameters
     ----------
@@ -135,14 +136,14 @@ def skip_unless_matplotlib_anim_writer(writer_name: str):
 def skip_unless_lib_runtime_optional(*lib_names: str):
     '''
     Skip the decorated test if at least one of the optional runtime dependencies
-    of this application with the passed `setuptools`-specific project names are
-    **unsatisfiable** (i.e., unimportable _or_ of an unsatisfactory version).
+    of this application with the passed :mod:`setuptools`-specific project names
+    are **unsatisfiable** (i.e., unimportable *or* of unsatisfactory version).
 
     Parameters
     ----------
     lib_names : str
-        Tuple of the names of all `setuptools`-specific projects corresponding
-        to these dependencies (e.g., `NetworkX`).
+        Tuple of the names of all :mod:`setuptools`-specific projects
+        corresponding to these dependencies (e.g., ``NetworkX``).
 
     Returns
     ----------
@@ -188,8 +189,8 @@ def skip_unless_lib_runtime_optional(*lib_names: str):
 def skip_unless_module(module_name: str, minimum_version: str = None):
     '''
     Skip the decorated test if the module with the passed name is unimportable
-    _or_ importable but of a version less than the passed minimum version if
-    non-`None`.
+    *or* importable but of a version less than the passed minimum version if
+    non-``None``.
 
     Note that tests requiring optional third-party Python dependencies should
     call the higher-level :func:`skip_unless_lib_runtime_optional` decorator
@@ -202,8 +203,8 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
         Fully-qualified name of the module to be tested for.
     minversion : optional[str]
         Optional minimum version of this module as a dot-delimited string (e.g.,
-        `0.4.0`) to be tested for if any _or_ `None` otherwise, in which case
-        any version is acceptable. Defaults to `None`.
+        ``0.4.0``) to be tested for if any *or* ``None`` otherwise, in which
+        case any version is acceptable. Defaults to ``None``.
 
     Returns
     ----------
@@ -239,17 +240,18 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
 # ....................{ SKIP ~ plugin                      }....................
 skip_unless_plugin_xdist = skip_unless_module('xdist')
 '''
-Skip the decorated test if the `pytest-xdist` plugin is _not_ installed.
+Skip the decorated test if the `pytest-xdist` plugin is *not* installed.
 
 This decorator is typically applied to tests requiring **process isolation**
 (i.e., isolating tests to dedicated subprocesses of the current test session).
-While this plugin provides such isolation out-of-the-box, vanilla `py.test` does
-_not_. Hence, these tests _must_ be skipped in the absence of this plugin.
+While this plugin provides such isolation out-of-the-box, vanilla :mod:`pytest`
+does not. Hence, these tests *must* be skipped in the absence of this plugin.
 
 Examples of tests requiring process isolation include:
 
 * Unit tests testing importability. Since Python caches imports performed by the
-  active Python interpreter (e.g., via `sys.modules`) _and_ since the order in
-  which `py.test` runs tests should be assumed to be non- deterministic,
-  importability _cannot_ be reliably tested within a single Python process.
+  active Python interpreter (e.g., via :attr:`sys.modules`) *and* since the
+  order in which :mod:`pytest` runs tests should be assumed to be non-
+  deterministic, importability *cannot* be reliably tested within a single
+  Python process.
 '''

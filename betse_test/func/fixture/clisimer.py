@@ -8,13 +8,11 @@ Fixtures and fixture classes efficiently exercising multiple subcommands of the
 BETSE CLI in the active Python interpreter.
 '''
 
-from pytest import fixture
-
 # ....................{ IMPORTS                            }....................
 from betse.util.type.types import type_check, SequenceTypes
 from betse_test.fixture.simconfig.simconfer import SimTestState
 from betse_test.func.fixture.clier import CLITester
-
+from pytest import fixture
 
 # ....................{ CLASSES ~ sim                      }....................
 class CLISimTester(object):
@@ -69,7 +67,7 @@ class CLISimTester(object):
         ----------
         cli_tester: CLITester
             BETSE CLI test runner, testing a single subcommand of the official
-            BETSE CLI (i.e., `betse`) in the active Python interpreter.
+            BETSE CLI (i.e., ``betse``) in the active Python interpreter.
         sim_state: SimTestState
             Test-specific object encapsulating a temporary simulation
             configuration file specific to the current test.
@@ -102,8 +100,8 @@ class CLISimTester(object):
     ) -> None:
         '''
         Run all simulation-specific BETSE CLI subcommands signified by the
-        passed argument lists in the active Python process (_in the passed
-        order_).
+        passed argument lists in the active Python process (in the passed
+        order).
 
         **Order is significant.** subcommands producing output required by
         subsequent subcommands as input should be passed first.
@@ -111,8 +109,9 @@ class CLISimTester(object):
         To guarantee that each such subcommand efficiently reuses the same
         underlying simulation, this method implicitly:
 
-        * Appends each such argument list by the absolute path of the simulation
-          configuration file with which this test runner was initialized.
+        * Appends each such argument list with the absolute path of the
+          simulation configuration file with which this test runner was
+          initialized.
         * Temporarily changes the current working directory (CWD) to the
           directory containing this file.
 
@@ -122,8 +121,8 @@ class CLISimTester(object):
             Tuple of sequences of **subcommand arguments** (i.e., one or more
             shell words comprising the BETSE CLI subcommand to be tested).
         is_overwriting_config : optional[bool]
-            If `True`, this method persists all in-memory changes to the current
-            simulation configuration wrapper back to disk. Defaults to `True`.
+            If ``True``, all in-memory changes to the current simulation
+            configuration are persisted back to disk. Defaults to ``True``.
         '''
 
         # If persisting all in-memory configuration changes back to disk, do so
@@ -167,8 +166,8 @@ class CLISimTester(object):
             Tuple of **subcommand arguments** (i.e., one or more shell words
             comprising the BETSE CLI subcommand to be tested).
         is_overwriting_config : optional[bool]
-            If `True`, this method persists all in-memory changes to the current
-            simulation configuration wrapper back to disk. Defaults to `True`.
+            If ``True``, all in-memory changes to the current simulation
+            configuration are persisted back to disk. Defaults to ``True``.
         '''
 
         # If persisting all in-memory configuration changes back to disk, do so

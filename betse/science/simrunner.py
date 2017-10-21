@@ -294,20 +294,7 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-    #FIXME: Eliminate duplication. This and the sim_grn() methods are currently
-    #carbon copies of each other, with the single difference that this method
-    #internally instantiates "MasterOfMolecules" whereas the latter method
-    #internally instantiates "MasterOfGenes". Hence, define a new private method
-    #with the following signature, which these two methods should defer to:
-    #
-    #    def _sim_network(self, master_type: ClassType) -> SimPhase:
-    #
-    #Given that, this method then reduces to the following one-liner:
-    #
-    #    def sim_brn(self) -> SimPhase:
-    #        return self._sim_network(master_type=MasterOfMolecules)
-    #FIXME: The above may not necessarily be the case, anymore. Additional minor
-    #differences between the two appear to have cropped up. *shrug*
+    #FIXME: This and all other BRN methods are safely removable, now.
     def sim_brn(self) -> SimPhase:
         '''
         Initialize and simulate a pure bioenergetics reaction network (BRN)
@@ -846,6 +833,7 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
+    #FIXME: This and all other BRN methods are safely removable, now.
     def plot_brn(self) -> SimPhase:
         '''
         Visualize the pure bioenergetics reaction network (BRN) initialized and

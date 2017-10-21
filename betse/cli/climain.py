@@ -204,8 +204,8 @@ class BetseCLI(CLIABC):
         else:
             self._do_config()
 
-        # Run all general-purposes phases, thus excluding network-specific
-        # phases (e.g., "_do_sim_brn", "_do_sim_grn"), in the expected order.
+        # Run all general-purposes phases, thus excluding network-isolated
+        # phases (e.g., "_do_sim_grn"), in the expected order.
         self._do_seed()
         self._do_init()
         self._do_sim()
@@ -251,14 +251,6 @@ class BetseCLI(CLIABC):
         '''
 
         return self._sim_runner.sim()
-
-
-    def _do_sim_brn(self) -> object:
-        '''
-        Run the ``sim-brn`` subcommand and return the result of doing so.
-        '''
-
-        return self._sim_runner.sim_brn()
 
 
     def _do_sim_grn(self) -> object:
@@ -315,15 +307,6 @@ class BetseCLI(CLIABC):
         '''
 
         return self._sim_runner.plot_sim()
-
-
-    def _do_plot_sim_brn(self) -> object:
-        '''
-        Run the ``plot`` subcommand's ``sim-brn`` subcommand and return the
-        result of doing so.
-        '''
-
-        return self._sim_runner.plot_brn()
 
 
     def _do_plot_sim_grn(self) -> object:

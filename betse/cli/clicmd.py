@@ -269,22 +269,6 @@ from input files defined by this configuration.
         ),
 
         CLISubcommandYAMLOnly(
-            name='sim-brn',
-            synopsis=(
-                'simulate a biochemical reaction network for a config file'),
-            description='''
-Simulate a biochemical reaction network (BRN) for the previously initialized
-cell cluster defined by the passed configuration file, whose "metabolism config"
-option specifies the path of the configuration file defining this network.  All
-other simulation features and options will be ignored.
-
-Simulation results will be saved to output files defined by this configuration,
-while the previously initialized cell cluster will be loaded from input files
-defined by this configuration.
-''',
-        ),
-
-        CLISubcommandYAMLOnly(
             name='sim-grn',
             synopsis='simulate a gene regulatory network for a config file',
             description='''
@@ -439,24 +423,11 @@ defined by this configuration.
         ),
 
         CLISubcommandYAMLOnly(
-            name='sim-brn',
-            synopsis=(
-                'plot a simulated biochemical reaction network '
-                'for a config file'),
-            description='''
-Plot the previously simulated biochemical reaction network (BRN) defined by the
-passed configuration file. Plot results will be saved to output files defined by
-this configuration, while the previously simulated cell cluster will be loaded
-from input files defined by this configuration.
-''',
-        ),
-
-        CLISubcommandYAMLOnly(
             name='sim-grn',
             synopsis=(
                 'plot a simulated gene regulatory network for a config file'),
             description='''
-Plot the previously simulated gene regulatory network (BRN) defined by the
+Plot the previously simulated gene regulatory network (GRN) defined by the
 passed configuration file. Plot results will be saved to output files defined by
 this configuration, while the previously simulated cell cluster will be loaded
 from input files defined by this configuration.

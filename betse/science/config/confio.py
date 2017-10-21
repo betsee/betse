@@ -7,8 +7,6 @@
 YAML-formatted simulation configuration file functionality.
 '''
 
-#FIXME: Refactor all functions defined below into methods of the
-#"betse.science.config.wrapper.SimConfigWrapper" class.
 #FIXME: Validate the versions of loaded configuration files.
 
 # ....................{ IMPORTS                            }....................

@@ -98,13 +98,13 @@ class test(Command):
     def initialize_options(self):
         '''
         Declare option-specific attributes subsequently initialized by
-        `finalize_options()`.
+        :meth:`finalize_options`.
 
-        If this function is _not_ defined, the default implementation of this
-        method raises an inscrutable `distutils` exception. If these attributes
-        are _not_ declared, the subsequent call to
-        `self.set_undefined_options()` raises an inscrutable `setuptools`
-        exception. (This is terrible. So much hate.)
+        If this function is *not* defined, the default implementation of this
+        method raises an inscrutable :mod:`distutils` exception. If these
+        attributes are *not* declared, the subsequent call to
+        :meth:`self.set_undefined_options` raises an inscrutable
+        :mod:`setuptools` exception. (This is terrible. So much hate.)
         '''
 
         # Option-specific public attributes. For each option declared by the
@@ -124,8 +124,9 @@ class test(Command):
     def finalize_options(self):
         '''
         Default undefined command-specific options to the options passed to the
-        current parent command if any (e.g., `symlink`).
+        current parent command if any (e.g., ``symlink``).
         '''
+
         pass
 
 
@@ -142,8 +143,8 @@ class test(Command):
     # ..................{ PRIVATE                            }..................
     def _init_pytest(self) -> None:
         '''
-        Dynamically import the top-level `pytest` package into this object's
-        `_pytest` instance variable.
+        Dynamically import the top-level :mod:`pytest` package into this
+        object's :attr:`_pytest` instance variable.
 
         Specifically, this method imports the top-level `_pytest.main` module,
         providing programmatic access to py.test's CLI implementation. While
