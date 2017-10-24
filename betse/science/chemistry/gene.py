@@ -118,10 +118,6 @@ class MasterOfGenes(object):
         #
         #     self.run_from_init(self, sim, cells, p)
 
-    # def run_from_init(self, sim, cells, p):
-    #
-    #     pass
-
     #FIXME: Oh, boy. Most of this method appears to have been copy-and-pasted
     #from the read_gene_config() method above. That's... not the best. Let's
     #extract the code shared in common between these two methods into a new
@@ -186,24 +182,6 @@ class MasterOfGenes(object):
 
     def run_core_sim(self, sim, cells, p):
 
-        # FIXME update this so that the user can load a pre-run BETSE init or sim pickle, specified in networks
-        # this will allow us to piggy-back a Networks functionality on top of a stable bioelectrical configuration
-        # with greater computational speed.
-
-        sim.vm = -50e-3*np.ones(sim.mdl)
-
-        sim.time = []
-
-        # initialize key fields of simulator required to interface (dummy init)
-        sim.rho_pump = 1.0
-        sim.rho_channel = 1.0
-
-        sim.conc_J_x = np.zeros(sim.edl)
-        sim.conc_J_y = np.zeros(sim.edl)
-
-        sim.J_env_x = np.zeros(sim.edl)
-        sim.J_env_y = np.zeros(sim.edl)
-
         # set molecules to not affect charge for sim-grn test-drives:
         p.substances_affect_charge = False
 
@@ -214,10 +192,6 @@ class MasterOfGenes(object):
         # Time-steps vector appropriate for the current run.
         tt = np.linspace(0, loop_seconds_max, loop_time_step_max)
 
-        #FIXME: Reduce copy-and-pasting, please. This logic has been duplicated
-        #throughout the codebase, but contained a severe issue: "i" was a float
-        #rather than an int, which made everything crash and burn. *sigh*
-        # create a time-samples vector
         tsamples = set()
         i = 0
         while i < len(tt) - p.t_resample:
@@ -247,7 +221,7 @@ class MasterOfGenes(object):
         logs.log_info('Saving simulation...')
         datadump = [self, cells, p]
         fh.saveSim(self.savedMoG, datadump)
-        self.core.init_saving(cells, p, plot_type='init', nested_folder_name='Gene')
+        self.core.init_saving(cells, p, plot_type='init', nested_folder_name='GRN')
         self.core.export_eval_strings(p)
         self.core.export_equations(p)
         message = 'Gene regulatory network simulation saved to' + ' ' + self.savedMoG

@@ -113,19 +113,9 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):
 
     deltaGATP_o = p.deltaGATP  # standard free energy of ATP hydrolysis reaction in J/(mol K)
 
-    if met is None:
-
-        # if metabolism vector not supplied, use singular defaults for concentrations
-        cATP = p.cATP
-        cADP = p.cADP
-        cPi  = p.cPi
-
-    else:
-
-        cATP = met['cATP']  # concentration of ATP in mmol/L
-        cADP = met['cADP']  # concentration of ADP in mmol/L
-        cPi = met['cPi']  # concentration of Pi in mmol/L
-
+    cATP = p.cATP
+    cADP = p.cADP
+    cPi  = p.cPi
 
     # calculate the reaction coefficient Q:
     Qnumo = (cADP*1e-3)*(cPi*1e-3)*((cNao*1e-3)**3)*((cKi*1e-3)**2)
@@ -179,18 +169,10 @@ def pumpCaATP(cCai,cCao,Vm,T,p, block, met = None):
     no_negs(cCai)
     no_negs(cCao)
 
-    if met is None:
-
-        # if metabolism vector not supplied, use singular defaults for concentrations
-        cATP = p.cATP
-        cADP = p.cADP
-        cPi  = p.cPi
-
-    else:
-
-        cATP = met['cATP']  # concentration of ATP in mmol/L
-        cADP = met['cADP']  # concentration of ADP in mmol/L
-        cPi = met['cPi']  # concentration of Pi in mmol/L
+    cATP = p.cATP
+    cADP = p.cADP
+    cPi  = p.cPi
+    #
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * cCao
@@ -291,19 +273,9 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block, met = None):
 
     deltaGATP_o = p.deltaGATP
 
-
-    if met is None:
-
-        # if metabolism vector not supplied, use singular defaults for concentrations
-        cATP = p.cATP
-        cADP = p.cADP
-        cPi  = p.cPi
-
-    else:
-
-        cATP = met['cATP']  # concentration of ATP in mmol/L
-        cADP = met['cADP']  # concentration of ADP in mmol/L
-        cPi = met['cPi']  # concentration of Pi in mmol/L
+    cATP = p.cATP
+    cADP = p.cADP
+    cPi  = p.cPi
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * (cHo) * (cKi)
@@ -358,19 +330,9 @@ def pumpHKATP_m(cMi,cMo,cKi,cKo,Vm,T,p,block, met = None):
 
     deltaGATP_o = p.deltaGATP
 
-
-    if met is None:
-
-        # if metabolism vector not supplied, use singular defaults for concentrations
-        cATP = p.cATP
-        cADP = p.cADP
-        cPi  = p.cPi
-
-    else:
-
-        cATP = met['cATP']  # concentration of ATP in mmol/L
-        cADP = met['cADP']  # concentration of ADP in mmol/L
-        cPi = met['cPi']  # concentration of Pi in mmol/L
+    cATP = p.cATP
+    cADP = p.cADP
+    cPi  = p.cPi
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * (cMi) * (cKi)
@@ -404,18 +366,10 @@ def pumpVATP(cHi,cHo,Vm,T,p, block, met = None):
 
     deltaGATP_o = p.deltaGATP
 
-    if met is None:
-
-        # if metabolism vector not supplied, use singular defaults for concentrations
-        cATP = p.cATP
-        cADP = p.cADP
-        cPi  = p.cPi
-
-    else:
-
-        cATP = met['cATP']  # concentration of ATP in mmol/L
-        cADP = met['cADP']  # concentration of ADP in mmol/L
-        cPi = met['cPi']  # concentration of Pi in mmol/L
+    # if metabolism vector not supplied, use singular defaults for concentrations
+    cATP = p.cATP
+    cADP = p.cADP
+    cPi  = p.cPi
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * cHo

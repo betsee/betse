@@ -924,30 +924,6 @@ class Simulator(object):
             self.molecules.reinitialize(self, cells, p)
 
 
-        #-----metabolism initialization -----------------------------------
-        if p.metabolism_enabled and self.metabo is None:
-
-            logs.log_info("Initializing metabolism...")
-
-            # create an instance of the metabolism simulator
-            self.metabo = MasterOfMetabolism(p)
-            # read in the configuration settings for the metabolism simulator:
-            self.metabo.read_metabo_config(self, cells, p)
-
-            # create a dictionary pointing to key metabolic molecules used in sim: ATP, ADP and Pi:
-            self.met_concs = {'cATP': self.metabo.core.cell_concs['ATP'][cells.mem_to_cells],
-                              'cADP': self.metabo.core.cell_concs['ADP'][cells.mem_to_cells],
-                              'cPi': self.metabo.core.cell_concs['Pi'][cells.mem_to_cells]}
-
-        elif p.metabolism_enabled and self.metabo is not None:
-
-            logs.log_info("Reinitializing the metabolism reaction network for simulation...")
-
-            # re-read the config file again and reassign everything except for concentrations,
-            #  to capture any user updates:
-            self.metabo.reinitialize(self, cells, p)
-
-
         #-----gene regulatory network initialization-------------------------
         if p.grn_enabled and self.grn is None:
 
@@ -1250,10 +1226,6 @@ class Simulator(object):
             self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa]  + fNa_NaK
             self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
 
-            if p.metabolism_enabled:
-                # update ATP concentrations after pump action:
-                self.metabo.update_ATP(fNa_NaK, self, cells, p)
-
             # update the concentrations of Na and K in cells and environment:
             self.cc_cells[self.iNa], self.cc_at_mem[self.iNa], self.cc_env[self.iNa] =  stb.update_Co(
                                                                         self, self.cc_cells[self.iNa],
@@ -1345,23 +1317,6 @@ class Simulator(object):
                     self.molecules.core.run_loop_modulators(self, cells, p)
 
                 self.molecules.core.run_loop(t, self, cells, p)
-
-            # update metabolic handler----------------------------------------------------------------------
-
-            if p.metabolism_enabled:
-
-                self.metabo.core.clear_run_loop(self)
-
-                if self.metabo.transporters:
-                    self.metabo.core.run_loop_transporters(t, self, cells, p)
-
-                if self.metabo.channels:
-                    self.metabo.core.run_loop_channels(self, cells, p)
-
-                if self.metabo.modulators:
-                    self.metabo.core.run_loop_modulators(self, cells, p)
-
-                self.metabo.core.run_loop(t, self, cells, p)
 
             # update gene regulatory network handler--------------------------------------------------------
 
@@ -1555,10 +1510,6 @@ class Simulator(object):
 
             self.molecules.core.clear_cache()
 
-        if p.metabolism_enabled:
-
-            self.metabo.core.clear_cache()
-
         if p.grn_enabled:
 
             self.grn.core.clear_cache()
@@ -1654,10 +1605,6 @@ class Simulator(object):
             self.molecules.core.write_data(self, cells, p)
             self.molecules.core.report(self, p)
 
-        if p.metabolism_enabled:
-            self.metabo.core.write_data(self, cells, p)
-            self.metabo.core.report(self, p)
-
         if p.grn_enabled:
             self.grn.core.write_data(self, cells, p)
             self.grn.core.report(self, p)
@@ -1746,9 +1693,6 @@ class Simulator(object):
         if p.molecules_enabled:
             self.molecules.core.report(self, p)
 
-        if p.metabolism_enabled:
-            self.metabo.core.report(self, p)
-
         if p.grn_enabled:
             self.grn.core.report(self, p)
 
@@ -1783,11 +1727,6 @@ class Simulator(object):
             logs.log_info(
                 'Auxiliary molecules and properties are enabled from '
                 '"General Networks" section of main config file.')
-
-        if p.metabolism_enabled:
-            logs.log_info(
-                'Metabolism is being simulated using file: %s',
-                p.metabo_config_filename)
 
         if p.grn_enabled:
             logs.log_info(
@@ -1899,10 +1838,6 @@ class Simulator(object):
         # store the transmembrane flux for this ion
         self.fluxes_mem[self.iCa] = self.fluxes_mem[self.iCa]  + self.rho_pump*(f_CaATP)
 
-
-        if p.metabolism_enabled:
-            # update ATP concentrations after pump action:
-            self.metabo.update_ATP(f_CaATP, self, cells, p)
 
         # update calcium concentrations in cell and ecm:
 

@@ -55,7 +55,9 @@ class TissueHandler(object):
         else:
             self.data_length = len(cells.mem_i)
 
-        self.wound_channel_used = False
+        self.wound_channel_used = False  # notes whether the wound channel has been used
+
+        self.cutting_event_run = False  # notes whether or not the cutting event has been run
 
     # ..................{ RUNNERS ~ init                     }..................
     def runAllInit(
@@ -716,7 +718,10 @@ class TissueHandler(object):
                 sim.D_env_weight_base = sim.D_env_weight_base.reshape(cells.X.shape)
 
         soc = p.scheduled_options['cuts']
-        if soc is not None and not soc._is_fired and t >= soc.time:
+        # if soc is not None and not soc._is_fired and t >= soc.time:  # FIXME Sess, for whatever reason, this logic makes it impossible to
+                                                                       # run a cutting event with a sim file as an init. Therefore, I
+                                                                       # temporarily disabled it.
+        if soc is not None and self.cutting_event_run is False:
             for cut_profile_name in soc.profile_names:
                 logs.log_info(
                     'Cutting cell cluster via cut profile "%s"...',
@@ -745,7 +750,8 @@ class TissueHandler(object):
             # sim._dereplot_loop(p)
 
             # Avoid repeating this cutting event at subsequent time steps.
-            soc._is_fired = True
+            # soc._is_fired = True
+            self.cutting_event_run = True
 
         # If the voltage event is enabled, adjust the voltage accordingly.
         if p.scheduled_options['extV'] is not None:
@@ -1252,49 +1258,13 @@ class TissueHandler(object):
 
             sim.molecules.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
-        if p.metabolism_enabled and sim.metabo is not None:
-
-            sim.metabo.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p, met_tag = True)
-
         if p.grn_enabled and sim.grn is not None:
 
             sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
-        # if desire for cut away space due to lack of tight junctions, remove bflags on wound from set:
-        # if p.break_TJ is True:
-        #
-        #     new_bcells = np.copy(cells.bflags_cells)
-        #     new_bmems = np.copy(cells.bflags_mems)
-        #
-        #     searchTree = sps.KDTree(cells.cell_centres)
-        #     original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
-        #     cells.bflags_cells = original_pt_inds
-        #
-        #     searchTree_m = sps.KDTree(cells.mem_mids_flat)
-        #     original_pt_inds_m = list(searchTree_m.query(old_bflag_memxy))[1]
-        #     cells.bflags_mems = original_pt_inds_m
-        #
-        #     # calculate indices to tag TJ at boundary in terms of original boundary flags
-        #     neigh_to_bcells, _, _ = tb.flatten(cells.cell_nn[cells.bflags_cells])
-        #     all_bound_mem_inds_o = cells.cell_to_mems[cells.bflags_cells]
-        #     interior_bound_mem_inds_o = cells.cell_to_mems[neigh_to_bcells]
-        #     interior_bound_mem_inds_o, _, _ = tb.flatten(interior_bound_mem_inds_o)
-        #     all_bound_mem_inds_o, _, _ = tb.flatten(all_bound_mem_inds_o)
-        #
-        #     cells.all_bound_mem_inds = cells.map_mem2ecm[all_bound_mem_inds_o]
-        #     cells.interior_bound_mem_inds = cells.map_mem2ecm[interior_bound_mem_inds_o]
-        #     cells.inds_outmem = cells.map_mem2ecm[cells.bflags_mems]
-        #     cells.ecm_inds_bound_cell = cells.map_cell2ecm[cells.bflags_cells]
-
 
         # if hole_tag is False: # if we're not defining a hole at the beginning, reassign to new bflags
         sim.initDenv(cells,p)
-
-        # if p.break_TJ is True:
-        #
-        #     # re-assign the boundary flags to the new configuration:
-        #     cells.bflags_cells = new_bcells
-        #     cells.bflags_mems = new_bmems
 
         sim.conc_J_x = np.zeros(len(cells.xypts))
         sim.conc_J_y = np.zeros(len(cells.xypts))

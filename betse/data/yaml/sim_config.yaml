@@ -645,18 +645,6 @@ general network:
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-#  METABOLISM
-#-----------------------------------------------------------------------------------------------------------------------
-# Define an auxillary network in an external config file and read it in and run from that extra file. This
-# auxillary network has ATP, ADP and Pi, which will be used to power all ATP-dependent pumps in BETSE.
-
-metabolism settings:
-
-  metabolism simulated: False  # is metabolism simulated at all, or is cATP assumed constant?
-
-  metabolism config: extra_configs/metabo_basic.yaml  # supply a path to the metabolic model config file
-
-#-----------------------------------------------------------------------------------------------------------------------
 # GENE REGULATORY NETWORK
 #-----------------------------------------------------------------------------------------------------------------------
 # Define an auxillary network in an external config file and read it in and run from that extra file.
@@ -666,6 +654,8 @@ gene regulatory network settings:
   gene regulatory network simulated: False
 
   gene regulatory network config: extra_configs/grn_basic.yaml
+
+  run network on: seed    # (for sim-grn command, run the network on a pre-made betse seed, init, or sim ?)
 
 
 #-----------------------------------------------------------------------------------------------------------------------

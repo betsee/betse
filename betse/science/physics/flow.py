@@ -78,12 +78,12 @@ def getFlow(sim, cells, p):
     Fyc = sim.E_cell_y*rho_cells*(1/p.mu_water)
 
     # Calculate flow under body forces using Stokes flow:
-    # u_gj_xo = np.dot(cells.lapGJinv, -Fxc)
-    # u_gj_yo = np.dot(cells.lapGJinv, -Fyc)
+    u_gj_xo = np.dot(cells.lapGJinv, -Fxc)
+    u_gj_yo = np.dot(cells.lapGJinv, -Fyc)
 
     # Electroosmotic velocity in terms of slip velocity with charge at the screening layer:
-    u_gj_xo = Fxc*(1/sim.ko_cell)
-    u_gj_yo = Fyc*(1/sim.ko_cell)
+    # u_gj_xo = Fxc*(1/sim.ko_cell)
+    # u_gj_yo = Fyc*(1/sim.ko_cell)
 
     # Flow must be made divergence-free: use the Helmholtz-Hodge decomposition method:
     _, sim.u_cells_x, sim.u_cells_y, _, _, _ = cells.HH_cells(u_gj_xo, u_gj_yo, rot_only=True)

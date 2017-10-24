@@ -5365,10 +5365,7 @@ class Molecule(object):
 
             if self.pumps_use_ATP:
 
-                if p.metabolism_enabled:
-                    met_vect = sim.met_concs
-                else:
-                    met_vect = None
+                met_vect = None
 
                 self.c_cells, self.c_env, flux = stb.molecule_pump(sim, self.c_cells, self.c_env,
                                                                      cells, p, Df=self.Do, z=self.z,
@@ -5377,9 +5374,6 @@ class Molecule(object):
                                                                      Km_ATP=1.0, met = met_vect,
                                                                      ignoreECM = self.ignore_ECM_pump,
                                                                      rho = sim.rho_pump)
-                if p.metabolism_enabled:
-                    # update ATP concentrations after pump action:
-                    sim.metabo.update_ATP(flux, sim, cells, p)
 
             else:
 

@@ -661,20 +661,14 @@ class Parameters(YamlFileABC):
             self.mol_mit_enabled = False
 
         #---------------------------------------------------------------------------------------------------------------
-        #  METABOLISM
-        #---------------------------------------------------------------------------------------------------------------
-
-        self.metabolism_enabled = self._conf['metabolism settings']['metabolism simulated']
-
-        self.metabo_config_filename = self._conf['metabolism settings']['metabolism config']
-
-        #---------------------------------------------------------------------------------------------------------------
         #  GENE REGULATORY NETWORKS
         #---------------------------------------------------------------------------------------------------------------
 
         self.grn_enabled = self._conf['gene regulatory network settings']['gene regulatory network simulated']
 
         self.grn_config_filename = self._conf['gene regulatory network settings']['gene regulatory network config']
+
+        self.grn_piggyback = self._conf['gene regulatory network settings'].get('run network on', 'seed')
 
         #--------------------------------------------------------------------------------------------------------------
         # VARIABLE SETTINGS
@@ -749,18 +743,6 @@ class Parameters(YamlFileABC):
         self.init_mty = mtb.get('microtubule initial y asymmetry', None)
 
         self.microtubules_orient_parallel = mtb.get('microtubules orient parallel', True)
-
-        # else:
-        #
-        #     self.tubulin_charge = 0.0
-        #     self.tubulin_dipole = 1750
-        #
-        #     self.cytoplasm_viscocity = 0.1
-        #
-        #     self.D_mtube = 1.0e-14
-        #
-        #     self.init_mtx = None
-        #     self.init_mty = None
 
         #...............................................................................................................
 
@@ -936,8 +918,6 @@ class Parameters(YamlFileABC):
         # self.gj_acceleration = float(iu['time acceleration'])
         self.gj_acceleration = 1.0
 
-        # ATP charge in the cell (for metabolism mode off)
-        # FIXME add these as options to the config
         self.cATP = 1.5
         self.cADP = 0.1
         self.cPi = 0.1

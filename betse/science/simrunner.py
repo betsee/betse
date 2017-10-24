@@ -294,94 +294,94 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-    #FIXME: This and all other BRN methods are safely removable, now.
-    def sim_brn(self) -> SimPhase:
-        '''
-        Initialize and simulate a pure bioenergetics reaction network (BRN)
-        _without_ bioelectrics with the cell cluster seeded by a prior call
-        to the :meth:`seed` method and cache this initialization and simulation
-        to output files, specified by the current configuration file.
-
-        This method _must_ be called prior to the :meth:`plot_brn` method, which
-        consumes this output as input.
-
-        Returns
-        ----------
-        SimPhase
-            High-level simulation phase instance encapsulating all objects
-            internally created by this method to run this phase.
-        '''
-
-        logs.log_info(
-            'Testing bioenergetics reaction network indicated in configuration file "%s".',
-            self._config_basename)
-
-        start_time = time.time()  # get a start value for timing the simulation
-
-        #FIXME: Is "INIT" the proper phase here? The string "Now using cell
-        #cluster to run initialization." above and call to sim.baseInit_all()
-        #above suggest this is, indeed, an initialization.
-
-        # Simulation phase type.
-        phase_kind = SimPhaseKind.INIT
-
-        # Simulation configuration.
-        p = Parameters.make(self._config_filename)
-        p.set_time_profile(phase_kind)  # force the time profile to be initialize
-        p.run_sim = False
-
-        # Simulation cell cluster.
-        # cells, _ = fh.loadSim(cells.savedWorld)
-        cells = Cells(p)
-
-        if files.is_file(cells.savedWorld):
-            cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-            logs.log_info('Cell cluster loaded.')
-
-            # check to ensure compatibility between original and present sim files:
-            self._die_unless_seed_same(p_old, p)
-
-        else:
-            logs.log_warning("Ooops! No such cell cluster file found to load!")
-
-            if p.autoInit:
-                logs.log_info(
-                    'Automatically seeding cell cluster from config file settings...')
-                self.seed()  # create an instance of world
-                logs.log_info(
-                    'Now using cell cluster to run initialization.')
-                cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
-
-            else:
-                raise BetseSimException(
-                    "Run terminated due to missing seed.\n"
-                    "Please run 'betse seed' to try again.")
-
-        # Simulation simulator.
-        sim = Simulator(p=p)
-
-        # Simulation phase.
-        phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
-
-        # Initialize simulation data structures
-        sim.baseInit_all(cells, p)
-
-        # create an instance of master of metabolism
-        MoM = MasterOfMetabolism(p)
-
-        # initialize it:
-        MoM.read_metabo_config(sim, cells, p)
-
-        logs.log_info("Running metabolic reaction network test simulation...")
-
-        MoM.run_core_sim(sim, cells, p)
-
-        logs.log_info(
-            'Metabolic network test completed in %d seconds.',
-            round(time.time() - start_time, 2))
-
-        # Return this phase.
-        return phase
+    # #FIXME: This and all other BRN methods are safely removable, now.
+    # def sim_brn(self) -> SimPhase:
+    #     '''
+    #     Initialize and simulate a pure bioenergetics reaction network (BRN)
+    #     _without_ bioelectrics with the cell cluster seeded by a prior call
+    #     to the :meth:`seed` method and cache this initialization and simulation
+    #     to output files, specified by the current configuration file.
+    #
+    #     This method _must_ be called prior to the :meth:`plot_brn` method, which
+    #     consumes this output as input.
+    #
+    #     Returns
+    #     ----------
+    #     SimPhase
+    #         High-level simulation phase instance encapsulating all objects
+    #         internally created by this method to run this phase.
+    #     '''
+    #
+    #     logs.log_info(
+    #         'Testing bioenergetics reaction network indicated in configuration file "%s".',
+    #         self._config_basename)
+    #
+    #     start_time = time.time()  # get a start value for timing the simulation
+    #
+    #     #FIXME: Is "INIT" the proper phase here? The string "Now using cell
+    #     #cluster to run initialization." above and call to sim.baseInit_all()
+    #     #above suggest this is, indeed, an initialization.
+    #
+    #     # Simulation phase type.
+    #     phase_kind = SimPhaseKind.INIT
+    #
+    #     # Simulation configuration.
+    #     p = Parameters.make(self._config_filename)
+    #     p.set_time_profile(phase_kind)  # force the time profile to be initialize
+    #     p.run_sim = False
+    #
+    #     # Simulation cell cluster.
+    #     # cells, _ = fh.loadSim(cells.savedWorld)
+    #     cells = Cells(p)
+    #
+    #     if files.is_file(cells.savedWorld):
+    #         cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+    #         logs.log_info('Cell cluster loaded.')
+    #
+    #         # check to ensure compatibility between original and present sim files:
+    #         self._die_unless_seed_same(p_old, p)
+    #
+    #     else:
+    #         logs.log_warning("Ooops! No such cell cluster file found to load!")
+    #
+    #         if p.autoInit:
+    #             logs.log_info(
+    #                 'Automatically seeding cell cluster from config file settings...')
+    #             self.seed()  # create an instance of world
+    #             logs.log_info(
+    #                 'Now using cell cluster to run initialization.')
+    #             cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
+    #
+    #         else:
+    #             raise BetseSimException(
+    #                 "Run terminated due to missing seed.\n"
+    #                 "Please run 'betse seed' to try again.")
+    #
+    #     # Simulation simulator.
+    #     sim = Simulator(p=p)
+    #
+    #     # Simulation phase.
+    #     phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
+    #
+    #     # Initialize simulation data structures
+    #     sim.baseInit_all(cells, p)
+    #
+    #     # create an instance of master of metabolism
+    #     MoM = MasterOfMetabolism(p)
+    #
+    #     # initialize it:
+    #     MoM.read_metabo_config(sim, cells, p)
+    #
+    #     logs.log_info("Running metabolic reaction network test simulation...")
+    #
+    #     MoM.run_core_sim(sim, cells, p)
+    #
+    #     logs.log_info(
+    #         'Metabolic network test completed in %d seconds.',
+    #         round(time.time() - start_time, 2))
+    #
+    #     # Return this phase.
+    #     return phase
 
     def sim_grn(self) -> SimPhase:
         '''
@@ -401,12 +401,10 @@ class SimRunner(object):
         '''
 
         logs.log_info(
-            'Testing gene regulatory network indicated in configuration file "%s".',
+            'Running gene regulatory network defined in config file "%s".',
             self._config_basename)
 
         start_time = time.time()  # get a start value for timing the simulation
-
-        #FIXME: Is "INIT" the proper phase here? See sim_brn() for discussion.
 
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
@@ -416,41 +414,87 @@ class SimRunner(object):
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False
 
-        # Simulation cell cluster.
-        # cells, _ = fh.loadSim(cells.savedWorld)
+        # cells object:
         cells = Cells(p)
-
-        if files.is_file(cells.savedWorld):
-            cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-            logs.log_info('Cell cluster loaded.')
-
-            # check to ensure compatibility between original and present sim files:
-            self._die_unless_seed_same(p_old, p)
-
-        else:
-            logs.log_warning("Ooops! No such cell cluster file found to load!")
-
-            if p.autoInit:
-                logs.log_info(
-                    'Automatically seeding cell cluster from config file settings...')
-                self.seed()  # create an instance of world
-                logs.log_info(
-                    'Now using cell cluster to run initialization.')
-                cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
-
-            else:
-                raise BetseSimException(
-                    "Run terminated due to missing seed.\n"
-                    "Please run 'betse seed' to try again.")
 
         # Simulation simulator.
         sim = Simulator(p=p)
 
+        if p.grn_piggyback == 'seed':
+
+            if files.is_file(cells.savedWorld):
+                cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+                logs.log_info('Cell cluster loaded.')
+
+                # Initialize simulation data structures
+                sim.baseInit_all(cells, p)
+
+                # Initialize other aspects required for piggyback of GRN on the sim object:
+                sim.time = []
+                sim.vm = -50e-3 * np.ones(sim.mdl)
+                # initialize key fields of simulator required to interface (dummy init)
+                sim.rho_pump = 1.0
+                sim.rho_channel = 1.0
+                sim.conc_J_x = np.zeros(sim.edl)
+                sim.conc_J_y = np.zeros(sim.edl)
+                sim.J_env_x = np.zeros(sim.edl)
+                sim.J_env_y = np.zeros(sim.edl)
+
+            else:
+                logs.log_warning("Ooops! No such cell cluster file found to load!")
+
+                if p.autoInit:
+                    logs.log_info(
+                        'Automatically seeding cell cluster from config file settings...')
+                    self.seed()  # create an instance of world
+                    logs.log_info(
+                        'Now using cell cluster to run initialization.')
+                    cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
+
+                else:
+                    raise BetseSimException(
+                        "Run terminated due to missing seed.\n"
+                        "Please run 'betse seed' to try again.")
+
+        elif p.grn_piggyback == 'init':
+
+            if files.is_file(sim.savedInit):
+                sim, cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
+
+            else:
+                logs.log_warning(
+                    "No initialization file found to run the GRN simulation!")
+
+                if p.autoInit:
+                    logs.log_info("Automatically running initialization...")
+                    self.init()
+                    logs.log_info('Now using initialization to run simulation.')
+                    sim, cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+
+                else:
+
+                    raise BetseSimException(
+                        'Simulation terminated due to missing core initialization. '
+                        'Please run a betse initialization and try again.')
+
+        elif p.grn_piggyback == 'sim':
+
+            if files.is_file(sim.savedSim):
+                sim, cells, p_old = fh.loadSim(sim.savedSim)  # load the initialization from cache
+
+            else:
+                logs.log_warning(
+                    "No simulation file found to run the GRN simulation!")
+
+                raise BetseSimException(
+                    'Simulation terminated due to missing core simulation. '
+                    'Please run a betse simulation and try again.')
+
+        # # Simulation simulator.
+        # sim = Simulator(p=p)
+
         # Simulation phase.
         phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
-
-        # Initialize simulation data structures
-        sim.baseInit_all(cells, p)
 
         # create an instance of master of metabolism
         MoG = MasterOfGenes(p)
@@ -692,20 +736,6 @@ class SimRunner(object):
             sim.molecules.core.plot(sim, cells, p, message='auxiliary molecules')
             sim.molecules.core.anim(phase=phase, message='auxiliary molecules')
 
-        if p.metabolism_enabled and sim.metabo is not None:
-            configPath = os.path.join(p.conf_dirname, p.metabo_config_filename)
-
-            # read the config file into a dictionary:
-            config_dic = confio.read_metabo(configPath)
-            # reinitialize the plot settings:
-            sim.metabo.core.plot_init(config_dic, p)
-
-            sim.metabo.core.init_saving(
-                cells, p, plot_type='init', nested_folder_name='Metabolism')
-            sim.metabo.core.export_all_data(sim, cells, p, message='metabolic molecules')
-            sim.metabo.core.plot(sim, cells, p, message='metabolic molecules')
-            sim.metabo.core.anim(phase=phase, message='metabolic molecules')
-
         if p.grn_enabled and sim.grn is not None:
             configPath = os.path.join(p.conf_dirname, p.grn_config_filename)
 
@@ -792,19 +822,6 @@ class SimRunner(object):
             sim.molecules.core.plot(sim, cells, p, message='auxiliary molecules')
             sim.molecules.core.anim(phase=phase, message='auxiliary molecules')
 
-        if p.metabolism_enabled and sim.metabo is not None:
-            configPath = os.path.join(p.conf_dirname, p.metabo_config_filename)
-
-            # read the config file into a dictionary:
-            config_dic = confio.read_metabo(configPath)
-            # reinitialize the plot settings:
-            sim.metabo.core.plot_init(config_dic, p)
-
-            sim.metabo.core.init_saving(cells, p, plot_type='sim')
-            sim.metabo.core.export_all_data(sim, cells, p, message='auxiliary molecules')
-            sim.metabo.core.plot(sim, cells, p, message='auxiliary molecules')
-            sim.metabo.core.anim(phase=phase, message='auxiliary molecules')
-
         if p.grn_enabled and sim.grn is not None:
             configPath = os.path.join(p.conf_dirname, p.grn_config_filename)
 
@@ -833,54 +850,54 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-    #FIXME: This and all other BRN methods are safely removable, now.
-    def plot_brn(self) -> SimPhase:
-        '''
-        Visualize the pure bioenergetics reaction network (BRN) initialized and
-        simulated by a prior call to the :meth:`sim_brn` method and export the
-        resulting plots and animations to various output files, specified by the
-        current configuration file.
-
-        Returns
-        ----------
-        SimPhase
-            High-level simulation phase instance encapsulating all objects
-            internally created by this method to run this phase.
-        '''
-
-        # Simulation phase type.
-        phase_kind = SimPhaseKind.INIT
-
-        # Simulation configuration.
-        p = Parameters.make(self._config_filename)
-        p.set_time_profile(phase_kind)  # force the time profile to be initialize
-
-        MoM = MasterOfMetabolism(p)
-        MoM, cells, _ = fh.loadSim(MoM.savedMoM)
-
-        # Simulation simulator.
-        sim = Simulator(p)
-
-        # Simulation phase.
-        phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
-
-        # Initialize simulation data structures
-        sim.baseInit_all(cells, p)
-        sim.time = MoM.time
-
-        MoM.core.init_saving(cells, p, plot_type='init', nested_folder_name='Metabolism')
-        MoM.core.export_all_data(sim, cells, p, message='metabolic molecules')
-        MoM.core.plot(sim, cells, p, message='metabolic molecules')
-        MoM.core.anim(phase=phase, message='metabolic molecules')
-
-        # If displaying plots, block on all previously plots previously
-        # displayed as non-blocking. If this is *NOT* done, these plots will
-        # effectively *NEVER* displayed be on most systems.
-        if p.plot.is_after_sim_show:
-            plt.show()
-
-        # Return this phase.
-        return phase
+    # #FIXME: This and all other BRN methods are safely removable, now.
+    # def plot_brn(self) -> SimPhase:
+    #     '''
+    #     Visualize the pure bioenergetics reaction network (BRN) initialized and
+    #     simulated by a prior call to the :meth:`sim_brn` method and export the
+    #     resulting plots and animations to various output files, specified by the
+    #     current configuration file.
+    #
+    #     Returns
+    #     ----------
+    #     SimPhase
+    #         High-level simulation phase instance encapsulating all objects
+    #         internally created by this method to run this phase.
+    #     '''
+    #
+    #     # Simulation phase type.
+    #     phase_kind = SimPhaseKind.INIT
+    #
+    #     # Simulation configuration.
+    #     p = Parameters.make(self._config_filename)
+    #     p.set_time_profile(phase_kind)  # force the time profile to be initialize
+    #
+    #     MoM = MasterOfMetabolism(p)
+    #     MoM, cells, _ = fh.loadSim(MoM.savedMoM)
+    #
+    #     # Simulation simulator.
+    #     sim = Simulator(p)
+    #
+    #     # Simulation phase.
+    #     phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
+    #
+    #     # Initialize simulation data structures
+    #     sim.baseInit_all(cells, p)
+    #     sim.time = MoM.time
+    #
+    #     MoM.core.init_saving(cells, p, plot_type='init', nested_folder_name='Metabolism')
+    #     MoM.core.export_all_data(sim, cells, p, message='metabolic molecules')
+    #     MoM.core.plot(sim, cells, p, message='metabolic molecules')
+    #     MoM.core.anim(phase=phase, message='metabolic molecules')
+    #
+    #     # If displaying plots, block on all previously plots previously
+    #     # displayed as non-blocking. If this is *NOT* done, these plots will
+    #     # effectively *NEVER* displayed be on most systems.
+    #     if p.plot.is_after_sim_show:
+    #         plt.show()
+    #
+    #     # Return this phase.
+    #     return phase
 
     def plot_grn(self) -> SimPhase:
         '''
