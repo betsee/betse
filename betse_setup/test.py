@@ -29,24 +29,28 @@ class test(Command):
     Attributes
     ----------
     match_name : str
-        Python-evaluatable expression (e.g., `'test_method or test other'`)
+        Python-evaluatable expression (e.g., ``'test_method or test other'``)
         conditionally matching a substring of the name of each test function or
-        class to be run if any _or_ `None` if all tests are to be run
+        class to be run if any *or* `None` if all tests are to be run
         unconditionally.
     _pytest_public : PackageType
-        Top-level public `pytest` package, imported by the `run()` method.
+        Top-level public :mod:`pytest` package, imported by the :meth:`run`
+        method.
     _pytest_private : PackageType
-        Top-level private `_pytest` package, imported by the `run()` method.
+        Top-level private :mod:`_pytest` package, imported by the :meth:`run`
+        method.
 
     See Also
     ----------
     https://github.com/pytest-dev/pytest-runner
-        Recommended implementation of a `setuptools` command invoking `pytest`,
-        which is overly obsessed with egg-based local installation of test
-        dependencies rather than actual testing. This is less than useful.
+        Recommended implementation of a :mod:`setuptools` command invoking
+        :mod:`pytest`, which is overly obsessed with egg-based local
+        installation of test dependencies rather than actual testing.
+        Naturally, this is less than useful.
     https://pytest.org/latest/goodpractices.html#manual-integration
-        Fallback implementation for a `setuptools` command invoking `pytest`,
-        which is sufficiently trivial as to be effectively useless.
+        Fallback implementation for a :mod:`setuptools` command invoking
+        :mod:`pytest`, which is sufficiently trivial as to be effectively
+        useless. This is also less than useful.
     '''
 
     # ..................{ ATTRIBUTES                         }..................
@@ -57,6 +61,7 @@ class test(Command):
 
 
     user_options = [
+        # Boolean options.
         (
             'no-capture', 's',
             'Prevent py.test from silently capturing any '
@@ -66,6 +71,8 @@ class test(Command):
             'All three will be written in real-time "as is" to their '
             'respective file handles (e.g., current terminal, logfile).'
         ),
+
+        # Argument options.
         (
             'match-name=', 'k',
             'Only run tests which match the given substring expression. '
@@ -79,14 +86,34 @@ class test(Command):
             'extra names in their "extra_keyword_matches" set as well as to '
             'functions which have names assigned directly to them.'
         ),
+        (
+            'export-sim-conf-dir=', None,
+            'Target directory into which all '
+            'source simulation configuration directories produced by '
+            '"@skip_unless_export_sim_conf"-marked tests are to be copied.'
+        ),
     ]
     '''
-    List of 3-tuples specifying command-line options accepted by this command.
+    List specifying command-line options accepted by this command.
 
-    For each such option, an attribute of the same name as such option's long
-    form _must_ be explicitly initialized in the `initialize_options()` method.
-    `setuptools` fails to recognize options for which this is _not_ the case.
-    (You fail a simple sanity check yet again, `setuptools`.)
+    Each item of this list is a 3-tuple ``(long_name, short_name, synopsis)``
+    specifying a single option, where:
+
+    * ``long_name`` is this option's mandatory GNU-style long form excluding
+      ``--`` prefix. Additionally:
+      * If this option accepts a mandatory argument, this long form should be
+        suffixed by ``=``.
+      * Else, this long form should *not* be suffixed by ``=``.
+    * ``short_name`` is either:
+      * This option's option *NIX-style short form excluding ``-`` prefix.
+      * ``None`` if this option has no such form.
+    * ``synopsis`` is this option's mandatory help documentation.
+
+    For each such option, an attribute of the same name as this option's long
+    form *must* be explicitly initialized in the :meth:`initialize_options`
+    method. :mod:`setuptools` fails to recognize options for which this is
+    *not* the case. (You fail a simple sanity check yet again,
+    :mod:`setuptools`.)
 
     See Also
     ----------
@@ -112,6 +139,7 @@ class test(Command):
         # option's long form *MUST* be initialized here to its default value.
         self.no_capture = None
         self.match_name = None
+        self.export_sim_conf_dir = None
 
         # setuptools-specific public attributes.
         # self.install_dir = None
@@ -150,7 +178,7 @@ class test(Command):
         providing programmatic access to py.test's CLI implementation. While
         py.test is also runnable as an external command, doing so invites
         non-trivial complications. Unlike most Python applications (e.g.,
-        PyInstaller), py.test is _not_ dynamically importable via the following
+        PyInstaller), py.test is *not* dynamically importable via the following
         import machinery:
 
             # Don't do this.
@@ -162,11 +190,11 @@ class test(Command):
 
             AttributeError: 'module' object has no attribute '__path__'
 
-        The reason why appears to be package `__path__` manipulations
-        dynamically performed by the private `_pytest` package. Sadly,
-        attempting to import `_pytest.main` fails with an even more
+        The reason why appears to be package ``__path__`` manipulations
+        dynamically performed by the private :mod:`_pytest` package. Sadly,
+        attempting to import :func:`_pytest.main` fails with an even more
         inscrutable exception. The solution, of course, is to brute-force it
-        by only dynamically importing the root `pytest` package.
+        by only dynamically importing the root :mod:`pytest` package.
         '''
 
         # Import the public "pytest" package *BEFORE* the private "_pytest"
@@ -186,24 +214,24 @@ class test(Command):
 
     def _patch_pytest(self) -> None:
         '''
-        Monkey-patch the `pytest` framework in the active Python interpreter,
-        altering startup `pytest` functionality in an early-time manner _not_
-        permitted within `pytest` plugins.
+        Monkey-patch the :mod:`pytest` framework in the active Python interpreter,
+        altering startup :mod:`pytest` functionality in an early-time manner *not*
+        permitted within :mod:`pytest` plugins.
 
-        `pytest` plugins (e.g., `conftest` submodules of a test suite) are
-        imported by `pytest` _after_ `pytest` startup and hence cannot be used
-        to alter startup `pytest` functionality in an early-time manner.
+        `pytest` plugins (e.g., ``conftest`` submodules of a test suite) are
+        imported by :mod:`pytest` *after* :mod:`pytest` startup and hence cannot
+        be used to alter startup :mod:`pytest` functionality in an early-time
+        manner.
 
         Specifically, this method monkey-patches:
 
-        * The `CaptureManager._getcapture()` method to capture stderr but
-          _not_ stdout (rather than neither stderr nor stdout) when `py.test` is
-          passed either the `-s` or `--capture=no` CLI options. The default
-          approach of _not_ capturing stderr prevents `py.test` from capturing
-          and hence reporting error messages in failure reports, requiring
-          tedious upwards scrolling through test output to find the
-          corresponding error messages.
-        *
+        * The :meth:`CaptureManager._getcapture` method to capture stderr but
+          *not* stdout (rather than neither stderr nor stdout) when the
+          ``py.test`` command is passed either the ``-s`` or ``--capture=no``
+          CLI options. The default approach of *not* capturing stderr prevents
+          ``py.test`` from capturing and hence reporting error messages in
+          failure reports, requiring tedious upwards scrolling through test
+          output to find the corresponding error messages.
         '''
 
         # py.test classes to be monkey-patched.
@@ -240,7 +268,17 @@ class test(Command):
         setuptools command.
         '''
 
-        # List of all shell words to be passed as arguments to py.test.
+        # List of all shell words to be passed as arguments to "py.test".
+        #
+        # Whereas the top-level "pytest.ini" configuration file lists options
+        # unconditionally passed to *ALL* "py.test" invocations, this list only
+        # lists options conditionally applicable to invocations run within the
+        # "python3 setup.py test" subcommand.
+        #
+        # For example, the "--capture=no" option should be conditionally enabled
+        # *ONLY* when applying the monkey-patch applied by this setuptools
+        # subcommand (namely, here). This option is intentionally omitted from
+        # the top-level "pytest.ini" configuration file.
         pytest_args = [
             # When testing interactively, prevent py.test from capturing stdout
             # but *NOT* stderr. By default, py.test captures and delays printing
@@ -329,12 +367,15 @@ class test(Command):
             pytest_args.append('-s')
             # pytest_args.append('--capture=no')
 
-        # If the "-k" option is passed, pass this option as is to py.test.
-        #
-        # Avoid shell-quoting this option. Doing so unnecessarily adds an
-        # additional level of quoting... which is bad.
+        # If any remaining option is passed, forward these option unmodified
+        # onto "py.test". For safety, these option's arguments are intentionally
+        # *NOT* shell-quoted. Doing so unnecessarily adds an additional level of
+        # quoting... which is bad.
         if self.match_name is not None:
             pytest_args.extend(('-k', self.match_name,))
+        if self.export_sim_conf_dir is not None:
+            pytest_args.extend(
+                ('--export-sim-conf-dir', self.export_sim_conf_dir,))
 
         # If "pytest-xdist" is both importable and *NOT* explicitly disabled...
         if is_xdist:
@@ -346,6 +387,36 @@ class test(Command):
             # available processors.
             pytest_args.extend(['-n', 'auto'])
 
-        # Run py.test, propagating its exit status as our own up to the caller.
+        # Instruct "py.test" of the relative pathname to the top-level directory
+        # for this project. On startup, "py.test" internally:
+        #
+        # * Sets its "rootdir" property to this pathname in absolute form.
+        # * Sets its "inifile" property to the concatenation of this pathname
+        #   with the basename "pytest.ini" if this top-level configuration file
+        #   exists.
+        # * Prints the initial values of these properties to stdout.
+        #
+        # *THIS IS ESSENTIAL.* If "py.test" is *NOT* explicitly passed this
+        # relative pathname as an argument, "py.test" typically fails to set
+        # these properties to the expected paths. For unknown reasons
+        # (presumably unresolved "py.test" issues), "py.test" instead sets
+        # "rootdir" to the absolute path of the current user's home directory
+        # and "inifile" to "None" -- because no current user's home directory
+        # contains a "pytest.ini" file. The error output resembles:
+        #
+        #    $ ./test -k test_sim_export --export-sim-conf-dir ~/tmp/yolo
+        #    running test
+        #    Running py.test with arguments: ['--capture=no', '--maxfail=1', '-k', 'test_sim_export', '--export-sim-conf-dir', '/home/leycec/tmp/yolo']
+        #    usage: setup.py [options] [file_or_dir] [file_or_dir] [...]
+        #    setup.py: error: unrecognized arguments: --export-sim-conf-dir
+        #      inifile: None
+        #      rootdir: /home/leycec
+        #
+        # See the following official documentation for further details, entitled
+        # "Initialization: determining rootdir and inifile":
+        #     https://docs.pytest.org/en/latest/customize.html
+        pytest_args.append('.')
+
+        # Fork the "py.test" command, propagating its exit status as our own.
         print('Running py.test with arguments: {}'.format(pytest_args))
         util.exit_with_status(self._pytest_public.main(pytest_args))

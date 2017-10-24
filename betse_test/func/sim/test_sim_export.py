@@ -11,6 +11,7 @@ validate backwards compatibility).
 
 # ....................{ IMPORTS                            }....................
 import pytest
+from betse_test.util import requests
 from betse_test.util.mark.skip import skip_if
 
 # ....................{ OPTIONS                            }....................
@@ -43,10 +44,11 @@ command-line option specific to this test suite was *not* passed to the
 # compatibility with future versions of this test suite.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-#FIXME: Add support to "betse_setup/test.py" for a new "--pytest-options" option
-#simply passing its argument as additional options to "py.test".
 @skip_unless_export_sim_conf_dir
-def test_sim_export(betse_cli_sim: 'CLISimTester') -> None:
+def test_sim_export(
+    betse_cli_sim: 'CLISimTester',
+    request: '_pytest.python.FixtureRequest',
+) -> None:
     '''
     Export the simulation configuration directory produced by running all BETSE
     subcommands exporting pickled objects (i.e., ``seed``, ``init``, and
@@ -60,28 +62,46 @@ def test_sim_export(betse_cli_sim: 'CLISimTester') -> None:
 
     .. code:: bash
 
-        $ ./test -k test_sim_export --pytest-options="--export-sim-conf-dir=~/some/where"
+        $ ./test -k test_sim_export --export-sim-conf-dir=~/some/where
 
     Parameters
     ----------
     betse_cli_sim : CLISimTester
         Object running BETSE CLI simulation subcommands.
+    request : _pytest.python.FixtureRequest
+        Builtin fixture describing this test.
     '''
 
     # Defer heavyweight imports.
     from betse.util.path import dirs, pathnames
+
+    # Name of the current test.
+    test_name = requests.get_tested_name(request)
+
+    # Absolute or relative pathname of the target directory to export into,
+    # canonicalized for caller convenience (e.g., to ensure tilde expansion) and
+    # created if this directory does *NOT* already exist.
+    trg_sim_conf_parent_dirname = dirs.canonicalize_and_make_unless_dir(
+        EXPORT_SIM_CONF_DIRNAME)
+
+    # Absolute or relative pathname of the test-specific target directory to
+    # copy the test-specific source simulation configuration directory to.
+    trg_sim_conf_dirname = pathnames.join(
+        trg_sim_conf_parent_dirname, test_name)
+
+    # If this test-specific target directory already exists, raise an exception.
+    dirs.die_if_dir(trg_sim_conf_dirname)
+
+    # Absolute pathname of the test-specific source simulation configuration
+    # directory to copy from.
+    src_sim_conf_dirname = betse_cli_sim.sim_state.conf_dirname
 
     # Test all subcommands exporting pickled objects. Note that plotting
     # subcommands export no such objects and hence are intentionally omitted.
     betse_cli_sim.run_subcommands(('seed',))
     # betse_cli_sim.run_subcommands(('seed',), ('init',), ('sim',))
 
-    # Absolute or relative pathname of the test-specific target directory to
-    # copy the test-specific source simulation configuration directory to.
-    trg_sim_conf_dirname = pathnames.join(
-        EXPORT_SIM_CONF_DIRNAME, 'test_sim_export')
-
     # Export (i.e., recursively copy) this source to target directory.
     dirs.copy(
-        src_dirname=betse_cli_sim.sim_state.conf_filename,
+        src_dirname=src_sim_conf_dirname,
         trg_dirname=trg_sim_conf_dirname)

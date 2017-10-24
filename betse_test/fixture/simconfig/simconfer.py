@@ -39,6 +39,10 @@ class SimTestState(object):
 
     Attributes (Path)
     ----------
+    conf_dirname : str
+        Absolute path of the parent directory containing a temporary simulation
+        configuration file specific to the parent fixture, equivalent to
+        ``pathnames.get_dirname(str(self.conf_filepath))``.
     conf_filename : str
         Absolute path of a temporary simulation configuration file specific to
         the parent fixture, equivalent to ``str(self.conf_filepath)``.
@@ -85,13 +89,14 @@ class SimTestState(object):
         Parameters
         ----------
         conf_filepath : LocalPath
-            Absolute path to which this method copies BETSE's default simulation
+            Absolute path to which this method will copy the default simulation
             configuration file as a :class:`py.path.local` instance. If this
             file already exists, an exception is raised.
         '''
 
         # Defer heavyweight imports. This subclass inherits a class defined by
         # the main codebase and is hence *NOT* safely importable above.
+        from betse.util.path import pathnames
         from betse_test.fixture.simconfig.simconfwrapper import (
             SimConfigTestWrapper)
 
@@ -100,6 +105,7 @@ class SimTestState(object):
         # high-level "py.path.local" instance is useful in fixtures and tests.
         self.conf_filepath = conf_filepath
         self.conf_filename = str(conf_filepath)
+        self.conf_dirname = pathnames.get_dirname(self.conf_filename)
 
         # Configuration deserialized from this file, reducing this filename from
         # a high-level "py.path.local" instance to a low-level string.

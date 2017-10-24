@@ -191,7 +191,7 @@ def is_fixture_parametrized(request: '_pytest.python.FixtureRequest') -> bool:
 def get_tested_name(request: '_pytest.python.FixtureRequest') -> str:
     '''
     Unqualified name of the current test (e.g., `test_cli_info`) if the passed
-    ``request`` fixture object was either directly requested by that test _or_
+    ``request`` fixture object was either directly requested by that test *or*
     indirectly requested by a test-scope fixture.
 
     This function returns either:
@@ -212,7 +212,7 @@ def get_tested_name(request: '_pytest.python.FixtureRequest') -> str:
     Raises
     ----------
     BetseTestFixtureException
-        If the passed ``request`` fixture object was _not_ transitively requested
+        If the passed ``request`` fixture object was *not* transitively requested
         by a test (e.g., was requested by a file- or session-scope fixture), in
         which case no test exists to obtain the name of.
     '''

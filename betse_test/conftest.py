@@ -6,8 +6,8 @@
 '''
 Global test configuration for all tests.
 
-`py.test` implicitly imports _all_ functionality defined by this module into
-_all_ test modules.
+:mod:`pytest` implicitly imports *all* functionality defined by this module into
+*all* test modules.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -21,80 +21,6 @@ from betse_test.util.testabc import SerialTestABC
 from betse_test.fixture.igniter import betse_init
 from betse_test.fixture.tempdirer import betse_temp_dir
 from betse_test.fixture.simconfig.simconfer import betse_sim_config
-
-# ....................{ HOOKS ~ option                     }....................
-def pytest_addoption(parser: '_pytest.config.Parser') -> None:
-    '''
-    Hook run immediately on :mod:`pytest` startup *before* parsing command-line
-    arguments, typically registering test suite-specific :mod:`argparse`-style
-    options and ini-style config values.
-
-    Options
-    ----------
-    After :mod:`pytest` parses these options, the globally accessible
-    :attr:`pytest.config.option.{option_var_name}` attribute provides the value
-    of the argument accepted by each option (if any), where
-    ``{option_var_name}`` is the value of the ``dest`` keyword argument passed
-    to the :meth:`parser.add_option` method in the body of this hook.
-
-    Specifically, the following option variables are guaranteed to be defined:
-
-    * :attr:`pytest.config.option.export_sim_conf_dirname`, the value of the
-      ``--export-sim-conf-dir`` command-line option if passed *or* ``None``
-      otherwise.
-
-    Caveats
-    ----------
-    This hook should be implemented *only* in plugins or ``conftest.py`` files
-    situated at the top-level tests directory for this application (e.g., like
-    the current file), due to plugin discovery by :mod:`pytest` at startup.
-
-    Parameters
-    ----------
-    parser : _pytest.config.Parser
-        :mod:`pytest`-specific command-line argument parser, inspired by the
-        :mod:`argparse` API.
-    '''
-
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # CAUTION: The name of this option is assumed to *NOT* change across Git
-    # commits.  Changing this name would violate this assumption and hence
-    # forwards compatibility with future versions of this test suite.
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    # String argument options (i.e., options requiring a string argument),
-    # disabled unless explicitly passed.
-    parser.addoption(
-        '--export-sim-conf-dir',
-        dest='export_sim_conf_dirname',
-        default=None,
-        help=(
-            'target directory into which all '
-            'source simulation configuration directories produced by '
-            '"@skip_unless_export_sim_conf"-marked tests are to be copied'
-        ),
-        metavar='DIRNAME',
-    )
-
-# ....................{ HOOKS ~ session                    }....................
-#FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?
-def pytest_sessionstart(session):
-    '''
-    Hook run immediately *before* starting the current test session (i.e.,
-    calling the :func:`pytest.session.main` function).
-    '''
-
-    pass
-
-
-#FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?
-def pytest_sessionfinish(session, exitstatus):
-    '''
-    Hook run immediately *after* completing the current test session (i.e.,
-    calling the :func:`pytest.session.main` function).
-    '''
-
-    pass
 
 # ....................{ HOOKS ~ plugin                     }....................
 def pytest_configure(config):
