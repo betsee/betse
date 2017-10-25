@@ -15,12 +15,17 @@ repository).
 #
 #    git clone --branch v0.5.0 --depth 1 file:///home/leycec/py/betse betse_old
 #
+#Note that the need to specify a tag rather than a SHA-1 commit hash is a
+#long-standing Git constraint. While annoying, there are actually very good
+#reasons for us to use a tag in this case: namely, to guarantee backward
+#compatibility against a prior stable release. So, we roll with the punches.
+#
 #Naturally, we'll want to:
 #
 #* Temporarily change the CWD to "str(betse_temp_dir)" *BEFORE* performing this
 #  clone, as "git clone" only clones into the current directory.
 #* Substitute the hard-coded source repository path given above with
-#  pathtree.get_worktree_dirname_or_none(), which will require raising an
+#  pathtree.get_git_worktree_dirname_or_none(), which will require raising an
 #  exception when that function returns "None".
 #
 #Note that the hard-coded target repository basename given above should be fine,
@@ -34,8 +39,8 @@ repository).
 #* Accept a target directory to perform this clone into and:
 #  * Create this directory if needed.
 #  * Temporarily change the CWD to this directory.
-#
-#It would probably then be useful to design an analogue to the
+
+#FIXME: It would probably then be useful to design an analogue to the
 #simconfig/simconfer.betse_sim_config() fixture operating upon this... Hmmmmmmm.
 #Complications arise, of course. Ideally, we would confine BETSE subcommands
 #(e.g., "betse seed") to this clone for the duration of this test in a manner
@@ -93,6 +98,47 @@ repository).
 #        )
 #
 #That looks fundamentally sane to me, but only ugly time will tell.
+#FIXME: Actually, all of the above is functionally obsolete given our new
+#"--export-sim-conf-dir" command-line option. What we would then like to do is
+#fork a new "py.test" process running the "test_sim_export" test from within the
+#current "py.test" process test being run. Presumably, this could be
+#accomplished by something resembling:
+#
+#    import os
+#
+#    @fixture
+#    def betse_cli_sim_git(...) -> None:
+#
+#        # Defer heavyweight imports.
+#        from betse.util.os.shell import shelldir
+#        from betse.util.path import gits
+#        from betse.util.path.command import cmdrun
+#        from betse.util.py import pys
+#
+#        # Clone a copy of this application's Git repository at the last commit
+#        # for which we guarantee backward compatibility into a temporary
+#        # directory isolated to this test.
+#        gits.clone_worktree_shallow(...)
+#
+#        old_sim_conf_dir = betse_temp_dir.join('old_sim_conf')
+#
+#        # Temporarily change the current working directory (CWD) to this clone.
+#        with shelldir.setting_cwd(...):
+#
+#            py_command_line_prefix = pys.get_command_line_prefix()
+#
+#            export_old_sim_conf_command = py_command_line_prefix + (
+#                'setup.py', 'test',
+#                '-k', 'test_sim_export',
+#                '--export-sim-conf-dir', old_sim_conf_dir
+#
+#            cmdrun.run_or_die(
+#               command_words=betse_command,
+#               popen_kwargs={
+#                   #FIXME: Specify an absolute rather than relative dirname here.
+#                   'env': dict(os.environ, PYTHONPATH='betse_old'),
+#               },
+#            )
 
 # ....................{ IMPORTS                            }....................
 # from betse_test.util import requests

@@ -10,7 +10,7 @@ BETSE CLI in the active Python interpreter.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type.types import type_check, SequenceTypes
-from betse_test.fixture.simconfig.simconfer import SimTestState
+from betse_test.fixture.simconfig.simconfer import SimConfTestInternal
 from betse_test.func.fixture.clier import CLITester
 from pytest import fixture
 
@@ -30,7 +30,7 @@ class CLISimTester(object):
     cli_tester : CLITester
         BETSE CLI test runner, testing a single subcommand of the official
         BETSE CLI (i.e., `betse`) in the active Python interpreter.
-    sim_state: SimTestState
+    sim_state: SimConfTestInternal
         Test-specific object encapsulating a temporary simulation
         configuration file specific to the current test.
 
@@ -59,7 +59,7 @@ class CLISimTester(object):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, cli_tester: CLITester, sim_state: SimTestState) -> None:
+    def __init__(self, cli_tester: CLITester, sim_state: SimConfTestInternal) -> None:
         '''
         Initialize this test runner.
 
@@ -68,7 +68,7 @@ class CLISimTester(object):
         cli_tester: CLITester
             BETSE CLI test runner, testing a single subcommand of the official
             BETSE CLI (i.e., ``betse``) in the active Python interpreter.
-        sim_state: SimTestState
+        sim_state: SimConfTestInternal
             Test-specific object encapsulating a temporary simulation
             configuration file specific to the current test.
         '''
@@ -270,7 +270,7 @@ class CLISimTester(object):
 def betse_cli_sim(
     request: '_pytest.python.FixtureRequest',
     betse_cli: CLITester,
-    betse_sim_config: SimTestState,
+    betse_sim_config: SimConfTestInternal,
 ) -> CLISimTester:
     '''
     Fixture returning a test-specific object suitable for running one or more
@@ -283,7 +283,7 @@ def betse_cli_sim(
         Builtin fixture describing this fixture's parent fixture or test.
     betse_cli : CLITester
         Object running a single simulation-specific BETSE CLI subcommand.
-    betse_sim_config : SimTestState
+    betse_sim_config : SimConfTestInternal
         Object encapsulating a temporary simulation configuration file.
 
     Returns

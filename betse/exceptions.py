@@ -233,6 +233,14 @@ class BetsePathException(BetseException):
     pass
 
 
+class BetseArchiveException(BetsePathException):
+    '''
+    Archive-specific exception.
+    '''
+
+    pass
+
+
 class BetseDirException(BetsePathException):
     '''
     Directory-specific exception.
@@ -241,17 +249,17 @@ class BetseDirException(BetsePathException):
     pass
 
 
-class BetseFileException(BetsePathException):
+class BetseGitException(BetsePathException):
     '''
-    File-specific exception.
+    Git-specific exception.
     '''
 
     pass
 
-
-class BetseArchiveException(BetsePathException):
+# ....................{ EXCEPTIONS ~ path : file           }....................
+class BetseFileException(BetsePathException):
     '''
-    Archive-specific exception.
+    File-specific exception.
     '''
 
     pass

@@ -135,9 +135,6 @@ RUNTIME_MANDATORY_YAML = {
     #   with a modern object-oriented approach. Supporting both isn't worth the
     #   substantial increase in maintenance debt.
     'ruamel.yaml': '>= 0.15.24',
-
-    #FIXME: Uncomment once "ruamel_yaml" is sufficiently up-to-date.
-    # 'ruamel_yaml': '>= 0.15.0',
 }
 '''
 Dictionary mapping from the :mod:`setuptools`-specific project name of each

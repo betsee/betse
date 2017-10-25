@@ -20,7 +20,7 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 #  data descriptors defined by "self._p".
 #FIXME: Ideally, after implementing the above, use of the "SimConfigTestWrapper"
 #wrapper will be able to be replaced everywhere in tests by direct use of the
-#"SimTestState.p" property providing direct access to this "Parameters" object,
+#"SimConfTestInternal.p" property providing direct access to this "Parameters" object,
 #which increasingly provides all test functionality. We're not quite there yet
 #-- but we will be, eventually.
 
@@ -31,7 +31,6 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 # until *AFTER* test collection, this submodule is intentionally segregated.
 from betse.science.config import confio
 from betse.science.config.confenum import IonProfileType
-from betse.science.parameters import Parameters
 from betse.science.simulate.pipe import piperunreq
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
@@ -115,14 +114,17 @@ class SimConfigTestWrapper(object):
             Absolute or relative path of this file.
         '''
 
-        # Deserialize this file into a high-level in-memory object.
+        # Defer heavyweight imports.
+        from betse.science.parameters import Parameters
+
+        # In-memory simulation configuration deserialized from this file.
         self._p = Parameters.make(filename)
 
     # ..................{ PROPERTIES                         }..................
     # For safety, these properties lack setters and hence are read-only.
 
     @property
-    def p(self) -> Parameters:
+    def p(self) -> 'betse.science.parameters.Parameters':
         '''
         High-level simulation configuration encapsulated by this test wrapper.
         '''

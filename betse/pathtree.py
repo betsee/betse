@@ -47,7 +47,7 @@ from betse.util.type.types import type_check, StrOrNoneTypes
 @callable_cached
 def get_root_dirname() -> str:
     '''
-    Absolute path of the root directory suffixed by a directory separator.
+    Absolute pathname of the root directory suffixed by a directory separator.
 
     The definition of "root directory" conditionally depends on the current
     platform. If this platform is:
@@ -55,7 +55,7 @@ def get_root_dirname() -> str:
     * POSIX-compatible (e.g., Linux, OS X), this is simply ``/``.
     * Microsoft Windows, this is the value of the ``%HOMEDRIVE%`` environment
       variable. This is the ``:``-suffixed letter of the drive to which Windows
-      was originally installed -- typically but *not* necessarily ``C:\``.
+      was originally installed -- typically but *not* necessarily ``C:\\``.
     '''
 
     # Avoid circular import dependencies.
@@ -72,8 +72,8 @@ def get_root_dirname() -> str:
 @callable_cached
 def get_home_dirname() -> str:
     '''
-    Absolute path of the home directory of the current user if found *or* raise
-    an exception otherwise (i.e., if this directory is *not* found).
+    Absolute pathname of the home directory of the current user if found *or*
+    raise an exception otherwise (i.e., if this directory is *not* found).
     '''
 
     # Avoid circular import dependencies.
@@ -92,7 +92,7 @@ def get_home_dirname() -> str:
 @callable_cached
 def get_dot_dirname() -> str:
     '''
-    Absolute path of this application's top-level dot directory in the home
+    Absolute pathname of this application's top-level dot directory in the home
     directory of the current user, silently creating this directory if *not*
     already found.
 
@@ -153,8 +153,8 @@ def get_dot_dirname() -> str:
 @callable_cached
 def get_data_dirname() -> str:
     '''
-    Absolute path of this application's top-level data directory if found *or*
-    raise an exception otherwise (i.e., if this directory is *not* found).
+    Absolute pathname of this application's top-level data directory if found
+    *or* raise an exception otherwise (i.e., if this directory is *not* found).
 
     This directory contains application-internal resources (e.g., media files)
     required at application runtime.
@@ -177,7 +177,7 @@ def get_data_dirname() -> str:
 @callable_cached
 def get_data_yaml_dirname() -> str:
     '''
-    Absolute path of this application's data subdirectory containing
+    Absolute pathname of this application's data subdirectory containing
     YAML-formatted files if found *or* raise an exception otherwise (i.e., if
     this directory is *not* found).
 
@@ -197,9 +197,9 @@ def get_data_yaml_dirname() -> str:
 @callable_cached
 def get_package_dirname() -> str:
     '''
-    Absolute path of this application's top-level package directory, typically
-    residing in the ``site-packages`` subdirectory of the system-wide stdlib for
-    the active Python interpreter (e.g.,
+    Absolute pathname of this application's top-level package directory,
+    typically residing in the ``site-packages`` subdirectory of the system-wide
+    stdlib for the active Python interpreter (e.g.,
     ``/usr/lib64/python3.6/site-packages/betse``).
     '''
 
@@ -219,22 +219,22 @@ def get_package_dirname() -> str:
 
 
 @callable_cached
-def get_worktree_dirname_or_none() -> StrOrNoneTypes:
+def get_git_worktree_dirname_or_none() -> StrOrNoneTypes:
     '''
-    Absolute path of this application's Git-based **working tree** (i.e.,
-    top-level directory containing this application's ``.git`` dot subdirectory
-    and ``setup.py`` install script) if this application was installed in a
+    Absolute pathname of this application's Git-based **working tree** (i.e.,
+    top-level directory containing this application's ``.git`` subdirectory and
+    ``setup.py`` install script) if this application was installed in a
     developer manner *or* ``None`` otherwise.
 
     Returns
     ----------
     StrOrNoneTypes
         Specifically, this function returns either:
-        * A path if this application was installed in a developer manner,
+        * A pathname if this application was installed in a developer manner,
           typically either via:
           * ``python3 setup.py develop``.
           * ``python3 setup.py symlink``.
-        * ``None`` if this application was installed in a standard manner,
+        * ``None`` if this application was installed in a non-developer manner,
           typically either via:
           * ``pip3 install``.
           * ``python3 setup.py develop``.
@@ -243,26 +243,26 @@ def get_worktree_dirname_or_none() -> StrOrNoneTypes:
     # Avoid circular import dependencies.
     from betse.util.path import dirs, pathnames
 
-    # Absolute path of the directory providing the top-level "betse" package,
+    # Absolute pathname of the directory offering the top-level "betse" package,
     # canonicalized into a directory rather than symbolic link to increase the
     # likelihood of obtaining the actual parent directory of this package.
     package_dirname = pathnames.canonicalize(get_package_dirname())
 
-    # Absolute path of the parent directory of this directory.
+    # Absolute pathname of the parent directory of this directory.
     worktree_dirname = pathnames.get_dirname(package_dirname)
 
-    # Absolute path of the ".git" subdirectory of this parent directory.
+    # Absolute pathname of the ".git" subdirectory of this parent directory.
     git_subdirname = pathnames.join(worktree_dirname, '.git')
 
-    # If this subdirectory exists, return this parent directory's absolute path;
-    # else, return "None".
+    # Return this parent directory's absolute pathname if this subdirectory
+    # exists *OR* "None" otherwise.
     return worktree_dirname if dirs.is_dir(git_subdirname) else None
 
 # ....................{ GETTERS ~ file                     }....................
 @callable_cached
 def get_log_default_filename() -> str:
     '''
-    Absolute path of this application's default user-specific logfile.
+    Absolute pathname of this application's default user-specific logfile.
 
     This is the plaintext file to which all messages are logged by default.
     '''
@@ -277,7 +277,8 @@ def get_log_default_filename() -> str:
 @callable_cached
 def get_profile_default_filename() -> str:
     '''
-    Absolute path of this application's default user-specific profile dumpfile.
+    Absolute pathname of this application's default user-specific profile
+    dumpfile.
 
     This is the binary file to which profiled statistics are saved by default.
     '''
@@ -292,8 +293,8 @@ def get_profile_default_filename() -> str:
 @callable_cached
 def get_sim_config_default_filename() -> str:
     '''
-    Absolute path of this application's default simulation configuration file
-    if found *or* raise an exception otherwise (i.e., if this file is *not*
+    Absolute pathname of this application's default simulation configuration
+    file if found *or* raise an exception otherwise (i.e., if this file is *not*
     found).
 
     This is the plaintext YAML-formatted file from which all new simulation
@@ -311,9 +312,9 @@ def get_sim_config_default_filename() -> str:
 @type_check
 def get_repl_history_filename(repl_module_name: str) -> dict:
     '''
-    Absolute path of this application's default user-specific history file for
-    the read–eval–print loop (REPL) implemented by the third-party module with
-    the passed name.
+    Absolute pathname of this application's default user-specific history file
+    for the read–eval–print loop (REPL) implemented by the third-party module
+    with the passed name.
 
     This history file is a plaintext file to which this REPL appends each read
     user command for preserving command history between REPL sessions.

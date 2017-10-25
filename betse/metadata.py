@@ -188,6 +188,22 @@ VERSION_PARTS = _convert_version_str_to_tuple(VERSION)
 Machine-readable application version as a tuple of integers.
 '''
 
+# ....................{ METADATA ~ tag                     }....................
+GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.5.0'
+'''
+Oldest Git tag for which this application guarantees backward compatibility.
+
+In the context of this application, "backward compatibility" specifically means
+the capacity for versions of this application newer than this Git tag to
+successfully load *all*:
+
+* Simulation configurations readable by this older version of this application.
+* Pickled seeds, initializations, and simulations produced by this older
+  version of this application.
+
+Backward compatibility is guaranteed with functional tests in our test suite.
+'''
+
 # ....................{ METADATA ~ synopsis                }....................
 # Note that a human-readable multiline description is exposed via the top-level
 # "setup.py" script. This description is inefficiently culled from the contents

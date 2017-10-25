@@ -31,7 +31,7 @@ more shell words comprising this command whose:
   * Concatenated to the current ``--``-prefixed argument delimited by ``=`` and
     shell-quoted.
 
-`Popen()` Keyword Arguments
+``Popen()`` Keyword Arguments
 ----------
 Most runners accept the same optional keyword arguments accepted by the
 :meth:`subprocess.Popen.__init__` constructor, including:
@@ -45,16 +45,15 @@ Most runners accept the same optional keyword arguments accepted by the
 
 # ....................{ IMPORTS                            }....................
 import subprocess
-from io import TextIOWrapper
-from subprocess import CalledProcessError, Popen, PIPE, TimeoutExpired
-from threading import Thread
-
 from betse.exceptions import BetseCommandException
 from betse.util.io.log import logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type.mapping import maputil
 from betse.util.type.types import (
     type_check, MappingType, MappingOrNoneTypes, SequenceTypes)
+from io import TextIOWrapper
+from subprocess import CalledProcessError, Popen, PIPE, TimeoutExpired
+from threading import Thread
 
 # ....................{ GLOBALS                            }....................
 BUFFER_SIZE_DEFAULT = -1
@@ -92,7 +91,9 @@ def run_or_die(
 ) -> None:
     '''
     Run the passed command as a subprocess of the current Python process,
-    raising an exception on subprocess failure.
+    raising an exception on subprocess failure *and* forwarding all
+    standard output and error output by this subprocess to the standard output
+    and error file handles of the current Python process.
 
     This exception contains the exit status of this subprocess.
 
@@ -129,7 +130,9 @@ def get_exit_status(
 ) -> int:
     '''
     Run the passed command as a subprocess of the current Python process,
-    returning only the exit status of this subprocess.
+    returning only the exit status of this subprocess *and* forwarding all
+    standard output and error output by this subprocess to the standard output
+    and error file handles of the current Python process.
 
     This function raises *no* exceptions on subprocess failure. To do so,
     consider calling the :func:`run` function instead.
@@ -174,8 +177,8 @@ def get_stdout_or_die(
 ) -> str:
     '''
     Run the passed command as a subprocess of the current Python process,
-    capturing and returning all stdout output by this subprocess *and* raising
-    an exception on subprocess failure.
+    raising an exception on subprocess failure *and* capturing and returning all
+    stdout output by this subprocess.
 
     Parameters
     ----------
@@ -215,9 +218,9 @@ def get_output_interleaved_or_die(
 ) -> str:
     '''
     Run the passed command as a subprocess of the current Python process,
-    capturing and returning all stdout and stderr output by this subprocess
-    interleaved together (in arbitrary order) *and* raising an exception on
-    subprocess failure.
+    raising an exception on subprocess failure *and* capturing and returning all
+    stdout and stderr output by this subprocess interleaved together (in
+    arbitrary order).
 
     Parameters
     ----------
@@ -259,9 +262,9 @@ def log_output_or_die(
 ) -> None:
     '''
     Run the passed command as a subprocess of the current Python process,
-    capturing and logging all stdout output by this subprocess with logging
-    level ``INFO`` *and* all stderr output by this subprocess with logging
-    level ``ERROR``, raising an exception on subprocess failure.
+    raising an exception on subprocess failure *and* capturing and logging all
+    stdout output by this subprocess with logging level ``INFO`` and all
+    stderr output by this subprocess with logging level ``ERROR``.
 
     For both space efficiency and logging responsiveness, this function captures
     and logs subprocess output in a line-buffered manner. Specifically:
