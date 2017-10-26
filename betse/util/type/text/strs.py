@@ -450,48 +450,6 @@ def join_as_disconjunction_double_quoted(*texts) -> str:
     # Disjunctively join these strings.
     return join_as_disjunction(*texts_quoted)
 
-# ....................{ ESCAPERS                           }....................
-@type_check
-def escape_ml(text: str) -> str:
-    '''
-    Passed string with all \*ML-specific syntax escaped and hence guaranteed to
-    contain *no* \*ML-specific syntax.
-
-    Specifically, this function converts all:
-
-    * ``<`` characters into ``&lt;`` substrings.
-    * ``>`` characters into ``&gt;`` substrings.
-    * ``&`` characters into ``&amp;`` substrings.
-    * ``'`` characters into ``&#x27;`` substrings.
-    * ``"`` characters into ``&quot;`` substrings.
-
-    Caveats
-    ----------
-    This function renders arbitrary strings syntactically but *not* necessarily
-    semantically suitable for use as valid \*ML (e.g., HTML, SGML, XML).
-    Notably, returned strings may still contain unescaped JavaScript and hence
-    cross-site scripting (XSS) vulnerabilities. These strings should *never* be
-    directly displayed as HTML to end users. For example, the following call to
-    this function preserves a JavaScript fragment unescaped:
-
-        >>> from betse.util.type.text import strs
-        >>> strs.escape_ml('<a href="javascript:alert()">')
-        '&lt;a href=&quot;javascript:alert()&quot;&gt;'
-
-    Parameters
-    ----------
-    text : str
-        String to escape all \*ML-specific syntax of.
-
-    Returns
-    ----------
-    str
-        String with all \*ML-specific syntax escaped.
-    '''
-
-    # Praise be the stdlib.
-    return html.escape(text)
-
 # ....................{ QUOTERS                            }....................
 #FIXME: We don't actually escape embedded double quotes yet. The reason why is
 #that doing is subtly non-trivial; for safety, we don't want to re-escape
@@ -667,7 +625,7 @@ def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
     '''
     Return the passed string without the first instance of the passed suffix
     prefix and all characters following this suffix prefix in this string if
-    present _or_ raise an exception otherwise.
+    present *or* raise an exception otherwise.
 
     Parameters
     ----------
@@ -686,7 +644,7 @@ def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
     ----------
     BetseStrException
         If either:
-        * This string does _not_ contain this suffix prefix.
+        * This string does *not* contain this suffix prefix.
         * This suffix prefix is the empty string.
     '''
 

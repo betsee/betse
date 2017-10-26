@@ -84,7 +84,37 @@ def get(logger_name: str = None) -> logging.Logger:
     # Return this logger.
     return logging.getLogger(logger_name)
 
-# ....................{ LOGGERS                            }....................
+# ....................{ LOGGERS ~ banner                   }....................
+@type_check
+def log_banner(*args, **kwargs) -> None:
+    '''
+    Log a single-line banner described by the passed arguments as an
+    informational message with the root logger.
+
+    Since formatting this banner requires this banner's embedded title to be
+    preformatted, this function *does* not accept the ``%``-style positional and
+    keyword arguments accepted by most other logging functions (e.g.,
+    :func:`log_info`).
+
+    This function expects the :class:`LogConfig` class globally configuring
+    logging to be instantiated as a singleton.
+
+    Parameters
+    ----------
+    All passed arguments are passed as is to the
+    :func:`betse.util.os.shell.shellstr.get_banner` function.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.os.shell import shellstr
+
+    # Single-line banner embedding the passed human-readable title.
+    banner = shellstr.get_banner(*args, **kwargs)
+
+    # Log this banner with level "INFO".
+    log_info(banner)
+
+# ....................{ LOGGERS ~ level                    }....................
 @type_check
 def log_levelled(message: str, level: LogLevel, *args, **kwargs) -> None:
     '''
@@ -109,7 +139,7 @@ def log_levelled(message: str, level: LogLevel, *args, **kwargs) -> None:
     # The Logger.log() method accepts these parameters in the opposite order.
     logging.log(level, message, *args, **kwargs)
 
-# ....................{ LOGGERS ~ level                    }....................
+
 @type_check
 def log_debug(message: str, *args, **kwargs) -> None:
     '''

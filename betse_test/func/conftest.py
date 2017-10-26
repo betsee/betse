@@ -15,4 +15,4 @@ tests may reference these fixtures without explicit imports.
 
 # ....................{ IMPORTS ~ fixture                  }....................
 from betse_test.func.fixture.clier import betse_cli
-from betse_test.func.fixture.clisimer import betse_cli_sim
+from betse_test.func.fixture.sim.clisimer import betse_cli_sim

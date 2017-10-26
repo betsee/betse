@@ -10,7 +10,7 @@ BETSE CLI in the active Python interpreter.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type.types import type_check, SequenceTypes
-from betse_test.fixture.simconfig.simconfer import SimConfTestInternal
+from betse_test.fixture.simconf.simconfclser import SimConfTestInternal
 from betse_test.func.fixture.clier import CLITester
 from pytest import fixture
 
@@ -18,10 +18,10 @@ from pytest import fixture
 class CLISimTester(object):
     '''
     BETSE CLI simulation test runner, exercising multiple subcommands of the
-    BETSE CLI (i.e., `betse`) in the active Python interpreter with the same
+    BETSE CLI (i.e., ``betse``) in the active Python interpreter with the same
     temporary simulation configuration.
 
-    Complex functional fixtures (e.g., `betse_cli_sim_old`) typically return
+    Complex functional fixtures (e.g., :func:`betse_cli_sim`) typically return
     instances of this class to other fixtures and tests exercising multiple
     facets of the BETSE CLI.
 
@@ -29,7 +29,7 @@ class CLISimTester(object):
     ----------
     cli_tester : CLITester
         BETSE CLI test runner, testing a single subcommand of the official
-        BETSE CLI (i.e., `betse`) in the active Python interpreter.
+        BETSE CLI (i.e., ``betse``) in the active Python interpreter.
     sim_state: SimConfTestInternal
         Test-specific object encapsulating a temporary simulation
         configuration file specific to the current test.
@@ -53,7 +53,7 @@ class CLISimTester(object):
     Tuple of the argument lists comprising all default simulation-specific BETSE
     CLI subcommands.
 
-    This tuple is a convenience simplifying common-case tests exercising _only_
+    This tuple is a convenience simplifying common-case tests exercising *only*
     these subcommands.
     '''
 
@@ -170,16 +170,23 @@ class CLISimTester(object):
             configuration are persisted back to disk. Defaults to ``True``.
         '''
 
+        # Defer heavyweight imports.
+        from betse.util.io.log import logs
+        from betse.util.type.text import strs
+
         # If persisting all in-memory configuration changes back to disk, do so
         # *BEFORE* running the passed.subcommands requiring these changes.
         if is_overwriting_config:
             self._overwrite_config()
 
+        # Human-readable title to be embedded in a single-line terminal banner.
+        subcommand_banner_title = strs.join_on(subcommand_args, delimiter=' ')
+
+        # Log a single-line terminal banner embedding this title.
+        logs.log_banner(title=subcommand_banner_title, padding='=')
+
         # Temporarily change the CWD to this simulation file's directory.
         with self.sim_state.context():
-            # Print these arguments as a single-line banner.
-            self._print_subcommand_args(subcommand_args)
-
             # Append the absolute path of this runner's configuration file to
             # the passed tuple of arguments. While inefficient, converting this
             # tuple into a list would be even more inefficient.
@@ -199,70 +206,6 @@ class CLISimTester(object):
         '''
 
         self.sim_state.p.save_inplace()
-
-
-    #FIXME: Consider integrating this method the main codebase, ideally by
-    #calling this method before running each simulation phase. This banner is
-    #sufficiently aesthetic that I'd certainly appreciate seeing it everywhere.
-    @type_check
-    def _print_subcommand_args(self, subcommand_args: tuple) -> None:
-        '''
-        Print the passed tuple of subcommand arguments as a single-line
-        human-readable banner.
-        '''
-
-        # Defer heavyweight imports.
-        from betse.util.type.text import strs
-
-        # Maximum length of the single-line banner to be printed.
-        BANNER_LEN_MAX = 80
-
-        # Text declaring the passed argument list.
-        BANNER_TEXT = strs.join_on(subcommand_args, delimiter=' ')
-        # print('\n    subcommand_args: {}'.format(subcommand_args))
-        # BANNER_TEXT = ' '.join(subcommand_args)
-
-        # Character both preceding and following this text.
-        BANNER_CHAR = '='
-
-        # Minimal-length banner containing this text and the smallest
-        # possible prefixing and suffixing banner characters.
-        BANNER_MIN = '{char} {text} {char}'.format(
-            text=BANNER_TEXT, char=BANNER_CHAR,)
-
-        # If the length of this minimal-length banner exceeds the maximum
-        # length, print this text with no such banner.
-        if len(BANNER_MIN) > BANNER_LEN_MAX:
-            print(BANNER_TEXT)
-        # Else, print this text within a banner.
-        else:
-            # Length of the string preceding this text. To produce a uniform
-            # rather than ragged left margin for aesthetic uniformity, this
-            # length is a constant.
-            BANNER_PREFIX_LEN = 30
-
-            # String preceding this text.
-            BANNER_PREFIX = BANNER_CHAR * BANNER_PREFIX_LEN
-
-            # Banner to be printed excluding all suffixing banner characters.
-            BANNER_SANS_SUFFIX = '{} {} '.format(BANNER_PREFIX, BANNER_TEXT)
-
-            # Length of the string following this text. To dynamically fill all
-            # remaining line space, this length contextually depends on the
-            # lengths of all other strings. By the above conditional, this
-            # length is guaranteed to be non-zero and need *NOT* be tested.
-            BANNER_SUFFIX_LEN = BANNER_LEN_MAX - len(BANNER_SANS_SUFFIX)
-
-            # Nonetheless, test this length for sanity.
-            assert BANNER_SUFFIX_LEN > 0, (
-                'Banner suffix length {} not positive.'.format(
-                    BANNER_SUFFIX_LEN))
-
-            # String following this text.
-            BANNER_SUFFIX = BANNER_CHAR * BANNER_SUFFIX_LEN
-
-            # Print this text as a single-line banner.
-            print('\n{}{}'.format(BANNER_SANS_SUFFIX, BANNER_SUFFIX,))
 
 # ....................{ FIXTURES                           }....................
 # Test-scope fixture creating and returning a new object for each discrete test.

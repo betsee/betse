@@ -40,8 +40,8 @@ def betse_init() -> None:
     attempting to perform a subsequent test-agnostic initialization of either
     BETSE or dependencies on the first importation of the :mod:`betse.science`
     subpackage, as occurs in fixtures importing from that subpackage (e.g., the
-    :mod:`betse_test.fixture.simconfig.simconfer` fixture importing the
-    :mod:`betse_test.fixture.simconfig.simconfwrapper` submodule importing the
+    :mod:`betse_test.fixture.simconf.simconfer` fixture importing the
+    :mod:`betse_test.fixture.simconf.simconfwrapper` submodule importing the
     :med:`betse.science.config.confwrap` submodule).
     '''
 

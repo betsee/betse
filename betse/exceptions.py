@@ -329,6 +329,7 @@ class BetseSequenceException(BetseTypeException):
     pass
 
 
+# ....................{ EXCEPTIONS ~ type : str            }....................
 class BetseStrException(BetseTypeException):
     '''
     String-specific type or value exception.
@@ -336,7 +337,15 @@ class BetseStrException(BetseTypeException):
     pass
 
 
-class BetseRegexException(BetseTypeException):
+class BetseCharException(BetseStrException):
+    '''
+    **Character** (i.e., string of length 1)-specific type or value exception.
+    '''
+    pass
+
+
+
+class BetseRegexException(BetseStrException):
     '''
     Regular exception-specific type or value exception.
     '''
