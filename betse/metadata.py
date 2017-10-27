@@ -189,7 +189,7 @@ Machine-readable application version as a tuple of integers.
 '''
 
 # ....................{ METADATA ~ tag                     }....................
-GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.5.0'
+GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.5.1'
 '''
 Oldest Git tag for which this application guarantees backward compatibility.
 
@@ -197,11 +197,14 @@ In the context of this application, "backward compatibility" specifically means
 the capacity for versions of this application newer than this Git tag to
 successfully load *all*:
 
-* Simulation configurations readable by this older version of this application.
-* Pickled seeds, initializations, and simulations produced by this older
-  version of this application.
+* Simulation configuration files loadable by this older version.
+* Pickled seeds, initializations, and simulations saved by this older version.
 
-Backward compatibility is guaranteed with functional tests in our test suite.
+See Also
+----------
+:func:`betse_test.func.sim.test_sim.test_cli_sim_backward_compatibility`
+    Functional test in our test suite programmatically guaranteeing backward
+    compatibility with this older version.
 '''
 
 # ....................{ METADATA ~ synopsis                }....................

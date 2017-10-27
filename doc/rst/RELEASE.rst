@@ -103,7 +103,7 @@ BETSE is releasable to all supported platforms as follows:
       $ git tag -a v{version}
 
 #. **Push this tagged commit.** After doing so, Gitlab will automatically
-   publish source tarballs in various formats (e.g., `.zip`, `.tar.bz2`)
+   publish source tarballs in various formats (e.g., ``.zip``, ``.tar.bz2``)
    containing the contents of this repository at this tagged commit in this
    project's `source tarball archive <tarballs_>`__. No further work is required
    to distribute source tarballs via Gitlab.

@@ -6,7 +6,7 @@
 '''
 CLI-specific functional tests exercising all simulation subcommands excluding
 those specific to biochemical reaction and gene regulatory networks (e.g.,
-`betse seed`, `betse init`, `betse sim`).
+``betse seed``, ``betse init``, ``betse sim``).
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -15,11 +15,58 @@ from betse_test.util.mark.skip import skip_unless_matplotlib_anim_writer
 from betse_test.util.mark.fail import xfail
 
 # ....................{ TESTS                              }....................
+#FIXME: Remove the following decoration after this is known to work.
+@xfail(reason='Backward compatibility validation currently unfinished.')
+def test_cli_sim_backward_compatibility(
+    betse_cli_sim_backward_compatibility: 'CLISimTester',
+) -> None:
+    '''
+    Functional test exercising all simulation subcommands required to validate
+    backward compatibility with a temporary simulation configuration file
+    (complete with a pickled seed, initialization, and simulation) produced by
+    the oldest version of this application for which the current version of this
+    application guarantees backward compatibility.
+
+    Design
+    ----------
+    Validating backward compatibility requires validating that the current
+    version of this application can successfully load *all*:
+
+    * Simulation configuration files loadable by this older version.
+    * Pickled seeds, initializations, and simulations saved by this older
+      version.
+
+    Technically, running the:
+
+    * ``plot sim`` subcommand would test the loadability of pickled simulations.
+    * ``sim`` subcommand would test the loadability of pickled initializations.
+    * ``init`` subcommand would test the loadability of pickled seeds.
+
+    That said, running the ``init`` and ``sim`` subcommands would erroneously
+    overwrite the pickled seeds and initializations saved by this older version.
+    Doing so would invite edge-case issues that are best avoided; in particular,
+    care would need to be taken to run the ``sim`` subcommand *after* the
+    ``init`` subcommand. To ameliorate these concerns, plotting subcommands
+    guaranteed to both test the loadability of pickled objects *and* be side
+    effect-free are run instead.
+
+    Parameters
+    ----------
+    betse_cli_sim_backward_compatibility : CLISimTester
+        Object running BETSE CLI simulation subcommands against a temporary
+        simulation configuration produced by this older application version.
+    '''
+
+    # Test all simulation-specific plotting subcommands with this configuration.
+    betse_cli_sim_backward_compatibility.run_subcommands(
+        ('plot', 'seed',), ('plot', 'init',), ('plot', 'sim',),)
+
+
 def test_cli_sim_noecm(betse_cli_sim: 'CLISimTester') -> None:
     '''
-    Test exporting all available exports (e.g., CSVs, plots, animations) with
-    all simulation features required by these exports excluding extracellular
-    spaces enabled.
+    Functional test exporting all available exports (e.g., CSVs, plots,
+    animations) with all simulation features required by these exports excluding
+    extracellular spaces enabled.
 
     Parameters
     ----------
@@ -36,9 +83,9 @@ def test_cli_sim_noecm(betse_cli_sim: 'CLISimTester') -> None:
 
 def test_cli_sim_ecm(betse_cli_sim: 'CLISimTester') -> None:
     '''
-    Test exporting all available exports (e.g., CSVs, plots, animations) with
-    all simulation features required by these exports including extracellular
-    spaces enabled.
+    Functional test exporting all available exports (e.g., CSVs, plots,
+    animations) with all simulation features required by these exports including
+    extracellular spaces enabled.
 
     Parameters
     ----------
@@ -55,8 +102,8 @@ def test_cli_sim_ecm(betse_cli_sim: 'CLISimTester') -> None:
 
 def test_cli_sim_vg_ions(betse_cli_sim: 'CLISimTester') -> None:
     '''
-    Test simulating all voltage-gated ion channels (e.g., sodium, potassium)
-    *and* simulation features required by these channels.
+    Functional test simulating all voltage-gated ion channels (e.g., sodium,
+    potassium) *and* simulation features required by these channels.
 
     Parameters
     ----------
@@ -100,10 +147,10 @@ def test_cli_sim_vg_ions(betse_cli_sim: 'CLISimTester') -> None:
 def test_cli_sim_video(
     betse_cli_sim: 'CLISimTester', writer_name: str, filetype: str) -> None:
     '''
-    Test simulating at least one animation (and all simulation features required
-    by that animation) and encoding that animation as compressed video of the
-    parametrized filetype via the matplotlib animation writer of the
-    parametrized name.
+    Functional test simulating at least one animation (and all simulation
+    features required by that animation) and encoding that animation as
+    compressed video of the parametrized filetype via the matplotlib animation
+    writer of the parametrized name.
 
     Since video encoding is justifiably expensive in both space and time, this
     test encodes only a single animation (rather than all available animations)

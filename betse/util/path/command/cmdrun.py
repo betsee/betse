@@ -37,7 +37,11 @@ Most runners accept the same optional keyword arguments accepted by the
 :meth:`subprocess.Popen.__init__` constructor, including:
 
 * ``cwd``, the absolute path of the current working directory (CWD) from which
-  this command is to be run. Defaults to the current CWD.
+  this command is to be run. Defaults to the current CWD. **Unfortunately, note
+  that this keyword argument appears to be erroneously ignored on numerous
+  platforms (e.g., Windows XP).** For safety, the
+  :func:`betse.util.os.shell import shelldir.setting_cwd` context manager should
+  typically be leveraged instead.
 * ``timeout``, the maximum number of milliseconds this command is to be run for.
   Commands with execution time exceeding this timeout will be mercifully killed.
   Defaults to ``None``, in which case this command is run indefinitely.
@@ -50,7 +54,12 @@ from betse.util.io.log import logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type.mapping import maputil
 from betse.util.type.types import (
-    type_check, MappingType, MappingOrNoneTypes, SequenceTypes)
+    type_check,
+    EnumMemberOrNoneTypes,
+    MappingType,
+    MappingOrNoneTypes,
+    SequenceTypes,
+)
 from io import TextIOWrapper
 from subprocess import CalledProcessError, Popen, PIPE, TimeoutExpired
 from threading import Thread
@@ -153,7 +162,7 @@ def get_exit_status(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import FAILURE_DEFAULT
+    from betse.util.path.command.cmdexit import FAILURE_DEFAULT
 
     # Sanitize these arguments.
     popen_kwargs = _init_popen_kwargs(command_words, popen_kwargs)
@@ -258,7 +267,13 @@ def get_output_interleaved_or_die(
 
 # ....................{ LOGGERS                            }....................
 def log_output_or_die(
-    command_words: SequenceTypes, popen_kwargs: MappingOrNoneTypes = None
+    # Mandatory arguments.
+    command_words: SequenceTypes,
+
+    # Optional arguments.
+    stdout_log_level: EnumMemberOrNoneTypes = LogLevel.INFO,
+    stderr_log_level: EnumMemberOrNoneTypes = LogLevel.ERROR,
+    popen_kwargs: MappingOrNoneTypes = None,
 ) -> None:
     '''
     Run the passed command as a subprocess of the current Python process,
@@ -278,6 +293,12 @@ def log_output_or_die(
     ----------
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
+    stdout_log_level : EnumMemberOrNoneTypes
+        Logging level with which all stdout output is logged. Defaults to
+        :attr:`LogLevel.INFO`.
+    stderr_log_level : EnumMemberOrNoneTypes
+        Logging level with which all stderr output is logged. Defaults to
+        :attr:`LogLevel.ERROR`.
     popen_kwargs : optional[MappingType]
         Dictionary of all keyword arguments to pass to the
         :meth:`subprocess.Popen.__init__` method. Defaults to ``None``, in which
@@ -294,7 +315,7 @@ def log_output_or_die(
 
     # Subprocess forked from this process, redirecting both stdout and stderr to
     # consumable pipes in a line-buffered manner.
-    subprocess = Popen(
+    command_subprocess = Popen(
         args=command_words,
         stdout=PIPE,
         stderr=PIPE,
@@ -305,9 +326,11 @@ def log_output_or_die(
     # Threads logging each line of stdout and stderr output by this subprocess
     # with the appropriate logging levels.
     stdout_logger = Thread(
-        target=_log_pipe_lines, args=(subprocess.stdout, LogLevel.INFO))
+        target=_log_pipe_lines,
+        args=(command_subprocess.stdout, stdout_log_level))
     stderr_logger = Thread(
-        target=_log_pipe_lines, args=(subprocess.stderr, LogLevel.ERROR))
+        target=_log_pipe_lines,
+        args=(command_subprocess.stderr, stderr_log_level))
 
     # Run this subprocess in a multi-threaded manner logged by these
     # asynchronous threads, raising an exception on subprocess failure.
@@ -399,8 +422,8 @@ def _init_popen_kwargs(
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
     popen_kwargs : optional[MappingType]
-        Dictionary of all keyword arguments to be sanitized. Defaults to
-        ``None``, in which case the empty dictionary is assumed.
+        Dictionary of all keyword arguments to be sanitized if any *or* ``None``
+        otherwise, in which case the empty dictionary is defaulted to.
     '''
 
     # Avoid circular import dependencies.
@@ -413,7 +436,7 @@ def _init_popen_kwargs(
         raise BetseCommandException('Non-empty command expected.')
 
     # If these keyword arguments are empty, default to the empty dictionary.
-    if not popen_kwargs:
+    if popen_kwargs is None:
         popen_kwargs = {}
 
     # If the first shell word is this list is unrunnable, raise an exception.

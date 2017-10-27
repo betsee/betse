@@ -10,6 +10,7 @@ all changes to this application) facilities.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseGitException
+from betse.util.io.log.logenum import LogLevel
 from betse.util.type.types import type_check
 
 # ....................{ EXCEPTIONS                         }....................
@@ -151,5 +152,33 @@ def clone_worktree_shallow(
         src_dir_uri, trg_dirname,
     )
 
-    # Shallowly clone this source to target directory.
+    # Shallowly clone this source to target directory. Contrary to expectation,
+    # "git" redirects non-error or -warning output resembling the following to
+    # stderr rather than stdout:
+    #
+    #    Cloning into '/tmp/pytest-of-leycec/pytest-26/cli_sim_backward_compatibility0/betse_old'...
+    #    Note: checking out 'd7d6bf6d61ff2b467f9983bc6395a8ba9d0f234e'.
+    #
+    #    You are in 'detached HEAD' state. You can look around, make experimental
+    #    changes and commit them, and you can discard any commits you make in this
+    #    state without impacting any branches by performing another checkout.
+    #
+    #    If you want to create a new branch to retain commits you create, you may
+    #    do so (now or later) by using -b with the checkout command again. Example:
+    #
+    #      git checkout -b <new-branch-name>
+    #
+    # This is distasteful. Clearly, this output should *NOT* be logged as either
+    # an error or warning. Instead, both stdout and stderr output would ideally
+    # be logged as informational messages. Unfortunately, the following call
+    # appears to erroneously squelch rather than redirect most stderr output:
+    #
+    #    cmdrun.log_output_or_die(
+    #        command_words=git_command,
+    #        stdout_log_level=LogLevel.INFO,
+    #        stderr_log_level=LogLevel.ERROR,
+    #    )
+    #
+    # Frankly, we have no idea what is happening here -- and it doesn't
+    # particularly matter. The current approach, while non-ideal, suffices.
     cmdrun.run_or_die(command_words=git_command)

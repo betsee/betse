@@ -18,7 +18,7 @@ from py._path.local import LocalPath
 # ....................{ FIXTURES                           }....................
 # Test-scope fixture creating and returning a new object for each discrete test.
 @fixture
-def betse_sim_config(betse_temp_dir: LocalPath) -> SimConfTestInternal:
+def betse_sim_conf(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     '''
     Per-test fixture creating a temporary default simulation configuration file
     and returning an object encapsulating the contents of this file.
@@ -112,8 +112,8 @@ def betse_sim_conf_backward_compatibility(
 
     # Defer heavyweight imports.
     from betse import metadata, pathtree
-    from betse.exceptions import BetseGitException
     from betse.util.io.log import logs
+    from betse.util.os.shell import shelldir
     from betse.util.path import gits
     from betse.util.path.command import cmdrun
     from betse.util.py import pys
@@ -122,17 +122,10 @@ def betse_sim_conf_backward_compatibility(
     # Log a single-line terminal banner identifying the initial fixture phase.
     logs.log_banner(title='PHASE 1: shallow git clone', padding='*')
 
-    # Absolute pathname of this application's Git-based working tree if this
-    # application was installed in a developer manner or "None" otherwise.
+    # Absolute pathname of this application's Git-based working tree. Since this
+    # test suite should only every be run from within a working tree, this
+    # retrieval should *ALWAYS* succeed.
     git_worktree_dirname = pathtree.get_git_worktree_dirname_or_none()
-
-    #FIXME: Perhaps shift this logic into a new
-    #pathtree.get_git_worktree_dirname() getter.
-    if git_worktree_dirname is None:
-        raise BetseGitException(
-            'Git working tree not found '
-            '(i.e., directory "{}/../.git" not found).'.format(
-                pathtree.get_package_dirname()))
 
     # Absolute path of a temporary non-existing directory isolated to this test
     # to clone the older version of this application into.
@@ -168,17 +161,15 @@ def betse_sim_conf_backward_compatibility(
     # old simulation configuration.
     export_sim_conf_old_command = py_command_line_prefix + [
         'setup.py', 'test',
-        '-k', 'test_sim_export',
+        '-k', 'test_cli_sim_export',
         '--export-sim-conf-dir', sim_conf_old_dirname,
     ]
 
-    # Export this old simulation configuration.
-    cmdrun.run_or_die(
-        command_words=export_sim_conf_old_command,
-        popen_kwargs={
-            'cwd': betse_old_dirname,
-        },
-    )
+
+    # Temporary change to the directory containing this "setup.py" script.
+    with shelldir.setting_cwd(betse_old_dirname):
+        # Export this old simulation configuration with this script.
+        cmdrun.run_or_die(command_words=export_sim_conf_old_command)
 
     # Test-specific object encapsulating this simulation configuration file.
     sim_state = SimConfTestExternal(conf_filename=sim_conf_old_filename)

@@ -20,7 +20,8 @@ from betse_test.util.testabc import SerialTestABC
 # ....................{ IMPORTS ~ fixture                  }....................
 from betse_test.fixture.igniter import betse_init
 from betse_test.fixture.tempdirer import betse_temp_dir
-from betse_test.fixture.simconf.simconfer import betse_sim_config
+from betse_test.fixture.simconf.simconfer import (
+    betse_sim_conf, betse_sim_conf_backward_compatibility)
 
 # ....................{ HOOKS ~ plugin                     }....................
 def pytest_configure(config):

@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Fixture classes encapsulating test-related simulation configurations
+Fixture classes encapsulating test-related simulation configurations.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -57,7 +57,7 @@ class SimConfTestABC(object, metaclass=ABCMeta):
         # Defer heavyweight imports.
         from betse.util.path import pathnames
 
-        # Classify all passed parameters.
+        # Classify all passed parameters publicly, permitting access by tests.
         self.conf_filename = conf_filename
         self.conf_dirname = pathnames.get_dirname(self.conf_filename)
 

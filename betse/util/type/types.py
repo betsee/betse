@@ -447,6 +447,13 @@ Tuple of the type of all types *and* of the singleton ``None`` object.
 '''
 
 
+EnumMemberOrNoneTypes = (EnumMemberType, NoneType)
+'''
+Tuple of the type of all enumeration members *and* of the singleton ``None``
+object.
+'''
+
+
 IntOrNoneTypes = (int, NoneType)
 '''
 Tuple of both the integer type *and* the type of the singleton ``None`` object.
@@ -1175,25 +1182,6 @@ def is_sequence_nonstr_nonempty(obj: object) -> bool:
     '''
     return is_sequence_nonstr(obj) and len(obj)
 
-# ....................{ TESTERS ~ enum                     }....................
-def is_enum(obj: object) -> bool:
-    '''
-    ``True`` only if the passed object is an enumeration.
-    '''
-    return isinstance(obj, EnumMeta)
-
-
-def is_in_enum(obj: object, enum: Enum) -> bool:
-    '''
-    ``True`` only if the passed object is in the passed enumeration.
-
-    While trivial, this tester is provided for orthogonality with the
-    `assert_not_in_enum()` function.
-    '''
-
-    assert is_enum(enum), assert_not_enum(enum)
-    return obj in enum
-
 # ....................{ TESTERS ~ error                    }....................
 def is_exception(obj: object) -> bool:
     '''
@@ -1516,20 +1504,6 @@ def assert_not_sequence_nonstr_nonempty(obj: object, label: str) -> str:
     '''
     return assert_not_sequence_nonstr(obj) if not is_sequence_nonstr(
         obj) else '{} empty.'.format(label.capitalize())
-
-# ....................{ ASSERTERS ~ enum                   }....................
-def assert_not_enum(obj: object) -> str:
-    '''
-    String asserting the passed object to _not_ be an enumeration.
-    '''
-    return '"{}" not an enumeration "{}".'.format(trim(obj))
-
-
-def assert_not_in_enum(obj: object, enum: Enum) -> str:
-    '''
-    String asserting the passed object to _not_ be in the passed enumeration.
-    '''
-    return '"{}" not in the enumeration "{}".'.format(trim(obj), trim(enum))
 
 # ....................{ ASSERTERS ~ error                  }....................
 def assert_not_exception(obj: object) -> str:

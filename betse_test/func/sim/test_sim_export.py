@@ -6,7 +6,7 @@
 '''
 CLI-specific functional tests exporting simulation configurations to external
 directories, typically as a subprocess of a larger functional test (e.g., to
-validate backwards compatibility).
+validate application backward compatibility).
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -45,14 +45,14 @@ command-line option specific to this test suite was *not* passed to the
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 @skip_unless_export_sim_conf_dir
-def test_sim_export(
+def test_cli_sim_export(
     betse_cli_sim: 'CLISimTester',
     request: '_pytest.python.FixtureRequest',
 ) -> None:
     '''
-    Export the simulation configuration directory produced by running all BETSE
-    subcommands exporting pickled objects (i.e., ``seed``, ``init``, and
-    ``sim``) to the ``test_sim_export`` subdirectory of the
+    Functional test exporting the simulation configuration directory produced by
+    running all BETSE subcommands exporting pickled objects (i.e., ``seed``,
+    ``init``, and ``sim``) to the ``test_sim_export`` subdirectory of the
     ``--export-sim-conf-dir`` command-line option passed to the ``py.test``
     command.
 
@@ -62,7 +62,7 @@ def test_sim_export(
 
     .. code:: bash
 
-        $ ./test -k test_sim_export --export-sim-conf-dir=~/some/where
+        $ ./test -k test_cli_sim_export --export-sim-conf-dir=~/some/where
 
     Parameters
     ----------

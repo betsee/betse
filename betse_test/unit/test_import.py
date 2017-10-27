@@ -24,7 +24,7 @@ from betse_test.util.mark.fail import xfail
 #the "subprocess" module), suggesting we could also examine that as a fallback.
 
 # @skip_unless_plugin_xdist
-@xfail('Test isolation unsupported.')
+@xfail(reason='Test isolation unsupported.')
 def test_import_logs() -> None:
     '''
     Test the importability of BETSE's logging API.

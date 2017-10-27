@@ -113,6 +113,11 @@ def get_dot_dirname() -> str:
 
     .. _XDG Base Directory Specification:
         http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
+
+    Raises
+    ----------
+    BetseDirException
+        If this directory does *not* exist.
     '''
 
     # Avoid circular import dependencies.
@@ -158,6 +163,11 @@ def get_data_dirname() -> str:
 
     This directory contains application-internal resources (e.g., media files)
     required at application runtime.
+
+    Raises
+    ----------
+    BetseDirException
+        If this directory does *not* exist.
     '''
 
     # Avoid circular import dependencies.
@@ -185,6 +195,11 @@ def get_data_yaml_dirname() -> str:
 
     * The YAML-formatted plaintext file specifying a simulation configuration.
     * All assets referenced in and hence required by this file.
+
+    Raises
+    ----------
+    BetseDirException
+        If this directory does *not* exist.
     '''
 
     # Avoid circular import dependencies.
@@ -197,10 +212,17 @@ def get_data_yaml_dirname() -> str:
 @callable_cached
 def get_package_dirname() -> str:
     '''
-    Absolute pathname of this application's top-level package directory,
-    typically residing in the ``site-packages`` subdirectory of the system-wide
-    stdlib for the active Python interpreter (e.g.,
+    Absolute pathname of this application's top-level package directory if found
+    *or* raise an exception otherwise (i.e., if this directory is *not* found).
+
+    This directory typically resides in the ``site-packages`` subdirectory of
+    the system-wide standard lib for the active Python interpreter (e.g.,
     ``/usr/lib64/python3.6/site-packages/betse``).
+
+    Raises
+    ----------
+    BetseDirException
+        If this directory does *not* exist.
     '''
 
     # Avoid circular import dependencies.
@@ -208,14 +230,43 @@ def get_package_dirname() -> str:
     from betse.util.path import dirs
     from betse.util.type import modules
 
-    # Absolute path of the directory providing the top-level "betse" package.
+    # Absolute pathname of the directory yielding the top-level "betse" package.
     package_dirname = modules.get_dirname(betse)
 
     # If this directory is not found, fail.
     dirs.die_unless_dir(package_dirname)
 
-    # Return this directory's path.
+    # Return this directory's pathname.
     return package_dirname
+
+# ....................{ GETTERS ~ dir : git                }....................
+@callable_cached
+def get_git_worktree_dirname() -> str:
+    '''
+    Absolute pathname of this application's Git-based **working tree** (i.e.,
+    top-level directory containing this application's ``.git`` subdirectory and
+    ``setup.py`` install script) if this application was installed in a
+    developer manner *or* raise an exception otherwise (i.e., if this directory
+    is *not* found).
+
+    Raises
+    ----------
+    BetseDirException
+        If this directory does *not* exist.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs
+
+    # Absolute pathname of this application's Git-based working tree if this
+    # application was installed in a developer manner or "None" otherwise.
+    git_worktree_dirname = get_git_worktree_dirname_or_none()
+
+    # If this directory is not found, fail.
+    dirs.die_unless_dir(git_worktree_dirname)
+
+    # Return this directory's pathname.
+    return git_worktree_dirname
 
 
 @callable_cached
@@ -299,6 +350,11 @@ def get_sim_config_default_filename() -> str:
 
     This is the plaintext YAML-formatted file from which all new simulation
     configurations derive.
+
+    Raises
+    ----------
+    BetseFileException
+        If this file does *not* exist.
     '''
 
     # Avoid circular import dependencies.

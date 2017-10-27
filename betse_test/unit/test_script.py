@@ -10,7 +10,7 @@ Unit tests for BETSE's scripting API.
 #FIXME: Provide additional tests actually exercising scripting-specific
 #functionality exposed by this API (e.g., the betse.script.api.seed() function).
 #Doing so requires the customary creation of a test simulation configuration,
-#available via the general-purpose "betse_sim_config" fixture.
+#available via the general-purpose "betse_sim_conf" fixture.
 
 # ....................{ IMPORTS                            }....................
 
