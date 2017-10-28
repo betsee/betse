@@ -161,13 +161,13 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 # For further details, see http://semver.org.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-VERSION = '0.5.2'
+VERSION = '0.5.3'
 '''
 Human-readable application version as a ``.``-delimited string.
 '''
 
 
-CODENAME = 'Happiest Hodgkin'
+CODENAME = 'Happily Hodgkin'
 '''
 Human-readable code name associated with the current version of this
 application.
@@ -189,8 +189,7 @@ Machine-readable application version as a tuple of integers.
 '''
 
 # ....................{ METADATA ~ tag                     }....................
-GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.5.1'
-# GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.5.2'
+GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.5.2'
 '''
 Oldest Git tag for which this application guarantees backward compatibility.
 

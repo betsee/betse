@@ -57,8 +57,7 @@ def test_cli_sim_backward_compatibility(
 
     # Test all simulation-specific plotting subcommands with this configuration.
     betse_cli_sim_backward_compatibility.run_subcommands(
-        ('plot', 'seed',),)
-        # ('plot', 'seed',), ('plot', 'init',), ('plot', 'sim',),)
+        ('plot', 'seed',), ('plot', 'init',), ('plot', 'sim',),)
 
 
 def test_cli_sim_noecm(betse_cli_sim: 'CLISimTester') -> None:

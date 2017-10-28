@@ -30,7 +30,7 @@ See Also
 # ....................{ DECORATORS                         }....................
 skip_unless_export_sim_conf_dir = skip_if(
     EXPORT_SIM_CONF_DIRNAME is None,
-    reason='CLI option "--export-sim-conf-dir" not passed')
+    reason='CLI option "--export-sim-conf-dir" unpassed.')
 '''
 Decorator skipping the decorated test if the ``--export-sim-conf-dir``
 command-line option specific to this test suite was *not* passed to the
