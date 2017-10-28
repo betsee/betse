@@ -46,8 +46,8 @@ command-line option specific to this test suite was *not* passed to the
 
 @skip_unless_export_sim_conf_dir
 def test_cli_sim_export(
-    betse_cli_sim: 'CLISimTester',
     request: '_pytest.python.FixtureRequest',
+    betse_cli_sim: 'CLISimTester',
 ) -> None:
     '''
     Functional test exporting the simulation configuration directory produced by
@@ -66,10 +66,10 @@ def test_cli_sim_export(
 
     Parameters
     ----------
-    betse_cli_sim : CLISimTester
-        Object running BETSE CLI simulation subcommands.
     request : _pytest.python.FixtureRequest
         Builtin fixture describing this test.
+    betse_cli_sim : CLISimTester
+        Object running BETSE CLI simulation subcommands.
     '''
 
     # Defer heavyweight imports.
@@ -98,8 +98,7 @@ def test_cli_sim_export(
 
     # Test all subcommands exporting pickled objects. Note that plotting
     # subcommands export no such objects and hence are intentionally omitted.
-    betse_cli_sim.run_subcommands(('seed',))
-    # betse_cli_sim.run_subcommands(('seed',), ('init',), ('sim',))
+    betse_cli_sim.run_subcommands(('seed',), ('init',), ('sim',))
 
     # Export (i.e., recursively copy) this source to target directory.
     dirs.copy(

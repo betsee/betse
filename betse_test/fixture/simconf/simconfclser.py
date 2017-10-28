@@ -82,7 +82,7 @@ class SimConfTestABC(object, metaclass=ABCMeta):
         from betse.util.os.shell import shelldir
 
         # Defer to the generator returned by the following utility function.
-        return shelldir.setting_cwd(self.config.dirname)
+        return shelldir.setting_cwd(self.conf_dirname)
 
     # ..................{ SUBCLASS                           }..................
     # Subclasses are required to define the following read-only properties.

@@ -118,9 +118,15 @@ def betse_sim_conf_backward_compatibility(
     from betse.util.path.command import cmdrun
     from betse.util.py import pys
 
+    # Character uniquely padding all banners logged below.
+    BANNER_PADDING = '*'
+
+    # Absolute path of the top-level temporary directory isolated to this test.
+    betse_temp_dirname = str(betse_temp_dir)
+
     # ..................{ PHASE                              }..................
     # Log a single-line terminal banner identifying the initial fixture phase.
-    logs.log_banner(title='PHASE 1: shallow git clone', padding='*')
+    logs.log_banner(title='PHASE 1: shallow git clone', padding=BANNER_PADDING)
 
     # Absolute pathname of this application's Git-based working tree. Since this
     # test suite should only every be run from within a working tree, this
@@ -132,15 +138,6 @@ def betse_sim_conf_backward_compatibility(
     betse_old_dirpath = betse_temp_dir.join('betse_old')
     betse_old_dirname = str(betse_old_dirpath)
 
-    # Absolute path of a temporary non-existing directory isolated to this test
-    # to export a simulation configuration for this older version into.
-    sim_conf_old_dirpath = betse_temp_dir.join('sim_conf_old')
-    sim_conf_old_dirname = str(sim_conf_old_dirpath)
-
-    # Absolute pathname of this simulation configuration file.
-    sim_conf_old_filepath = sim_conf_old_dirpath.join('sim_config.yaml')
-    sim_conf_old_filename = str(sim_conf_old_filepath)
-
     # Shallowly clone from the tag referring to the older version of this
     # application in this Git working tree into this temporary directory.
     gits.clone_worktree_shallow(
@@ -151,7 +148,17 @@ def betse_sim_conf_backward_compatibility(
 
     # ..................{ PHASE                              }..................
     # Log a single-line terminal banner identifying the next fixture phase.
-    logs.log_banner(title='PHASE 2: sim config export', padding='*')
+    logs.log_banner(title='PHASE 2: sim config export', padding=BANNER_PADDING)
+
+    # Name of the functional test exporting an obsolete simulation configuration
+    # from this older version.
+    test_cli_sim_export_name = 'test_cli_sim_export'
+
+    # Absolute path of the simulation configuration file exported by this test
+    # into a temporary directory isolated to the current test.
+    sim_conf_old_filepath = betse_temp_dir.join(
+        test_cli_sim_export_name, 'sim_config.yaml')
+    sim_conf_old_filename = str(sim_conf_old_filepath)
 
     # List of one or more shell words unambiguously running the executable
     # specific to the active Python interpreter and machine architecture.
@@ -161,10 +168,9 @@ def betse_sim_conf_backward_compatibility(
     # old simulation configuration.
     export_sim_conf_old_command = py_command_line_prefix + [
         'setup.py', 'test',
-        '-k', 'test_cli_sim_export',
-        '--export-sim-conf-dir', sim_conf_old_dirname,
+        '-k', test_cli_sim_export_name,
+        '--export-sim-conf-dir', betse_temp_dirname,
     ]
-
 
     # Temporary change to the directory containing this "setup.py" script.
     with shelldir.setting_cwd(betse_old_dirname):
@@ -176,7 +182,7 @@ def betse_sim_conf_backward_compatibility(
 
     # ..................{ PHASE                              }..................
     # Log a single-line terminal banner identifying the final fixture phase.
-    logs.log_banner(title='PHASE 3: sim config test', padding='*')
+    logs.log_banner(title='PHASE 3: sim config test', padding=BANNER_PADDING)
 
     # Return this object.
     return sim_state

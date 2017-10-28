@@ -190,6 +190,7 @@ Machine-readable application version as a tuple of integers.
 
 # ....................{ METADATA ~ tag                     }....................
 GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.5.1'
+# GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.5.2'
 '''
 Oldest Git tag for which this application guarantees backward compatibility.
 
