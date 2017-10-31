@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-YAML-formatted simulation configuration file functionality.
+Simulation configuration file input and output (I/O) facilities.
 '''
 
 #FIXME: Validate the versions of loaded configuration files.

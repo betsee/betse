@@ -8,17 +8,15 @@ from betse import pathtree
 from betse.exceptions import BetseSimConfigException, BetseSimPhaseException
 from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
-from betse.lib.yaml.yamlabc import YamlFileABC
+from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.config.confenum import (
     CellLatticeType, IonProfileType)
 from betse.science.config.event import eventcut
 from betse.science.config.event import eventvoltage
-from betse.science.config.export.confanim import SimConfAnimAll
-from betse.science.config.export.confplot import SimConfPlotAll
 from betse.science.simulate.simphase import SimPhaseKind
 from betse.science.tissue import tissuecls
 from betse.science.tissue.tissuepick import TissuePickerBitmap
-from betse.util.io.log import logs
+# from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 # from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
@@ -308,17 +306,21 @@ class Parameters(YamlFileABC):
         "['internal parameters']['cell polarizability']", float)
 
     # ..................{ READERS                            }..................
-    #FIXME: Convert all or most of the variables parsed in the read() method
-    #below into aliases of the above form. Brainy rainbows!
+    #FIXME: Convert all or most of the variables parsed by this method into
+    #aliases of the above form. Brainy rainbows!
     @type_check
     def load(self, *args, **kwargs) -> None:
+
+        # Avoid circular import dependencies.
+        from betse.science.config import confcompat
 
         # Defer to the superclass implementation.
         super().load(*args, **kwargs)
 
         # Preserve backward compatibility with prior configuration formats
-        # *BEFORE* any handling assuming the current configuration format.
-        self._init_backward_compatibility()
+        # *BEFORE* other initialization, which expects the passed YAML file to
+        # conform to the current configuration format.
+        confcompat.upgrade_sim_conf(self)
 
         # Initialize paths specified by this configuration.
         self._init_paths()
@@ -831,6 +833,11 @@ class Parameters(YamlFileABC):
         # ................{ EXPORTS                            }................
         ro = self._conf['results options']
 
+        # Avoid circular import dependencies.
+        from betse.science.config.export.confanim import SimConfAnimAll
+        from betse.science.config.export.confplot import SimConfPlotAll
+
+        # ................{ EXPORTS ~ anim                     }................
         # Animation subconfiguration.
         self.anim = SimConfAnimAll(conf=self._conf)
 
@@ -841,7 +848,7 @@ class Parameters(YamlFileABC):
         # use the GHK equation to calculate alt Vmem from params?
         self.GHK_calc = self._conf['variable settings']['use Goldman calculator']
 
-        # ................{ PLOTS                              }................
+        # ................{ EXPORTS ~ plot                     }................
         # Plot subconfiguration.
         self.plot = SimConfPlotAll(conf=self._conf)
 
@@ -1239,208 +1246,6 @@ class Parameters(YamlFileABC):
         else:
             raise BetseSimConfigException(
                 'Ion profile type "{}" unrecognized.'.format(self.ion_profile))
-
-    # ..................{ INIT ~ backward                    }..................
-    #FIXME: Relocate into a new "betse.science.config.confcompat" submodule.
-    def _init_backward_compatibility(self) -> None:
-        '''
-        Attempt to preserve backward compatibility with prior configuration
-        file formats, converting all obsolete key-value pairs of this
-        configuration into their modern equivalents.
-        '''
-
-        #FIXME: Excise this hack *AFTER* refactoring the codebase to use the
-        #preferable "self._config" attribute defined above. Since the
-        #yaml_alias() data descriptor expects that private attribute rather
-        #than this public attribute, this public attribute is unhelpful now.
-        self.config = self._conf
-
-        # For convenience, localize configuration subdictionaries.
-        general_dict = self._conf['general options']
-        results_dict = self._conf['results options']
-        world_dict = self._conf['world options']
-
-        # For backward compatibility, convert the prior into the current
-        # configuration format.
-        if not (
-            'while solving' in results_dict and
-            'after solving' in results_dict and
-            'save' in results_dict
-        ):
-            # Log a non-fatal warning.
-            logs.log_warning(
-                'Config file results options '
-                '"while solving", "after solving", and/or "save" not found. '
-                'Repairing to preserve backward compatibility. '
-                'Consider upgrading to the newest config file format!',
-            )
-
-            # For convenience, localize configuration subdictionaries.
-            anim_save = results_dict['save animations']
-            anim_save_frames = anim_save['frames']
-
-            # Convert the prior into the current configuration format.
-            results_dict['while solving'] = {
-                'animations': {
-                    'enabled': (
-                               results_dict['plot while solving'] or
-                               results_dict['save solving plot']
-                    ),
-                    'show':    results_dict['plot while solving'],
-                    'save':    results_dict['save solving plot'],
-                },
-            }
-            results_dict['after solving'] = {
-                'plots': {
-                    'enabled': (
-                               results_dict['display plots'] or
-                               results_dict['automatically save plots']
-                    ),
-                    'show':    results_dict['display plots'],
-                    'save':    results_dict['automatically save plots'],
-                },
-                'animations': {
-                    'enabled': results_dict['create all animations'],
-                    'show':    results_dict['display plots'],
-                    'save':    anim_save_frames['enabled'],
-                },
-            }
-            results_dict['save'] = {
-                'plots': {
-                    'filetype': anim_save_frames['filetype'],
-                    'dpi':      anim_save_frames['dpi'],
-                },
-                'animations': {
-                    'images': {
-                        'enabled':  anim_save_frames['enabled'],
-                        'filetype': anim_save_frames['filetype'],
-                        'dpi':      anim_save_frames['dpi'],
-                    },
-                    'video': {
-                        'enabled':  False,
-                        'filetype': 'mkv',
-                        'dpi': 300,
-                        'bitrate': 1500,
-                        'framerate': 5,
-                        'metadata': {
-                            'artist':  'BETSE',
-                            'genre':   'Bioinformatics',
-                            'subject': 'Bioinformatics',
-                            'comment': 'Produced by BETSE.',
-                        },
-                        'writers': [
-                            'ffmpeg', 'avconv', 'mencoder', 'imagemagick'],
-                        'codecs': ['auto'],
-                    },
-                },
-                'data': {
-                    'all': {
-                        'enabled': results_dict['export data to file'],
-                        'filetype': 'csv',
-                    },
-                    'vmem': {
-                        'enabled': results_dict['export 2D data to file'],
-                        'filetype': 'csv',
-                    },
-                }
-            }
-
-        after_solving_anims = results_dict['after solving']['animations']
-        after_solving_plots = results_dict['after solving']['plots']
-
-        if 'pipeline' not in after_solving_anims:
-            # Log a non-fatal warning.
-            logs.log_warning(
-                'Config file setting "results options" -> "after solving" -> '
-                '"animations" -> "pipeline" not found. '
-                'Repairing to preserve backward compatibility. '
-                'Consider upgrading to the newest config file format!',
-            )
-
-            # Default the value for this dictionary key to the empty list.
-            after_solving_anims['pipeline'] = []
-
-        while_solving_anims = results_dict['while solving']['animations']
-
-        if 'colorbar' not in while_solving_anims:
-            # Log a non-fatal warning.
-            logs.log_warning(
-                'Config file setting "results options" -> "while solving" -> '
-                '"animations" -> "colorbar" not found. '
-                'Repairing to preserve backward compatibility. '
-                'Consider upgrading to the newest config file format!',
-            )
-
-            # Default the value for this dictionary key to the typical settings.
-            while_solving_anims['colorbar'] = {
-                'autoscale': True,
-                'minimum': -70.0,
-                'maximum':  10.0,
-            }
-
-        if 'single cell pipeline' not in after_solving_plots:
-            # Log a non-fatal warning.
-            if 'single cell' not in after_solving_plots:
-                logs.log_warning(
-                    'Config file setting "results options" -> "after solving" -> '
-                    '"plots" -> "single cell pipeline" not found. '
-                    'Repairing to preserve backward compatibility. '
-                    'Consider upgrading to the newest config file format!',
-                )
-
-            # Default the value for this dictionary key to the empty list.
-            after_solving_plots['single cell pipeline'] = (
-                after_solving_plots['single cell']['pipeline']
-                if 'single cell' in after_solving_plots else [])
-
-        if 'cell cluster pipeline' not in after_solving_plots:
-            # Log a non-fatal warning.
-            if 'cell cluster' not in after_solving_plots:
-                logs.log_warning(
-                    'Config file setting "results options" -> "after solving" -> '
-                    '"plots" -> "cell cluster pipeline" not found. '
-                    'Repairing to preserve backward compatibility. '
-                    'Consider upgrading to the newest config file format!',
-                )
-
-            after_solving_plots['cell cluster pipeline'] = (
-                after_solving_plots['cell cluster']['pipeline']
-                if 'cell cluster' in after_solving_plots else [])
-
-        if 'plot networks single cell' not in results_dict:
-            # Log a non-fatal warning.
-            logs.log_warning(
-                'Config file setting "results options" -> '
-                '"plot networks single cell" not found. '
-                'Repairing to preserve backward compatibility. '
-                'Consider upgrading to the newest config file format!',
-            )
-
-            # Default the value for this dictionary key to the empty list.
-            results_dict['plot networks single cell'] = results_dict[
-                'plot single cell graphs']
-
-        # Support newly introduced networks plotting.
-        if 'plot networks' not in results_dict:
-            results_dict['plot networks'] = False
-        if 'network colormap' not in results_dict:
-            results_dict['network colormap'] = 'coolwarm'
-
-        # Patch old- to new-style cell lattice types.
-        if world_dict['lattice type'] == 'hex':
-            world_dict['lattice type'] = 'hexagonal'
-        elif world_dict['lattice type'] == 'rect':
-            world_dict['lattice type'] = 'square'
-
-        # Patch old- to new-style ion profile types.
-        if general_dict['ion profile'] == 'basic_Ca':
-            general_dict['ion profile'] = 'basic_ca'
-        elif general_dict['ion profile'] == 'animal':
-            general_dict['ion profile'] = 'mammal'
-        elif general_dict['ion profile'] == 'xenopus':
-            general_dict['ion profile'] = 'amphibian'
-        elif general_dict['ion profile'] == 'customized':
-            general_dict['ion profile'] = 'custom'
 
     # ..................{ INITIALIZERS ~ path                }..................
     def _init_paths(self) -> None:

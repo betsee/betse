@@ -8,14 +8,11 @@ YAML-backed simulation visual subconfigurations.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractproperty
-
 from betse.lib.yaml.yamlalias import yaml_alias
-from betse.lib.yaml.yamlabc import (
-    YamlABC)
+from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import YamlListItemABC, YamlListItemTypedABC
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes
-
 
 # ....................{ SUPERCLASSES                       }....................
 #FIXME: Non-ideal. Ideally, all networks subconfigurations should be refactored

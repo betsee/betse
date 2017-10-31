@@ -9,14 +9,8 @@ well as functionality pertaining to such classes.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
-
 from betse.exceptions import BetseYamlException
 from betse.lib.yaml import yamls
-# FIXME: Ideally, submodules in the "betse.lib" subpackage should *NOT* import
-# from submodules in the "betse.science" subpackage. To enforce this, the
-# "SimPipeRunnerConfMixin" base class may need to be generalized into a generic
-# mixin independent of simulations and then shifted into a new utility submodule
-# (e.g., "betse.util.multi.piperun").
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from betse.util.type.iterators import empty_iterator
@@ -26,7 +20,6 @@ from betse.util.type.types import (
     MappingType,
     StrOrNoneTypes,
 )
-
 
 # ....................{ SUPERCLASSES                       }....................
 class YamlABC(object, metaclass=ABCMeta):
@@ -111,7 +104,7 @@ class YamlFileABC(YamlABC):
     @classmethod
     @type_check
     def make(cls, conf_filename: str) -> (
-        'betse.lib.yaml.yamlabc.YamlFileABC'):
+        'betse.lib.yaml.abc.yamlabc.YamlFileABC'):
         '''
         Create return an instance of this subclass deserialized (i.e., read)
         from the passed YAML-formatted configuration file.

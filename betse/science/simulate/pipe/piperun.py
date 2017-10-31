@@ -10,7 +10,6 @@ run by its parent pipeline) functionality.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractproperty
-
 from betse.exceptions import BetseSimPipeException
 from betse.science.simulate.pipe.piperunreq import SimPipeRunnerRequirement
 from betse.util.type.cls.decorators import MethodDecorator
@@ -18,7 +17,6 @@ from betse.util.type.obj import objects
 from betse.util.type.text import strs
 from betse.util.type.types import (
     type_check, CallableTypes, SequenceTypes, SetOrNoneTypes, )
-
 
 # ....................{ DECORATORS                         }....................
 @type_check
@@ -251,7 +249,7 @@ class SimPipeRunnerConfMixin(object, metaclass=ABCMeta):
 
     See Also
     ----------
-    :class:`betse.lib.yaml.yamlabc.YamlListItemABC`
+    :class:`betse.lib.yaml.abc.yamllistabc.YamlListItemABC`
         Class subclassing this base class via multiple inheritance.
     '''
 

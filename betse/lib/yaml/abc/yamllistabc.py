@@ -9,8 +9,8 @@ encapsulating on-disk lists and list items.
 
 # ....................{ IMPORTS                            }....................
 from abc import abstractmethod
-from betse.lib.yaml.yamlabc import YamlABC
 from betse.lib.yaml.yamlalias import yaml_alias
+from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.science.simulate.pipe.piperun import SimPipeRunnerConfMixin
 from betse.util.type.cls import classes
 from betse.util.type.obj import objects
@@ -47,7 +47,7 @@ class YamlListItemABC(SimPipeRunnerConfMixin, YamlABC):
 
         This method is principally intended to be called by the
         :meth:`YamlList.append_default` method, appending this instance to an
-        existing list of such instances.
+        existing list of these instances.
         '''
 
         pass
@@ -56,8 +56,8 @@ class YamlListItemABC(SimPipeRunnerConfMixin, YamlABC):
 class YamlListItemTypedABC(YamlListItemABC):
     '''
     Abstract base class of all simulation typed list item subconfigurations,
-    each backed by a YAML list item whose dictionary keys define the type of
-    this item and intended to be added to a :class:`YamlList` container.
+    each backed by a YAML list item whose dictionary keys define the type and
+    name of this item and intended to be added to a :class:`YamlList` container.
 
     Attributes
     ----------
@@ -106,7 +106,7 @@ class YamlList(MutableSequence):
 
         Attributes
         ----------
-        confs : MappingType
+        confs : SequenceOrNoneTypes
             List of all dictionaries of related configuration settings both
             loaded from and savable back to the current YAML-formatted
             simulation configuration file *or* ``None`` if the key defining this
@@ -121,7 +121,7 @@ class YamlList(MutableSequence):
             objects.
         '''
 
-        # Raise an exception unless the passed type implements the listable API.
+        # Raise an exception unless the passed type implements the expected API.
         classes.die_unless_subclass(
             subclass=conf_type, superclass=YamlListItemABC)
 

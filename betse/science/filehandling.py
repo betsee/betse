@@ -7,13 +7,14 @@ High-level pickling facilities for saving and loading cell cluster and
 simulation objects.
 '''
 
-#FIXME: For clarity, rename this module to "simpickler.py".
+#FIXME: For clarity:
+#
+#* Shift this module into the "betse.science.simulate" subpackage.
+#* Rename this module to "simpickler.py".
 
 # ....................{ IMPORTS                            }....................
-import sys
-
-import betse.lib.yaml.abc.yamllistabc
 from betse.lib.pickle import pickles
+from betse.science.simulate import simcompat
 from betse.util.type.types import type_check
 from collections.abc import Sequence
 
@@ -77,7 +78,7 @@ def loadSim(loadPath) -> tuple:
     '''
 
     # Preserve backward importability with obsolete pickled objects.
-    _preserve_backward_importability()
+    simcompat.upgrade_sim_imports()
 
     # Unpickle these objects *AFTER* preserving backward importability.
     sim, cells, p = pickles.load(loadPath)
@@ -106,7 +107,7 @@ def loadWorld(loadPath) -> tuple:
     '''
 
     # Preserve backward importability with obsolete pickled objects.
-    _preserve_backward_importability()
+    simcompat.upgrade_sim_imports()
 
     # Unpickle these objects *AFTER* preserving backward importability.
     cells, p = pickles.load(loadPath)
@@ -115,58 +116,3 @@ def loadWorld(loadPath) -> tuple:
 
     # Return these objects.
     return cells, p
-
-# ....................{ LOADERS                            }....................
-def _preserve_backward_importability() -> None:
-    '''
-    Preserve backward compatibility with pickled objects transitively referring
-    to modified modules whose fully-qualified names at the time of pickling now
-    differ from the current names for those these modules, typically due to
-    these modules having since been moved, renamed, or outright removed.
-    '''
-
-    # Import all modules whose fully-qualified names have been modified.
-    from betse.lib.yaml import yamlabc
-    from betse.science import channels
-    from betse.science.math import finitediff
-    from betse.science.simulate import simphase
-    from betse.science.tissue import tissuepick
-    from betse.science.config import export
-    from betse.science.config.export import confanim, confplot, confvis
-    from betse.util.type.mapping import mapcls
-
-    # Alias obsolete module names to current module objects.
-    sys.modules['betse.science.config.confabc'] = yamlabc
-    sys.modules['betse.science.config.export.confvisabc'] = confvis
-    sys.modules['betse.science.config.visual'] = export
-    sys.modules['betse.science.config.visual.confanim'] = confanim
-    sys.modules['betse.science.config.visual.confplot'] = confplot
-    sys.modules['betse.science.config.visual.confvisualabc'] = confvis
-    sys.modules['betse.science.finitediff'] = finitediff
-    sys.modules['betse.science.tissue.channels'] = channels
-    sys.modules['betse.science.tissue.picker'] = tissuepick
-    sys.modules['betse.science.plot.plotconfig'] = confplot
-    sys.modules['betse.science.plot.anim.animconfig'] = confanim
-    sys.modules['betse.science.visual.anim.animconfig'] = confanim
-    sys.modules['betse.science.visual.plot.plotconfig'] = confplot
-    sys.modules['betse.util.type.mappings'] = mapcls
-
-    # Alias obsolete to current class names.
-    yamlabc.SimConfList = betse.lib.yaml.abc.yamllistabc.YamlList
-    confanim.SimConfAnimOne = confvis.SimConfVisualCellsListItem
-    confvis.SimConfVisualABC      = confvis.SimConfVisualCellsABC
-    confvis.SimConfVisualMixin    = confvis.SimConfVisualCellsYAMLMixin
-    confvis.SimConfVisualMolecule = confvis.SimConfVisualCellsNonYAML
-    confvis.SimConfVisualGeneric  = confvis.SimConfVisualCellsEmbedded
-    confvis.SimConfVisualListable = confvis.SimConfVisualCellsListItem
-    confvis.SimConfVisual         = confvis.SimConfVisualCellsListItem
-    confvis.SimConfListableVisual = confvis.SimConfVisualCellsListItem
-    simphase.SimPhaseType = simphase.SimPhaseKind
-    sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
-        confanim.SimConfAnimAll)
-    sys.modules['betse.science.config.visual.confplot'].SimConfPlot = (
-        confplot.SimConfPlotAll)
-    sys.modules['betse.science.visual.anim.animconfig'].AnimConfig = (
-        confanim.SimConfAnimAll)
-    sys.modules['betse.science.visual.plot.plotconfig'].PlotConfig = (
-        confplot.SimConfPlotAll)
