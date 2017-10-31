@@ -439,6 +439,8 @@ class SimRunner(object):
                 sim.conc_J_y = np.zeros(sim.edl)
                 sim.J_env_x = np.zeros(sim.edl)
                 sim.J_env_y = np.zeros(sim.edl)
+                sim.u_env_x = np.zeros(sim.edl)
+                sim.u_env_y = np.zeros(sim.edl)
 
             else:
                 logs.log_warning("Ooops! No such cell cluster file found to load!")

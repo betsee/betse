@@ -1028,14 +1028,7 @@ class TissueHandler(object):
             for v in ecm_targs_mem:
                 ecm_targs.append(v)
 
-            # if running metabolism, make a situation where the cells burst out their ATP:
-            if sim.metabo is not None:
-                # get concentration of ATP in cells to be removed:
-                cell_ATP = sim.metabo.core.cell_concs['ATP'][target_inds_cell]*cells.cell_vol[target_inds_cell]
-                # move this entire concentration to the extracellular spaces (assumed upon cell bursting)
-                sim.metabo.core.env_concs['ATP'][ecm_targs_cell] = cell_ATP/(p.cell_height*cells.delta**2)
-
-            elif sim.molecules is not None and 'ATP' in sim.molecules.core.molecules:
+            if sim.molecules is not None and 'ATP' in sim.molecules.core.molecules:
 
                 # get concentration of ATP in cells to be removed:
                 cell_ATP = sim.molecules.core.cell_concs['ATP'][target_inds_cell] * cells.cell_vol[target_inds_cell]
@@ -1047,7 +1040,7 @@ class TissueHandler(object):
                 # get concentration of ATP in cells to be removed:
                 cell_ATP = sim.grn.core.cell_concs['ATP'][target_inds_cell] * cells.cell_vol[target_inds_cell]
                 # move this entire concentration to the extracellular spaces (assumed upon cell bursting)
-                sim.molecules.core.env_concs['ATP'][ecm_targs_cell] = cell_ATP / (p.cell_height * cells.delta ** 2)
+                sim.grn.core.env_concs['ATP'][ecm_targs_cell] = cell_ATP / (p.cell_height * cells.delta ** 2)
 
             # redo environmental diffusion matrices by
             # setting the environmental spaces around cut world to the free value -- if desired!:

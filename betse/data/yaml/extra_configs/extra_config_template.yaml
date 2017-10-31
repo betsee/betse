@@ -35,6 +35,22 @@ optimization:
   optimization step: 0.5
   target Vmem: -50e-3     # Vmem to use in optimization
 
+# FIXME this isn't wired up yet, but it would be useful to transfer MTs to networks!
+microtubules:
+  use microtubules: False      # compute microtubule dynamics?
+  charge per micrometer: -360   # charge of tubulin molecule in electron charge units per micrometer of length
+  radius: 15.0e-9        # microtubule radius in m
+  tubulin unit dipole: 1750   # Permanent Dipole of tubulin molecule in Debye units
+  tubulin polarizability: 50.0    # tubulin polarizability x10-40 [C m2/ V]
+  tethered tubule: True          # microtubule tethered to centrosome or free-floating?
+  use time dilation: False #144             # Alter the simulation timestep for microtubules, to slow or speed up movement
+  microtubule initial x asymmetry: None # initial asymmetry of microtubules 'x' component
+  microtubule initial y asymmetry: None # initial asymmetry of microtubules 'y' component
+  plot microtubules: True
+  animate microtubules: False
+
+time dilation factor: 144.0 #144     # Factor altering the simulation timestep for certain substances
+
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM BIOMOLECULES
 #-----------------------------------------------------------------------------------------------------------------------
@@ -61,6 +77,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
     ignore ECM: True    # treat extracellular spaces as full grid square volume (True)?
     scale factor: 1.0e-3  # amount to scale molecule concentration by
+    use time dilation: False  # use time dilation factor for transport and growth/decay of this substance?
     growth and decay:    # settings for production/decay of substances (standard GRN model)
       production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
       decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm

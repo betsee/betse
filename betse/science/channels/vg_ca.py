@@ -77,6 +77,8 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the open-probability of the channel:
         P = (dyna.m_Ca ** self._mpower) * (dyna.h_Ca ** self._hpower)
 
+        self.P = P
+
 
         # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
         # which is described by the BETSE electrodiffusion equation (GHK flux equation).
@@ -267,7 +269,7 @@ class Cav1p3(VgCaABC):
         simT = sim.T - 273   # model temperature in degrees C
         self.qt = 2.3**((simT-Texpt)/10)
 
-        V = V + 10
+        # V = V - 10
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
         dyna.m_Ca = 1.0000 / (1 + np.exp((V - -30.000) / -6))
@@ -291,7 +293,7 @@ class Cav1p3(VgCaABC):
         # self._hInf = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
         # self._hTau = 20.0000 + 50.0000 / (1 + np.exp(((V - 10) + 40.000) / 7))
 
-        V = V + 10
+        # V = V - 10
         self._mInf = 1.0000 / (1 + np.exp((V - -30.000) / -6))
         self._mTau = (5.0000 + 20.0000 / (1 + np.exp((V - -25.000) / 5)))
         self._hInf = 1.0000 / (1 + np.exp((V - -80.000) / 6.4))

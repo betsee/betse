@@ -18,6 +18,7 @@ from betse.util.path import pathnames
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.config import confio
 from betse.science.chemistry.netplot import set_net_opts
+from betse.science.organelles.microtubules import Mtubes
 
 
 class MasterOfGenes(object):
@@ -50,6 +51,14 @@ class MasterOfGenes(object):
         # initialize the substances of metabolism in a core field encapsulating
         # Master of Molecules:
         self.core = MasterOfNetworks(sim, cells, substances_config, p)
+
+        # Time dilation:
+        self.core.time_dila = float(self.config_dic.get('time dilation factor', 1.0))
+
+        # read in substance properties from the config file, and initialize basic properties:
+        self.core.read_substances(sim, cells, substances_config, p)
+        self.core.tissue_init(sim, cells, substances_config, p)
+
 
         if reactions_config is not None:
             # initialize the reactions of metabolism:
@@ -114,6 +123,10 @@ class MasterOfGenes(object):
             self.core.optimizer(sim, cells, p)
             self.reinitialize(sim, cells, p)
 
+
+
+
+
         # if self.core.opti_run is True:
         #
         #     self.run_from_init(self, sim, cells, p)
@@ -129,6 +142,9 @@ class MasterOfGenes(object):
 
         # read the config file into a dictionary:
         self.config_dic = confio.read_metabo(self.configPath)
+
+        # Time dilation:
+        self.core.time_dila = float(self.config_dic.get('time dilation factor', 1.0))
 
         # obtain specific sub-dictionaries from the config file:
         substances_config = self.config_dic['biomolecules']
@@ -202,12 +218,24 @@ class MasterOfGenes(object):
         self.core.clear_cache()
         self.time = []
 
+        if p.use_microtubules:
+
+            # reinitialize the microtubules:
+            # sim.mtubes = Mtubes(sim, cells, p)
+            self.mtubes_x_time = []
+            self.mtubes_y_time = []
+            # sim.mtubes.reinit(cells, p)
+
         for t in tt:
 
             if self.transporters:
                 self.core.run_loop_transporters(t, sim, cells, p)
 
             self.core.run_loop(t, sim, cells, p)
+
+
+            if p.use_microtubules: # update the microtubules:
+                sim.mtubes.update_mtubes(cells, sim, p)
 
 
             if t in tsamples:
@@ -217,6 +245,11 @@ class MasterOfGenes(object):
                 self.time.append(t)
                 self.core.write_data(sim, cells, p)
                 self.core.report(sim, p)
+
+                if p.use_microtubules:
+                    # microtubules:
+                    self.mtubes_x_time.append(sim.mtubes.mtubes_x * 1)
+                    self.mtubes_y_time.append(sim.mtubes.mtubes_y * 1)
 
         logs.log_info('Saving simulation...')
         datadump = [self, cells, p]

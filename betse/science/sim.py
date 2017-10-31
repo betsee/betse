@@ -10,7 +10,6 @@ from betse.science import filehandling as fh
 from betse.science import sim_toolbox as stb
 from betse.science.channels.gap_junction import Gap_Junction
 from betse.science.chemistry.gene import MasterOfGenes
-from betse.science.chemistry.metabolism import  MasterOfMetabolism
 from betse.science.chemistry.molecules import MasterOfMolecules
 from betse.science.config.confenum import IonProfileType
 from betse.science.math import finitediff as fd
@@ -1186,58 +1185,65 @@ class Simulator(object):
 
             # -----------------PUMPS-------------------------------------------------------------------------------------
 
-            if p.is_ecm is True:
-                # run the Na-K-ATPase pump:
-                fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
-                    self.cc_at_mem[self.iNa],
-                    self.cc_env[self.iNa][cells.map_mem2ecm],
-                    self.cc_at_mem[self.iK],
-                    self.cc_env[self.iK][cells.map_mem2ecm],
-                    self.vm,
-                    self.T,
-                    p,
-                    self.NaKATP_block,
-                    met = self.met_concs
-                )
+            # have the pump run only if the rate constant is larger than 0.0 (so people can shut it off):
 
-            else:
-                fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
-                            self.cc_at_mem[self.iNa],
-                            self.cc_env[self.iNa],
-                            self.cc_at_mem[self.iK],
-                            self.cc_env[self.iK],
-                            self.vm,
-                            self.T,
-                            p,
-                            self.NaKATP_block,
-                            met = self.met_concs
-                        )
+            if p.alpha_NaK == 0.0:
+                self.rate_NaKATP = np.zeros(self.mdl)
+
+            if p.alpha_NaK > 0.0:
+
+                if p.is_ecm is True:
+                    # run the Na-K-ATPase pump:
+                    fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
+                        self.cc_at_mem[self.iNa],
+                        self.cc_env[self.iNa][cells.map_mem2ecm],
+                        self.cc_at_mem[self.iK],
+                        self.cc_env[self.iK][cells.map_mem2ecm],
+                        self.vm,
+                        self.T,
+                        p,
+                        self.NaKATP_block,
+                        met = self.met_concs
+                    )
+
+                else:
+                    fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
+                                self.cc_at_mem[self.iNa],
+                                self.cc_env[self.iNa],
+                                self.cc_at_mem[self.iK],
+                                self.cc_env[self.iK],
+                                self.vm,
+                                self.T,
+                                p,
+                                self.NaKATP_block,
+                                met = self.met_concs
+                            )
 
 
-            # modify pump flux with any lateral membrane diffusion effects:
-            fNa_NaK = self.rho_pump*fNa_NaK
-            fK_NaK = self.rho_pump*fK_NaK
+                # modify pump flux with any lateral membrane diffusion effects:
+                fNa_NaK = self.rho_pump*fNa_NaK
+                fK_NaK = self.rho_pump*fK_NaK
 
-            if p.cluster_open is False:
-                fNa_NaK[cells.bflags_mems] = 0
-                fK_NaK[cells.bflags_mems] = 0
+                if p.cluster_open is False:
+                    fNa_NaK[cells.bflags_mems] = 0
+                    fK_NaK[cells.bflags_mems] = 0
 
-            # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
-            self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa]  + fNa_NaK
-            self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
+                # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
+                self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa]  + fNa_NaK
+                self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
 
-            # update the concentrations of Na and K in cells and environment:
-            self.cc_cells[self.iNa], self.cc_at_mem[self.iNa], self.cc_env[self.iNa] =  stb.update_Co(
-                                                                        self, self.cc_cells[self.iNa],
-                                                                        self.cc_at_mem[self.iNa],
-                                                                        self.cc_env[self.iNa],fNa_NaK, cells, p,
-                                                                        ignoreECM = self.ignore_ecm)
+                # update the concentrations of Na and K in cells and environment:
+                self.cc_cells[self.iNa], self.cc_at_mem[self.iNa], self.cc_env[self.iNa] =  stb.update_Co(
+                                                                            self, self.cc_cells[self.iNa],
+                                                                            self.cc_at_mem[self.iNa],
+                                                                            self.cc_env[self.iNa],fNa_NaK, cells, p,
+                                                                            ignoreECM = self.ignore_ecm)
 
-            self.cc_cells[self.iK], self.cc_at_mem[self.iK], self.cc_env[self.iK] = stb.update_Co(
-                                                                         self, self.cc_cells[self.iK],
-                                                                         self.cc_at_mem[self.iK],
-                                                                         self.cc_env[self.iK], fK_NaK,
-                                                                         cells, p, ignoreECM = self.ignore_ecm)
+                self.cc_cells[self.iK], self.cc_at_mem[self.iK], self.cc_env[self.iK] = stb.update_Co(
+                                                                             self, self.cc_cells[self.iK],
+                                                                             self.cc_at_mem[self.iK],
+                                                                             self.cc_env[self.iK], fK_NaK,
+                                                                             cells, p, ignoreECM = self.ignore_ecm)
 
 
             # ----------------ELECTRODIFFUSION---------------------------------------------------------------------------
@@ -1327,7 +1333,7 @@ class Simulator(object):
                 if self.grn.transporters:
                     self.grn.core.run_loop_transporters(t, self, cells, p)
 
-                if self.grn.channels and p.run_sim is True:
+                if self.grn.channels:
                     self.grn.core.run_loop_channels(self, cells, p)
 
                 if self.grn.modulators:
@@ -1811,40 +1817,44 @@ class Simulator(object):
 
     def ca_handler(self,cells,p):
 
-        if p.is_ecm is True:
 
-            # run Ca-ATPase
+        # operate default Ca2+ pumps only if the user-supplied rate is greater than zero, so user can shut them off.
+        if p.alpha_Ca > 0.0:
 
-            f_CaATP = stb.pumpCaATP(self.cc_at_mem[self.iCa],
-                self.cc_env[self.iCa][cells.map_mem2ecm],
-                self.vm, self.T, p, self.CaATP_block, met = self.met_concs)
+            if p.is_ecm is True:
 
-            f_CaATP = self.rho_pump * f_CaATP
+                # run Ca-ATPase
 
-        else:
+                f_CaATP = stb.pumpCaATP(self.cc_at_mem[self.iCa],
+                    self.cc_env[self.iCa][cells.map_mem2ecm],
+                    self.vm, self.T, p, self.CaATP_block, met = self.met_concs)
 
-            # run Ca-ATPase
+                f_CaATP = self.rho_pump * f_CaATP
 
-            f_CaATP = stb.pumpCaATP(self.cc_at_mem[self.iCa],
-                                    self.cc_env[self.iCa], self.vm, self.T, p,
-                                    self.CaATP_block, met = self.met_concs)
+            else:
 
+                # run Ca-ATPase
 
-        self.rate_CaATP = f_CaATP
-
-        if p.cluster_open is False:
-            f_CaATP[cells.bflags_mems] = 0
-
-        # store the transmembrane flux for this ion
-        self.fluxes_mem[self.iCa] = self.fluxes_mem[self.iCa]  + self.rho_pump*(f_CaATP)
+                f_CaATP = stb.pumpCaATP(self.cc_at_mem[self.iCa],
+                                        self.cc_env[self.iCa], self.vm, self.T, p,
+                                        self.CaATP_block, met = self.met_concs)
 
 
-        # update calcium concentrations in cell and ecm:
+            self.rate_CaATP = f_CaATP
 
-        self.cc_cells[self.iCa], self.cc_at_mem[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self,
-                                                            self.cc_cells[self.iCa], self.cc_at_mem[self.iCa],
-                                                            self.cc_env[self.iCa], f_CaATP,
-                                                            cells, p, ignoreECM = True)
+            if p.cluster_open is False:
+                f_CaATP[cells.bflags_mems] = 0
+
+            # store the transmembrane flux for this ion
+            self.fluxes_mem[self.iCa] = self.fluxes_mem[self.iCa]  + self.rho_pump*(f_CaATP)
+
+
+            # update calcium concentrations in cell and ecm:
+
+            self.cc_cells[self.iCa], self.cc_at_mem[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self,
+                                                                self.cc_cells[self.iCa], self.cc_at_mem[self.iCa],
+                                                                self.cc_env[self.iCa], f_CaATP,
+                                                                cells, p, ignoreECM = True)
 
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling

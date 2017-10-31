@@ -73,10 +73,6 @@ class MasterOfNetworks(object):
         # set the key controlling presence of mitochondria:
         self.mit_enabled = mit_enabled
 
-        # read in substance properties from the config file, and initialize basic properties:
-        self.read_substances(sim, cells, config_substances, p)
-        self.tissue_init(sim, cells, config_substances, p)
-
         # # write substance growth and decay equations:
         # self.write_growth_and_decay()
 
@@ -183,6 +179,18 @@ class MasterOfNetworks(object):
             mol.c_envo = mol_dic['env conc']  # initial concentration in the environment [mmol/L]
             mol.c_cello = mol_dic['cell conc']  # initial concentration in the cytoplasm [mmol/L]
             mol.c_mito = mol_dic.get('mit conc', None)  # initialized to None if optional fields not present
+
+            # use time dilation for this substance's updates?
+            mol.use_time_dilation = mol_dic.get('use time dilation', False)
+
+            # if the key is True, set a new field called "mol.modify_time_factor"
+            if mol.use_time_dilation:
+
+                mol.modify_time_factor = self.time_dila
+
+            else: # otherwise, make the multiplier 1.0
+
+                mol.modify_time_factor = 1.0
 
             # determine if the user has requested an asymmetric initial condition:
             init_asym = mol_dic.get('initial asymmetry', None)
@@ -5222,7 +5230,8 @@ class Molecule(object):
                                                                 ignoreGJ = self.ignoreGJ,
                                                                 Ftj = self.TJ_factor,
                                                                 rho = sim.rho_channel,
-                                                                cmems=self.cc_at_mem)
+                                                                cmems=self.cc_at_mem,
+                                                                time_dilation_factor = self.modify_time_factor)
 
     def updateC(self, flux, sim, cells, p):
         """
@@ -5326,7 +5335,7 @@ class Molecule(object):
             cflux = stb.single_cell_div_free(cfluxo, cells)
 
             # calculate the actual concentration at membranes by unpacking to concentration vectors:
-            self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
+            self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt*self.modify_time_factor
 
             # smooth the concentration:
             self.cc_at_mem = self.smooth_weight_mem*self.cc_at_mem + self.smooth_weight_o*cav

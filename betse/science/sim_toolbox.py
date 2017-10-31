@@ -1175,7 +1175,8 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
     return cX_cell_1, cX_env_1, f_X
 
 def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, Dgj=1.0e-12, Ftj = 1.0, c_bound=1.0e-6,
-                   ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, cmems = None):
+                   ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, cmems = None,
+                   time_dilation_factor = 1.0):
 
     """
     Transports a generic molecule across the membrane,
@@ -1266,8 +1267,8 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
 
         # Calculate the final concentration change (the acceleration effectively speeds up time):
-        cX_cells = cX_cells + p.dt*delta_cco
-        cX_mems = cX_mems - fgj_X*p.dt*(cells.mem_sa/cells.mem_vol)
+        cX_cells = cX_cells + p.dt*delta_cco*time_dilation_factor
+        cX_mems = cX_mems - fgj_X*p.dt*(cells.mem_sa/cells.mem_vol)*time_dilation_factor
 
 
     else:
@@ -1323,7 +1324,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         fenvx = fx
         fenvy = fy
 
-        cenv = cenv + div_fa * p.dt
+        cenv = cenv + div_fa * p.dt*time_dilation_factor
 
         cX_env_o = cenv.ravel()
 

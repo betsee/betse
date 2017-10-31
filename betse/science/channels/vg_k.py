@@ -79,6 +79,8 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the open-probability of the channel:
         P = (dyna.m_K ** self._mpower) * (dyna.h_K ** self._hpower)
 
+        self.P = P
+
         # obtain concentration of ion inside and out of the cell, as well as its charge z:
         c_mem = sim.cc_at_mem[sim.iK]
 

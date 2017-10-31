@@ -48,6 +48,14 @@ class MasterOfMolecules(object):
         # Master of Molecules:
         self.core = MasterOfNetworks(sim, cells, substances_config, p)
 
+        # Time dilation:
+        self.core.time_dila = float(self.config_dic.get('time dilation factor', 1.0))
+
+        # read in substance properties from the config file, and initialize basic properties:
+        self.core.read_substances(sim, cells, substances_config, p)
+        self.core.tissue_init(sim, cells, substances_config, p)
+
+
         if reactions_config is not None:
             # initialize the reactions of metabolism:
             self.core.read_reactions(reactions_config, sim, cells, p)
@@ -122,6 +130,10 @@ class MasterOfMolecules(object):
 
         # read the config file into a dictionary:
         self.config_dic = p.network_config
+
+        # Time dilation:
+        self.core.time_dila = float(self.config_dic.get('time dilation factor', 1.0))
+
 
         # obtain specific sub-dictionaries from the config file:
         substances_config = self.config_dic['biomolecules']
