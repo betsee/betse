@@ -803,13 +803,17 @@ class Cells(object):
         # Log this creation.
         logs.log_info('Creating Voronoi geometry... ')
 
-        # Load the bitmap used to clip the cell cluster and create a clipping function:
+        #FIXME: This variable is *ONLY* ever referenced by this method. To
+        #reduce memory consumption, convert this variable from an instance to
+        #local variable (i.e., change "self.bitmasker" to simply "bitmasker").
+
+        # Load the bitmap used to clip the cell cluster and create a clipping
+        # function.
         self.bitmasker = BitMapper(
             p.clipping_bitmap_matcher,
             self.xmin, self.xmax, self.ymin, self.ymax)
 
         # add the bitmasker clipping curve to the points:
-
         seed_points = np.vstack((self.clust_xy, self.bitmasker.clipcurve))
 
         # define the Voronoi diagram from the seed points:

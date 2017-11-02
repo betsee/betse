@@ -21,10 +21,11 @@ from betse.util.io.log import logs
 from betse.util.type import types
 from betse.util.type.types import type_check
 from random import shuffle
-from scipy import spatial as sps
-from scipy.ndimage.filters import gaussian_filter
+# from scipy import spatial as sps
+# from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ CLASSES                            }....................
+#FIXME: Document all instance variables of this class.
 class TissueHandler(object):
     '''
     High-level handler for user-specified tissue-centric functionality,
@@ -37,26 +38,25 @@ class TissueHandler(object):
     * Scheduled interventions, even those *not* pertaining to tissue profiles
       (e.g., global scheduled interventions).
 
-    Attributes (General)
-    ----------------------------
+    Attributes
+    ----------
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
+
+        #FIXME: Remove the unused "sim" parameters. Do *NOT* remove the
+        #currently unused "p" parameter, however; we expect to use that soon.
         sim:   'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',
         p:     'betse.science.parameters.Parameters',
     ) -> None:
 
-        if p.is_ecm:
-            self.data_length = len(cells.mem_i)
-        else:
-            self.data_length = len(cells.mem_i)
+        self.data_length = len(cells.mem_i)
 
         self.wound_channel_used = False  # notes whether the wound channel has been used
-
         self.cutting_event_run = False  # notes whether or not the cutting event has been run
 
     # ..................{ RUNNERS ~ init                     }..................
@@ -293,7 +293,7 @@ class TissueHandler(object):
 
         #--------------------------------------------------------
 
-        if p.scheduled_options['ecmJ'] != 0 and p.is_ecm is True:
+        if p.scheduled_options['ecmJ'] != 0 and p.is_ecm:
             self.t_on_ecmJ  = p.scheduled_options['ecmJ'][0]
             self.t_off_ecmJ = p.scheduled_options['ecmJ'][1]
             self.t_change_ecmJ = p.scheduled_options['ecmJ'][2]
@@ -614,20 +614,20 @@ class TissueHandler(object):
         if p.global_options['Cl_env'] != 0 and p.ions_dict['Cl'] == 1:
             effector_Clenv = tb.pulse(t,self.t_on_Clenv,self.t_off_Clenv,self.t_change_Clenv)
 
-            if p.is_ecm is False:
+            if not p.is_ecm:
                 sim.cc_env[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.conc_env_cl + p.conc_env_cl
 
-            elif p.is_ecm is True:  # simulate addition of sodium chloride to remain charge neutral
+            else:  # simulate addition of sodium chloride to remain charge neutral
                 sim.c_env_bound[sim.iCl] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Cl']
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Na']
 
         if p.global_options['Na_env'] != 0:
             effector_Naenv = tb.pulse(t,self.t_on_Naenv,self.t_off_Naenv,self.t_change_Naenv)
 
-            if p.is_ecm is False:
+            if not p.is_ecm:
                 sim.cc_env[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.conc_env_na + p.conc_env_na
 
-            elif p.is_ecm is True: # simulate addition of sodium salt to remain charge neutral
+            else: # simulate addition of sodium salt to remain charge neutral
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['Na']
                 sim.c_env_bound[sim.iM] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['M']
 
@@ -682,7 +682,7 @@ class TissueHandler(object):
 
         if p.scheduled_options['ecmJ'] != 0:
 
-            if p.is_ecm is True:
+            if p.is_ecm:
                 for i, dmat in enumerate(sim.D_env):
 
                     effector_ecmJ = self.mult_ecmJ*tb.pulse(
@@ -721,7 +721,7 @@ class TissueHandler(object):
         # if soc is not None and not soc._is_fired and t >= soc.time:  # FIXME Sess, for whatever reason, this logic makes it impossible to
                                                                        # run a cutting event with a sim file as an init. Therefore, I
                                                                        # temporarily disabled it.
-        if soc is not None and self.cutting_event_run is False:
+        if soc is not None and not self.cutting_event_run:
             for cut_profile_name in soc.profile_names:
                 logs.log_info(
                     'Cutting cell cluster via cut profile "%s"...',
@@ -730,13 +730,9 @@ class TissueHandler(object):
 
             logs.log_info("Cutting event successful! Resuming simulation...")
 
-            #FIXME: Duplicate logic. See above. The snow bear dances at noon.
-
-            # redo main data length variable for this dynamics module with updated world:
-            if p.is_ecm is True:
-                self.data_length = len(cells.mem_i)
-            else:
-                self.data_length = len(cells.mem_i)
+            # Redo main data length variable for this dynamics module with
+            # updated world.
+            self.data_length = len(cells.mem_i)
 
             self.tissueProfiles(sim, cells, p)
             cells.redo_gj(self, p, savecells=False)
@@ -883,6 +879,10 @@ class TissueHandler(object):
         sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch
         sim.Dm_stretch[sim.iK] = self.maxDmNaStretch*self.active_NaStretch
 
+    # ..................{ INITIALIZERS                       }..................
+    #FIXME: Rename to init_tissue_profiles().
+    #FIXME: Shift this method up to the top of this class, as this is a core
+    #(albeit technically optional) initialization method.
     def tissueProfiles(self, sim, cells, p):
         '''
         Create cell-specific (and if simulating extracellular spaces, membrane-
@@ -899,6 +899,7 @@ class TissueHandler(object):
         for profile_name in profile_names:
             profile = p.profiles[profile_name]
 
+            #FIXME: Refactor to leverage enumerations.
             profile_type = (
                 profile['type'] if isinstance(profile, dict) else 'cut')
 
@@ -916,7 +917,7 @@ class TissueHandler(object):
 
                 if len(self.cell_target_inds[profile_name]):
                     # Get ECM targets.
-                    if p.is_ecm is True:
+                    if p.is_ecm:
                         ecm_targs_mem = list(
                             cells.map_mem2ecm[self.tissue_target_inds[profile_name]])
 
@@ -951,6 +952,9 @@ class TissueHandler(object):
                     if p.ions_dict['P'] == 1:
                         dP = dmem_list['Dm_P']
                         sim.Dm_cells[sim.iP][self.tissue_target_inds[profile_name]] = dP
+
+            #FIXME: After refactoring to leverage enumerations, remove this
+            #"elif" and the following "else" branch. They serve no purpose.
 
             # Else if this is a cut profile, do nothing. It feeeels good.
             elif profile_type == 'cut':
@@ -1006,18 +1010,19 @@ class TissueHandler(object):
         # bitmap_mask = tissue_picker.get_bitmapper(cells).clipping_matrix
         # cells.cluster_mask = cells.cluster_mask - bitmap_mask
 
-        # FIXME, if deformation is too much, the following line will crash as the "target_inds_cell" is null. Rayse
-        # an uman weedable eggseption.
+        # FIXME, if deformation is too much, the following line will crash as
+        # the "target_inds_cell" is null. Rayse an uman weedable eggseption.
 
         # Indices of all cells to be removed, ignoring extracellular spaces.
-        target_inds_cell = tissue_picker.get_cell_indices(cells, p, ignoreECM=True)
+        target_inds_cell = tissue_picker.get_cell_indices(
+            cells, p, ignoreECM=True)
 
         # get the corresponding flags to membrane entities
         target_inds_mem = cells.cell_to_mems[target_inds_cell]
         target_inds_mem,_,_ = tb.flatten(target_inds_mem)
         target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
-        if p.is_ecm is True:
+        if p.is_ecm:
             # get environmental targets around each removed cell:
             ecm_targs_cell = list(cells.map_cell2ecm[target_inds_cell])
             ecm_targs_mem = list(cells.map_mem2ecm[target_inds_mem])
@@ -1099,7 +1104,7 @@ class TissueHandler(object):
             'cc_at_mem',
         ]
 
-        if p.is_ecm is True:
+        if p.is_ecm:
             specials_list.remove('cc_env')
             extra = ['z_array_cells']
             for ent in extra:
@@ -1341,10 +1346,7 @@ class TissueHandler(object):
 
         # WOUND CHANNEL FINALIZATION-----------------------------------------
 
-        if p.use_wound_channel is True:
-
-
-
+        if p.use_wound_channel:
             self.maxDmWound = p.wound_Dmax   # FIXME add to params and config!
 
             self.wound_channel_used = True

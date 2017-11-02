@@ -184,7 +184,6 @@ tissue profile definition:
   clipping:   # Geometry mask defining shape of global cell cluster.
     bitmap:   # Bitmap whose coloured pixel area defines this mask.
       file: geo/circle/circle_base.png  # Bitmap path relative to config file location.
-                                        # If "None", clipping will be disabled.
 
   profiles enabled: True   # Apply (rather than ignore) tissue and cut profiles listed below?
 

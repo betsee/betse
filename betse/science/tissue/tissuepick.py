@@ -31,7 +31,17 @@ class TissuePickerABC(object, metaclass=ABCMeta):
     def get_cell_indices(
         self,
         cells: 'betse.science.cells.Cells',
+
+        #FIXME: Remove this parameter for brevity. It's *NEVER* used anywhere.
         p:     'betse.science.parameters.Parameters',
+
+        #FIXME: Refactor as follows:
+        #
+        #* Make this parameter mandatory rather than optional. Fortunately, all
+        #  calls to this method in the codebase *ALWAYS* pass this parameter.
+        #* Rename to "is_ecm_handled".
+        #* Invert all boolean logic referencing this boolean. Double negatives
+        #  make my weary head blisters ache.
         ignoreECM: bool = False,
     ) -> SequenceTypes:
         '''
@@ -87,12 +97,20 @@ class TissuePickerAll(TissuePickerABC):
         return target_inds
 
 # ....................{ SUBCLASSES ~ bitmap                }....................
+#FIXME: This subclass and the "bitmapper.BitMapper" class are intrinsically wed
+#at the hip. For maintainability:
+#
+#* Shift this sublass into the "bitmapper" submodule.
+#* Rename this subclass to "TissuePickerImageMask".
+#* Define a new "picker" subpackage.
+#* Move the "bitmapper" submodule to "pick.tispickmask".
+#* Move the "tissuepick" submodule to "pick.tispickcls".
 class TissuePickerBitmap(TissuePickerABC):
     '''
-    Bitmap-specific tissue picker.
+    Image mask-specific tissue picker.
 
     This matcher matches all cells residing inside the colored pixel area
-    defined by an associated bitmap file.
+    defined by an associated image mask.
 
     Attributes
     ----------------------------
@@ -110,12 +128,12 @@ class TissuePickerBitmap(TissuePickerABC):
         ----------------------------
         filename : str
             Absolute or relative path of the desired bitmap. If relative (i.e.,
-            _not_ prefixed by a directory separator), this path will be
+            *not* prefixed by a directory separator), this path will be
             canonicalized into an absolute path relative to the directory
             containing the current simulation's configuration file.
         dirname : str
             Absolute path of the directory containing the path of the bitmap to
-            be loaded (i.e., `filename`). If that path is relative, that path
+            be loaded (i.e., ``filename``). If that path is relative, that path
             will be prefixed by this path to convert that path into an absolute
             path; else, this path is ignored.
         '''
@@ -144,14 +162,33 @@ class TissuePickerBitmap(TissuePickerABC):
         bitmask = self.get_bitmapper(cells)
         target_inds = bitmask.good_inds
 
+        #FIXME: Double negative hurts brainpan.
         # If simulating electromagnetism and at least one cell matches...
-        if ignoreECM is False and len(target_inds):
+        if not ignoreECM and len(target_inds):
             target_inds = cells.cell_to_mems[target_inds]
             target_inds,_,_ = toolbox.flatten(target_inds)
 
         return target_inds
 
 
+    #FIXME: Refactor this method as follows:
+    #
+    #* Rename to get_image_mask().
+    #* Shift the call to the bitmapper.clipPoints() method performed by this
+    #  method into the get_cell_indices() method -- the only method that
+    #  currently calls this method.
+    #* After doing so, reduce:
+    #
+    #    # The following block in the "cells" submodule...
+    #    self.bitmasker = BitMapper(
+    #        p.clipping_bitmap_matcher,
+    #        self.xmin, self.xmax, self.ymin, self.ymax)
+    #
+    #    # ...to the following simple method call. Note the reduction from an
+    #    # instance to local variable, which should improve space consumption.
+    #    bitmasker = p.clipping_bitmap_matcher.get_image_mask()
+    #
+    #Delightfully trivial, isn't it?
     @type_check
     def get_bitmapper(self, cells: 'betse.science.cells.Cells'):
         '''

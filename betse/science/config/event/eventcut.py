@@ -33,8 +33,10 @@ class SimEventCut(SimEventSpikeABC):
         time: NumericTypes,
     ) -> None:
 
+        # Initialize our superclass.
         super().__init__(time)
 
+        # Classify all passed parameters.
         self.profile_names = profile_names
 
 
@@ -46,7 +48,8 @@ class SimEventCut(SimEventSpikeABC):
     #        sim: 'Simulation',
     #        cells: 'Cells',
     #        p: 'Parameters',
-    #        t: float) -> None:
+    #        t: NumericTypes,
+    #    ) -> None:
     @type_check
     def fire(self, sim: 'betse.science.sim.Simulator', t: NumericTypes) -> None:
         raise BetseMethodUnimplementedException()
@@ -79,6 +82,14 @@ def make(p: 'betse.science.parameters.Parameters') -> (SimEventCut, NoneType):
 
     # If this event is enabled, create an instance of this class.
     if bool(ce['event happens']):
+        #FIXME: Terrible check. Rather than simply test the emptiness of the
+        #"profiles" list, actually iterate through the "profile_names" parameter
+        #in the SimEventCut.__init__() method and ensure that each listed
+        #profile name actually exists in the "profiles" list. Hence, this entire
+        #check should be shifted there. After doing so, this entire function
+        #should ideally be removed. It's terrible. I hate these make()-style
+        #factory functions, which only obfuscate the codebase.
+
         # If profiles are enabled, parse this event.
         if len(p.profiles):
             action = SimEventCut(

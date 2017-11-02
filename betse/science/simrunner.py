@@ -96,11 +96,11 @@ class SimRunner(object):
 
         logs.log_info('Creating cell cluster...')
         cells.makeWorld(p)  # call function to create the world
-        dyna = TissueHandler(sim, cells, p)
 
         # define the tissue and boundary profiles for plotting:
         logs.log_info('Defining tissue and boundary profiles...')
         sim.baseInit_all(cells, p)
+        dyna = TissueHandler(sim, cells, p)
         dyna.tissueProfiles(sim, cells, p)
         cells.redo_gj(dyna, p)  # redo gap junctions to isolate different tissue types
 

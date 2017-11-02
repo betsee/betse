@@ -972,12 +972,8 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
                 cb_tick_labels.append(name)
 
             else:
-
                 logs.log_warning("No cells tagged for profile " + name)
 
-
-
-    #FIXME: Refactor into a new SimEventCut.plot() method. Beans and fragrance!
     if p.plot_cutlines and p.scheduled_options['cuts'] is not None:
         # For each profile cutting a subset of the cell population...
         for cut_profile_name in p.scheduled_options['cuts'].profile_names:

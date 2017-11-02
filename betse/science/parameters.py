@@ -363,6 +363,18 @@ class Parameters(YamlFileABC):
         # TARGETED INTERVENTIONS
         #---------------------------------------------------------------------------------------------------------------
 
+        #FIXME: This dictionary appears to be superfluous. It's never iterated
+        #over or treated like a dictionary. Its keys are only ever looked up. In
+        #short, this dictionary shouldn't exist. For efficiency and sanity, all
+        #keys of this dictionary should be refactored into simple instance
+        #variables of this class (e.g., from "p.scheduled_options['Na_mem']" to
+        #simply "p.event_Na_mem").
+        #FIXME: After doing so, these instance variables should be refactored
+        #from unreadable lists to objects with human-readable attribute names
+        #(e.g., from "p.event_Na_mem[0]" to "p.event_Na_mem.start_time").
+        #
+        #The longest journey to the future begins tomorrow.
+
         # initialize dictionary keeping track of targeted scheduled options for the sim:
         self.scheduled_options = {}
 
@@ -1282,9 +1294,20 @@ class Parameters(YamlFileABC):
 
         self.default_tissue_name = (
             self._conf['variable settings']['default tissue name'])
+
+        #FIXME: Shift all such high-level objects into higher-level (and hence
+        #more appropriate) simulation classes. In particular, refactor the
+        #"clipping_bitmap_matcher" instance variable into a local variable of
+        #the Cells._make_voronoi() method, the only method referencing this
+        #variable. (Nice!)
         self.clipping_bitmap_matcher = TissuePickerBitmap(
             tpd['clipping']['bitmap']['file'], self.conf_dirname)
 
+        #FIXME: This now appears to be vestigial. Notably, there *IS* no
+        #"internal pore file" setting in our current configuration format. In
+        #fact, there's no reference to the term "pore" at all. This strongly
+        #implies this functionality to be safely removable. On doing so, the
+        #corresponding "if" conditional in "simrunner" *MUST* also be removed.
         model_hole = tpd.get('internal pore file', None)
 
         if model_hole is not None:
@@ -1292,6 +1315,54 @@ class Parameters(YamlFileABC):
                 tpd['internal pore file'], self.conf_dirname)
         else:
             self.clipping_bitmap_hole = None
+
+        #FIXME: Shift the entire "profiles" instance variable and hence this
+        #initialization block... elsewhere. Unfortunately, the codebase's
+        #current usage of this variable is a bit of a spaghetti mess -- which
+        #complicates cleanup more than a little. The ideal location for this
+        #initialization block would be in the TissueHandler.__init__() method,
+        #as we need to guarantee its availability to all "TissueHandler"
+        #callers.
+        #
+        #The most significant complication is the eventcut.make() function,
+        #which references "p.profiles". This function is only called by the
+        #current function as follows:
+        #
+        #    self.scheduled_options['cuts'] = eventcut.make(p=self)
+        #
+        #Frankly, that's awful. There's absolutely *NO* need for 'cuts' to be a
+        #key of the "scheduled_options" dictionary. In fact, the entire
+        #"scheduled_options" dictionary appears to be superfluous. It's *NEVER*
+        #actually iterated over or treated like a dictionary. Its keys are only
+        #ever statically looked up. In short, this dictionary should *NOT*
+        #exist. For both efficiency and sanity, all keys of this dictionary
+        #should be refactored into simple instance variables of this class.
+        #While that's a somewhat larger issue than the current concern, we
+        #should at least refactor the "scheduled_options['cuts']" key like so:
+        #
+        #* In the TissueHandler.__init__() method, add:
+        #      self.event_cut = eventcut.make(p=p)
+        #* Remove this key entirely from this dictionary. This is actually
+        #  trivial, as this key is only ever accessed twice:
+        #  * Once in the plotutils.clusterPlot() method, which is passed a
+        #    "dyna" parameter. Assuming this undocumented (*sigh*)
+        #    parameter is a "TissueHandler" instance, simply access
+        #    "dyna.event_cut" rather than "p.scheduled_options['cuts']".
+        #  * Once in the TissueHandler._sim_events_tissue() method. Again,
+        #    just access "self.event_cut".
+        #
+        #That gets us *MOST* of the way. Additionally, we'll need to:
+        #
+        #* Shift this initialization block into the TissueHandler.__init__()
+        #  method. No modification should be required.
+        #* Refactor the Cells.redo_gj() and plotutils.clusterPlot() methods to
+        #  access "dyna.profiles" rather than "p.profiles". (Trivial in both
+        #  cases, happily.)
+        #* Refactor all "TissueHandler" methods to access "self.profiles" rather
+        #  than "p.profiles". (Also trivial, happily.)
+        #
+        #That's it. The worst of it is the "eventcut" refactoring, which frankly
+        #needed to be done sooner than later anyway. *sigh*
 
         # If tissue profiles are currently enabled, parse all profiles.
         self.profiles = OrderedDict()
