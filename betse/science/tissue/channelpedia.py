@@ -2,6 +2,11 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+#FIXME: This submodule doesn't appear to be used by the codebase and should
+#ideally be shifted elsewhere. Since this appears to be a collection of lambda
+#functions derived from Channelpedia models, would the "doc/example" directory
+#perhaps be a more suitable location for this?
+
 import numpy as np
 
 #-------------------------------------------------------------------

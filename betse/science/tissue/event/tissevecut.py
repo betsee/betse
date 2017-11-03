@@ -16,10 +16,11 @@ from betse.util.type.types import (
 # ....................{ SUBCLASSES                         }....................
 class SimEventCut(SimEventSpikeABC):
     '''
-    Event removing a subset of the cell population at some simulation time step.
+    **Cutting event** (i.e., event removing a region of the current cluster at
+    some time step during the simulation phase).
 
     Attributes
-    ----------------------------
+    ----------
     profile_names : list
         List of the names of all applicable cut profiles, each describing a
         subset of the cell population to be removed.
@@ -62,12 +63,12 @@ def make(p: 'betse.science.parameters.Parameters') -> (SimEventCut, NoneType):
     passed simulation configuration *or* ``None`` otherwise.
 
     Parameters
-    ----------------------------
+    ----------
     p : Parameters
         Current simulation configuration.
 
     Returns
-    ----------------------------
+    ----------
     SimEventCut, NoneType
         Either:
         * If enabled by the passed simulation configuration, a new
@@ -91,7 +92,7 @@ def make(p: 'betse.science.parameters.Parameters') -> (SimEventCut, NoneType):
         #factory functions, which only obfuscate the codebase.
 
         # If profiles are enabled, parse this event.
-        if len(p.profiles):
+        if p.is_tissue_profiles:
             action = SimEventCut(
                 # Time step at which to cut. For simplicity, this is coerced
                 # to be the start of the simulation.

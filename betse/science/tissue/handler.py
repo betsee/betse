@@ -16,20 +16,26 @@ from betse.science.channels import vg_nap as vgnap
 from betse.science.channels import wound_channel as w
 from betse.science.math import modulate as mod
 from betse.science.math import toolbox as tb
+from betse.science.tissue import tisscls
 from betse.science.tissue.channels_o import cagPotassium
+from betse.science.tissue.event import tissevecut
 from betse.util.io.log import logs
 from betse.util.type import types
 from betse.util.type.types import type_check
+from collections import OrderedDict
 from random import shuffle
 # from scipy import spatial as sps
 # from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ CLASSES                            }....................
+#FIXME: Since this class handles both tissue profiles *AND* scheduled
+#interventions, consider renaming this class to a less ambiguous name -- say, to
+#"TissueEventManager".
 #FIXME: Document all instance variables of this class.
 class TissueHandler(object):
     '''
-    High-level handler for user-specified tissue-centric functionality,
-    including both tissue profiles *and* scheduled interventions.
+    High-level tissue handler, managing all tissue-centric functionality
+    including both tissue and cut profiles *and* scheduled interventions.
 
     This handler governs all:
 
@@ -40,24 +46,117 @@ class TissueHandler(object):
 
     Attributes
     ----------
+    data_length : int
+        Total number of cell membranes across all cells in the current cluster.
+    tissue_name_to_profile : OrderedDict
+        Ordered dictionary mapping from the name of each tissue profile enabled
+        by the current simulation configuration (in list order) to the
+        :class:`TissueABC` instance encapsulating this profile.
+
+    Attributes (Event: Cut)
+    ----------
+    event_cut : SimEventCut
+        **Cutting event** (i.e., event removing a region of the current cluster
+        at some time step during the simulation phase) if enabled by the
+        current simulation configuration *or* ``None`` otherwise.
+    cutting_event_run : bool
+        ``True`` only if the :meth:`runAllDynamics` method called during the
+        simulation phase has already performed the cutting event for a prior
+        time step of this phase.
+    wound_channel_used : bool
+        ``True`` only if the current simulation configuration enabled simulation
+        of the mechanosensitive Na channel associated with wounding *and* the
+        :attr:`cutting_event_run` boolean is also ``True``, in which case the
+        cutting event has been performed and has thus activated this channel.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
-
-        #FIXME: Remove the unused "sim" parameters. Do *NOT* remove the
-        #currently unused "p" parameter, however; we expect to use that soon.
         sim:   'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',
         p:     'betse.science.parameters.Parameters',
     ) -> None:
+        '''
+        Initialize this tissue handler.
+        '''
 
+        # Total number of cell membranes across all cells in this cluster.
         self.data_length = len(cells.mem_i)
 
-        self.wound_channel_used = False  # notes whether the wound channel has been used
-        self.cutting_event_run = False  # notes whether or not the cutting event has been run
+        # Initialize all scheduled interventions.
+        self._init_events(p)
+
+        # Initialize all tissue and cut profiles.
+        self._init_profiles(p)
+
+
+    @type_check
+    def _init_events(self, p: 'betse.science.parameters.Parameters') -> None:
+        '''
+        Initialize all scheduled interventions defined by the passed simulation
+        configuration.
+        '''
+
+        #FIXME: Embed the following booleans directly into the "event_cut"
+        #object itself. Specifically:
+        #
+        #* Shift "wound_channel_used" into the "SimEventCut" class.
+        #* Shift "cutting_event_run" into the "SimEventABC" class as a new
+        #  "is_fired" boolean that is:
+        #  * Initialized to "False".
+        #  * Set to "True" by the SimEventABC.fire() method.
+
+        # Record that the cutting event has yet to be performed.
+        self.cutting_event_run = False
+        self.wound_channel_used = False
+
+        #FIXME: Refactor as follows:
+        #
+        #* Shift the entirety of the eventcut.make() function into this method.
+        #* Remove the eventcut.make() function.
+
+        # Cutting event enabled by this configuration (if any).
+        self.event_cut = tissevecut.make(p=p)
+
+
+    @type_check
+    def _init_profiles(self, p: 'betse.science.parameters.Parameters') -> None:
+        '''
+        Initialize all tissue and cut profiles defined by the passed simulation
+        configuration.
+
+        Specifically, this method encapsulate each low-level YAML-formatted list
+        item defining a tissue and cut profile in this configuration with a
+        high-level instance of the :class:`TissueABC` class.
+        '''
+
+        # Ordered dictionary mapping from tissue names to profiles.
+        self.tissue_name_to_profile = OrderedDict()
+
+        # If tissue profiles are disabled, silently noop.
+        if not p.is_tissue_profiles:
+            return
+
+        #FIXME: Replace with usage of a proper public instance variable.
+        # List of all low-level YAML list items defining these profiles.
+        profile_configs = p._conf['tissue profile definition']['profiles']
+
+        for i, profile_config in enumerate(profile_configs):
+            tissue_name = profile_config['name']
+
+            #FIXME: Refactor as follows:
+            #
+            #* Shift the entirety of the tisscls.make() function into this
+            #  method.
+            #* Remove the tisscls.make() function.
+            self.tissue_name_to_profile[tissue_name] = tisscls.make(
+                p=p,
+                conf=profile_config,
+                # Convert from 0-based list indices to 1-based z order.
+                z_order=i + 1,
+            )
 
     # ..................{ RUNNERS ~ init                     }..................
     def runAllInit(
@@ -717,16 +816,34 @@ class TissueHandler(object):
                 sim.D_env_weight = sim.D_env_weight.reshape(cells.X.shape)
                 sim.D_env_weight_base = sim.D_env_weight_base.reshape(cells.X.shape)
 
-        soc = p.scheduled_options['cuts']
-        # if soc is not None and not soc._is_fired and t >= soc.time:  # FIXME Sess, for whatever reason, this logic makes it impossible to
-                                                                       # run a cutting event with a sim file as an init. Therefore, I
-                                                                       # temporarily disabled it.
-        if soc is not None and not self.cutting_event_run:
-            for cut_profile_name in soc.profile_names:
+        #FIXME: Sess, for whatever reason, this logic makes it impossible to run
+        #a cutting event with a sim file as an init. Therefore, I temporarily
+        #disabled it.
+        #FIXME: O.K.; that's awful. Sorry about that. The core issue appears to
+        #be that the "event_cut" object was previously owned by the "Parameters"
+        #class rather than this class. That's fixed now, suggesting this should
+        #probably now behave as intended. (Yay!)
+        #
+        #Thanks for identifying this buggy spot. I won't reenable it, as it's
+        #clearly problematic; we'll just eliminate this commented line. Sadly,
+        #we now have two booleans governing whether or not the cutting event has
+        #been run yet or not:
+        #
+        #" "self.event_cut._is_fired", previously used here.
+        #" "self.cutting_event_run", now used here.
+        #
+        #That's not the worst thing that's ever happened. So, fine for now!
+
+        # if self.event_cut is not None and not self.event_cut._is_fired and t >= self.event_cut.time:
+        if self.event_cut is not None and not self.cutting_event_run:
+            for cut_profile_name in self.event_cut.profile_names:
                 logs.log_info(
                     'Cutting cell cluster via cut profile "%s"...',
                     cut_profile_name)
-                self.removeCells(p.profiles[cut_profile_name].picker, sim, cells, p)
+
+                tissue_picker = self.tissue_name_to_profile[
+                    cut_profile_name].picker
+                self.removeCells(tissue_picker, sim, cells, p)
 
             logs.log_info("Cutting event successful! Resuming simulation...")
 
@@ -738,20 +855,13 @@ class TissueHandler(object):
             cells.redo_gj(self, p, savecells=False)
             self.runAllInit(sim, cells, p)
 
-            #FIXME: Excise. And the chill vermouth of winter did exhale!
-            # Clear and recreate the currently displayed and/or saved
-            # animation. Cutting requires sufficiently "heavy" modifications to
-            # plot data that starting over from scratch is the safest and
-            # simplest approach.
-            # sim._dereplot_loop(p)
-
             # Avoid repeating this cutting event at subsequent time steps.
-            # soc._is_fired = True
+            # self.event_cut._is_fired = True
             self.cutting_event_run = True
 
         # If the voltage event is enabled, adjust the voltage accordingly.
         if p.scheduled_options['extV'] is not None:
-           p.scheduled_options['extV'].fire(sim, t)
+            p.scheduled_options['extV'].fire(sim, t)
 
     def _sim_channels_tissue(self, sim, cells, p, t):
         '''
@@ -836,15 +946,12 @@ class TissueHandler(object):
             # self.vgCa_object.run(self, sim, cells, p)
 
         if p.vg_options['K_cag'] != 0 and p.ions_dict['Ca'] != 0:
-
             cagPotassium(self,sim,cells,p)
 
         if p.vg_options['Na_stretch'] != 0:
-
             self.stretchChannel(sim,cells,p,t)
 
-        if self.wound_channel_used is True:
-
+        if self.wound_channel_used:
             self.wound_channel.run(self, sim, cells, p)
 
     def stretchChannel(self,sim,cells,p,t):
@@ -880,7 +987,7 @@ class TissueHandler(object):
         sim.Dm_stretch[sim.iK] = self.maxDmNaStretch*self.active_NaStretch
 
     # ..................{ INITIALIZERS                       }..................
-    #FIXME: Rename to init_tissue_profiles().
+    #FIXME: Rename to index_tissue_profiles().
     #FIXME: Shift this method up to the top of this class, as this is a core
     #(albeit technically optional) initialization method.
     def tissueProfiles(self, sim, cells, p):
@@ -889,19 +996,21 @@ class TissueHandler(object):
         specific as well) index sets for all user-defined tissue profiles.
         '''
 
-        profile_names = list(p.profiles.keys())
         self.tissue_target_inds = {}
         self.cell_target_inds = {}
         self.env_target_inds = {}
         self.tissue_profile_names = []
 
-        # Go through again and do traditional tissue profiles:
-        for profile_name in profile_names:
-            profile = p.profiles[profile_name]
-
+        # Go through again and do traditional tissue profiles.
+        for profile_name, profile in self.tissue_name_to_profile.items():
             #FIXME: Refactor to leverage enumerations.
             profile_type = (
                 profile['type'] if isinstance(profile, dict) else 'cut')
+
+            #FIXME: Aggregating tissue and cut profiles into the same data
+            #structures strikes me as an... unfortunate decision. Perhaps it
+            #would be feasible for us to split the current "profiles:" YAML list
+            #into two "tissues:" and "cuts:" YAML lists in "sim_config.yaml"?
 
             # If this is a tissue profile...
             if profile_type == 'tissue':
@@ -981,9 +1090,15 @@ class TissueHandler(object):
 
         sim.P_cells = sim.P_mod + sim.P_base
 
-    #FIXME: Replace "p.scheduled_options['cuts']" everywhere below by "self".
+
     def removeCells(
-        self, tissue_picker, sim, cells, p, hole_tag = False) -> None:
+        self,
+        tissue_picker,
+        sim,
+        cells,
+        p,
+        # hole_tag = False,
+    ) -> None:
         '''
         Permanently remove all cells selected by the passed tissue picker.
 
@@ -1259,7 +1374,6 @@ class TissueHandler(object):
         if p.grn_enabled and sim.grn is not None:
 
             sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
-
 
         # if hole_tag is False: # if we're not defining a hole at the beginning, reassign to new bflags
         sim.initDenv(cells,p)

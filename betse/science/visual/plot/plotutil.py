@@ -924,7 +924,7 @@ def streamingCurrent(
 
     return fig,ax,ax_cb
 
-def clusterPlot(p, dyna, cells, clrmap=cm.jet):
+def clusterPlot(p, dyna: 'TissueHandler', cells, clrmap=cm.jet):
 
     fig = plt.figure()
     ax = plt.subplot(111)
@@ -964,7 +964,8 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
                 col_dic[name].set_clim(0, len(dyna.tissue_profile_names))
 
                 # col_dic[name].set_alpha(0.8)
-                col_dic[name].set_zorder(p.profiles[name]['z order'])
+                col_dic[name].set_zorder(
+                    dyna.tissue_name_to_profile[name]['z order'])
                 ax.add_collection(col_dic[name])
 
                 # Add this profile name to the colour legend.
@@ -974,10 +975,10 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
             else:
                 logs.log_warning("No cells tagged for profile " + name)
 
-    if p.plot_cutlines and p.scheduled_options['cuts'] is not None:
+    if p.plot_cutlines and dyna.event_cut is not None:
         # For each profile cutting a subset of the cell population...
-        for cut_profile_name in p.scheduled_options['cuts'].profile_names:
-            cut_profile = p.profiles[cut_profile_name]
+        for cut_profile_name in dyna.event_cut.profile_names:
+            cut_profile = dyna.tissue_name_to_profile[cut_profile_name]
 
             # Indices of all cells cut by this profile.
             cut_cell_indices = cut_profile.picker.get_cell_indices(

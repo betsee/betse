@@ -126,24 +126,28 @@ def make(
     # If this is a tissue profile...
     if profile_type == 'tissue':
         #FIXME: Refactor to return the following class instead:
-        # profile = TissueProfile(
-        #     name=config['name'],
-        #     picker=TissuePickerABC.make(config['cell targets'], p),
-        # )
+        #     profile = TissueProfile(
+        #         name=config['name'],
+        #         picker=TissuePickerABC.make(config['cell targets'], p),
+        #     )
+        #
+        #Doing so will, of course, be slightly complicated. We'll need to grep
+        #the codebase for all references to "tissue_name_to_profile" and
+        #refactor all existing dictionary lookups into class attribute lookups.
 
         profile = {
             'type': conf['type'],
             'name': conf['name'],
+            'insular gj': conf['insular'],
             'z order': z_order,
+            'picker': tissuepick.make(p=p, conf=conf['cell targets']),
+
+            # For safety, coerce all diffusion constants to floats.
+            'diffusion constants': {
+                key: float(value) for key, value in (
+                    conf['diffusion constants'].items())
+            },
         }
-
-        profile['insular gj'] = conf['insular']
-        profile['picker'] = tissuepick.make(p=p, conf=conf['cell targets'])
-
-        # For safety, coerce all diffusion constants to floats.
-        profile['diffusion constants'] = {
-            key: float(value) for key, value in (
-                conf['diffusion constants'].items()) }
     # Else if this is a "cutting" profile...
     elif profile_type == 'cut':
         profile = TissueCut(

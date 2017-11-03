@@ -11,16 +11,13 @@ from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.config.confenum import (
     CellLatticeType, IonProfileType)
-from betse.science.config.event import eventcut
 from betse.science.config.event import eventvoltage
 from betse.science.simulate.simphase import SimPhaseKind
-from betse.science.tissue import tissuecls
 from betse.science.tissue.tissuepick import TissuePickerBitmap
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 # from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
-from collections import OrderedDict
 
 # ....................{ CLASSES                            }....................
 #FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
@@ -199,6 +196,14 @@ class Parameters(YamlFileABC):
     Attributes (Ion: Initial: Custom)
     ----------
 
+    Attributes (Tissue)
+    ----------
+    is_tissue_profiles : bool
+        ``True`` only if **tissue profiles** (i.e., user-defined regions within
+        the cluster to which specific base membrane diffusion profiles,
+        interventions, and individualized dynamics can be applied) are enabled.
+        Note that tissue profiles should typically *always* be enabled.
+
     Attributes (General: Scalars)
     ----------
     cell_polarizability : NumericTypes
@@ -300,6 +305,13 @@ class Parameters(YamlFileABC):
     ion_profile_custom_conc_env_na = yaml_alias(
         "['general options']['customized ion profile']"
         "['extracellular Na+ concentration']", float)
+
+    # ..................{ ALIASES ~ tissue                   }..................
+    #FIXME: Does this boolean actually serve a demonstrable purpose? I might be
+    #off-base here, but don't we always want tissue profiles? Is there actually
+    #a valid use case for even disabling all tissue profiles?
+    is_tissue_profiles = yaml_alias(
+        "['tissue profile definition']['profiles enabled']", bool)
 
     # ..................{ ALIASES ~ scalar                   }..................
     cell_polarizability = yaml_alias(
@@ -477,8 +489,6 @@ class Parameters(YamlFileABC):
         self.wound_channel_inhibitors_list = wc.get('inhibitors', None)
         self.wound_channel_inhibitors_Km = wc.get('Km inhibitors', None)
         self.wound_channel_inhibitors_n = wc.get('n inhibitors', None)
-
-        self.scheduled_options['cuts'] = eventcut.make(p=self)
 
         #---------------------------------------------------------------------------------------------------------------
         # GLOBAL INTERVENTIONS
@@ -1315,65 +1325,6 @@ class Parameters(YamlFileABC):
                 tpd['internal pore file'], self.conf_dirname)
         else:
             self.clipping_bitmap_hole = None
-
-        #FIXME: Shift the entire "profiles" instance variable and hence this
-        #initialization block... elsewhere. Unfortunately, the codebase's
-        #current usage of this variable is a bit of a spaghetti mess -- which
-        #complicates cleanup more than a little. The ideal location for this
-        #initialization block would be in the TissueHandler.__init__() method,
-        #as we need to guarantee its availability to all "TissueHandler"
-        #callers.
-        #
-        #The most significant complication is the eventcut.make() function,
-        #which references "p.profiles". This function is only called by the
-        #current function as follows:
-        #
-        #    self.scheduled_options['cuts'] = eventcut.make(p=self)
-        #
-        #Frankly, that's awful. There's absolutely *NO* need for 'cuts' to be a
-        #key of the "scheduled_options" dictionary. In fact, the entire
-        #"scheduled_options" dictionary appears to be superfluous. It's *NEVER*
-        #actually iterated over or treated like a dictionary. Its keys are only
-        #ever statically looked up. In short, this dictionary should *NOT*
-        #exist. For both efficiency and sanity, all keys of this dictionary
-        #should be refactored into simple instance variables of this class.
-        #While that's a somewhat larger issue than the current concern, we
-        #should at least refactor the "scheduled_options['cuts']" key like so:
-        #
-        #* In the TissueHandler.__init__() method, add:
-        #      self.event_cut = eventcut.make(p=p)
-        #* Remove this key entirely from this dictionary. This is actually
-        #  trivial, as this key is only ever accessed twice:
-        #  * Once in the plotutils.clusterPlot() method, which is passed a
-        #    "dyna" parameter. Assuming this undocumented (*sigh*)
-        #    parameter is a "TissueHandler" instance, simply access
-        #    "dyna.event_cut" rather than "p.scheduled_options['cuts']".
-        #  * Once in the TissueHandler._sim_events_tissue() method. Again,
-        #    just access "self.event_cut".
-        #
-        #That gets us *MOST* of the way. Additionally, we'll need to:
-        #
-        #* Shift this initialization block into the TissueHandler.__init__()
-        #  method. No modification should be required.
-        #* Refactor the Cells.redo_gj() and plotutils.clusterPlot() methods to
-        #  access "dyna.profiles" rather than "p.profiles". (Trivial in both
-        #  cases, happily.)
-        #* Refactor all "TissueHandler" methods to access "self.profiles" rather
-        #  than "p.profiles". (Also trivial, happily.)
-        #
-        #That's it. The worst of it is the "eventcut" refactoring, which frankly
-        #needed to be done sooner than later anyway. *sigh*
-
-        # If tissue profiles are currently enabled, parse all profiles.
-        self.profiles = OrderedDict()
-        if tpd['profiles enabled']:
-            for i, profile_config in enumerate(tpd['profiles']):
-                self.profiles[profile_config['name']] = tissuecls.make(
-                    p=self,
-                    conf=profile_config,
-                    # Convert from 0-based list indices to 1-based z order.
-                    z_order=i + 1,
-                )
 
     # ..................{ EXCEPTIONS                         }..................
     def die_unless_ecm(self) -> None:

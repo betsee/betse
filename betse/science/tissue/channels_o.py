@@ -2,16 +2,16 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+#FIXME: Consider moving this submodule into the channel-specific
+#"betse.science.tissue.channels" subpackage, for disambiguity.
+
 import numpy as np
 
-
 # calcium (and voltage) gated K+ channel-------------------------------------------------------------------------------
-#
 def cagPotassium(dyna,sim,cells,p):
     """
     Model of a high-conductance calcium activated potassium channel (SK channel), obtained from
     the allosteric model of Cox DH, Cui J, Aldrich RW. J Gen Physiology. 1997. 110: 257-281.
-
     """
 
     # get data on cytosolic calcium levels in target cells:
@@ -39,10 +39,3 @@ def cagPotassium(dyna,sim,cells,p):
 
     # delta_Q = - (dyna.maxDmKcag * P * (sim.vm - self.vrev))
     sim.Dm_cag[sim.iK] = dyna.maxDmKcag*P
-
-
-
-
-
-
-
