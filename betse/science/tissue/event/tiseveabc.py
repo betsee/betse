@@ -7,7 +7,7 @@ Abstract base classes of all timed event classes.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta  #, abstractmethod
 from betse.util.type.types import type_check, NumericTypes
 
 # ....................{ BASE                               }....................
@@ -17,55 +17,86 @@ class SimEventABC(object, metaclass=ABCMeta):
 
     Instances of this class parameterize an exogenous event (e.g., cell removal,
     voltage change) to be triggered at some time step(s) of the simulation.
+
+    Attributes
+    ----------
+    _is_fired : bool
+        ``True`` only if this event's :meth:`fire` method has already been
+        called for a previous time step of the appropriate simulation phase.
     '''
 
-    # ..................{ ABSTRACT                           }..................
-    @abstractmethod
-    def fire(self, sim: 'betse.science.sim.Simulator', t: NumericTypes) -> None:
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(self) -> None:
         '''
-        Apply this event to the passed time step of the passed tissue
-        simulation.
-
-        Parameters
-        ----------------------------
-        sim : Simulation
-            Current tissue simulation.
-        t : float
-            Time step to apply this event to.
+        Initialize this event.
         '''
 
-        pass
+        # Classify all passed parameters.
+        self._is_fired = False
 
-# ....................{ PERIOD                             }....................
+    # ..................{ PROPERTIES                         }..................
+    # Read-only properties, preventing callers from setting these attributes.
+
+    @property
+    def is_fired(self) -> bool:
+        '''
+        ``True`` only if this event's :meth:`fire` method has already been
+        called for a previous time step of the appropriate simulation phase.
+        '''
+
+        return self._is_fired
+
+    # ..................{ FIRERS                             }..................
+    @type_check
+    def fire(self) -> None:
+        '''
+        Apply this event.
+
+        This method notes this event to have been applied, ensuring the
+        :meth:`is_fired` property to subsequently report ``True``.
+        '''
+
+        self._is_fired = True
+
+# ....................{ SUBCLASSES                         }....................
 class SimEventSpikeABC(SimEventABC):
     '''
     Abstract base class of all classes describing simulation events occurring at
     only a single time step (rather than over a range of time steps).
 
     Attributes
-    ----------------------------
-    time : NumericTypes
-        Time step (s) at which to trigger this action.
-    _is_fired : bool
-        `True` if this action's `fire()` method has already been called at a
-        previous time step of the current simulation _or_ `False` otherwise.
-        Defaults to `False`.
+    ----------
+    _time_step : NumericTypes
+        Time step in seconds (s) at which to trigger this action.
     '''
 
-    # ..................{ CONCRETE                           }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, time: NumericTypes) -> None:
-        self.time = time
-        self._is_fired = False
+    def __init__(self, time_step: NumericTypes) -> None:
+        '''
+        Initialize this event.
 
-# ....................{ PULSE                              }....................
+        Parameters
+        ----------
+        time_step : NumericTypes
+            Time step in seconds (s) at which to trigger this action.
+        '''
+
+        # Initialize our superclass.
+        super().__init__()
+
+        # Classify all passed parameters.
+        self._time_step = time_step
+
+
 class SimEventPulseABC(SimEventABC):
     '''
     Abstract base class of all classes describing simulation events occurring
     over a range of time steps (rather than at only a single time step).
 
     Attributes
-    ----------------------------
+    ----------
     start_time : NumericTypes
         Time step (s) at which to begin triggering this event.
     stop_time : NumericTypes
@@ -85,7 +116,7 @@ class SimEventPulseABC(SimEventABC):
         * The peak voltage is later decreased to the background voltage.
     '''
 
-    # ..................{ CONCRETE                           }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
@@ -94,6 +125,10 @@ class SimEventPulseABC(SimEventABC):
         step_rate: NumericTypes,
     ) -> None:
 
+        # Initialize our superclass.
+        super().__init__()
+
+        # Classify all passed parameters.
         self.start_time = start_time
         self.stop_time = stop_time
         self.step_rate = step_rate

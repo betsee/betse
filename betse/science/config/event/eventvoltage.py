@@ -6,13 +6,15 @@
 High-level classes aggregating all parameters pertaining to simulation events.
 '''
 
+#FIXME: Shift this submodule into the "betse.science.tissue.event" subpackage
+#and then remove this subpackage entirely.
+
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimConfigException
-from betse.science.config.event.eventabc import SimEventPulseABC
+from betse.science.tissue.event.tiseveabc import SimEventPulseABC
 from betse.science.math import toolbox
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, NoneType, NumericTypes
-
 
 # ....................{ SUBCLASSES                         }....................
 class SimEventPulseVoltage(SimEventPulseABC):

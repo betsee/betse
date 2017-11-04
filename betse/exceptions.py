@@ -389,6 +389,13 @@ class BetseSimPhaseException(BetseSimException):
     pass
 
 
+class BetseSimTissueException(BetseSimException):
+    '''
+    Simulation tissue-specific exception.
+    '''
+    pass
+
+
 class BetseSimVectorException(BetseSimException):
     '''
     Vector-specific exception.

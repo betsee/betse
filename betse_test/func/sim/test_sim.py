@@ -15,9 +15,8 @@ from betse_test.util.mark.skip import skip_unless_matplotlib_anim_writer
 from betse_test.util.mark.fail import xfail
 
 # ....................{ TESTS                              }....................
-def test_cli_sim_backward_compatibility(
-    betse_cli_sim_backward_compatibility: 'CLISimTester',
-) -> None:
+def test_cli_sim_compat(
+    betse_cli_sim_backward_compatibility: 'CLISimTester') -> None:
     '''
     Functional test exercising all simulation subcommands required to validate
     backward compatibility with a temporary simulation configuration file

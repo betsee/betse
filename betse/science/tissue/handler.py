@@ -7,6 +7,7 @@
 # ....................{ IMPORTS                            }....................
 import copy
 import numpy as np
+from betse.exceptions import BetseSimTissueException
 from betse.science.channels import vg_ca as vgca
 from betse.science.channels import vg_funny as vgfun
 from betse.science.channels import vg_k as vgk
@@ -16,21 +17,19 @@ from betse.science.channels import vg_nap as vgnap
 from betse.science.channels import wound_channel as w
 from betse.science.math import modulate as mod
 from betse.science.math import toolbox as tb
-from betse.science.tissue import tisscls
+from betse.science.tissue import tiscls
+from betse.science.tissue.event.tisevecut import SimEventCut
 from betse.science.tissue.channels_o import cagPotassium
-from betse.science.tissue.event import tissevecut
 from betse.util.io.log import logs
-from betse.util.type import types
+# from betse.util.type import types
 from betse.util.type.types import type_check
 from collections import OrderedDict
 from random import shuffle
-# from scipy import spatial as sps
-# from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ CLASSES                            }....................
 #FIXME: Since this class handles both tissue profiles *AND* scheduled
 #interventions, consider renaming this class to a less ambiguous name -- say, to
-#"TissueEventManager".
+#"TissueEventHandler".
 #FIXME: Document all instance variables of this class.
 class TissueHandler(object):
     '''
@@ -59,10 +58,6 @@ class TissueHandler(object):
         **Cutting event** (i.e., event removing a region of the current cluster
         at some time step during the simulation phase) if enabled by the
         current simulation configuration *or* ``None`` otherwise.
-    cutting_event_run : bool
-        ``True`` only if the :meth:`runAllDynamics` method called during the
-        simulation phase has already performed the cutting event for a prior
-        time step of this phase.
     wound_channel_used : bool
         ``True`` only if the current simulation configuration enabled simulation
         of the mechanosensitive Na channel associated with wounding *and* the
@@ -85,40 +80,12 @@ class TissueHandler(object):
         # Total number of cell membranes across all cells in this cluster.
         self.data_length = len(cells.mem_i)
 
-        # Initialize all scheduled interventions.
-        self._init_events(p)
-
-        # Initialize all tissue and cut profiles.
+        # Initialize tissue and cut profiles.
         self._init_profiles(p)
 
-
-    @type_check
-    def _init_events(self, p: 'betse.science.parameters.Parameters') -> None:
-        '''
-        Initialize all scheduled interventions defined by the passed simulation
-        configuration.
-        '''
-
-        #FIXME: Embed the following booleans directly into the "event_cut"
-        #object itself. Specifically:
-        #
-        #* Shift "wound_channel_used" into the "SimEventCut" class.
-        #* Shift "cutting_event_run" into the "SimEventABC" class as a new
-        #  "is_fired" boolean that is:
-        #  * Initialized to "False".
-        #  * Set to "True" by the SimEventABC.fire() method.
-
-        # Record that the cutting event has yet to be performed.
-        self.cutting_event_run = False
-        self.wound_channel_used = False
-
-        #FIXME: Refactor as follows:
-        #
-        #* Shift the entirety of the eventcut.make() function into this method.
-        #* Remove the eventcut.make() function.
-
-        # Cutting event enabled by this configuration (if any).
-        self.event_cut = tissevecut.make(p=p)
+        # Initialize scheduled interventions *AFTER* tissue and cut profiles, as
+        # the former requires the latter.
+        self._init_events(p)
 
 
     @type_check
@@ -148,15 +115,72 @@ class TissueHandler(object):
 
             #FIXME: Refactor as follows:
             #
-            #* Shift the entirety of the tisscls.make() function into this
+            #* Shift the entirety of the tiscls.make() function into this
             #  method.
-            #* Remove the tisscls.make() function.
-            self.tissue_name_to_profile[tissue_name] = tisscls.make(
+            #* Remove the tiscls.make() function.
+            #FIXME: Split this single ambiguous dictionary into two
+            #non-ambiguous dictionaries:
+            #
+            #* "tissue_name_to_profile", aggregating all tissue profiles.
+            #* "cut_name_to_profile", aggregating all cut profiles.
+            #
+            #This is trivially accomplished by branching on the "['type']" key
+            #of each such YAML dictionary.
+            self.tissue_name_to_profile[tissue_name] = tiscls.make(
                 p=p,
                 conf=profile_config,
                 # Convert from 0-based list indices to 1-based z order.
                 z_order=i + 1,
             )
+
+
+    @type_check
+    def _init_events(self, p: 'betse.science.parameters.Parameters') -> None:
+        '''
+        Initialize all scheduled interventions defined by the passed simulation
+        configuration.
+        '''
+
+        #FIXME: Embed the following booleans directly into the "event_cut"
+        #object itself. Specifically:
+        #
+        #* Shift "wound_channel_used" into the "SimEventCut" class.
+
+        # Record that the cutting event has yet to be performed.
+        self.wound_channel_used = False
+
+        # Cutting event if enabled by this configuration or "None" otherwise.
+        self.event_cut = None
+
+        #FIXME: Access only public "Parameters" attributes.
+        # If this event is enabled...
+        ce = p._conf['cutting event']
+        if bool(ce['event happens']):
+            # If cut profiles are enabled...
+            if self.tissue_name_to_profile:
+                # List of the names of all cut profiles performed by this event.
+                cut_profile_names = ce['apply to']
+
+                # For each such name...
+                for cut_profile_name in cut_profile_names:
+                    # If this cut profile does *NOT* exist, raise an exception.
+                    if cut_profile_name not in self.tissue_name_to_profile:
+                        raise BetseSimTissueException(
+                            'Cut profile "{}" referenced by '
+                            'cutting event not found.'.format(
+                                cut_profile_name))
+
+                # Define this event.
+                self.event_cut = SimEventCut(
+                    # Time step at which to cut. For simplicity, this is coerced
+                    # to be the start of the simulation.
+                    time_step=0.0,
+                    profile_names=cut_profile_names,
+                )
+            # Else, log a non-fatal warning.
+            else:
+                logs.log_warning(
+                    'Ignoring cutting event, as cut profiles are disabled.')
 
     # ..................{ RUNNERS ~ init                     }..................
     def runAllInit(
@@ -234,6 +258,9 @@ class TissueHandler(object):
             elif numo < 1:
                 numo = 1
 
+            #FIXME: Isn't the exact same "data_length" already available as the
+            #"self.data_length" variable initialized by the __init__() method?
+            #Leaping unicorns deny the inevitability of love!
             data_length = len(cells.mem_i)
             data_fraction = int((numo/100)*data_length)
 
@@ -816,26 +843,8 @@ class TissueHandler(object):
                 sim.D_env_weight = sim.D_env_weight.reshape(cells.X.shape)
                 sim.D_env_weight_base = sim.D_env_weight_base.reshape(cells.X.shape)
 
-        #FIXME: Sess, for whatever reason, this logic makes it impossible to run
-        #a cutting event with a sim file as an init. Therefore, I temporarily
-        #disabled it.
-        #FIXME: O.K.; that's awful. Sorry about that. The core issue appears to
-        #be that the "event_cut" object was previously owned by the "Parameters"
-        #class rather than this class. That's fixed now, suggesting this should
-        #probably now behave as intended. (Yay!)
-        #
-        #Thanks for identifying this buggy spot. I won't reenable it, as it's
-        #clearly problematic; we'll just eliminate this commented line. Sadly,
-        #we now have two booleans governing whether or not the cutting event has
-        #been run yet or not:
-        #
-        #" "self.event_cut._is_fired", previously used here.
-        #" "self.cutting_event_run", now used here.
-        #
-        #That's not the worst thing that's ever happened. So, fine for now!
-
-        # if self.event_cut is not None and not self.event_cut._is_fired and t >= self.event_cut.time:
-        if self.event_cut is not None and not self.cutting_event_run:
+        # If the cutting event is enabled but has yet to be performed, do so.
+        if self.event_cut is not None and not self.event_cut.is_fired:
             for cut_profile_name in self.event_cut.profile_names:
                 logs.log_info(
                     'Cutting cell cluster via cut profile "%s"...',
@@ -856,8 +865,7 @@ class TissueHandler(object):
             self.runAllInit(sim, cells, p)
 
             # Avoid repeating this cutting event at subsequent time steps.
-            # self.event_cut._is_fired = True
-            self.cutting_event_run = True
+            self.event_cut.fire()
 
         # If the voltage event is enabled, adjust the voltage accordingly.
         if p.scheduled_options['extV'] is not None:
@@ -1091,12 +1099,13 @@ class TissueHandler(object):
         sim.P_cells = sim.P_mod + sim.P_base
 
 
+    @type_check
     def removeCells(
         self,
         tissue_picker,
-        sim,
-        cells,
-        p,
+        sim:   'betse.science.sim.Simulator',
+        cells: 'betse.science.cells.Cells',
+        p:     'betse.science.parameters.Parameters',
         # hole_tag = False,
     ) -> None:
         '''
@@ -1106,16 +1115,13 @@ class TissueHandler(object):
         ---------------------------------
         tissue_picker : TissuePickerABC
             Object matching all cells to be removed.
-        sim : Simulator
-            Instance of the `Simulator` class.
-        cells : Cells
-            Instance of the `Cells` class.
-        p : Parameters
-            Instance of the `Parameters` class.
+        sim : betse.science.sim.Simulation
+            Current simulation.
+        cells : betse.science.cells.Cells
+            Current cell cluster.
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
         '''
-        assert types.is_simulator(sim), types.assert_not_simulator(sim)
-        assert types.is_cells(cells),   types.assert_not_cells(cells)
-        assert types.is_parameters(p),  types.assert_not_parameters(p)
 
         # Redo environmental diffusion matrices by setting the environmental spaces
         # around cut world to the free value (True) or not (False)?

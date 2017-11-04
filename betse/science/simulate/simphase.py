@@ -104,11 +104,11 @@ class SimPhase(object):
         ----------
         kind : SimPhaseKind
             Current simulation phase type.
-        sim : Simulator
+        sim : betse.science.sim.Simulation
             Current simulation.
-        cells : Cells
+        cells : betse.science.cells.Cells
             Current cell cluster.
-        p : Parameters
+        p : betse.science.parameters.Parameters
             Current simulation configuration.
         '''
 
