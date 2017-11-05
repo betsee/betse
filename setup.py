@@ -8,6 +8,10 @@
 tasks (e.g., installation, freezing, test running) for this application.
 '''
 
+#FIXME: Consider wrapping on Windows with "pynsist", a framework for generating
+#Windows installers bundling Python applications complete with a Python
+#interpreter and requisite packages.
+
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
