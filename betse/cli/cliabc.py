@@ -29,7 +29,7 @@ from betse.lib import libs
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logenum import LogLevel
 from betse.util.path.command import cmds
-from betse.util.path.command.cmdarg import HelpFormatterParagraph
+from betse.util.path.command.cmdarg import SemicolonAwareHelpFormatter
 from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.pyprof import profile_callable, ProfileType
 from betse.util.type import types
@@ -231,7 +231,7 @@ class CLIABC(object, metaclass=ABCMeta):
         self._arg_parser_kwargs = {
             # Wrap non-indented lines in help and description text as paragraphs
             # while preserving indented lines in such text as is.
-            'formatter_class': HelpFormatterParagraph,
+            'formatter_class': SemicolonAwareHelpFormatter,
         }
 
         # Dictionary of keyword arguments initializing the core argument parser.
@@ -245,6 +245,7 @@ class CLIABC(object, metaclass=ABCMeta):
 
         # Update this dictionary with subclass-specific arguments.
         arg_parser_top_kwargs.update(self._arg_parser_top_kwargs)
+        # print('Argument parser options: {!r}'.format(arg_parser_top_kwargs))
 
         # Core argument parser.
         self._arg_parser = ArgParserType(**arg_parser_top_kwargs)
@@ -339,13 +340,13 @@ class CLIABC(object, metaclass=ABCMeta):
 
             CLIOptionArgEnum(
                 long_name='--profile-type',
-                synopsis='''
-    type of profiling to perform (defaults to "{default}"):
-    ;* "none", disabling profiling
-    ;* "call", profiling callables (functions, methods)
-    ;* "size", profiling object sizes (requires "pympler")
-    ''',
-    # ;* "line", profiling code lines (requires "pprofile")
+                synopsis=(
+                    'type of profiling to perform (defaults to "{default}"):'
+                    '\n;* "none", disabling profiling'
+                    '\n;* "call", profiling callables (functions, methods)'
+                    '\n;* "size", profiling object sizes (requires "pympler")'
+                    # ;* "line", profiling code lines (requires "pprofile")
+                ),
                 enum_type=ProfileType,
                 enum_default=ProfileType.NONE,
             ),

@@ -14,7 +14,7 @@ Low-level command-line argument facilities.
 # ....................{ IMPORTS                            }....................
 import re
 from argparse import HelpFormatter
-
+# from betse.util.io.log import logs
 from betse.util.type.text import strs
 from betse.util.type.types import type_check, GeneratorType, SequenceTypes
 
@@ -31,7 +31,7 @@ Regular expression capturing all spaces prefixing the subject string.
 '''
 
 # ....................{ FORMATTERS                         }....................
-class HelpFormatterParagraph(HelpFormatter):
+class SemicolonAwareHelpFormatter(HelpFormatter):
     '''
     Formatter wrapping all lines *not* prefixed by ``;`` in
     :class:`ArgumentParser` help text into paragraphs.
@@ -115,21 +115,22 @@ class HelpFormatterParagraph(HelpFormatter):
         self, text: str, width: int, indent: str = '') -> list:
         '''
         List of lines produced by wrapping all non-indented lines in the passed
-        text into paragraphs and splitting such string on newlines.
+        text into paragraphs and splitting this string on newlines.
         '''
 
-        # Initialize such text wrapper with the passed arguments.
+        # Initialize this text wrapper with the passed arguments.
         strs.text_wrapper.width = width
         strs.text_wrapper.initial_indent = indent
         strs.text_wrapper.subsequent_indent = indent
 
-        # List of lines wrapped from such text.
+        # List of lines wrapped from this text.
         lines = []
 
-        # Iteratively construct such list.
+        # Iteratively construct this list.
         for paragraph_wrapped_lines in self._paragraphs_wrapped_lines(text):
             lines.extend(paragraph_wrapped_lines)
 
+        # Return this list.
         return lines
 
 
@@ -140,36 +141,38 @@ class HelpFormatterParagraph(HelpFormatter):
         wrapped from the passed text.
         '''
 
-        # Number of spaces indenting the first line of such text.
+        # Number of spaces indenting the first line of this text.
         main_indent_len = _get_text_indent_len(text)
 
         # List of lines accumulating the current paragraph. For efficiency,
         # this would ideally be a StringIO-based string buffer rather than a
         # list; unfortunately, the former fails to provide a sane method for
-        # testing whether such buffer is empty (i.e., has been written to),
+        # testing whether this buffer is empty (i.e., has been written to),
         # whereas the latter implicitly provides such functionality.
         paragraph_lines = []
 
-        # For each line split from such text...
+        # For each line split from this text...
         for line in text.splitlines():
-            # If such line is a blank line, pretend such line consisted of a ";"
-            # instead to force such line to stop wrapping the currently
+            # If this line is a blank line, pretend this line consisted of a ";"
+            # instead to force this line to stop wrapping the currently
             # accumulated paragraph if any.
             if _BLANK_LINE_REGEX.match(line):
                 line = ';'
             assert len(line), 'Line empty.'
 
-            # If such line is prefixed by ";", prevent such line from being
+            # If this line is prefixed by ";", prevent this line from being
             # wrapped by yielding such line as a newly unwrapped paragraph.
             #
-            # Since the prior conditional guarantees such line to now be
-            # nonempty, the first character of such line is safely indexable.
+            # Since the prior conditional guarantees this line to now be
+            # nonempty, the first character of this line is safely indexable.
             if line[0] == ';':
-                # Strip such ";".
+                # print('Non-wrappable line detected: ' + line)
+
+                # Strip this ";".
                 line = line[1:]
 
-                # If a previously accumulated paragraph exists, yield such
-                # paragraph *BEFORE* yielding such line.
+                # If a previously accumulated paragraph exists, yield this
+                # paragraph *BEFORE* yielding this line.
                 if paragraph_lines:
                     yield self._wrap_lines(paragraph_lines, main_indent_len)
 
@@ -178,9 +181,10 @@ class HelpFormatterParagraph(HelpFormatter):
 
                 # Yield such line as a discrete paragraph.
                 yield [line]
-            # Else, wrap such line. Specifically, accumulate such line for
+            # Else, wrap this line. Specifically, accumulate this line for
             # subsequent wrapping and yielding.
             else:
+                # print('Wrappable line detected: ' + line)
                 paragraph_lines.append(line)
 
         # If a previously accumulated paragraph exists, yield this as the last.
@@ -205,14 +209,14 @@ class HelpFormatterParagraph(HelpFormatter):
         # currently passed paragraph.
         paragraph_indent_len = _get_text_indent_len(lines[0]) - main_indent_len
 
-        # String of spaces of such length.
+        # String of spaces of this length.
         paragraph_indent = ' ' * paragraph_indent_len
 
-        # Indent each wrapped line by such difference.
+        # Indent each wrapped line by this difference.
         strs.text_wrapper.initial_indent    = paragraph_indent
         strs.text_wrapper.subsequent_indent = paragraph_indent
 
-        # Strip and wrap such lines.
+        # Strip and wrap these lines.
         return strs.text_wrapper.wrap(
             self._whitespace_matcher.sub(
                 ' ', strs.join_on_newline(lines)).strip())
@@ -223,4 +227,5 @@ def _get_text_indent_len(text: str) -> int:
     '''
     Number of spaces indenting the first line of the passed text.
     '''
+
     return len(_INDENTATION_REGEX.match(text).group(1))
