@@ -266,12 +266,12 @@ class PlotCellsPipe(PlotPipeABC):
         self._export_prep()
 
         plotutil.plotStreamField(
-            1e6*self._phase.sim.u_env_x,
-            1e6*self._phase.sim.u_env_y,
+            1e9*self._phase.sim.u_env_x,
+            1e9*self._phase.sim.u_env_y,
             self._phase.cells, self._phase.p,
             plot_ecm=True,
             title='Final Fluid Velocity in Cell Collective',
-            cb_title='Velocity [um/s]',
+            cb_title='Velocity [nm/s]',
             colorAutoscale=conf.is_color_autoscaled,
             minColor=conf.color_min,
             maxColor=conf.color_max,
@@ -326,13 +326,13 @@ class PlotCellsPipe(PlotPipeABC):
         # Prepare to export the current plot.
         self._export_prep()
 
-        if self._phase.p.smooth_level == 0.0 or self._phase.p.smooth_concs is False:
-            cc_Ca = gaussian_filter(
-                self._phase.sim.cc_env[
-                    self._phase.sim.iCa].reshape(self._phase.cells.X.shape),
-                1.0)
-        else:
-            cc_Ca = self._phase.sim.cc_env[self._phase.sim.iCa].reshape(
+        # if self._phase.p.smooth_level == 0.0 or self._phase.p.smooth_concs is False:
+        #     cc_Ca = gaussian_filter(
+        #         self._phase.sim.cc_env[
+        #             self._phase.sim.iCa].reshape(self._phase.cells.X.shape),
+        #         1.0)
+        # else:
+        cc_Ca = self._phase.sim.cc_env[self._phase.sim.iCa].reshape(
                 self._phase.cells.X.shape)
 
         pyplot.figure()

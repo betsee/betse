@@ -1175,7 +1175,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
     return cX_cell_1, cX_env_1, f_X
 
 def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, Dgj=1.0e-12, Ftj = 1.0, c_bound=1.0e-6,
-                   ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, cmems = None,
+                   ignoreECM = True, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, cmems = None,
                    time_dilation_factor = 1.0):
 
     """
@@ -1368,6 +1368,8 @@ def update_Co(sim, cX_cell, cX_mem, cX_env, flux, cells, p, ignoreECM = True):
 
     if p.is_ecm is True:
 
+        # FIXME use new matrix to map this properly!!!!!!!!!!!
+
         flux_env = np.zeros(sim.edl)
         flux_env[cells.map_mem2ecm] = -flux
 
@@ -1533,6 +1535,23 @@ def single_cell_div_free(cfluxo, cells):
     cflux = cfxo[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + cfyo[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
 
     return cflux
+
+def smooth_flux(Fxo, Fyo, cells):
+
+    """
+    Uses the Helmholtz-Hodge decomposition to smooth a vector field in a manner that does not change the physics.
+    Fxo, Fyo must be arrays defined on the environmental grid
+
+    """
+
+    _, Frx, Fry, _, Fdx, Fdy = HH_Decomp(Fxo, Fyo, cells)
+
+    # free current density at each membrane, "smoothed" using Helmholtz-Hodge decomposition and reconstruction:
+    Fx = Frx + Fdx
+    Fy = Fry + Fdy
+
+
+    return Fx, Fy
 
 
 

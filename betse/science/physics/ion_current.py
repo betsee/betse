@@ -38,6 +38,11 @@ def get_current(sim, cells, p):
 
     # divergence of cell current (for use in calculations, not actually true divergence):
     # sim.divJ_cell =  -np.dot(cells.M_sum_mems, sim.Jn * cells.mem_sa)/ cells.cell_sa
+
+    # divergence of cell current:
+    # FIXME use new matrix to map this properly -- won't need this!!
+    div_Jc = np.dot(cells.M_sum_mems, sim.Jmem * cells.mem_sa) / cells.cell_vol
+
     # conductivity of cells is assumed to be 0.1x lower than that of free environment:
     sim.sigma_cell = np.asarray([((z ** 2) * p.q * p.F * cc * D * 0.1) / (p.kb * p.T) for (z, cc, D) in
                                  zip(sim.zs, sim.cc_cells, sim.D_free)]).mean(axis=0)
@@ -51,7 +56,7 @@ def get_current(sim, cells, p):
     if p.is_ecm is True:
 
         # calculate the net charge in the environment:
-        sim.rho_env = np.dot(sim.zs * p.F, sim.cc_env) + sim.extra_rho_env
+        # sim.rho_env = np.dot(sim.zs * p.F, sim.cc_env) + sim.extra_rho_env
 
         # calculate current densities in the environment from ion fluxes:
         J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x) + sim.extra_Jenv_x
@@ -66,18 +71,23 @@ def get_current(sim, cells, p):
         #Helmholtz-Hodge decomposition to obtain divergence-free projection of actual currents (zero n_hat at boundary):
         _, sim.J_env_x, sim.J_env_y, BB, Jbx, Jby = stb.HH_Decomp(J_env_x_o, J_env_y_o, cells)
 
+        # free current density at each membrane, "smoothed" using Helmholtz-Hodge:
+        sim.Jtx = sim.J_env_x + Jbx
+        sim.Jty = sim.J_env_y + Jby
+
+        # divergence of the environmental current:
+        div_Je = fd.divergence(sim.Jtx, sim.Jty, cells.delta, cells.delta)
+
+        # FIXME use new matrix to map this properly!
+        div_Je.ravel()[cells.map_cell2ecm] += -div_Jc
+
+        # the negative divergence of the current is the change in charge density:
+        sim.rho_env += -div_Je.ravel()*p.dt
 
         # The solution to the Screened Poisson Equation in the limit of large screening constant Ko, is simply
-        # Phi = f/Ko2. This makes a perfect voltage estimate for the extracellular space.
-
-        if p.smooth_level > 0.0:
-
-            v_env = (gaussian_filter(sim.rho_env.reshape(cells.X.shape), p.smooth_level).ravel())/((sim.ko_env**2)*p.er*p.eo)
-
-        else:
-
-            v_env = (sim.rho_env.ravel()) / ((sim.ko_env ** 2) * p.er * p.eo)
-
+        # Phi = +f/Ko2. This makes a perfect voltage estimate for the extracellular space.
+        # (the Screened Poisson Equation is Lap(Phi) - ko2 Phi = -rho/(eta)
+        v_env = (sim.rho_env) / ((sim.ko_env ** 2) * p.er * p.eo)
 
         v_env = v_env.reshape(cells.X.shape)
 
@@ -90,58 +100,19 @@ def get_current(sim, cells, p):
         # gradient of the polarization voltage yields the electric field:
         gVex, gVey = fd.gradient(v_env, cells.delta)
 
-        # keep the gradient of environmental voltage calculated from raw charge; this works in sim.update_ecm:
-        sim.gVex = gVex
-        sim.gVey = gVey
-
         # assign to environmental voltage array:
         sim.v_env = 1*v_env.ravel()
 
-        if p.smooth_level > 0.0:
+        # use Hodgkin-Huxley decomposition and recomposition to smooth the electric field:
+        gVex, gVey = stb.smooth_flux(gVex.reshape(cells.X.shape), gVey.reshape(cells.X.shape), cells)
 
-            # smooth currents
-            sim.J_env_x = gaussian_filter(sim.J_env_x, p.smooth_level)
-            sim.J_env_y = gaussian_filter(sim.J_env_y, p.smooth_level)
-
-
-        # Method #1 -----------------------------------------
-        # Change in free current density at each membrane:
-        sim.Jtx = sim.J_env_x + Jbx
-        sim.Jty = sim.J_env_y + Jby
-
-        # map current from extracellular space to membrane normal
-        sim.Jme = (sim.Jtx.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-               sim.Jty.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+        # assign to electric field of the system:
+        sim.E_env_x = -gVex
+        sim.E_env_y = -gVey
 
 
-        #-------------------------------------------------------
-
-        # recalculate the conductivity as it will change every itteration:
-        # calculate specific maps of conductivity in cells and environment
-
-        # conductivity map for environment:
-        sim.sigma_env = np.asarray(
-            [((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
-             zip(sim.zs, sim.cc_env, sim.D_env)]).mean(
-            axis=0)
-
-        if p.smooth_level_sigma_map > 0.0:
-            # environmental conductivity matrix needs to be smoothed to assured simulation stability:
-            sim.sigma_env = gaussian_filter(sim.sigma_env.reshape(cells.X.shape), p.smooth_level_sigma_map)
-
-
-        # calculate electric field components; these are smoothed and more ideal for other environmental updates:
-        sim.E_env_x = sim.Jtx*(1/sim.sigma_env.reshape(cells.X.shape))
-        sim.E_env_y = sim.Jty*(1/sim.sigma_env.reshape(cells.X.shape))
-
-        # # Add in any electric field resulting from an applied voltage:
-        # sim.E_env_x += -((sim.bound_V['R'] - sim.bound_V['L'])/(cells.xmax - cells.xmin))*np.ones(cells.X.shape)
-        # sim.E_env_y += -((sim.bound_V['T'] - sim.bound_V['B'])/(cells.ymax - cells.ymin))*np.ones(cells.X.shape)
-        #
-        # # Calculate the normal component of electric field at the cell
-        #
-        # sim.Eme = (sim.E_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-        #        sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+        sim.Eme = (sim.E_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+               sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
     else:
 
@@ -150,12 +121,16 @@ def get_current(sim, cells, p):
         # divergence of transmembrane current represents rate of change of charge in space:
         divJc = np.dot(cells.M_sum_mems, sim.Jn * cells.mem_sa) / cells.cell_vol
 
-        # solving the Poisson equation for divJc yields an approximation for the voltage change:
-        venv = np.dot(cells.lapGJ_P_inv, divJc)
+        # the change in charge from the cell perspective is -divJc; the environment receives it so it's +:
+        # FIXME use new matrix to map this properly!
+        sim.rho_env[cells.map_cell2ecm] += divJc*p.dt
 
-        sim.v_env[cells.map_cell2ecm] += venv*p.dt*(1/sim.cedl_cell)
+        # Use the ko large limit for Screened Poisson Equation:
+        venv = (sim.rho_env.ravel()) / ((sim.ko_cell ** 2) * p.er * p.eo)
 
-        # gradient of the polarization voltage yields the electric field
+        sim.v_env += venv
+
+        # gradient of the polarization voltage yields the electric field:
         gVex, gVey = fd.gradient(sim.v_env.reshape(cells.X.shape), cells.delta)
 
         sim.E_env_x = -gVex
@@ -170,8 +145,66 @@ def get_current(sim, cells, p):
                                                               Joy.reshape(cells.X.shape), cells)
 
         # map current from extracellular space to membrane normal
-        sim.Jme = (Jox.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-               Joy.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+        sim.Eme = (sim.E_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+               sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+
+
+# WASTELANDS (Options)--------------------------------------------------------------------------------------------------
+
+# Calculate voltage and electric fields from a current:
+#         divJ = fd.divergence(J_env_x_o.reshape(cells.X.shape) / sim.sigma_env,
+#                                  J_env_y_o.reshape(cells.X.shape) / sim.sigma_env,
+#                                  cells.delta, cells.delta)
+#
+#         Vnet = np.dot(cells.lapENVinv, -divJ.ravel())
+#
+#         sim.E_env_x, sim.E_env_y = fd.gradient(Vnet.reshape(cells.X.shape), cells.delta)
+
+# Update electric field with boundary voltage, without actually working with voltage:
+#         # calculate electric field components; these are smoothed and more ideal for other environmental updates:
+        # sim.E_env_x = sim.Jtx*(1/sim.sigma_env.reshape(cells.X.shape))
+        # sim.E_env_y = sim.Jty*(1/sim.sigma_env.reshape(cells.X.shape))
+
+        # # Add in any electric field resulting from an applied voltage:
+        # sim.E_env_x += -((sim.bound_V['R'] - sim.bound_V['L'])/(cells.xmax - cells.xmin))*np.ones(cells.X.shape)
+        # sim.E_env_y += -((sim.bound_V['T'] - sim.bound_V['B'])/(cells.ymax - cells.ymin))*np.ones(cells.X.shape)
+        #
+        # # Calculate the normal component of electric field at the cell
+        #
+        # sim.Eme = (sim.E_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+        #        sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+
+    # keep the gradient of environmental voltage calculated from raw charge:
+    # sim.gVex = gVex
+    # sim.gVey = gVey
+
+        # #-------------------------------------------------------
+        #
+        # # recalculate the conductivity as it will change every itteration:
+        # # calculate specific maps of conductivity in cells and environment
+        #
+        # # conductivity map for environment:
+        # sim.sigma_env = np.asarray(
+        #     [((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
+        #      zip(sim.zs, sim.cc_env, sim.D_env)]).mean(
+        #     axis=0)
+        #
+        # if p.smooth_level_sigma_map > 0.0:
+        #     # environmental conductivity matrix needs to be smoothed to assured simulation stability:
+        #     sim.sigma_env = gaussian_filter(sim.sigma_env.reshape(cells.X.shape), p.smooth_level_sigma_map)
+
+    # side note that an alternative smooth (though very diffuse!) approximation for the environmental voltage is:
+    # conductivity map for environment:
+    # sim.sigma_env = np.asarray(
+    #     [((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
+    #      zip(sim.zs, sim.cc_env, sim.D_env)]).mean(
+    #     axis=0)
+    #
+    # if p.smooth_level_sigma_map > 0.0:
+    #     # environmental conductivity matrix needs to be smoothed to assured simulation stability:
+    #     sim.sigma_env = gaussian_filter(sim.sigma_env.reshape(cells.X.shape), p.smooth_level_sigma_map)
+
+    # v_env = np.dot(cells.lapENVinv, -sim.rho_env.ravel()/sim.sigma_env.ravel())
 
 
 

@@ -2800,8 +2800,6 @@ class MasterOfNetworks(object):
                 # transport the molecule through gap junctions and environment:
                 obj.transport(sim, cells, p)
 
-                # print(obj.name, obj.f_mem.mean())
-
                 # ensure no negs:
                 stb.no_negs(obj.c_cells)
                 stb.no_negs(obj.c_env)
@@ -2879,8 +2877,6 @@ class MasterOfNetworks(object):
 
                 # finally, update the concentrations using the final eval statements:
                 if self.transporters[name].react_transport_tag[i] == 'mem_concs':
-
-                    # print("--> ", self.transporters[name].reactants_list[i], delta_react.mean())
 
                     self.cell_concs[self.transporters[name].reactants_list[i]][targ_cell] = \
                         self.cell_concs[self.transporters[name].reactants_list[i]][targ_cell] + \
@@ -2975,7 +2971,6 @@ class MasterOfNetworks(object):
 
                     raise BetseSimConfigException("Internal error: transporter zone not specified correctly!")
 
-            # print("---------------------------------")
 
     def run_loop_channels(self, sim, cells, p):
 
@@ -3638,11 +3633,11 @@ class MasterOfNetworks(object):
 
             if Q < 0 and np.abs(Q) <= sim.cc_cells[sim.iP].mean():  # if net charge is anionic
 
-                sim.cc_cells[sim.iP] = sim.cc_cells[sim.iP] - np.abs(Q)
+                self.cell_concs['P'] = sim.cc_cells[sim.iP] - np.abs(Q)
 
             elif Q > 0 and np.abs(Q) <= sim.cc_cells[sim.iK].mean():
 
-                sim.cc_cells[sim.iK] = sim.cc_cells[sim.iK] - np.abs(Q)
+                self.cell_concs['K'] = sim.cc_cells[sim.iK] - np.abs(Q)
 
             elif Q < 0 and np.abs(Q) > sim.cc_mems[sim.iP].mean():  # if net charge is anionic
                 raise BetseSimConfigException("You've defined way more anionic charge in "
@@ -3660,9 +3655,10 @@ class MasterOfNetworks(object):
         elif tag == 'env':
 
             if Q < 0 and np.abs(Q) <= sim.cc_env[sim.iP].mean():  # if net charge is anionic
-                sim.cc_env[sim.iP] = sim.cc_env[sim.iP] - np.abs(Q)
+
+                self.env_concs['P'] = sim.cc_env[sim.iP] - np.abs(Q)
             elif Q > 0 and np.abs(Q) <= sim.cc_env[sim.iK].mean():
-                sim.cc_env[sim.iK] = sim.cc_env[sim.iK] - np.abs(Q)
+                self.env_concs['K'] = sim.cc_env[sim.iK] - np.abs(Q)
             elif Q < 0 and np.abs(Q) > sim.cc_env[sim.iP].mean():  # if net charge is anionic
                 raise BetseSimConfigException("You've defined way more anionic charge in "
                                                "the extra substances (env region) than we can "
@@ -3679,10 +3675,10 @@ class MasterOfNetworks(object):
         elif tag == 'mit':
 
             if Q < 0 and np.abs(Q) <= sim.cc_mit[sim.iP].mean():  # if net charge is anionic
-                sim.cc_mit[sim.iP] = sim.cc_mit[sim.iP] - np.abs(Q)
+                self.mit_concs['P'] = sim.cc_mit[sim.iP] - np.abs(Q)
 
             elif Q > 0 and np.abs(Q) <= sim.cc_mit[sim.iK].mean():
-                sim.cc_mit[sim.iK] = sim.cc_mit[sim.iK] - np.abs(Q)
+                self.mit_concs['K'] = sim.cc_mit[sim.iK] - np.abs(Q)
 
             elif Q < 0 and np.abs(Q) > sim.cc_mit[sim.iP].mean():  # if net charge is anionic
                 raise BetseSimConfigException("You've defined way more anionic charge in"
@@ -3798,11 +3794,11 @@ class MasterOfNetworks(object):
             obj.c_cells_time.append(obj.c_cells)
 
             # smooth env data if necessary:
-            if p.smooth_concs is False and p.is_ecm is True:
-                cc_env = gaussian_filter(obj.c_env.reshape(cells.X.shape), 1.0).ravel()
-
-            else:
-                cc_env = np.copy(obj.c_env)
+            # if p.smooth_concs is False and p.is_ecm is True:
+            #     cc_env = gaussian_filter(obj.c_env.reshape(cells.X.shape), 1.0).ravel()
+            #
+            # else:
+            cc_env = np.copy(obj.c_env)
 
             obj.c_env_time.append(cc_env)
 
@@ -5415,8 +5411,6 @@ class Molecule(object):
 
                     else:
 
-                        # print(self.c_env.mean())
-
                         Dm_mod_mol = self.gating_max_val * tb.hill(self.c_env[cells.map_mem2ecm],
                                                                    self.gating_Hill_K, self.gating_Hill_n)
 
@@ -5700,13 +5694,16 @@ class Molecule(object):
         Create 2D plot of environmental concentration.
         """
 
+
+        # if self.c_env.all() != 0.0:
+
         fig = plt.figure()
         ax = plt.subplot(111)
 
-        if p.smooth_level == 0.0:
-            dyeEnv = gaussian_filter(self.c_env.reshape(cells.X.shape), 1.0)
-        else:
-            dyeEnv = (self.c_env).reshape(cells.X.shape)
+        # if p.smooth_level == 0.0:
+        #     dyeEnv = gaussian_filter(self.c_env.reshape(cells.X.shape), 1.0)
+        # else:
+        dyeEnv = (self.c_env).reshape(cells.X.shape)
 
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um

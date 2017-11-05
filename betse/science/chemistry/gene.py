@@ -18,7 +18,7 @@ from betse.util.path import pathnames
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.config import confio
 from betse.science.chemistry.netplot import set_net_opts
-from betse.science.organelles.microtubules import Mtubes
+from betse.science import sim_toolbox as stb
 
 
 class MasterOfGenes(object):
@@ -29,9 +29,10 @@ class MasterOfGenes(object):
         #configuration option, perhaps in the "init file saving" section.
         #FIXME: Replace "GeneNetwork.betse" with "GeneNetwork.betse.gz" to
         #compress this pickled file.
-
         # Define data paths for saving an initialization and simulation run:
-        self.savedMoG = pathnames.join(p.init_pickle_dirname, 'GeneNetwork.betse')
+        self.savedMoG = pathnames.join(p.init_export_dirname, 'GeneNetwork.betse')
+
+
 
     def read_gene_config(self, sim, cells, p):
 
@@ -54,6 +55,12 @@ class MasterOfGenes(object):
 
         # Time dilation:
         self.core.time_dila = float(self.config_dic.get('time dilation factor', 1.0))
+
+        # reset microtubules?
+        self.reset_MT = self.config_dic.get('reset microtubules', False)
+
+        # recalculate fluid flow?
+        self.recalc_fluid = self.config_dic.get('recalculate fluid flow', False)
 
         # read in substance properties from the config file, and initialize basic properties:
         self.core.read_substances(sim, cells, substances_config, p)
@@ -146,6 +153,12 @@ class MasterOfGenes(object):
         # Time dilation:
         self.core.time_dila = float(self.config_dic.get('time dilation factor', 1.0))
 
+        # reset microtubules?
+        self.reset_MT = self.config_dic.get('reset microtubules', False)
+
+        # recalculate fluid flow?
+        self.recalc_fluid = self.config_dic.get('recalculate fluid flow', False)
+
         # obtain specific sub-dictionaries from the config file:
         substances_config = self.config_dic['biomolecules']
         reactions_config = self.config_dic.get('reactions', None)
@@ -224,7 +237,10 @@ class MasterOfGenes(object):
             # sim.mtubes = Mtubes(sim, cells, p)
             self.mtubes_x_time = []
             self.mtubes_y_time = []
-            # sim.mtubes.reinit(cells, p)
+
+            if self.reset_MT:
+                logs.log_info("Resetting microtubules for sim-grn simulation...")
+                sim.mtubes.reinit(cells, p)
 
         for t in tt:
 

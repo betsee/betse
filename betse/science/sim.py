@@ -535,8 +535,7 @@ class Simulator(object):
             # vectors storing separate cell and env voltages
             # self.phi_env = np.zeros(self.mdl) # voltage at the external membrane (at the outer edl)
             self.v_env = np.zeros(self.edl)   # voltage in the full environment
-            self.rho_env = np.zeros(self.edl) # charge in the full environment
-
+            self.rho_env = np.zeros(self.edl)  # charge in the full environment
             self.z_array_env = []  # ion valence array matched to env points
             self.D_env = []  # an array of diffusion constants for each ion defined on env grid
             self.c_env_bound = []  # moving ion concentration at global boundary
@@ -550,6 +549,8 @@ class Simulator(object):
             self.envV = np.zeros(self.mdl)
             self.envV[:] = p.vol_env
             self.v_env = np.zeros(len(cells.xypts))
+            self.rho_env = np.zeros(len(cells.xypts))
+
 
         ion_names = list(p.ions_dict.keys())
 
@@ -1765,7 +1766,8 @@ class Simulator(object):
 
 
             # Electrical polarization charge component created by extracellular electric field:
-            P_env = p.cell_polarizability*self.Jme*(1/self.sigma_env.ravel()[cells.map_mem2ecm])
+            # P_env = p.cell_polarizability*self.Jme*(1/self.sigma_env.ravel()[cells.map_mem2ecm])
+            P_env = p.cell_polarizability*self.Eme
 
             # Electrical polarization charge component created by intracellular electric field:
             P_cells = p.cell_polarizability*self.Jn*(1/self.sigma_cell[cells.mem_to_cells])
@@ -1775,19 +1777,6 @@ class Simulator(object):
             rho_surf = self.rho_cells*cells.diviterm
 
             self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
-
-
-            # drho_mem = np.dot(cells.M_sum_mems, -self.Jmem * cells.mem_sa) / cells.cell_sa
-            # drho_gj = np.dot(cells.M_sum_mems, -self.Jgj * cells.mem_sa) / cells.cell_sa
-            #
-            #
-            # self.vm = (self.vm
-            #            +(1/p.cm)*drho_mem[cells.mem_to_cells] * p.dt  # current across the membrane from pumps/channels
-            #            + (1/self.cgj) * drho_gj[cells.mem_to_cells] * p.dt    # for current across gj-coupled cells
-            #            + (1/p.cm)*P_env*p.dt# for env current (long-range)
-            #            + (1/p.cm)*P_cells*p.dt # for intracellular current (long-range)
-            #
-            #            )
 
 
         # average vm:
@@ -1929,9 +1918,6 @@ class Simulator(object):
         cenv = self.cc_env[i]
         cenv = cenv.reshape(cells.X.shape)
 
-        # if p.smooth_level > 0.0 and p.smooth_concs is True:
-        #     cenv = gaussian_filter(cenv, p.smooth_level, mode = 'constant', cval= self.c_env_bound[i])
-
         cenv[:,0] =  self.c_env_bound[i]
         cenv[:,-1] =  self.c_env_bound[i]
         cenv[0,:] =  self.c_env_bound[i]
@@ -1953,7 +1939,7 @@ class Simulator(object):
         denv = self.D_env[i].reshape(cells.X.shape)*self.TJ_modulator[i].reshape(cells.X.shape)
 
         # this equation assumes environmental transport is electrodiffusive--------------------------------------------:
-        fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, self.gVex, self.gVey, ux, uy,
+        fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, ux, uy,
                                           denv, self.zs[i], self.T, p)
 
         self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
