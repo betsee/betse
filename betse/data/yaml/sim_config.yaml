@@ -13,9 +13,6 @@
 # a steady state. Each subsequent simulation depends on an initialization run
 # specific to the cell geometry and initialized parameters.
 #
-# Note: parameters listed under the "INTERNAL USE ONLY" section should be
-# modified only with care.
-#
 # Pathnames
 # ----------
 # For portability, files and directories are configured below as relative rather
@@ -99,8 +96,8 @@ general options:
   ion profile: basic   # ion profile options:
                        # 'basic' (Na+, K+, M-, and proteins-)
                        # 'basic_Ca' (Na+, K+, Ca2+, M- and proteins-)
-                       # 'mammal' (Na+, K+, Cl-, Ca2+, H+, M- and proteins-) typical mammal
-                       # 'amphibian' (Na+, K+, Cl-, Ca2+, H+, M- and proteins-) Xenopus
+                       # 'mammal' (Na+, K+, Cl-, Ca2+, M- and proteins-) typical mammal
+                       # 'amphibian' (Na+, K+, Cl-, Ca2+, M- and proteins-) Xenopus
                        # 'custom' (user-specified settings, see below)
                        # (all profiles contain an unidentified charge-balance anion, M-)
 
@@ -360,7 +357,6 @@ cutting event:
       use channel: False      # use a channel associated with wounding (mechanosensitive Na channel)
       max conductivity: 1.0e-8   # maximum conductivity of the channel to sodium when fully open
       closure delay: 5.0       # how fast does the channel close after activation? (larger = faster decay)
-
       activators: None         # list of defined substances or simulation ions activating channel
       Km activators: None      # list of half-maximum values for activators
       n activators: None       # list of Hill exponent of activators
@@ -766,7 +762,7 @@ variable settings:
     microtubule initial y asymmetry: None # initial asymmetry of microtubules 'y' component
 
 
-  use Goldman calculator: True   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK)
+  use Goldman calculator: False   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK)
                                  # voltage equation for comparison purposes?
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -1081,17 +1077,15 @@ internal parameters:
 
   alpha_Ca:  5.0e-8    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
-  gaussian smoothing: 0.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
-
-  conductivity map smoothing: 1.0   # apply gaussian smoothing to conductivities?
-
   substances affect Vmem: False  # do ionic biochemicals, metabolites and gene products affect charge state?
 
   environment volume multiplier: 1.0  # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
 
-  membrane capacitance: 0.1 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
+  membrane capacitance: 0.05 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
 
   cell polarizability: 0.0  # cell polarizability constant in electric fields (0.0 to 5.0e-4 [F/m])
+
+  fast update ecm: True  # use a coarse (fast) or fine (slow) method to update between env and cell grids?
 
 
 # Configuration file version that this file conforms to. For reliable

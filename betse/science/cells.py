@@ -1785,6 +1785,16 @@ class Cells(object):
         self.inds_outmem = self.map_mem2ecm[self.bflags_mems]
         self.ecm_inds_bound_cell = self.map_cell2ecm[self.bflags_cells]
 
+        # create the matrix that allows individual membrane normal fluxes to be mapped to each ecm square:
+        # If Fmem is the normal component of a vector field wrt individual membranes,
+        # the result of M_divmap_mem2ecm *dot* Fmem  is the divergence of the flux wrt the environment.
+        self.M_divmap_mem2ecm = np.zeros((len(self.xypts), len(self.mem_i)))
+
+        for mem_i, ecm_i in enumerate(self.map_mem2ecm):
+            mem_sa = self.mem_sa[mem_i]
+            self.M_divmap_mem2ecm[ecm_i, mem_i] += (mem_sa)
+            # self.M_divmap_mem2ecm[ecm_i, mem_i] += (mem_sa) / (p.cell_height*(self.delta**2))
+
     def graphLaplacian(self,p):
         '''
         Defines an abstract inverse Laplacian that is used to solve Poisson's equation on the

@@ -698,8 +698,6 @@ class Parameters(YamlFileABC):
         # VARIABLE SETTINGS
         #--------------------------------------------------------------------------------------------------------------
 
-        self.gravity = False
-
         self.T = float(self._conf['variable settings']['temperature'])  # system temperature
 
         # electroosmotic fluid flow-----------------------------------------------------
@@ -921,18 +919,7 @@ class Parameters(YamlFileABC):
 
         self.interp_type = 'nearest'
 
-        # gaussian smoothing factor for 2D maps of voltage and current
-        self.smooth_level = float(iu['gaussian smoothing'])
-
-        # gaussian smoothing factor for 2D map of system conductivity:
-        self.smooth_level_sigma_map = float(iu.get('conductivity map smoothing', 1))
-
-        # self.smooth_concs = iu['smooth concentrations']
-        self.smooth_concs = False
-        # self.media_rho = float(iu['media resistivity'])
-        self.tissue_rho = 0.03
-
-        self.substances_affect_charge = iu['substances affect Vmem']
+        self.substances_affect_charge = iu['substances affect Vmem']  # Do Network substances function bioelectrically?
 
          # default free diffusion constants (cytoplasmic)
         self.Do_Na = float(iu['Do_Na'])      # free diffusion constant sodium [m2/s]
@@ -943,10 +930,7 @@ class Parameters(YamlFileABC):
         self.Do_M = float(iu['Do_M'])     # free diffusion constant mystery anchor ion [m2/s]
         self.Do_P = float(iu['Do_P'])      # free diffusion constant protein [m2/s]
 
-        # gap junction acceleration for molecular substances:+
-        # self.gj_acceleration = float(iu['time acceleration'])
-        self.gj_acceleration = 1.0
-
+        # fixed levels of ATP, ADP and Pi, required for use in pump equations to get propper kinetics
         self.cATP = 1.5
         self.cADP = 0.1
         self.cPi = 0.1
@@ -996,7 +980,7 @@ class Parameters(YamlFileABC):
         self.mu = 1.275e-6   # magnetic permeability [H/m or N/A2]
         self.NAv = 6.022e23     # Avagadro's Number
         self.er = 80.0          # relative dielectric constant of electrolyte
-        self.eedl = 1.0         # relative dielectric constant of screening layer
+        self.eedl = 10.0         # relative dielectric constant of screening layer
 
         self.deltaGATP = -37000    # free energy released in ATP hydrolysis under standard phys conditions [J/mol]
 
@@ -1020,19 +1004,11 @@ class Parameters(YamlFileABC):
 
         self.um = 1e6    # multiplication factor to convert m to um
 
-        # self.self_cap_cell = (8 + 4.1*((self.cell_height/self.cell_radius)**0.76))*self.eo*80*self.cell_radius
-
         self.isamples = 40.0  # sampling of vector data for currents
-
-        self.mem_const = (80.0*self.eo/self.mu_membrane)*self.zeta    # electroosmosis constant
-
-        self.water_const = (80.0*self.eo/self.mu_water)*self.zeta    # electroosmosis constant
 
         self.rho = 1050 # mass density of system [kg/m3]
 
-        self.Keqm_ph = 7.94e-4          # equilibrium constant for bicarbonate buffer
-
-        self.vm_ph = 0.1             # rate constant for bicarbonate buffer [mol/s] 5.0e-5 originally
+        self.fast_update_ecm = iu.get('fast update ecm', False)  # quick or slow update to cell<--> ecm grid exchange?
 
         # simplest ion profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile is IonProfileType.BASIC:
@@ -1107,14 +1083,10 @@ class Parameters(YamlFileABC):
         # default environmental and cytoplasmic initial values mammalian cells
         elif self.ion_profile is IonProfileType.MAMMAL:
             # initialize proton concentrations to "None" placeholders
-            self.cH_cell = None
-            self.cH_env = None
-
             self.cNa_env = 145.0
             self.cK_env = 5.0
             self.conc_env_cl = 105.0
             self.cCa_env = 1.0
-            # self.cH_env = 3.98e-5
             self.cP_env = 10.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]
@@ -1138,34 +1110,31 @@ class Parameters(YamlFileABC):
             self.cCa_er = 0.5
             self.cM_er = self.cCa_er
 
-            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':0,'P':1,'M':1}
 
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,
-                              'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
+                              'P':self.cP_cell,'M':self.cM_cell}
 
             self.env_concs ={'Na':self.cNa_env, 'K':self.cK_env, 'Ca':self.cCa_env, 'Cl':self.conc_env_cl,
-                             'H':self.cH_env,'P':self.cP_env, 'M':self.conc_env_m}
+                             'P':self.cP_env, 'M':self.conc_env_m}
 
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,
-                              'H':self.Dm_H,'P':self.Dm_P,'M':self.Dm_M}
+                              'P':self.Dm_P,'M':self.Dm_M}
 
             self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,
-                               'H':self.z_H,'P':self.z_P,'M':self.z_M}
+                               'P':self.z_P,'M':self.z_M}
 
             self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,
-                              'H':self.Do_H,'P':self.Do_P,'M':self.Do_M}
+                              'P':self.Do_P,'M':self.Do_M}
 
             self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,
-                               'H':self.M_H,'P':self.M_P,'M':self.M_M}
+                               'P':self.M_P,'M':self.M_M}
 
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride',
-                                  'H':'protons','P':'proteins','M':'anion'}
+                                  'P':'proteins','M':'anion'}
 
         elif self.ion_profile is IonProfileType.AMPHIBIAN:
             # initialize proton concentrations to "None" placeholders
-            self.cH_cell = None
-            self.cH_env = None
-
             self.cNa_env = 14.50
             self.cK_env = 0.5
             self.conc_env_cl = 10.50
@@ -1193,38 +1162,34 @@ class Parameters(YamlFileABC):
             self.cCa_er = 0.5
             self.cM_er = self.cCa_er
 
-            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':0,'P':1,'M':1}
 
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,
-                              'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
+                              'P':self.cP_cell,'M':self.cM_cell}
             self.env_concs ={'Na':self.cNa_env, 'K':self.cK_env, 'Ca':self.cCa_env, 'Cl':self.conc_env_cl,
-                             'H':self.cH_env,'P':self.cP_env, 'M':self.conc_env_m}
+                             'P':self.cP_env, 'M':self.conc_env_m}
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,
-                              'H':self.Dm_H,'P':self.Dm_P,'M':self.Dm_M}
+                              'P':self.Dm_P,'M':self.Dm_M}
             self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,
-                               'H':self.z_H,'P':self.z_P,'M':self.z_M}
+                               'P':self.z_P,'M':self.z_M}
             self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,
-                              'H':self.Do_H,'P':self.Do_P,'M':self.Do_M}
+                              'P':self.Do_P,'M':self.Do_M}
 
             self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,
-                               'H':self.M_H,'P':self.M_P,'M':self.M_M}
+                               'P':self.M_P,'M':self.M_M}
 
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride',
-                                  'H':'protons','P':'proteins','M':'anion'}
+                                  'P':'proteins','M':'anion'}
 
         # user-specified environmental and cytoplasm values (customized)
         elif self.ion_profile is IonProfileType.CUSTOM:
             # initialize proton concentrations to "None" placeholders
-            self.cH_cell = None
-            self.cH_env = None
-
             cip = self._conf['general options']['customized ion profile']
 
             self.cNa_env = float(cip['extracellular Na+ concentration'])
             self.cK_env = float(cip['extracellular K+ concentration'])
             self.conc_env_cl = float(cip['extracellular Cl- concentration'])
             self.cCa_env = float(cip['extracellular Ca2+ concentration'])
-            # self.conc_env_m = float(cip['extracellular HCO3- concentration'])   # FIXME change in config to be 'anion'
             self.cP_env = float(cip['extracellular protein- concentration'])
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]
@@ -1382,7 +1347,7 @@ class Parameters(YamlFileABC):
 
         # Duration in seconds of the current simulation phase accelerated by
         # the current gap junction acceleration factor.
-        self.total_time_accelerated = self.total_time * self.gj_acceleration
+        self.total_time_accelerated = self.total_time
 
     # ..................{ SUPERCLASS ~ optional              }..................
     # Methods intended to be optionally overriden by subclasses.

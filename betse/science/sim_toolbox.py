@@ -27,7 +27,8 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
     matrices of the same shape.
 
     This is the Goldman Flux/Current Equation (not to be confused with the
-    Goldman Equation).
+    Goldman Equation). Note: the Nernst-Planck equation has been trialed in
+    place of this, and it does not reproduce proper reversal potentials.
 
     Parameters
     ----------
@@ -44,24 +45,6 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
     flux        Chemical flux magnitude between region A and B [mol/s]
 
     """
-
-    # # modify the diffusion constant by the membrane density
-    # Dc = rho*Dc
-    #
-    # alpha = (zc*vBA*p.F)/(p.R*T)
-    #
-    # exp_alpha = np.exp(-alpha)
-    #
-    # deno = 1 - exp_alpha + 1e-15  # calculate the denominator with small term in case it's equal to zero
-    #
-    # # calculate the flux for those elements:
-    # flux = -((Dc*alpha)/d)*((cB - cA*exp_alpha)/deno)
-
-    # modify the diffusion constant by the membrane density
-    # print("cB", cB.mean(), cB.max(), cB.min())
-
-
-    # Dc = rho*Dc
 
     alpha = (zc*vBA*p.F)/(p.R*T)
 
@@ -86,6 +69,10 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
                         cA[inotzero]*exp_alpha[inotzero])/deno[inotzero])
 
     flux = flux*rho
+
+    # Nernst-Planck equation alternative:
+
+    # flux = rho*(Dc * ((cA - cB) / d) - (vBA / d) * ((cA + cB) / 2) * ((Dc * zc * p.q) / (p.kb * T)))
 
 
     return flux
@@ -246,320 +233,6 @@ def pumpCaER(cCai,cCao,Vm,T,p):
 
     return f_Ca
 
-def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block, met = None):
-
-    """
-    Parameters
-    ----------
-    cHi            Concentration of H+ inside the cell
-    cHo            Concentration of H+ outside the cell
-    cKi             Concentration of K+ inside the cell
-    cKo             Concentration of K+ outside the cell
-    voli            Volume of the cell [m3]
-    volo            Volume outside the cell [m3]
-    Vm              Voltage across cell membrane [V]
-    p               An instance of Parameters object
-
-
-    Returns
-    -------
-    cHi2           Updated H+ inside cell
-    cHo2           Updated H+ outside cell
-    cKi2            Updated K+ inside cell
-    cKo2            Updated K+ outside cell
-    f_Na            Na+ flux (into cell +)
-    f_K             K+ flux (into cell +)
-    """
-
-    deltaGATP_o = p.deltaGATP
-
-    cATP = p.cATP
-    cADP = p.cADP
-    cPi  = p.cPi
-
-    # calculate the reaction coefficient Q:
-    Qnumo = cADP * cPi * (cHo) * (cKi)
-    Qdenomo = cATP * (cHi) * (cKo)
-
-    # ensure no chance of dividing by zero:
-    inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-15
-
-    Q = Qnumo / Qdenomo
-
-    # calculate the equilibrium constant for the pump reaction:
-    Keq = np.exp(-deltaGATP_o / (p.R * T))
-
-    # calculate the reaction rate coefficient
-    alpha = block * p.alpha_HK * (1 - (Q / Keq))
-
-    # calculate the enzyme coefficient:
-    numo_E = (cHi / p.KmHK_H) * (cKo / p.KmHK_K) * (cATP / p.KmHK_ATP)
-    denomo_E = (1 + (cHi / p.KmHK_H)) *(1+ (cKo / p.KmHK_K)) *(1+ (cATP / p.KmHK_ATP))
-
-    f_H  = -alpha*(numo_E/denomo_E)      #flux as [mol/s], scaled by concentrations in and out
-
-    f_K = -f_H          # flux as [mol/s]
-
-    return f_H, f_K
-
-def pumpHKATP_m(cMi,cMo,cKi,cKo,Vm,T,p,block, met = None):
-
-    """
-    Parameters
-    ----------
-    cHi            Concentration of H+ inside the cell
-    cHo            Concentration of H+ outside the cell
-    cKi             Concentration of K+ inside the cell
-    cKo             Concentration of K+ outside the cell
-    voli            Volume of the cell [m3]
-    volo            Volume outside the cell [m3]
-    Vm              Voltage across cell membrane [V]
-    p               An instance of Parameters object
-
-
-    Returns
-    -------
-    cHi2           Updated H+ inside cell
-    cHo2           Updated H+ outside cell
-    cKi2            Updated K+ inside cell
-    cKo2            Updated K+ outside cell
-    f_Na            Na+ flux (into cell +)
-    f_K             K+ flux (into cell +)
-    """
-
-    deltaGATP_o = p.deltaGATP
-
-    cATP = p.cATP
-    cADP = p.cADP
-    cPi  = p.cPi
-
-    # calculate the reaction coefficient Q:
-    Qnumo = cADP * cPi * (cMi) * (cKi)
-    Qdenomo = cATP * (cMo) * (cKo)
-
-    # ensure no chance of dividing by zero:
-    inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-15
-
-    Q = Qnumo / Qdenomo
-
-    # calculate the equilibrium constant for the pump reaction:
-    Keq = np.exp(-deltaGATP_o / (p.R * T))
-
-    # calculate the reaction rate coefficient
-    alpha = block * p.alpha_HK * (1 - (Q / Keq))
-
-    # calculate the enzyme coefficient:
-    numo_E = (cMo / p.KmHK_H) * (cKo / p.KmHK_K) * (cATP / p.KmHK_ATP)
-    denomo_E = (1 + (cMo / p.KmHK_H)) *(1+ (cKo / p.KmHK_K)) *(1+ (cATP / p.KmHK_ATP))
-
-    f_M  = alpha*(numo_E/denomo_E)      #flux as [mol/s], scaled by concentrations in and out
-
-    f_K = f_M          # flux as [mol/s]
-
-    # print(block, f_M.mean())
-
-    return f_M, f_K
-
-def pumpVATP(cHi,cHo,Vm,T,p, block, met = None):
-
-    deltaGATP_o = p.deltaGATP
-
-    # if metabolism vector not supplied, use singular defaults for concentrations
-    cATP = p.cATP
-    cADP = p.cADP
-    cPi  = p.cPi
-
-    # calculate the reaction coefficient Q:
-    Qnumo = cADP * cPi * cHo
-    Qdenomo = cATP * cHi
-
-    # ensure no chance of dividing by zero:
-    inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-10
-
-    Q = Qnumo / Qdenomo
-
-    # calculate the equilibrium constant for the pump reaction:
-    Keq = np.exp(-deltaGATP_o / (p.R * T) + ((p.F * Vm) / (p.R * T)))
-
-    # calculate the reaction rate coefficient
-    alpha = block * p.alpha_V * (1 - Q / Keq)
-
-    # calculate the enzyme coefficient:
-    numo_E = (cHi/p.KmV_H) * (cATP/p.KmV_ATP)
-    denomo_E = (1 + (cHi/p.KmV_H)) * (1 + (cATP/p.KmV_ATP))
-
-    f_H = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
-
-    return f_H
-
-def exch_NaCa(cNai, cNao, cCai, cCao, Vm, T, p, block):
-    """
-    The sodium-calcium exchanger, which removes one
-    calcium from the cell in exchange for 3 sodium
-    into the cell. Important for voltage gated
-    calcium signals.
-
-    3 Na_out + 1 Ca_in --> 3 Na_in + 1 Ca_out
-
-    cNai:  Sodium inside the cell
-    cNao:  Sodium outside the cell
-    cCai:  Calcium inside the cell
-    cCao:  Calcium outside the cell
-    Vm:    Transmembrane voltage
-    T:     Temperature
-    p:     Instance of parameters
-
-    Returns
-    -------
-    f_Na      Flux of sodium
-    f_Ca      Flux of calcium
-
-    """
-
-    # calculate the reaction coefficient Q:
-    Qnumo = (cNai ** 3) * (cCao)
-    Qdenomo = (cNao ** 3) * (cCai)
-
-    # ensure no chance of dividing by zero:
-    inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-10
-
-    Q = Qnumo / Qdenomo
-
-    # # calculate the equilibrium constant for the pump reaction:
-    Keq = np.exp(-((p.F * Vm) / (p.R * T)))
-
-    # calculate the reaction rate coefficient
-    alpha = block*p.alpha_NaCaExch * (1 - (Q / Keq))
-
-    # calculate the enzyme coefficient:
-    numo_E = ((cNao / p.KmNC_Na) ** 3) * (cCai / p.KmNC_Ca)
-    denomo_E = (1 + (cNao / p.KmNC_Na) ** 3) * (1 + (cCai / p.KmNC_Ca))
-
-    f_Na = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
-
-    f_Ca = -(1/ 3) * f_Na  # flux as [mol/m2s]
-
-    return f_Na, f_Ca
-
-def exch_NaKCl(cNai, cNao, cKi, cKo, cCli, cClo, Vm, T, p, block=1.0):
-    """
-    The Na-K-Cl cotransporter. Important for maintainig the correct
-    orientation of the trans-epithelial potential but maintaining
-    the correct salt balance and providing stimulus for Na/K-ATPase
-    pumpt activity.
-
-    Na_out + K_out + 2 Cl_out --> Na_in + K_in + 2 Cl_in
-
-    cNai:  Sodium inside the cell
-    cNao:  Sodium outside the cell
-
-    cKi:  Potassium inside the cell
-    cKo:  Potassium outside the cell
-
-    cCli:  Chloride inside the cell
-    cClo:  Chloride outside the cell
-
-    Vm:    Transmembrane voltage
-    T:     Temperature
-    p:     Instance of parameters
-
-    Returns
-    -------
-    f_Na      Flux of sodium
-    f_K      Flux of potassium
-    f_K      Flux of chloride
-
-    """
-
-    # calculate the reaction coefficient Q:
-    Qnumo = (cNai) * (cKi)* (cCli**2)
-    Qdenomo = (cNao) * (cKo)*(cClo**2)
-
-    # ensure no chance of dividing by zero:
-    inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-10
-
-    Q = Qnumo / Qdenomo
-
-    # # calculate the equilibrium constant for the pump reaction:
-    Keq = 1
-
-    # calculate the reaction rate coefficient
-    alpha = block*p.alpha_NaKCl * (1 - (Q / Keq))
-
-    # calculate the enzyme coefficient:
-    numo_E = (cNao / p.KmNaKCl_Na) * (cKo / p.KmNaKCl_K)* ((cClo / p.KmNaKCl_Cl)**2)
-    denomo_E = (1 + (cNao / p.KmNaKCl_Na)) * (1 + (cKo / p.KmNaKCl_K)) * (1 + (cClo / p.KmNaKCl_Cl)**2)
-
-    f_Na = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
-
-    f_K = f_Na
-
-    f_Cl = 2 * f_Na  # flux as [mol/m2s]
-
-    # print(f_Na.mean())
-
-    return f_Na, f_K, f_Cl
-
-def symp_ClK(cKi, cKo, cCli, cClo, Vm, T, p, block=1.0):
-    """
-    The Na-K-Cl cotransporter. Important for maintainig the correct
-    orientation of the trans-epithelial potential but maintaining
-    the correct salt balance and providing stimulus for Na/K-ATPase
-    pumpt activity.
-
-    K_in + Cl_in --> K_out + Cl_out
-
-    cKi:  Potassium inside the cell
-    cKo:  Potassium outside the cell
-
-    cCli:  Chloride inside the cell
-    cClo:  Chloride outside the cell
-
-    Vm:    Transmembrane voltage
-    T:     Temperature
-    p:     Instance of parameters
-
-    Returns
-    -------
-    f_Na      Flux of sodium
-    f_K      Flux of potassium
-    f_K      Flux of chloride
-
-    """
-
-    # calculate the reaction coefficient Q:
-    Qdenomo = (cKi)* (cCli)
-    Qnumo = (cKo)*(cClo)
-
-    # ensure no chance of dividing by zero:
-    inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-10
-
-    Q = Qnumo / Qdenomo
-
-    # # calculate the equilibrium constant for the pump reaction:
-    Keq = 1
-
-    # calculate the reaction rate coefficient
-    alpha = block*p.alpha_ClK * (1 - (Q / Keq))
-
-    # calculate the enzyme coefficient:
-    numo_E = (cKi / p.KmClK_K)* (cCli / p.KmClK_Cl)
-    denomo_E = (1 + (cKi / p.KmClK_K)) * (1 + (cCli / p.KmClK_Cl))
-
-    f_K = - alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
-
-    f_Cl = f_K  # flux as [mol/m2s]
-
-    # print(f_K.mean(), cCli.mean())
-
-    return f_K, f_Cl
-
 def get_volt(q,sa,p):
 
     """
@@ -709,7 +382,7 @@ def vertData(data, cells, p):
                                fill_value=0)
 
     # # smooth out the data a bit:
-    dat_grid = gaussian_filter(dat_grid,p.smooth_level)
+    dat_grid = gaussian_filter(dat_grid,1)
 
     # get rid of values that bleed into the environment:
     # dat_grid = np.multiply(dat_grid,cells.maskM)
@@ -854,22 +527,6 @@ def bicarbonate_buffer(cCO2, cHCO3):
     cH = 10**(-pH)*1e3
 
     return cH, pH
-
-def bicarb_reaction_buffer(cH, cHCO3, cCO2, p):
-
-    Q = (cH*cHCO3)/(cCO2)
-
-    v_ph = p.vm_ph*(cCO2/(1+cCO2))*(1 - (Q/p.Keqm_ph))
-
-    cCO2 = cCO2 - v_ph*p.dt
-    cHCO3 = cHCO3 + v_ph*p.dt
-    cH = cH + v_ph*p.dt
-
-    pH = -np.log10(cH*1e-3)
-
-    # print("RUNNING BUFFFER")
-
-    return cH, cHCO3, cCO2, pH
 
 def ghk_calculator(sim, cells, p):
     """
@@ -1221,15 +878,21 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     # Transmembrane: electrodiffuse molecule X between cell and extracellular space------------------------------
 
-    IdM = np.ones(sim.mdl)
+    if Dm != 0.0:  # if there is some finite membrane diffusivity, exchange between cells and env space:
 
-    f_X_ED = electroflux(cX_env, cX_mems, Dm_vect, p.tm*IdM, z*IdM, sim.vm, sim.T, p, rho = rho)
+        IdM = np.ones(sim.mdl)
 
-    if p.cluster_open is False:
-        f_X_ED[cells.bflags_mems] = 0
+        f_X_ED = electroflux(cX_env, cX_mems, Dm_vect, p.tm*IdM, z*IdM, sim.vm, sim.T, p, rho = rho)
 
-    # update concentrations due to electrodiffusion:
-    cX_cells, cX_mems, cX_env_o = update_Co(sim, cX_cells, cX_mems, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
+        if p.cluster_open is False:
+            f_X_ED[cells.bflags_mems] = 0
+
+        # update concentrations due to electrodiffusion:
+        cX_cells, cX_mems, cX_env_o = update_Co(sim, cX_cells, cX_mems, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
+
+    else:
+
+        f_X_ED = np.zeros(sim.mdl)
 
     # ------------------------------------------------------------
     if ignoreGJ is False:
@@ -1279,54 +942,58 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     # Transport through environment, if p.is_ecm is True-----------------------------------------------------
 
-    if p.is_ecm is True: #-----------------------------------------------------------------------------------------
+    if p.is_ecm is True:
 
-        cenv = cX_env_o
-        cenv = cenv.reshape(cells.X.shape)
+        if  cX_env_o.all() != 0.0:
 
-        # if smoothECM is True and p.smooth_level > 0.0:
-        #     cenv = gaussian_filter(cenv, p.smooth_level, mode='constant', cval = c_bound)
+            cenv = cX_env_o
+            cenv = cenv.reshape(cells.X.shape)
 
-        cenv[:, 0] = c_bound
-        cenv[:, -1] = c_bound
-        cenv[0, :] = c_bound
-        cenv[-1, :] = c_bound
+            cenv[:, 0] = c_bound
+            cenv[:, -1] = c_bound
+            cenv[0, :] = c_bound
+            cenv[-1, :] = c_bound
 
-        denv_multiplier = np.ones(len(cells.xypts))
+            denv_multiplier = np.ones(len(cells.xypts))
 
-        if ignoreTJ is False:
-            # if tight junction barrier applies, create a mask that defines relative strength of barrier:
-            denv_multiplier = denv_multiplier.reshape(cells.X.shape)*sim.D_env_weight
+            if ignoreTJ is False:
+                # if tight junction barrier applies, create a mask that defines relative strength of barrier:
+                denv_multiplier = denv_multiplier.reshape(cells.X.shape)*sim.D_env_weight
 
-            # at the cluster boundary, further modify the env diffusion map by a relative TJ diffusion factor:
-            denv_multiplier.ravel()[sim.TJ_targets] = denv_multiplier.ravel()[sim.TJ_targets]*Ftj
+                # at the cluster boundary, further modify the env diffusion map by a relative TJ diffusion factor:
+                denv_multiplier.ravel()[sim.TJ_targets] = denv_multiplier.ravel()[sim.TJ_targets]*Ftj
+
+            else:
+                denv_multiplier = denv_multiplier.reshape(cells.X.shape)
+
+            gcx, gcy = fd.gradient(cenv, cells.delta)
+
+            if p.fluid_flow is True:
+
+                ux = sim.u_env_x.reshape(cells.X.shape)*denv_multiplier
+                uy = sim.u_env_y.reshape(cells.X.shape)*denv_multiplier
+
+            else:
+
+                ux = 0.0
+                uy = 0.0
+
+            fx, fy = nernst_planck_flux(cenv, gcx, gcy, -sim.E_env_x, -sim.E_env_y, ux, uy,
+                                            denv_multiplier*Do, z, sim.T, p)
+
+            div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
+
+            fenvx = fx
+            fenvy = fy
+
+            cenv = cenv + div_fa * p.dt*time_dilation_factor
+
+            cX_env_o = cenv.ravel()
 
         else:
-            denv_multiplier = denv_multiplier.reshape(cells.X.shape)
 
-        gcx, gcy = fd.gradient(cenv, cells.delta)
-
-        if p.fluid_flow is True:
-
-            ux = sim.u_env_x.reshape(cells.X.shape)*denv_multiplier
-            uy = sim.u_env_y.reshape(cells.X.shape)*denv_multiplier
-
-        else:
-
-            ux = 0.0
-            uy = 0.0
-
-        fx, fy = nernst_planck_flux(cenv, gcx, gcy, -sim.E_env_x, -sim.E_env_y, ux, uy,
-                                        denv_multiplier*Do, z, sim.T, p)
-
-        div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
-
-        fenvx = fx
-        fenvy = fy
-
-        cenv = cenv + div_fa * p.dt*time_dilation_factor
-
-        cX_env_o = cenv.ravel()
+            fenvx = np.zeros(sim.edl)
+            fenvy = np.zeros(sim.edl)
 
     else:
         cX_env_temp = cX_env_o.mean()
@@ -1334,6 +1001,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         cX_env_o[:] = cX_env_temp
         fenvx = 0
         fenvy = 0
+
 
     return cX_env_o, cX_cells, cX_mems, f_X_ED, fgj_X, fenvx, fenvy
 
@@ -1368,21 +1036,8 @@ def update_Co(sim, cX_cell, cX_mem, cX_env, flux, cells, p, ignoreECM = True):
 
     if p.is_ecm is True:
 
-        # FIXME use new matrix to map this properly!!!!!!!!!!!
-
-        flux_env = np.zeros(sim.edl)
-        flux_env[cells.map_mem2ecm] = -flux
-
-        # save values at the cluster boundary:
-        bound_vals = flux_env[cells.ecm_bound_k]
-
-        # set the values of the global environment to zero:
-        flux_env[cells.inds_env] = 0
-
-        # finally, ensure that the boundary values are restored:
-        flux_env[cells.ecm_bound_k] = bound_vals
-
-        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
+        # delta_env = np.dot(cells.M_divmap_mem2ecm, -flux)
+        delta_env = div_env(-flux, cells,p)
 
         # update the environmental concentrations:
         cX_env = cX_env + delta_env * p.dt
@@ -1399,34 +1054,27 @@ def update_Co(sim, cX_cell, cX_mem, cX_env, flux, cells, p, ignoreECM = True):
 
     return cX_cell, cX_mem, cX_env
 
-def div_env(flux, sim, cells, p):
+def div_env(flux, cells, p):
 
-    flux_env = np.zeros(sim.edl)
-    flux_env[cells.map_mem2ecm] = -flux
+    """
+    Calculates the divergence of the normal net flux component defined on a set of cell membranes
+    with respect to the environmental grid spaces.
 
-    # save values at the cluster boundary:
-    bound_vals = flux_env[cells.ecm_bound_k]
+    :param flux:
+    :param cells:
+    :return:
+    """
 
-    # set the values of the global environment to zero:
-    flux_env[cells.inds_env] = 0
+    if p.fast_update_ecm:
 
-    # finally, ensure that the boundary values are restored:
-    flux_env[cells.ecm_bound_k] = bound_vals
+        flux_env = np.zeros(len(cells.xypts))
+        flux_env[cells.map_mem2ecm] = flux
 
-    # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the
-    # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
-    # to get the mol/s change in concentration (divergence):
+        delta_env = (flux_env * cells.memSa_per_envSquare) / (cells.ecm_vol)
 
-    # if sim.ignore_ecm is False:
-
-        # delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
-
-    # else:
-
-    delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
-
-    # if p.smooth_level > 0.0:
-    #     delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()
+    else:
+        # Method # 2:
+        delta_env = np.dot(cells.M_divmap_mem2ecm, flux)/(p.cell_height*cells.delta**2)
 
     return delta_env
 
@@ -1446,7 +1094,6 @@ def HH_Decomp(JJx, JJy, cells, bounds = None):
         Bb = 0.0
 
     # ----divergence-free component--------------------------------------
-    # FIXME specify boundary condishs better!
 
     Jxr = -JJy.reshape(cells.X.shape)
     Jyr = JJx.reshape(cells.X.shape)

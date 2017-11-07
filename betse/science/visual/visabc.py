@@ -907,11 +907,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             time_unit_suffix = ' hours'
             time_unit_factor = 1/SECONDS_PER_HOUR
 
-        # Current time adjusted for optional gap junction acceleration.
+        # Current time adjusted for long/short simulation.
         time_accelerated = (
             time_unit_factor *
-            self._phase.sim.time[self._time_step] *
-            self._phase.p.gj_acceleration)
+            self._phase.sim.time[self._time_step])
 
         # Update this figure with this time, rounded to one decimal place.
         self._axes.set_title('{} (time: {:.1f}{})'.format(

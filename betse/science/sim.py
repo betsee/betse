@@ -562,162 +562,162 @@ class Simulator(object):
             if p.ions_dict[name] == 1:
                 # Do H+ separately below as it's complicated by the bicarbonate
                 # buffer.
-                if name != 'H':
+                # if name != 'H':
 
-                    i = i+1 # update the dynamic index
+                i = i+1 # update the dynamic index
 
-                    str1 = 'i' + name  # create the ion index
+                str1 = 'i' + name  # create the ion index
 
-                    # Dynamically add this field to the object.
-                    setattr(self, str1, i)
+                # Dynamically add this field to the object.
+                setattr(self, str1, i)
 
-                    self.ionlabel[vars(self)[str1]] = p.ion_long_name[name]
+                self.ionlabel[vars(self)[str1]] = p.ion_long_name[name]
 
-                    # if name != 'P':
-                    self.movingIons.append(vars(self)[str1])
+                # if name != 'P':
+                self.movingIons.append(vars(self)[str1])
 
-                    # cell concentration for the ion
-                    str_cells = 'c' + name + 'cells'
-                    setattr(self, str_cells, np.zeros(self.cdl))
-                    vars(self)[str_cells][:] = p.cell_concs[name]
+                # cell concentration for the ion
+                str_cells = 'c' + name + 'cells'
+                setattr(self, str_cells, np.zeros(self.cdl))
+                vars(self)[str_cells][:] = p.cell_concs[name]
 
-                    # environmental concentration for the ion:
-                    str_env = 'c' + name + '_env'
+                # environmental concentration for the ion:
+                str_env = 'c' + name + '_env'
 
-                    setattr(self, str_env, np.zeros(self.edl))
+                setattr(self, str_env, np.zeros(self.edl))
 
-                    vars(self)[str_env][:] = p.env_concs[name]
+                vars(self)[str_env][:] = p.env_concs[name]
 
-                    # base transmembrane diffusion for each ion
-                    str_Dm = 'Dm' + name
+                # base transmembrane diffusion for each ion
+                str_Dm = 'Dm' + name
 
-                    setattr(self, str_Dm, np.zeros(self.mdl))
+                setattr(self, str_Dm, np.zeros(self.mdl))
 
-                    vars(self)[str_Dm][:] = p.mem_perms[name]
+                vars(self)[str_Dm][:] = p.mem_perms[name]
 
-                    # base gap junction (intercellular) diffusion for each ion
-                    str_Dgj = 'Dgj' + name
+                # base gap junction (intercellular) diffusion for each ion
+                str_Dgj = 'Dgj' + name
 
-                    setattr(self, str_Dgj, np.zeros(len(cells.nn_i)))
-                    vars(self)[str_Dgj][:] = p.free_diff[name]
+                setattr(self, str_Dgj, np.zeros(len(cells.nn_i)))
+                vars(self)[str_Dgj][:] = p.free_diff[name]
 
-                    # environmental diffusion for each ion:
-                    if p.is_ecm:
-                        str_Denv = 'D' + name
+                # environmental diffusion for each ion:
+                if p.is_ecm:
+                    str_Denv = 'D' + name
 
-                        setattr(self, str_Denv, np.zeros(len(cells.xypts)))
-                        vars(self)[str_Denv][:] = p.free_diff[name]
+                    setattr(self, str_Denv, np.zeros(len(cells.xypts)))
+                    vars(self)[str_Denv][:] = p.free_diff[name]
 
-                    # ion charge characteristic for intracellular:
-                    str_z = 'z' + name
+                # ion charge characteristic for intracellular:
+                str_z = 'z' + name
 
-                    setattr(self, str_z, np.zeros(self.cdl))
-                    vars(self)[str_z][:] = p.ion_charge[name]
+                setattr(self, str_z, np.zeros(self.cdl))
+                vars(self)[str_z][:] = p.ion_charge[name]
 
-                    if p.is_ecm:  # ion charge characteristic for extracellular:
-                        str_z2 = 'z2' + name
+                if p.is_ecm:  # ion charge characteristic for extracellular:
+                    str_z2 = 'z2' + name
 
-                        setattr(self, str_z2, np.zeros(len(cells.xypts)))
-                        vars(self)[str_z2][:] = p.ion_charge[name]
+                    setattr(self, str_z2, np.zeros(len(cells.xypts)))
+                    vars(self)[str_z2][:] = p.ion_charge[name]
 
-                    self.cc_cells.append(vars(self)[str_cells])
-                    self.cc_env.append(vars(self)[str_env])
+                self.cc_cells.append(vars(self)[str_cells])
+                self.cc_env.append(vars(self)[str_env])
 
-                    self.zs.append(p.ion_charge[name])
-                    self.molar_mass.append(p.molar_mass[name])
-                    self.z_array.append(vars(self)[str_z])
-                    self.Dm_cells.append(vars(self)[str_Dm])
-                    self.D_gj.append(vars(self)[str_Dgj])
-                    self.D_free.append(p.free_diff[name])
+                self.zs.append(p.ion_charge[name])
+                self.molar_mass.append(p.molar_mass[name])
+                self.z_array.append(vars(self)[str_z])
+                self.Dm_cells.append(vars(self)[str_Dm])
+                self.D_gj.append(vars(self)[str_Dgj])
+                self.D_free.append(p.free_diff[name])
 
-                    self.fluxes_mem.append(self.flx_mem_i)
+                self.fluxes_mem.append(self.flx_mem_i)
 
-                    if p.is_ecm:
-                        self.c_env_bound.append(p.env_concs[name])
-                        self.z_array_env.append(vars(self)[str_z2])
-                        self.D_env.append(vars(self)[str_Denv])
-                        self.Dtj_rel.append(p.Dtj_rel[name])
+                if p.is_ecm:
+                    self.c_env_bound.append(p.env_concs[name])
+                    self.z_array_env.append(vars(self)[str_z2])
+                    self.D_env.append(vars(self)[str_Denv])
+                    self.Dtj_rel.append(p.Dtj_rel[name])
 
-                    if name == 'Ca':
-                        self.cCa_er = np.zeros(len(cells.cell_i))
-                        self.cCa_er[:] = p.cCa_er
+                if name == 'Ca':
+                    self.cCa_er = np.zeros(len(cells.cell_i))
+                    self.cCa_er[:] = p.cCa_er
 
-                        self.zCa_er = np.zeros(len(cells.cell_i))
-                        self.zCa_er[:] = p.z_Ca
+                    self.zCa_er = np.zeros(len(cells.cell_i))
+                    self.zCa_er[:] = p.z_Ca
 
-                        self.cc_er.append(self.cCa_er)
-                        self.z_er.append(p.z_Ca)
-                        self.z_array_er.append(self.zCa_er)
+                    self.cc_er.append(self.cCa_er)
+                    self.z_er.append(p.z_Ca)
+                    self.z_array_er.append(self.zCa_er)
 
-                    if name == 'M' and p.ions_dict['Ca'] == 1:
-                        self.cM_er = np.zeros(len(cells.cell_i))
-                        self.cM_er[:] = p.cCa_er
+                if name == 'M' and p.ions_dict['Ca'] == 1:
+                    self.cM_er = np.zeros(len(cells.cell_i))
+                    self.cM_er[:] = p.cCa_er
 
-                        self.zM_er = np.zeros(len(cells.cell_i))
-                        self.zM_er[:] = p.z_M
+                    self.zM_er = np.zeros(len(cells.cell_i))
+                    self.zM_er[:] = p.z_M
 
-                        self.cc_er.append(self.cM_er)
-                        self.z_er.append(p.z_M)
-                        self.z_array_er.append(self.zM_er)
+                    self.cc_er.append(self.cM_er)
+                    self.z_er.append(p.z_M)
+                    self.z_array_er.append(self.zM_er)
 
-        # Do H+ separately as it's complicated by the bicarbonate buffer.
-        if p.ions_dict['H'] == 1 and p.ion_profile is not IonProfileType.CUSTOM:
-            i = i + 1
-            self.iH = i
-            self.ionlabel[self.iH] = 'protons'
-            # self.movingIons.append(self.iH)
-
-            # create concentration arrays of dissolved carbon dioxide (carbonic acid, non-dissociated):
-            self.cHM_cells = np.zeros(self.cdl)
-            self.cHM_cells[:] = 0.03 * p.CO2
-
-            self.cHM_env = np.zeros(self.edl)
-            self.cHM_env[:] = 0.03 * p.CO2
-
-            self.cH_cells, self.pH_cell = stb.bicarbonate_buffer(self.cHM_cells, self.cc_cells[self.iM])
-            self.cH_env, self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
-
-            # initialize diffusion constants
-            DmH = np.zeros(self.mdl)
-            DmH[:] = p.Dm_H
-
-            self.zH = np.zeros(self.cdl)
-            self.zH[:] = p.z_H
-
-            # gap junction diffusion constant for H+
-            DgjH = np.zeros(len(cells.nn_i))
-            DgjH[:] = p.free_diff['H']
-
-            if p.is_ecm:
-                self.zH2 = np.zeros(len(cells.xypts))
-                self.zH2[:] = p.z_H
-
-                # environmental diffusion for H+
-                DenvH = np.zeros(len(cells.xypts))
-                DenvH[:] = p.free_diff['H']
-
-                # add fixed boundary concentration of H+
-                p.env_concs['H'] = self.cH_env.mean()
-                self.c_env_bound.append(p.env_concs['H'])
-
-            # append items to main data vectors:
-            self.cc_cells.append(self.cH_cells)
-            self.cc_env.append(self.cH_env)
-
-            self.zs.append(p.z_H)
-            self.molar_mass.append(p.M_H)
-            self.z_array.append(self.zH)
-
-            self.Dm_cells.append(DmH)
-            self.D_gj.append(DgjH)
-            self.D_free.append(p.Do_H)
-
-            self.fluxes_mem.append(self.flx_mem_i)
-
-            if p.is_ecm is True:
-                self.z_array_env.append(self.zH2)
-                self.D_env.append(DenvH)
-                self.Dtj_rel.append(p.Dtj_rel['H'])
+        # # Do H+ separately as it's complicated by the bicarbonate buffer.
+        # if p.ions_dict['H'] == 1 and p.ion_profile is not IonProfileType.CUSTOM:
+        #     i = i + 1
+        #     self.iH = i
+        #     self.ionlabel[self.iH] = 'protons'
+        #     # self.movingIons.append(self.iH)
+        #
+        #     # create concentration arrays of dissolved carbon dioxide (carbonic acid, non-dissociated):
+        #     self.cHM_cells = np.zeros(self.cdl)
+        #     self.cHM_cells[:] = 0.03 * p.CO2
+        #
+        #     self.cHM_env = np.zeros(self.edl)
+        #     self.cHM_env[:] = 0.03 * p.CO2
+        #
+        #     self.cH_cells, self.pH_cell = stb.bicarbonate_buffer(self.cHM_cells, self.cc_cells[self.iM])
+        #     self.cH_env, self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
+        #
+        #     # initialize diffusion constants
+        #     DmH = np.zeros(self.mdl)
+        #     DmH[:] = p.Dm_H
+        #
+        #     self.zH = np.zeros(self.cdl)
+        #     self.zH[:] = p.z_H
+        #
+        #     # gap junction diffusion constant for H+
+        #     DgjH = np.zeros(len(cells.nn_i))
+        #     DgjH[:] = p.free_diff['H']
+        #
+        #     if p.is_ecm:
+        #         self.zH2 = np.zeros(len(cells.xypts))
+        #         self.zH2[:] = p.z_H
+        #
+        #         # environmental diffusion for H+
+        #         DenvH = np.zeros(len(cells.xypts))
+        #         DenvH[:] = p.free_diff['H']
+        #
+        #         # add fixed boundary concentration of H+
+        #         p.env_concs['H'] = self.cH_env.mean()
+        #         self.c_env_bound.append(p.env_concs['H'])
+        #
+        #     # append items to main data vectors:
+        #     self.cc_cells.append(self.cH_cells)
+        #     self.cc_env.append(self.cH_env)
+        #
+        #     self.zs.append(p.z_H)
+        #     self.molar_mass.append(p.M_H)
+        #     self.z_array.append(self.zH)
+        #
+        #     self.Dm_cells.append(DmH)
+        #     self.D_gj.append(DgjH)
+        #     self.D_free.append(p.Do_H)
+        #
+        #     self.fluxes_mem.append(self.flx_mem_i)
+        #
+        #     if p.is_ecm is True:
+        #         self.z_array_env.append(self.zH2)
+        #         self.D_env.append(DenvH)
+        #         self.Dtj_rel.append(p.Dtj_rel['H'])
 
         # -------------------------------------------------------------------------------------------------------
 
@@ -802,15 +802,15 @@ class Simulator(object):
                 # If this ion is enabled...
                 if val == 1:
                     # If this is *NOT* the H+ ion...
-                    if key != 'H':
-                        ion_i = self.get_ion(key)
-                        # print("resetting c_env from ", self.c_env_bound[ion_i], 'to ', p.cbnd[key], "for ", key)
+                    # if key != 'H':
+                    ion_i = self.get_ion(key)
+                    # print("resetting c_env from ", self.c_env_bound[ion_i], 'to ', p.cbnd[key], "for ", key)
 
-                        if p.cbnd is not None:
-                            self.c_env_bound[ion_i] = p.cbnd[key]
-                    # Else if this is the H+ ion *NOT* under a custom profile...
-                    elif p.ion_profile is not IonProfileType.CUSTOM:
-                        self.c_env_bound[self.iH] = p.env_concs['H']
+                    if p.cbnd is not None:
+                        self.c_env_bound[ion_i] = p.cbnd[key]
+                    # # Else if this is the H+ ion *NOT* under a custom profile...
+                    # elif p.ion_profile is not IonProfileType.CUSTOM:
+                    #     self.c_env_bound[self.iH] = p.env_concs['H']
 
         self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles
@@ -1797,12 +1797,7 @@ class Simulator(object):
         by the current simulation configuration.
         '''
 
-        if p.ion_profile is not IonProfileType.CUSTOM:
-            # IdM = np.ones(self.mdl)
-
-            # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
-            self.cc_cells[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_cells, self.cc_cells[self.iM])
-            self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
+        pass
 
     def ca_handler(self,cells,p):
 
@@ -2051,6 +2046,9 @@ class Simulator(object):
             for i, dmat in enumerate(self.D_env):
 
                 Denv_o = np.ones(self.edl) * self.D_free[i]
+
+                # adherens junctions slow diffusion throughout the cell cluster:
+                Denv_o[cells.envInds_inClust] = self.D_free[i]*p.D_adh
 
                 # if p.env_type is True:
                 Denv_o[cells.all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]

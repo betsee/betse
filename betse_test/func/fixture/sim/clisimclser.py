@@ -95,7 +95,7 @@ class CLISimTester(object):
     def run_subcommands(
         self,
         *subcommands_args: SequenceTypes,
-        is_overwriting_config: bool = True
+        is_config_overwrite: bool = True
     ) -> None:
         '''
         Run all simulation-specific BETSE CLI subcommands signified by the
@@ -119,14 +119,14 @@ class CLISimTester(object):
         subcommands_args : tuple
             Tuple of sequences of **subcommand arguments** (i.e., one or more
             shell words comprising the BETSE CLI subcommand to be tested).
-        is_overwriting_config : optional[bool]
+        is_config_overwrite : optional[bool]
             If ``True``, all in-memory changes to the current simulation
             configuration are persisted back to disk. Defaults to ``True``.
         '''
 
         # If persisting all in-memory configuration changes back to disk, do so
         # *BEFORE* running the passed.subcommands requiring these changes.
-        if is_overwriting_config:
+        if is_config_overwrite:
             self._overwrite_config()
 
         # For each such subcommand...
@@ -135,12 +135,12 @@ class CLISimTester(object):
             # re-overwritten. While technically safe, doing so would impose
             # unnecessary I/O inefficiencies.
             self.run_subcommand(
-                *subcommand_args, is_overwriting_config=False)
+                *subcommand_args, is_config_overwrite=False)
 
 
     @type_check
     def run_subcommand(
-        self, *subcommand_args: str, is_overwriting_config: bool = True
+        self, *subcommand_args: str, is_config_overwrite: bool = True
     ) -> None:
         '''
         Run the simulation-specific BETSE CLI subcommand signified by the passed
@@ -164,7 +164,7 @@ class CLISimTester(object):
         subcommand_args : tuple
             Tuple of **subcommand arguments** (i.e., one or more shell words
             comprising the BETSE CLI subcommand to be tested).
-        is_overwriting_config : optional[bool]
+        is_config_overwrite : optional[bool]
             If ``True``, all in-memory changes to the current simulation
             configuration are persisted back to disk. Defaults to ``True``.
         '''
@@ -175,7 +175,7 @@ class CLISimTester(object):
 
         # If persisting all in-memory configuration changes back to disk, do so
         # *BEFORE* running the passed.subcommands requiring these changes.
-        if is_overwriting_config:
+        if is_config_overwrite:
             self._overwrite_config()
 
         # Human-readable title to be embedded in a single-line terminal banner.

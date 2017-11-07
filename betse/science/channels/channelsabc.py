@@ -9,7 +9,7 @@ Abstract base classes of all channel classes.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 import numpy as np
-#from betse.science import sim_toolbox as stb
+from betse.science import sim_toolbox as stb
 
 # ....................{ BASE                               }....................
 class ChannelsABC(object, metaclass=ABCMeta):
@@ -95,22 +95,8 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         else:
 
-            flux_env = np.zeros(sim.edl)
-            flux_env[cells.map_mem2ecm] = -delta_Q
-
-            # save values at the cluster boundary:
-            bound_vals = flux_env[cells.ecm_bound_k]
-
-            # set the values of the global environment to zero:
-            flux_env[cells.inds_env] = 0
-
-            # finally, ensure that the boundary values are restored:
-            flux_env[cells.ecm_bound_k] = bound_vals
-
-            # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the,
-            # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
-            # to get the mol/s change in concentration (divergence):
-            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
+            # delta_env = np.dot(cells.M_divmap_mem2ecm, -delta_Q)
+            delta_env = stb.div_env(-delta_Q, cells,p)
 
             # update the concentrations:
             sim.cc_env[ion_index]= sim.cc_env[ion_index] + delta_env * p.dt

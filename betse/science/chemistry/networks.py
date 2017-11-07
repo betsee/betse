@@ -1132,8 +1132,8 @@ class MasterOfNetworks(object):
                 # define remaining portion of substance's growth and decay expression:
 
                 mod_funk = "(self.molecules['{}'].growth_mod_function_cells)".format(mol_name)
-                r_prod =  "(self.molecules['{}'].r_production)".format(mol_name)
-                r_decay = "(self.molecules['{}'].r_decay)".format(mol_name)
+                r_prod =  "(self.molecules['{}'].r_production*(self.molecules['{}'].modify_time_factor))".format(mol_name, mol_name)
+                r_decay = "(self.molecules['{}'].r_decay*(self.molecules['{}'].modify_time_factor))".format(mol_name, mol_name)
 
                 gad_eval_string = mod_funk + "*" + r_prod + "*" + all_alpha + "-" + \
                                   r_decay + "*" + cc
@@ -2024,13 +2024,9 @@ class MasterOfNetworks(object):
 
                 if p.is_ecm is True:
 
-                    # if self.transporters[transp_name].ignore_ECM_transporter is True:
+                    out_delta_term_react = "stb.div_env(-self.transporters['{}'].flux, cells, p)".format(transp_name)
 
-                    out_delta_term_react = "-self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
-                                           "[cells.map_mem2ecm]/cells.ecm_vol)".format(transp_name)
-
-                    out_delta_term_prod = "self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
-                                          "[cells.map_mem2ecm]/cells.ecm_vol)".format(transp_name)
+                    out_delta_term_prod = "stb.div_env(self.transporters['{}'].flux, cells, p)".format(transp_name)
 
                 else:
                     out_delta_term_react = "(np.dot(cells.M_sum_mems, -self.transporters['{}'].flux*cells.mem_sa)/cells.cell_vol)".format(transp_name)
@@ -2863,9 +2859,8 @@ class MasterOfNetworks(object):
 
 
             self.extra_J_mem += self.transporters[name].net_z*self.transporters[name].flux*p.F
-            sim.extra_J_mem = self.extra_J_mem
 
-
+            # sim.extra_J_mem = self.extra_J_mem
 
             # finally, update the concentrations using the final eval statements:
             for i, (delc, coeff) in enumerate(zip(self.transporters[name].delta_react_eval_strings,
@@ -2890,12 +2885,12 @@ class MasterOfNetworks(object):
 
                     if p.is_ecm is True:
 
-                        delta_react_expanded = np.zeros(sim.edl)
-                        delta_react_expanded[cells.map_mem2ecm] = delta_react[:]
+                        # delta_react_expanded = np.zeros(sim.edl)
+                        # delta_react_expanded[cells.map_mem2ecm] = delta_react[:]
 
                         self.env_concs[self.transporters[name].reactants_list[i]][targ_env] = (
                             self.env_concs[self.transporters[name].reactants_list[i]][targ_env] +
-                            delta_react_expanded[targ_env]*p.dt)
+                            delta_react[targ_env]*p.dt)
 
                     else:
 
@@ -2936,18 +2931,16 @@ class MasterOfNetworks(object):
                         self.mem_concs[self.transporters[name].products_list[i]][targ_mem] + \
                         self.transporters[name].flux[targ_mem]*(cells.mem_sa[targ_mem]/cells.mem_vol[targ_mem])*p.dt
 
-
-
                 elif self.transporters[name].prod_transport_tag[i] == 'env_concs':
 
                     if p.is_ecm is True:
 
-                        delta_prod_expanded = np.zeros(sim.edl)
-                        delta_prod_expanded[cells.map_mem2ecm] = delta_prod[:]
+                        # delta_prod_expanded = np.zeros(sim.edl)
+                        # delta_prod_expanded[cells.map_mem2ecm] = delta_prod[:]
 
                         self.env_concs[self.transporters[name].products_list[i]][targ_env] = \
                             self.env_concs[self.transporters[name].products_list[i]][targ_env] + \
-                            delta_prod_expanded[targ_env]*p.dt
+                            delta_prod[targ_env]*p.dt
 
                     else:
 
@@ -2971,6 +2964,9 @@ class MasterOfNetworks(object):
 
                     raise BetseSimConfigException("Internal error: transporter zone not specified correctly!")
 
+        # if p.substances_affect_charge:
+        #
+        #     sim.extra_J_mem = self.extra_J_mem
 
     def run_loop_channels(self, sim, cells, p):
 
@@ -3657,8 +3653,12 @@ class MasterOfNetworks(object):
             if Q < 0 and np.abs(Q) <= sim.cc_env[sim.iP].mean():  # if net charge is anionic
 
                 self.env_concs['P'] = sim.cc_env[sim.iP] - np.abs(Q)
+                self.bound_concs['P'] = sim.c_env_bound[sim.iP] - np.abs(Q)
+
             elif Q > 0 and np.abs(Q) <= sim.cc_env[sim.iK].mean():
                 self.env_concs['K'] = sim.cc_env[sim.iK] - np.abs(Q)
+                self.bound_concs['K'] = sim.c_env_bound[sim.iK] - np.abs(Q)
+
             elif Q < 0 and np.abs(Q) > sim.cc_env[sim.iP].mean():  # if net charge is anionic
                 raise BetseSimConfigException("You've defined way more anionic charge in "
                                                "the extra substances (env region) than we can "
@@ -3793,11 +3793,6 @@ class MasterOfNetworks(object):
             obj.c_mems_time.append(obj.cc_at_mem)
             obj.c_cells_time.append(obj.c_cells)
 
-            # smooth env data if necessary:
-            # if p.smooth_concs is False and p.is_ecm is True:
-            #     cc_env = gaussian_filter(obj.c_env.reshape(cells.X.shape), 1.0).ravel()
-            #
-            # else:
             cc_env = np.copy(obj.c_env)
 
             obj.c_env_time.append(cc_env)
@@ -3868,11 +3863,11 @@ class MasterOfNetworks(object):
         if self.chi.mean() != 0.0:
             logs.log_info('Energy charge: ' + str(np.round(self.chi.mean(), 3)))
 
-        if 'H+' in self.molecules:
+        if 'H+' in self.molecules: # NOTE this is a reporting mechanism assuming H+ is scaled by 1.0e-3
 
             obj = self.molecules['H+']
 
-            ph = -np.log10(1.0e-3*obj.scale_factor*obj.c_cells.mean())
+            ph = -np.log10(1.0e-6*obj.c_cells.mean())
 
             logs.log_info('Average pH in the cell: ' +
                           str(np.round(ph, 2)))
@@ -5221,7 +5216,7 @@ class Molecule(object):
                                                                 Dgj = self.Dgj,
                                                                 c_bound = self.c_bound,
                                                                 ignoreECM = self.ignore_ECM_pump,
-                                                                smoothECM = p.smooth_concs,
+                                                                smoothECM = False,
                                                                 ignoreTJ = self.ignoreTJ,
                                                                 ignoreGJ = self.ignoreGJ,
                                                                 Ftj = self.TJ_factor,
@@ -5695,42 +5690,47 @@ class Molecule(object):
         """
 
 
-        # if self.c_env.all() != 0.0:
+        if self.c_env.all() != 0.0:
 
-        fig = plt.figure()
-        ax = plt.subplot(111)
+            logmess = "Plotting environmental concentration of {}".format(self.name)
+            logs.log_info(logmess)
 
-        # if p.smooth_level == 0.0:
-        #     dyeEnv = gaussian_filter(self.c_env.reshape(cells.X.shape), 1.0)
-        # else:
-        dyeEnv = (self.c_env).reshape(cells.X.shape)
+            fig = plt.figure()
+            ax = plt.subplot(111)
 
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
+            dyeEnv = (self.c_env).reshape(cells.X.shape)
 
-        bkgPlot = ax.imshow(dyeEnv,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=p.default_cm)
+            xmin = cells.xmin*p.um
+            xmax = cells.xmax*p.um
+            ymin = cells.ymin*p.um
+            ymax = cells.ymax*p.um
 
-        if self.plot_autoscale is False:
-            bkgPlot.set_clim(self.plot_min, self.plot_max)
+            bkgPlot = ax.imshow(dyeEnv,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=p.default_cm)
 
-        cb = fig.colorbar(bkgPlot)
+            if self.plot_autoscale is False:
+                bkgPlot.set_clim(self.plot_min, self.plot_max)
 
-        ax.axis('equal')
-        ax.axis([xmin,xmax,ymin,ymax])
+            cb = fig.colorbar(bkgPlot)
 
-        ax.set_title('Final ' + self.name + ' Concentration in Environment')
-        ax.set_xlabel('Spatial distance [um]')
-        ax.set_ylabel('Spatial distance [um]')
-        cb.set_label('Concentration mmol/L')
+            ax.axis('equal')
+            ax.axis([xmin,xmax,ymin,ymax])
 
-        if p.autosave is True:
-            savename = saveImagePath + '2Denv_conc_' + self.name + '.png'
-            plt.savefig(savename,format='png',dpi = 300.0, transparent=True)
+            ax.set_title('Final ' + self.name + ' Concentration in Environment')
+            ax.set_xlabel('Spatial distance [um]')
+            ax.set_ylabel('Spatial distance [um]')
+            cb.set_label('Concentration mmol/L')
 
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
+            if p.autosave is True:
+                savename = saveImagePath + '2Denv_conc_' + self.name + '.png'
+                plt.savefig(savename,format='png',dpi = 300.0, transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+        else:
+
+            logmess = "Skipping environmental plot of {} due to null values!".format(self.name)
+            logs.log_info(logmess)
 
     #FIXME: Ideally, this method should be refactored to comply with the
     #new pipeline API.

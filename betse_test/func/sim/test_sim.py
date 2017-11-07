@@ -56,7 +56,18 @@ def test_cli_sim_compat(
 
     # Test all simulation-specific plotting subcommands with this configuration.
     betse_cli_sim_backward_compatibility.run_subcommands(
-        ('plot', 'seed',), ('plot', 'init',), ('plot', 'sim',),)
+        ('plot', 'seed',), ('plot', 'init',), ('plot', 'sim',),
+
+        # Avoid overwriting the previously exported simulation configuration.
+        is_config_overwrite=False,)
+
+    #FIXME: When we unavoidably break backward compatibility with respect to
+    #pickled objects and hence currently only test backward compatibility with
+    #respect to the simulation configuration. This is non-ideal, but sufficient
+    #for the moment. Ideally, this should be reverted on releasing a new version.
+    # betse_cli_sim_backward_compatibility.run_subcommands(
+    #     ('seed',),
+    #     is_overwriting_config=False,)
 
 
 def test_cli_sim_noecm(betse_cli_sim: 'CLISimTester') -> None:
