@@ -21,7 +21,7 @@ from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
 from betse.science.simulate.simphase import SimPhase
-from betse.science.tissue.handler import TissueHandler
+from betse.science.tissue.tishandler import TissueHandler
 from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
@@ -33,8 +33,6 @@ from matplotlib import cm
 from matplotlib import colors
 from scipy.ndimage.filters import gaussian_filter
 from scipy.optimize import basinhopping
-import sys
-import importlib.util
 
 # ....................{ CLASSES                            }....................
 # FIXME: if moving to have unpacked membrane concs, update transporters...

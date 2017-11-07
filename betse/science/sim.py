@@ -22,7 +22,7 @@ from betse.science.physics.move_channels import MoveChannel
 from betse.science.physics.pressures import osmotic_P
 from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.science.organelles.microtubules import Mtubes
-from betse.science.tissue.handler import TissueHandler
+from betse.science.tissue.tishandler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.io.log import logs
 from betse.util.path import pathnames

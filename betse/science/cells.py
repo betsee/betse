@@ -15,7 +15,7 @@ from betse.science import filehandling as fh
 from betse.science.config.confenum import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
-from betse.science.tissue.bitmapper import BitMapper
+from betse.science.tissue.picker.tispickimage import TissuePickerImageMask
 from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.util.type.call.memoizers import property_cached
@@ -809,7 +809,7 @@ class Cells(object):
 
         # Load the bitmap used to clip the cell cluster and create a clipping
         # function.
-        self.bitmasker = BitMapper(
+        self.bitmasker = TissuePickerImageMask(
             p.clipping_bitmap_matcher,
             self.xmin, self.xmax, self.ymin, self.ymax)
 

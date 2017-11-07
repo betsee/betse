@@ -46,10 +46,9 @@ def upgrade_sim_imports() -> None:
         Further details on which prior formats exactly are supported.
     '''
 
-    # Upgrade imports to the 0.5.2 format.
+    # Upgrade package imports to each successive format. For safety, each
+    # upgrade is performed in strict chronological order.
     _upgrade_sim_imports_to_0_5_2()
-
-    # Upgrade imports to the 0.6.0 format *AFTER* the 0.5.0 format.
     _upgrade_sim_imports_to_0_6_0()
 
 # ....................{ UPGRADERS ~ 0.5.2                  }....................
@@ -68,7 +67,6 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
     from betse.science import channels
     from betse.science.math import finitediff
     from betse.science.simulate import simphase
-    from betse.science.tissue import tissuepick
     from betse.science.config import export
     from betse.science.config.export import confanim, confplot, confvis
     from betse.util.type.mapping import mapcls
@@ -82,7 +80,6 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
     sys.modules['betse.science.config.visual.confvisualabc'] = confvis
     sys.modules['betse.science.finitediff'] = finitediff
     sys.modules['betse.science.tissue.channels'] = channels
-    sys.modules['betse.science.tissue.picker'] = tissuepick
     sys.modules['betse.science.plot.plotconfig'] = confplot
     sys.modules['betse.science.plot.anim.animconfig'] = confanim
     sys.modules['betse.science.visual.anim.animconfig'] = confanim
@@ -122,10 +119,21 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
 
     # Import all modules whose fully-qualified names have been modified.
     from betse.lib.yaml.abc import yamlabc  #, yamllistabc
-    from betse.science.tissue import tiscls
+    from betse.science.tissue import tisprofile, tishandler
     from betse.science.tissue.event import tisevecut
+    from betse.science.tissue.picker import tispickcls, tispickimage
+    from betse.science.tissue.picker.tispickimage import (
+        TissuePickerImage, TissuePickerImageMask)
 
     # Alias obsolete module names to current module objects.
     sys.modules['betse.lib.yaml.yamlabc'] = yamlabc
     sys.modules['betse.science.config.event.eventcut'] = tisevecut
-    sys.modules['betse.science.tissue.tissuecls'] = tiscls
+    sys.modules['betse.science.tissue.bitmapper'] = tispickimage
+    sys.modules['betse.science.tissue.handler'] = tishandler
+    sys.modules['betse.science.tissue.tiscls'] = tisprofile
+    sys.modules['betse.science.tissue.tissuecls'] = tisprofile
+    sys.modules['betse.science.tissue.tissuepick'] = tispickcls
+
+    # Alias obsolete to current class names.
+    tispickcls.TissuePickerBitmap = TissuePickerImage
+    tispickimage.BitMapper = TissuePickerImageMask

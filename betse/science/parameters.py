@@ -13,7 +13,7 @@ from betse.science.config.confenum import (
     CellLatticeType, IonProfileType)
 from betse.science.config.event import eventvoltage
 from betse.science.simulate.simphase import SimPhaseKind
-from betse.science.tissue.tissuepick import TissuePickerBitmap
+from betse.science.tissue.picker.tispickimage import TissuePickerImage
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 # from betse.util.type.call.memoizers import property_cached
@@ -227,7 +227,7 @@ class Parameters(YamlFileABC):
 
     Attributes (Tissue)
     ----------
-    clipping_bitmap_matcher : TissuePickerBitmap
+    clipping_bitmap_matcher : TissuePickerImage
         Object encapsulating the bitmap whose colored pixel area specifies the
         global geometry mask to which all tissue profile bitmaps will be
         clipped.
@@ -1275,21 +1275,8 @@ class Parameters(YamlFileABC):
         #"clipping_bitmap_matcher" instance variable into a local variable of
         #the Cells._make_voronoi() method, the only method referencing this
         #variable. (Nice!)
-        self.clipping_bitmap_matcher = TissuePickerBitmap(
+        self.clipping_bitmap_matcher = TissuePickerImage(
             tpd['clipping']['bitmap']['file'], self.conf_dirname)
-
-        #FIXME: This now appears to be vestigial. Notably, there *IS* no
-        #"internal pore file" setting in our current configuration format. In
-        #fact, there's no reference to the term "pore" at all. This strongly
-        #implies this functionality to be safely removable. On doing so, the
-        #corresponding "if" conditional in "simrunner" *MUST* also be removed.
-        model_hole = tpd.get('internal pore file', None)
-
-        if model_hole is not None:
-            self.clipping_bitmap_hole = TissuePickerBitmap(
-                tpd['internal pore file'], self.conf_dirname)
-        else:
-            self.clipping_bitmap_hole = None
 
     # ..................{ EXCEPTIONS                         }..................
     def die_unless_ecm(self) -> None:

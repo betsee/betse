@@ -14,12 +14,15 @@ from betse.science.channels import vg_k as vgk
 from betse.science.channels import vg_kir as vgkir
 from betse.science.channels import vg_na as vgna
 from betse.science.channels import vg_nap as vgnap
-from betse.science.channels import wound_channel as w
+from betse.science.channels.wound_channel import TRP
 from betse.science.math import modulate as mod
 from betse.science.math import toolbox as tb
-from betse.science.tissue import tiscls
+from betse.science.tissue.tisprofile import TissueCut
 from betse.science.tissue.event.tisevecut import SimEventCut
 from betse.science.tissue.channels_o import cagPotassium
+from betse.science.tissue.picker.tispickcls import (
+    TissuePickerAll, TissuePickerIndices, TissuePickerRandom)
+from betse.science.tissue.picker.tispickimage import TissuePickerImage
 from betse.util.io.log import logs
 # from betse.util.type import types
 from betse.util.type.types import type_check
@@ -30,7 +33,7 @@ from random import shuffle
 #FIXME: Since this class handles both tissue profiles *AND* scheduled
 #interventions, consider renaming this class to a less ambiguous name -- say, to
 #"TissueEventHandler".
-#FIXME: Document all instance variables of this class.
+#FIXME: Document all instance variables defined within this class.
 class TissueHandler(object):
     '''
     High-level tissue handler, managing all tissue-centric functionality
@@ -58,11 +61,13 @@ class TissueHandler(object):
         **Cutting event** (i.e., event removing a region of the current cluster
         at some time step during the simulation phase) if enabled by the
         current simulation configuration *or* ``None`` otherwise.
-    wound_channel_used : bool
-        ``True`` only if the current simulation configuration enabled simulation
-        of the mechanosensitive Na channel associated with wounding *and* the
-        :attr:`cutting_event_run` boolean is also ``True``, in which case the
-        cutting event has been performed and has thus activated this channel.
+    _wound_channel : {TRP, NoneType}
+        Wound-induced TRP-based channel if the following conditions are all
+        satisfied *or* ``None`` otherwise:
+        * The current simulation configuration has enabled simulation of the
+          mechanosensitive Na channel associated with wounding.
+        * The cutting event has already been performed, thus generating a wound
+          and activating this channel.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -99,39 +104,103 @@ class TissueHandler(object):
         high-level instance of the :class:`TissueABC` class.
         '''
 
-        # Ordered dictionary mapping from tissue names to profiles.
+        #FIXME: Split this single ambiguous dictionary into two
+        #non-ambiguous dictionaries:
+        #
+        #* "tissue_name_to_profile", aggregating all tissue profiles.
+        #* "cut_name_to_profile", aggregating all cut profiles.
+        #
+        #This is trivially accomplished by branching on the "['type']" key
+        #of each such YAML dictionary.
+
+        # Ordered dictionary mapping from tissue names to profiles, initialized
+        # *BEFORE* possibly nooping below.
         self.tissue_name_to_profile = OrderedDict()
 
-        # If tissue profiles are disabled, silently noop.
+        # If tissue and cut profiles are disabled, silently noop.
         if not p.is_tissue_profiles:
             return
 
         #FIXME: Replace with usage of a proper public instance variable.
         # List of all low-level YAML list items defining these profiles.
-        profile_configs = p._conf['tissue profile definition']['profiles']
+        profile_confs = p._conf['tissue profile definition']['profiles']
 
-        for i, profile_config in enumerate(profile_configs):
-            tissue_name = profile_config['name']
+        # For each low-level YAML-based tissue and cut profile...
+        for i, profile_conf in enumerate(profile_confs):
+            # Name and type of this tissue or cut profile.
+            profile_name = profile_conf['name']
+            profile_type = profile_conf['type']
 
-            #FIXME: Refactor as follows:
-            #
-            #* Shift the entirety of the tiscls.make() function into this
-            #  method.
-            #* Remove the tiscls.make() function.
-            #FIXME: Split this single ambiguous dictionary into two
-            #non-ambiguous dictionaries:
-            #
-            #* "tissue_name_to_profile", aggregating all tissue profiles.
-            #* "cut_name_to_profile", aggregating all cut profiles.
-            #
-            #This is trivially accomplished by branching on the "['type']" key
-            #of each such YAML dictionary.
-            self.tissue_name_to_profile[tissue_name] = tiscls.make(
-                p=p,
-                conf=profile_config,
-                # Convert from 0-based list indices to 1-based z order.
-                z_order=i + 1,
-            )
+            # 1-based z-order converted from this 0-based list index.
+            profile_z_order = i + 1
+
+            # If this is a tissue profile...
+            if profile_type == 'tissue':
+                profile_picker_conf = profile_conf['cell targets']
+
+                # Object matching a region of the cell cluster for this profile.
+                profile_picker = None
+
+                # Type of this object.
+                profile_picker_type = profile_picker_conf['type']
+
+                # Conditionally define this object.
+                if profile_picker_type == 'all':
+                    profile_picker = TissuePickerAll()
+                elif profile_picker_type == 'bitmap':
+                    profile_picker = TissuePickerImage(
+                        filename=profile_picker_conf['bitmap']['file'],
+                        dirname=p.conf_dirname)
+                elif profile_picker_type == 'indices':
+                    profile_picker = TissuePickerIndices(
+                        profile_picker_conf['indices'])
+                elif profile_picker_type == 'random':
+                    profile_picker = TissuePickerRandom(
+                        profile_picker_conf['random'])
+                else:
+                    raise BetseSimTissueException(
+                        'Tissue profile picker type "{}" unrecognized.'.format(
+                            profile_picker_type))
+
+                #FIXME: Refactor to return the following class instead:
+                #     profile = TissueProfile(
+                #         name=config['name'],
+                #         picker=TissuePickerABC.make(config['cell targets'], p),
+                #     )
+                #
+                #Doing so will, of course, be slightly complicated. We'll need
+                #to grep the codebase for all references to
+                #"tissue_name_to_profile" and refactor all existing dictionary
+                #lookups into class attribute lookups. *sigh*
+
+                # Map this profile's name to a high-level profile object.
+                self.tissue_name_to_profile[profile_name] = {
+                    'type': profile_type,
+                    'name': profile_name,
+                    'insular gj': profile_conf['insular'],
+                    'z order': profile_z_order,
+                    'picker': profile_picker,
+
+                    # For safety, coerce all diffusion constants to floats.
+                    'diffusion constants': {
+                        key: float(value) for key, value in (
+                            profile_conf['diffusion constants'].items())
+                    },
+                }
+            # Else if this is a "cutting" profile...
+            elif profile_type == 'cut':
+                # Map this profile's name to a high-level profile object.
+                self.tissue_name_to_profile[profile_name] = TissueCut(
+                    name=profile_name,
+                    z_order=profile_z_order,
+                    picker=TissuePickerImage(
+                        filename=profile_conf['bitmap']['file'],
+                        dirname=p.conf_dirname)
+                )
+            # Else, this profile is invalid. Raise an exception, matey!
+            else:
+                raise BetseSimTissueException(
+                    'Profile type "{}"' 'unrecognized.'.format(profile_type))
 
 
     @type_check
@@ -141,16 +210,13 @@ class TissueHandler(object):
         configuration.
         '''
 
-        #FIXME: Embed the following booleans directly into the "event_cut"
-        #object itself. Specifically:
-        #
-        #* Shift "wound_channel_used" into the "SimEventCut" class.
-
-        # Record that the cutting event has yet to be performed.
-        self.wound_channel_used = False
-
         # Cutting event if enabled by this configuration or "None" otherwise.
         self.event_cut = None
+
+        # Wound-induced TRP-based channel if enabled by this configuration and a
+        # cutting event generating such a wound has already been performed or
+        # "None" otherwise.
+        self._wound_channel = None
 
         #FIXME: Access only public "Parameters" attributes.
         # If this event is enabled...
@@ -959,7 +1025,7 @@ class TissueHandler(object):
         if p.vg_options['Na_stretch'] != 0:
             self.stretchChannel(sim,cells,p,t)
 
-        if self.wound_channel_used:
+        if self._wound_channel is not None:
             self.wound_channel.run(self, sim, cells, p)
 
     def stretchChannel(self,sim,cells,p,t):
@@ -1106,7 +1172,6 @@ class TissueHandler(object):
         sim:   'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',
         p:     'betse.science.parameters.Parameters',
-        # hole_tag = False,
     ) -> None:
         '''
         Permanently remove all cells selected by the passed tissue picker.
@@ -1465,13 +1530,11 @@ class TissueHandler(object):
             #     sim.sigma_env = gaussian_filter(sim.sigma_env.reshape(cells.X.shape), 1).ravel()
 
         # WOUND CHANNEL FINALIZATION-----------------------------------------
-
         if p.use_wound_channel:
             self.maxDmWound = p.wound_Dmax   # FIXME add to params and config!
 
-            self.wound_channel_used = True
-            self.wound_channel = w.TRP()
-            self.wound_channel.init(self, sim, cells, p)
+            self._wound_channel = TRP()
+            self._wound_channel.init(self, sim, cells, p)
 
         # need to also re-do tissue profiles and GJ
         self.tissueProfiles(sim, cells, p)

@@ -4,8 +4,6 @@
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                            }....................
-import os
-import os.path
 import time
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,13 +13,13 @@ from betse.exceptions import (
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.chemistry.gene import MasterOfGenes
-from betse.science.chemistry.metabolism import MasterOfMetabolism
+# from betse.science.chemistry.metabolism import MasterOfMetabolism
 from betse.science.config import confio
 from betse.science.export import exppipe
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
 from betse.science.simulate.simphase import SimPhase, SimPhaseKind
-from betse.science.tissue.handler import TissueHandler
+from betse.science.tissue.tishandler import TissueHandler
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
@@ -104,11 +102,6 @@ class SimRunner(object):
         dyna.tissueProfiles(sim, cells, p)
         cells.redo_gj(dyna, p)  # redo gap junctions to isolate different tissue types
 
-        # if the user desires a non-TJ connected hole to be cut in the model, we need to remake everything:
-        # if the user wants a hole without TJ, we must unfortunately re-make everything
-        if p.clipping_bitmap_hole is not None:
-            dyna.removeCells(p.clipping_bitmap_hole, sim, cells, p, hole_tag=True)
-
         # make a laplacian and solver for discrete transfers on closed, irregular cell network
         logs.log_info('Creating cell network Poisson solver...')
         cells.graphLaplacian(p)
@@ -178,7 +171,7 @@ class SimRunner(object):
         #FIXME: This if conditional is repeated verbatim twice below. Generalize
         #into a new _load_cells() method containing this if conditional and
         #returning the loaded "Cells" instance; then, call this method both here
-        #and everywhere this repeated logic appears below..
+        #and everywhere this repeated logic appears below. Starbust dragons!
 
         if files.is_file(cells.savedWorld):
             cells,p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
@@ -739,7 +732,7 @@ class SimRunner(object):
             sim.molecules.core.anim(phase=phase, message='auxiliary molecules')
 
         if p.grn_enabled and sim.grn is not None:
-            configPath = os.path.join(p.conf_dirname, p.grn_config_filename)
+            configPath = pathnames.join(p.conf_dirname, p.grn_config_filename)
 
             # read the config file into a dictionary:
             config_dic = confio.read_metabo(configPath)
@@ -825,7 +818,7 @@ class SimRunner(object):
             sim.molecules.core.anim(phase=phase, message='auxiliary molecules')
 
         if p.grn_enabled and sim.grn is not None:
-            configPath = os.path.join(p.conf_dirname, p.grn_config_filename)
+            configPath = pathnames.join(p.conf_dirname, p.grn_config_filename)
 
             # read the config file into a dictionary:
             config_dic = confio.read_metabo(configPath)

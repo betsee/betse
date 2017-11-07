@@ -2,23 +2,135 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+'''
+Class hierarchy collectively implementing various methods for assigning a subset
+of the total cell population to the corresponding tissue profile.
+'''
+
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimException
+from betse.science.math import toolbox
+from betse.science.tissue.picker.tispickcls import TissuePickerABC
+from betse.util.path import files, pathnames
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
-from scipy import interpolate
-from scipy import misc
+from scipy import interpolate, misc
 from scipy.spatial import ConvexHull
 
-# ....................{ CLASSES                            }....................
+# ....................{ SUBCLASSES                         }....................
+#FIXME: Rename this subclass to "TissuePickerImage".
+class TissuePickerImage(TissuePickerABC):
+    '''
+    Image mask-specific tissue picker.
+
+    This matcher matches all cells residing inside the colored pixel area
+    defined by an associated image mask.
+
+    Attributes
+    ----------------------------
+    filename : str
+        Absolute path of this bitmap.
+    '''
+
+    # ..................{ PUBLIC                             }..................
+    @type_check
+    def __init__(self, filename: str, dirname: str) -> None:
+        '''
+        Initialize this tissue picker.
+
+        Parameters
+        ----------------------------
+        filename : str
+            Absolute or relative path of the desired bitmap. If relative (i.e.,
+            *not* prefixed by a directory separator), this path will be
+            canonicalized into an absolute path relative to the directory
+            containing the current simulation's configuration file.
+        dirname : str
+            Absolute path of the directory containing the path of the bitmap to
+            be loaded (i.e., ``filename``). If that path is relative, that path
+            will be prefixed by this path to convert that path into an absolute
+            path; else, this path is ignored.
+        '''
+
+        # If this is a relative path, convert this into an absolute path
+        # relative to the directory containing the source configuration file.
+        if pathnames.is_relative(filename):
+            filename = pathnames.join(dirname, filename)
+
+        # If this absolute path is *NOT* an existing file, raise an exception.
+        files.die_unless_file(filename)
+
+        # Persist this path.
+        self.filename = filename
+
+    # ..................{ GETTERS                            }..................
+    @type_check
+    def get_cell_indices(
+        self,
+        cells: 'betse.science.cells.Cells',
+        p:     'betse.science.parameters.Parameters',
+        ignoreECM: bool = False,
+    ) -> SequenceTypes:
+
+        # Calculate the indices of all cells residing inside this bitmap.
+        bitmask = self.get_bitmapper(cells)
+        target_inds = bitmask.good_inds
+
+        #FIXME: Double negative hurts brainpan.
+        # If simulating electromagnetism and at least one cell matches...
+        if not ignoreECM and len(target_inds):
+            target_inds = cells.cell_to_mems[target_inds]
+            target_inds,_,_ = toolbox.flatten(target_inds)
+
+        return target_inds
+
+
+    #FIXME: Refactor this method as follows:
+    #
+    #* Rename to get_image_mask().
+    #* Shift the call to the bitmapper.clipPoints() method performed by this
+    #  method into the get_cell_indices() method -- the only method that
+    #  currently calls this method.
+    #* After doing so, reduce:
+    #
+    #    # The following block in the "cells" submodule...
+    #    self.bitmasker = TissuePickerImageMask(
+    #        p.clipping_bitmap_matcher,
+    #        self.xmin, self.xmax, self.ymin, self.ymax)
+    #
+    #    # ...to the following simple method call. Note the reduction from an
+    #    # instance to local variable, which should improve space consumption.
+    #    bitmasker = p.clipping_bitmap_matcher.get_image_mask()
+    #
+    #Delightfully trivial, isn't it?
+    @type_check
+    def get_bitmapper(self, cells: 'betse.science.cells.Cells'):
+        '''
+        :class:`TissuePickerImageMask` object providing the indices of all cells residing
+        inside this bitmap.
+
+        Parameters
+        ---------------------------------
+        cells : Cells
+            Current cell cluster.
+        '''
+
+        # Create and return the desired bitmap. (Note this object is typically
+        # large and hence intentionally *NOT* cached as an object attribute.)
+        bitmapper = TissuePickerImageMask(
+            self, cells.xmin, cells.xmax, cells.ymin, cells.ymax)
+        bitmapper.clipPoints(cells.cell_centres[:,0], cells.cell_centres[:,1])
+
+        return bitmapper
+
+# ....................{ UTILITY CLASSES                    }....................
 #FIXME: Generalize this class to support images of arbitrary (possibly
 #non-square) dimensions.
-#FIXME: Rename this class to "TissueImageMask".
 #FIXME: Document all undocumented attributes.
-#FIXME: Document why this and the intrinsically related "TissuePickerBitmap"
+#FIXME: Document why this and the intrinsically related "TissuePickerImage"
 #class are separate -- notably, to reduce space consumption by instantiating
 #instances of this class as local variables of methods in the latter class.
-class BitMapper(object):
+class TissuePickerImageMask(object):
     '''
     Object finding, loading, and converting a passed bitmap into a SciPy-based
     interpolation function.
@@ -43,7 +155,7 @@ class BitMapper(object):
     :meth:`clipPoints` method is externally called.
 
     good_inds : ndarray
-        #FIXME: Document us up the `BitMapper` bomb.
+        #FIXME: Document us up the `TissuePickerImageMask` bomb.
     good_points : ndarray
         Numpy matrix listing all points ``(x, y)`` residing inside this bitmap's
         colored area.
@@ -56,9 +168,7 @@ class BitMapper(object):
 
         #FIXME: Nonsense. Reduce this parameter to simply:
         #    filename: str,
-        #This eliminates the circular dependency and simplifies life for all.
-        # Avoid circular import dependencies.
-        bitmap_matcher: 'betse.science.tissue.tissuepick.TissuePickerBitmap',
+        bitmap_matcher: TissuePickerImage,
 
         #FIXME: Rename these parameters to "x_min", "x_max", etc.
         xmin: NumericTypes,
@@ -87,7 +197,7 @@ class BitMapper(object):
 
         Parameters
         ----------
-        bitmap_matcher : TissuePickerBitmap
+        bitmap_matcher : TissuePickerImage
             Low-level BETSE-specific object describing this bitmap.
         xmin : NumericTypes
             Minimum X coordinate accepted by these interpolation functions.

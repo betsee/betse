@@ -53,11 +53,11 @@ def upgrade_sim_conf(p: 'betse.science.parameters.Parameters') -> None:
     #than this public attribute, this public attribute is unhelpful now.
     p.config = p._conf
 
-    # Upgrade this configuration to the 0.5.0 format.
+    # Upgrade this configuration to each successive format. For safety, each
+    # upgrade is performed in strict chronological order.
     _upgrade_sim_conf_to_0_5_0(p)
-
-    # Upgrade this configuration to the 0.5.2 format *AFTER* the 0.5.0 format.
     _upgrade_sim_conf_to_0_5_2(p)
+    _upgrade_sim_conf_to_0_6_0(p)
 
 # ....................{ UPGRADERS ~ 0.5.0                  }....................
 @type_check
@@ -274,3 +274,16 @@ def _upgrade_sim_conf_to_0_5_2(
         general_dict['ion profile'] = 'amphibian'
     elif general_dict['ion profile'] == 'customized':
         general_dict['ion profile'] = 'custom'
+
+# ....................{ UPGRADERS ~ 0.6.0                  }....................
+@type_check
+def _upgrade_sim_conf_to_0_6_0(
+    p: 'betse.science.parameters.Parameters') -> None:
+    '''
+    Upgrade the in-memory contents of the passed simulation configuration to
+    reflect the newest structure of these contents expected by version 0.6.0
+    of this application.
+    '''
+
+    # Log this upgrade attempt.
+    logs.log_debug('Upgrading simulation configuration to 0.6.0 format...')

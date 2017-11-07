@@ -19,7 +19,7 @@ from betse.util.io.log import logs
 # .................... BASE                               ....................
 class WoundABC(ChannelsABC, metaclass=ABCMeta):
     '''
-    Abstract base class of all wound-induced (TRP based) channel classes.
+    Abstract base class of all wound-induced (TRP-based) channel classes.
 
     Attributes
     ----------
