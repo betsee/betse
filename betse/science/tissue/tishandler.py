@@ -17,7 +17,7 @@ from betse.science.channels import vg_nap as vgnap
 from betse.science.channels.wound_channel import TRP
 from betse.science.math import modulate as mod
 from betse.science.math import toolbox as tb
-from betse.science.tissue.tisprofile import TissueCut
+from betse.science.tissue.tisprofile import CutProfile
 from betse.science.tissue.event.tisevecut import SimEventCut
 from betse.science.tissue.channels_o import cagPotassium
 from betse.science.tissue.picker.tispickcls import (
@@ -50,10 +50,17 @@ class TissueHandler(object):
     ----------
     data_length : int
         Total number of cell membranes across all cells in the current cluster.
+
+    Attributes (Profile)
+    ----------
+    cut_name_to_profile : OrderedDict
+        Ordered dictionary mapping from the name of each cut profile enabled by
+        the current simulation configuration (in YAML list order) to the
+        :class:`CellsRegionABC` instance encapsulating this profile.
     tissue_name_to_profile : OrderedDict
         Ordered dictionary mapping from the name of each tissue profile enabled
-        by the current simulation configuration (in list order) to the
-        :class:`TissueABC` instance encapsulating this profile.
+        by the current simulation configuration (in YAML list order) to the
+        :class:`CellsRegionABC` instance encapsulating this profile.
 
     Attributes (Event: Cut)
     ----------
@@ -101,28 +108,23 @@ class TissueHandler(object):
 
         Specifically, this method encapsulate each low-level YAML-formatted list
         item defining a tissue and cut profile in this configuration with a
-        high-level instance of the :class:`TissueABC` class.
+        high-level instance of the :class:`CellsRegionABC` class.
         '''
 
-        #FIXME: Split this single ambiguous dictionary into two
-        #non-ambiguous dictionaries:
-        #
-        #* "tissue_name_to_profile", aggregating all tissue profiles.
-        #* "cut_name_to_profile", aggregating all cut profiles.
-        #
-        #This is trivially accomplished by branching on the "['type']" key
-        #of each such YAML dictionary.
-
-        # Ordered dictionary mapping from tissue names to profiles, initialized
-        # *BEFORE* possibly nooping below.
+        # Ordered dictionaries mapping from each tissue and cut profile name to
+        # the corresponding profile, initialized *BEFORE* a possible noop.
+        self.cut_name_to_profile = OrderedDict()
         self.tissue_name_to_profile = OrderedDict()
 
         # If tissue and cut profiles are disabled, silently noop.
         if not p.is_tissue_profiles:
             return
 
+        #FIXME: Split the current "profiles:" YAML list into two "tissues:"
+        #and "cuts:" YAML lists in our default "sim_config.yaml".
         #FIXME: Replace with usage of a proper public instance variable.
         # List of all low-level YAML list items defining these profiles.
+
         profile_confs = p._conf['tissue profile definition']['profiles']
 
         # For each low-level YAML-based tissue and cut profile...
@@ -181,6 +183,10 @@ class TissueHandler(object):
                     'z order': profile_z_order,
                     'picker': profile_picker,
 
+                    #FIXME: Once we refactor this to leverage YAML aliases, this
+                    #coercion should no longer be required, as YAML aliases with
+                    #type "float" already ensure this coercion.
+
                     # For safety, coerce all diffusion constants to floats.
                     'diffusion constants': {
                         key: float(value) for key, value in (
@@ -190,7 +196,7 @@ class TissueHandler(object):
             # Else if this is a "cutting" profile...
             elif profile_type == 'cut':
                 # Map this profile's name to a high-level profile object.
-                self.tissue_name_to_profile[profile_name] = TissueCut(
+                self.cut_name_to_profile[profile_name] = CutProfile(
                     name=profile_name,
                     z_order=profile_z_order,
                     picker=TissuePickerImage(
@@ -223,14 +229,14 @@ class TissueHandler(object):
         ce = p._conf['cutting event']
         if bool(ce['event happens']):
             # If cut profiles are enabled...
-            if self.tissue_name_to_profile:
+            if self.cut_name_to_profile:
                 # List of the names of all cut profiles performed by this event.
                 cut_profile_names = ce['apply to']
 
                 # For each such name...
                 for cut_profile_name in cut_profile_names:
                     # If this cut profile does *NOT* exist, raise an exception.
-                    if cut_profile_name not in self.tissue_name_to_profile:
+                    if cut_profile_name not in self.cut_name_to_profile:
                         raise BetseSimTissueException(
                             'Cut profile "{}" referenced by '
                             'cutting event not found.'.format(
@@ -916,9 +922,9 @@ class TissueHandler(object):
                     'Cutting cell cluster via cut profile "%s"...',
                     cut_profile_name)
 
-                tissue_picker = self.tissue_name_to_profile[
-                    cut_profile_name].picker
-                self.removeCells(tissue_picker, sim, cells, p)
+                cut_profile_picker = (
+                    self.cut_name_to_profile[cut_profile_name].picker)
+                self.removeCells(cut_profile_picker, sim, cells, p)
 
             logs.log_info("Cutting event successful! Resuming simulation...")
 
@@ -1073,79 +1079,55 @@ class TissueHandler(object):
         self.tissue_target_inds = {}
         self.cell_target_inds = {}
         self.env_target_inds = {}
-        self.tissue_profile_names = []
 
         # Go through again and do traditional tissue profiles.
-        for profile_name, profile in self.tissue_name_to_profile.items():
-            #FIXME: Refactor to leverage enumerations.
-            profile_type = (
-                profile['type'] if isinstance(profile, dict) else 'cut')
+        for tissue_name, tissue_profile in self.tissue_name_to_profile.items():
+            profile_picker = tissue_profile['picker']
+            dmem_list = tissue_profile['diffusion constants']
 
-            #FIXME: Aggregating tissue and cut profiles into the same data
-            #structures strikes me as an... unfortunate decision. Perhaps it
-            #would be feasible for us to split the current "profiles:" YAML list
-            #into two "tissues:" and "cuts:" YAML lists in "sim_config.yaml"?
+            self.tissue_target_inds[tissue_name] = (
+                profile_picker.get_cell_indices(cells, p, ignoreECM=False))
+            self.cell_target_inds[tissue_name] = (
+                profile_picker.get_cell_indices(cells, p, ignoreECM=True))
 
-            # If this is a tissue profile...
-            if profile_type == 'tissue':
-                profile_picker = profile['picker']
-                dmem_list = profile['diffusion constants']
+            if len(self.cell_target_inds[tissue_name]):
+                # Get ECM targets.
+                if p.is_ecm:
+                    ecm_targs_mem = list(
+                        cells.map_mem2ecm[self.tissue_target_inds[tissue_name]])
 
-                self.tissue_profile_names.append(profile_name)
+                    self.env_target_inds[tissue_name] = ecm_targs_mem
 
-                self.tissue_target_inds[profile_name] = (
-                    profile_picker.get_cell_indices(cells, p, ignoreECM=False))
-                self.cell_target_inds[profile_name] = (
-                    profile_picker.get_cell_indices(cells, p, ignoreECM=True))
+                # Set the values of Dmems and ECM diffusion based on the
+                # identified target indices.
+                if p.ions_dict['Na'] == 1:
+                    dNa = dmem_list['Dm_Na']
+                    sim.Dm_cells[sim.iNa][self.tissue_target_inds[tissue_name]] = dNa
 
-                if len(self.cell_target_inds[profile_name]):
-                    # Get ECM targets.
-                    if p.is_ecm:
-                        ecm_targs_mem = list(
-                            cells.map_mem2ecm[self.tissue_target_inds[profile_name]])
+                if p.ions_dict['K'] == 1:
+                    dK = dmem_list['Dm_K']
+                    sim.Dm_cells[sim.iK][self.tissue_target_inds[tissue_name]] = dK
 
-                        self.env_target_inds[profile_name] = ecm_targs_mem
+                if p.ions_dict['Cl'] == 1:
+                    dCl = dmem_list['Dm_Cl']
+                    sim.Dm_cells[sim.iCl][self.tissue_target_inds[tissue_name]] = dCl
 
-                    # Set the values of Dmems and ECM diffusion based on the
-                    # identified target indices.
-                    if p.ions_dict['Na'] == 1:
-                        dNa = dmem_list['Dm_Na']
-                        sim.Dm_cells[sim.iNa][self.tissue_target_inds[profile_name]] = dNa
+                if p.ions_dict['Ca'] == 1:
+                    dCa = dmem_list['Dm_Ca']
+                    sim.Dm_cells[sim.iCa][self.tissue_target_inds[tissue_name]] = dCa
 
-                    if p.ions_dict['K'] == 1:
-                        dK = dmem_list['Dm_K']
-                        sim.Dm_cells[sim.iK][self.tissue_target_inds[profile_name]] = dK
+                if p.ions_dict['H'] == 1:
+                    dH = dmem_list['Dm_H']
+                    sim.Dm_cells[sim.iH][self.tissue_target_inds[tissue_name]] = dH
 
-                    if p.ions_dict['Cl'] == 1:
-                        dCl = dmem_list['Dm_Cl']
-                        sim.Dm_cells[sim.iCl][self.tissue_target_inds[profile_name]] = dCl
+                if p.ions_dict['M'] == 1:
+                    dM = dmem_list['Dm_M']
+                    sim.Dm_cells[sim.iM][self.tissue_target_inds[tissue_name]] = dM
 
-                    if p.ions_dict['Ca'] == 1:
-                        dCa = dmem_list['Dm_Ca']
-                        sim.Dm_cells[sim.iCa][self.tissue_target_inds[profile_name]] = dCa
+                if p.ions_dict['P'] == 1:
+                    dP = dmem_list['Dm_P']
+                    sim.Dm_cells[sim.iP][self.tissue_target_inds[tissue_name]] = dP
 
-                    if p.ions_dict['H'] == 1:
-                        dH = dmem_list['Dm_H']
-                        sim.Dm_cells[sim.iH][self.tissue_target_inds[profile_name]] = dH
-
-                    if p.ions_dict['M'] == 1:
-                        dM = dmem_list['Dm_M']
-                        sim.Dm_cells[sim.iM][self.tissue_target_inds[profile_name]] = dM
-
-                    if p.ions_dict['P'] == 1:
-                        dP = dmem_list['Dm_P']
-                        sim.Dm_cells[sim.iP][self.tissue_target_inds[profile_name]] = dP
-
-            #FIXME: After refactoring to leverage enumerations, remove this
-            #"elif" and the following "else" branch. They serve no purpose.
-
-            # Else if this is a cut profile, do nothing. It feeeels good.
-            elif profile_type == 'cut':
-                pass
-
-            # Else this is a bad profile.
-            else:
-                TypeError('Profile type {} unrecognized.'.format(profile_type))
 
     def makeAllChanges(self, sim) -> None:
         '''

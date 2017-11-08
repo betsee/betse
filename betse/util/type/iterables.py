@@ -301,6 +301,7 @@ def get_item_first(iterable: IterableTypes) -> object:
 
     # Yup! Shockingly, the most verbose and unwieldy solution is the fastest.
     # Break immediately after the first iteration of this iterable.
+    first_item = None
     for first_item in iterable:
         break
 

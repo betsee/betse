@@ -1982,29 +1982,23 @@ class Cells(object):
         self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
         # self.M_max_cap = M_max_cap
 
-    def redo_gj(self,dyna,p,savecells =True):
-
-        # profile_names = list(p.profiles.keys())  # names of each tissue profile...
-        profile_names = dyna.tissue_profile_names
+    def redo_gj(self,dyna,p,savecells=True):
 
         flag_cell_nn = [ [] for x in range(0,len(self.cell_i))]
 
-        for name in profile_names:
+        for tissue_name, tissue_profile in dyna.tissue_name_to_profile.items():
+            # Get the cell target inds for this tissue.
+            cell_targets = dyna.cell_target_inds[tissue_name]
 
-            cell_targets = dyna.cell_target_inds[name]   # get the cell target inds for this tissue
-            insular_flag = dyna.tissue_name_to_profile[name]['insular gj']
-
-            # step through gj's and find cases where connection is split between cells in different tissues:
-            if insular_flag is True:
-
+            # Step through gj's and find cases where connection is split between
+            # cells in different tissues.
+            if tissue_profile['insular gj']:
                 for i, inds in enumerate(self.cell_nn):
-
                     # see if the cell is in the tissue region:
                     check_a = int(i in cell_targets)
 
                     # check and see if the cell's neighbours are in the tissue region:
                     for ind_b in inds:
-
                         check_b = int(ind_b in cell_targets)
 
                         if check_a != check_b: # if both cells are not in or out of the region:

@@ -191,7 +191,7 @@ tissue profile definition:
       insular: False       # Disable extra-tissue gap junctions (i.e., prevent gap junctions of
                            # cells in this tissue from connecting to cells in other tissues)?
 
-      diffusion constants: # Constants applied to all targetted cells.
+      diffusion constants: # Constants applied to all targeted cells.
         Dm_Na: 1.0e-18     # Na+ membrane diffusion constant [m2/s]
         Dm_K: 15.0e-18     # K+ membrane diffusion constant [m2/s]
         Dm_Cl: 2.0e-18     # Cl- membrane diffusion constant [m2/s]

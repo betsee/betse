@@ -13,7 +13,7 @@ import numpy.ma as ma
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
 from betse.util.io.log import logs
-# from betse.util.type import types
+from betse.util.type import iterables
 
 
 def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
@@ -948,8 +948,8 @@ def clusterPlot(p, dyna: 'TissueHandler', cells, clrmap=cm.jet):
         base_points, array=z, cmap=clrmap, edgecolors='none')
     ax.add_collection(col_dic['base'])
 
-    if len(dyna.tissue_profile_names):
-        for i, name in enumerate(dyna.tissue_profile_names):
+    if dyna.tissue_name_to_profile:
+        for i, name in enumerate(dyna.tissue_name_to_profile.keys()):
             cell_inds = dyna.cell_target_inds[name]
 
             if len(cell_inds):
@@ -961,7 +961,7 @@ def clusterPlot(p, dyna: 'TissueHandler', cells, clrmap=cm.jet):
 
                 col_dic[name] = PolyCollection(
                     points, array=z, cmap=clrmap, edgecolors='none')
-                col_dic[name].set_clim(0, len(dyna.tissue_profile_names))
+                col_dic[name].set_clim(0, len(dyna.tissue_name_to_profile))
 
                 # col_dic[name].set_alpha(0.8)
                 col_dic[name].set_zorder(
@@ -978,7 +978,7 @@ def clusterPlot(p, dyna: 'TissueHandler', cells, clrmap=cm.jet):
     if p.plot_cutlines and dyna.event_cut is not None:
         # For each profile cutting a subset of the cell population...
         for cut_profile_name in dyna.event_cut.profile_names:
-            cut_profile = dyna.tissue_name_to_profile[cut_profile_name]
+            cut_profile = dyna.cut_name_to_profile[cut_profile_name]
 
             # Indices of all cells cut by this profile.
             cut_cell_indices = cut_profile.picker.get_cell_indices(
@@ -1003,12 +1003,19 @@ def clusterPlot(p, dyna: 'TissueHandler', cells, clrmap=cm.jet):
             cb_tick_labels.append(cut_profile_name)
 
     ax_cb = None
-    if len(dyna.tissue_profile_names):
-        ax_cb = fig.colorbar(
-            col_dic[dyna.tissue_profile_names[0]], ax=ax, ticks=cb_ticks)
+    if dyna.tissue_name_to_profile:
+        # Name of the first tissue profile.
+        tissue_first_name = iterables.get_item_first(
+            dyna.tissue_name_to_profile.keys())
+
+        # Color mappable associated with this tissue profile, guaranteed in this
+        # case to be a "PolyCollection" instance.
+        tissue_first_mappable = col_dic[tissue_first_name]
+
+        ax_cb = fig.colorbar(tissue_first_mappable, ax=ax, ticks=cb_ticks)
         ax_cb.ax.set_yticklabels(cb_tick_labels)
 
-    if p.enumerate_cells is True:
+    if p.enumerate_cells:
         for i, cll in enumerate(cells.cell_centres):
             ax.text(
                 p.um*cll[0], p.um*cll[1], i,

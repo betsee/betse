@@ -124,6 +124,7 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     from betse.science.tissue.picker import tispickcls, tispickimage
     from betse.science.tissue.picker.tispickimage import (
         TissuePickerImage, TissuePickerImageMask)
+    from betse.science.tissue.tisprofile import CutProfile
 
     # Alias obsolete module names to current module objects.
     sys.modules['betse.lib.yaml.yamlabc'] = yamlabc
@@ -137,3 +138,4 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     # Alias obsolete to current class names.
     tispickcls.TissuePickerBitmap = TissuePickerImage
     tispickimage.BitMapper = TissuePickerImageMask
+    tisprofile.TissueCut = CutProfile
