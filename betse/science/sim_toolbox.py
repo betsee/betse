@@ -944,7 +944,9 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     if p.is_ecm is True:
 
-        if  cX_env_o.all() != 0.0:
+        env_check = len((cX_env_o != 0.0).nonzero()[0])
+
+        if  env_check != 0.0:
 
             cenv = cX_env_o
             cenv = cenv.reshape(cells.X.shape)
@@ -972,6 +974,13 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
                 ux = sim.u_env_x.reshape(cells.X.shape)*denv_multiplier
                 uy = sim.u_env_y.reshape(cells.X.shape)*denv_multiplier
+
+                # cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
+                # zz = sim.zs.mean()
+                #
+                # ux = -sim.J_env_x / (p.F * cc * zz)
+                # uy = -sim.J_env_y / (p.F * cc * zz)
+
 
             else:
 
@@ -1199,6 +1208,35 @@ def smooth_flux(Fxo, Fyo, cells):
 
 
     return Fx, Fy
+
+
+def map_to_cells(Fx, Fy, cells, p, smoothing=1.0):
+    """
+    Takes a vector field defined on the environmental spaces and maps it to the cell grid.
+
+    """
+    if smoothing > 0.0:
+        # smooth environmental electric field:
+        F_env_x = gaussian_filter(Fx.reshape(cells.X.shape), smoothing).ravel()
+        F_env_y = gaussian_filter(Fy.reshape(cells.X.shape), smoothing).ravel()
+
+    else:
+
+        F_env_x = Fx
+        F_env_y = Fy
+
+    # env electric field mapped to cells:
+    Fx_atmem = F_env_x.ravel()[cells.map_mem2ecm]
+    Fy_atmem = F_env_y.ravel()[cells.map_mem2ecm]
+
+    # map env x to cell membrane component:
+    Fmem = (Fx_atmem * cells.mem_vects_flat[:, 2] +
+            Fy_atmem * cells.mem_vects_flat[:, 3])
+
+    Fx_atcell = (np.dot(cells.M_sum_mems, Fx_atmem * cells.mem_sa) / cells.cell_sa)
+    Fy_atcell = (np.dot(cells.M_sum_mems, Fy_atmem * cells.mem_sa) / cells.cell_sa)
+
+    return Fx_atcell, Fy_atcell, Fmem
 
 
 

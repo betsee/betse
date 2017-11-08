@@ -692,7 +692,35 @@ class Parameters(YamlFileABC):
 
         self.grn_config_filename = self._conf['gene regulatory network settings']['gene regulatory network config']
 
-        self.grn_piggyback = self._conf['gene regulatory network settings'].get('run network on', 'seed')
+        simgrndic = self._conf['gene regulatory network settings'].get('sim-grn settings', None)
+
+        if simgrndic is not None:
+
+            self.grn_piggyback = simgrndic['run network on']
+            grn_savedir = simgrndic['save to directory']
+            self.grn_savedir = pathnames.join(self.conf_dirname, grn_savedir)
+            self.grn_savefile = simgrndic['save to file']
+
+            self.grn_loadfrom = simgrndic['load from']
+
+            if self.grn_loadfrom is not None and self.grn_loadfrom != 'None':
+                self.loadMoG = pathnames.join(self.conf_dirname, self.grn_loadfrom)
+
+            else:
+                self.loadMoG = None
+
+        else:
+
+            self.grn_piggyback = 'seed'
+            self.grn_savedir = pathnames.join(self.conf_dirname, 'GRN')
+            self.grn_savefile = 'GRN_1.betse.gz'
+
+            self.grn_loadfrom = None
+
+            self.loadMoG = None
+
+        # Define data paths for saving an initialization and simulation run:
+        self.savedMoG = pathnames.join(self.grn_savedir, self.grn_savefile)
 
         #--------------------------------------------------------------------------------------------------------------
         # VARIABLE SETTINGS
@@ -1008,7 +1036,7 @@ class Parameters(YamlFileABC):
 
         self.rho = 1050 # mass density of system [kg/m3]
 
-        self.fast_update_ecm = iu.get('fast update ecm', False)  # quick or slow update to cell<--> ecm grid exchange?
+        self.fast_update_ecm = iu.get('fast update ecm', True)  # quick or slow update to cell<--> ecm grid exchange?
 
         # simplest ion profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile is IonProfileType.BASIC:

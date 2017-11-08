@@ -5,6 +5,7 @@
 import numpy as np
 from betse.science import sim_toolbox as stb
 from scipy.ndimage.filters import gaussian_filter
+from betse.science.math import finitediff as fd
 
 
 def getFlow(sim, cells, p):
@@ -18,15 +19,28 @@ def getFlow(sim, cells, p):
 
     if p.is_ecm is True:
 
+
         scaleF = (p.cell_space / cells.delta)
 
-        muFx = (1 / p.mu_water)*sim.E_env_x*sim.rho_env.reshape(cells.X.shape)*scaleF*sim.D_env_weight
-        muFy = (1 / p.mu_water)*sim.E_env_y*sim.rho_env.reshape(cells.X.shape)*scaleF*sim.D_env_weight
+        muFx = (1 / p.mu_water)*sim.E_env_x*sim.rho_env.reshape(cells.X.shape)*scaleF
+        muFy = (1 / p.mu_water)*sim.E_env_y*sim.rho_env.reshape(cells.X.shape)*scaleF
 
-        uxo = np.dot(cells.lapENVinv, -muFx.ravel())
-        uyo = np.dot(cells.lapENVinv, -muFy.ravel())
+        uxo = np.dot(cells.lapENVinv, -muFx.ravel())*sim.D_env_weight.ravel()
+        uyo = np.dot(cells.lapENVinv, -muFy.ravel())*sim.D_env_weight.ravel()
 
         _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(uxo, uyo, cells)
+
+
+        # Alternative version calculates flow in terms of current density:
+        # cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
+        # zz = sim.zs.mean()
+        #
+        # sim.u_env_x = -sim.J_env_x / (p.F * cc * zz)
+        # sim.u_env_y = -sim.J_env_y / (p.F * cc * zz)
+
+
+
+
 
 
     # -------Next do flow through gap junction connected cells-------------------------------------------------------

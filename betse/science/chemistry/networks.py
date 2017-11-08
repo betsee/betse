@@ -104,7 +104,7 @@ class MasterOfNetworks(object):
 
         logs.log_info("Reading additional substance data...")
 
-        # Initialize a dictionaries that will eventually hold dynamic values for cell, env and mit concentrations:
+        # Initialize dictionaries that will eventually hold dynamic values for cell, env and mit concentrations:
         cell_concs_mapping = {}
         mem_concs_mapping = {}
         env_concs_mapping = {}
@@ -704,6 +704,9 @@ class MasterOfNetworks(object):
         elif plot_type == 'init':
             self.resultsPath = pathnames.join(p.init_export_dirname, nested_folder_name)
             p.plot_type = 'init'
+
+        elif plot_type == 'grn':
+            self.resultsPath = pathnames.join(p.grn_savedir, nested_folder_name)
 
         dirs.make_unless_dir(self.resultsPath)
         self.imagePath = pathnames.join(self.resultsPath, 'fig_')
@@ -3745,6 +3748,104 @@ class MasterOfNetworks(object):
 
             obj.update_channel(sim, cells, p)
 
+    def redefine_dynamic_dics(self, sim, cells, p):
+
+        """
+        This method redefines dynamic dictionaries re-using the old values from the original networks object,
+        but new maps to a new sim object. This is required for the special case of a sim-grn run on a pre-run
+        betse sim that has had a cutting event.
+
+        :param sim:
+        :param cells:
+        :param p:
+        :return:
+        """
+
+
+
+        # Initialize dictionaries that will eventually hold dynamic values for cell, env and mit concentrations:
+        cell_concs_mapping = {}
+        mem_concs_mapping = {}
+        env_concs_mapping = {}
+        bound_concs_mapping = {}
+
+        # if mitochondria are enabled:
+        if self.mit_enabled:
+            self.mit = Mito(sim, cells, p)
+            mit_concs_mapping = {}
+        else:
+            self.mit = None
+            mit_concs_mapping = None
+
+        # begin by adding all sim ions to the dynamic concentration mapping structures:
+        for k, val in p.ions_dict.items():
+
+            if val == 1: # if the ion is used in the simulation
+
+                # get the numerical index from the short string label (i.e. 'Na', 'K', etc) of the ion:
+                ion_index = sim.get_ion(k)
+
+                # add the ion to the conc mappings by its short string name:
+                cell_concs_mapping[k] = DynamicValue(
+                    lambda ion_index=ion_index: sim.cc_cells[ion_index],
+                    lambda value, ion_index=ion_index: sim.cc_cells.__setitem__(ion_index, value))
+
+                mem_concs_mapping[k] = DynamicValue(
+                    lambda ion_index=ion_index: sim.cc_at_mem[ion_index],
+                    lambda value, ion_index=ion_index: sim.cc_at_mem.__setitem__(ion_index, value))
+
+                env_concs_mapping[k] = DynamicValue(
+                    lambda ion_index=ion_index: sim.cc_env[ion_index],
+                    lambda value, ion_index=ion_index: sim.cc_env.__setitem__(ion_index, value))
+
+                bound_concs_mapping[k] = DynamicValue(
+                    lambda ion_index=ion_index: sim.c_env_bound[ion_index],
+                    lambda value, ion_index=ion_index: sim.c_env_bound.__setitem__(ion_index, value))
+
+                self.zmol[k] = sim.zs[ion_index]
+                self.Dmem[k] = sim.Dm_cells[ion_index].mean()
+
+                if self.mit_enabled:
+                    mit_concs_mapping[k] = DynamicValue(
+                        lambda ion_index=ion_index: sim.cc_mit[ion_index],
+                        lambda value, ion_index=ion_index: sim.cc_mit.__setitem__(ion_index, value))
+
+        for name, obj in self.molecules.items():
+            # get each user-defined name-filed in the dictionary:
+
+            cell_concs_mapping[name] = DynamicValue(
+                lambda name=name: self.molecules[name].c_cells,
+                lambda value, name=name: setattr(self.molecules[name], 'c_cells', value))
+
+            mem_concs_mapping[name] = DynamicValue(
+                lambda name=name: self.molecules[name].cc_at_mem,
+                lambda value, name=name: setattr(self.molecules[name], 'cc_at_mem', value))
+
+            env_concs_mapping[name] = DynamicValue(
+                lambda name=name: self.molecules[name].c_env,
+                lambda value, name=name: setattr(self.molecules[name], 'c_env', value))
+
+            bound_concs_mapping[name] = DynamicValue(
+                lambda name=name: self.molecules[name].c_bound,
+                lambda value, name=name: setattr(self.molecules[name], 'c_bound', value))
+
+            if self.mit_enabled:
+
+                mit_concs_mapping[name] = DynamicValue(
+                    lambda name=name: self.molecules[name].c_mit,
+                    lambda value, name=name: setattr(self.molecules[name], 'c_mit', value))
+
+        self.cell_concs = DynamicValueDict(cell_concs_mapping)
+        self.mem_concs = DynamicValueDict(mem_concs_mapping)
+        self.env_concs = DynamicValueDict(env_concs_mapping)
+        self.bound_concs = DynamicValueDict(bound_concs_mapping)
+
+        if self.mit_enabled:
+            self.mit_concs = DynamicValueDict(mit_concs_mapping)
+
+        else:
+            self.mit_concs = None
+
     def clear_cache(self):
         """
         Initializes or clears the time-storage vectors at the beginning of init and sim runs.
@@ -4196,41 +4297,41 @@ class MasterOfNetworks(object):
 
                 vch.plot_2D(sim, cells, p, self.imagePath)
 
-        # energy charge plots:----------------------------------------------------------
-        # 1 D plot of mitochondrial voltage--------------------------------------------------------
-        chio = [arr[p.plot_cell] for arr in self.chi_time]
-
-        plt.figure()
-        axChi = plt.subplot(111)
-
-        axChi.plot(sim.time, chio)
-
-        axChi.set_xlabel('Time [s]')
-        axChi.set_ylabel('Energy charge')
-        axChi.set_title('Energy charge in cell: ' + str(p.plot_cell))
-
-        if p.autosave is True:
-            savename = self.imagePath + 'EnergyCharge_cell_' + str(p.plot_cell) + '.png'
-            plt.savefig(savename, format='png', transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
+        # # energy charge plots:----------------------------------------------------------
+        # # 1 D plot of mitochondrial voltage--------------------------------------------------------
+        # chio = [arr[p.plot_cell] for arr in self.chi_time]
+        #
+        # plt.figure()
+        # axChi = plt.subplot(111)
+        #
+        # axChi.plot(sim.time, chio)
+        #
+        # axChi.set_xlabel('Time [s]')
+        # axChi.set_ylabel('Energy charge')
+        # axChi.set_title('Energy charge in cell: ' + str(p.plot_cell))
+        #
+        # if p.autosave is True:
+        #     savename = self.imagePath + 'EnergyCharge_cell_' + str(p.plot_cell) + '.png'
+        #     plt.savefig(savename, format='png', transparent=True)
+        #
+        # if p.turn_all_plots_off is False:
+        #     plt.show(block=False)
 
         # ---2D plot--------------------------------------------------------------------
-        fig, ax, cb = viz.plotPolyData(sim, cells, p,
-            zdata=self.chi, number_cells=p.enumerate_cells, clrmap=p.default_cm)
-
-        ax.set_title('Final Energy Charge of Cell')
-        ax.set_xlabel('Spatial distance [um]')
-        ax.set_ylabel('Spatial distance [um]')
-        cb.set_label('Energy Charge')
-
-        if p.autosave is True:
-            savename = self.imagePath + '2DEnergyCharge.png'
-            plt.savefig(savename, format='png', transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
+        # fig, ax, cb = viz.plotPolyData(sim, cells, p,
+        #     zdata=self.chi, number_cells=p.enumerate_cells, clrmap=p.default_cm)
+        #
+        # ax.set_title('Final Energy Charge of Cell')
+        # ax.set_xlabel('Spatial distance [um]')
+        # ax.set_ylabel('Spatial distance [um]')
+        # cb.set_label('Energy Charge')
+        #
+        # if p.autosave is True:
+        #     savename = self.imagePath + '2DEnergyCharge.png'
+        #     plt.savefig(savename, format='png', transparent=True)
+        #
+        # if p.turn_all_plots_off is False:
+        #     plt.show(block=False)
 
     @type_check
     def anim(self, phase: SimPhase, message: str) -> None:
@@ -5234,8 +5335,6 @@ class Molecule(object):
 
     def update_intra(self, sim, cells, p):
 
-        max_move = 1.0e-5  # sets a maximum value for any transport coefficient
-
         cav = self.c_cells[cells.mem_to_cells]  # concentration at cell centre
         cmi = self.cc_at_mem  # concentration at membrane
         z = self.z  # charge of ion
@@ -5252,76 +5351,91 @@ class Molecule(object):
 
             # carry out the operation as usual
 
-            # normal component of electric field at membranes from intracellular current/field:
-            En = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
-                  sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+            # first determine if the substance is transported by motor proteins:
+            if self.u_mt != 0.0:
 
-            if p.fluid_flow is True:
+                # calculate normal component of microtubules at membrane:
+                umx, umy = sim.mtubes.mtubes_to_cell(cells, p)
 
-                # normal component of fluid flow at membranes from *extra*cellular flow:
+                umtn = (umx[cells.mem_to_cells]*cells.mem_vects_flat[:,2] +
+                        umy[cells.mem_to_cells]*cells.mem_vects_flat[:,3])
 
-                fxo = sim.u_env_x.ravel()[cells.map_mem2ecm]
-                fyo = sim.u_env_y.ravel()[cells.map_mem2ecm]
+                c_motor = (umtn*self.u_mt*cp)
 
-                fxi = (np.dot(cells.M_sum_mems, fxo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-                fyi = (np.dot(cells.M_sum_mems, fyo * cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-
-                uflow = fxi * cells.mem_vects_flat[:, 2] + fyi * cells.mem_vects_flat[:, 3]
-
+                # c_motor[cells.bflags_mems] = 0.0
 
             else:
+                c_motor = 0.0
+
+            # The "transmem" key indicates the item sits in the membrane, where it's pulled by extracellular fields
+            # and flows, as well as motor protein transport:
+            if self.transmem is True:
+
+                if z != 0.0 or self.Mu_mem != 0.0:
+
+                    _, _, En = stb.map_to_cells(sim.E_env_x, sim.E_env_y, cells, p, smoothing=0.0)
+
+                else:
+
+                    En = 0.0
+
+
+                if p.fluid_flow is True:
+
+                    # normal component of fluid flow at membranes from *extra*cellular flow:
+                    _, _, uflow = stb.map_to_cells(sim.u_env_x, sim.u_env_y, cells, p, smoothing = 1.0)
+
+                    #estimate fluid flow from div-free component of currents:
+                    # cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
+                    # zz = sim.zs.mean()
+                    #
+                    # _, _, uflow = stb.map_to_cells(-sim.J_env_x/(p.F*cc*zz), -sim.J_env_y/(p.F*cc*zz),
+                    #                                cells, p, smoothing = 0.0)
+
+
+                else:
+
+                    #estimate fluid flow from div-free component of currents:
+                    cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
+                    zz = sim.zs.mean()
+
+                    _, _, uflow = stb.map_to_cells(-sim.J_env_x/(p.F*cc*zz), -sim.J_env_y/(p.F*cc*zz),
+                                                   cells, p, smoothing = 1.0)
+
+                    # uflow = 0.0
+
+
+            else: # else if "transmem" is false, include only the intracellular field
+
+                if z != 0.0 or self.Mu_mem != 0.0:
+
+                    # normal component of electric field at membranes from intracellular current/field:
+                    En = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+                          sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+
+                else:
+
+                    En = 0.0
+
 
                 uflow = 0.0
 
 
-            if self.transmem is True:
-
-                # normal component of electric field at membranes from extracellular current/field mapped to cell collective:
-                # Exo = sim.J_env_x.ravel()[cells.map_mem2ecm]*(1/sim.sigma)
-                # Eyo = sim.J_env_y.ravel()[cells.map_mem2ecm]*(1/sim.sigma)
-
-                Exo = sim.E_env_x.ravel()[cells.map_mem2ecm]
-                Eyo = sim.E_env_y.ravel()[cells.map_mem2ecm]
-
-                Exi = (np.dot(cells.M_sum_mems, Exo*cells.mem_sa)/cells.cell_sa)[cells.mem_to_cells]
-                Eyi = (np.dot(cells.M_sum_mems, Eyo*cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-
-                Eecm = Exi*cells.mem_vects_flat[:, 2] + Eyi*cells.mem_vects_flat[:, 3]
-
-            else:
-
-                Eecm = 0.0
-
-            # calculate normal component of microtubules at membrane:
-            umx, umy = sim.mtubes.mtubes_to_cell(cells, p)
-            umtn = umx[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + umy[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
-
-            if self.transmem:
-
-                c_diffusion = (-Do*cg)
-                c_ephoresis_A = ((Do*p.q*z)/(p.kb*sim.T)*cp*Eecm)
-                c_ephoresis_B = (self.Mu_mem*cp*Eecm)
-                c_eosmo = (uflow*cp)
+            c_diffusion = (-Do*cg)
+            c_ephoresis_A = ((Do*p.q*z)/(p.kb*sim.T)*cp*En)
+            c_ephoresis_B = (self.Mu_mem*cp*En)
+            c_eosmo = (uflow*cp)
 
 
-                # diffuse in concentration gradient, via extracellular field and via extracellular flow:
-                cfluxo = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_eosmo)
-
-
-            else:
-
-                c_diffusion = (-Do*cg)
-                c_ephoresis_A = ((Do*p.q*z)/(p.kb*sim.T)*cp*En)
-                c_ephoresis_B = (self.Mu_mem*cp*En)
-                c_motor = (umtn*self.u_mt*cp)
-
-
-                # move with conc gradient, via intracellular field (Einstein coefficient or mobility), or motor proteins:
-                cfluxo = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_motor)
-
+            # diffuse in concentration gradient, via extracellular field and via extracellular flow:
+            cfluxo = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_eosmo + c_motor)
 
             # as no net mass must leave this intracellular movement, make the flux divergence-free:
-            cflux = stb.single_cell_div_free(cfluxo, cells)
+            if self.transmem is False:
+                cflux = stb.single_cell_div_free(cfluxo, cells)
+
+            else: # Transmem can have intercellular movements; ignore div-free constraint for this option
+                cflux = cfluxo
 
             # calculate the actual concentration at membranes by unpacking to concentration vectors:
             self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt*self.modify_time_factor
@@ -5688,7 +5802,9 @@ class Molecule(object):
         """
 
 
-        if self.c_env.all() != 0.0:
+        env_check = len((self.c_env != 0.0).nonzero()[0])
+
+        if env_check != 0.0:
 
             logmess = "Plotting environmental concentration of {}".format(self.name)
             logs.log_info(logmess)
@@ -5727,7 +5843,7 @@ class Molecule(object):
 
         else:
 
-            logmess = "Skipping environmental plot of {} due to null values!".format(self.name)
+            logmess = "Skipping environmental plot of {} due to 100% null values!".format(self.name)
             logs.log_info(logmess)
 
     #FIXME: Ideally, this method should be refactored to comply with the
@@ -5763,20 +5879,33 @@ class Molecule(object):
 
         #FIXME: To support GUI modification, refactor this class to access the
         #underlying YAML-based subconfiguration.
-        conf = SimConfVisualCellsNonYAML(
-            is_color_autoscaled=self.plot_autoscale,
-            color_min=self.plot_min,
-            color_max=self.plot_max)
 
-        env_time_series = [
-            env.reshape(phase.cells.X.shape) for env in self.c_env_time]
-        AnimEnvTimeSeries(
-            phase=phase,
-            conf=conf,
-            time_series=env_time_series,
-            label=self.name + '_env',
-            figure_title='Environmental ' + self.name,
-            colorbar_title='Concentration [mmol/L]')
+        env_check = len((self.c_env != 0.0).nonzero()[0])
+
+        if env_check != 0.0:
+
+            logmess = "Animating environmental concentration of {}".format(self.name)
+            logs.log_info(logmess)
+
+            conf = SimConfVisualCellsNonYAML(
+                is_color_autoscaled=self.plot_autoscale,
+                color_min=self.plot_min,
+                color_max=self.plot_max)
+
+            env_time_series = [
+                env.reshape(phase.cells.X.shape) for env in self.c_env_time]
+            AnimEnvTimeSeries(
+                phase=phase,
+                conf=conf,
+                time_series=env_time_series,
+                label=self.name + '_env',
+                figure_title='Environmental ' + self.name,
+                colorbar_title='Concentration [mmol/L]')
+
+        else:
+
+            logmess = "Skipping environmental animation of {} due to 100% null values!".format(self.name)
+            logs.log_info(logmess)
 
 class Reaction(object):
 

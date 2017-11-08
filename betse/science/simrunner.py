@@ -13,7 +13,7 @@ from betse.exceptions import (
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.chemistry.gene import MasterOfGenes
-# from betse.science.chemistry.metabolism import MasterOfMetabolism
+from betse.science.math import toolbox as tb
 from betse.science.config import confio
 from betse.science.export import exppipe
 from betse.science.parameters import Parameters
@@ -24,6 +24,7 @@ from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
 from betse.util.type.call.callables import deprecated
+from betse.lib.pickle import pickles
 
 # ....................{ CLASSES                            }....................
 class SimRunner(object):
@@ -393,9 +394,7 @@ class SimRunner(object):
             internally created by this method to run this phase.
         '''
 
-        logs.log_info(
-            'Running gene regulatory network defined in config file "%s".',
-            self._config_basename)
+
 
         start_time = time.time()  # get a start value for timing the simulation
 
@@ -407,6 +406,9 @@ class SimRunner(object):
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False
 
+        logs.log_info(
+            ('Running gene regulatory network {} defined in config file {}.').format(p.grn_config_filename, self._config_basename))
+
         # cells object:
         cells = Cells(p)
 
@@ -417,7 +419,7 @@ class SimRunner(object):
 
             if files.is_file(cells.savedWorld):
                 cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-                logs.log_info('Cell cluster loaded.')
+                logs.log_info('Running gene regulatory network on betse seed...')
 
                 # Initialize simulation data structures
                 sim.baseInit_all(cells, p)
@@ -454,6 +456,9 @@ class SimRunner(object):
         elif p.grn_piggyback == 'init':
 
             if files.is_file(sim.savedInit):
+
+                logs.log_info('Running gene regulatory network on betse init...')
+
                 sim, cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
             else:
@@ -475,6 +480,7 @@ class SimRunner(object):
         elif p.grn_piggyback == 'sim':
 
             if files.is_file(sim.savedSim):
+                logs.log_info('Running gene regulatory network on betse sim...')
                 sim, cells, p_old = fh.loadSim(sim.savedSim)  # load the initialization from cache
 
             else:
@@ -491,11 +497,77 @@ class SimRunner(object):
         # Simulation phase.
         phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
 
-        # create an instance of master of metabolism
-        MoG = MasterOfGenes(p)
 
-        # initialize it:
-        MoG.read_gene_config(sim, cells, p)
+        if p.loadMoG is not None and files.is_file(p.loadMoG):
+
+            # load previously run instance of master of genes:
+            MoG, _, _ = pickles.load(p.loadMoG)
+
+            logs.log_info(("Reinitializing the gene regulatory network from {}...").format(p.loadMoG))
+
+            is_cut_done = sim.dyna.event_cut.is_fired
+
+            # if running on a sim with a cut event, must remove cells:
+            if sim.dyna.event_cut is not None and is_cut_done:
+
+                simu = Simulator(p=p)
+
+                logs.log_info(
+                    'A cutting event has been run, so the GRN object needs to be modified...')
+
+                if files.is_file(simu.savedInit):
+
+                    logs.log_info(
+                        'Loading betse init from cache for reference to original cells...')
+
+                    init, cellso, p_old = fh.loadSim(simu.savedInit)  # load the initialization from cache
+
+                    dyna = TissueHandler(init, cellso, p)  # create the tissue dynamics object on original cells
+
+                    dyna.tissueProfiles(init, cellso, p)  # initialize all tissue profiles on original cells
+
+                    for cut_profile_name in dyna.event_cut.profile_names:
+
+                        logs.log_info(
+                            'Cutting cell cluster via cut profile "%s"...',
+                            cut_profile_name)
+
+                        tissue_picker = dyna.tissue_name_to_profile[
+                            cut_profile_name].picker
+
+                        target_inds_cell = tissue_picker.get_cell_indices(
+                            cellso, p, ignoreECM=True)
+
+                        # get the corresponding flags to membrane entities
+                        target_inds_mem = cellso.cell_to_mems[target_inds_cell]
+                        target_inds_mem, _, _ = tb.flatten(target_inds_mem)
+
+                        MoG.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+
+                        logs.log_info("Redefining dynamic dictionaries to point to the new sim...")
+
+                        MoG.core.redefine_dynamic_dics(sim, cells, p)
+
+                        logs.log_info("Reinitializing the gene regulatory network for simulation...")
+                        MoG.reinitialize(sim, cells, p)
+
+
+                else:
+                    logs.log_warning(
+                        "This situation is complex due to a cutting event being run. \n"
+                        "Please have a corresponding init file to run the GRN simulation!")
+
+                    raise BetseSimException(
+                        'Simulation terminated due to missing core init. '
+                        'Please alter GRN settings and try again.')
+
+        else:
+
+            # create an instance of master of metabolism
+            MoG = MasterOfGenes(p)
+            # initialize it:
+            logs.log_info("Initializing the gene regulatory network...")
+            MoG.read_gene_config(sim, cells, p)
 
         logs.log_info("Running gene regulatory network test simulation...")
 
@@ -915,8 +987,8 @@ class SimRunner(object):
         p = Parameters.make(self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
-        MoG = MasterOfGenes(p)
-        MoG, cells, _ = fh.loadSim(MoG.savedMoG)
+        # MoG = MasterOfGenes(p)
+        MoG, cells, _ = fh.loadSim(p.savedMoG)
 
         # Simulation simulator.
         sim = Simulator(p)
@@ -928,7 +1000,13 @@ class SimRunner(object):
         sim.baseInit_all(cells, p)
         sim.time = MoG.time
 
-        MoG.core.init_saving(cells, p, plot_type='init', nested_folder_name='GRN')
+        configPath = pathnames.join(p.conf_dirname, p.grn_config_filename)
+        # read the config file into a dictionary:
+        config_dic = confio.read_metabo(configPath)
+
+        MoG.core.plot_init(config_dic, p)
+
+        MoG.core.init_saving(cells, p, plot_type='grn', nested_folder_name='RESULTS')
         MoG.core.export_all_data(sim, cells, p, message='gene products')
         MoG.core.plot(sim, cells, p, message='gene products')
         MoG.core.anim(phase=phase, message='gene products')

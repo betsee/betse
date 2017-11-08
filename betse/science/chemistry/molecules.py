@@ -240,11 +240,11 @@ class MasterOfMolecules(object):
 
         logs.log_info('Saving simulation...')
         datadump = [self, cells, p]
-        fh.saveSim(self.savedMoG, datadump)
+        fh.saveSim(p.savedMoG, datadump)
         self.core.init_saving(cells, p, plot_type='init', nested_folder_name='Gene')
         self.core.export_eval_strings(p)
         self.core.export_equations(p)
-        message = 'Gene regulatory network simulation saved to' + ' ' + self.savedMoG
+        message = 'Gene regulatory network simulation saved to' + ' ' + p.savedMoG
         logs.log_info(message)
 
         logs.log_info('-------------------Simulation Complete!-----------------------')

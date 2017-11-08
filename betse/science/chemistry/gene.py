@@ -19,19 +19,15 @@ from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.config import confio
 from betse.science.chemistry.netplot import set_net_opts
 from betse.science import sim_toolbox as stb
+from betse.science.visual.plot import plotutil as viz
+import matplotlib.pyplot as plt
 
 
 class MasterOfGenes(object):
 
     def __init__(self, p):
 
-        #FIXME: Extract the "GeneNetwork.betse" basename into a new
-        #configuration option, perhaps in the "init file saving" section.
-        #FIXME: Replace "GeneNetwork.betse" with "GeneNetwork.betse.gz" to
-        #compress this pickled file.
-        # Define data paths for saving an initialization and simulation run:
-        self.savedMoG = pathnames.join(p.init_export_dirname, 'GeneNetwork.betse')
-
+        pass
 
 
     def read_gene_config(self, sim, cells, p):
@@ -267,13 +263,45 @@ class MasterOfGenes(object):
                     self.mtubes_x_time.append(sim.mtubes.mtubes_x * 1)
                     self.mtubes_y_time.append(sim.mtubes.mtubes_y * 1)
 
+
+
         logs.log_info('Saving simulation...')
         datadump = [self, cells, p]
-        fh.saveSim(self.savedMoG, datadump)
+        fh.saveSim(p.savedMoG, datadump)
         self.core.init_saving(cells, p, plot_type='init', nested_folder_name='GRN')
+
+        # microtubules plot------------------------------------------------------------------------
+        if p.use_microtubules:
+
+            logs.log_info("Plotting microtubules used in GRN simulation...")
+
+            plt.figure()
+            ax = plt.subplot(111)
+
+            viz.mem_quiver(
+                sim.mtubes.mtubes_x,
+                sim.mtubes.mtubes_y,
+                ax,
+                cells,
+                p,
+            )
+
+            ax.set_xlabel('X-Distance [um]')
+            ax.set_ylabel('Y-Distance [um]')
+            ax.set_title('Microtubule arrangement in cells')
+
+            if p.autosave is True:
+                savename = self.core.imagePath + 'Microtubules' + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+
+
         self.core.export_eval_strings(p)
         self.core.export_equations(p)
-        message = 'Gene regulatory network simulation saved to' + ' ' + self.savedMoG
+        message = 'Gene regulatory network simulation saved to' + ' ' + p.savedMoG
         logs.log_info(message)
 
         logs.log_info('-------------------Simulation Complete!-----------------------')

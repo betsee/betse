@@ -643,7 +643,11 @@ gene regulatory network settings:
 
   gene regulatory network config: extra_configs/grn_basic.yaml
 
-  run network on: seed    # (for sim-grn command, run the network on a pre-made betse seed, init, or sim ?)
+  sim-grn settings:
+    run network on: init    # (for sim-grn command, run the network on a pre-made betse seed, init, or sim ?)
+    save to directory: GRN
+    save to file: GRN_1H_1.betse.gz # where to save the resulting sim-grn file
+    load from: None                # load a previously-run sim-grn file to start with? (None initializes to defaults)
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -1085,7 +1089,7 @@ internal parameters:
 
   cell polarizability: 0.0  # cell polarizability constant in electric fields (0.0 to 5.0e-4 [F/m])
 
-  fast update ecm: True  # use a coarse (fast) or fine (slow) method to update between env and cell grids?
+  fast update ecm: False  # use a coarse (fast) or fine (slow) method to update between env and cell grids?
 
 
 # Configuration file version that this file conforms to. For reliable
