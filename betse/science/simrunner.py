@@ -532,9 +532,7 @@ class SimRunner(object):
                             'Cutting cell cluster via cut profile "%s"...',
                             cut_profile_name)
 
-                        tissue_picker = dyna.tissue_name_to_profile[
-                            cut_profile_name].picker
-
+                        tissue_picker = dyna.cut_name_to_profile[cut_profile_name].picker
                         target_inds_cell = tissue_picker.get_cell_indices(
                             cellso, p, ignoreECM=True)
 
