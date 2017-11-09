@@ -1987,12 +1987,12 @@ class Cells(object):
         flag_cell_nn = [ [] for x in range(0,len(self.cell_i))]
 
         for tissue_name, tissue_profile in dyna.tissue_name_to_profile.items():
-            # Get the cell target inds for this tissue.
-            cell_targets = dyna.cell_target_inds[tissue_name]
-
             # Step through gj's and find cases where connection is split between
             # cells in different tissues.
-            if tissue_profile['insular gj']:
+            if tissue_profile.is_gj_insular:
+                # Get the cell target inds for this tissue.
+                cell_targets = dyna.cell_target_inds[tissue_name]
+
                 for i, inds in enumerate(self.cell_nn):
                     # see if the cell is in the tissue region:
                     check_a = int(i in cell_targets)

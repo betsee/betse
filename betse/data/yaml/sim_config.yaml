@@ -185,9 +185,11 @@ tissue profile definition:
 
   profiles enabled: True   # Apply (rather than ignore) tissue and cut profiles listed below?
 
-  profiles:  # List of all tissue profiles to partition the cell cluster into.
-    - type: tissue         # Example tissue profile uniformly applying to all cells.
-      name: all            # Arbitrary unique profile name.
+  tissue profiles:  # List of all tissue profiles (i.e., cell cluster regions unconditionally
+                    # assigning all cells in these regions the same initial parameters).
+                    # Ignored if "profiles enabled" is False.
+    # Example tissue profile uniformly applied to all cells.
+    - name: all            # Arbitrary unique profile name.
       insular: False       # Disable extra-tissue gap junctions (i.e., prevent gap junctions of
                            # cells in this tissue from connecting to cells in other tissues)?
 
@@ -218,8 +220,7 @@ tissue profile definition:
 
     # Example tissue profile for a small, slightly depolarized cluster of
     # cells near the cluster centre.
-    - type: tissue
-      name: spot
+    - name: spot
       insular: False
 
       diffusion constants:
@@ -239,8 +240,7 @@ tissue profile definition:
 
     # Example tissue profile for a small, slightly depolarized cluster of
     # cells near the cluster boundary.
-    - type: tissue
-      name: wound
+    - name: wound
       insular: False
 
       diffusion constants:
@@ -258,8 +258,11 @@ tissue profile definition:
         indices: [3, 14, 15, 9, 265]
         random: 50
 
-    - type: cut       # Example cut profile removing a small region of cells near a boundary.
-      name: surgery   # Arbitrary unique profile name.
+  cut profiles:  # List of all cut profiles (i.e., cell cluster region to be permanently
+                 # removed by a cutting event triggered during the simulation phase).
+                 # Ignored if "profiles enabled" is False.
+    # Example cut profile removing a small region of cells near a cell cluster boundary.
+    - name: surgery   # Arbitrary unique profile name.
       bitmap:         # Bitmap whose coloured pixel area defines the cluster region to remove.
         file: geo/circle/wedge.png
 

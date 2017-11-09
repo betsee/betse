@@ -24,7 +24,7 @@ class TissuePickerABC(object, metaclass=ABCMeta):
     spatial location) to the corresponding tissue profile.
     '''
 
-    # ..................{ ABSTRACT                           }..................
+    # ..................{ SUBCLASS                           }..................
     @abstractmethod
     def get_cell_indices(
         self,
@@ -40,26 +40,70 @@ class TissuePickerABC(object, metaclass=ABCMeta):
         #* Rename to "is_ecm_handled".
         #* Invert all boolean logic referencing this boolean. Double negatives
         #  make my weary head blisters ache.
+        #FIXME: Actually, the current emphasis on extracellular spaces is
+        #unhelpful with respect to this boolean, which *ONLY* appears to switch
+        #whether the returned array picks cells or cell membranes. Since
+        #"p.is_ecm" is *NEVER* actually checked, this logic is irrespective of
+        #whether or not extracellular spaces are currently enabled. Hence:
+        #
+        #* Make this parameter mandatory rather than optional. Fortunately, all
+        #  calls to this method in the codebase *ALWAYS* pass this parameter.
+        #* Rename this parameter to "is_cells".
+        #
+        #Do *NOT* invert all boolean logic referencing this boolean. This
+        #nomenclature change preserves this boolean's interpretation, albeit in
+        #a much more human-readable manner.
+        #FIXME: *WAIT*. Attempting to coerce two fundamentally different logic
+        #paths into the same method is the issue here. Instead, split this
+        #single method into the following two methods:
+        #
+        #    @abstractmethod
+        #    def get_cells(
+        #        self,
+        #        cells: 'betse.science.cells.Cells',
+        #        p:     'betse.science.parameters.Parameters',
+        #    ) -> SequenceTypes:
+        #
+        #    @abstractmethod
+        #    def get_cell_mems(
+        #        self,
+        #        cells: 'betse.science.cells.Cells',
+        #        p:     'betse.science.parameters.Parameters',
+        #    ) -> SequenceTypes:
+        #
+        #All existing calls to this method should be refactored as follows:
+        #
+        #* Calls passing "ignoreECM=True" should call get_cells().
+        #* Calls passing "ignoreECM=False" should call get_cell_mems().
+        #
+        #Then remove this method entirely. Huzzah!
+
         ignoreECM: bool = False,
     ) -> SequenceTypes:
         '''
-        One-dimensional Numpy array of the indices of all cells in the passed
-        cell cluster selected by this tissue picker.
+        One-dimensional Numpy array of the indices of all cells or cell
+        membranes in the passed cell cluster selected by this tissue picker.
 
         Parameters
-        ---------------------------------
+        ----------
         cells : Cells
             Current cell cluster.
         p : Parameters
             Current simulation configuration.
         ignoreECM : bool
-            ``True`` if extracellular spaces are to be ignored; ``False`` if
-            extracellular spaces are to be simulated. Defaults to ``False``.
+            If:
+            * ``True``, cells are selected by this tissue picker.
+            * ``False``, cell membranes are selected by this tissue picker.
+            Defaults to ``False``.
 
         Returns
-        ---------------------------------
+        ----------
         ndarray
-            See method synopsis above.
+            If ``ignoreECM`` is:
+            * ``True``, one-dimensional Numpy array of the indices of all cells
+              in this cell cluster selected by this tissue picker.
+            * ``False``, one-dimensional Numpy array of the indices of all cell
+              membranes in this cell cluster selected by this tissue picker.
         '''
 
         pass

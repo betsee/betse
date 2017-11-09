@@ -6,9 +6,6 @@
 High-level classes aggregating all parameters pertaining to simulation events.
 '''
 
-#FIXME: Shift this submodule into the "betse.science.tissue.event" subpackage
-#and then remove this subpackage entirely.
-
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimConfigException
 from betse.science.tissue.event.tiseveabc import SimEventPulseABC
@@ -32,13 +29,13 @@ class SimEventPulseVoltage(SimEventPulseABC):
     positive_voltage_boundary : str
         Character identifying the boundary edge to apply this positive voltage
         to. Valid values include:
-        * `T`, the top boundary.
-        * `B`, the bottom boundary.
-        * `L`, the left boundary.
-        * `R`, the right boundary.
+        * ``T``, the top boundary.
+        * ``B``, the bottom boundary.
+        * ``L``, the left boundary.
+        * ``R``, the right boundary.
     negative_voltage_boundary : str
         Character identifying the boundary edge to apply this negative voltage
-        to. Valid values are as for `side_positive_voltage` above.
+        to. Valid values are as for ``side_positive_voltage`` above.
     '''
 
     # ..................{ PUBLIC                             }..................

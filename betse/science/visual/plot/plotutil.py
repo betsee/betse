@@ -949,31 +949,33 @@ def clusterPlot(p, dyna: 'TissueHandler', cells, clrmap=cm.jet):
     ax.add_collection(col_dic['base'])
 
     if dyna.tissue_name_to_profile:
-        for i, name in enumerate(dyna.tissue_name_to_profile.keys()):
-            cell_inds = dyna.cell_target_inds[name]
+        for tissue_name, tissue_profile in dyna.tissue_name_to_profile.items():
+            # One-dimensional Numpy array of the indices of all cells in the
+            # cluster belonging to this tissue.
+            cell_inds = dyna.cell_target_inds[tissue_name]
 
-            if len(cell_inds):
+            # If this tissue contains no cells, skip to the next tissue.
+            if not len(cell_inds):
+                logs.log_warning('Tissue "%s" contains no cells.', tissue_name)
+                continue
 
-                points = np.multiply(cells.cell_verts[cell_inds], p.um)
+            points = np.multiply(cells.cell_verts[cell_inds], p.um)
 
-                z = np.zeros(len(points))
-                z[:] = i + 1
+            z = np.zeros(len(points))
+            z[:] = tissue_profile.z_order
 
-                col_dic[name] = PolyCollection(
-                    points, array=z, cmap=clrmap, edgecolors='none')
-                col_dic[name].set_clim(0, len(dyna.tissue_name_to_profile))
+            col_dic[tissue_name] = PolyCollection(
+                points, array=z, cmap=clrmap, edgecolors='none')
+            col_dic[tissue_name].set_clim(
+                0, len(dyna.tissue_name_to_profile))
 
-                # col_dic[name].set_alpha(0.8)
-                col_dic[name].set_zorder(
-                    dyna.tissue_name_to_profile[name]['z order'])
-                ax.add_collection(col_dic[name])
+            # col_dic[tissue_name].set_alpha(0.8)
+            col_dic[tissue_name].set_zorder(tissue_profile.z_order)
+            ax.add_collection(col_dic[tissue_name])
 
-                # Add this profile name to the colour legend.
-                cb_ticks.append(i+1)
-                cb_tick_labels.append(name)
-
-            else:
-                logs.log_warning("No cells tagged for profile " + name)
+            # Add this profile tissue_name to the colour legend.
+            cb_ticks.append(tissue_profile.z_order)
+            cb_tick_labels.append(tissue_name)
 
     if p.plot_cutlines and dyna.event_cut is not None:
         # For each profile cutting a subset of the cell population...

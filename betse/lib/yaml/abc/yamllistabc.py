@@ -11,30 +11,17 @@ encapsulating on-disk lists and list items.
 from abc import abstractmethod
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
-from betse.science.simulate.pipe.piperun import SimPipeRunnerConfMixin
 from betse.util.type.cls import classes
 from betse.util.type.obj import objects
 from betse.util.type.types import type_check, SequenceOrNoneTypes, ClassType
 from collections import MutableSequence
 
 # ....................{ SUPERCLASSES ~ list item           }....................
-class YamlListItemABC(SimPipeRunnerConfMixin, YamlABC):
+class YamlListItemABC(YamlABC):
     '''
     Abstract base class of all simulation list item subconfigurations, each
     backed by a YAML list item and intended to be added to a
     :class:`YamlList` container.
-
-    Design
-    ----------
-    This class subclasses the :class:`SimPipeRunnerConfMixin` mixin, allowing
-    all instances of:
-
-    * This class to be used as **simulation pipeline runner arguments** (i.e.,
-      simplistic objects encapsulating all input parameters passed to runner
-      methods in :class:`SimPipeABC` pipelines).
-    * The :class:`YamlList` class to be used as sequences of these arguments
-      and hence returned from the abstract
-      :class:`SimPipeABC._runners_conf_enabled` property.
     '''
 
     # ..................{ MAKERS                             }..................

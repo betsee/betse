@@ -72,7 +72,7 @@ def _upgrade_sim_conf_to_0_5_0(
     # Log this upgrade attempt.
     logs.log_debug('Upgrading simulation configuration to 0.5.0 format...')
 
-    # For convenience, localize configuration subdictionaries.
+    # Localize configuration subdictionaries for convenience.
     results_dict = p._conf['results options']
 
     # For backward compatibility, convert the prior into the current
@@ -248,7 +248,7 @@ def _upgrade_sim_conf_to_0_5_2(
     # Log this upgrade attempt.
     logs.log_debug('Upgrading simulation configuration to 0.5.2 format...')
 
-    # For convenience, localize configuration subdictionaries.
+    # Localize configuration subdictionaries for convenience.
     general_dict = p._conf['general options']
     results_dict = p._conf['results options']
     world_dict = p._conf['world options']
@@ -287,3 +287,19 @@ def _upgrade_sim_conf_to_0_6_0(
 
     # Log this upgrade attempt.
     logs.log_debug('Upgrading simulation configuration to 0.6.0 format...')
+
+    # Localize configuration subdictionaries for convenience.
+    tissue_dict = p._conf['tissue profile definition']
+
+    # Split ambiguously unified tissue and cut profiles into unambiguous lists.
+    if 'profiles' in tissue_dict:
+        tissue_dict['cut profiles'] = []
+        tissue_dict['tissue profiles'] = []
+
+        for profile in tissue_dict['profiles']:
+            if profile['type'] == 'cut':
+                tissue_dict['cut profiles'].append(profile)
+            else:
+                tissue_dict['tissue profiles'].append(profile)
+
+            del profile['type']

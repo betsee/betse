@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-YAML-backed simulation visual subconfigurations.
+YAML-backed simulation subconfiguration classes for **visuals** (e.g., plots and
+animations to be exported).
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -11,7 +13,8 @@ from abc import ABCMeta, abstractproperty
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import YamlListItemABC, YamlListItemTypedABC
-from betse.util.io.log import logs
+from betse.science.simulate.pipe.piperun import SimPipeRunnerConfMixin
+# from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes
 
 # ....................{ SUPERCLASSES                       }....................
@@ -124,17 +127,55 @@ class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
     pass
 
 # ....................{ SUBCLASSES : list item             }....................
-class SimConfVisualCellsListItem(
-    SimConfVisualCellsYAMLMixin, YamlListItemTypedABC):
+#FIXME: Extreme design overkill, as evidenced by the need to employ cruel hacks
+#below. Dramatically simplify this as follows:
+#
+#* Merge the entirety of the "SimPipeRunnerConfMixin" class into this class.
+#* Replace all references to the "SimPipeRunnerConfMixin" class with this class.
+#* Remove the "SimPipeRunnerConfMixin" class.
+#
+#Done! I'm disappointed I didn't design it this way initially. *sigh*
+class SimConfVisualListItemABC(SimPipeRunnerConfMixin, YamlListItemTypedABC):
     '''
-    YAML-backed cell cluster visual subconfiguration, encapsulating the
-    configuration of a single visual applicable to all cells parsed from a list
-    of these visuals in the current YAML-formatted simulation configuration file.
+    Abstract base class of all YAML-backed visual subconfiguration list items,
+    encapsulating the configuration of a single visual parsed from a list
+    of these visuals in the current YAML-formatted simulation configuration
+    file.
+
+    Design
+    ----------
+    This class subclasses the :class:`SimPipeRunnerConfMixin` mixin, enabling
+    *all* instances of:
+
+    * This class to be used as **simulation pipeline runner arguments** (i.e.,
+      simplistic objects encapsulating all input parameters passed to runner
+      methods in :class:`SimPipeABC` pipelines).
+    * The :class:`YamlList` class to be used as sequences of these arguments
+      and hence returned from the abstract
+      :class:`SimPipeABC._runners_conf_enabled` property.
+    '''
+
+    # ..................{ ALIASES                            }..................
+    # For unknown reasons, Python is unable to implicitly resolve the following
+    # properties defined by our "YamlListItemTypedABC" superclass required by
+    # our "SimPipeRunnerConfMixin" superclass. So, we do so manually.
+    is_enabled = YamlListItemTypedABC.is_enabled
+    name       = YamlListItemTypedABC.name
+
+
+class SimConfVisualCellsListItem(
+    SimConfVisualCellsYAMLMixin, SimConfVisualListItemABC):
+    # SimConfVisualListItemABC):
+    '''
+    YAML-backed cell cluster visual subconfiguration list item, encapsulating
+    the configuration of a single visual applicable to all cells parsed from a
+    list of these visuals in the current YAML-formatted simulation configuration
+    file.
     '''
 
     # ..................{ CLASS                              }..................
     @classmethod
-    def make_default(self) -> YamlListItemABC:
+    def make_default(cls) -> YamlListItemABC:
 
         # Duplicate the default animation listed first in our default YAML file.
         return SimConfVisualCellsListItem(conf={
@@ -153,27 +194,29 @@ class SimConfVisualCellsListItem(
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
-        # If newly defined configuration options are undefined...
-        if 'enabled' not in self._conf:
-            # Log a non-fatal warning.
-            logs.log_warning(
-                'Animation "%s" config setting "enabled" not found. '
-                'Repairing to preserve backward compatibility. '
-                'Consider upgrading to the newest config file format!',
-                self.name)
+        # Upgrade this configuration to each successive format. For safety, each
+        # upgrade is performed in strict chronological order.
+        self._upgrade_sim_conf_to_0_5_0()
 
-            # Preserve backwards compatibility.
+
+    def _upgrade_sim_conf_to_0_5_0(self) -> None:
+        '''
+        Upgrade the in-memory contents of the simulation subconfiguration
+        associated with this list item to reflect the newest structure of these
+        contents expected by version 0.5.0 (i.e., "Happy Hodgkin") of this
+        application.
+        '''
+
+        if 'enabled' not in self._conf:
             self._conf['enabled'] = True
 
-        # If this is an obselete visual type, silently update this to the
-        # corresponding new visual type.
         if self.name == 'polarization':
             self.name = 'voltage_polarity'
 
 
-class SimConfVisualCellListItem(YamlListItemTypedABC):
+class SimConfVisualCellListItem(SimConfVisualListItemABC):
     '''
-    YAML-backed single-cell visual subconfiguration, encapsulating the
+    YAML-backed single-cell visual subconfiguration list item, encapsulating the
     configuration of a single visual (either in- or post-simulation
     plot or animation) specific to a single cell parsed from the list of all
     such visuals in the current YAML-formatted simulation configuration file.

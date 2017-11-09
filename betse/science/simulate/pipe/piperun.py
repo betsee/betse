@@ -18,105 +18,49 @@ from betse.util.type.text import strs
 from betse.util.type.types import (
     type_check, CallableTypes, SequenceTypes, SetOrNoneTypes, )
 
-# ....................{ DECORATORS                         }....................
-@type_check
-def piperunner(
-    # Mandatory metadata.
-    categories: SequenceTypes,
-
-    # Optional metadata.
-    requirements: SetOrNoneTypes = None,
-) -> CallableTypes:
+# ....................{ MIXINS                             }....................
+class SimPipeRunnerConfMixin(object, metaclass=ABCMeta):
     '''
-    Decorator annotating simulation pipeline **runners** (i.e., methods of
-    :class:`SimPipeABC` subclasses with names prefixed by
-    :attr:`SimPipeABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
+    Abstract base class of all **simulation pipeline runner argument list**
+    (i.e., object containing all input parameters to be passed to a method
+    implementing a :class:`SimPipeABC` pipeline runner) subclasses.
 
-    All methods decorated by this decorator are guaranteed to be instances of
-    the :class:`SimPipeRunner` class, which provides all metadata passed to
-    this decorator as instance variables of the same name.
+    Each :func:`piperun`-decorated runner method in a
+    :class:`SimPipeABC`-subclassed pipeline class accepts exactly one
+    parameter of this type.
 
-    Caveats
+    Design
     ----------
-    **This decorator is strictly optional.** Runners *not* decorated by this
-    decorator are still runnable from simulation pipelines. Since this decorator
-    annotates runners with metadata, however, unannotated runners will *not* be
-    usable by external interfaces expecting this metadata -- typically, GUIs
-    populating interactive widget fields by this metadata.
+    This class is suitable for use as a multiple-inheritance mixin. To preserve
+    the expected method resolution order (MRO) semantics, this class should
+    typically be subclassed *first* rather than *last* in subclasses.
 
-    **Runner methods decorated by this decorator should not be decorated by
-    other decorators.** In particular, decorated methods should *not* also be
-    decorated by :func:`@type_check`, which this decorator already internally
-    decorates all decorated methods by.
-
-    Parameters
+    See Also
     ----------
-    categories : SequenceTypes
-        Sequence of one or more human-readable strings iteratively naming all
-        arbitrary categories to which this runner belongs (in descending order
-        of hierarchical taxonomy). Categories are arbitrary labels accessed
-        *only* by external interfaces and are otherwise ignored by the core
-        codebase. Specifically:
-        * The first string in this sequence names an arbitrary **root category**
-          (e.g., root node in a tree view), intended to be shared between
-          multiple runners. This string is typically a broadly applicable label
-          such as ``Voltage Plots``.
-        * The last string in this sequence names an arbitrary **leaf category**
-          (e.g., leaf node in a tree view), intended to be unique to a single
-          runner. This string is typically a narrowly applicable label such as
-          ``Extracellular Voltage Plot``.
-        * All other strings in this sequence name arbitrary categories of
-          increasingly fine-grained depth, again intended to be shared between
-          multiple runners.
-    requirements : optional[SetType]
-        Set of zero or more :class:`SimPipeRunnerRequirement` instances
-        specifying all simulation features required by this runner. This
-        decorator then decorates this runner by performing the following logic
-        immediately *before* calling this runner:
-        * For each requirement in this set...
-          * If this requirement is unsatisfied by the current simulation phase
-            (e.g., as the configuration for this phase disables extracellular
-            spaces), this requirement (and hence this runner) is unsatisfied.
-            Since this constitutes a fatal error, an
-            :class:`BetseSimPipeRunnerUnsatisfiedException` is raised.
-          * Else, this runner is run.
-        Defaults to ``None``, in which case no such decoration is applied.
+    :class:`betse.lib.yaml.abc.yamllistabc.YamlListItemABC`
+        Class subclassing this base class via multiple inheritance.
     '''
 
-    @type_check
-    def _piperunner_closure(method: CallableTypes) -> SimPipeRunner:
+    # ..................{ SUBCLASS                           }..................
+    @abstractproperty
+    def is_enabled(self) -> bool:
         '''
-        Closure both type-checking *and* annotating the passed simulation
-        pipeline runner method with the metadata passed to the outer decorator
-        defining this closure, returning an instance of the class decorator
-        exposing this metadata to external interfaces.
-
-        Parameters
-        ----------
-        method : CallableTypes
-            Unbound method (i.e., function) to be decorated by (in order):
-            #. The :func:`@type_check` decorator, type checking this method.
-               For efficiency, callers should ensure this method is *not*
-               externally decorated by this decorator.
-            #. The :class:`SimPipeRunner` class decorator,
-               annotating this method with this metadata.
-
-        See Also
-        ----------
-        :func:`piperunner`
-            Further details.
+        ``True`` only if this runner is **enabled** (i.e., both contained in and
+        enabled by the parent simulation pipeline).
         '''
 
-        # Return an instance of the class decorator exposing this metadata.
-        return SimPipeRunner(
-            # As a caller convenience, ensure this method is type-checked.
-            method=type_check(method),
-            categories=categories,
-            requirements=requirements,
-        )
+        pass
 
-    # Return the closure accepting the method to be decorated.
-    return _piperunner_closure
+
+    @abstractproperty
+    def name(self) -> str:
+        '''
+        Lowercase alphanumeric string uniquely identifying the runner these
+        arguments apply to in the parent simulation pipeline (e.g.,
+        ``voltage_membrane``, signifying a transmembrane voltage runner).
+        '''
+
+        pass
 
 # ....................{ CLASSES                            }....................
 class SimPipeRunner(MethodDecorator):
@@ -230,46 +174,102 @@ class SimPipeRunner(MethodDecorator):
         # Defer to the superclass implementation to run this runner.
         return super().__call__(pipeline, *args, **kwargs)
 
-# ....................{ MIXINS                             }....................
-class SimPipeRunnerConfMixin(object, metaclass=ABCMeta):
+# ....................{ DECORATORS                         }....................
+@type_check
+def piperunner(
+    # Mandatory metadata.
+    categories: SequenceTypes,
+
+    # Optional metadata.
+    requirements: SetOrNoneTypes = None,
+) -> CallableTypes:
     '''
-    Abstract base class of all **simulation pipeline runner argument list**
-    (i.e., object containing all input parameters to be passed to a method
-    implementing a :class:`SimPipeABC` pipeline runner) subclasses.
+    Decorator annotating simulation pipeline **runners** (i.e., methods of
+    :class:`SimPipeABC` subclasses with names prefixed by
+    :attr:`SimPipeABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
 
-    Each :func:`piperun`-decorated runner method in a
-    :class:`SimPipeABC`-subclassed pipeline class accepts exactly one
-    parameter of this type.
+    All methods decorated by this decorator are guaranteed to be instances of
+    the :class:`SimPipeRunner` class, which provides all metadata passed to
+    this decorator as instance variables of the same name.
 
-    Design
+    Caveats
     ----------
-    This class is suitable for use as a multiple-inheritance mixin. To preserve
-    the expected method resolution order (MRO) semantics, this class should
-    typically be subclassed *first* rather than *last* in subclasses.
+    **This decorator is strictly optional.** Runners *not* decorated by this
+    decorator are still runnable from simulation pipelines. Since this decorator
+    annotates runners with metadata, however, unannotated runners will *not* be
+    usable by external interfaces expecting this metadata -- typically, GUIs
+    populating interactive widget fields by this metadata.
 
-    See Also
+    **Runner methods decorated by this decorator should not be decorated by
+    other decorators.** In particular, decorated methods should *not* also be
+    decorated by :func:`@type_check`, which this decorator already internally
+    decorates all decorated methods by.
+
+    Parameters
     ----------
-    :class:`betse.lib.yaml.abc.yamllistabc.YamlListItemABC`
-        Class subclassing this base class via multiple inheritance.
+    categories : SequenceTypes
+        Sequence of one or more human-readable strings iteratively naming all
+        arbitrary categories to which this runner belongs (in descending order
+        of hierarchical taxonomy). Categories are arbitrary labels accessed
+        *only* by external interfaces and are otherwise ignored by the core
+        codebase. Specifically:
+        * The first string in this sequence names an arbitrary **root category**
+          (e.g., root node in a tree view), intended to be shared between
+          multiple runners. This string is typically a broadly applicable label
+          such as ``Voltage Plots``.
+        * The last string in this sequence names an arbitrary **leaf category**
+          (e.g., leaf node in a tree view), intended to be unique to a single
+          runner. This string is typically a narrowly applicable label such as
+          ``Extracellular Voltage Plot``.
+        * All other strings in this sequence name arbitrary categories of
+          increasingly fine-grained depth, again intended to be shared between
+          multiple runners.
+    requirements : optional[SetType]
+        Set of zero or more :class:`SimPipeRunnerRequirement` instances
+        specifying all simulation features required by this runner. This
+        decorator then decorates this runner by performing the following logic
+        immediately *before* calling this runner:
+        * For each requirement in this set...
+          * If this requirement is unsatisfied by the current simulation phase
+            (e.g., as the configuration for this phase disables extracellular
+            spaces), this requirement (and hence this runner) is unsatisfied.
+            Since this constitutes a fatal error, an
+            :class:`BetseSimPipeRunnerUnsatisfiedException` is raised.
+          * Else, this runner is run.
+        Defaults to ``None``, in which case no such decoration is applied.
     '''
 
-    # ..................{ SUBCLASS                           }..................
-    @abstractproperty
-    def is_enabled(self) -> bool:
+    @type_check
+    def _piperunner_closure(method: CallableTypes) -> SimPipeRunner:
         '''
-        ``True`` only if this runner is **enabled** (i.e., both contained in and
-        enabled by the parent simulation pipeline).
+        Closure both type-checking *and* annotating the passed simulation
+        pipeline runner method with the metadata passed to the outer decorator
+        defining this closure, returning an instance of the class decorator
+        exposing this metadata to external interfaces.
+
+        Parameters
+        ----------
+        method : CallableTypes
+            Unbound method (i.e., function) to be decorated by (in order):
+            #. The :func:`@type_check` decorator, type checking this method.
+               For efficiency, callers should ensure this method is *not*
+               externally decorated by this decorator.
+            #. The :class:`SimPipeRunner` class decorator,
+               annotating this method with this metadata.
+
+        See Also
+        ----------
+        :func:`piperunner`
+            Further details.
         '''
 
-        pass
+        # Return an instance of the class decorator exposing this metadata.
+        return SimPipeRunner(
+            # As a caller convenience, ensure this method is type-checked.
+            method=type_check(method),
+            categories=categories,
+            requirements=requirements,
+        )
 
-
-    @abstractproperty
-    def name(self) -> str:
-        '''
-        Lowercase alphanumeric string uniquely identifying the runner these
-        arguments apply to in the parent simulation pipeline (e.g.,
-        ``voltage_membrane``, signifying a transmembrane voltage runner).
-        '''
-
-        pass
+    # Return the closure accepting the method to be decorated.
+    return _piperunner_closure

@@ -71,11 +71,10 @@ class TissueProfile(CellsProfileABC):
     Attributes
     ----------
     is_gj_insular : bool
-        ``True`` only if the gap junctions of all cells originating in this
-        tissue are **insular** (i.e., prevented from connecting to cells in
-        other tissues), implying these gap junctions to be strictly
-        intra-tissue.
-    mem_diffusion_name_to_const : MappingType
+        ``True`` only if gap junctions originating at cells in this tissue are
+        **insular** (i.e., prevented from connecting to cells in other tissues),
+        implying these gap junctions to be strictly intra-tissue.
+    mem_diff_name_to_const : MappingType
         Dictionary mapping from the name of each membrane diffusion constant
         applied to all cells in this tissue to a floating point number
         specifying that constant.
@@ -86,7 +85,7 @@ class TissueProfile(CellsProfileABC):
     def __init__(
         self,
         is_gj_insular: bool,
-        mem_diffusion_name_to_const : MappingType,
+        mem_diff_name_to_const : MappingType,
         *args, **kwargs
     ) -> None:
         '''
@@ -95,11 +94,10 @@ class TissueProfile(CellsProfileABC):
         Parameters
         ----------
         is_gj_insular : bool
-            ``True`` only if the gap junctions of all cells originating in this
-            tissue are **insular** (i.e., prevented from connecting to cells in
-            other tissues), implying these gap junctions to be strictly
-            intra-tissue.
-        mem_diffusion_name_to_const : MappingType
+            ``True`` only if gap junctions originating at cells in this tissue
+            are **insular** (i.e., prevented from connecting to cells in other
+            tissues), implying these gap junctions to be strictly intra-tissue.
+        mem_diff_name_to_const : MappingType
             Dictionary mapping from the name of each membrane diffusion constant
             applied to all cells in this tissue to a floating point number
             specifying that constant.
@@ -112,18 +110,18 @@ class TissueProfile(CellsProfileABC):
 
         # Classify all passed parameters.
         self.is_gj_insular = is_gj_insular
-        self.mem_diffusion_name_to_const = mem_diffusion_name_to_const
+        self.mem_diff_name_to_const = mem_diff_name_to_const
 
 
 #FIXME: Actually do something here.
 class CutProfile(CellsProfileABC):
     '''
-    Profile identifying all cells to be permanently removed by a cutting
-    event subsequently triggered during the current tissue simulation.
+    **Cut profile** (i.e., cell cluster region to be permanently removed by a
+    cutting event triggered during the simulation phase).
 
     There exists a many-to-one relation between cut profiles and cutting events.
     That is to say, each cutting event references zero or more cut profiles.
-    While unwieldy, this disconnection permits cutting event (but _not_ cut
+    While unwieldy, this disconnection permits cutting event (but *not* cut
     profile) parameters to be modified without requiring simulation reseeding or
     reinitialization. Welcome to the code jungle.
     '''

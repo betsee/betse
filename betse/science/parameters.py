@@ -11,7 +11,7 @@ from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.config.confenum import (
     CellLatticeType, IonProfileType)
-from betse.science.config.event import eventvoltage
+from betse.science.tissue.event import tisevevolt
 from betse.science.simulate.simphase import SimPhaseKind
 from betse.science.tissue.picker.tispickimage import TissuePickerImage
 # from betse.util.io.log import logs
@@ -459,10 +459,8 @@ class Parameters(YamlFileABC):
             self.scheduled_options['pressure'] = 0
 
         #FIXME: Rename this dictionary key from "extV" to "external voltage".
-        #Thus spake Sessums!
-
         # Parameterize the voltage event if enabled.
-        self.scheduled_options['extV'] = eventvoltage.make(p=self)
+        self.scheduled_options['extV'] = tisevevolt.make(p=self)
 
         if bool_ecmj is False:
             self.scheduled_options['ecmJ'] = 0

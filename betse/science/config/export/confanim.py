@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -54,8 +55,8 @@ class SimConfAnimAll(YamlABC):
     is_after_sim_show : bool
         ``True`` only if this configuration displays post-simulation animations.
     after_sim_pipeline : YamlList
-        List of all post-simulation animations to be animated. Ignored if
-        :attr:``is_after_sim`` is ``False``.
+        YAML-backed list of all post-simulation animations to be animated.
+        Ignored if :attr:``is_after_sim`` is ``False``.
 
     Attributes (Images)
     ----------

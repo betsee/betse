@@ -120,7 +120,7 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     # Import all modules whose fully-qualified names have been modified.
     from betse.lib.yaml.abc import yamlabc  #, yamllistabc
     from betse.science.tissue import tisprofile, tishandler
-    from betse.science.tissue.event import tisevecut
+    from betse.science.tissue.event import tisevecut, tisevevolt
     from betse.science.tissue.picker import tispickcls, tispickimage
     from betse.science.tissue.picker.tispickimage import (
         TissuePickerImage, TissuePickerImageMask)
@@ -129,6 +129,7 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     # Alias obsolete module names to current module objects.
     sys.modules['betse.lib.yaml.yamlabc'] = yamlabc
     sys.modules['betse.science.config.event.eventcut'] = tisevecut
+    sys.modules['betse.science.config.event.eventvoltage'] = tisevevolt
     sys.modules['betse.science.tissue.bitmapper'] = tispickimage
     sys.modules['betse.science.tissue.handler'] = tishandler
     sys.modules['betse.science.tissue.tiscls'] = tisprofile

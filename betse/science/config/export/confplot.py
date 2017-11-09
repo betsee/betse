@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -40,11 +41,11 @@ class SimConfPlotAll(YamlABC):
     Attributes (After : Single-cell)
     ----------
     after_sim_pipeline_cell : YamlList
-        List of all post-simulation single-cell plots to be animated. Ignored if
-        :attr:``is_after_sim`` is ``False``.
+        YAML-backed list of all post-simulation single-cell plots to be
+        animated. Ignored if :attr:``is_after_sim`` is ``False``.
     after_sim_pipeline_cells : YamlList
-        List of all post-simulation cell cluster plots to be animated. Ignored
-        if :attr:``is_after_sim`` is ``False``.
+        YAML-backed list of all post-simulation cell cluster plots to be
+        animated. Ignored if :attr:``is_after_sim`` is ``False``.
 
     Attributes (Image)
     ----------
