@@ -3,8 +3,8 @@
 # See "LICENSE" for further details.
 
 '''
-Class hierarchy collectively implementing various methods for assigning a subset
-of the total cell population to the corresponding tissue profile.
+**Tissue profile pickers** (i.e., objects assigning a subset of all cells
+matching various criteria to the corresponding tissue profile) classes.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -17,11 +17,12 @@ from betse.util.type.types import type_check, NumericTypes, SequenceTypes
 # ....................{ SUPERCLASS                         }....................
 class TissuePickerABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all tissue matching classes.
+    Abstract base class of all **tissue profile picker** (i.e., object assigning
+    a subset of all cells matching some criteria to the corresponding tissue
+    profile) subclasses.
 
-    Instances of this class assign a subset of all cells matching
-    subclass-specific criteria (e.g., explicit indexing, randomized selection,
-    spatial location) to the corresponding tissue profile.
+    Typical criteria for matching cells includes explicit cell indexing,
+    randomized cell selection, and image-defined spatial cell location.
     '''
 
     # ..................{ SUBCLASS                           }..................
@@ -65,7 +66,7 @@ class TissuePickerABC(object, metaclass=ABCMeta):
         #    ) -> SequenceTypes:
         #
         #    @abstractmethod
-        #    def get_cell_mems(
+        #    def get_mems(
         #        self,
         #        cells: 'betse.science.cells.Cells',
         #        p:     'betse.science.parameters.Parameters',
@@ -74,7 +75,7 @@ class TissuePickerABC(object, metaclass=ABCMeta):
         #All existing calls to this method should be refactored as follows:
         #
         #* Calls passing "ignoreECM=True" should call get_cells().
-        #* Calls passing "ignoreECM=False" should call get_cell_mems().
+        #* Calls passing "ignoreECM=False" should call get_mems().
         #
         #Then remove this method entirely. Huzzah!
 
@@ -111,9 +112,8 @@ class TissuePickerABC(object, metaclass=ABCMeta):
 # ....................{ SUBCLASSES                         }....................
 class TissuePickerAll(TissuePickerABC):
     '''
-    All-inclusive tissue picker.
-
-    This picker unconditionally matches *all* cells.
+    All-inclusive tissue picker, unconditionally matching *all* cells in the
+    current cell cluster.
     '''
 
     # ..................{ GETTERS                            }..................
@@ -141,15 +141,13 @@ class TissuePickerAll(TissuePickerABC):
 # ....................{ SUBCLASSES ~ indices               }....................
 class TissuePickerIndices(TissuePickerABC):
     '''
-    Indices-specific tissue picker.
-
-    This matcher matches all cells with the listed indices.
+    Cell indices-based tissue picker, matching all cells in the current cell
+    cluster whose indices are defined by a given sequence.
 
     Attributes
-    ----------------------------
+    ----------
     indices : SequenceTypes
-        SequenceTypes (e.g., list, tuple) of the indices of all cells to be
-        matched.
+        Sequence of the indices of all cells to match.
     '''
 
     @type_check
@@ -158,9 +156,9 @@ class TissuePickerIndices(TissuePickerABC):
         Initialize this tissue picker.
 
         Parameters
-        ----------------------------
+        ----------
         indices : SequenceTypes
-            See the class docstring.
+            Sequence of the indices of all cells to match.
         '''
 
         self.indices = indices
@@ -186,28 +184,30 @@ class TissuePickerIndices(TissuePickerABC):
         return target_inds
 
 # ....................{ SUBCLASSES ~ random                }....................
+#FIXME: Rename to "TissuePickerPercent".
 class TissuePickerRandom(TissuePickerABC):
     '''
-    Randomized cell picker.
-
-    This picker randomly matches a percentage of cells.
+    Randomized cell picker, randomly matching a given percentage of all cells in
+    the current cell cluster.
 
     Attributes
-    ----------------------------
+    ----------
     percentage : NumericTypes
-        Percentage of the total cell population to be randomly matched as an
-        integer or float in the range ``[0,0, 100.0]``.
+        **Percentage** (i.e., number in the range ``[0.0, 100.0]``) of the total
+        cell population to randomly match.
     '''
 
+    #FIXME: Rename the "percentage" attribute to merely "percent".
     @type_check
     def __init__(self, percentage: NumericTypes) -> None:
         '''
         Initialize this tissue picker.
 
         Parameters
-        ----------------------------
+        ----------
         percentage : NumericTypes
-            See the class docstring.
+            **Percentage** (i.e., number in the range ``[0.0, 100.0]``) of the
+            total cell population to randomly match.
         '''
 
         # If this is not a valid percentage, raise an exception. This is

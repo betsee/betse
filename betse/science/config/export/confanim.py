@@ -13,12 +13,11 @@ YAML-backed simulation animation subconfigurations.
 #FIXME: Define saving-ordiented methods.
 
 # ....................{ IMPORTS                            }....................
-from betse.lib.yaml.yamlalias import yaml_alias
+from betse.lib.yaml.yamlalias import yaml_alias, yaml_alias_int_positive
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import YamlList
 from betse.science.config.export.confvis import (
     SimConfVisualCellsListItem, SimConfVisualCellsEmbedded)
-from betse.util.type.numeric import ints
 from betse.util.type.types import type_check, MappingType, SequenceTypes
 
 # ....................{ SUBCLASSES                         }....................
@@ -124,32 +123,6 @@ class SimConfAnimAll(YamlABC):
           suite supporting *only* creation of animated GIFs.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
-    def __init__(self, *args, **kwargs) -> None:
-
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, **kwargs)
-
-        # Encapsulate low-level dictionaries with high-level wrappers.
-        self.while_sim = SimConfVisualCellsEmbedded(
-            conf=self._conf[
-                'results options']['while solving']['animations'])
-
-        # Encapsulate low-level lists of dictionaries with high-level wrappers.
-        self.after_sim_pipeline = YamlList(
-            confs=self._conf[
-                'results options']['after solving']['animations']['pipeline'],
-            conf_type=SimConfVisualCellsListItem,
-        )
-
-        # Validate all configured integers to be positive.
-        ints.die_unless_positive(
-            self.image_dpi,
-            self.video_bitrate,
-            self.video_dpi,
-            self.video_framerate,
-        )
-
     # ..................{ ALIASES ~ while                    }..................
     is_while_sim_save = yaml_alias(
         "['results options']['while solving']['animations']['save']", bool)
@@ -167,20 +140,20 @@ class SimConfAnimAll(YamlABC):
         "['results options']['save']['animations']['images']['enabled']", bool)
     image_filetype = yaml_alias(
         "['results options']['save']['animations']['images']['filetype']", str)
-    image_dpi = yaml_alias(
-        "['results options']['save']['animations']['images']['dpi']", int)
+    image_dpi = yaml_alias_int_positive(
+        "['results options']['save']['animations']['images']['dpi']")
 
     # ..................{ ALIASES ~ save : video             }..................
     is_video_save = yaml_alias(
         "['results options']['save']['animations']['video']['enabled']", bool)
-    video_bitrate = yaml_alias(
-        "['results options']['save']['animations']['video']['bitrate']", int)
-    video_dpi = yaml_alias(
-        "['results options']['save']['animations']['video']['dpi']", int)
+    video_bitrate = yaml_alias_int_positive(
+        "['results options']['save']['animations']['video']['bitrate']")
+    video_dpi = yaml_alias_int_positive(
+        "['results options']['save']['animations']['video']['dpi']")
     video_filetype = yaml_alias(
         "['results options']['save']['animations']['video']['filetype']", str)
-    video_framerate = yaml_alias(
-        "['results options']['save']['animations']['video']['framerate']", int)
+    video_framerate = yaml_alias_int_positive(
+        "['results options']['save']['animations']['video']['framerate']")
     video_metadata = yaml_alias(
         "['results options']['save']['animations']['video']['metadata']",
         MappingType)
@@ -190,6 +163,24 @@ class SimConfAnimAll(YamlABC):
     video_codec_names = yaml_alias(
         "['results options']['save']['animations']['video']['codecs']",
         SequenceTypes)
+
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Initialize our superclass with all passed parameters.
+        super().__init__(*args, **kwargs)
+
+        # Encapsulate low-level dictionaries with high-level wrappers.
+        self.while_sim = SimConfVisualCellsEmbedded(
+            conf=self._conf[
+                'results options']['while solving']['animations'])
+
+        # Encapsulate low-level lists of dictionaries with high-level wrappers.
+        self.after_sim_pipeline = YamlList(
+            confs=self._conf[
+                'results options']['after solving']['animations']['pipeline'],
+            conf_type=SimConfVisualCellsListItem,
+        )
 
     # ..................{ PROPERTIES ~ while                 }..................
     @property

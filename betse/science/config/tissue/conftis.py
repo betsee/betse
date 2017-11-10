@@ -8,15 +8,61 @@ YAML-backed simulation subconfiguration classes for tissue and cut profiles.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.lib.yaml.yamlalias import yaml_alias
+from betse.lib.yaml.yamlalias import (
+    yaml_alias,
+    yaml_alias_float_nonnegative,
+    yaml_alias_float_percent,
+    yaml_enum_alias,
+)
 from betse.lib.yaml.abc.yamllistabc import YamlListItemABC
 # from betse.util.io.log import logs
-# from betse.util.type.types import type_check
+from betse.util.type.enums import make_enum
+from betse.util.type.types import SequenceTypes  # type_check,
+
+# ....................{ ENUMS                              }....................
+TissueProfilePickerType = make_enum(
+    class_name='TissueProfilePickerType',
+    member_names=('ALL', 'IMAGE', 'INDICES', 'PERCENT',))
+'''
+Enumeration of all supported types of **tissue profile pickers** (i.e., objects
+assigning a subset of all cells matching some criteria to the corresponding
+tissue profile).
+
+Attributes
+----------
+ALL : enum
+    All-inclusive tissue picker, unconditionally matching *all* cells.
+IMAGE : enum
+    Image-based tissue picker, matching all cells residing inside the colored
+    pixel area defined by an associated on-disk image mask file.
+INDICES : enum
+    Cell indices-based tissue picker, matching all cells whose indices are
+    defined by a given sequence.
+PERCENT : enum
+    Randomized cell picker, randomly matching a given percentage of all cells.
+'''
+
+# ....................{ SUPERCLASSES                       }....................
+class SimConfCellsProfileListItemABC(YamlListItemABC):
+    '''
+    Abstract base class of all YAML-backed cell cluster profile subconfiguration
+    subclasses, each instance of which encapsulates the configuration of a
+    single region of the cell cluster parsed from a list of these regions in the
+    current YAML-formatted simulation configuration file.
+
+    Attributes
+    ----------
+    name : str
+        Arbitrary string uniquely identifying this tissue profile.
+    '''
+
+    # ..................{ ALIASES                            }..................
+    name = yaml_alias("['name']", str)
 
 # ....................{ SUBCLASSES                         }....................
 #FIXME: Define a "SimConfTissueProfileListItem" class as well.
 #FIXME: Actually leverage this in "Parameters".
-class SimConfTissueProfileListItem(YamlListItemABC):
+class SimConfTissueProfileListItem(SimConfCellsProfileListItemABC):
     '''
     YAML-backed tissue profile subconfiguration, encapsulating the configuration
     of a single tissue profile parsed from a list of these profiles in the
@@ -28,20 +74,62 @@ class SimConfTissueProfileListItem(YamlListItemABC):
         ``True`` only if gap junctions originating at cells in this tissue are
         **insular** (i.e., prevented from connecting to cells in other tissues),
         implying these gap junctions to be strictly intra-tissue.
-    name : str
-        Arbitrary string uniquely identifying this tissue profile.
 
-    Attributes (Membrane Diffusion Constants)
+    Attributes (Constant)
     ----------
+    Dm_Na : float
+        Sodium (Na+) membrane diffusion constant in m2/s.
+    Dm_K : float
+        Potassium (K+) membrane diffusion constant in m2/s.
+    Dm_Cl : float
+        Chloride (Cl-) membrane diffusion constant in m2/s.
+    Dm_Ca : float
+        Calcium (Ca2+) membrane diffusion constant in m2/s.
+    Dm_H : float
+        Hydrogen (H+) membrane diffusion constant in m2/s.
+    Dm_M : float
+        Charge balance anion (M-) membrane diffusion constant in m2/s.
+    Dm_P : float
+        Protein (P-) membrane diffusion constant in m2/s.
 
-    Attributes (Cell Selection)
+    Attributes (Picker)
     ----------
+    picker_type : TissueProfilePickerType
+        Type of **tissue profile picker** (i.e., object assigning a subset of
+        all cells matching some criteria to this tissue profile).
+    picker_cells_index : SequenceTypes
+        Ignored unless :attr:`picker_type` is
+        :attr:`TissueProfilePickerType.INDICES`.
+    picker_cells_percent : float
+        **Percentage** (i.e., floating point number in the range ``[0.0,
+        100.0]``) of the total cell population to randomly match. Ignored unless
+        :attr:`picker_type` is :attr:`TissueProfilePickerType.PERCENT`.
+    picker_image_filename : str
+        Ignored unless :attr:`picker_type` is
+        :attr:`TissueProfilePickerType.IMAGE`.
     '''
 
     # ..................{ ALIASES                            }..................
-    #FIXME: Alias all remaining tissue profile settings.
     is_gj_insular = yaml_alias("['insular']", bool)
-    name = yaml_alias("['name']", str)
+
+    # ..................{ ALIASES ~ diffusion                }..................
+    Dm_Na = yaml_alias_float_nonnegative("['diffusion constants']['Dm_Na']")
+    Dm_K  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_K']")
+    Dm_Cl = yaml_alias_float_nonnegative("['diffusion constants']['Dm_Cl']")
+    Dm_Ca = yaml_alias_float_nonnegative("['diffusion constants']['Dm_Ca']")
+    Dm_H  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_H']")
+    Dm_M  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_M']")
+    Dm_P  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_P']")
+
+    # ..................{ ALIASES ~ picker                   }..................
+    picker_type = yaml_enum_alias(
+        "['cell targets']['type']", TissueProfilePickerType)
+    picker_cells_index = yaml_alias(
+        "['cell targets']['indices']", SequenceTypes)
+    picker_cells_percent = yaml_alias_float_percent(
+        "['cell targets']['random']")
+    picker_image_filename = yaml_alias(
+        "['cell targets']['bitmap']['file']", str)
 
     # ..................{ CLASS                              }..................
     @classmethod
@@ -75,9 +163,3 @@ class SimConfTissueProfileListItem(YamlListItemABC):
                 'random': 50,
             },
         })
-
-    # ..................{ INITIALIZERS                       }..................
-    def __init__(self, *args, **kwargs) -> None:
-
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, **kwargs)

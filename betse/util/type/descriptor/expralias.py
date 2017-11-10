@@ -261,8 +261,8 @@ def expr_alias(
           *not* already an instance of this class.
         Defaults to ``None``, in which case this boolean conditionally defaults
         to ``True`` only if the ``cls`` parameter is :class:`float`, whose
-        constructor is well-known to safely cast various other types (e.g.,
-        :class:`int`, :class:`str`).
+        constructor is well-known to safely cast into most builtin scalar types
+        (e.g., :class:`int`, :class:`str`).
     predicate : optional[CallableTypes]
         Callable passed the value of this expression as its first and only
         parameter and returning a boolean ``True`` only if this value satisfies
@@ -274,12 +274,14 @@ def expr_alias(
         ``None``, in which case no such validation is performed.
     predicate_expr : optional[str]
         Arbitrarily complex Python expression suitable for use as the condition
-        of an if statement evaluating to a boolean ``True`` only if the value of
-        this expression satisfies arbitrary caller requirements and ``False``
-        otherwise. If this expression evaluates to ``False``, an exception is
-        raised on behalf of this expression. If the ``predicate_label``
-        parameter is *not* also passed, an exception is raised. Defaults to
-        ``None``, in which case no such validation is performed.
+        of an if statement testing the local variable named ``value`` providing
+        the value of this expression evaluating to a boolean ``True`` only if
+        the value of this expression satisfies arbitrary caller requirements and
+        ``False`` otherwise. If this expression evaluates to ``False``, an
+        exception is raised on behalf of this expression. If the
+        ``predicate_label`` parameter is *not* also passed, an exception is
+        raised. Defaults to ``None``, in which case no such validation is
+        performed.
     predicate_label : optional[str]
         Human-readable adjective or adjectival phrase describing the passed
         callable predicate if any. Defaults to ``None``, in which case this

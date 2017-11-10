@@ -9,7 +9,6 @@ run by its parent pipeline) functionality.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractproperty
 from betse.exceptions import BetseSimPipeException
 from betse.science.simulate.pipe.piperunreq import SimPipeRunnerRequirement
 from betse.util.type.cls.decorators import MethodDecorator
@@ -17,50 +16,6 @@ from betse.util.type.obj import objects
 from betse.util.type.text import strs
 from betse.util.type.types import (
     type_check, CallableTypes, SequenceTypes, SetOrNoneTypes, )
-
-# ....................{ MIXINS                             }....................
-class SimPipeRunnerConfMixin(object, metaclass=ABCMeta):
-    '''
-    Abstract base class of all **simulation pipeline runner argument list**
-    (i.e., object containing all input parameters to be passed to a method
-    implementing a :class:`SimPipeABC` pipeline runner) subclasses.
-
-    Each :func:`piperun`-decorated runner method in a
-    :class:`SimPipeABC`-subclassed pipeline class accepts exactly one
-    parameter of this type.
-
-    Design
-    ----------
-    This class is suitable for use as a multiple-inheritance mixin. To preserve
-    the expected method resolution order (MRO) semantics, this class should
-    typically be subclassed *first* rather than *last* in subclasses.
-
-    See Also
-    ----------
-    :class:`betse.lib.yaml.abc.yamllistabc.YamlListItemABC`
-        Class subclassing this base class via multiple inheritance.
-    '''
-
-    # ..................{ SUBCLASS                           }..................
-    @abstractproperty
-    def is_enabled(self) -> bool:
-        '''
-        ``True`` only if this runner is **enabled** (i.e., both contained in and
-        enabled by the parent simulation pipeline).
-        '''
-
-        pass
-
-
-    @abstractproperty
-    def name(self) -> str:
-        '''
-        Lowercase alphanumeric string uniquely identifying the runner these
-        arguments apply to in the parent simulation pipeline (e.g.,
-        ``voltage_membrane``, signifying a transmembrane voltage runner).
-        '''
-
-        pass
 
 # ....................{ CLASSES                            }....................
 class SimPipeRunner(MethodDecorator):

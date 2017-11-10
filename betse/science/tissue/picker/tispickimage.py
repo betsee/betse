@@ -18,18 +18,15 @@ from scipy import interpolate, misc
 from scipy.spatial import ConvexHull
 
 # ....................{ SUBCLASSES                         }....................
-#FIXME: Rename this subclass to "TissuePickerImage".
 class TissuePickerImage(TissuePickerABC):
     '''
-    Image mask-specific tissue picker.
-
-    This matcher matches all cells residing inside the colored pixel area
-    defined by an associated image mask.
+    Image-based tissue picker, matching all cells residing inside the colored
+    pixel area defined by an associated on-disk image mask file.
 
     Attributes
-    ----------------------------
+    ----------
     filename : str
-        Absolute path of this bitmap.
+        Absolute path of this image mask.
     '''
 
     # ..................{ PUBLIC                             }..................
@@ -39,17 +36,17 @@ class TissuePickerImage(TissuePickerABC):
         Initialize this tissue picker.
 
         Parameters
-        ----------------------------
+        ----------
         filename : str
-            Absolute or relative path of the desired bitmap. If relative (i.e.,
-            *not* prefixed by a directory separator), this path will be
-            canonicalized into an absolute path relative to the directory
-            containing the current simulation's configuration file.
+            Absolute or relative filename of this image mask. If relative (i.e.,
+            *not* prefixed by a directory separator), this filename will be
+            canonicalized into an absolute filename relative to the passed
+            absolute dirname.
         dirname : str
-            Absolute path of the directory containing the path of the bitmap to
-            be loaded (i.e., ``filename``). If that path is relative, that path
-            will be prefixed by this path to convert that path into an absolute
-            path; else, this path is ignored.
+            Absolute dirname of the directory containing this image mask. If the
+            ``filename`` parameter is relative, that filename will be prefixed
+            by this path to convert that filename into an absolute path; else,
+            this dirname is ignored.
         '''
 
         # If this is a relative path, convert this into an absolute path
@@ -110,7 +107,7 @@ class TissuePickerImage(TissuePickerABC):
         inside this bitmap.
 
         Parameters
-        ---------------------------------
+        ----------
         cells : Cells
             Current cell cluster.
         '''

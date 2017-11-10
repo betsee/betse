@@ -180,8 +180,8 @@ world options:
 tissue profile definition:
 
   clipping:   # Geometry mask defining shape of global cell cluster.
-    bitmap:   # Bitmap whose coloured pixel area defines this mask.
-      file: geo/circle/circle_base.png  # Bitmap path relative to config file location.
+    bitmap:   # Image whose colored pixel area defines the region of cells to match.
+      file: geo/circle/circle_base.png   # Absolute or relative filename of this image.
 
   profiles enabled: True   # Apply (rather than ignore) tissue and cut profiles listed below?
 
@@ -204,19 +204,20 @@ tissue profile definition:
 
       cell targets: # Cell population to which this profile applies.
         type: all   # Cell population type, as any following string:
-                    # * "all" to uniformly apply this tissue profile to all cells.
-                    # * "bitmap" to only match cells residing in a bitmap's colored area.
-                    # * "indices" to only match cells with the indices listed below.
-                    # * "random" to only match a random subset of cells in the cluster.
-        bitmap:                             # Ignored unless "type: bitmap" specified above.
-          file: geo/circle/circle_base.png  # Absolute or relative filename of this bitmap.
-        indices: [3, 14, 15, 9, 265]  # Ignored unless "type: indices" specified above.
-                                      # List of all positive integers uniquely identifying each
+                    # * "all", uniformly applying this tissue profile to all cells.
+                    # * "bitmap", matching only cells residing inside an image's colored area.
+                    # * "indices", matching only cells with the indices listed below.
+                    # * "random", matching only a random subset of cells in the cell cluster.
+        bitmap:     # Image whose colored pixel area defines the region of cells to match.
+                    # Ignored unless "type: bitmap" specified above.
+          file: geo/circle/circle_base.png  # Absolute or relative filename of this image.
+        indices: [3, 14, 15, 9, 265]  # List of all positive integers uniquely identifying each
                                       # cell in this cluster to apply this tissue profile to.
-        random: 50  # Ignored unless "type: random" specified above,
-                    # Percentage of cells in this cluster to randomly apply this tissue profile
+                                      # Ignored unless "type: indices" specified above.
+        random: 50  # Percentage of cells in this cluster to randomly apply this tissue profile
                     # to, defined as an integer ranging from 0 to 100 (e.g., "50" randomly
                     # applies this profile to 50% of all cells).
+                    # Ignored unless "type: random" specified above,
 
     # Example tissue profile for a small, slightly depolarized cluster of
     # cells near the cluster centre.

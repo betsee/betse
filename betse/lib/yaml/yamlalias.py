@@ -116,7 +116,67 @@ def yaml_enum_alias(keys: str, *args, **kwargs) -> YamlAliasABC:
         'self._conf' + keys, *args,
         base_classes=_YAML_ALIAS_BASE_CLASSES, **kwargs)
 
-# ....................{ DESCRIPTORS ~ predicate            }....................
+# ....................{ DESCRIPTORS ~ predicate : float    }....................
+def yaml_alias_float_positive(keys: str) -> YamlAliasABC:
+    '''
+    Simulation configuration expression alias data descriptor, dynamically
+    aliasing a target floating point variable with values constrained to be
+    **positive** (i.e., strictly greater than 0.0).
+
+    See Also
+    ----------
+    :func:`yaml_alias`
+        Further details.
+    '''
+
+    return yaml_alias(
+        keys=keys,
+        cls=float,
+        predicate_expr='value > 0.0',
+        predicate_label='positive',
+    )
+
+
+def yaml_alias_float_nonnegative(keys: str) -> YamlAliasABC:
+    '''
+    Simulation configuration expression alias data descriptor, dynamically
+    aliasing a target floating point variable with values constrained to be
+    **non-negative** (i.e., greater than or equal to 0.0).
+
+    See Also
+    ----------
+    :func:`yaml_alias`
+        Further details.
+    '''
+
+    return yaml_alias(
+        keys=keys,
+        cls=float,
+        predicate_expr='value >= 0.0',
+        predicate_label='non-negative',
+    )
+
+
+def yaml_alias_float_percent(keys: str) -> YamlAliasABC:
+    '''
+    Simulation configuration expression alias data descriptor, dynamically
+    aliasing a target floating point variable with values constrained to be
+    **percentages** (i.e., in the range ``[0.0, 100.0]``).
+
+    See Also
+    ----------
+    :func:`yaml_alias`
+        Further details.
+    '''
+
+    return yaml_alias(
+        keys=keys,
+        cls=float,
+        predicate_expr='not 0.0 <= value <= 100.0',
+        predicate_label='percentage',
+    )
+
+# ....................{ DESCRIPTORS ~ predicate : int      }....................
 def yaml_alias_int_positive(keys: str) -> YamlAliasABC:
     '''
     Simulation configuration expression alias data descriptor, dynamically

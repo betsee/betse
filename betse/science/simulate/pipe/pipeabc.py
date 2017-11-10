@@ -10,17 +10,15 @@ activities to be iteratively run) functionality.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractproperty
-
 from betse.exceptions import (
     BetseSimPipeException, BetseSimPipeRunnerUnsatisfiedException)
-from betse.science.simulate.pipe.piperun import (
-    SimPipeRunner, SimPipeRunnerConfMixin)
+from betse.lib.yaml.abc.yamllistabc import YamlListItemTypedABC
+from betse.science.simulate.pipe.piperun import SimPipeRunner
 from betse.science.simulate.simphase import SimPhase
 from betse.util.io.log import logs
 from betse.util.type.obj import objects
 from betse.util.type.text import strs
 from betse.util.type.types import type_check, GeneratorType, IterableTypes
-
 
 # ....................{ SUPERCLASSES                       }....................
 class SimPipeABC(object, metaclass=ABCMeta):
@@ -204,10 +202,10 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
         * If the :meth:`is_enabled` property is ``True`` (implying this pipeline
           to be currently enabled):
-          * For each :class:`SimPipeRunnerConfMixin` instance (corresponding to
-            the configuration of a currently enabled pipeline runner) in the
-            sequence of these instances provided by the
-            :meth:`_runners_conf` property:
+          * For each :class:`YamlListItemTypedABC` instance (corresponding to
+            the subconfiguration of a currently enabled pipeline runner) in the
+            sequence of these instances listed by the :meth:`_runners_conf`
+            property:
             * Call this method, passed this configuration.
             * If this method reports this runner's requirements to be
               unsatisfied (e.g., due to the current simulation configuration
@@ -229,10 +227,10 @@ class SimPipeABC(object, metaclass=ABCMeta):
         # For the object encapsulating all input arguments to be passed to each
         # currently enabled runner in this pipeline...
         for runner_conf in self._runners_conf:
-            if not isinstance(runner_conf, SimPipeRunnerConfMixin):
+            if not isinstance(runner_conf, YamlListItemTypedABC):
                 raise BetseSimPipeException(
                     '_runners_conf() item {!r} '
-                    'not instance of "SimPipeRunnerConfMixin".'.format(
+                    'not instance of "YamlListItemTypedABC".'.format(
                         runner_conf))
 
             # If this runner is disabled, log this fact and ignore this runner.
@@ -322,7 +320,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
     @abstractproperty
     def _runners_conf(self) -> IterableTypes:
         '''
-        Iterable of all :class:`SimPipeRunnerConfMixin` instances for the current
+        Iterable of all :class:`YamlListItemTypedABC` instances for the current
         pipeline, each encapsulating all input parameters to be passed to the
         method implementing a runner currently contained in this pipeline.
 

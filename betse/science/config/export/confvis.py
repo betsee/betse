@@ -13,7 +13,6 @@ from abc import ABCMeta, abstractproperty
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import YamlListItemABC, YamlListItemTypedABC
-from betse.science.simulate.pipe.piperun import SimPipeRunnerConfMixin
 # from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes
 
@@ -127,44 +126,8 @@ class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
     pass
 
 # ....................{ SUBCLASSES : list item             }....................
-#FIXME: Extreme design overkill, as evidenced by the need to employ cruel hacks
-#below. Dramatically simplify this as follows:
-#
-#* Merge the entirety of the "SimPipeRunnerConfMixin" class into this class.
-#* Replace all references to the "SimPipeRunnerConfMixin" class with this class.
-#* Remove the "SimPipeRunnerConfMixin" class.
-#
-#Done! I'm disappointed I didn't design it this way initially. *sigh*
-class SimConfVisualListItemABC(SimPipeRunnerConfMixin, YamlListItemTypedABC):
-    '''
-    Abstract base class of all YAML-backed visual subconfiguration list items,
-    encapsulating the configuration of a single visual parsed from a list
-    of these visuals in the current YAML-formatted simulation configuration
-    file.
-
-    Design
-    ----------
-    This class subclasses the :class:`SimPipeRunnerConfMixin` mixin, enabling
-    *all* instances of:
-
-    * This class to be used as **simulation pipeline runner arguments** (i.e.,
-      simplistic objects encapsulating all input parameters passed to runner
-      methods in :class:`SimPipeABC` pipelines).
-    * The :class:`YamlList` class to be used as sequences of these arguments
-      and hence returned from the abstract
-      :class:`SimPipeABC._runners_conf_enabled` property.
-    '''
-
-    # ..................{ ALIASES                            }..................
-    # For unknown reasons, Python is unable to implicitly resolve the following
-    # properties defined by our "YamlListItemTypedABC" superclass required by
-    # our "SimPipeRunnerConfMixin" superclass. So, we do so manually.
-    is_enabled = YamlListItemTypedABC.is_enabled
-    name       = YamlListItemTypedABC.name
-
-
 class SimConfVisualCellsListItem(
-    SimConfVisualCellsYAMLMixin, SimConfVisualListItemABC):
+    SimConfVisualCellsYAMLMixin, YamlListItemTypedABC):
     # SimConfVisualListItemABC):
     '''
     YAML-backed cell cluster visual subconfiguration list item, encapsulating
@@ -214,7 +177,7 @@ class SimConfVisualCellsListItem(
             self.name = 'voltage_polarity'
 
 
-class SimConfVisualCellListItem(SimConfVisualListItemABC):
+class SimConfVisualCellListItem(YamlListItemTypedABC):
     '''
     YAML-backed single-cell visual subconfiguration list item, encapsulating the
     configuration of a single visual (either in- or post-simulation
