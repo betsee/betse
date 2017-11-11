@@ -20,7 +20,7 @@ from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import (
-    type_check, NumericOrSequenceTypes, SequenceTypes,)
+    type_check, NumericOrSequenceTypes, SequenceTypes)
 from betse.science.math.geometry.polygon.geopolyconvex import (
     clip_counterclockwise)
 
@@ -65,16 +65,16 @@ class Cells(object):
         #. Second dimension indexes the coordinates of the center point of the
            current cell, whose length is unconditionally guaranteed to be 2
            *and* whose:
-           #. First element is the X coordinate of the current cell center.
-           #. Second element is the Y coordinate of the current cell center.
+           #. First item is the X coordinate of the current cell center.
+           #. Second item is the Y coordinate of the current cell center.
     cell_i : list
-        One-dimensional list indexing each cell such that each element is that
+        One-dimensional list indexing each cell such that each item is that
         cell's index (i.e., ``[0, 1, ..., n-2, n-1]`` for the number of cells
         ``n``), required for efficient Numpy slicing.
     cell_verts : ndarray
         Three-dimensional Numpy array of the coordinates of the vertices of all
         cells, whose:
-        #. First dimension indexes each cell such that each element is a
+        #. First dimension indexes each cell such that each item is a
            matplotlib-compatible **polygon patch** (i.e., a two-dimensional
            Numpy array of all vertex coordinates defining the current cell's
            polygon), suitable for passing as is to the
@@ -83,10 +83,10 @@ class Cells(object):
            counterclockwise order).
         #. Third dimension indexes each coordinate of the current cell vertex,
            whose length is guaranteed to be 2 *and* whose:
-           #. First element is the X coordinate of the current cell vertex.
-           #. Second element is the Y coordinate of the current cell vertex.
+           #. First item is the X coordinate of the current cell vertex.
+           #. Second item is the Y coordinate of the current cell vertex.
     R : ndarray
-        One-dimensional Numpy array indexing each cell such that each element is
+        One-dimensional Numpy array indexing each cell such that each item is
         the radius of that cell.
 
     Attributes (Cell Membrane)
@@ -96,34 +96,34 @@ class Cells(object):
         cells, whose:
         #. First dimension indexes each cell.
         #. Second dimension indexes each membrane of the current cell such that
-           each element is the index of the corresponding membrane in
+           each item is the index of the corresponding membrane in
            membrane-centric arrays (e.g., :attr:`mem_mids_flat`).
         For example:
         * ``cell_to_mems[0][0]`` is the index of the first cell's first membrane
-          -- which is *always* 0.
+          (guaranteed to be 0).
         * ``cell_to_mems[-1][-1]`` is the index of the last cell's last membrane
-          -- which is *always* ``mem_i[-1]``.
+          (guaranteed to be ``mem_i[-1]``).
     mem_to_cells : ndarray
         One-dimensional Numpy array of length the number of cell membranes such
-        that each element is the index of the cell containing the membrane
-        indexed by that element. For example:
+        that each item is the index of the cell containing the membrane
+        indexed by that item. For example:
         * ``mem_to_cells[0]`` is the index of the cell containing the first
           membrane.
         * ``mem_to_cells[-1]`` is the index of the cell containing the last
           membrane.
     mem_i : list
         One-dimensional list of length the number of cell membranes such that
-        each element is that cell membrane's index (i.e.,
-        ``[0, 1, ..., m-2, m-1]`` for the number of cell membranes ``m``),
-        required for efficient Numpy slicing.
+        each item is that cell membrane's index (i.e., ``[0, 1, ..., m-2, m-1]``
+        for the number of cell membranes ``m``), required for efficient Numpy
+        slicing.
     mem_mids_flat : ndarray
         Two-dimensional Numpy array of the coordinates of the midpoints of all
         cell membranes, whose:
         #. First dimension indexes each cell membrane.
         #. Second dimension indexes each coordinate of the midpoint of the
            current cell membrane, whose length is guaranteed to be 2 and whose:
-          #. First element is the X coordinate of the current membrane midpoint.
-          #. Second element is the Y coordinate of the current membrane
+          #. First item is the X coordinate of the current membrane midpoint.
+          #. Second item is the Y coordinate of the current membrane
              midpoint.
     mem_vects_flat : ndarray
         Two-dimensional Numpy array of the coordinates of various vectors of
@@ -131,28 +131,28 @@ class Cells(object):
         #. First dimension indexes each cell membrane.
         #. Second dimension indexes each coordinate of a vector describing the
            current cell membrane, whose length is guaranteed to be 6 and whose:
-          #. First element is the X coordinate of the current membrane midpoint,
+          #. First item is the X coordinate of the current membrane midpoint,
              equivalent to :attr:`mem_mids_flat[mem_i,0]` where ``mem_i`` is the
              index of the current membrane.
-          #. Second element is the Y coordinate of the current membrane
+          #. Second item is the Y coordinate of the current membrane
              midpoint, equivalent to :attr:`mem_mids_flat[mem_i,1]`.
-          #. Third element is the X coordinate of the normal unit vector
+          #. Third item is the X coordinate of the normal unit vector
              orthogonal to the tangent unit vector of the current membrane
-             (defined by the corresponding element of the fifth and sixth
+             (defined by the corresponding item of the fifth and sixth
              elements of this array).
-          #. Fourth element is the Y coordinate of this normal unit vector.
-          #. Fifth element is the X coordinate of the tangent unit vector
+          #. Fourth item is the Y coordinate of this normal unit vector.
+          #. Fifth item is the X coordinate of the tangent unit vector
              parallel to the vector implied by the pair of coordinates defining
              the current membrane.
-          #. Sixth element is the Y coordinate of this tangent unit vector.
+          #. Sixth item is the Y coordinate of this tangent unit vector.
     num_mems : ndarray
-        One-dimensional Numpy array indexing each cell such that each element
+        One-dimensional Numpy array indexing each cell such that each item
         is the number of cell membranes contained by the current cell.
     M_sum_mems : ndarray
         Numpy matrix (i.e., two-dimensional array) of size ``m x n``, where:
         * `m` is the total number of cells.
         * `n` is the total number of cell membranes.
-        For each cell ``i`` and membrane ``j``, element ``M_sum_mems[i, j]`` is:
+        For each cell ``i`` and membrane ``j``, item ``M_sum_mems[i, j]`` is:
         * 0 if this cell does *not* contain this membrane. Since most cells do
           *not* contain most membranes, most entries of this matrix are zero,
           implying this matrix to typically (but *not* necessarily) be sparse.
@@ -172,10 +172,10 @@ class Cells(object):
         . Second dimension indexes the index of each vertex defining the
           current membrane, whose length is unconditionally guaranteed to be 2
           _and_ whose:
-          . First element is the index of the first vertex defining this
+          . First item is the index of the first vertex defining this
             membrane in the :attr:`mem_verts` subarray, guaranteed to be
             counterclockwise from the second vertex defining this membrane.
-          . Second element is the index of the second vertex defining this
+          . Second item is the index of the second vertex defining this
             membrane in the :attr:`mem_verts` subarray, guaranteed to be
             clockwise from the first vertex defining this membrane.
     mem_verts : ndarray
@@ -189,8 +189,8 @@ class Cells(object):
         . Second dimension indexes the coordinates of the current membrane
           vertex, whose length is unconditionally guaranteed to be 2 _and_
           whose:
-          . First element is the X coordinate of the current membrane vertex.
-          . Second element is the Y coordinate of the current membrane vertex.
+          . First item is the X coordinate of the current membrane vertex.
+          . Second item is the Y coordinate of the current membrane vertex.
 
     Attributes (Cell Gap Junctions)
     ----------
@@ -203,9 +203,9 @@ class Cells(object):
         . Second dimension indexes the indices of the pair of cells defining
           the gap junction connecting the current membrane to another membrane,
           whose length is unconditionally guaranteed to be 2 _and_ whose:
-          . First element is the index of the cell containing the current
+          . First item is the index of the cell containing the current
             membrane.
-          . Second element is the index of an adjacent cell containing the
+          . Second item is the index of an adjacent cell containing the
             adjacent membrane to which the current membrane is connected.
     gj_len : float
         Uniform length (in meters) of each gap junction, equivalent to the
@@ -220,8 +220,8 @@ class Cells(object):
           defining the gap junction connecting the current membrane to another
           membrane, whose length is unconditionally guaranteed to be 2 _and_
           whose:
-          . First element is the index of the current membrane.
-          . Second element is:
+          . First item is the index of the current membrane.
+          . Second item is:
             * If the current membrane is adjacent to no other membrane (e.g.,
               due to being situated at either the periphery of this cluster
               _or_ a discontiguous hole in this cluster), the index of the
@@ -236,9 +236,9 @@ class Cells(object):
         gap junction connection.
     nn_i : ndarray
         One-dimensional Numpy array of length the number of cell membranes such
-        that each element is the index of the nearest neighbouring cell
-        membrane of the cell membrane indexed by that element, comprising the
-        gap junction connecting these membranes. Each element thus maps each
+        that each item is the index of the nearest neighbouring cell
+        membrane of the cell membrane indexed by that item, comprising the
+        gap junction connecting these membranes. Each item thus maps each
         membrane to its nearest partner. For example:
         * `nn_i[0]` is the index of the membrane nearest to the first membrane.
         * `nn_i[-1]` is the index of the membrane nearest to the last membrane.
@@ -251,13 +251,13 @@ class Cells(object):
     ----------
     cell_sa : ndarray
         One-dimensional Numpy array of length the number of cells such that each
-        element is the surface area of the cell indexed by that element,
+        item is the surface area of the cell indexed by that item,
         defined as the summation of the surface areas of all membranes
         comprising that cell.
     mem_sa : ndarray
         One-dimensional Numpy array of length the number of cell membranes such
-        that each element is the surface area of the cell membrane indexed by
-        that element.
+        that each item is the surface area of the cell membrane indexed by
+        that item.
 
     Attributes (Extracellular Grid)
     ----------
@@ -293,38 +293,38 @@ class Cells(object):
     Attributes (Voronoi Diagram)
     ----------
     cell_to_grid : ndarray
-        One-dimensional Numpy array indexing each cell such that each element
+        One-dimensional Numpy array indexing each cell such that each item
         is the index of the Voronoi region whose vertices most closely
         spatially align with those of that cell. For example:
-        * `cell_to_grid[0]` is the index of the region most closely spatially
+        * ``cell_to_grid[0]`` is the index of the region most closely spatially
           aligned with the first cell.
-        * `cell_to_grid[-1]` is the index of the region most closely spatially
+        * ``cell_to_grid[-1]`` is the index of the region most closely spatially
           aligned with the last cell.
         Assigning a Numpy array of length the number of regions indexed by this
         array from a Numpy array of length the number of cells maps the
         cell-specific data defined by the latter into region-specific data
-        (e.g., `regions_data[cells.cell_to_grid] = cells_centre_data`).
+        (e.g., ``regions_data[cells.cell_to_grid] = cells_centre_data``).
     voronoi_centres : ndarray
         Two-dimensional Numpy array of the coordinates of the center points of
         all polygonal regions in the Voronoi diagram producing this cell
         cluster, whose:
-        . First dimension indexes regions in this diagram, whose length is the
-          total number of regions in this diagram.
-        . Second dimension indexes the coordinates of the center point of the
-          current region, whose length is unconditionally guaranteed to be 2
-          _and_ whose:
-          . First element is the X coordinate of the current region center.
-          . Second element is the Y coordinate of the current region center.
+        #. First dimension indexes regions in this diagram, whose length is the
+           total number of regions in this diagram.
+        #. Second dimension indexes the coordinates of the center point of the
+           current region, whose length is unconditionally guaranteed to be 2
+           *and* whose:
+          #. First item is the X coordinate of the current region center.
+          #. Second item is the Y coordinate of the current region center.
     voronoi_grid : ndarray
         Two-dimensional Numpy array of the vertex coordinates of all
         polygonal regions in the Voronoi diagram producing this cell cluster,
         whose:
-        . First dimension indexes the vertices of all regions in this diagram,
-          whose length is the total number of vertices in this entire diagram.
-        . Second dimension indexes the coordinates of the current vertex, whose
-          length is unconditionally guaranteed to be 2 _and_ whose:
-          . First element is the X coordinate of the current region vertex.
-          . Second element is the Y coordinate of the current region vertex.
+        #. First dimension indexes the vertices of all regions in this diagram,
+           whose length is the total number of vertices in this entire diagram.
+        #. Second dimension indexes the coordinates of the current vertex, whose
+           length is unconditionally guaranteed to be 2 *and* whose:
+           #. First item is the X coordinate of the current region vertex.
+           #. Second item is the Y coordinate of the current region vertex.
         This array is equivalent to the :attr:`voronoi_verts` array flattened
         over the first dimension of that array.
     voronoi_verts : ndarray
@@ -1056,13 +1056,10 @@ class Cells(object):
         self.mem_mids_flat      unraveled list of membrane edge midpoints [x,y] arranged to self.mem_i
         self.mem_vects_flat     list of normal and tangent vectors (non nested) arranged to self.mem_i
 
-
         Notes
         -------
         The Voronoi diagram returns a connected graph. For this simulation, each cell needs unique vertices and edges.
         This method takes the vertices of the original diagram and scales them in to make unique cells.
-
-
         """
 
         self.gj_len = p.cell_space      # distance between gap junction (as "pipe length")
@@ -1159,11 +1156,13 @@ class Cells(object):
         self.mem_mids_flat, indmap_mem, _ = tb.flatten(mem_mids)
         self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
 
+        #FIXME: This logic has been duplicated in both deformWorld() and
+        #quickVerts() methods, which... isn't the best. Consider centralizing
+        #these duplicated variable assignments into a common private method.
+
         # Finish up by creating indices vectors and converting to Numpy arrays where needed:
-
         self.cell_i = [x for x in range(0,len(self.cell_centres))]
-
-        self.mem_i = [x for x in range(0,len(self.mem_mids_flat))]
+        self.mem_i  = [x for x in range(0,len(self.mem_mids_flat))]
 
         # convert mem_length into a flat vector
         mem_length,_,_ = tb.flatten(mem_length)
@@ -1193,13 +1192,19 @@ class Cells(object):
         self.cell_to_mems = []
 
         for cell_index in self.cell_i:
-
-            #FIXME: This assignment is safely reducible to:
-            #    index2mems = (self.mem_to_cells == cell_index).nonzero()[0]
-            #Unpacking the contents of this array into a list is unnecessary.
-            #Striving leaping laser-sharks!
-            index2mems = list(*(self.mem_to_cells == cell_index).nonzero())
-            self.cell_to_mems.append(index2mems)
+            # One-dimensional Numpy array of the indices of all membranes of
+            # the current cell. Note that:
+            #
+            # * "self.mem_to_cells == cell_index" is a Numpy boolean array
+            # * ndarray.nonzero() returns an n-tuple of the indices of all items
+            #   of this boolean array evaluating to True, where "n" is the
+            #   number of dimensions of the "mem_to_cells" array. Since this
+            #   array is one-dimensional, this is guaranteed to be a 1-tuple
+            #   whose first item providing this array is indexed at "[0]".
+            #
+            #It is confusing. It is Numpy.
+            mems_index = (self.mem_to_cells == cell_index).nonzero()[0]
+            self.cell_to_mems.append(mems_index)
 
         self.cell_to_mems = np.asarray(self.cell_to_mems)
 
@@ -1305,10 +1310,8 @@ class Cells(object):
         self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
 
         # Finish up by creating indices vectors and converting to Numpy arrays where needed:
-
         self.cell_i = [x for x in range(0,len(self.cell_centres))]
-
-        self.mem_i = [x for x in range(0,len(self.mem_mids_flat))]
+        self.mem_i =  [x for x in range(0,len(self.mem_mids_flat))]
 
         # convert mem_length into a flat vector
         mem_length,_,_ = tb.flatten(mem_length)

@@ -122,6 +122,7 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     from betse.science.tissue import tisprofile, tishandler
     from betse.science.tissue.event import tisevecut, tisevevolt
     from betse.science.tissue.picker import tispickcls, tispickimage
+    from betse.science.tissue.picker.tispickcls import TissuePickerPercent
     from betse.science.tissue.picker.tispickimage import (
         TissuePickerImage, TissuePickerImageMask)
     from betse.science.tissue.tisprofile import CutProfile
@@ -138,5 +139,6 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
 
     # Alias obsolete to current class names.
     tispickcls.TissuePickerBitmap = TissuePickerImage
+    tispickcls.TissuePickerRandom = TissuePickerPercent
     tispickimage.BitMapper = TissuePickerImageMask
     tisprofile.TissueCut = CutProfile

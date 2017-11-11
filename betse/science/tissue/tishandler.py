@@ -21,7 +21,7 @@ from betse.science.tissue.tisprofile import CutProfile, TissueProfile
 from betse.science.tissue.event.tisevecut import SimEventCut
 from betse.science.tissue.channels_o import cagPotassium
 from betse.science.tissue.picker.tispickcls import (
-    TissuePickerAll, TissuePickerIndices, TissuePickerRandom)
+    TissuePickerAll, TissuePickerIndices, TissuePickerPercent)
 from betse.science.tissue.picker.tispickimage import TissuePickerImage
 from betse.util.io.log import logs
 # from betse.util.type import types
@@ -167,7 +167,7 @@ class TissueHandler(object):
                 profile_picker = TissuePickerIndices(
                     profile_picker_conf['indices'])
             elif profile_picker_type == 'random':
-                profile_picker = TissuePickerRandom(
+                profile_picker = TissuePickerPercent(
                     profile_picker_conf['random'])
             else:
                 raise BetseSimTissueException(
@@ -286,59 +286,58 @@ class TissueHandler(object):
         #Numpy lists for that specific tissue. This eliminates awkward lookups.
         self.cell_target_inds = {}
         self.env_target_inds = {}
+
+        #FIXME: Let's rename this to something less ambiguous. Since it indexes
+        #cell membranes, "mem_target_inds" might be a reasonable name? Lo-ho-ho!
         self.tissue_target_inds = {}
 
-        # Go through again and do traditional tissue profiles.
+        # For each tissue profiles defined by this simulation configuration...
         for tissue_name, tissue_profile in self.tissue_name_to_profile.items():
-            self.tissue_target_inds[tissue_name] = (
-                tissue_profile.picker.get_cell_indices(
-                    cells, p, ignoreECM=False))
-            self.cell_target_inds[tissue_name] = (
-                tissue_profile.picker.get_cell_indices(
-                    cells, p, ignoreECM=True))
+            # One-dimensional Numpy arrays of the indices of all cells and cell
+            # membranes comprising this tissue.
+            tissue_cells_index, tissue_mems_index = (
+                tissue_profile.picker.pick_cells_and_mems(cells=cells, p=p))
 
-            # dmem_list = tissue_profile['diffusion constants']
+            # Persist these arrays for this tissue.
+            self.cell_target_inds[tissue_name] = tissue_cells_index
+            self.tissue_target_inds[tissue_name] = tissue_mems_index
 
             # If this tissue is non-empty (i.e., contains at least one cell)...
             if len(self.cell_target_inds[tissue_name]):
-                # One-dimensional Numpy array of the indices of all cell
-                # membranes in the cluster belonging to this tissue.
-                tissue_cell_mems = self.tissue_target_inds[tissue_name]
-
                 # Get ECM targets.
                 if p.is_ecm:
-                    ecm_targs_mem = list(cells.map_mem2ecm[tissue_cell_mems])
+                    ecm_targs_mem = list(cells.map_mem2ecm[tissue_mems_index])
                     self.env_target_inds[tissue_name] = ecm_targs_mem
 
                 # Set the values of Dmems and ECM diffusion based on the
                 # identified target indices.
                 if p.ions_dict['Na'] == 1:
                     dNa = tissue_profile.mem_diff_name_to_const['Dm_Na']
-                    sim.Dm_cells[sim.iNa][tissue_cell_mems] = dNa
+                    sim.Dm_cells[sim.iNa][tissue_mems_index] = dNa
 
                 if p.ions_dict['K'] == 1:
                     dK = tissue_profile.mem_diff_name_to_const['Dm_K']
-                    sim.Dm_cells[sim.iK][tissue_cell_mems] = dK
+                    sim.Dm_cells[sim.iK][tissue_mems_index] = dK
 
                 if p.ions_dict['Cl'] == 1:
                     dCl = tissue_profile.mem_diff_name_to_const['Dm_Cl']
-                    sim.Dm_cells[sim.iCl][tissue_cell_mems] = dCl
+                    sim.Dm_cells[sim.iCl][tissue_mems_index] = dCl
 
                 if p.ions_dict['Ca'] == 1:
                     dCa = tissue_profile.mem_diff_name_to_const['Dm_Ca']
-                    sim.Dm_cells[sim.iCa][tissue_cell_mems] = dCa
+                    sim.Dm_cells[sim.iCa][tissue_mems_index] = dCa
 
                 if p.ions_dict['H'] == 1:
                     dH = tissue_profile.mem_diff_name_to_const['Dm_H']
-                    sim.Dm_cells[sim.iH][tissue_cell_mems] = dH
+                    sim.Dm_cells[sim.iH][tissue_mems_index] = dH
 
                 if p.ions_dict['M'] == 1:
                     dM = tissue_profile.mem_diff_name_to_const['Dm_M']
-                    sim.Dm_cells[sim.iM][tissue_cell_mems] = dM
+                    sim.Dm_cells[sim.iM][tissue_mems_index] = dM
 
                 if p.ions_dict['P'] == 1:
                     dP = tissue_profile.mem_diff_name_to_const['Dm_P']
-                    sim.Dm_cells[sim.iP][tissue_cell_mems] = dP
+                    sim.Dm_cells[sim.iP][tissue_mems_index] = dP
 
     # ..................{ RUNNERS ~ init                     }..................
     def runAllInit(
@@ -1205,13 +1204,12 @@ class TissueHandler(object):
         # FIXME, if deformation is too much, the following line will crash as
         # the "target_inds_cell" is null. Rayse an uman weedable eggseption.
 
-        # Indices of all cells to be removed, ignoring extracellular spaces.
-        target_inds_cell = tissue_picker.get_cell_indices(
-            cells, p, ignoreECM=True)
+        # Indices of all cells and cell membranes to be removed.
+        target_inds_cell, target_inds_mem = tissue_picker.pick_cells_and_mems(
+            cells=cells, p=p)
+            # dmem_list = tissue_profile['diffusion constants']
 
         # get the corresponding flags to membrane entities
-        target_inds_mem = cells.cell_to_mems[target_inds_cell]
-        target_inds_mem,_,_ = tb.flatten(target_inds_mem)
         target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
         if p.is_ecm:

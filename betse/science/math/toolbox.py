@@ -8,42 +8,48 @@ BETSE project.
 """
 
 
+import math, copy
 import numpy as np
 import scipy.spatial as sps
+from betse.util.type.types import type_check, SequenceTypes
 from scipy import interpolate as interp
-import math
-import copy
 
 
-def flatten(ls_of_ls: list) -> tuple:
-    """
-    Flattens (i.e., un-nests) a doubly-nested Python "list of lists."
+#FIXME: Consider shifting this general-purpose sequence method to
+#betse.util.type.sequences.flatten().
+@type_check
+def flatten(ls_of_ls: SequenceTypes) -> tuple:
+    '''
+    Flattens a doubly-nested sequences of sequences (e.g., list of lists,
+    two-dimensional Numpy array).
+
+    For convenience, this function silently flattens two-dimensional Numpy
+    arrays to lists of lists. Notheless, for both sanity and clarity, callers
+    are recommended to instead call the standard :meth:`numpy.ndarray.flatten`
+    method when this sequence is known to be a Numpy array.
 
     Parameters
     ----------
-    ls_of_ls        a nested list of lists, as in: [[a,b,c],[d,e,f],[g,h,i]]
+    ls_of_ls : SequenceTypes
+        Nested sequence of sequences (e.g., ``[[a,b,c],[d,e,f],[g,h,i]]``).
 
     Returns
     -------
-    ls_flat        a flattened version of the input list, as in:
-                   [a,b,c,d,e,f,g,h,i]
+    (list, list, list)
+        3-tuple ``(ls_flat, ind_map, rind_map)``, where:
+        * ``ls_flat`` is a flattened version of the input list (e.g.,
+          ``[a,b,c,d,e,f,g,h,i]``).
+        * ``ind_map`` is a list of forward indices mapping from all indices of
+          the output ``ls_flat`` list to the corresponding indices of the input
+          ``ls_of_ls`` list (e.g., ``ind_map[5] = [0,5]``, which would yield the
+          same value for ``ls_flat[5]`` and ``ls_of_ls[0][5]``).
+        * ``rind_map`` is a list of lists of reverse indices mapping from all
+          indices of the input ``ls_of_ls`` list to the corresponding indices of
+          the output ``ls_flat`` list.
+    '''
 
-    ind_map        returns the indices of the original nested list-of-lists at
-                   the index of the new list, as in:
-                    ind_map[5] = [0,5]   which would yield the same value for ls_flat[5] and ls_of_ls[0][5]
-
-    Examples
-    ----------
-    (['a',   'b',   'c',   'd',   'e',   'f',   'g',   'h',   'i'],
-     [[0,0], [0,1], [0,2], [1,0], [1,1], [1,2], [2,0], [2,1], [2,2]])
-
-    Notes
-    -------
-    Requires python nested lists of lists. Numpy arrays have their own tools for
-    this.
-    """
     ls_flat = []
-    ind_map =[]
+    ind_map = []
     rind_map = copy.deepcopy(ls_of_ls)   # make a deepcopy of the nested list to get the right shape
 
     for i, sublist in enumerate(ls_of_ls):    # flatten the array and make a mapping: inds nest --> inds flat
@@ -89,6 +95,7 @@ def side_check(p):
 
     return check_stat
 
+
 def alpha_shape(points, alpha):
     """
     Calculate the alpha_shape of a cluster of points in 2D.
@@ -114,7 +121,7 @@ def alpha_shape(points, alpha):
 
     tri = sps.Delaunay(points)
     tri_edges = []
-    circum_r_list = []
+    # circum_r_list = []
 
     # loop over triangles:
     # ia, ib, ic = indices of corner points of the
@@ -443,11 +450,10 @@ def makegrid(xpts,ypts,gridsize,cells):
 
     return X, Y, dx, dy
 
-def RK4(f):
 
+def RK4(f):
     """
-    This rather confusing looking function was obtained from
-    Rossetta Code's Python RK4 implementation.
+    RK4 (i.e., Runge-Kutta), implemented in the maximally confusing manner.
 
     It is modified for a differential equation that does not
     depend on time in its rate equation.
@@ -463,8 +469,8 @@ def RK4(f):
     c1 = co + dc(co,dt)
 
     Where co is the original value, dt is the time-step
-
     """
+
     return lambda y, dt: (
         lambda dy1: (
             lambda dy2: (

@@ -288,94 +288,6 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-    # #FIXME: This and all other BRN methods are safely removable, now.
-    # def sim_brn(self) -> SimPhase:
-    #     '''
-    #     Initialize and simulate a pure bioenergetics reaction network (BRN)
-    #     _without_ bioelectrics with the cell cluster seeded by a prior call
-    #     to the :meth:`seed` method and cache this initialization and simulation
-    #     to output files, specified by the current configuration file.
-    #
-    #     This method _must_ be called prior to the :meth:`plot_brn` method, which
-    #     consumes this output as input.
-    #
-    #     Returns
-    #     ----------
-    #     SimPhase
-    #         High-level simulation phase instance encapsulating all objects
-    #         internally created by this method to run this phase.
-    #     '''
-    #
-    #     logs.log_info(
-    #         'Testing bioenergetics reaction network indicated in configuration file "%s".',
-    #         self._config_basename)
-    #
-    #     start_time = time.time()  # get a start value for timing the simulation
-    #
-    #     #FIXME: Is "INIT" the proper phase here? The string "Now using cell
-    #     #cluster to run initialization." above and call to sim.baseInit_all()
-    #     #above suggest this is, indeed, an initialization.
-    #
-    #     # Simulation phase type.
-    #     phase_kind = SimPhaseKind.INIT
-    #
-    #     # Simulation configuration.
-    #     p = Parameters.make(self._config_filename)
-    #     p.set_time_profile(phase_kind)  # force the time profile to be initialize
-    #     p.run_sim = False
-    #
-    #     # Simulation cell cluster.
-    #     # cells, _ = fh.loadSim(cells.savedWorld)
-    #     cells = Cells(p)
-    #
-    #     if files.is_file(cells.savedWorld):
-    #         cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-    #         logs.log_info('Cell cluster loaded.')
-    #
-    #         # check to ensure compatibility between original and present sim files:
-    #         self._die_unless_seed_same(p_old, p)
-    #
-    #     else:
-    #         logs.log_warning("Ooops! No such cell cluster file found to load!")
-    #
-    #         if p.autoInit:
-    #             logs.log_info(
-    #                 'Automatically seeding cell cluster from config file settings...')
-    #             self.seed()  # create an instance of world
-    #             logs.log_info(
-    #                 'Now using cell cluster to run initialization.')
-    #             cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
-    #
-    #         else:
-    #             raise BetseSimException(
-    #                 "Run terminated due to missing seed.\n"
-    #                 "Please run 'betse seed' to try again.")
-    #
-    #     # Simulation simulator.
-    #     sim = Simulator(p=p)
-    #
-    #     # Simulation phase.
-    #     phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
-    #
-    #     # Initialize simulation data structures
-    #     sim.baseInit_all(cells, p)
-    #
-    #     # create an instance of master of metabolism
-    #     MoM = MasterOfMetabolism(p)
-    #
-    #     # initialize it:
-    #     MoM.read_metabo_config(sim, cells, p)
-    #
-    #     logs.log_info("Running metabolic reaction network test simulation...")
-    #
-    #     MoM.run_core_sim(sim, cells, p)
-    #
-    #     logs.log_info(
-    #         'Metabolic network test completed in %d seconds.',
-    #         round(time.time() - start_time, 2))
-    #
-    #     # Return this phase.
-    #     return phase
 
     def sim_grn(self) -> SimPhase:
         '''
@@ -393,8 +305,6 @@ class SimRunner(object):
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
-
-
 
         start_time = time.time()  # get a start value for timing the simulation
 
@@ -509,7 +419,6 @@ class SimRunner(object):
 
             # if running on a sim with a cut event, must remove cells:
             if sim.dyna.event_cut is not None and is_cut_done:
-
                 simu = Simulator(p=p)
 
                 logs.log_info(
@@ -527,32 +436,34 @@ class SimRunner(object):
                     dyna.tissueProfiles(init, cellso, p)  # initialize all tissue profiles on original cells
 
                     for cut_profile_name in dyna.event_cut.profile_names:
-
                         logs.log_info(
                             'Cutting cell cluster via cut profile "%s"...',
                             cut_profile_name)
 
-                        tissue_picker = dyna.cut_name_to_profile[cut_profile_name].picker
-                        target_inds_cell = tissue_picker.get_cell_indices(
-                            cellso, p, ignoreECM=True)
+                        # Object picking the cells removed by this cut profile.
+                        tissue_picker = dyna.cut_name_to_profile[
+                            cut_profile_name].picker
 
-                        # get the corresponding flags to membrane entities
-                        target_inds_mem = cellso.cell_to_mems[target_inds_cell]
-                        target_inds_mem, _, _ = tb.flatten(target_inds_mem)
+                        # One-dimensional Numpy arrays of the indices of all
+                        # cells and cell membranes to be removed.
+                        target_inds_cell, target_inds_mem = (
+                            tissue_picker.pick_cells_and_mems(
+                                cells=cellso, p=p))
 
-                        MoG.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+                        MoG.core.mod_after_cut_event(
+                            target_inds_cell, target_inds_mem, sim, cells, p)
 
-                        logs.log_info("Redefining dynamic dictionaries to point to the new sim...")
-
+                        logs.log_info(
+                            "Redefining dynamic dictionaries to point to the new sim...")
                         MoG.core.redefine_dynamic_dics(sim, cells, p)
 
-                        logs.log_info("Reinitializing the gene regulatory network for simulation...")
+                        logs.log_info(
+                            "Reinitializing the gene regulatory network for simulation...")
                         MoG.reinitialize(sim, cells, p)
-
 
                 else:
                     logs.log_warning(
-                        "This situation is complex due to a cutting event being run. \n"
+                        "This situation is complex due to a cutting event being run.\n"
                         "Please have a corresponding init file to run the GRN simulation!")
 
                     raise BetseSimException(

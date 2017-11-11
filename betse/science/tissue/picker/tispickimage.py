@@ -10,7 +10,6 @@ of the total cell population to the corresponding tissue profile.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimException
-from betse.science.math import toolbox
 from betse.science.tissue.picker.tispickcls import TissuePickerABC
 from betse.util.path import files, pathnames
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
@@ -29,7 +28,7 @@ class TissuePickerImage(TissuePickerABC):
         Absolute path of this image mask.
     '''
 
-    # ..................{ PUBLIC                             }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self, filename: str, dirname: str) -> None:
         '''
@@ -57,31 +56,22 @@ class TissuePickerImage(TissuePickerABC):
         # If this absolute path is *NOT* an existing file, raise an exception.
         files.die_unless_file(filename)
 
-        # Persist this path.
+        # Classify this parameter.
         self.filename = filename
 
-    # ..................{ GETTERS                            }..................
+    # ..................{ PICKERS                            }..................
     @type_check
-    def get_cell_indices(
+    def pick_cells(
         self,
         cells: 'betse.science.cells.Cells',
         p:     'betse.science.parameters.Parameters',
-        ignoreECM: bool = False,
     ) -> SequenceTypes:
 
         # Calculate the indices of all cells residing inside this bitmap.
         bitmask = self.get_bitmapper(cells)
-        target_inds = bitmask.good_inds
+        return bitmask.good_inds
 
-        #FIXME: Double negative hurts brainpan.
-        # If simulating electromagnetism and at least one cell matches...
-        if not ignoreECM and len(target_inds):
-            target_inds = cells.cell_to_mems[target_inds]
-            target_inds,_,_ = toolbox.flatten(target_inds)
-
-        return target_inds
-
-
+    # ..................{ GETTERS                            }..................
     #FIXME: Refactor this method as follows:
     #
     #* Rename to get_image_mask().
@@ -120,7 +110,7 @@ class TissuePickerImage(TissuePickerABC):
 
         return bitmapper
 
-# ....................{ UTILITY CLASSES                    }....................
+# ....................{ CLASSES                            }....................
 #FIXME: Generalize this class to support images of arbitrary (possibly
 #non-square) dimensions.
 #FIXME: Document all undocumented attributes.
@@ -313,4 +303,11 @@ class TissuePickerImageMask(object):
                 self.good_inds.append(i)
 
         self.good_points = np.asarray(self.good_points)
-        self.good_inds = np.asarray(self.good_inds)
+
+        # Coerce this possibly empty list into a guaranteed integer Numpy array.
+        # Since Numpy has no means of deciding whether an empty list should be
+        # coerced into an integer or floating point Numpy array, Numpy sensibly
+        # defaults to the latter functionality. While that's typically what one
+        # wants, that is *NOT* what callers expect in this case. For caller
+        # sanity, Numpy *MUST* be instructed to produce an integer array.
+        self.good_inds = np.asarray(self.good_inds, dtype=int)

@@ -983,8 +983,7 @@ def clusterPlot(p, dyna: 'TissueHandler', cells, clrmap=cm.jet):
             cut_profile = dyna.cut_name_to_profile[cut_profile_name]
 
             # Indices of all cells cut by this profile.
-            cut_cell_indices = cut_profile.picker.get_cell_indices(
-                cells, p, ignoreECM=True)
+            cut_cell_indices = cut_profile.picker.pick_cells(cells=cells, p=p)
 
             points = np.multiply(cells.cell_verts[cut_cell_indices], p.um)
             col_dic[cut_profile_name] = PolyCollection(
