@@ -270,7 +270,7 @@ class PlotCellsPipe(PlotPipeABC):
             1e9*self._phase.sim.u_env_y,
             self._phase.cells, self._phase.p,
             plot_ecm=True,
-            title='Final Fluid Velocity in Cell Collective',
+            title='Final Fluid Velocity in Environment',
             cb_title='Velocity [nm/s]',
             colorAutoscale=conf.is_color_autoscaled,
             minColor=conf.color_min,

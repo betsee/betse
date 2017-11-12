@@ -972,14 +972,8 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
             if p.fluid_flow is True:
 
-                ux = sim.u_env_x.reshape(cells.X.shape)*denv_multiplier
-                uy = sim.u_env_y.reshape(cells.X.shape)*denv_multiplier
-
-                # cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
-                # zz = sim.zs.mean()
-                #
-                # ux = -sim.J_env_x / (p.F * cc * zz)
-                # uy = -sim.J_env_y / (p.F * cc * zz)
+                ux = sim.u_env_x.reshape(cells.X.shape)
+                uy = sim.u_env_y.reshape(cells.X.shape)
 
 
             else:

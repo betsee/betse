@@ -21,6 +21,7 @@ from betse.science.chemistry.netplot import set_net_opts
 from betse.science import sim_toolbox as stb
 from betse.science.visual.plot import plotutil as viz
 import matplotlib.pyplot as plt
+from betse.science.organelles.microtubules import Mtubes
 
 
 class MasterOfGenes(object):
@@ -227,16 +228,27 @@ class MasterOfGenes(object):
         self.core.clear_cache()
         self.time = []
 
+        if self.recalc_fluid:  # If user requests the GRN recalculate/calculate fluid:
+
+            p.fluid_flow = True  # turn fluid flow on (in case it was off)
+
+            # calculate or re-calculate fluid flow in terms of curl-component of current:
+            cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
+            zz = sim.zs.mean()
+
+            sim.u_env_x = -sim.J_env_x / (p.F * cc * zz)
+            sim.u_env_y = -sim.J_env_y / (p.F * cc * zz)
+
         if p.use_microtubules:
 
-            # reinitialize the microtubules:
-            # sim.mtubes = Mtubes(sim, cells, p)
+            sim.mtubes.reinit(cells, p)
+
             self.mtubes_x_time = []
             self.mtubes_y_time = []
 
             if self.reset_MT:
                 logs.log_info("Resetting microtubules for sim-grn simulation...")
-                sim.mtubes.reinit(cells, p)
+                sim.mtubes = Mtubes(sim, cells, p)
 
         for t in tt:
 
@@ -268,7 +280,7 @@ class MasterOfGenes(object):
         logs.log_info('Saving simulation...')
         datadump = [self, cells, p]
         fh.saveSim(p.savedMoG, datadump)
-        self.core.init_saving(cells, p, plot_type='init', nested_folder_name='GRN')
+        self.core.init_saving(cells, p, plot_type='grn', nested_folder_name='RESULTS')
 
         # microtubules plot------------------------------------------------------------------------
         if p.use_microtubules:
@@ -292,6 +304,33 @@ class MasterOfGenes(object):
 
             if p.autosave is True:
                 savename = self.core.imagePath + 'Microtubules' + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+        if self.recalc_fluid:
+
+            logs.log_info("Plotting fluid flow used in GRN simulation")
+
+            plt.figure()
+            ax = plt.subplot(111)
+
+            viz.plotStreamField(
+                1e9 * sim.u_env_x,
+                1e9 * sim.u_env_y,
+                cells, p,
+                plot_ecm=True,
+                title='Final Fluid Velocity in Environment',
+                cb_title='Velocity [nm/s]'
+            )
+
+            # ax.set_xlabel('X-Distance [um]')
+            # ax.set_ylabel('Y-Distance [um]')
+            # ax.set_title('Electroosmotic fluid flow')
+
+            if p.autosave is True:
+                savename = self.core.imagePath + 'Fluid_ECM' + '.png'
                 plt.savefig(savename, format='png', transparent=True)
 
             if p.turn_all_plots_off is False:

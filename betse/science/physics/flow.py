@@ -30,16 +30,23 @@ def getFlow(sim, cells, p):
 
         _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(uxo, uyo, cells)
 
+        #--Alternative method #1 calculates fluid flow in terms of slip velocity only:----------------------------------
 
-        # Alternative version calculates flow in terms of current density:
+        # scaleF = (cells.delta**2)*(p.cell_height)  # total charge in an env-grid square in Coulombs
+        #
+        # muFx = (1/p.mu_water)*sim.E_env_x*sim.rho_env.reshape(cells.X.shape)*scaleF*sim.D_env_weight
+        # muFy = (1/p.mu_water)*sim.E_env_y*sim.rho_env.reshape(cells.X.shape)*scaleF*sim.D_env_weight
+        #
+        #
+        # _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(muFx, muFy, cells)
+
+
+        # Alternative method #2 calculates flow in terms of curl component of current density:--------------------------
         # cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
         # zz = sim.zs.mean()
         #
         # sim.u_env_x = -sim.J_env_x / (p.F * cc * zz)
         # sim.u_env_y = -sim.J_env_y / (p.F * cc * zz)
-
-
-
 
 
 

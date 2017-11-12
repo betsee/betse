@@ -5362,8 +5362,6 @@ class Molecule(object):
 
                 c_motor = (umtn*self.u_mt*cp)
 
-                # c_motor[cells.bflags_mems] = 0.0
-
             else:
                 c_motor = 0.0
 
@@ -5383,7 +5381,7 @@ class Molecule(object):
                 if p.fluid_flow is True:
 
                     # normal component of fluid flow at membranes from *extra*cellular flow:
-                    _, _, uflow = stb.map_to_cells(sim.u_env_x, sim.u_env_y, cells, p, smoothing = 1.0)
+                    _, _, uflow = stb.map_to_cells(sim.u_env_x, sim.u_env_y, cells, p, smoothing = 0.0)
 
                     #estimate fluid flow from div-free component of currents:
                     # cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
@@ -5395,14 +5393,14 @@ class Molecule(object):
 
                 else:
 
-                    #estimate fluid flow from div-free component of currents:
-                    cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
-                    zz = sim.zs.mean()
+                    #estimate steady-state electroosmotic fluid flow from div-free component of currents:
+                    # cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
+                    # zz = sim.zs.mean()
+                    #
+                    # _, _, uflow = stb.map_to_cells(-sim.J_env_x/(p.F*cc*zz), -sim.J_env_y/(p.F*cc*zz),
+                    #                                cells, p, smoothing = 0.0)
 
-                    _, _, uflow = stb.map_to_cells(-sim.J_env_x/(p.F*cc*zz), -sim.J_env_y/(p.F*cc*zz),
-                                                   cells, p, smoothing = 1.0)
-
-                    # uflow = 0.0
+                    uflow = 0.0
 
 
             else: # else if "transmem" is false, include only the intracellular field
@@ -5422,7 +5420,7 @@ class Molecule(object):
 
 
             c_diffusion = (-Do*cg)
-            c_ephoresis_A = ((Do*p.q*z)/(p.kb*sim.T)*cp*En)
+            c_ephoresis_A = ((Do*p.q*z)/(p.kb*sim.T))*cp*En
             c_ephoresis_B = (self.Mu_mem*cp*En)
             c_eosmo = (uflow*cp)
 
