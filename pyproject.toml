@@ -1,0 +1,22 @@
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Project-wide packager-agnostic configuration. Unlike all other top-level
+# configuration files (e.g., "setup.py", "MANIFEST.in") specific to a particular
+# utility in Python's package management ecosystem (e.g., pip, setuptools), this
+# file strictly conforms to a standards-compliant PEP and hence generically
+# applies to *ALL* such utilities.
+#
+# --------------------( SEE ALSO                           )--------------------
+# https://snarky.ca/clarifying-pep-518
+#     "Clarifying PEP 518 (a.k.a. pyproject.toml)", a human-readable article
+#     from one of the principal authors of the "pyproject.toml" standard.
+
+# ....................{ BUILDING                           }....................
+[build-system]
+
+# List of all Python packages required to build (i.e., install) this project
+# from both codebase tarballs and binary wheels.
+requires = ['setuptools', 'wheel']

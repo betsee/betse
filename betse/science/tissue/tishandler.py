@@ -1198,7 +1198,7 @@ class TissueHandler(object):
         # open_TJ = True
 
         # Subtract this bitmap's clipping mask from the global cluster mask.
-        # bitmap_mask = tissue_picker.get_bitmapper(cells).clipping_matrix
+        # bitmap_mask = tissue_picker.get_image_mask(cells).clipping_matrix
         # cells.cluster_mask = cells.cluster_mask - bitmap_mask
 
         # FIXME, if deformation is too much, the following line will crash as

@@ -34,8 +34,10 @@ RUNTIME_MANDATORY = {
     # setuptools is used to validate that dependencies are available.
     'setuptools': '>= 3.3',
 
-    # Dependencies directly required by this application.
-    'Numpy': '>= 1.8.0',
+    # Dependencies directly required by this application. Notably:
+    #
+    # * SciPy >= 1.0.0 requires Numpy >= 1.8.2.
+    'Numpy': '>= 1.8.2',
     'SciPy': '>= 0.12.0',
     'dill': '>= 0.2.3',
 

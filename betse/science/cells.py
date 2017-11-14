@@ -15,7 +15,6 @@ from betse.science import filehandling as fh
 from betse.science.config.confenum import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
-from betse.science.tissue.picker.tispickimage import TissuePickerImageMask
 from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.util.type.call.memoizers import property_cached
@@ -803,18 +802,12 @@ class Cells(object):
         # Log this creation.
         logs.log_info('Creating Voronoi geometry... ')
 
-        #FIXME: This variable is *ONLY* ever referenced by this method. To
-        #reduce memory consumption, convert this variable from an instance to
-        #local variable (i.e., change "self.bitmasker" to simply "bitmasker").
-
-        # Load the bitmap used to clip the cell cluster and create a clipping
-        # function.
-        self.bitmasker = TissuePickerImageMask(
-            p.clipping_bitmap_matcher,
-            self.xmin, self.xmax, self.ymin, self.ymax)
+        # Cell profile-specific image mask, leveraged below to clip the cell
+        # cluster and create various interpolation clipping functions.
+        image_mask = p.clipping_bitmap_matcher.get_image_mask(cells=self)
 
         # add the bitmasker clipping curve to the points:
-        seed_points = np.vstack((self.clust_xy, self.bitmasker.clipcurve))
+        seed_points = np.vstack((self.clust_xy, image_mask.clipcurve))
 
         # define the Voronoi diagram from the seed points:
         # vor = sps.Voronoi(self.clust_xy)
@@ -889,7 +882,7 @@ class Cells(object):
                 point_check = np.zeros(len(cell_poly))
 
                 for i, pnt in enumerate(cell_poly):
-                    point_val = self.bitmasker.clipping_function(pnt[0],pnt[1])
+                    point_val = image_mask.clipping_function(pnt[0],pnt[1])
 
                     if point_val != 0.0:
                         point_check[i] = 1.0
@@ -900,7 +893,7 @@ class Cells(object):
                 if point_check.any() == 1.0: # if any of the region's points are in the clipping func range
 
                     verts_clip = clip_counterclockwise(
-                        cell_polya, self.bitmasker.clipcurve)
+                        cell_polya, image_mask.clipcurve)
 
                     if len(verts_clip):
 
@@ -909,8 +902,8 @@ class Cells(object):
                         if area_check > 0.4:
                             self.ecm_verts.append(verts_clip)   # this makes a more solid boundary of cells
 
-        self.cluster_mask = self.bitmasker.clipping_matrix  # keep track of cluster mask and its size
-        self.msize = self.bitmasker.msize
+        self.cluster_mask = image_mask.clipping_matrix  # keep track of cluster mask and its size
+        self.msize = image_mask.msize
 
         # next obtain the set of *unique* vertex points from the total ecm_verts arrangement:
         ecm_verts_flat,_,_ = tb.flatten(self.ecm_verts)

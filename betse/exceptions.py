@@ -267,7 +267,15 @@ class BetseFileException(BetsePathException):
 
 class BetseCommandException(BetseFileException):
     '''
-    Command-specific exception.
+    **Command** (i.e., executable binary file)-specific exception.
+    '''
+
+    pass
+
+
+class BetseImageException(BetseFileException):
+    '''
+    Image file-specific exception.
     '''
 
     pass

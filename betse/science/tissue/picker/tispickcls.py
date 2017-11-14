@@ -93,14 +93,14 @@ class TissuePickerABC(object, metaclass=ABCMeta):
         #    mems_index = cells.cell_to_mems[cells_index].flatten()
         #Unfortunately, the two-dimensional Numpy array "cells.cell_to_mems"
         #actually appears to be a one-dimensional array of lists -- which is a
-        #bit bizarro world. To compaund matters, this array's "dtype" is
+        #bit bizarro-world. To compaund matters, this array's "dtype" is
         #"object" (presumably, because it contains Python lists) rather than the
-        #"dtype" of "int" that one would expect. Since this is the case, it's
+        #"dtype" of "int" that one might expect. Since this is the case, it's
         #infeasible to even coerce the temporary one-dimensional Numpy array
         #"cells.cell_to_mems[cells_index]" into a two-dimensional array of ints
         #by calling ndarray.astype(int). Frankly, it's all a bit beyond me;
-        #until this core issue is resolved, however, the current inelegant
-        #approach remains.
+        #until this core issue is resolved, however, the current inelegant and
+        #inefficient approach remains.
 
         # One-dimensional Numpy array of the indices of subclass-selected cell
         # membranes mapped from the array of cell indices.
