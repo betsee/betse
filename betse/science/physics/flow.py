@@ -20,25 +20,33 @@ def getFlow(sim, cells, p):
     if p.is_ecm is True:
 
 
-        scaleF = (p.cell_space / cells.delta)
-
-        muFx = (1 / p.mu_water)*sim.E_env_x*sim.rho_env.reshape(cells.X.shape)*scaleF
-        muFy = (1 / p.mu_water)*sim.E_env_y*sim.rho_env.reshape(cells.X.shape)*scaleF
-
-        uxo = np.dot(cells.lapENVinv, -muFx.ravel())*sim.D_env_weight.ravel()
-        uyo = np.dot(cells.lapENVinv, -muFy.ravel())*sim.D_env_weight.ravel()
-
-        _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(uxo, uyo, cells)
+        # # scaleF = (p.cell_space / cells.delta)
+        # scaleF = 1.0
+        #
+        # # rho_env = fd.integrator(sim.rho_env.reshape(cells.X.shape))
+        # rho_env = sim.rho_env.reshape(cells.X.shape)
+        #
+        # muFx = (1 / p.mu_water)*sim.E_env_x*rho_env*scaleF*sim.D_env_weight
+        # muFy = (1 / p.mu_water)*sim.E_env_y*rho_env*scaleF*sim.D_env_weight
+        #
+        # uxo = np.dot(cells.lapENVinv, -muFx.ravel())
+        # uyo = np.dot(cells.lapENVinv, -muFy.ravel())
+        #
+        # _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(uxo, uyo, cells)
 
         #--Alternative method #1 calculates fluid flow in terms of slip velocity only:----------------------------------
 
-        # scaleF = (cells.delta**2)*(p.cell_height)  # total charge in an env-grid square in Coulombs
-        #
-        # muFx = (1/p.mu_water)*sim.E_env_x*sim.rho_env.reshape(cells.X.shape)*scaleF*sim.D_env_weight
-        # muFy = (1/p.mu_water)*sim.E_env_y*sim.rho_env.reshape(cells.X.shape)*scaleF*sim.D_env_weight
-        #
-        #
-        # _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(muFx, muFy, cells)
+        scaleF =  (sim.ko_env*p.cell_height) # conversion concentrating charge density in the double layer
+
+        # total charge in an env-grid square in Coulombs:
+        q_env = sim.rho_env.reshape(cells.X.shape)*(cells.delta**2)*(p.cell_height)
+
+        # slip velocity forces:
+        muFx = (1/p.mu_water)*sim.E_env_x*q_env*scaleF*sim.D_env_weight
+        muFy = (1/p.mu_water)*sim.E_env_y*q_env*scaleF*sim.D_env_weight
+
+
+        _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(muFx, muFy, cells)
 
 
         # Alternative method #2 calculates flow in terms of curl component of current density:--------------------------

@@ -1036,6 +1036,8 @@ class Parameters(YamlFileABC):
 
         self.fast_update_ecm = iu.get('fast update ecm', True)  # quick or slow update to cell<--> ecm grid exchange?
 
+        self.sharpness = float(iu.get('sharpness', 0.995))
+
         # simplest ion profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile is IonProfileType.BASIC:
             self.cNa_env = 145.0

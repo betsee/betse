@@ -1946,6 +1946,9 @@ class Simulator(object):
         # update concentration in the environment:
         cenv = cenv + div_fa * p.dt
 
+        # smooth concentration in the environment:
+        cenv = fd.integrator(cenv, sharp = p.sharpness)
+
         self.cc_env[i] = cenv.ravel()
 
     def update_intra(self, cells, p, i):

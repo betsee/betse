@@ -1095,6 +1095,8 @@ internal parameters:
 
   fast update ecm: False  # use a coarse (fast) or fine (slow) method to update between env and cell grids?
 
+  sharpness: 0.995  # Factor smoothing environmental concentrations, 0.0 max smoothing, 1.0 no smoothing
+
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.

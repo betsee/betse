@@ -1223,19 +1223,19 @@ class TissueHandler(object):
             for v in ecm_targs_mem:
                 ecm_targs.append(v)
 
-            if sim.molecules is not None and 'ATP' in sim.molecules.core.molecules:
-
-                # get concentration of ATP in cells to be removed:
-                cell_ATP = sim.molecules.core.cell_concs['ATP'][target_inds_cell] * cells.cell_vol[target_inds_cell]
-                # move this entire concentration to the extracellular spaces (assumed upon cell bursting)
-                sim.molecules.core.env_concs['ATP'][ecm_targs_cell] = cell_ATP / (p.cell_height * cells.delta ** 2)
-
-            elif sim.grn is not None and 'ATP' in sim.grn.core.molecules:
-
-                # get concentration of ATP in cells to be removed:
-                cell_ATP = sim.grn.core.cell_concs['ATP'][target_inds_cell] * cells.cell_vol[target_inds_cell]
-                # move this entire concentration to the extracellular spaces (assumed upon cell bursting)
-                sim.grn.core.env_concs['ATP'][ecm_targs_cell] = cell_ATP / (p.cell_height * cells.delta ** 2)
+            # if sim.molecules is not None and 'ATP' in sim.molecules.core.molecules:
+            #
+            #     # get concentration of ATP in cells to be removed:
+            #     cell_ATP = sim.molecules.core.cell_concs['ATP'][target_inds_cell] * cells.cell_vol[target_inds_cell]
+            #     # move this entire concentration to the extracellular spaces (assumed upon cell bursting)
+            #     sim.molecules.core.env_concs['ATP'][ecm_targs_cell] = cell_ATP / (p.cell_height * cells.delta ** 2)
+            #
+            # elif sim.grn is not None and 'ATP' in sim.grn.core.molecules:
+            #
+            #     # get concentration of ATP in cells to be removed:
+            #     cell_ATP = sim.grn.core.cell_concs['ATP'][target_inds_cell] * cells.cell_vol[target_inds_cell]
+            #     # move this entire concentration to the extracellular spaces (assumed upon cell bursting)
+            #     sim.grn.core.env_concs['ATP'][ecm_targs_cell] = cell_ATP / (p.cell_height * cells.delta ** 2)
 
             # redo environmental diffusion matrices by
             # setting the environmental spaces around cut world to the free value -- if desired!:

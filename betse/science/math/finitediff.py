@@ -1450,7 +1450,40 @@ def boundTag(points,delta,alpha=1.0):
 
     return bflags
 
-def integrator(P):
+# def integrator(P):
+#
+#     F = np.zeros(P.shape)
+#
+#     eP = P[:,1:] # east midpoints
+#     wP = P[:,0:-1] # west midpoints
+#     nP = P[1:,:] # north midpoints
+#     sP = P[0:-1,:] # south midpoints
+#
+#     F[:, :] = (1 / 2) * P
+#     F[0:-1, :] += (1 / 8) * nP
+#     F[1:, :] += (1 / 8) * sP
+#     F[:, 0:-1] += (1 / 8) * eP
+#     F[:, 1:] += (1 / 8) * wP
+#
+#     # reset boundary values:
+#     F[:, 0] = P[:, 0]
+#     F[:, -1] = P[:, -1]
+#     F[0, :] = P[0, :]
+#     F[-1, :] = P[-1, :]
+#
+#     return F
+
+def integrator(P, sharp = 0.5):
+    """
+    Averages nearest neighbours of the environmental array with a weighting
+    given by the "sharp" option.
+
+    P: some 2D matrix
+    sharp: weighting of the neigbouring averages; 0.5 is standard finite volume smoothing; 1.0 is no smoothing
+
+    Thanks Sess!
+
+    """
 
     F = np.zeros(P.shape)
 
@@ -1459,11 +1492,19 @@ def integrator(P):
     nP = P[1:,:] # north midpoints
     sP = P[0:-1,:] # south midpoints
 
-    F[:,:] = (1/2)*P
-    F[0:-1,:] = (1/16)*F[0:-1,:] + (1/16)*nP
-    F[1:,:] = (1/16)*F[1:,:] + (1/16)*sP
-    F[:,0:-1] = (1/16)*F[:,0:-1] + (1/16)*eP
-    F[:,1:] = (1/16)*F[:,1:] + (1/16)*wP
+    sides = (1-sharp)/4
+
+    F[:, :] = sharp * P
+    F[0:-1, :] += sides * nP
+    F[1:, :] += sides * sP
+    F[:, 0:-1] += sides * eP
+    F[:, 1:] += sides * wP
+
+    # reset boundary values:
+    F[:, 0] = P[:, 0]
+    F[:, -1] = P[:, -1]
+    F[0, :] = P[0, :]
+    F[-1, :] = P[-1, :]
 
     return F
 

@@ -991,6 +991,8 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
             cenv = cenv + div_fa * p.dt*time_dilation_factor
 
+            cenv = fd.integrator(cenv, sharp = p.sharpness)
+
             cX_env_o = cenv.ravel()
 
         else:
@@ -1078,6 +1080,9 @@ def div_env(flux, cells, p):
     else:
         # Method # 2:
         delta_env = np.dot(cells.M_divmap_mem2ecm, flux)/(p.cell_height*cells.delta**2)
+
+        # use the "integrator" function to conservatively distribute this exchange to nearest neighbours of the env grid:
+        # delta_env = fd.integrator(delta_env.reshape(cells.X.shape), sharp = 0.5).ravel()
 
     return delta_env
 
