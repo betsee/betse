@@ -30,7 +30,7 @@ Matplotlib-based animation classes.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.lib.numpy import arrays
+from betse.lib.numpy import nparray
 from betse.science.export import expmath
 from betse.science.visual.anim.animafter import (
     AnimCellsAfterSolving, AnimVelocity)
@@ -559,8 +559,8 @@ class AnimVelocityExtracellular(AnimVelocity):
 
         # Time series of all velocity magnitudes.
         self._magnitude_time_series = np.sqrt(
-            arrays.from_iterable(self._phase.sim.u_env_x_time) ** 2 +
-            arrays.from_iterable(self._phase.sim.u_env_y_time) ** 2) * 1e6
+            nparray.from_iterable(self._phase.sim.u_env_x_time) ** 2 +
+            nparray.from_iterable(self._phase.sim.u_env_y_time) ** 2) * 1e6
 
         # Velocity field and maximum velocity field value for the first frame.
         vfield = self._magnitude_time_series[0]

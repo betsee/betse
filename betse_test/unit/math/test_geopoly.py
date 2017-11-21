@@ -21,7 +21,7 @@ def test_orient_counterclockwise() -> None:
     from betse.science.math.geometry.polygon import geopoly
 
     # Rectangle oriented randomly rather than counter-clockwise. Due to trivial
-    # limitations of the betse.lib.numpy.arrays.to_iterable() function, this
+    # limitations of the betse.lib.numpy.nparray.to_iterable() function, this
     # rectangle is defined as a list of lists rather than tuple of tuples.
     rectangle_unoriented = [[2, 2], [2, -1], [-1, -1], [-1, 2],]
 

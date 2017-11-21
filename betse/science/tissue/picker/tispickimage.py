@@ -7,77 +7,22 @@ Class hierarchy collectively implementing various methods for assigning a subset
 of the total cell population to the corresponding tissue profile.
 '''
 
-#FIXME: *UGH.* The scipy.misc.imread() has been officially deprecated and will
-#be removed as of SciPy 1.2.0. SciPy now recommends the "imageio" package as a
-#replacement dependency providing an equivalent function. We therefore need to
-#perform the following:
-#
-#* Select a minimum version of "imageio" to be required. That would appear to be
-#  "imageio >= 2.0.1", which is approximately a year old and a clear demarcation
-#  point. Note that imageio 2.0.0 was released a day prior to 2.0.1 and that no
-#  distributions (including Gentoo) appear to provide it, suggesting that
-#  imageio 2.0.0 was a failed release best forgot. "imageio >= 2.0.1" it is!
-#* Add "imageio" as a mandatory dependency to "betse.metadeps".
-#* Remove "Pillow" as a mandatory dependency from "betse.metadeps". This
-#  dependency was only required for the scipy.misc.imread(). Since this
-#  dependency is extremely heavyweight (by compare to "imageio"), this is good.
-#* Replace all existing calls to scipy.misc.imread() with calls to
-#  imageio.imread(). Although the function name remains the same, we'll need to
-#  manually validate that the API remains the same as well.
-#* Revise all of the following to install "imageio" in lieue of Pyllow:
-#  * "README.md" documentation. Since Anaconda does *NOT* provide an official
-#    "conda" package for "imageio", end users will need to manually install
-#    "imageio" from a third-party channel. Trivial, but tedious. We should
-#    probably consider the following:
-#    * Decide which channel to leverage. Cursor research strongly suggests the
-#      "conda-forge" channel, whose "imageio" package boasts an overwhelming
-#      143,969 total downloads (!). To do so, simply run:
-#      $ conda install -c conda-forge imageio
-#    * Shift a portion of the "bin/install" directory from BETSEE into BETSE
-#      itself. Perhaps the portion that is specific only to BETSE? This will
-#      then require that the BETSEE installation script internally:
-#      * Perform a "wget" command to download the remote BETSE installation
-#        script into a local directory... somewhere. Say, "tmp"?
-#      * Run this now local BETSE installation script with the same directories
-#        as were passed to the BETSEE installation script. *sigh*
-#    * Define a new BETSE-specific "bin/install/conda.bash" shell script
-#      performing an Anaconda-based installation -- complete with Git repository
-#      cloning stripped straight out of our existing Ubuntu installer. This
-#      script should probably *NOT* attempt to install Anaconda but simply fail
-#      with a fatal error in the absence of "conda" in the current ${PATH}.
-#    * Document both our Ubuntu >= 16.04 and Anaconda installers (in that order,
-#      as Ubuntu users would certainly prefer a process integrating with their
-#      existing package manager) at the head of "README.md".
-#    * Document more explicitly that Windows users should *ABSOLUTELY* install
-#      Bash-on-Ubuntu-on-Windows. This should literally be the first item in
-#      this Markdown list of installation instructions, as it then permits
-#      Windows users to install BETSE via either:
-#      * The Ubuntu shell script (strongly recommended).
-#      * The Anaconda shell script (feasible but less recommended).
-#  * "doc/md/INSTALL.md" documentation. Note that, although recent versions of
-#    Ubuntu provide the requisite "python3-imageio" package, that this package
-#    has *NOT* been backported to Ubuntu 16.04 (Xenial Xerus). Ergo, this
-#    package will need to be manually installed via "pip3" here.
-#  * "bin/install" scripts.
-#  * Gentoo packages. Helpfully, Gentoo provides an "imageio" package. Yes!
-
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseImageException
+from betse.lib.numpy import npimage
+from betse.lib.numpy.npimage import ImageModeType
 from betse.science.tissue.picker.tispickcls import TissuePickerABC
 from betse.util.path import files, pathnames
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
 from numpy import ndarray
-from scipy import interpolate, misc
+from scipy import interpolate
 from scipy.spatial import ConvexHull
 
 # ....................{ CLASSES ~ utility                  }....................
 #FIXME: Generalize this class to support images of arbitrary (possibly
 #non-square) dimensions.
 #FIXME: Document all undocumented attributes.
-#FIXME: Document why this and the intrinsically related "TissuePickerImage"
-#class are separate -- notably, to reduce space consumption by instantiating
-#instances of this class as local variables of methods in the latter class.
 class TissuePickerImageMask(object):
     '''
     Cell profile-specific **image mask** (i.e., low-level object converting an
@@ -165,15 +110,10 @@ class TissuePickerImageMask(object):
             * An alpha transparency layer.
         '''
 
-        # If this image does *NOT* exist, raise an exception.
-        files.die_unless_file(filename)
-
-        #FIXME: Additionally validate this image to *NOT* contain an alpha
-        #transparency layer, a SciPy-based constraint.
-
-        # Load this bitmap as a flattened (i.e., grayscale) Numpy array.
-        bitmap = misc.imread(filename, flatten=1)
-        # bitmap = np.asarray(bitmap, dtype=np.int)
+        # Load this bitmap as a grayscale Numpy array, preserving floating point
+        # precision across this necessarily lossy reduction.
+        bitmap = npimage.load_image(
+            filename=filename, mode=ImageModeType.GRAYSCALE_FLOAT)
 
         # If this bitmap has non-square dimensions, raise an exception.
         if bitmap.shape[0] != bitmap.shape[1]:

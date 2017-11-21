@@ -55,7 +55,6 @@ from betse.util.io.log.logenum import LogLevel
 from betse.util.type.mapping import maputil
 from betse.util.type.types import (
     type_check,
-    EnumMemberOrNoneTypes,
     MappingType,
     MappingOrNoneTypes,
     SequenceTypes,
@@ -271,8 +270,8 @@ def log_output_or_die(
     command_words: SequenceTypes,
 
     # Optional arguments.
-    stdout_log_level: EnumMemberOrNoneTypes = LogLevel.INFO,
-    stderr_log_level: EnumMemberOrNoneTypes = LogLevel.ERROR,
+    stdout_log_level: LogLevel = LogLevel.INFO,
+    stderr_log_level: LogLevel = LogLevel.ERROR,
     popen_kwargs: MappingOrNoneTypes = None,
 ) -> None:
     '''
@@ -293,10 +292,10 @@ def log_output_or_die(
     ----------
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
-    stdout_log_level : EnumMemberOrNoneTypes
+    stdout_log_level : LogLevel
         Logging level with which all stdout output is logged. Defaults to
         :attr:`LogLevel.INFO`.
-    stderr_log_level : EnumMemberOrNoneTypes
+    stderr_log_level : LogLevel
         Logging level with which all stderr output is logged. Defaults to
         :attr:`LogLevel.ERROR`.
     popen_kwargs : optional[MappingType]

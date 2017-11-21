@@ -8,7 +8,7 @@ Abstract base classes of all vector field subclasses.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.lib.numpy import arrays
+from betse.lib.numpy import nparray
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, SequenceTypes
@@ -67,8 +67,8 @@ class VectorField(object):
         '''
 
         # Classify the passed sequences as Numpy arrays for efficiency.
-        self._x = arrays.from_iterable(x)
-        self._y = arrays.from_iterable(y)
+        self._x = nparray.from_iterable(x)
+        self._y = nparray.from_iterable(y)
 
     # ..................{ PROPERTIES ~ abstract              }..................
     @property

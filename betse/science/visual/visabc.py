@@ -18,7 +18,7 @@ from betse.exceptions import BetseSimVisualException
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_PATCH, ZORDER_STREAM
-from betse.lib.numpy import arrays
+from betse.lib.numpy import nparray
 from betse.science.config.export.confvis import SimConfVisualCellsABC
 from betse.science.export import expmath
 from betse.science.simulate.simphase import SimPhase
@@ -1331,14 +1331,15 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # If plotting individual cells, the passed cell plot *MUST* be a polygon
         # collection previously returned by the _plot_cell_mosaic() method.
-        if self._phase.p.showCells is True:
+        if self._phase.p.showCells:
             assert types.is_matplotlib_polycollection(cell_plot), (
                 types.assert_not_matplotlib_polycollection(cell_plot))
 
             # Update this plot in-place.
             cell_plot.set_array(cell_data)
             cell_plot.set_verts(
-                arrays.from_iterable(self._phase.cells.cell_verts) * self._phase.p.um)
+                nparray.from_iterable(self._phase.cells.cell_verts) *
+                self._phase.p.um)
 
             # Return the same plot.
             return cell_plot

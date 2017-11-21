@@ -11,7 +11,7 @@ Utility functions of general-purpose relevance to all plots and animations.
 #"betse.util.type.ints" (e.g., "ints.INVERSE_MICRO") here.
 
 # ....................{ IMPORTS                            }....................
-from betse.lib.numpy import arrays
+from betse.lib.numpy import nparray
 from betse.util.type import types
 from betse.util.type.numeric import ints
 from betse.util.type.types import (
@@ -182,4 +182,4 @@ def _upscale_data_in_units(
     # Else, this object is a sequence. Return this sequence converted into a
     # Numpy array and then upscaled.
     else:
-        return factor * arrays.from_iterable(data)
+        return factor * nparray.from_iterable(data)

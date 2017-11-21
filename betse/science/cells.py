@@ -10,7 +10,7 @@ from numpy import ndarray
 from scipy import interpolate as interp
 from scipy import ndimage
 from betse.exceptions import BetseSequenceException, BetseSimConfigException
-from betse.lib.numpy import arrays
+from betse.lib.numpy import nparray
 from betse.science import filehandling as fh
 from betse.science.config.confenum import CellLatticeType
 from betse.science.math import finitediff as fd
@@ -548,7 +548,8 @@ class Cells(object):
         self.mem_mids_flat, indmap_mem, _ = tb.flatten(mem_mids)
         self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
 
-        # Finish up by creating indices vectors and converting to Numpy arrays where needed:
+        # Finish up by creating indices vectors and converting to Numpy arrays
+        # where needed:
 
         #FIXME: Reduce the following two assignments to simply:
         #
@@ -1536,7 +1537,6 @@ class Cells(object):
         -------
         Uses numpy arrays
         Uses scipy spatial KDTree search algorithm
-
         """
 
         self.nn_i = [] # gives the partnering membrane index at the vectors' index
@@ -1647,7 +1647,6 @@ class Cells(object):
         Notes
         -------
         Uses Numpy arrays
-
         """
 
         # base parameter definitions
@@ -2779,7 +2778,7 @@ class Cells(object):
         """
 
         # Numpy array converted from the passed sequence.
-        membranes_midpoint_data = arrays.from_iterable(membranes_midpoint_data)
+        membranes_midpoint_data = nparray.from_iterable(membranes_midpoint_data)
 
         # If the last dimension of this array does *NOT* index all cell
         # membranes and hence is *NOT* spatially situated at cell membrane
@@ -2923,7 +2922,7 @@ class Cells(object):
         """
 
         # Numpy arrays converted from the passed sequences.
-        cells_centre_data = arrays.from_iterable(cells_centre_data)
+        cells_centre_data = nparray.from_iterable(cells_centre_data)
 
         # If this source data is neither one- nor two-dimensional, raise an
         # exception.
@@ -2996,4 +2995,4 @@ class Cells(object):
                     cells_centre_data_one_interpolated)
 
             # Return this output list converted back to an output array.
-            return arrays.from_iterable(cells_centre_data_interpolated)
+            return nparray.from_iterable(cells_centre_data_interpolated)

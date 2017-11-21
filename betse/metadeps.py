@@ -37,9 +37,10 @@ RUNTIME_MANDATORY = {
     # Dependencies directly required by this application. Notably:
     #
     # * SciPy >= 1.0.0 requires Numpy >= 1.8.2.
-    'Numpy': '>= 1.8.2',
-    'SciPy': '>= 0.12.0',
-    'dill': '>= 0.2.3',
+    'Numpy':   '>= 1.8.2',
+    'Pillow':  '>= 2.3.0',
+    'SciPy':   '>= 0.12.0',
+    'dill':    '>= 0.2.3',
 
     # Matplotlib >= 1.5.0 is required for the newly added "viridis" colormap.
     'matplotlib': '>= 1.5.0',
@@ -48,7 +49,6 @@ RUNTIME_MANDATORY = {
     # required by dependencies directly required by this application. Since the
     # "setup.py" scripts for the latter do *NOT* list these dependencies as
     # mandatory, these dependencies *MUST* be explicitly listed here.
-    'Pillow': '>= 2.3.0',    # required by the "scipy.misc.imread" module
 
     # Dependencies directly required by dependencies directly required by this
     # application. While these dependencies need *NOT* be explicitly listed

@@ -11,7 +11,7 @@ boundary remain strictly inside the polygon) functionality.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseMathPolygonException
-from betse.lib.numpy import arrays
+from betse.lib.numpy import nparray
 from betse.science.math.geometry import geopoint
 from betse.util.type.types import type_check, SequenceTypes
 
@@ -110,7 +110,7 @@ def orient_counterclockwise(polygon: SequenceTypes) -> SequenceTypes:
     # Numpy array corresponding to this sequence. While polygon reorientation is
     # feasible in pure-Python, the Numpy-based approach is significantly more
     # efficient as the number of polygon edges increases.
-    poly_verts = arrays.from_iterable(polygon)
+    poly_verts = nparray.from_iterable(polygon)
 
     # Centre point of this polygon,
     poly_centre = poly_verts.mean(axis=0)
@@ -151,4 +151,4 @@ def orient_counterclockwise(polygon: SequenceTypes) -> SequenceTypes:
     poly_verts_sorted = poly_verts[poly_verts_sorted_index]
 
     # Return a sequence of the same type as the passed polygon.
-    return arrays.to_iterable(array=poly_verts_sorted, cls=type(polygon))
+    return nparray.to_iterable(array=poly_verts_sorted, cls=type(polygon))

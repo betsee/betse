@@ -248,6 +248,21 @@ alternative choices comprising their parent enumerations).
 
 This class is a synonym of the :class:`enum.Enum` class, permitting callers
 to avoid importing that class.
+
+Caveats
+----------
+When type checking callable parameters, this class should *only* be referenced
+where the callable permissively accepts any enumeration member type rather than
+a specific enumeration member type. In the latter case, that type is simply that
+enumeration's type and should be directly referenced as such: e.g.,
+
+    >>> from betse.util.type.enums import make_enum
+    >>> from betse.util.type.types import type_check
+    >>> EndymionType = make_enum(
+    ...     class_name='EndymionType', member_names=('BEAUTY', 'JOY',))
+    >>> @type_check
+    ... def our_feet_were_soft_in_flowers(superlative: EndymionType) -> str:
+    ...     return str(superlative).lower()
 '''
 
 # ....................{ TUPLES                             }....................
@@ -444,13 +459,6 @@ Tuple of all callable classes *and* the type of the singleton ``None`` object.
 ClassOrNoneTypes = (ClassType, NoneType)
 '''
 Tuple of the type of all types *and* of the singleton ``None`` object.
-'''
-
-
-EnumMemberOrNoneTypes = (EnumMemberType, NoneType)
-'''
-Tuple of the type of all enumeration members *and* of the singleton ``None``
-object.
 '''
 
 

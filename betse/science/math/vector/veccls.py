@@ -9,7 +9,7 @@ Abstract base classes of all vector subclasses.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimVectorException
-from betse.lib.numpy import arrays
+from betse.lib.numpy import nparray
 from betse.science.math.cache.cacheabc import SimPhaseCacheABC
 from betse.util.type import sequences
 from betse.util.type.call.memoizers import property_cached
@@ -131,17 +131,17 @@ class VectorCellsCache(SimPhaseCacheABC):
         # Convert each passed iterable into a Numpy array for efficiency,
         # raising an exception if any such iterable is empty.
         if times_cells_centre is not None:
-            times_cells_centre = arrays.from_iterable(times_cells_centre)
+            times_cells_centre = nparray.from_iterable(times_cells_centre)
             sequences.die_if_empty(
                 times_cells_centre,
                 label='Parameter "times_cells_centre"')
         if times_grids_centre is not None:
-            times_grids_centre = arrays.from_iterable(times_grids_centre)
+            times_grids_centre = nparray.from_iterable(times_grids_centre)
             sequences.die_if_empty(
                 times_grids_centre,
                 label='Parameter "times_grids_centre"')
         if times_membranes_midpoint is not None:
-            times_membranes_midpoint = arrays.from_iterable(
+            times_membranes_midpoint = nparray.from_iterable(
                 times_membranes_midpoint)
             sequences.die_if_empty(
                 times_membranes_midpoint,

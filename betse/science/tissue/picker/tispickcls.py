@@ -10,7 +10,7 @@ matching various criteria to the corresponding tissue profile) classes.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 from betse.exceptions import BetseSimConfigException
-from betse.lib.numpy import arrays
+from betse.lib.numpy import nparray
 from betse.science.math import toolbox
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
@@ -107,7 +107,7 @@ class TissuePickerABC(object, metaclass=ABCMeta):
         # logs.log_debug('cells_index: %r', cells_index)
         mems_index = cells.cell_to_mems[cells_index]
         mems_index, _, _ = toolbox.flatten(mems_index)
-        mems_index = arrays.from_iterable(mems_index)
+        mems_index = nparray.from_iterable(mems_index)
 
         # Return these arrays.
         return cells_index, mems_index

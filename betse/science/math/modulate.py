@@ -4,10 +4,11 @@
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from scipy.ndimage import imread
 from scipy import interpolate
+from betse.lib.numpy import npimage
+from betse.lib.numpy.npimage import ImageModeType
+from betse.util.path import pathnames
 from scipy.ndimage.filters import gaussian_filter
-import os
 
 # ....................{ IMPORTS                            }....................
 def periodic(pc,cells,p):
@@ -497,9 +498,11 @@ def gradient_bitmap(pc, cells, p):
     xx = np.linspace(cells.xmin, cells.xmax, cells.X.shape[1])
     yy = np.linspace(cells.ymin, cells.ymax, cells.X.shape[0])
 
-    fn1 = os.path.join(p.conf_dirname, p.grad_bm_fn)
+    fn1 = pathnames.join(p.conf_dirname, p.grad_bm_fn)
 
-    a1 = imread(fn1, mode='RGB')
+    # Three-dimensional Numpy array of the RGB-ordered integer components of all
+    # pixels loaded from this image.
+    a1 = npimage.load_image(filename=fn1, mode=ImageModeType.COLOR_RGB)
 
     a1_F = (a1[:, :, 0] -  a1[:, :, 2]) / 255
 

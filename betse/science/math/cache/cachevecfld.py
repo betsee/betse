@@ -8,7 +8,7 @@ High-level vector field subcache functionality.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.lib.numpy import arrays
+from betse.lib.numpy import nparray
 from betse.science.export import expmath
 from betse.science.math.cache.cacheabc import SimPhaseCacheABC
 from betse.science.math.vector.veccls import VectorCellsCache
@@ -171,8 +171,8 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
 
         # Two-dimensional Numpy arrays of all transmembrane voltages (Vmem) and
         # Vmem averages across all cell membranes over all time steps.
-        vm_time     = arrays.from_iterable(self._phase.sim.vm_time)
-        vm_ave_time = arrays.from_iterable(self._phase.sim.vm_ave_time)
+        vm_time     = nparray.from_iterable(self._phase.sim.vm_time)
+        vm_ave_time = nparray.from_iterable(self._phase.sim.vm_ave_time)
 
         # Two-dimensional Numpy array of all transmembrane voltage polarity
         # vector magnitudes whose:

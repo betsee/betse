@@ -12,10 +12,8 @@ spreadsheets in comma-separated value (CSV) format.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from numpy import ndarray
-
 from betse.exceptions import BetseMethodUnimplementedException
-from betse.lib.numpy import arrays
+from betse.lib.numpy import nparray
 from betse.science.export import expmath
 from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
 from betse.science.simulate.pipe.piperun import piperunner
@@ -25,7 +23,7 @@ from betse.util.path import dirs, pathnames
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
-
+from numpy import ndarray
 
 # ....................{ SUBCLASSES                         }....................
 class SimPipelinerExportCSV(SimPipeExportABC):
@@ -155,12 +153,12 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             self._phase.kind is SimPhaseKind.SIM
         ):
             # Extract time-series deformation data for the plot cell:
-            dx = arrays.from_iterable([
+            dx = nparray.from_iterable([
                 arr[cell_index] for arr in self._phase.sim.dx_cell_time])
-            dy = arrays.from_iterable([
+            dy = nparray.from_iterable([
                 arr[cell_index] for arr in self._phase.sim.dy_cell_time])
 
-            # get the total magnitude:
+            # Get the total magnitude.
             disp = expmath.upscale_coordinates(np.sqrt(dx ** 2 + dy ** 2))
         else:
             disp = column_data_empty
@@ -176,7 +174,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             self._phase.save_dirname, 'ExportedData.csv')
 
         # Export this data to this CSV file.
-        arrays.write_csv(
+        nparray.write_csv(
             filename=csv_filename,
             column_name_to_values=csv_column_name_to_values)
 
@@ -232,7 +230,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             self._phase.save_dirname, 'ExportedData_FFT.csv')
 
         # Export this data to this CSV file.
-        arrays.write_csv(
+        nparray.write_csv(
             filename=csv_filename,
             column_name_to_values=csv_column_name_to_values)
 
@@ -316,7 +314,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             )
 
             # Export this data to this CSV file.
-            arrays.write_csv(
+            nparray.write_csv(
                 filename=csv_filename,
                 column_name_to_values=csv_column_name_to_values)
 
@@ -343,7 +341,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             cell_times_vmems = expmath.upscale_units_milli(
                 self._phase.sim.vm_time)
 
-        return arrays.from_iterable(cell_times_vmems)
+        return nparray.from_iterable(cell_times_vmems)
 
 # ....................{ PIPELINES                          }....................
 @type_check

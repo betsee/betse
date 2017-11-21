@@ -653,9 +653,9 @@ def to_iterable(iterable: IterableTypes, cls: ClassType) -> IterableTypes:
         ``__init__`` method is expected to accept this :class:`list` as a single
         positional argument.
       * A Numpy array, this iterable is converted to a Numpy array via the
-        :func:`betse.lib.numpy.arrays.from_iterable` function.
+        :func:`betse.lib.numpy.nparray.from_iterable` function.
     * A Numpy array, this array is converted to the passed type via the
-      :func:`betse.lib.numpy.arrays.to_iterable` function.
+      :func:`betse.lib.numpy.nparray.to_iterable` function.
 
     Parameters
     ----------
@@ -671,7 +671,7 @@ def to_iterable(iterable: IterableTypes, cls: ClassType) -> IterableTypes:
     '''
 
     # Avoid importing third-party packages at the top level, for safety.
-    from betse.lib.numpy import arrays
+    from betse.lib.numpy import nparray
     from numpy import ndarray
 
     # Type of the source iterable.
@@ -682,13 +682,13 @@ def to_iterable(iterable: IterableTypes, cls: ClassType) -> IterableTypes:
     if iterable_src_type is cls:
         return iterable
 
-    # If the source iterable is a Numpy array, defer to functionality elsewhere.
+    # Else if the source iterable is a Numpy array, defer to logic elsewhere.
     if iterable_src_type is ndarray:
-        return arrays.to_iterable(array=iterable, cls=cls)
+        return nparray.to_iterable(array=iterable, cls=cls)
 
-    # If the target iterable is a Numpy array, defer to functionality elsewhere.
+    # Else if the target iterable is a Numpy array, defer to logic elsewhere.
     if cls is ndarray:
-        return arrays.from_iterable(iterable)
+        return nparray.from_iterable(iterable)
 
     # Else, the source iterable is a non-Numpy iterable. Defer to the
     # constructor of the target iterable for conversion.

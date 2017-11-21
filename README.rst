@@ -66,44 +66,84 @@ Simple
 
 For new users, BETSE is readily installable as follows:
 
-#. Install the **Python 3.x** [#python2_not]_ (e.g., 3.6) variant of
-   Anaconda_. [#anaconda_not]_
-#. Open a **terminal.** [#terminal]_
-#. Run the following commands in this terminal.
+.. # FIXME: Commented out until we actually have a working Windows installation script.
 
-   #. Install dill_. [#why_dill]_
+.. # - Under **Windows 10**:
+.. #
+.. #   #. Install **Ubuntu Linux** via the `Windows Subsystem for Linux (WSL) <WSL_>`__.
+.. #   #. Open an **Ubuntu Linux terminal.** [#terminal]_
+.. #   #. Run the following commands in this terminal.
+.. # 
+.. #      wget https://gitlab.com/betse/betse/raw/master/bin/install/windows/betsee_windows_10.bash && source betsee_windows_10.bash
 
-      .. code:: bash
+.. # FIXME: Create a BETSE-specific installer reduced from this BETSEE installer.
 
-         conda install dill
+- Under `Ubuntu Linux 16.04 (Xenial Xerus)`_ and newer:
 
-   #. **Install BETSE.** [#pip3_not]_
+  #. Open a **terminal.** [#terminal]_
+  #. Run the following commands.
 
-      .. code:: bash
+     .. code:: bash
 
-         python3 -m pip install betse
+        wget https://gitlab.com/betse/betsee/raw/master/bin/install/linux/betsee_ubuntu_16_04.bash && source betsee_ubuntu_16_04.bash
 
-   #. (\ *Optional*\ ) **Install all recommended dependencies.** While *not*
-      required for basic usage, the following third-party packages are required
-      for advanced functionality (e.g., gene regulatory networks).
+- Under all other platforms: :sup:`(e.g., macOS, Windows)`
 
-      .. code:: bash
+  #. Install the **Python 3.x** [#python2_not]_ (e.g., 3.6) variant of
+     Anaconda_. [#anaconda_not]_
+  #. Open a **terminal.** [#terminal]_
+  #. Run the following commands.
+  
+     #. Install **mandatory dependencies.** [#why_dependencies]_
+  
+        .. code:: bash
+  
+           conda install dill
+           conda install -c conda-forge imageio
+  
+     #. Install **BETSE.** [#pip3_not]_
+  
+        .. code:: bash
+  
+           python3 -m pip install betse
+  
+     #. (\ *Optional*\ ) Install **recommended dependencies.** While *not*
+        required for basic usage, the following third-party packages are required
+        for advanced functionality (e.g., gene regulatory networks, animation
+        video encoding).
+  
+        .. code:: bash
+  
+           conda install -c anaconda graphviz && \
+           conda install -c conda-forge ffmpeg networkx && \
+           conda install -c rmg pydot
 
-         conda install -c anaconda graphviz && \
-         conda install -c conda-forge ffmpeg && \
-         python3 -m pip install networkx==1.10 pydot
+- (\ *Optional*\ ) Test **BETSE.** Run all modelling phases of a sample
+  simulation from the current directory.
 
-   #. (\ *Optional*\ ) **Test BETSE.** Run all modelling phases of a sample
-      simulation from the current directory.
+  .. code:: bash
 
-      .. code:: bash
-
-         betse try
+     betse try
 
 
-.. [#why_dill]
-   `Dill <dill_>`__ is the only mandatory dependency of BETSE *not* already
-   bundled by default with Anaconda_.
+.. [#terminal]
+   To open a `POSIX`_\ -compatible terminal under:
+
+   - **Windows:**
+
+     #. Install **Ubuntu Linux** via the `Windows Subsystem for Linux (WSL) <WSL_>`__.
+     #. Open an *Ubuntu Linux terminal.*
+
+   - **macOS:**
+
+     #. Open the *Finder*.
+     #. Open the *Applications* folder.
+     #. Open the *Utilities* folder.
+     #. Open *Terminal.app*.
+
+   - **Ubuntu Linux:**
+
+     #. Type ``Ctrl``\ +\ ``Alt``\ +\ ``t``.
 
 .. [#python2_not]
    Do *not* install the **Python 2.7** variant of Anaconda_. BETSE requires
@@ -118,25 +158,10 @@ For new users, BETSE is readily installable as follows:
    and is guaranteed to produce a performance-optimized multicore installation
    of BETSE on *all* supported platforms – which is good.
 
-.. [#terminal]
-   To open a `POSIX`_\ -compatible terminal under:
-
-   - **Windows:**
-
-     #. Install `Bash on Ubuntu on Windows`_.
-     #. Open the *Start* menu.
-     #. Open *Bash on Ubuntu on Windows*.
-
-   - **macOS:**
-
-     #. Open the *Finder*.
-     #. Open the *Applications* folder.
-     #. Open the *Utilities* folder.
-     #. Open *Terminal.app*.
-
-   - **Ubuntu Linux:**
-
-     #. Type ``Ctrl``\ +\ ``Alt``\ +\ ``t``.
+.. [#why_dependencies]
+   Most mandatory dependencies of BETSE (e.g., NumPy_, SciPy_) are already
+   bundled by default with Anaconda_. Some (e.g., dill_, imageio_) are not.
+   The latter require manual installation.
 
 .. [#pip3_not]
    Always run the ``python3 -m pip`` command to install Python packages into the
@@ -611,15 +636,32 @@ For prospective contributors:
 .. _knowledge-based systems:
    https://en.wikipedia.org/wiki/Knowledge-based_systems
 
+.. # ------------------( LINKS ~ os : linux                 )------------------
+.. _APT:
+   https://en.wikipedia.org/wiki/Advanced_Packaging_Tool
+.. _POSIX:
+   https://en.wikipedia.org/wiki/POSIX
+.. _Ubuntu:
+.. _Ubuntu Linux:
+   https://www.ubuntu.com
+.. _Ubuntu Linux 16.04 (Xenial Xerus):
+   http://releases.ubuntu.com/16.04
+
+.. # ------------------( LINKS ~ os : macos                 )------------------
+.. _Homebrew:
+   http://brew.sh
+.. _MacPorts:
+   https://www.macports.org
+
+.. # ------------------( LINKS ~ os : windows               )------------------
+.. _WSL:
+   https://msdn.microsoft.com/en-us/commandline/wsl/install-win10
+
 .. # ------------------( LINKS ~ software                   )------------------
 .. _Anaconda:
    https://www.continuum.io/downloads
 .. _Appveyor:
    https://ci.appveyor.com/project/betse/betse/branch/master
-.. _APT:
-   https://en.wikipedia.org/wiki/Advanced_Packaging_Tool
-.. _Bash on Ubuntu on Windows:
-   http://www.windowscentral.com/how-install-bash-shell-command-line-windows-10
 .. _BSD 2-clause license:
    https://opensource.org/licenses/BSD-2-Clause
 .. _dill:
@@ -632,20 +674,16 @@ For prospective contributors:
    https://about.gitlab.com/gitlab-ci
 .. _Graphviz:
    http://www.graphviz.org
-.. _Homebrew:
-   http://brew.sh
+.. _imageio:
+   https://imageio.github.io
 .. _Libav:
    https://libav.org
-.. _MacPorts:
-   https://www.macports.org
 .. _Matplotlib:
    http://matplotlib.org
 .. _NumPy:
    http://www.numpy.org
 .. _MEncoder:
    https://en.wikipedia.org/wiki/MEncoder
-.. _POSIX:
-   https://en.wikipedia.org/wiki/POSIX
 .. _Python 3:
    https://www.python.org
 .. _py.test:

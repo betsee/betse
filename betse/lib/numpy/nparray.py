@@ -10,7 +10,6 @@ Low-level Numpy array and matrix facilities.
 #FIXME: Donate the write_csv() function back to Numpy as a new np.savecsv()
 #function paralleling the existing np.savetxt() function.
 
-
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSequenceException, BetseStrException

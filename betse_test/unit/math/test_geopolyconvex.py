@@ -21,7 +21,7 @@ def test_clip() -> None:
 
     # Rectangle to clip all subject polygons by, oriented randomly rather than
     # counter-clockwise. Due to trivial limitations of the
-    # betse.lib.numpy.arrays.to_iterable() function, this rectangle is defined
+    # betse.lib.numpy.nparray.to_iterable() function, this rectangle is defined
     # as a list of lists rather than tuple of tuples.
     clip_rectangle = [[2, 2], [2, -1], [-1, -1], [-1, 2],]
 
