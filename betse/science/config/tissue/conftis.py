@@ -14,10 +14,11 @@ from betse.lib.yaml.yamlalias import (
     yaml_alias_float_percent,
     yaml_enum_alias,
 )
-from betse.lib.yaml.abc.yamllistabc import YamlListItemABC
+from betse.lib.yaml.abc import yamllistabc
+from betse.lib.yaml.abc.yamllistabc import YamlList, YamlListItemABC
 # from betse.util.io.log import logs
 from betse.util.type.enums import make_enum
-from betse.util.type.types import SequenceTypes  # type_check,
+from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ ENUMS                              }....................
 TissueProfilePickerType = make_enum(
@@ -60,7 +61,7 @@ class SimConfCellsProfileListItemABC(YamlListItemABC):
     name = yaml_alias("['name']", str)
 
 # ....................{ SUBCLASSES                         }....................
-#FIXME: Define a "SimConfTissueProfileListItem" class as well.
+#FIXME: Define a similar "SimConfCutProfileListItem" class as well.
 #FIXME: Actually leverage this in "Parameters".
 class SimConfTissueProfileListItem(SimConfCellsProfileListItemABC):
     '''
@@ -133,19 +134,16 @@ class SimConfTissueProfileListItem(SimConfCellsProfileListItemABC):
 
     # ..................{ CLASS                              }..................
     @classmethod
-    def make_default(cls) -> YamlListItemABC:
+    @type_check
+    def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
+
+        # Name of this tissue profile unique to this list.
+        tissue_name = yamllistabc.get_list_item_name_unique(
+            yaml_list=yaml_list, name_format='tissue ({{}})')
 
         # Duplicate the default tissue listed first in our default YAML file.
         return SimConfTissueProfileListItem(conf={
-            #FIXME: We'll need to leverage a closure to dynamically fabricate a
-            #new tissue profile *GUARANTEED* to be unique. Actually, wait...
-            #Since this method does *NOT* accept the current parent "YamlList"
-            #object, it has no means of actually guaranteeing uniqueness. Ergo,
-            #we'll need to refactor the superclass method signature as follows:
-            #
-            #     @classmethod
-            #     def make_default(cls, parent_list: 'YamlList') -> YamlListItemABC:
-            'name': 'tissue (1)',
+            'name': tissue_name,
             'insular': True,
             'diffusion constants': {
                 'Dm_Na': 1.0e-18,

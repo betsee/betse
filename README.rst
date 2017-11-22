@@ -427,11 +427,22 @@ BETSE is open-source software `released <LICENSE>`__ under the permissive `BSD
 Reference
 =========
 
-When leveraging BETSE in your own work, consider citing our `introductory
-paper`_:
+BETSE is formally described in our `introductory paper <2016 article_>`__.
+Third-party papers, theses, and other texts leveraging BETSE should (ideally)
+cite the following:
 
-    `Pietak, Alexis`_ and `Levin, Michael`_ (\ *2016*\ ). |article name|_
-    |journal name|_ 4, 55. ``doi:10.3389/fbioe.2016.00055``
+    `Pietak, Alexis`_ and `Levin, Michael`_, 2016. |2016 article name|_
+    |2016 journal name|_ *4*\ (55). :sup:`DOI: 10.3389/fbioe.2016.00055`
+
+Subsequent papers expanding the BETSE architecture with additional theory,
+experimental results, and comparative metrics include:
+
+    `Pietak, Alexis`_ and `Levin, Michael`_, 2017. |2017 article name|_
+    |2017 journal name|_ *14*\ (134), p.20170425. :sup:`DOI:
+    10.1098/rsif.2017.0425`
+
+.. # FIXME: Add an image thumbnail above displaying the cover image selected by
+.. # the prior journal for that edition's cover article.
 
 Authors
 =======
@@ -501,20 +512,31 @@ For prospective contributors:
 .. _Tufts University:
    https://www.tufts.edu
 
-.. # ------------------( LINKS ~ citation                   )------------------
-.. _introductory paper:
+.. # ------------------( LINKS ~ paper ~ 2016               )------------------
+.. _2016 article:
    http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract
 
-.. |article name| replace::
-   **Exploring Instructive Physiological Signaling with the Bioelectric Tissue
-   Simulation Engine (BETSE).**
-.. _article name:
+.. |2016 article name| replace::
+   **Exploring instructive physiological signaling with the bioelectric tissue
+   simulation engine (BETSE).**
+.. _2016 article name:
    http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract
 
-.. |journal name| replace::
-   *Frontiers in Bioengineering and Biotechnology.*
-.. _journal name:
+.. |2016 journal name| replace::
+   *Frontiers in Bioengineering and Biotechnology,*
+.. _2016 journal name:
    http://journal.frontiersin.org/journal/bioengineering-and-biotechnology
+
+.. # ------------------( LINKS ~ paper ~ 2017               )------------------
+.. |2017 article name| replace::
+   **Bioelectric gene and reaction networks: computational modelling of genetic, biochemical and bioelectrical dynamics in pattern regulation.**
+.. _2017 article name:
+   http://rsif.royalsocietypublishing.org/content/14/134/20170425
+
+.. |2017 journal name| replace::
+   *Journal of The Royal Society Interface,*
+.. _2017 journal name:
+   http://rsif.royalsocietypublishing.org
 
 .. # ------------------( LINKS ~ science                    )------------------
 .. _bioelectricity:

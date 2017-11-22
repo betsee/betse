@@ -308,8 +308,8 @@ class Parameters(YamlFileABC):
 
     # ..................{ ALIASES ~ tissue                   }..................
     #FIXME: Does this boolean actually serve a demonstrable purpose? I might be
-    #off-base here, but don't we always want tissue profiles? Is there actually
-    #a valid use case for even disabling all tissue profiles?
+    #offbase here, but don't we always want tissue profiles? Is there actually a
+    #valid use case for even disabling all tissue profiles?
     is_tissue_profiles = yaml_alias(
         "['tissue profile definition']['profiles enabled']", bool)
 

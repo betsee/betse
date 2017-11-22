@@ -12,7 +12,8 @@ animations to be exported).
 from abc import ABCMeta, abstractproperty
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
-from betse.lib.yaml.abc.yamllistabc import YamlListItemABC, YamlListItemTypedABC
+from betse.lib.yaml.abc.yamllistabc import (
+    YamlList, YamlListItemABC, YamlListItemTypedABC)
 # from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes
 
@@ -138,7 +139,8 @@ class SimConfVisualCellsListItem(
 
     # ..................{ CLASS                              }..................
     @classmethod
-    def make_default(cls) -> YamlListItemABC:
+    @type_check
+    def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Duplicate the default animation listed first in our default YAML file.
         return SimConfVisualCellsListItem(conf={
@@ -187,7 +189,8 @@ class SimConfVisualCellListItem(YamlListItemTypedABC):
 
     # ..................{ CLASS                              }..................
     @classmethod
-    def make_default(self) -> YamlListItemABC:
+    @type_check
+    def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Duplicate the default animation listed first in our default YAML file.
         return SimConfVisualCellListItem(conf={

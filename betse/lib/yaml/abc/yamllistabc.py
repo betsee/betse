@@ -19,22 +19,33 @@ from collections import MutableSequence
 # ....................{ SUPERCLASSES ~ list item           }....................
 class YamlListItemABC(YamlABC):
     '''
-    Abstract base class of all simulation list item subconfigurations, each
-    backed by a YAML list item and intended to be added to a
-    :class:`YamlList` container.
+    Abstract base class of all low-level YAML-backed list item subclasses, each
+    instance of which is intended to be added to a :class:`YamlList` container.
+
+    Each such instance may technically encapsulate any valid YAML type (e.g.,
+    :class:`int`, :class:`str`) but typically encapsulates a YAML dictionary of
+    related key-value pairs (e.g., animation settings, tissue profile).
     '''
 
     # ..................{ MAKERS                             }..................
     @classmethod
     @abstractmethod
-    def make_default(cls) -> 'betse.science.config.confabc.YamlListItemABC':
+    def make_default(
+        cls,
+        yaml_list: 'betse.lib.yaml.abc.yamllistabc.YamlList',
+    ) -> 'betse.science.config.confabc.YamlListItemABC':
         '''
         Create and return an instance of this subclass encapsulating a new
         dictionary containing default configuration settings.
 
-        This method is principally intended to be called by the
+        This class method is principally intended to be called by the
         :meth:`YamlList.append_default` method, appending this instance to an
-        existing list of these instances.
+        existing parent list of similar instances.
+
+        Parameters
+        ----------
+        yaml_list : YamlList
+            Parent list instantiating this instance.
         '''
 
         pass
@@ -42,9 +53,10 @@ class YamlListItemABC(YamlABC):
 
 class YamlListItemTypedABC(YamlListItemABC):
     '''
-    Abstract base class of all simulation typed list item subconfigurations,
-    each backed by a YAML list item whose dictionary keys define the type and
-    name of this item and intended to be added to a :class:`YamlList` container.
+    Abstract base class of all low-level YAML-backed typed list item subclasses,
+    each instance of which encapsulates a YAML dictionary whose keys define the
+    type and name of this item intended to be added to a :class:`YamlList`
+    container.
 
     Attributes
     ----------
@@ -64,10 +76,14 @@ class YamlListItemTypedABC(YamlListItemABC):
 # ....................{ SUPERCLASSES ~ list                }....................
 class YamlList(MutableSequence):
     '''
-    Simulation configuration list encapsulating a list of all dictionaries of
-    related configuration settings (e.g., representing all tissue profiles) both
-    loaded from and savable back to the current YAML-formatted simulation
-    configuration file.
+    Low-level YAML-backed list both loaded from and savable back to a
+    YAML-formatted file.
+
+    Each item of this list is a :class:`YamlListItemABC` instance encapsulating
+    the corresponding low-level YAML-backed list item. Each such item may
+    technically encapsulate any valid YAML type (e.g., :class:`int`,
+    :class:`str`) but typically encapsulates a YAML dictionary of related
+    key-value pairs (e.g., animation settings, tissue profile).
 
     Attributes
     ----------
@@ -89,23 +105,22 @@ class YamlList(MutableSequence):
     def __init__(
         self, confs: SequenceOrNoneTypes, conf_type: ClassType) -> None:
         '''
-        Initialize this simulation configuration sublist.
+        Initialize this low-level YAML-backed list.
 
         Attributes
         ----------
         confs : SequenceOrNoneTypes
-            List of all dictionaries of related configuration settings both
-            loaded from and savable back to the current YAML-formatted
-            simulation configuration file *or* ``None`` if the key defining this
-            list in this file has no corresponding value, in which case this
-            list defaults to the empty list.
+            List of all low-level YAML-backed list items both loaded from and
+            savable back to a YAML-formatted file if defined by this file (e.g.,
+            as a dictionary key) *or* ``None`` otherwise (i.e., if this file
+            defines no such list). If ``None``, this sequence internally
+            defaults to the empty list.
         conf_type : ClassType
             Subclass of the :class:`YamlListItemABC` abstract base class
-            with which to instantiate each simulation configuration object
-            encapsulating each dictionary in the passed ``confs`` list.
-            Specifically, for each such dictionary, a new object of this type
-            is appended to the internal :attr:`_confs_wrap` list of these
-            objects.
+            with which to encapsulate each low-level YAML-backed list item in
+            the passed ``confs`` list. For each such item, a new instance of
+            this subclass is appended to the internal :attr:`_confs_wrap` list
+            storing these instances.
         '''
 
         # Raise an exception unless the passed type implements the expected API.
@@ -146,8 +161,8 @@ class YamlList(MutableSequence):
     @type_check
     def __setitem__(self, index: int, value: YamlListItemABC) -> None:
         '''
-        Set the simulation configuration instance with the passed 0-based index
-        to the passed such instance.
+        Set the low-level YAML-backed list item with the passed 0-based index to
+        the passed such item.
         '''
 
         # Raise an exception unless the passed object is an instance of the
@@ -166,8 +181,8 @@ class YamlList(MutableSequence):
     @type_check
     def insert(self, index: int, value: YamlListItemABC) -> None:
         '''
-        Insert the passed simulation configuration instance immediately *before*
-        the simulation configuration instance with the passed 0-based index.
+        Insert the passed low-level YAML-backed list item immediately *before*
+        the item with the passed 0-based index.
         '''
 
         # Raise an exception unless the passed object is an instance of the
@@ -185,22 +200,77 @@ class YamlList(MutableSequence):
     # ..................{ APPENDERS                          }..................
     def append_default(self) -> YamlListItemABC:
         '''
-        Append a new simulation configuration list item initialized to default
-        values to this list and return this list item.
+        Append a new low-level YAML-backed list item initialized to default
+        values suitable for this list and return this item.
 
         Returns
         ----------
         YamlListItemABC
             Instance of the :attr:`_conf_type` subclass appended to the
-            high-level :attr:`_confs_wrap` list, encapsulating the new
-            dictionary appended to the low-level :attr:`_confs_yaml` list.
+            high-level :attr:`_confs_wrap` list, encapsulating the new list item
+            appended to the low-level :attr:`_confs_yaml` list.
         '''
 
-        # Default simulation configuration list item.
-        conf_wrap = self._conf_type.make_default()
+        # New simulation configuration list item specific to this list.
+        conf_wrap = self._conf_type.make_default(self)
 
         # Append this list item to this list.
         self.append(conf_wrap)
 
         # Return this list item.
         return conf_wrap
+
+# ....................{ GETTERS                            }....................
+@type_check
+def get_list_item_name_unique(yaml_list: YamlList, name_format: str) -> str:
+    '''
+    String formatted according to the passed format specifier, guaranteed to be
+    unique across all items of the passed low-level YAML-backed list.
+
+    Parameters
+    ----------
+    yaml_list : YamlList
+        List to construct this unique list item name for. Each item of this list
+        is assumed (via duck-typing) to define an instance variable with name
+        ``name`` and value the YAML-backed name of that item; if this is *not*
+        the case, an exception is raised.
+    name_format : str
+        Format specifier containing a ``{}`` substring (e.g., ``tissue ({})``),
+        iteratively interpolated by this function with an arbitrary integer to
+        produce this unique list item name.
+
+    Returns
+    ----------
+    str
+        List item name of this format unique to this list.
+    '''
+
+    # Arbitrary unique identifier with which to uniquify (i.e., guarantee
+    # the uniqueness of) the name of a new item in this list, defaulting to the
+    # number of existing items in this list.
+    yaml_list_item_id = len(yaml_list)
+
+    # Name of this tissue profile, unique in this list.
+    yaml_list_item_name = None
+
+    # While this name is *NOT* unique in this list, iteratively (re)search
+    # this list until obtaining a unique name. This iteration is guaranteed
+    # to (eventually) terminate successfully with a unique name.
+    while True:
+        yaml_list_item_name = name_format.format(yaml_list_item_id)
+
+        # For each existing item of this list...
+        for yaml_list_item_other in yaml_list:
+            # If this item already has this name, this name is non-unique.
+            # In this case, increment this identifier, format a new name via
+            # this identifier, and repeat this search.
+            if yaml_list_item_name == yaml_list_item_other.name:
+                yaml_list_item_id += 1
+                break
+        # If no item already has this name, this name is unique. In that
+        # case, cease searching.
+        else:
+            break
+
+    # Return this name.
+    return yaml_list_item_name
