@@ -5389,6 +5389,7 @@ class Molecule(object):
                     #
                     # _, _, uflow = stb.map_to_cells(-sim.J_env_x/(p.F*cc*zz), -sim.J_env_y/(p.F*cc*zz),
                     #                                cells, p, smoothing = 0.0)
+                    uflow[cells.bflags_mems] = 0.0
 
 
                 else:

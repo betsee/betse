@@ -39,6 +39,8 @@ time dilation factor: 144.0 #144     # Factor altering the simulation timestep f
 
 reset microtubules: False  # (sim-grn) reinitialize the MT to disorganized state at begining of network simulation?
 
+recalculate fluid: False
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM BIOMOLECULES

@@ -42,9 +42,10 @@ def getFlow(sim, cells, p):
         q_env = sim.rho_env.reshape(cells.X.shape)*(cells.delta**2)*(p.cell_height)
 
         # slip velocity forces:
-        muFx = (1/p.mu_water)*sim.E_env_x*q_env*scaleF*sim.D_env_weight
-        muFy = (1/p.mu_water)*sim.E_env_y*q_env*scaleF*sim.D_env_weight
-
+        # This assumes that the *screening* charge is pulled on by the self-generated electric field.
+        # Further investigation may be warranted in the future as to the sign of the slip velocity
+        muFx = -(1/p.mu_water)*sim.E_env_x*q_env*scaleF*sim.D_env_weight
+        muFy = -(1/p.mu_water)*sim.E_env_y*q_env*scaleF*sim.D_env_weight
 
         _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(muFx, muFy, cells)
 

@@ -71,34 +71,14 @@ def get_current(sim, cells, p):
         sim.rho_env = np.dot(sim.zs * p.F, sim.cc_env) + sim.extra_rho_env
         # sim.rho_env = fd.integrator(sim.rho_env.reshape(cells.X.shape), sharp = 0.5).ravel()
 
-        # Method 2: Integrated charge calculation from currents:-------------------------------------------------------
-
-        #divergence of the environmental current from fluxes in the environment:
-        # div_Je = fd.divergence(sim.Jtx, sim.Jty, cells.delta, cells.delta)
-        #
-        # #divergence of trans-membrane fluxes:
-        # div_Je_fromcells = stb.div_env(-sim.Jmem, cells, p).reshape(cells.X.shape)
-        # div_Je += div_Je_fromcells
-        #
-        # #calculate mapped current component from transmembrane fluxes (which is always curl-free):
-        # #Important for 100% biophysical correctness, but we can skip adding these in for efficiency
-        # Phi_cells = np.dot(cells.lapENVinv, -div_Je_fromcells.ravel())
-        # Jex_cells, Jey_cells = fd.gradient(Phi_cells.reshape(cells.X.shape), cells.delta)
-        #
-        # sim.Jtx += Jex_cells
-        # sim.Jty += Jey_cells
-        #
-        # # #the negative divergence of the total environmental current is the change in charge density:
-        # sim.rho_env += -div_Je.ravel()*p.dt
-
         #---------------------------------------------------------------------------------------------------------------
 
         # The solution to the Screened Poisson Equation in the limit of large screening constant Ko, is simply
         # Phi = +f/Ko2. This makes a perfect voltage estimate for the extracellular space.
         # (the Screened Poisson Equation is Lap(Phi) - ko2 Phi = -rho/(eta)
-        # The charge in the environment isn't spread out over the whole grid square, but condensed into the
-        # double-layer thickness.
-        v_env = ((sim.rho_env) / ((sim.ko_env ** 2) * p.er * p.eo))
+        # Note that the relative permittivity of the double layer is known to be 6 rather than 80 of pure water
+        # (see Srinivasan 2006).
+        v_env = ((sim.rho_env) / ((sim.ko_env ** 2) * p.eo * p.eedl))
 
         v_env = v_env.reshape(cells.X.shape)
 
@@ -163,6 +143,25 @@ def get_current(sim, cells, p):
 
 # WASTELANDS (Options)--------------------------------------------------------------------------------------------------
 
+        # Method 2: Integrated charge calculation from currents:-------------------------------------------------------
+
+        #divergence of the environmental current from fluxes in the environment:
+        # div_Je = fd.divergence(sim.Jtx, sim.Jty, cells.delta, cells.delta)
+        #
+        # #divergence of trans-membrane fluxes:
+        # div_Je_fromcells = stb.div_env(-sim.Jmem, cells, p).reshape(cells.X.shape)
+        # div_Je += div_Je_fromcells
+        #
+        # #calculate mapped current component from transmembrane fluxes (which is always curl-free):
+        # #Important for 100% biophysical correctness, but we can skip adding these in for efficiency
+        # Phi_cells = np.dot(cells.lapENVinv, -div_Je_fromcells.ravel())
+        # Jex_cells, Jey_cells = fd.gradient(Phi_cells.reshape(cells.X.shape), cells.delta)
+        #
+        # sim.Jtx += Jex_cells
+        # sim.Jty += Jey_cells
+        #
+        # # #the negative divergence of the total environmental current is the change in charge density:
+        # sim.rho_env += -div_Je.ravel()*p.dt
 
 
 

@@ -57,7 +57,7 @@ class MasterOfGenes(object):
         self.reset_MT = self.config_dic.get('reset microtubules', False)
 
         # recalculate fluid flow?
-        self.recalc_fluid = self.config_dic.get('recalculate fluid flow', False)
+        self.recalc_fluid = self.config_dic.get('recalculate fluid', False)
 
         # read in substance properties from the config file, and initialize basic properties:
         self.core.read_substances(sim, cells, substances_config, p)
@@ -229,6 +229,8 @@ class MasterOfGenes(object):
         self.time = []
 
         if self.recalc_fluid:  # If user requests the GRN recalculate/calculate fluid:
+
+            logs.log_info("Calculating fluid in terms of endogenous currents...")
 
             p.fluid_flow = True  # turn fluid flow on (in case it was off)
 

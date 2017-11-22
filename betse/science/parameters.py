@@ -1006,7 +1006,7 @@ class Parameters(YamlFileABC):
         self.mu = 1.275e-6   # magnetic permeability [H/m or N/A2]
         self.NAv = 6.022e23     # Avagadro's Number
         self.er = 80.0          # relative dielectric constant of electrolyte
-        self.eedl = 10.0         # relative dielectric constant of screening layer
+        self.eedl = 6.0         # relative dielectric constant of screening layer
 
         self.deltaGATP = -37000    # free energy released in ATP hydrolysis under standard phys conditions [J/mol]
 
@@ -1036,7 +1036,7 @@ class Parameters(YamlFileABC):
 
         self.fast_update_ecm = iu.get('fast update ecm', True)  # quick or slow update to cell<--> ecm grid exchange?
 
-        self.sharpness = float(iu.get('sharpness', 0.995))
+        self.sharpness = float(iu.get('sharpness', 0.999))
 
         # simplest ion profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile is IonProfileType.BASIC:
