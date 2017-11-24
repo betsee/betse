@@ -108,6 +108,32 @@ def test_cli_sim_ecm(betse_cli_sim: 'CLISimTester') -> None:
     betse_cli_sim.run_subcommands_default()
 
 
+def test_cli_sim_default(betse_cli_sim_default: 'CLISimTester') -> None:
+    '''
+    Functional test exercising the default simulation configuration on the first
+    two simulation phases (i.e., seed and initialization), principally for
+    computational instability.
+
+    Unlike the minified simulation configuration leveraged by all other tests,
+    the default simulation configuration leveraged by this test is unmodified
+    (except for disabling interactive simulation features, which non-interactive
+    testing unavoidably requires). In particular, this configuration is *not*
+    minified for efficient usage by tests and thus incurs a significant
+    performance penalty. This test exercises only the minimal subset of this
+    configuration required to detect computational instabilities in this
+    configuration -- namely, the first two simulation phases.
+
+    Parameters
+    ----------
+    betse_cli_sim_default : CLISimTester
+        Object running non-minified BETSE CLI simulation subcommands.
+    '''
+
+    # Test only the first two simulation-specific subcommands with this
+    # configuration, as documented above.
+    betse_cli_sim_default.run_subcommands(('seed',), ('init',))
+
+
 def test_cli_sim_vg_ions(betse_cli_sim: 'CLISimTester') -> None:
     '''
     Functional test simulating all voltage-gated ion channels (e.g., sodium,

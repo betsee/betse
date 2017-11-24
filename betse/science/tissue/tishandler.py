@@ -136,7 +136,7 @@ class TissueHandler(object):
         #FIXME: Replace with usage of a proper public instance variable.
         # For each low-level YAML-backed tissue profile...
         for i, profile_conf in enumerate(
-            p._conf['tissue profile definition']['tissue profiles']):
+            p._conf['tissue profile definition']['tissue']['profiles']):
             # Name of this profile.
             profile_name = profile_conf['name']
 

@@ -20,7 +20,7 @@ from py._path.local import LocalPath
 @fixture
 def betse_sim_conf(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     '''
-    Per-test fixture creating a temporary default simulation configuration file
+    Per-test fixture creating a temporary minified simulation configuration file
     and returning an object encapsulating the contents of this file.
 
     Configuration Modifications (On-disk)
@@ -75,7 +75,52 @@ def betse_sim_conf(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     # Test-specific object encapsulating this simulation configuration file.
     sim_state = SimConfTestInternal(conf_filepath=sim_conf_filepath)
 
+    # Minimize the space and time costs associated with this configuration.
+    sim_state.config.minify()
+
     # Return this object.
+    return sim_state
+
+
+# Test-scope fixture creating and returning a new object for each discrete test.
+@fixture
+def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
+    '''
+    Per-test fixture creating a temporary default simulation configuration file
+    and returning an object encapsulating the contents of this file.
+
+    Unlike the minified simulation configuration created by the
+    :func:`betse_sim_conf` fixture and leveraged by most tests, the default
+    simulation configuration created by this fixture and leveraged by few tests
+    is unmodified (except for disabling interactive simulation features, which
+    non-interactive testing unavoidably requires). Tests doing so incur a
+    significant performance penalty but can expose edge-case issues obscured by
+    minification, including computational instability produced by the default
+    non-minified time steps.
+
+    Parameters
+    ----------
+    betse_temp_dir : LocalPath
+        Object encapsulating a temporary directory isolated to the current test.
+
+    Returns
+    ----------
+    SimConfTestInternal
+        Test-specific object encapsulating a temporary simulation configuration.
+
+    See Also
+    ----------
+    :func:`betse_sim_conf`
+        Further details, ignoring minification performed by this fixture.
+    '''
+
+    # Absolute path of this configuration file in this temporary directory.
+    sim_conf_filepath = betse_temp_dir.join('sim_config.yaml')
+
+    # Test-specific object encapsulating this simulation configuration file.
+    sim_state = SimConfTestInternal(conf_filepath=sim_conf_filepath)
+
+    # Return this object *WITHOUT* calling sim_state.config.minify().
     return sim_state
 
 

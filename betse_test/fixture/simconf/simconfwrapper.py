@@ -201,14 +201,14 @@ class SimConfigTestWrapper(object):
         automation.
         '''
 
-        # Minify initialization time to exactly ten sampled time steps. For
+        # Minify initialization time to exactly three sampled time steps. For
         # safety, permit currently defined options smaller than the minimums
         # defined below to override these minimums.
 
         # Duration of each time step in seconds.
         self._p.init_time_step = min(self._p.init_time_step, 1.0e-3)
 
-        # Interval to sample such steps at in seconds.
+        # Interval to sample these steps at in seconds.
         self._p.init_time_sampling = min(
             self._p.init_time_sampling, self._p.init_time_step)
 

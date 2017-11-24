@@ -79,7 +79,6 @@ def get_current(sim, cells, p):
         # Note that the relative permittivity of the double layer is known to be 6 rather than 80 of pure water
         # (see Srinivasan 2006).
         v_env = ((sim.rho_env) / ((sim.ko_env ** 2) * p.eo * p.eedl))
-
         v_env = v_env.reshape(cells.X.shape)
 
         # add in extra boundary conditions for the case of an externally-applied voltage event:

@@ -144,13 +144,13 @@ class SimConfTestInternal(SimConfTestABC):
            all external assets (e.g., geometry masks) referenced and required by
            this file, to the passed path.
         #. Sanitizes the copied simulation configuration file for all child
-           fixtures and tests by unconditionally:
-           * Disabling configuration options either:
-             * Requiring interactive input.
-             * Displaying interactive output.
-           * Minimizing the space and time costs associated with running
-             simulations configured by this configuration while preserving all
-             fundamental configuration features.
+           fixtures and tests by unconditionally disabling options either
+           requiring interactive input *or* displaying interactive output.
+
+        This method does *not* minimize the space and time costs of running
+        simulations configured by this configuration. Doing so is typically
+        desirable but can obscure edge-case issues, including computational
+        instability produced by the default non-minified time steps.
 
         Caveats
         ----------
@@ -188,7 +188,6 @@ class SimConfTestInternal(SimConfTestABC):
 
         # Sanitize this configuration for all child fixtures and tests.
         self.config.disable_interaction()
-        self.config.minify()
 
     # ..................{ SUPERCLASS                         }..................
     @property

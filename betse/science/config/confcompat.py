@@ -290,6 +290,7 @@ def _upgrade_sim_conf_to_0_6_0(
 
     # Localize configuration subdictionaries for convenience.
     tissue_dict = p._conf['tissue profile definition']
+    vars_dict = p._conf['variable settings']
 
     # Split ambiguously unified tissue and cut profiles into unambiguous lists.
     if 'profiles' in tissue_dict:
@@ -303,3 +304,21 @@ def _upgrade_sim_conf_to_0_6_0(
                 tissue_dict['tissue profiles'].append(profile)
 
             del profile['type']
+
+    # Shift the tissue profiles list into a nested dictionary key.
+    if 'tissue profiles' in tissue_dict:
+        tissue_dict['tissue'] = {
+            'profiles': tissue_dict['tissue profiles']
+        }
+
+    # Shift the default tissue profile into the tissue profile subsection.
+    if 'default' not in tissue_dict['tissue']:
+        tissue_dict['tissue']['default'] = {
+            'name': vars_dict['default tissue name'],
+            'insular': False,
+            'diffusion constants': vars_dict['default tissue properties'],
+        }
+
+    # If double layer permittivity is undefined, define a sensible default.
+    if 'double layer permittivity' not in p._conf['internal parameters']:
+        p._conf['internal parameters']['double layer permittivity'] = 80.0

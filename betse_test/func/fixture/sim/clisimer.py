@@ -24,25 +24,58 @@ def betse_cli_sim(
 ) -> CLISimTester:
     '''
     Per-test fixture returning an object suitable for running one or more BETSE
-    CLI simulation subcommands (e.g., ``betse seed``, ``betse sim``) with the
-    temporary simulation configuration isolated to the current fixture or test.
+    CLI simulation subcommands (e.g., ``betse seed``, ``betse sim``) with a
+    temporary minified simulation configuration isolated to the current fixture
+    or test.
 
     Parameters
     ----------
     betse_cli : CLITester
         Object running a single simulation-specific BETSE CLI subcommand.
     betse_sim_conf : SimConfTestInternal
-        Object encapsulating a temporary simulation configuration file.
+        Object encapsulating a temporary minified simulation configuration file.
 
     Returns
     ----------
     CLISimTester
-        Object running multiple BETSE CLI simulation subcommands.
+        Object running multiple minified BETSE CLI simulation subcommands.
     '''
 
     return CLISimTester(
         cli_tester=betse_cli,
         sim_state=betse_sim_conf,
+    )
+
+
+# Test-scope fixture creating and returning a new object for each discrete test.
+@fixture
+def betse_cli_sim_default(
+    betse_cli: CLITester,
+    betse_sim_conf_default: SimConfTestInternal,
+) -> CLISimTester:
+    '''
+    Per-test fixture returning an object suitable for running one or more BETSE
+    CLI simulation subcommands (e.g., ``betse seed``, ``betse sim``) with the
+    temporary non-minified simulation configuration isolated to the current
+    fixture or test.
+
+    Parameters
+    ----------
+    betse_cli : CLITester
+        Object running a single simulation-specific BETSE CLI subcommand.
+    betse_sim_conf_default : SimConfTestInternal
+        Object encapsulating a temporary non-minified simulation configuration
+        file.
+
+    Returns
+    ----------
+    CLISimTester
+        Object running multiple non-minified BETSE CLI simulation subcommands.
+    '''
+
+    return CLISimTester(
+        cli_tester=betse_cli,
+        sim_state=betse_sim_conf_default,
     )
 
 

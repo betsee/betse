@@ -369,6 +369,7 @@ class Parameters(YamlFileABC):
         # TISSUE PROFILES
         #---------------------------------------------------------------------------------------------------------------
 
+        #FIXME: Excise this method after the above logic has been enabled.
         self._init_tissue_and_cut_profiles()
 
         #---------------------------------------------------------------------------------------------------------------
@@ -811,14 +812,20 @@ class Parameters(YamlFileABC):
         self.Dtj_rel['P']=float(self._conf['variable settings']['tight junction relative diffusion']['P'])
         self.Dtj_rel['H']=float(self._conf['variable settings']['tight junction relative diffusion']['H'])
 
+        #FIXME: Replace with use of an instantiated default tissue object. On
+        #doing so, note that the calls to float() will reduce to noops and
+        #should thus be removed.
+
         # default membrane diffusion constants: easy control of cell's base resting potential
-        self.Dm_Na = float(self._conf['variable settings']['default tissue properties']['Dm_Na'])     # sodium [m2/s]
-        self.Dm_K = float(self._conf['variable settings']['default tissue properties']['Dm_K'])     #  potassium [m2/s]
-        self.Dm_Cl = float(self._conf['variable settings']['default tissue properties']['Dm_Cl'])    # chloride [m2/s]
-        self.Dm_Ca = float(self._conf['variable settings']['default tissue properties']['Dm_Ca'])   #  calcium [m2/s]
-        self.Dm_H = float(self._conf['variable settings']['default tissue properties']['Dm_H'])    #  hydrogen [m2/s]
-        self.Dm_M = float(self._conf['variable settings']['default tissue properties']['Dm_M'])    #  anchor ion [m2/s]
-        self.Dm_P = float(self._conf['variable settings']['default tissue properties']['Dm_P'])     #  proteins [m2/s]
+        mem_concs_default = self._conf['tissue profile definition']['tissue'][
+            'default']['diffusion constants']
+        self.Dm_Na = float(mem_concs_default['Dm_Na'])     # sodium [m2/s]
+        self.Dm_K  = float(mem_concs_default['Dm_K'])     #  potassium [m2/s]
+        self.Dm_Cl = float(mem_concs_default['Dm_Cl'])    # chloride [m2/s]
+        self.Dm_Ca = float(mem_concs_default['Dm_Ca'])   #  calcium [m2/s]
+        self.Dm_H  = float(mem_concs_default['Dm_H'])    #  hydrogen [m2/s]
+        self.Dm_M  = float(mem_concs_default['Dm_M'])    #  anchor ion [m2/s]
+        self.Dm_P  = float(mem_concs_default['Dm_P'])     #  proteins [m2/s]
 
         # environmental (global) boundary concentrations:
         self.cbnd = self._conf['variable settings']['env boundary concentrations']
@@ -1007,6 +1014,9 @@ class Parameters(YamlFileABC):
         self.NAv = 6.022e23     # Avagadro's Number
         self.er = 80.0          # relative dielectric constant of electrolyte
         self.eedl = 6.0         # relative dielectric constant of screening layer
+
+        self.eedl = (
+            self._conf['internal parameters']['double layer permittivity'])
 
         self.deltaGATP = -37000    # free energy released in ATP hydrolysis under standard phys conditions [J/mol]
 
@@ -1295,8 +1305,13 @@ class Parameters(YamlFileABC):
 
         tpd = self._conf['tissue profile definition']
 
+        #FIXME: Refactor as follows:
+        #
+        #* Replace all references to this variable elsewhere in the codebase
+        #  with references to the "name" variable the default tissue profile.
+        #* Remove this variable entirely.
         self.default_tissue_name = (
-            self._conf['variable settings']['default tissue name'])
+            self._conf['tissue profile definition']['tissue']['default']['name'])
 
         #FIXME: Shift all such high-level objects into higher-level (and hence
         #more appropriate) simulation classes. In particular, refactor the

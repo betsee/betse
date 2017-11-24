@@ -19,7 +19,6 @@ def getFlow(sim, cells, p):
 
     if p.is_ecm is True:
 
-
         # # scaleF = (p.cell_space / cells.delta)
         # scaleF = 1.0
         #
@@ -49,15 +48,12 @@ def getFlow(sim, cells, p):
 
         _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(muFx, muFy, cells)
 
-
         # Alternative method #2 calculates flow in terms of curl component of current density:--------------------------
         # cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
         # zz = sim.zs.mean()
         #
         # sim.u_env_x = -sim.J_env_x / (p.F * cc * zz)
         # sim.u_env_y = -sim.J_env_y / (p.F * cc * zz)
-
-
 
     # -------Next do flow through gap junction connected cells-------------------------------------------------------
 

@@ -1103,12 +1103,18 @@ class Simulator(object):
                     time_steps_sampled=time_steps_sampled,
                     anim_cells=anim_cells,
                 )
-        # If this phase becomes computationally unstable, preserve this
-        # exception *BEFORE* saving the results and then reraising this
-        # exception. Doing so guarantees access to these results even in the
-        # common edge case of computational instability, preventing data loss.
+        # If this phase becomes computationally unstable...
         except BetseSimInstabilityException as exception:
+            # Log this instability *BEFORE* logging a report and reraising this
+            # exception, improving readability.
+            logs.log_error(
+                'Simulation prematurely halted due to computational instability.')
+
+            # Preserve this exception *BEFORE* writing results to disk and
+            # reraising this exception. This guarantees access to results even
+            # in the case of computational instability, preventing data loss.
             exception_instability = exception
+
         # If any other type of exception is raised, an unexpected fatal error
         # has occurred. In this case, these results are likely to be in an
         # inconsistent, nonsensical state and hence safely discarded.
@@ -1122,7 +1128,6 @@ class Simulator(object):
         # avoid data loss, this exception is raised *AFTER* all pertinent
         # simulation data has been saved to disk.
         if exception_instability is not None:
-            logs.log_error('Simulation prematurely halted due to instability.')
             raise exception_instability
 
     @type_check
