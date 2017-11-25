@@ -212,7 +212,7 @@ See Also
 # "setup.py" script. This description is inefficiently culled from the contents
 # of the top-level "README.rst" file and hence omitted here. (Doing so here
 # would significantly increase program startup costs with little to no benefit.)
-SYNOPSIS = 'BETSE, the Bioelectric Tissue Simulation Engine.'
+SYNOPSIS = 'BETSE, the BioElectric Tissue Simulation Engine.'
 '''
 Human-readable single-line synopsis of this application.
 
@@ -221,7 +221,7 @@ By PyPI design, this string must *not* span multiple lines or paragraphs.
 
 
 DESCRIPTION = (
-    'The Bioelectric Tissue Simulation Engine (BETSE) is a '
+    'The BioElectric Tissue Simulation Engine (BETSE) is a '
     'finite volume simulator for 2D computational multiphysics problems in '
     'the life sciences -- including electrodiffusion, electro-osmosis, '
     'galvanotaxis, voltage-gated ion channels, gene regulatory networks, '

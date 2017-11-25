@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-BETSE-specific `test` subcommand for `setuptools`.
+Application-specific ``test`` subcommand for :mod:`setuptools`.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -16,7 +16,8 @@ from setuptools import Command
 # ....................{ COMMANDS                           }....................
 def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     '''
-    Add the `test` subcommand to the passed dictionary of `setuptools` options.
+    Add the ``test`` subcommand to the passed dictionary of :mod:`setuptools`
+    options.
     '''
 
     util.add_setup_command_classes(metadata, setup_options, test)
@@ -24,7 +25,7 @@ def add_setup_commands(metadata: dict, setup_options: dict) -> None:
 # ....................{ CLASSES ~ base                     }....................
 class test(Command):
     '''
-    Command class testing the current application with `py.test`.
+    Command class testing the current application with :mod:`pytest`.
 
     Attributes
     ----------
@@ -56,7 +57,7 @@ class test(Command):
     # ..................{ ATTRIBUTES                         }..................
     description = 'run py.test-driven functional and unit tests'
     '''
-    Command description printed on running `./setup.py --help-commands`.
+    Command description printed on running ``./setup.py --help-commands``.
     '''
 
 
@@ -214,9 +215,9 @@ class test(Command):
 
     def _patch_pytest(self) -> None:
         '''
-        Monkey-patch the :mod:`pytest` framework in the active Python interpreter,
-        altering startup :mod:`pytest` functionality in an early-time manner *not*
-        permitted within :mod:`pytest` plugins.
+        Monkey-patch the :mod:`pytest` framework in the active Python
+        interpreter, altering startup :mod:`pytest` functionality in an
+        early-time manner *not* permitted within :mod:`pytest` plugins.
 
         `pytest` plugins (e.g., ``conftest`` submodules of a test suite) are
         imported by :mod:`pytest` *after* :mod:`pytest` startup and hence cannot

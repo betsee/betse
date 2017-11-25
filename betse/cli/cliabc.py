@@ -34,7 +34,12 @@ from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.pyprof import profile_callable, ProfileType
 from betse.util.type import types
 from betse.util.type.types import (
-    type_check, ArgParserType, MappingType, SequenceOrNoneTypes)
+    type_check,
+    ArgParserType,
+    MappingType,
+    SequenceTypes,
+    SequenceOrNoneTypes,
+)
 
 # ....................{ SUPERCLASS                         }....................
 class CLIABC(object, metaclass=ABCMeta):
@@ -250,20 +255,27 @@ class CLIABC(object, metaclass=ABCMeta):
         # Core argument parser.
         self._arg_parser = ArgParserType(**arg_parser_top_kwargs)
 
+        #FIXME: Shift into a new top-level add_arg_parser_options() function of
+        #the "cliutil" submodule, passing this function the result of
+        #self._make_options_top().
+
         # For each top-level option, add an argument parsing this option to this
         # argument subparser.
         for option in self._make_options_top():
             option.add(self._arg_parser)
 
     # ..................{ ARGS ~ options                     }..................
-    def _make_options_top(self) -> tuple:
+    def _make_options_top(self) -> SequenceTypes:
         '''
-        Tuple of all :class:`CLIOptionABC` instances defining the top-level
+        Sequence of all :class:`CLIOptionABC` instances defining the top-level
         CLI options accepted by this application.
 
-        For each such option, the :meth:`_init_arg_parser_top` method adds a
-        corresponding argument to the top-level argument parser (i.e.,
-        :attr:`_arg_parser`).
+        For each such option, a corresponding argument is added to the top-level
+        argument parser (i.e., :attr:`_arg_parser`).
+
+        **Order is significant,** defining the order that the ``--help`` option
+        synopsizes these options in. Options omitted here are *not* parsed by
+        argument parsers and are thus effectively ignored.
 
         Design
         ----------
@@ -277,16 +289,10 @@ class CLIABC(object, metaclass=ABCMeta):
           * Handling all subclass-specific instance variables parsed into the
             :attr:`self._args` container from these options.
 
-        Caveats
-        ----------
-        Order is significant, defining the order that the ``betse --help``
-        command synopsizes these options in. Options *not* listed here are
-        *not* parsed by argument subparsers and hence effectively ignored.
-
         Returns
         ----------
-        tuple
-            Tuple of all such :class:`CLIOptionABC` instances.
+        SequenceTypes
+            Sequence of all such :class:`CLIOptionABC` instances.
         '''
 
         # Singleton logging configuration for the current Python process.

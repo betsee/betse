@@ -19,7 +19,7 @@
 
 # ....................{ DEPENDENCIES ~ mandatory           }....................
 # All mandatory runtime dependencies of this application, manually converted
-# from the "betse.metadata.DEPENDENCIES_RUNTIME_MANDATORY" global.
+# from the "betse.metadata.RUNTIME_MANDATORY" global.
 setuptools
 numpy
 pyyaml
@@ -30,12 +30,12 @@ pillow
 six
 
 # All mandatory test dependencies of this application, manually converted from
-# the "betse.metadata.DEPENDENCIES_TESTTIME_MANDATORY" global.
+# the "betse.metadata.TESTTIME_MANDATORY" global.
 pytest
 
 # ....................{ DEPENDENCIES ~ optional            }....................
 # All optional runtime dependencies of this application, manually converted from
-# the "betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL" global.
+# the "betse.metadata.RUNTIME_OPTIONAL" global.
 
 #FIXME: Install "ffmpeg" from the "conda-forge" channel. See our "Simple"
 #installation instructions in the "README.rst" file.

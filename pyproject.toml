@@ -9,6 +9,9 @@
 # file strictly conforms to a standards-compliant PEP and hence generically
 # applies to *ALL* such utilities.
 #
+# Welcome to project distribution hell, where only twenty distinct files in
+# twenty distinct formats suffice to distribute a single project.
+#
 # --------------------( SEE ALSO                           )--------------------
 # https://snarky.ca/clarifying-pep-518
 #     "Clarifying PEP 518 (a.k.a. pyproject.toml)", a human-readable article

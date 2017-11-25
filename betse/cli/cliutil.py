@@ -18,9 +18,10 @@ Low-level command line interface (CLI) utilities.
 from betse import metadata
 from betse.util.path.command import cmds
 from betse.util.type.text import strs
-from betse.util.type.types import type_check
+from betse.util.type.types import (
+    type_check, ArgSubparsersType, IterableTypes, MappingType,)
 
-# ....................{ EXPANDERS                          }....................
+# ....................{ GETTERS                            }....................
 def get_version() -> str:
     '''
     Human-readable version specifier suitable for printing to end users.
@@ -28,6 +29,49 @@ def get_version() -> str:
 
     return '{} {}'.format(
         cmds.get_current_basename(), metadata.VERSION)
+
+# ....................{ ADDERS                             }....................
+@type_check
+def add_arg_subparsers_subcommands(
+    subcommands: IterableTypes,
+    arg_subparsers: ArgSubparsersType,
+    arg_subparser_kwargs: MappingType,
+) -> MappingType:
+    '''
+    Add one new argument subparser parsing each subcommand in the passed
+    iterable of subcommands to the passed container of argument subparsers and
+    return a dictionary mapping from the name of each such subcommand to the
+    corresponding argument subparser.
+
+    Parameters
+    ----------
+    subcommands : IterableTypes
+        Iterable of all subcommands to add subparsers for.
+    arg_subparsers : ArgSubparsersType
+        Container of argument subparsers to add these subparsers to.
+    arg_subparser_kwargs : MappingType
+        Dictionary of all keyword arguments to be passed to the
+        :meth:`CLISubcommandABC.add` method of each such subcommand.
+
+    Returns
+    ----------
+    MappingType
+        Dictionary mapping from the name of each such subcommand to the new
+        argument subparser parsing that subcommand.
+    '''
+
+    # Dictionary to be returned.
+    subcommand_name_to_subparser = {}
+
+    # For each passed subcommand, create, add, and map an argument parser
+    # parsing this subcommand to this container of argument subparsers.
+    for subcommand in subcommands:
+        subcommand_name_to_subparser[subcommand.name] = subcommand.add(
+            arg_subparsers=arg_subparsers,
+            arg_subparser_kwargs=arg_subparser_kwargs)
+
+    # Return this dictionary.
+    return subcommand_name_to_subparser
 
 # ....................{ EXPANDERS                          }....................
 @type_check
