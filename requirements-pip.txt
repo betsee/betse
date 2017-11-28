@@ -18,7 +18,7 @@
 # by the top-level "setup.py" script. Dismantled, this is:
 #
 # * ".", installing the current application from script *AND* all mandatory
-#   runtime dependencies of this application #   declared by this script's
+#   runtime dependencies of this application declared by this script's
 #   "install_requires" key.
 # * "[all]", installing all optional runtime dependencies of this application
 #   declared by the "all" key of this script's "extras_require" key. While

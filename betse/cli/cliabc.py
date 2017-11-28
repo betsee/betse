@@ -31,7 +31,7 @@ from betse.util.io.log.logenum import LogLevel
 from betse.util.path.command import cmds
 from betse.util.path.command.cmdarg import SemicolonAwareHelpFormatter
 from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
-from betse.util.py.pyprof import profile_callable, ProfileType
+from betse.util.py.pyprofile import profile_callable, ProfileType
 from betse.util.type import types
 from betse.util.type.types import (
     type_check,
@@ -63,6 +63,15 @@ class CLIABC(object, metaclass=ABCMeta):
     _args : argparse.Namespace
         :mod:`argparse`-specific container of all passed command-line arguments.
         See "Attributes (_args)" below for further details.
+    _exit_status : IntOrNoneTypes
+        Exit status with which to exit this application as a byte in the range
+        ``[0, 255]``. Defaults to
+        :attr:`betse.util.path.command.cmdexit.SUCCESS`. Subclass
+        implementations of the :meth:`_do` method may explicitly override this
+        default on failure as a CLI-oriented alternative to exception handling.
+        Note that, although exit status is typically returned directly by
+        callables, doing so here is infeasible due to the :meth:`_do` method API
+        already returning profiled objects.
     _profile_filename : str
         Absolute or relative path of the dumpfile to export a profile of the
         current execution to if :attr:`_profile_type` is
@@ -105,6 +114,9 @@ class CLIABC(object, metaclass=ABCMeta):
 
         # Initialize subclasses performing diamond inheritance if any.
         super().__init__()
+
+        # Default to report success as this application's exit status.
+        self._exit_status = SUCCESS
 
         # For safety, nullify all remaining attributes.
         self._arg_list = None
@@ -174,22 +186,26 @@ class CLIABC(object, metaclass=ABCMeta):
             )
             # libs.die_unless_runtime_optional('networkx')
             # raise ValueError('Test exception handling.')
-
-            # Exit with successful exit status from the current process.
-            return SUCCESS
         except Exception as exception:
             # Handle this exception.
             self._handle_exception(exception)
 
-            # Exit with failure exit status from the current process. If this
-            # exception provides a system-specific exit status, use this status;
-            # else, use the default failure status (i.e., 1).
+            # If this application's exit status is still the default and hence
+            # has *NOT* been explicitly overriden by the subclass, replace the
+            # default status with failure. If this exception provides a
+            # system-specific exit status, this status is used; else, the
+            # default failure status (i.e., 1) is used.
             #
-            # Ignore the Windows-specific "winerror" attribute provided by
-            # "WindowsError"-based exceptions. While more fine-grained than the
-            # "errno" attribute, "winerror" values are *ONLY* intended to be
-            # used internally rather than returned as an exit status.
-            return getattr(exception, 'errno', FAILURE_DEFAULT)
+            # The Windows-specific "winerror" attribute provided by
+            # "WindowsError"-based exceptions is ignored. While more
+            # fine-grained than the "errno" attribute, "winerror" values are
+            # *ONLY* intended to be used internally rather than reported as an
+            # exit status to parent processes.
+            if self._exit_status == SUCCESS:
+                self._exit_status = getattr(exception, 'errno', FAILURE_DEFAULT)
+
+        # Report this application's exit status to the parent process.
+        return self._exit_status
 
     # ..................{ ARGS                               }..................
     def _parse_args(self) -> None:
@@ -472,6 +488,17 @@ class CLIABC(object, metaclass=ABCMeta):
         Implement this command-line interface (CLI) in a subclass-specific
         manner, returning an arbitrary object produced by this logic to be
         memory profiled when the ``--profile-type=size`` CLI option is passed.
+
+        On failure, the subclass implementation of this method should either:
+
+        * Raise an exception, in which case this abstract base class implicitly
+          logs this exception and report failure as this application's exit status.
+        * Explicitly set the :attr:`_exit_status` instance variable to a
+          non-zero integer in the range ``[1, 255]`` (e.g.,
+          :attr:`betse.util.path.command.cmdexit.FAILURE_DEFAULT`). Note that,
+          although exit status is typically returned directly by callables,
+          doing so here is infeasible due to this method already returning
+          profiled objects.
         '''
 
         pass

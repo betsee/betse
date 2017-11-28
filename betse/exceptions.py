@@ -24,6 +24,7 @@ class BetseException(Exception, metaclass=ABCMeta):
     '''
     Abstract base class of all application-specific exceptions.
     '''
+
     pass
 
 
@@ -31,6 +32,7 @@ class BetseLogException(BetseException):
     '''
     Low-level logging-specific exception.
     '''
+
     pass
 
 # ....................{ EXCEPTIONS ~ os                    }....................

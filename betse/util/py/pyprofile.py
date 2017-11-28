@@ -68,7 +68,7 @@ def profile_callable(
     Parameters
     ----------
     call : CallableTypes
-        Callable to be timed.
+        Callable to be profiled.
     args : optional[SequenceTypes]
         Sequence of positional arguments to pass to the call to this callable.
         Defaults to `None`, in which no such arguments are passed.
@@ -76,7 +76,7 @@ def profile_callable(
         Dictionary of keyword arguments to pass to the call to this callable.
         Defaults to `None`, in which no such arguments are passed.
     is_profile_logged : optional[bool]
-        `True` only if logging the profile of this call _after_ this call.
+        `True` only if logging the profile of this call *after* this call.
         Defaults to `True`.
     profile_filename : optional[str]
         Absolute or relative path of the file to serialize this profile to. If
@@ -119,7 +119,7 @@ def _profile_callable_none(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
     Call the passed callable with the passed positional and keyword arguments
-    _without_ profiling this call, returning the value returned by this call.
+    *without* profiling this call, returning the value returned by this call.
 
     See Also
     ----------
@@ -291,8 +291,6 @@ def _profile_callable_size(
     logs.log_debug(
         'Profiling memory for %r() return value of type %r...',
         call, type(return_value))
-
-    #FIXME: Excise the "SizeProfilableABC" class entirely.
 
     # Human-readable string synopsizing this object's memory consumption.
     size_profile = objsizes.get_size_profile(

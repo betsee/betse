@@ -17,7 +17,7 @@
 #
 #     $ conda list -e
 
-# ....................{ DEPENDENCIES ~ mandatory           }....................
+# ....................{ DEPENDENCIES ~ mandatory : runtime }....................
 # All mandatory runtime dependencies of this application, manually converted
 # from the "betse.metadata.RUNTIME_MANDATORY" global.
 setuptools
@@ -29,11 +29,7 @@ matplotlib
 pillow
 six
 
-# All mandatory test dependencies of this application, manually converted from
-# the "betse.metadata.TESTTIME_MANDATORY" global.
-pytest
-
-# ....................{ DEPENDENCIES ~ optional            }....................
+# ....................{ DEPENDENCIES ~ optional : runtime  }....................
 # All optional runtime dependencies of this application, manually converted from
 # the "betse.metadata.RUNTIME_OPTIONAL" global.
 
@@ -56,3 +52,8 @@ pytest
 
 #pprofile
 #ptpython
+
+# ....................{ DEPENDENCIES ~ mandatory : test    }....................
+# All mandatory test dependencies of this application, manually converted from
+# the "betse.metadata.TESTTIME_MANDATORY" global.
+pytest
