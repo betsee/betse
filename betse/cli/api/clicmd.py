@@ -18,7 +18,7 @@ Subcommands accepted by this application's command line interface (CLI).
 from abc import ABCMeta
 from betse.cli import cliutil
 from betse.util.type.types import (
-    type_check, ArgParserType, ArgSubparsersType, IterableTypes, MappingType)
+    type_check, ArgParserType, ArgSubparsersType, MappingType)
 
 # ....................{ SUPERCLASSES                       }....................
 class CLISubcommandABC(object, metaclass=ABCMeta):

@@ -9,7 +9,7 @@ Implementation of the ``info`` subcommand for this command line interface (CLI).
 
 #FIXME; For aesthetics, convert to yppy-style "cli.memory_table" output.
 
-# ....................{ IMPORTS                            }....................
+# ..................{ IMPORTS                                }..................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid non-trivial delays on importing this module, this module
 # should import *ONLY* from modules and packages whose importation is unlikely
@@ -26,27 +26,7 @@ from betse.util.py import pyimpl, pys
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from collections import OrderedDict
 
-# ....................{ GETTERS                            }....................
-def get_header() -> str:
-    '''
-    Single-line string synopsizing the current installation of this application.
-    '''
-
-    return (
-        'Welcome to <<'
-        '{program_name} {program_version} | '
-        '{py_name} {py_version} | '
-        '{os_name} {os_version}'
-        '>>.'.format(
-            program_name=metadata.NAME,
-            program_version=metadata.VERSION,
-            py_name=pyimpl.get_name(),
-            py_version=pys.get_version(),
-            os_name=oses.get_name(),
-            os_version=oses.get_version(),
-        ))
-
-
+# ..................{ GETTERS                                }..................
 def get_metadata() -> OrderedArgsDict:
     '''
     Ordered dictionary synopsizing the current installation of this application.
@@ -69,9 +49,30 @@ def get_metadata() -> OrderedArgsDict:
     )
 
 # ..................{ LOGGERS                                }..................
+def log_header() -> None:
+    '''
+    Log a single-line human-readable sentence synopsizing the state of the
+    current application (e.g., name, codename, version).
+    '''
+
+    logs.log_info(
+        'Welcome to <<'
+        '{program_name} {program_version} | '
+        '{py_name} {py_version} | '
+        '{os_name} {os_version}'
+        '>>.'.format(
+            program_name=metadata.NAME,
+            program_version=metadata.VERSION,
+            py_name=pyimpl.get_name(),
+            py_version=pys.get_version(),
+            os_name=oses.get_name(),
+            os_version=oses.get_version(),
+        ))
+
+
 def log_info() -> None:
     '''
-    Logs and hence outputs all metadata required by the ``info`` subcommand.
+    Log all metadata required by the ``info`` subcommand.
     '''
 
     # Notify the current user of a possible wait *BEFORE* importing modules

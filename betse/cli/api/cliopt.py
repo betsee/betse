@@ -287,10 +287,10 @@ class CLIOptionArgABC(CLIOptionABC):
             Object to default this option's optional argument to if unpassed.
         synopsis_kwargs : optional[MappingType]
             Dictionary of all keyword arguments to be interpolated into this
-            synopsis by the :meth:`betse.cli.cliabc.expand_Help` function if any
-            *or* ``None`` otherwise. Defaults to ``None``, in which case this
-            dictionary is empty. This method adds the following keys to this
-            dictionary:
+            synopsis by the :meth:`betse.cli.cliutil.expand_help` function if
+            any *or* ``None`` otherwise. Defaults to ``None``, in which case
+            this dictionary is empty. This method adds the following keys to
+            this dictionary:
             * ``default``, whose value is the passed ``default_value``
               parameter. Each substring ``{default}`` in the passed
               ``synopsis`` parameter is globally replaced with this value.

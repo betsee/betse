@@ -27,8 +27,7 @@ def get_version() -> str:
     Human-readable version specifier suitable for printing to end users.
     '''
 
-    return '{} {}'.format(
-        cmds.get_current_basename(), metadata.VERSION)
+    return '{} {}'.format(cmds.get_current_basename(), metadata.VERSION)
 
 # ....................{ ADDERS                             }....................
 @type_check
@@ -74,6 +73,7 @@ def add_arg_subparsers_subcommands(
     return subcommand_name_to_subparser
 
 # ....................{ EXPANDERS                          }....................
+#FIXME: Replace with usage of the CLIABC.expand_help() method; then excise this.
 @type_check
 def expand_help(text: str, **kwargs) -> str:
     '''

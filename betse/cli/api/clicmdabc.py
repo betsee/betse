@@ -4,11 +4,9 @@
 # See "LICENSE" for further details.
 
 '''
-Concrete subclasses defining this application's command line interface (CLI).
+Top-level abstract base class of all **subcommandable command line interface
+(CLI)** (i.e., CLI accepting one or more subcommands) subclasses.
 '''
-
-#FIXME: Refactor the class defined below to subclass "CLISubcommandableABC"
-#instead, which should dramatically reduce the size and scope of this submodule.
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -18,7 +16,6 @@ Concrete subclasses defining this application's command line interface (CLI).
 # * Never raise exceptions on importation (e.g., due to module-level logic).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from betse import metadata
 from betse.cli import cliinfo, cliutil
 from betse.cli.api.cliabc import CLIABC
 from betse.util.io.log import logs
@@ -26,48 +23,24 @@ from betse.util.path import files, pathnames
 from betse.util.py import pyident, pys
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.obj import objects
-from betse.util.type.types import MappingType, ModuleType, SequenceTypes
-
-# ....................{ CONSTANTS                          }....................
-SUBCOMMANDS_PREFIX = '''
-Exactly one of the following subcommands must be passed:
-'''
-'''
-Help string template preceding the list of all subcommands.
-'''
-
-
-SUBCOMMANDS_SUFFIX = '''
-subcommand help:
-
-For help with specific subcommands, pass either the "-h" or "--help" argument to
-the desired subcommand. For example, for help with both the "plot" subcommand
-and that subcommand's "seed" subsubcommand:
-
-;    betse plot --help
-;    betse plot seed --help
-'''
-'''
-Help string template for the **program epilog** (i.e., string printed after
-*all* other text in top-level help output).
-'''
+from betse.util.type.types import SequenceTypes
 
 # ....................{ SUBCLASS                           }....................
-class BetseCLI(CLIABC):
+class CLISubcommandableABC(CLIABC):
     '''
-    Command line interface (CLI) for this application.
+    Top-level abstract base class of all **subcommandable command line interface
+    (CLI)** (i.e., CLI accepting one or more subcommands) subclasses, suitable
+    for use by both CLI and GUI front-ends for BETSE.
+
+    Unlike the parent :class:`CLIABC` superclass, this superclass provides
+    explicit support for subcommands. Concrete subclasses implementing
+    subcommands should directly subclass this rather than that superclass.
 
     Attributes
     ----------
-    _arg_parser_plot : ArgParserType
-        Subparser parsing arguments passed to the ``plot`` subcommand.
     _arg_subparsers_top : ArgParserType
         Container of all argument subparsers parsing all top-level subcommands
         accepted by this application (e.g., ``init``, ``sim``).
-    _arg_subparsers_plot : ArgParserType
-        Container of all argument subparsers parsing all sub-level subcommands
-        accepted by the top-level ``plot`` subcommand accepted by this
-        application (e.g., ``plot seed``).
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -77,44 +50,18 @@ class BetseCLI(CLIABC):
         super().__init__()
 
         # Nullify attributes for safety.
-        self._arg_parser_plot = None
         self._arg_subparsers_top = None
-        self._arg_subparsers_plot = None
 
-    # ..................{ SUPERCLASS ~ property              }..................
-    #FIXME: Excise after refactoring.
+    # ..................{ SUBCLASS ~ property                }..................
     @property
-    def _help_epilog(self) -> str:
+    def _help_subcommands_prefix(self) -> str:
         '''
-        Help string template following the list of all subcommands, equivalent
-        to the **program epilog** (i.e., string printed after *all* other text
-        in top-level help output).
+        Help string template preceding the list of all subcommands.
         '''
 
         return '''
-subcommand help:
-
-For help with specific subcommands, pass either the "-h" or "--help" argument to
-the desired subcommand. For example, for help with both the "plot" subcommand
-and that subcommand's "seed" subsubcommand:
-
-;    {script_basename} plot --help
-;    {script_basename} plot seed --help
+Exactly one of the following subcommands must be passed:
 '''
-
-
-    @property
-    def _module_ignition(self) -> ModuleType:
-
-        from betse import ignition
-        return ignition
-
-
-    @property
-    def _module_metadata(self) -> ModuleType:
-
-        from betse import metadata
-        return metadata
 
     # ..................{ SUPERCLASS ~ args                  }..................
     def _config_arg_parsing(self) -> None:
@@ -128,7 +75,7 @@ and that subcommand's "seed" subsubcommand:
             title='subcommands',
 
             # Description to be printed *BEFORE* subcommand help.
-            description=cliutil.expand_help(SUBCOMMANDS_PREFIX),
+            description=self.expand_help(self._help_subcommands_prefix),
         )
 
         #FIXME: Consider refactoring this logic as follows:
@@ -146,14 +93,18 @@ and that subcommand's "seed" subsubcommand:
         #what would be required to genuinely refactor this for the better would
         #be to abstract the tuples returned by the _make_subcommands_top() and
         #_make_subcommands_plot() methods into instances of a new
-        #"betse.cli.clicmd.CLISubcommands" class subclassing the standard "list"
-        #class and hence itself a list. The __init__() method for this class
-        #should accept *ALL* parameters required to fully create argument
-        #subparsers from the subcommands listed by this class. This includes:
+        #"betse.cli.clicmd.CLISubcommands" class whose __init__() method for
+        #this class should accept a sequence of all subcommands as well as *ALL*
+        #parameters required to fully create argument subparsers from the
+        #subcommands listed by this class. This includes:
         #
         #     @type_check
         #     def __init__(
         #         self,
+        #
+        #         # Sequence of all subcommands provided by this command.
+        #         subcommands: SequenceTypes,
+        #
         #         # Name of the attribute storing the passed subcommand name.
         #         dest: str = 'subcommand_name_top',
         #
@@ -200,7 +151,7 @@ and that subcommand's "seed" subsubcommand:
             title='plot subcommands',
 
             # Description to be printed *BEFORE* subcommand help.
-            description=cliutil.expand_help(SUBCOMMANDS_PREFIX),
+            description=self.expand_help(self._help_subcommands_prefix),
         )
 
         # Dictionary mapping from the name of each "plot" subcommand to the
@@ -212,156 +163,30 @@ and that subcommand's "seed" subsubcommand:
             arg_subparser_kwargs=self._arg_parser_kwargs,
         )
 
-    # ....................{ SUBCOMMANDS                        }....................
+    # ....................{ SUBCLASS ~ mandatory               }....................
+    # The following methods *MUST* be implemented by subclasses.
+
+    @abstractmethod
     def _make_subcommands_top(self) -> SequenceTypes:
+        '''
+        Sequence of all :class:`CLISubcommandABC` instances defining the
+        top-level subcommands accepted by this application.
 
-        # Avoid circular import dependencies.
-        from betse.cli.api.clicmd import (
-            CLISubcommandNoArg, CLISubcommandParent, CLISubcommandYAMLOnly,)
+        For each such subcommand, a corresponding argument subparser is
+        subsequently created and added to the container of all top-level
+        argument subparsers (i.e., :attr:`_arg_subparsers_top`).
 
-        # Return a tuple listing these subcommands.
-        return (
-            CLISubcommandYAMLOnly(
-                name='config',
-                synopsis=(
-                    'create a default config file for '
-                    '{program_name} simulations'
-                ),
-                description='''
-Write a default tissue simulation configuration to the passed output file. While
-not strictly necessary, this file should have filetype ".yaml" . If this file
-already exists, an error will be printed.
+        **Order is significant,** defining the order that the ``--help`` option
+        synopsizes these subcommands in. Subcommands omitted here are *not*
+        parsed by argument subparsers and are thus effectively ignored.
 
-You may edit this file at any time. By default, this file instructs
-{program_name} to save simulation results (e.g., plots) to the directory
-containing this file.
-''',
-            ),
+        Returns
+        ----------
+        SequenceTypes
+            Sequence of all such :class:`CLISubcommandABC` instances.
+        '''
 
-
-            CLISubcommandYAMLOnly(
-                name='seed',
-                synopsis='seed a new cell cluster for a config file',
-                description='''
-Create the cell cluster defined by the passed configuration file. The results
-will be saved to output files defined by this configuration.
-''',
-            ),
-
-
-            CLISubcommandYAMLOnly(
-                name='init',
-                synopsis='initialize a seeded cell cluster for a config file',
-                description='''
-Initialize (i.e., calculate steady-state concentrations for) the previously
-created cell cluster defined by the passed configuration file. Initialization
-results will be saved to output files defined by this configuration, while the
-previously created cell cluster will be loaded from input files defined by this
-configuration.
-''',
-            ),
-
-
-            CLISubcommandYAMLOnly(
-                name='sim',
-                synopsis=(
-                    'simulate an initialized cell cluster for a config file'),
-                description='''
-Simulate the previously initialized cell cluster defined by the passed
-configuration file. Simulation results will be saved to output files defined by
-this configuration, while the previously initialized cell cluster will be loaded
-from input files defined by this configuration.
-''',
-            ),
-
-
-            CLISubcommandYAMLOnly(
-                name='sim-grn',
-                synopsis='simulate a gene regulatory network for a config file',
-                description='''
-Simulate a gene regulatory network (GRN) for the previously initialized cell
-cluster defined by the passed configuration file, whose "gene regulatory network
-config" option specifies the path of the configuration file defining this
-network. All other simulation features and options will be ignored.
-
-Simulation results will be saved to output files defined by this configuration,
-while the previously initialized cell cluster will be loaded from input files
-defined by this configuration.
-''',
-            ),
-
-
-            CLISubcommandParent(
-                name='plot',
-                synopsis='plot a seeded, initialized, or simulated simulation',
-                description='''
-Run the passed plotting subcommand. For example, to plot the previous
-simulation defined by a configuration file "my_sim.yaml" in the current
-directory:
-
-;    betse plot sim my_sim.yaml
-''',
-            ),
-
-
-            CLISubcommandNoArg(
-                name='repl',
-                synopsis='enter an interactive {program_name}-aware REPL',
-                description='''
-Initialize the {program_name} environment and immediately open a
-Read-Evaluate-Print Loop (REPL). This allows interactive manipulation of the
-simulations and analyses.
-''',
-            ),
-
-
-            CLISubcommandNoArg(
-                name='info',
-                synopsis=(
-                    'print metadata synopsizing '
-                    '{program_name} and current system'
-                ),
-                description='''
-Print informational metadata in ":"-delimited key-value format, including:
-
-* Program name, version, and principal authors.
-
-* Absolute paths of critical files and directories used by {program_name},
-including:
-
-* {program_name}'s data directory (i.e., the program-specific directory to
-    which non-Python files intended for use by external users are stored).
-
-* {program_name}'s dot directory (i.e., the user-specific directory to which
-    files and directories intended for internal program use are stored).
-
-* {program_name}'s log file (i.e., the user-specific file to which all runtime
-    messages are appended, including low-level debug statements, non-fatal
-    warnings, and fatal errors).
-''',
-            ),
-
-
-            CLISubcommandNoArg(
-                name='try',
-                synopsis='create, init, simulate, and plot a sample simulation',
-                description='''
-Run a sample tissue simulation. This subcommand (A) creates a default YAML
-configuration file, (B) creates the cell cluster defined by that file, and
-(C) initializes, (D) simulates, and (E) plots the tissue simulation defined by
-that file given that cluster. All files and directories created by these
-operations will be preserved (rather than deleted on subcommand completion).
-
-Equivalently, this subcommand is shorthand for the following:
-
-;    betse config   sample_sim/sample_sim.yaml
-;    betse seed     sample_sim/sample_sim.yaml
-;    betse init     sample_sim/sample_sim.yaml
-;    betse sim      sample_sim/sample_sim.yaml
-;    betse plot sim sample_sim/sample_sim.yaml
-''',
-            ),
-        )
+        pass
 
 
     def _make_subcommands_plot(self) -> SequenceTypes:
@@ -376,10 +201,6 @@ Equivalently, this subcommand is shorthand for the following:
             Further details
         '''
 
-        # Avoid circular import dependencies.
-        from betse.cli.api.clicmd import CLISubcommandYAMLOnly
-
-        # Return a tuple listing these subcommands.
         return (
             CLISubcommandYAMLOnly(
                 name='seed',

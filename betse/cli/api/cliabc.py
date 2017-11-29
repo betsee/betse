@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes for defining command line interface (CLI) applications.
+Top-level abstract base class of all command line interface (CLI) subclasses.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -16,15 +16,9 @@ Abstract base classes for defining command line interface (CLI) applications.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-from abc import ABCMeta, abstractmethod
-from betse import ignition, pathtree
+from abc import ABCMeta, abstractmethod, abstractproperty
+from betse import pathtree
 from betse.cli import cliutil
-from betse.cli.cliopt import (
-    CLIOptionArgEnum,
-    CLIOptionArgStr,
-    CLIOptionBoolTrue,
-    CLIOptionVersion,
-)
 from betse.lib import libs
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logenum import LogLevel
@@ -33,10 +27,12 @@ from betse.util.path.command.cmdarg import SemicolonAwareHelpFormatter
 from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.pyprofile import profile_callable, ProfileType
 from betse.util.type import types
+from betse.util.type.text import strs
 from betse.util.type.types import (
     type_check,
     ArgParserType,
     MappingType,
+    ModuleType,
     SequenceTypes,
     SequenceOrNoneTypes,
 )
@@ -44,8 +40,13 @@ from betse.util.type.types import (
 # ....................{ SUPERCLASS                         }....................
 class CLIABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all top-level command line interface (CLI)
+    Top-level abstract base class of all command line interface (CLI)
     subclasses, suitable for use by both CLI and GUI front-ends for BETSE.
+
+    This superclass provides _no_ explicit support for subcommands. Only
+    concrete subclasses _not_ implementing subcommands should directly subclass
+    from this superclass. Concrete subclasses implementing subcommands should
+    instead subclass the :class`CLISubcommandableABC` superclass.
 
     Attributes
     ----------
@@ -207,6 +208,55 @@ class CLIABC(object, metaclass=ABCMeta):
         # Report this application's exit status to the parent process.
         return self._exit_status
 
+    # ..................{ EXPANDERS                          }..................
+    #FIXME: Replace all use of the cliutil.expand_help() function by this.
+    @type_check
+    def expand_help(self, text: str, **kwargs) -> str:
+        '''
+        Interpolate the passed keyword arguments into the passed help string
+        template, stripping all prefixing and suffixing whitespace from this
+        template.
+
+        For convenience, the following default keyword arguments are
+        unconditionally interpolated into this template:
+
+        * ``{script_basename}``, expanding to the basename of the Python wrapper
+          script running the current application (e.g., ``betse``).
+        * ``{program_name}``, expanding to the human-readable name of this
+          application (e.g., ``BETSE``).
+        '''
+
+        return strs.remove_whitespace_presuffix(text.format(
+            program_name=self._module_metadata.NAME,
+            script_basename=cmds.get_current_basename(),
+            **kwargs
+        ))
+
+    # ..................{ PROPERTIES                         }..................
+    @property
+    def _arg_parser_top_kwargs(self) -> MappingType:
+        '''
+        Subclass-specific dictionary of all keyword arguments to be passed to
+        the :meth:`ArgP"arserType.__init__` method of the top-level argument
+        parser for this CLI.
+
+        Defaults to the empty dictionary.
+
+        See Also
+        ----------
+        :meth:`_init_arg_parser_top`
+            Method initializing this argument parser with this dictionary *and*
+            keyword arguments common to all argument parsers.
+        '''
+
+        return {
+            # Human-readable multi-sentence application description.
+            'description': self._module_metadata.DESCRIPTION,
+
+            # Human-readable multi-sentence application help suffix.
+            'epilog': self.expand_help(self._help_epilog),
+        }
+
     # ..................{ ARGS                               }..................
     def _parse_args(self) -> None:
         '''
@@ -310,6 +360,14 @@ class CLIABC(object, metaclass=ABCMeta):
         SequenceTypes
             Sequence of all such :class:`CLIOptionABC` instances.
         '''
+
+        # Avoid circular import dependencies.
+        from betse.cli.api.cliopt import (
+            CLIOptionArgEnum,
+            CLIOptionArgStr,
+            CLIOptionBoolTrue,
+            CLIOptionVersion,
+        )
 
         # Singleton logging configuration for the current Python process.
         log_config = logconfig.get()
@@ -462,7 +520,7 @@ class CLIABC(object, metaclass=ABCMeta):
         #   to re-initialize BETSE in any test except the first. To
         #   model the real world as closely as reasonable, the
         #   ignition.reinit() function is called instead.
-        ignition.reinit()
+        self._module_ignition.reinit()
 
     # ..................{ EXCEPTIONS                         }..................
     @type_check
@@ -503,27 +561,45 @@ class CLIABC(object, metaclass=ABCMeta):
 
         pass
 
+    # ..................{ SUBCLASS ~ mandatory : property    }..................
+    # The following properties *MUST* be implemented by subclasses.
+
+    @abstractproperty
+    def _help_epilog(self) -> str:
+        '''
+        Help string template expanded as the **program epilog** (i.e.,
+        human-readable string printed after *all* other text in top-level
+        application help output).
+        '''
+
+        pass
+
+
+    @abstractproperty
+    def _module_ignition(self) -> ModuleType:
+        '''
+        Imported :mod:`betse.ignition` submodule specific to this application
+        (e.g., :mod:`betsee.guiignition` for the BETSEE GUI).
+
+        This property exists principally to support alternate BETSE frontends.
+        '''
+
+        pass
+
+
+    @abstractproperty
+    def _module_metadata(self) -> ModuleType:
+        '''
+        Imported :mod:`betse.metadata` submodule specific to this application
+        (e.g., :mod:`betsee.guimetadata` for the BETSEE GUI).
+
+        This property exists principally to support alternate BETSE frontends.
+        '''
+
+        pass
+
     # ..................{ SUBCLASS ~ optional                }..................
     # The following methods may but need *NOT* be implemented by subclasses.
-
-    @property
-    def _arg_parser_top_kwargs(self) -> MappingType:
-        '''
-        Subclass-specific dictionary of all keyword arguments to be passed to
-        the :meth:`ArgP"arserType.__init__` method of the top-level argument
-        parser for this CLI.
-
-        Defaults to the empty dictionary.
-
-        See Also
-        ----------
-        :meth:`_init_arg_parser_top`
-            Method initializing this argument parser with this dictionary *and*
-            keyword arguments common to all argument parsers.
-        '''
-
-        return {}
-
 
     def _config_arg_parsing(self) -> None:
         '''
