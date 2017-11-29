@@ -4008,11 +4008,22 @@ class MasterOfNetworks(object):
         logs.log_info('Plotting 1D and 2D data for %s...', message)
 
         # network plot
-        if p.plot_network is True:
-            # whole_graph = self.plot_network(p)
-            whole_graph = plot_master_network(self, p)
-            savename = self.imagePath + 'NetworkGraph_Cell_' + str(p.plot_cell) + '.svg'
-            whole_graph.write_svg(savename)
+        if p.plot_network:
+            # If NetworkX and PyDot are both importable, plot the master network
+            # with both.
+            if libs.is_runtime_optional('networkx', 'pydot'):
+                # whole_graph = self.plot_network(p)
+                whole_graph = plot_master_network(self, p)
+                savename = self.imagePath + 'NetworkGraph_Cell_' + str(p.plot_cell) + '.svg'
+                whole_graph.write_svg(savename)
+            # Else, log a non-fatal warning rather than raising a fatal
+            # exception. Plotting is non-essential and hence should *NEVER* halt
+            # the entire Python process, if it can be helped.
+            else:
+                logs.log_warning(
+                    'Optional dependencies NetworkX and/or PyDot unavailable. '
+                    'Ignoring network plot requiring these dependencies.'
+                )
 
         # get the name of the specific substance:
         for name in self.molecules:

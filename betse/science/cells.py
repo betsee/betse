@@ -903,6 +903,8 @@ class Cells(object):
                         if area_check > 0.4:
                             self.ecm_verts.append(verts_clip)   # this makes a more solid boundary of cells
 
+                    # self.ecm_verts.append(cell_polya)
+
         self.cluster_mask = image_mask.clipping_matrix  # keep track of cluster mask and its size
         self.msize = image_mask.msize
 
