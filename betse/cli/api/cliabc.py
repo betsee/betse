@@ -54,13 +54,6 @@ class CLIABC(object, metaclass=ABCMeta):
         List of all passed command-line arguments as unparsed raw strings.
     _arg_parser : ArgParserType
         `argparse`-specific parser of command-line arguments.
-    _arg_parser_kwargs : dict
-        Dictionary of keyword arguments which which to create argument parsers,
-        suitable for passing to both the :meth:`ArgParserType.__init__` and
-        :meth:`ArgParserType.add_parser` methods. Since the :mod:`argparse` API
-        provides multiple methods rather than a single method for creating
-        argument parsers, this versatile dictionary is preferred over a
-        monolithic factory-based approach (e.g., a `_make_arg_parser()` method).
     _args : argparse.Namespace
         :mod:`argparse`-specific container of all passed command-line arguments.
         See "Attributes (_args)" below for further details.
@@ -234,13 +227,32 @@ class CLIABC(object, metaclass=ABCMeta):
 
     # ..................{ PROPERTIES                         }..................
     @property
-    def _arg_parser_top_kwargs(self) -> MappingType:
+    def arg_parser_kwargs(self) -> MappingType:
         '''
-        Subclass-specific dictionary of all keyword arguments to be passed to
-        the :meth:`ArgP"arserType.__init__` method of the top-level argument
-        parser for this CLI.
+        Dictionary of all keyword arguments to be passed to the
+        :meth:`ArgParserType.__init__` and
+        :meth:`ArgParserType.add_parser` methods of both the top-level argument
+        parser *and* all argument subparsers for this CLI.
 
-        Defaults to the empty dictionary.
+        Since the :mod:`argparse` API provides multiple methods rather than a
+        single method for creating argument parsers, this versatile dictionary
+        is preferred over a monolithic factory-based approach (e.g., a
+        hypothetical ``_make_arg_parser()`` method).
+        '''
+
+        return {
+            # Wrap non-indented lines in help and description text as paragraphs
+            # while preserving indented lines in such text as is.
+            'formatter_class': SemicolonAwareHelpFormatter,
+        }
+
+
+    @property
+    def arg_parser_top_kwargs(self) -> MappingType:
+        '''
+        Dictionary of all keyword arguments to be passed to the
+        :meth:`ArgP"arserType.__init__` method of the top-level argument parser
+        for this CLI.
 
         See Also
         ----------
@@ -249,13 +261,25 @@ class CLIABC(object, metaclass=ABCMeta):
             keyword arguments common to all argument parsers.
         '''
 
-        return {
-            # Human-readable multi-sentence application description.
+        # Dictionary of all keyword arguments to be returned.
+        arg_parser_top_kwargs = {
+            # Human-readable multi-sentence application description. Since this
+            # description is general-purpose rather than CLI-specific, format
+            # substrings are *NOT* safely interpolatable into this string.
             'description': self._module_metadata.DESCRIPTION,
 
             # Human-readable multi-sentence application help suffix.
             'epilog': self.expand_help(self._help_epilog),
+
+            # Basename of the Python wrapper script producing this process.
+            'prog': cmds.get_current_basename(),
         }
+
+        # Merge these arguments with all default arguments.
+        arg_parser_top_kwargs.update(self.arg_parser_kwargs)
+
+        # Return this dictionary.
+        return arg_parser_top_kwargs
 
     # ..................{ ARGS                               }..................
     def _parse_args(self) -> None:
@@ -298,28 +322,8 @@ class CLIABC(object, metaclass=ABCMeta):
         Create and classify the top-level argument parser.
         '''
 
-        # Initialize these keyword arguments.
-        self._arg_parser_kwargs = {
-            # Wrap non-indented lines in help and description text as paragraphs
-            # while preserving indented lines in such text as is.
-            'formatter_class': SemicolonAwareHelpFormatter,
-        }
-
-        # Dictionary of keyword arguments initializing the core argument parser.
-        arg_parser_top_kwargs = {
-            # Script name.
-            'prog': cmds.get_current_basename(),
-        }
-
-        # Update this dictionary with preinitialized arguments.
-        arg_parser_top_kwargs.update(self._arg_parser_kwargs)
-
-        # Update this dictionary with subclass-specific arguments.
-        arg_parser_top_kwargs.update(self._arg_parser_top_kwargs)
-        # print('Argument parser options: {!r}'.format(arg_parser_top_kwargs))
-
         # Core argument parser.
-        self._arg_parser = ArgParserType(**arg_parser_top_kwargs)
+        self._arg_parser = ArgParserType(**self.arg_parser_top_kwargs)
 
         #FIXME: Shift into a new top-level add_arg_parser_options() function of
         #the "cliutil" submodule, passing this function the result of

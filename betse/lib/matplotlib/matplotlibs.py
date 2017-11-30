@@ -137,6 +137,28 @@ _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED = {
     #version of WxPython Phoenix has yet to be released, this may take
     #considerably longer than first assumed. The vapourware: it burns!
 
+    #FIXME: Consider revising these defaults as follows:
+    #
+    #    'Linux':   ('Qt5Agg', 'TkAgg', 'Qt4Agg',),
+    #    'Windows': ('TkAgg', 'Qt4Agg', 'Qt5Agg',),
+    #
+    #    # Preferred backends for the following platforms reuse the the
+    #    # preferred backends for Linux defined above.
+    #    'Darwin': None,
+    #
+    # In short, under *ONLY* Linux, prefer Qt5 to Tcl/Tk. Under Windows (for
+    # reasons given below), the Qt5 backend is largely considered unsafe. Under
+    # Linux, however, at least one user has noted significant rendering issues
+    # with the Tcl/Tk default -- notably, that the "plot_while_solving"
+    # animation incrementally decreases in height each frame. This has been
+    # isolated to be a Tcl/Tk issue; the Qt5 backend suffers no such complaints.
+    #
+    # Since the Qt5 backend is also aesthetically superior, we should
+    # contemplate enabling this backend as our new Linux default *IF AND ONLY
+    # IF* this backend can also be shown to be decently performant. It doesn't
+    # need to be quite as efficient as the Tcl/Tk backend, but it certainly
+    # should *NOT* induce noticable slowdown. Investigate, please.
+
     # Under Linux, the following backends are preferred:
     #
     # * "TkAgg", a GUI backend with adequate (albeit not particularly
@@ -440,12 +462,11 @@ class MplConfig(object):
             # warning and default to this backend.
             if self.is_backend_usable(_BACKEND_NAME_HEADLESS):
                 logs.log_warning(
-                    'Usable matplotlib GUI backend not found. '
-                    'Defaulting to non-GUI backend "%s". '
-                    'Consider installing support for GUI backends %s.',
+                    'No usable GUI-based matplotlib backend found. '
+                    'Defaulting to usable CLI-based backend "%s". '
+                    'Consider installing support for GUI-based backends %s.',
                     _BACKEND_NAME_HEADLESS,
-                    strs.join_as_disconjunction_double_quoted(*backend_names),
-                )
+                    strs.join_as_disconjunction_double_quoted(*backend_names))
             # Else, no backends appear to be usable on the current system. For
             # safety, raise an exception. Due to the ubiquity of the fallback
             # backend, this should *NEVER* happen. Damn you, Murphy!

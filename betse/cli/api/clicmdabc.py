@@ -120,11 +120,11 @@ Exactly one of the following subcommands must be passed:
         #
         #Given such a class, it should then be feasible for instances of this
         #class to nest instances of this class. How? By generalizing the
-        #existing "CLISubcommandParent" class (which is used to create
+        #existing "CLISubcommandParentObsolete" class (which is used to create
         #subcommands themselves containing subcommands, like the "plot"
         #subcommand) to provide a "subcommands" instance variable of type
         #"CLISubcommands", presumably passed to the
-        #CLISubcommandParent.__init__() method.
+        #CLISubcommandParentObsolete.__init__() method.
         #
         #While performing this generalization currently exceeds our capacity for
         #sanity, it would be fairly sweet (if a little overkill, considering we

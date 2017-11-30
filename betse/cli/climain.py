@@ -18,7 +18,6 @@ Concrete subclasses defining this application's command line interface (CLI).
 # * Never raise exceptions on importation (e.g., due to module-level logic).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from betse import metadata
 from betse.cli import cliinfo, cliutil
 from betse.cli.api.cliabc import CLIABC
 from betse.util.io.log import logs
@@ -26,7 +25,7 @@ from betse.util.path import files, pathnames
 from betse.util.py import pyident, pys
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.obj import objects
-from betse.util.type.types import MappingType, ModuleType, SequenceTypes
+from betse.util.type.types import ModuleType, SequenceTypes
 
 # ....................{ CONSTANTS                          }....................
 SUBCOMMANDS_PREFIX = '''
@@ -169,11 +168,11 @@ and that subcommand's "seed" subsubcommand:
         #
         #Given such a class, it should then be feasible for instances of this
         #class to nest instances of this class. How? By generalizing the
-        #existing "CLISubcommandParent" class (which is used to create
+        #existing "CLISubcommandParentObsolete" class (which is used to create
         #subcommands themselves containing subcommands, like the "plot"
         #subcommand) to provide a "subcommands" instance variable of type
         #"CLISubcommands", presumably passed to the
-        #CLISubcommandParent.__init__() method.
+        #CLISubcommandParentObsolete.__init__() method.
         #
         #While performing this generalization currently exceeds our capacity for
         #sanity, it would be fairly sweet (if a little overkill, considering we
@@ -182,9 +181,9 @@ and that subcommand's "seed" subsubcommand:
         # Dictionary mapping from the name of each top-level subcommand to the
         # argument subparser parsing that subcommand.
         subcommand_name_to_subparser = cliutil.add_arg_subparsers_subcommands(
+            cli=self,
             subcommands=self._make_subcommands_top(),
             arg_subparsers=self._arg_subparsers_top,
-            arg_subparser_kwargs=self._arg_parser_kwargs,
         )
 
         # Subparser parsing arguments passed to the "plot" subcommand.
@@ -207,9 +206,9 @@ and that subcommand's "seed" subsubcommand:
         # argument subparser parsing that subcommand. Note that this dictionary
         # is non-essential and hence garbage-collected immediately.
         cliutil.add_arg_subparsers_subcommands(
+            cli=self,
             subcommands=self._make_subcommands_plot(),
             arg_subparsers=self._arg_subparsers_plot,
-            arg_subparser_kwargs=self._arg_parser_kwargs,
         )
 
     # ....................{ SUBCOMMANDS                        }....................
@@ -217,7 +216,7 @@ and that subcommand's "seed" subsubcommand:
 
         # Avoid circular import dependencies.
         from betse.cli.api.clicmd import (
-            CLISubcommandNoArg, CLISubcommandParent, CLISubcommandYAMLOnly,)
+            CLISubcommandNoArg, CLISubcommandParentObsolete, CLISubcommandYAMLOnly,)
 
         # Return a tuple listing these subcommands.
         return (
@@ -291,7 +290,7 @@ defined by this configuration.
             ),
 
 
-            CLISubcommandParent(
+            CLISubcommandParentObsolete(
                 name='plot',
                 synopsis='plot a seeded, initialized, or simulated simulation',
                 description='''

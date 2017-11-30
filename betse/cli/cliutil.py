@@ -32,9 +32,10 @@ def get_version() -> str:
 # ....................{ ADDERS                             }....................
 @type_check
 def add_arg_subparsers_subcommands(
+    # Avoid circular import dependencies.
+    cli: 'betse.cli.api.cliabc.CLIABC',
     subcommands: IterableTypes,
     arg_subparsers: ArgSubparsersType,
-    arg_subparser_kwargs: MappingType,
 ) -> MappingType:
     '''
     Add one new argument subparser parsing each subcommand in the passed
@@ -44,13 +45,14 @@ def add_arg_subparsers_subcommands(
 
     Parameters
     ----------
+    cli : betse.cli.api.cliabc.CLIABC
+        High-level command-line interface (CLI) owning this subcommand. To avoid
+        circular references, neither this method nor any method transitively
+        called by this method retains this reference.
     subcommands : IterableTypes
         Iterable of all subcommands to add subparsers for.
     arg_subparsers : ArgSubparsersType
         Container of argument subparsers to add these subparsers to.
-    arg_subparser_kwargs : MappingType
-        Dictionary of all keyword arguments to be passed to the
-        :meth:`CLISubcommandABC.add` method of each such subcommand.
 
     Returns
     ----------
@@ -65,9 +67,8 @@ def add_arg_subparsers_subcommands(
     # For each passed subcommand, create, add, and map an argument parser
     # parsing this subcommand to this container of argument subparsers.
     for subcommand in subcommands:
-        subcommand_name_to_subparser[subcommand.name] = subcommand.add(
-            arg_subparsers=arg_subparsers,
-            arg_subparser_kwargs=arg_subparser_kwargs)
+        subcommand_name_to_subparser[subcommand._name] = subcommand.add(
+            cli=cli, arg_subparsers=arg_subparsers)
 
     # Return this dictionary.
     return subcommand_name_to_subparser
