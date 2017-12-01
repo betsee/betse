@@ -67,7 +67,7 @@ Exactly one of the following subcommands must be passed:
     def _config_arg_parsing(self) -> None:
 
         # Container of all top-level argument subparsers for this application.
-        self._arg_subparsers_top = self._arg_parser.add_subparsers(
+        self._arg_subparsers_top = self._arg_parser_top.add_subparsers(
             # Name of the attribute storing the passed subcommand name.
             dest='subcommand_name_top',
 
@@ -268,7 +268,7 @@ from input files defined by this configuration.
             #,Print help output. Note that this common case constitutes neither
             # a fatal error nor a non-fatal warning.
             print()
-            self._arg_parser.print_help()
+            self._arg_parser_top.print_help()
 
             # Return the current instance of this object. While trivial, this
             # behaviour simplifies memory profiling of this object.

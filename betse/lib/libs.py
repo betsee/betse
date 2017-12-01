@@ -502,7 +502,7 @@ def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
     # Log this initialization. Since initializing heavyweight third-party
     # dependencies (especially matplotlib) consumes non-trivial time, this
     # logging is intentionally elevated to the "INFO" level.
-    logs.log_info('Initializing third-party dependencies...')
+    logs.log_info('Loading third-party dependencies...')
 
     # Initialize these dependencies.
     mpl_config.init(backend_name=matplotlib_backend_name)

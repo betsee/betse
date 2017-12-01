@@ -17,16 +17,10 @@ Subcommands accepted by this application's command line interface (CLI).
 
 from abc import ABCMeta
 from betse.util.type.types import (
-    type_check,
-    ArgParserType,
-    ArgSubparsersType,
-    CallableTypes,
-    MappingType,
-    SequenceTypes,
-)
+    type_check, ArgParserType, ArgSubparsersType, SequenceTypes,)
 
 # ....................{ CLASSES ~ container                }....................
-class CLISubcommands(object):
+class CLISubcommander(object):
     '''
     Container of all CLI subcommands accepted by either a top-level CLI command
     (e.g., ``betse``) or a subcommand of such command (e.g., ``betse plot``).
@@ -39,6 +33,13 @@ class CLISubcommands(object):
 
     Attributes
     ----------
+    subcommand_name_to_arg_parser : MappingType
+        Dictionary mapping from the name of each subcommand contained by this
+        container to the :class:`ArgumentParser` parsing that subcommand. Unlike
+        most other attributes, this dictionary is public to permit callers to
+        access these parsers during subcommand handling (e.g., to print
+        subcommand help by calling the :method:`ArgumentParser.print_help`
+        method).
     _subcommand_var_name : str
         Name of the instance variable to which the :class:`ArgumentParser`
         parsing these subcommands from command-line options and arguments
@@ -48,13 +49,13 @@ class CLISubcommands(object):
         * ``None`` otherwise.
     _subcommands : SequenceTypes
         Sequence of all **subcommands** (i.e., :class:`CLISubcommandABC`
-        instances) to add to this container.
-    _help_description : str
-        Description to be printed *before* subcommand help.
+        instances) contained by this container.
     _help_title : optional[str]
         Human-readable title of the subcommand section in help output,
-        typically only one to three words of lowercase, unpunctuated text.
-        Defaults to simply ``subcommands``.
+        typically only one to three words of lowercase unpunctuated text.
+    _help_description : str
+        Human-readable description to be printed *before* a programmatically
+        generated list of these subcommands in help output.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -65,10 +66,12 @@ class CLISubcommands(object):
         # Mandatory arguments.
         subcommand_var_name: str,
         subcommands: SequenceTypes,
-        help_description: str,
 
         # Optional arguments.
         help_title: str = 'subcommands',
+        help_description: str = '''
+Exactly one of the following subcommands must be passed:
+''',
     ) -> None:
         '''
         Initialize this container of CLI subcommands.
@@ -85,22 +88,27 @@ class CLISubcommands(object):
         subcommands : SequenceTypes
             Sequence of all **subcommands** (i.e., :class:`CLISubcommandABC`
             instances) to add to this container.
-        help_description : str
-            Description to be printed *before* subcommand help. For convenience,
-            all format substrings supported by the :meth:`CLIABC.expand_help`
-            method (e.g., ``{program_name}``) are globally replaced as expected.
         help_title : optional[str]
             Human-readable title of the subcommand section in help output,
-            typically only one to three words of lowercase, unpunctuated text.
-            Defaults to simply ``subcommands``. As in the ``description``
-            parameter, all format substrings are globally replaced as expected.
+            typically only one to three words of lowercase unpunctuated text.
+            For convenience, all format substrings supported by the
+            :meth:`CLIABC.expand_help` method (e.g., ``{program_name}``) are
+            globally replaced as expected. Defaults to simply ``subcommands``.
+        help_description : optional[str]
+            Human-readable description to be printed *before* a programmatically
+            generated list of these subcommands in help output. As in the
+            ``help_title`` parameter, all format substrings are globally
+            replaced as expected. Defaults to a sensible general-purpose string.
         '''
 
         # Classify all passed parameters.
         self._subcommand_var_name = subcommand_var_name
         self._subcommands = subcommands
-        self._help_description = help_description
         self._help_title = help_title
+        self._help_description = help_description
+
+        # Nullify all remaining parameters for safety.
+        self.subcommand_name_to_arg_parser = {}
 
     # ..................{ ADDERS                             }..................
     @type_check
@@ -110,7 +118,6 @@ class CLISubcommands(object):
         # Avoid circular import dependencies.
         cli: 'betse.cli.api.cliabc.CLIABC',
         arg_parser: ArgParserType,
-        arg_subparsers_kwargs: MappingType,
     ) -> ArgSubparsersType:
         '''
         Create a new **argument subparsers container** (i.e., child
@@ -146,15 +153,18 @@ class CLISubcommands(object):
             'title':       cli.expand_help(self._help_title),
             'description': cli.expand_help(self._help_description),
         }
-        kwargs.update(arg_subparsers_kwargs)
 
         # Container of subcommand argument subparsers to be returned.
         arg_subparsers = arg_parser.add_subparsers(**kwargs)
 
-        # For each contained subcommand, add an argument parser parsing this
-        # subcommand to this container of argument subparsers.
+        # For each contained subcommand:
+        #
+        # * Add an argument parser parsing this subcommand to this container of
+        #   argument subparsers.
+        # * Map this subcommand's name to this parser for subsequent lookup.
         for subcommand in self._subcommands:
-            subcommand.add(cli=cli, arg_subparsers=arg_subparsers)
+            self.subcommand_name_to_arg_parser[subcommand.name] = (
+                subcommand.add(cli=cli, arg_subparsers=arg_subparsers))
 
         # Return this container.
         return arg_subparsers
@@ -174,7 +184,7 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
 
     Attributes
     ----------
-    _name : str
+    name : str
         Machine-readable name of this CLI subcommand (e.g., ``plot``), typically
         only a single word.
     _help_synopsis : str
@@ -190,8 +200,8 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
     def __init__(
         self,
         name: str,
-        synopsis: str,
-        description: str,
+        help_synopsis: str,
+        help_description: str,
     ) -> None:
         '''
         Initialize this CLI subcommand.
@@ -201,21 +211,21 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
         name : str
             Machine-readable name of this CLI subcommand (e.g., ``plot``), typically
             only a single word.
-        synopsis : str
+        help_synopsis : str
             Human-readable synopsis of this CLI subcommand, typically only one
             to three lines of lowercase, unpunctuated text. For convenience, all
             format substrings supported by the :meth:`CLIABC.expand_help` method
             (e.g., ``{program_name}``) are globally replaced as expected.
-        description : str
+        help_description : str
             Human-readable description of this CLI subcommand, typically one to
             several paragraphs of grammatical sentences. As in the ``synopsis``
             parameter, all format substrings are globally replaced as expected.
         '''
 
         # Classify all passed parameters.
-        self._name = name
-        self._help_synopsis = synopsis
-        self._help_description = description
+        self.name = name
+        self._help_synopsis = help_synopsis
+        self._help_description = help_description
 
     # ..................{ ADDERS                             }..................
     @type_check
@@ -263,7 +273,7 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
         # Keyword arguments with which to initialize this container,
         # interpolating all format substrings in all human-readable arguments.
         kwargs = {
-            'name':        self._name,
+            'name':        self.name,
             'help':        cli.expand_help(self._help_synopsis),
             'description': cli.expand_help(self._help_description),
         }
@@ -283,16 +293,6 @@ class CLISubcommandNoArg(CLISubcommandABC):
     pass
 
 
-#FIXME: Replace all usage of this class by "CLISubcommandParent".
-class CLISubcommandParentObsolete(CLISubcommandABC):
-    '''
-    CLI subcommand that is itself the parent of one or more CLI subcommands,
-    accepting *only* the name of a child subcommand as a passed argument.
-    '''
-
-    pass
-
-
 class CLISubcommandParent(CLISubcommandABC):
     '''
     CLI subcommand which itself is the parent of one or more CLI subcommands,
@@ -300,7 +300,7 @@ class CLISubcommandParent(CLISubcommandABC):
 
     Parameters
     ----------
-    _subcommands : CLISubcommands
+    _subcommander : CLISubcommander
         Container of child subcommands accepted by this parent subcommand.
     '''
 
@@ -308,7 +308,7 @@ class CLISubcommandParent(CLISubcommandABC):
     @type_check
     def __init__(
         self,
-        subcommands: CLISubcommands,
+        subcommander: CLISubcommander,
         *args, **kwargs
     ) -> None:
         '''
@@ -316,7 +316,7 @@ class CLISubcommandParent(CLISubcommandABC):
 
         Parameters
         ----------
-        subcommands : CLISubcommands
+        subcommander : CLISubcommander
             Container of child subcommands accepted by this parent subcommand.
 
         All remaining parameters are passed as is to the
@@ -327,7 +327,7 @@ class CLISubcommandParent(CLISubcommandABC):
         super().__init__(*args, **kwargs)
 
         # Classify all remaining parameters.
-        self._subcommands = subcommands
+        self._subcommander = subcommander
 
     # ..................{ ADDERS                             }..................
     @type_check
@@ -340,10 +340,10 @@ class CLISubcommandParent(CLISubcommandABC):
     ) -> ArgParserType:
 
         # Argument parser parsing this subcommand.
-        arg_parser = self.add(*args, **kwargs)
+        arg_parser = super().add(*args, cli=cli, **kwargs)
 
         # Add this container of argument subparsers to this parser.
-        self._subcommands.add(cli=cli, arg_parser=arg_parser)
+        self._subcommander.add(cli=cli, arg_parser=arg_parser)
 
         # Return this argument parser.
         return arg_parser

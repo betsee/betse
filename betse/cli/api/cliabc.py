@@ -52,8 +52,9 @@ class CLIABC(object, metaclass=ABCMeta):
     ----------
     _arg_list : list
         List of all passed command-line arguments as unparsed raw strings.
-    _arg_parser : ArgParserType
-        `argparse`-specific parser of command-line arguments.
+    _arg_parser_top : ArgParserType
+        Top-level argument parser parsing all top-level options and subcommands
+        passed to this application's external CLI command.
     _args : argparse.Namespace
         :mod:`argparse`-specific container of all passed command-line arguments.
         See "Attributes (_args)" below for further details.
@@ -114,7 +115,7 @@ class CLIABC(object, metaclass=ABCMeta):
 
         # For safety, nullify all remaining attributes.
         self._arg_list = None
-        self._arg_parser = None
+        self._arg_parser_top = None
         self._arg_parser_kwargs = None
         self._args = None
         self._profile_filename = None
@@ -237,7 +238,7 @@ class CLIABC(object, metaclass=ABCMeta):
         Since the :mod:`argparse` API provides multiple methods rather than a
         single method for creating argument parsers, this versatile dictionary
         is preferred over a monolithic factory-based approach (e.g., a
-        hypothetical ``_make_arg_parser()`` method).
+        hypothetical ``_make_arg_parser_top()`` method).
         '''
 
         return {
@@ -298,7 +299,7 @@ class CLIABC(object, metaclass=ABCMeta):
         self._init_arg_parsers()
 
         # Parse unnamed string arguments into named, typed arguments.
-        self._args = self._arg_parser.parse_args(self._arg_list)
+        self._args = self._arg_parser_top.parse_args(self._arg_list)
 
         # Parse top-level options globally applicable to *ALL* subcommands.
         self._parse_options_top()
@@ -322,8 +323,9 @@ class CLIABC(object, metaclass=ABCMeta):
         Create and classify the top-level argument parser.
         '''
 
-        # Core argument parser.
-        self._arg_parser = ArgParserType(**self.arg_parser_top_kwargs)
+        # Top-level argument parser parsing all top-level options and
+        # subcommands passed to the CLI command.
+        self._arg_parser_top = ArgParserType(**self.arg_parser_top_kwargs)
 
         #FIXME: Shift into a new top-level add_arg_parser_options() function of
         #the "cliutil" submodule, passing this function the result of
@@ -332,7 +334,7 @@ class CLIABC(object, metaclass=ABCMeta):
         # For each top-level option, add an argument parsing this option to this
         # argument subparser.
         for option in self._make_options_top():
-            option.add(self._arg_parser)
+            option.add(self._arg_parser_top)
 
     # ..................{ ARGS ~ options                     }..................
     def _make_options_top(self) -> SequenceTypes:
@@ -341,7 +343,7 @@ class CLIABC(object, metaclass=ABCMeta):
         CLI options accepted by this application.
 
         For each such option, a corresponding argument is added to the top-level
-        argument parser (i.e., :attr:`_arg_parser`).
+        argument parser (i.e., :attr:`_arg_parser_top`).
 
         **Order is significant,** defining the order that the ``--help`` option
         synopsizes these options in. Options omitted here are *not* parsed by
