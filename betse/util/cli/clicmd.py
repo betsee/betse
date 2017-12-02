@@ -228,8 +228,9 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
             ``plot``), typically only a single word. This name should be
             suitable fur use as a valid Python identifier. The :class:`CLIABC`
             instance passed to the :meth:`add` method is expected to define a
-            method named ``_do_{name}`` (i.e., this name prefixed by ``_do_``),
-            implementing this subcommand.
+            method named ``_do_{name_snakecase}`` implementing this subcommand,
+            where ``{name_snakecase}`` is this name converted into snake_case
+            (e.g., ``_do_sim_grn`` given a subcommand name of ``sim-grn``).
         help_synopsis : str
             Human-readable synopsis of this CLI subcommand, typically only one
             to three lines of lowercase, unpunctuated text. For convenience, all
@@ -240,9 +241,6 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
             several paragraphs of grammatical sentences. As in the ``synopsis``
             parameter, all format substrings are globally replaced as expected.
         '''
-
-        # If this name is *NOT* a valid variable name, raise an exception.
-        pyident.die_unless_var_name(name)
 
         # Classify all passed parameters.
         self.name = name

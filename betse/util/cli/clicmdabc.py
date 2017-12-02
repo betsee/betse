@@ -147,11 +147,15 @@ class CLISubcommandableABC(CLIABC):
             self._subcommander_top.subcommand_name_to_arg_parser[
                 subcommand_name])
 
+        # Snake_case-style name of this subcommand, suitable for use in
+        # constructing the syntactically valid Python method name.
+        subcommand_name_snakecase = pyident.sanitize_snakecase(subcommand_name)
+
         # If this subcommand is itself the parent of child subcommands...
         if isinstance(subcommand, CLISubcommandParent):
             # Append the prefix of the names of all subclass methods
             # implementing these child subcommands with this subcommand's name.
-            subcommand_method_name_prefix += subcommand_name
+            subcommand_method_name_prefix += subcommand_name_snakecase + '_'
 
             # Call this function recursively and return the result of doing so.
             return self._run_subcommand(
@@ -162,11 +166,9 @@ class CLISubcommandableABC(CLIABC):
         # Else, this subcommand is a leaf rather than parent. In this case,
         # terminate recursion by running this subcommand's subclass method.
         else:
-            # Sanitized name of this subcommand.
-            subcommand_name_top = pyident.sanitize_snakecase(subcommand_name)
-
             # Name of the method running this subcommand.
-            subcommand_method_name = '_do_' + subcommand_name_top
+            subcommand_method_name = (
+                subcommand_method_name_prefix + subcommand_name_snakecase)
 
             # Method running this subcommand. If this method does *NOT* exist,
             # get_method() will raise a non-human-readable exception. Usually,
