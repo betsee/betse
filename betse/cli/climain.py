@@ -19,34 +19,30 @@ Concrete subclasses defining this application's command line interface (CLI).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse.cli import cliinfo
-from betse.cli.api.cliabc import CLIABC
-from betse.cli.api.clicmd import CLISubcommander
+from betse.util.cli.clicmd import (
+    CLISubcommander,
+    CLISubcommandNoArg,
+    CLISubcommandParent,
+    CLISubcommandYAMLOnly,
+)
+from betse.util.cli.clicmdabc import CLISubcommandableABC
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
-from betse.util.py import pyident, pys
+from betse.util.py import pys
 from betse.util.type.call.memoizers import property_cached
-from betse.util.type.obj import objects
 from betse.util.type.types import ModuleType
 
 # ....................{ SUBCLASS                           }....................
-class BetseCLI(CLIABC):
+class BetseCLI(CLISubcommandableABC):
     '''
     Command line interface (CLI) for this application.
-
-    Attributes
-    ----------
-    _arg_parser_plot : ArgParserType
-        Argument parser parsing arguments passed to the ``plot`` subcommand.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
-    def __init__(self) -> None:
-
-        # Initialize our superclass.
-        super().__init__()
-
-        # Nullify attributes for safety.
-        self._arg_parser_plot = None
+    # # ..................{ INITIALIZERS                       }..................
+    # def __init__(self) -> None:
+    #
+    #     # Initialize our superclass.
+    #     super().__init__()
 
     # ..................{ SUPERCLASS ~ property              }..................
     @property
@@ -54,9 +50,10 @@ class BetseCLI(CLIABC):
 
         return '''
 subcommand help:
-For help with specific subcommands, pass either the "-h" or "--help" argument to
-the desired subcommand. For example, for help with both the "plot" subcommand
-and that subcommand's "seed" subsubcommand, run:
+
+For help with a specific subcommand, pass the "-h" or "--help" option to that
+subcommand. For example, for help with the "plot" subcommand and that
+subcommand's "seed" subsubcommand, run:
 
 ;    {script_basename} plot --help
 ;    {script_basename} plot seed --help
@@ -76,27 +73,9 @@ and that subcommand's "seed" subsubcommand, run:
         from betse import metadata
         return metadata
 
-    # ..................{ SUPERCLASS ~ args                  }..................
-    def _config_arg_parsing(self) -> None:
-
-        # Container of all top-level argument subparsers for this application.
-        subcommander_top = self._make_subcommander_top()
-        subcommander_top.add(cli=self, arg_parser=self._arg_parser_top)
-
-        # Argument parser parsing arguments passed to the "plot" subcommand.
-        self._arg_parser_plot = (
-            subcommander_top.subcommand_name_to_arg_parser['plot'])
-
     # ....................{ SUBCOMMANDS                        }....................
-    #FIXME: Document us up.
     def _make_subcommander_top(self) -> CLISubcommander:
 
-        # Avoid circular import dependencies.
-        from betse.cli.api.clicmd import (
-            CLISubcommandNoArg, CLISubcommandParent, CLISubcommandYAMLOnly,)
-
-        # Return a container of all top-level subcommands accepted by this
-        # application's CLI command.
         return CLISubcommander(
             subcommand_var_name='subcommand_name_top',
             help_title='subcommands',
@@ -248,13 +227,8 @@ Equivalently, this subcommand is shorthand for the following:
 
     def _make_subcommander_plot(self) -> CLISubcommander:
         '''
-        Sequence of all :class:`CLISubcommandABC` instances defining the
-        low-level subcommands accepted by the top-level ``plot`` subcommand
-        accepted by this application.
+        Container of all child subcommands accepted by the ``plot`` subcommand.
         '''
-
-        # Avoid circular import dependencies.
-        from betse.cli.api.clicmd import CLISubcommandYAMLOnly
 
         # Return a container of all child subcommands accepted by this parent
         # "plot" subcommand.
@@ -313,45 +287,6 @@ from input files defined by this configuration.
 ''',),
 
             ))
-
-    # ..................{ SUPERCLASS ~ cli                   }..................
-    def _do(self) -> object:
-        '''
-        Implement this command-line interface (CLI).
-
-        If a subcommand was passed, this method runs this subcommand and returns
-        the result of doing so; else, this method prints help output and returns
-        the current instance of this object.
-        '''
-
-        # If no subcommand was passed...
-        if not self._args.subcommand_name_top:
-            #,Print help output. Note that this common case constitutes neither
-            # a fatal error nor a non-fatal warning.
-            print()
-            self._arg_parser_top.print_help()
-
-            # Return the current instance of this object. While trivial, this
-            # behaviour simplifies memory profiling of this object.
-            return self
-        # Else, a subcommand was passed.
-
-        # Sanitized name of this subcommand.
-        subcommand_name_top = pyident.sanitize_snakecase(
-            self._args.subcommand_name_top)
-
-        # Name of the method running this subcommand.
-        subcommand_method_name = '_do_' + subcommand_name_top
-
-        # Method running this subcommand. If this method does *NOT* exist,
-        # get_method() will raise a non-human-readable exception. Usually, that
-        # would be bad. In this case, however, argument parsing coupled with a
-        # reliable class implementation guarantees this method to exist.
-        subcommand_method = objects.get_method(
-            obj=self, method_name=subcommand_method_name)
-
-        # Run this subcommand and return the result of doing so (if any).
-        return subcommand_method()
 
     # ..................{ SUBCOMMANDS ~ info                 }..................
     def _show_header(self) -> None:
@@ -447,27 +382,6 @@ from input files defined by this configuration.
         '''
 
         return self._sim_runner.sim_grn()
-
-
-    def _do_plot(self) -> object:
-        '''
-        Run the ``plot`` subcommand and return the result of doing so.
-        '''
-
-        # If no subcommand was passed, print help output and return. See the
-        # _do() method for similar logic and commentary.
-        if not self._args.subcommand_name_plot:
-            print()
-            self._arg_parser_plot.print_help()
-            return
-
-        # Run this subcommand's subcommand and return the result of doing so.
-        # See the _run() method for similar logic and commentary.
-        subcommand_name_plot = pyident.sanitize_snakecase(
-            self._args.subcommand_name_plot)
-        subcommand_method_name = '_do_plot_' + subcommand_name_plot
-        subcommand_method = getattr(self, subcommand_method_name)
-        return subcommand_method()
 
 
     def _do_plot_seed(self) -> object:

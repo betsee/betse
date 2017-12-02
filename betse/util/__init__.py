@@ -21,3 +21,6 @@ Blast-proof utilities.
 #
 #I'm partial to "blauti," as of this writing. It just works. Only 5,000 Google
 #hits effectively guarantees uniqueness. It also reads and sounds apropos.
+#FIXME: Oh, yeah. We got this:
+#
+#* "brutil". Speaks for itself in waves of languid ludicrousness, doesn't it?

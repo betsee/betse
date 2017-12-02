@@ -8,7 +8,7 @@ High-level **application dependency** (i.e., both mandatory and optional
 third-party Python packages required by this application) facilities.
 
 This low-level submodule defines functions intended to be called by high-level
-submodules (e.g., :mod:`betse.cli.api.cliabc`) *before* attempting to import any
+submodules (e.g., :mod:`betse.util.cli.cliabc`) *before* attempting to import any
 such dependencies.
 '''
 
@@ -31,7 +31,7 @@ _IS_INITTED = False
 
 That function uses this private boolean to guard against repeated invocations of
 the :func:`init` function from multiple modules in the same Python process
-(e.g., :mod:`betse.science.__init__`, :mod:`betse.cli.api.cliabc`). While that
+(e.g., :mod:`betse.science.__init__`, :mod:`betse.util.cli.cliabc`). While that
 function does technically support repeated calls, each additional call after the
 first inefficiently performs no meaningful work and is thus safely ignorable.
 '''

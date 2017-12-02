@@ -16,6 +16,8 @@ Subcommands accepted by this application's command line interface (CLI).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from abc import ABCMeta
+from betse.util.py import pyident
+from betse.util.type import iterables
 from betse.util.type.types import (
     type_check, ArgParserType, ArgSubparsersType, SequenceTypes,)
 
@@ -35,17 +37,17 @@ class CLISubcommander(object):
     ----------
     subcommand_name_to_arg_parser : MappingType
         Dictionary mapping from the name of each subcommand contained by this
-        container to the :class:`ArgumentParser` parsing that subcommand. Unlike
-        most other attributes, this dictionary is public to permit callers to
-        access these parsers during subcommand handling (e.g., to print
-        subcommand help by calling the :method:`ArgumentParser.print_help`
-        method).
-    _subcommand_var_name : str
+        container to the :class:`ArgumentParser` parsing that subcommand.
+    subcommand_name_to_subcommand : MappingType
+        Dictionary mapping from the name of each subcommand contained by this
+        container to the :class:`CLISubcommandABC` instance describing that
+        subcommand.
+    subcommand_var_name : str
         Name of the instance variable to which the :class:`ArgumentParser`
         parsing these subcommands from command-line options and arguments
         passed by the external user stores either:
         * The name of the currently passed subcommand for this container if
-            the user passed such a subcommand.
+          the user passed such a subcommand.
         * ``None`` otherwise.
     _subcommands : SequenceTypes
         Sequence of all **subcommands** (i.e., :class:`CLISubcommandABC`
@@ -101,14 +103,23 @@ Exactly one of the following subcommands must be passed:
             replaced as expected. Defaults to a sensible general-purpose string.
         '''
 
+        # If this name is *NOT* a valid variable name, raise an exception.
+        pyident.die_unless_var_name(subcommand_var_name)
+
+        # If any passed subcommand is *NOT* a subcommand, raise an exception..
+        iterables.die_unless_items_instance_of(
+            iterable=subcommands, cls=CLISubcommandABC)
+
         # Classify all passed parameters.
-        self._subcommand_var_name = subcommand_var_name
+        self.subcommand_var_name = subcommand_var_name
         self._subcommands = subcommands
         self._help_title = help_title
         self._help_description = help_description
 
-        # Nullify all remaining parameters for safety.
+        # Initialize all remaining parameters for safety.
         self.subcommand_name_to_arg_parser = {}
+        self.subcommand_name_to_subcommand = {
+            subcommand.name: subcommand for subcommand in subcommands}
 
     # ..................{ ADDERS                             }..................
     @type_check
@@ -116,7 +127,7 @@ Exactly one of the following subcommands must be passed:
         self,
 
         # Avoid circular import dependencies.
-        cli: 'betse.cli.api.cliabc.CLIABC',
+        cli: 'betse.util.cli.cliabc.CLIABC',
         arg_parser: ArgParserType,
     ) -> ArgSubparsersType:
         '''
@@ -128,7 +139,7 @@ Exactly one of the following subcommands must be passed:
 
         Parameters
         ----------
-        cli : betse.cli.api.cliabc.CLIABC
+        cli : betse.util.cli.cliabc.CLIABC
             High-level command-line interface (CLI) owning this container. To
             avoid circular references, neither this method nor any method
             transitively called by this method retains this reference.
@@ -149,7 +160,7 @@ Exactly one of the following subcommands must be passed:
         # Keyword arguments with which to initialize this container,
         # interpolating all format substrings in all human-readable arguments.
         kwargs = {
-            'dest':        self._subcommand_var_name,
+            'dest':        self.subcommand_var_name,
             'title':       cli.expand_help(self._help_title),
             'description': cli.expand_help(self._help_description),
         }
@@ -185,8 +196,12 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
     Attributes
     ----------
     name : str
-        Machine-readable name of this CLI subcommand (e.g., ``plot``), typically
-        only a single word.
+        Machine-readable alphanumeric name of this CLI subcommand (e.g.,
+        ``plot``), typically only a single word. This name should be suitable
+        fur use as a valid Python identifier. The :class:`CLIABC` instance
+        passed to the :meth:`add` method is expected to define a method named
+        ``_do_{name}`` (i.e., this name prefixed by ``_do_``), implementing this
+        subcommand.
     _help_synopsis : str
         Human-readable synopsis of this CLI subcommand, typically only one to
         three lines of lowercase, unpunctuated text.
@@ -209,8 +224,12 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
         Parameters
         ----------
         name : str
-            Machine-readable name of this CLI subcommand (e.g., ``plot``), typically
-            only a single word.
+            Machine-readable alphanumeric name of this CLI subcommand (e.g.,
+            ``plot``), typically only a single word. This name should be
+            suitable fur use as a valid Python identifier. The :class:`CLIABC`
+            instance passed to the :meth:`add` method is expected to define a
+            method named ``_do_{name}`` (i.e., this name prefixed by ``_do_``),
+            implementing this subcommand.
         help_synopsis : str
             Human-readable synopsis of this CLI subcommand, typically only one
             to three lines of lowercase, unpunctuated text. For convenience, all
@@ -221,6 +240,9 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
             several paragraphs of grammatical sentences. As in the ``synopsis``
             parameter, all format substrings are globally replaced as expected.
         '''
+
+        # If this name is *NOT* a valid variable name, raise an exception.
+        pyident.die_unless_var_name(name)
 
         # Classify all passed parameters.
         self.name = name
@@ -233,7 +255,7 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
         self,
 
         # Avoid circular import dependencies.
-        cli: 'betse.cli.api.cliabc.CLIABC',
+        cli: 'betse.util.cli.cliabc.CLIABC',
         arg_subparsers: ArgSubparsersType,
     ) -> ArgParserType:
         '''
@@ -251,7 +273,7 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        cli : betse.cli.api.cliabc.CLIABC
+        cli : betse.util.cli.cliabc.CLIABC
             High-level command-line interface (CLI) owning this subcommand. To
             avoid circular references, neither this method nor any method
             transitively called by this method retains this reference.
@@ -300,7 +322,7 @@ class CLISubcommandParent(CLISubcommandABC):
 
     Parameters
     ----------
-    _subcommander : CLISubcommander
+    subcommander : CLISubcommander
         Container of child subcommands accepted by this parent subcommand.
     '''
 
@@ -327,7 +349,7 @@ class CLISubcommandParent(CLISubcommandABC):
         super().__init__(*args, **kwargs)
 
         # Classify all remaining parameters.
-        self._subcommander = subcommander
+        self.subcommander = subcommander
 
     # ..................{ ADDERS                             }..................
     @type_check
@@ -335,7 +357,7 @@ class CLISubcommandParent(CLISubcommandABC):
         self,
 
         # Avoid circular import dependencies.
-        cli: 'betse.cli.api.cliabc.CLIABC',
+        cli: 'betse.util.cli.cliabc.CLIABC',
         *args, **kwargs
     ) -> ArgParserType:
 
@@ -343,7 +365,7 @@ class CLISubcommandParent(CLISubcommandABC):
         arg_parser = super().add(*args, cli=cli, **kwargs)
 
         # Add this container of argument subparsers to this parser.
-        self._subcommander.add(cli=cli, arg_parser=arg_parser)
+        self.subcommander.add(cli=cli, arg_parser=arg_parser)
 
         # Return this argument parser.
         return arg_parser

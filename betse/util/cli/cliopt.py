@@ -17,7 +17,6 @@ command line interface (CLI) options.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from abc import ABCMeta
-from betse.cli import cliutil
 from betse.exceptions import BetseCLIArgException
 from betse.util.py import pyident
 from betse.util.type.text import strs
@@ -29,6 +28,45 @@ from betse.util.type.types import (
     MappingOrNoneTypes,
     StrOrNoneTypes,
 )
+
+# ....................{ EXPANDERS                          }....................
+#FIXME: Replace with usage of the CLIABC.expand_help() method; then excise this.
+#To do so, we'll probably need to:
+#
+#* Define a new "CLIOptioner" container class analogous to the
+#  "clicmd.CLISubcommander" container class.
+#* Define a CLIOptioner.add() method.
+#* Refactor the CLIOptionABC.__init__() method to cease calling expand_help().
+#* Refactor all CLIOptionABC.add() methods to:
+#  * Accept an initial "cli" parameter.
+#  * Call the cli.expand_help() method to expand help strings as needed.
+#
+#Trivial, of course, given that we've already done so for subcommands. *sigh*
+
+@type_check
+def expand_help(text: str, **kwargs) -> str:
+    '''
+    Interpolate the passed keyword arguments into the passed help string
+    template, stripping all prefixing and suffixing whitespace from this
+    template.
+
+    For convenience, the following default keyword arguments are unconditionally
+    interpolated into this template:
+
+    * ``{script_basename}``, expanding to the basename of the current script
+        (e.g., ``betse``).
+    * ``{program_name}``, expanding to this script's human-readable name
+        (e.g., ``BETSE``).
+    '''
+
+    from betse import metadata
+    from betse.util.path.command import cmds
+
+    return strs.remove_whitespace_presuffix(text.format(
+        program_name=metadata.NAME,
+        script_basename=cmds.get_current_basename(),
+        **kwargs
+    ))
 
 # ....................{ SUPERCLASSES                       }....................
 class CLIOptionABC(object, metaclass=ABCMeta):
@@ -130,7 +168,7 @@ class CLIOptionABC(object, metaclass=ABCMeta):
 
         # Synopsize this option, interpolating these keyword arguments if any
         # into this synopsis.
-        self._add_argument_kwargs['help'] = cliutil.expand_help(
+        self._add_argument_kwargs['help'] = expand_help(
             synopsis, **synopsis_kwargs)
 
         # Python identifier derived from this option's long and short variants.
@@ -185,6 +223,9 @@ class CLIOptionABC(object, metaclass=ABCMeta):
         # Name of the variable to which this option is persisted, set to the
         # passed name if any or defaulting to the name set above otherwise.
         self._var_name = var_name if var_name is not None else var_name_default
+
+        # If this vraiable name is invalid, raise an exception.
+        pyident.die_unless_var_name(self._var_name)
 
     # ..................{ ADDERS                             }..................
     @type_check

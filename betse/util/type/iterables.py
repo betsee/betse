@@ -61,6 +61,39 @@ iterables of insufficient length).
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
+def die_unless_items_instance_of(
+    iterable: IterableTypes, cls: TestableTypes) -> None:
+    '''
+    Raise an exception unless *all* items of the passed iterable are instances
+    of the passed class or tuple of classes.
+
+    Parameters
+    ----------
+    iterable: IterableTypes
+        Iterable to be validated.
+    cls : TestableTypes
+        Class or tuple of classes to validate that all items of this iterable be
+        instances of.
+
+    Raises
+    ----------
+    BetseIterableException
+        If at least one item of this iterable is *not* an instance of this class
+        or tuple of classes.
+    '''
+
+    # If one or more items of this iterable are *NOT* such instances...
+    if not is_items_instance_of(iterable=iterable, cls=cls):
+        # First such item.
+        item_invalid = get_item_first_not_instance_of(
+            iterable=iterable, cls=cls)
+
+        # Raise an exception embedding this item.
+        raise BetseIterableException(
+            'Iterable item {} not instance of {}.'.format(item_invalid, cls))
+
+
+@type_check
 def die_unless_items_unique(iterable: IterableTypes) -> None:
     '''
     Raise an exception unless *all* items of the passed iterable are **unique**
@@ -69,7 +102,7 @@ def die_unless_items_unique(iterable: IterableTypes) -> None:
     Parameters
     ----------
     iterable: IterableTypes
-        Iterable to be inspected.
+        Iterable to be validated.
 
     Raises
     ----------
@@ -87,39 +120,6 @@ def die_unless_items_unique(iterable: IterableTypes) -> None:
             'Iterable items {} duplicate.'.format(items_duplicate))
 
 # ....................{ TESTERS                            }....................
-@type_check
-def is_items_unique(iterable: IterableTypes) -> bool:
-    '''
-    ``True`` only if *all* items of the passed iterable are **unique** (i.e.,
-    no two distinct items are equal).
-
-    Parameters
-    ----------
-    iterable : IterableTypes
-        Iterable to be inspected.
-
-    See Also
-    ----------
-    https://stackoverflow.com/a/5281641/2809027
-        StackOverflow post strongly inspiring this implementation.
-
-    Returns
-    ----------
-    bool
-        ``True`` only if *all* items of this iterable are unique.
-    '''
-
-    # Set of all unique items of this iterable previously visited below.
-    items_unique = set()
-
-    # Return True only if no items in this iterable are duplicates (i.e., have
-    # already been visited by a prior iteration of this test).
-    return not any(
-        # If this item is unique, add this item to this set as a side effect.
-        item in items_unique or items_unique.add(item)
-        for item in iterable)
-
-
 @type_check
 def is_reversible(iterable: IterableTypes) -> bool:
     '''
@@ -156,19 +156,76 @@ def is_reversible(iterable: IterableTypes) -> bool:
         )
     )
 
+# ....................{ TESTERS ~ items                    }....................
+@type_check
+def is_items_instance_of(iterable: IterableTypes, cls: TestableTypes) -> bool:
+    '''
+    ``True`` only if *all* items of the passed iterable are instances of the
+    passed class or tuple of classes.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be searched.
+    cls : TestableTypes
+        Class or tuple of classes to test that all items of this iterable be
+        instances of.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if *all* items of this iterable are instances of this
+        class or tuple of classes.
+    '''
+
+    return all(isinstance(item, cls) for item in iterable)
+
+
+@type_check
+def is_items_unique(iterable: IterableTypes) -> bool:
+    '''
+    ``True`` only if *all* items of the passed iterable are **unique** (i.e.,
+    no two distinct items are equal).
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/5281641/2809027
+        StackOverflow post strongly inspiring this implementation.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if *all* items of this iterable are unique.
+    '''
+
+    # Set of all unique items of this iterable previously visited below.
+    items_unique = set()
+
+    # Return True only if no items in this iterable are duplicates (i.e., have
+    # already been visited by a prior iteration of this test).
+    return not any(
+        # If this item is unique, add this item to this set as a side effect.
+        item in items_unique or items_unique.add(item)
+        for item in iterable)
+
 # ....................{ TESTERS ~ item                     }....................
 @type_check
 def is_item_satisfying(
     iterable: IterableTypes, predicate: CallableTypes) -> bool:
     '''
-    ``True`` only if some element of the passed iterable satisfies the passed
+    ``True`` only if some item of the passed iterable satisfies the passed
     **predicate** (i.e., callable accepting one parameter returning ``True``
     only if this parameter suffices).
 
     Parameters
     ----------
     iterable : IterableTypes
-        Iterable to be inspected.
+        Iterable to be searched.
     predicate : CallableTypes
         Callable accepting one parameter and returning ``True`` only if this
         parameter suffices.
@@ -176,7 +233,7 @@ def is_item_satisfying(
     Returns
     ----------
     bool
-        ``True`` only if some element of this iterable satisfies this predicate.
+        ``True`` only if some item of this iterable satisfies this predicate.
     '''
 
     # First item satisfying this predicate in this iterable if any *OR* the
@@ -192,21 +249,21 @@ def is_item_satisfying(
 def is_item_instance_of(
     iterable: IterableTypes, cls: TestableTypes) -> bool:
     '''
-    ``True`` only if some element of the passed iterable is an instance of the
-    passed class.
+    ``True`` only if some item of the passed iterable is an instance of the
+    passed class or tuple of classes.
 
     Parameters
     ----------
     iterable : IterableTypes
-        Iterable to be inspected.
+        Iterable to be searched.
     cls : TestableTypes
-        Type of the element to be tested for.
+        Class or tuple of classes of the item to search this iterable for.
 
     Returns
     ----------
     bool
-        ``True`` only if some element of this iterable is an instance of this
-        class.
+        ``True`` only if some item of this iterable is an instance of this
+        class or tuple of classes.
     '''
 
     return is_item_satisfying(
@@ -256,7 +313,7 @@ def get_items_duplicate(iterable: IterableTypes) -> set:
 @type_check
 def get_item_first(iterable: IterableTypes) -> object:
     '''
-    First element non-destructively retrieved from the passed iterable if this
+    First item non-destructively retrieved from the passed iterable if this
     iterable is non-empty *or* raise an exception otherwise (i.e., if this
     iterable is empty).
 
@@ -313,16 +370,16 @@ def get_item_first(iterable: IterableTypes) -> object:
 def get_item_first_instance_of(
     iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
     '''
-    First instance of the passed class retrieved from the passed iterable if
-    this iterable such an element *or* raise an exception otherwise (i.e., if
-    this iterable contains no such element).
+    First instance of the passed class or tuple of classes retrieved from the
+    passed iterable if this iterable contains such an item *or* raise an exception
+    otherwise (i.e., if this iterable contains no such item).
 
     Parameters
     ----------
     iterable : IterableTypes
-        Iterable to be inspected.
+        Iterable to be searched.
     cls : TestableTypes
-        Type of the element to be retrieved.
+        Class or tuple of classes of the item to search this iterable for.
     kwargs : dict
         Dictionary of all remaining keyword arguments to be passed as is to the
         :func:`get_item_first_satisfying` function.
@@ -335,7 +392,7 @@ def get_item_first_instance_of(
     Raises
     ----------
     BetseIterableException
-        If this iterable contains no such element.
+        If this iterable contains no such item.
 
     See Also
     ----------
@@ -349,15 +406,57 @@ def get_item_first_instance_of(
         **kwargs
     )
 
+
+@type_check
+def get_item_first_not_instance_of(
+    iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
+    '''
+    First item of this iterable that is *not* an instance of the passed class or
+    tuple of classes if this iterable contains such an item *or* raise an
+    exception otherwise (i.e., if all items of this iterable are such
+    instances).
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be searched.
+    cls : TestableTypes
+        Class or tuple of classes of the item to search this iterable for.
+    kwargs : dict
+        Dictionary of all remaining keyword arguments to be passed as is to the
+        :func:`get_item_first_satisfying` function.
+
+    Returns
+    ----------
+    object
+        First non-instance of this class in this iterable.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable contains only such instances.
+
+    See Also
+    ----------
+    :func:`get_item_first_satisfying_or_sentinel`
+        Further details on ordering guarantees.
+    '''
+
+    return get_item_first_satisfying(
+        iterable=iterable,
+        predicate=lambda item: not isinstance(item, cls),
+        **kwargs
+    )
+
 # ....................{ GETTERS ~ first : satisfying       }....................
 @type_check
 def get_item_first_satisfying_or_sentinel(
     iterable: IterableTypes, predicate: CallableTypes) -> object:
     '''
-    First element of the passed iterable satisfying the passed **predicate**
-    (i.e., callable accepting one parameter, returning `True` only if this
-    parameter suffices) if this iterable contains such an element _or_ the
-    :data:`SENTINEL` placeholder constant otherwise.
+    First item of the passed iterable satisfying the passed **predicate** (i.e.,
+    callable accepting one parameter, returning `True` only if this parameter
+    suffices) if this iterable contains such an item *or* the :data:`SENTINEL`
+    placeholder constant otherwise.
 
     If the passed iterable is a:
 
@@ -372,19 +471,19 @@ def get_item_first_satisfying_or_sentinel(
     iterable : IterableTypes
         Iterable to be inspected.
     predicate : CallableTypes
-        Callable accepting one parameter and returning `True` only if this
+        Callable accepting one parameter and returning ``True`` only if this
         parameter suffices.
 
     Returns
     ----------
     object
-        First element satisfying this predicate in this iterable if any _or_
+        First element satisfying this predicate in this iterable if any *or*
         :data:`SENTINEL` otherwise.
 
     Raises
     ----------
     BetseIterableException
-        If this iterable contains no such element.
+        If this iterable contains no such item.
     '''
 
     # Collective efficiency is our middle names.
@@ -398,10 +497,10 @@ def get_item_first_satisfying(
     exception_message: str = None,
 ) -> object:
     '''
-    First element of the passed iterable satisfying the passed **predicate**
-    (i.e., callable accepting one parameter, returning `True` only if this
-    parameter suffices) if this iterable contains such an element _or_ raise an
-    exception otherwise (i.e., if this iterable contains no such element).
+    First item of the passed iterable satisfying the passed **predicate** (i.e.,
+    callable accepting one parameter, returning `True` only if this parameter
+    suffices) if this iterable contains such an item *or* raise an exception
+    otherwise (i.e., if this iterable contains no such item).
 
     Parameters
     ----------
@@ -411,18 +510,18 @@ def get_item_first_satisfying(
         Callable accepting one parameter and returning `True` only if this
         parameter suffices.
     exception_message : optional[str]
-        Exception message to be raised if no such element is found. Defaults to
-        `None`, in which case a suitably general-purpose message is synthesized.
+        Exception message to be raised if no such item is found. Defaults to
+        ``None``, in which case a general-purpose message is synthesized.
 
     Returns
     ----------
     object
-        First element satisfying this predicate in this iterable.
+        First item satisfying this predicate in this iterable.
 
     Raises
     ----------
     BetseIterableException
-        If this iterable contains no such element.
+        If this iterable contains no such item.
 
     See Also
     ----------
@@ -453,16 +552,16 @@ def get_item_first_satisfying(
 def get_item_last_instance_of(
     iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
     '''
-    Last instance of the passed class retrieved from the passed iterable if
-    this iterable such an element *or* raise an exception otherwise (i.e., if
-    this iterable contains no such element).
+    Last instance of the passed class or tuple of classes retrieved from the
+    passed iterable if this iterable contains such an item *or* raise an
+    exception otherwise (i.e., if this iterable contains no such item).
 
     Parameters
     ----------
     iterable : IterableTypes
-        Iterable to be inspected.
+        Iterable to be searched.
     cls : TestableTypes
-        Type of the element to be retrieved.
+        Class or tuple of classes of the item to search this iterable for.
     kwargs : dict
         Dictionary of all remaining keyword arguments to be passed as is to the
         :func:`get_item_last_satisfying` function.
@@ -475,7 +574,7 @@ def get_item_last_instance_of(
     Raises
     ----------
     BetseIterableException
-        If this iterable contains no such element.
+        If this iterable contains no such item.
 
     See Also
     ----------
@@ -494,16 +593,16 @@ def get_item_last_instance_of(
 def get_item_last_instance_of_or_none(
     iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
     '''
-    Last instance of the passed class retrieved from the passed iterable if
-    this iterable such an element *or* ``None`` otherwise (i.e., if this
-    iterable contains no such element).
+    Last instance of the passed class or tuple of classes retrieved from the
+    passed iterable if this iterable contains such an item *or* ``None``
+    otherwise (i.e., if this iterable contains no such element).
 
     Parameters
     ----------
     iterable : IterableTypes
-        Iterable to be inspected.
+        Iterable to be searched.
     cls : TestableTypes
-        Type of the element to be retrieved.
+        Class or tuple of classes of the item to search this iterable for.
     kwargs : dict
         Dictionary of all remaining keyword arguments to be passed as is to the
         :func:`get_item_last_satisfying` function.
@@ -511,13 +610,13 @@ def get_item_last_instance_of_or_none(
     Returns
     ----------
     object
-        Last instance of this class in this iterable if any _or_
+        Last instance of this class in this iterable if any *or*
         :data:`SENTINEL` otherwise.
 
     Raises
     ----------
     BetseIterableException
-        If this iterable contains no such element.
+        If this iterable contains no such item.
 
     See Also
     ----------
@@ -1103,6 +1202,7 @@ def _zip_isometric_error(iterables: tuple, ntuple: tuple) -> None:
 
     # Index of the erroneously short iterable in this tuple of iterables,
     # identical to the index of the first sentinel in the passed zipped tuple.
+    iterable_short_index = None
     for iterable_short_index, item in enumerate(ntuple):
         if item is SENTINEL:
             break

@@ -17,13 +17,13 @@ Top-level abstract base class of all command line interface (CLI) subclasses.
 
 import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
+from betse import metadata as betse_metadata
 from betse import pathtree
-from betse.cli import cliutil
 from betse.lib import libs
+from betse.util.cli.cliarg import SemicolonAwareHelpFormatter
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logenum import LogLevel
 from betse.util.path.command import cmds
-from betse.util.path.command.cmdarg import SemicolonAwareHelpFormatter
 from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.pyprofile import profile_callable, ProfileType
 from betse.util.type import types
@@ -203,7 +203,6 @@ class CLIABC(object, metaclass=ABCMeta):
         return self._exit_status
 
     # ..................{ EXPANDERS                          }..................
-    #FIXME: Replace all use of the cliutil.expand_help() function by this.
     @type_check
     def expand_help(self, text: str, **kwargs) -> str:
         '''
@@ -368,7 +367,7 @@ class CLIABC(object, metaclass=ABCMeta):
         '''
 
         # Avoid circular import dependencies.
-        from betse.cli.api.cliopt import (
+        from betse.util.cli.cliopt import (
             CLIOptionArgEnum,
             CLIOptionArgStr,
             CLIOptionBoolTrue,
@@ -377,6 +376,10 @@ class CLIABC(object, metaclass=ABCMeta):
 
         # Singleton logging configuration for the current Python process.
         log_config = logconfig.get()
+
+        # Human-readable version specifier suitable for printing to end users.
+        version_output = '{} {}'.format(
+            cmds.get_current_basename(), self._module_metadata.VERSION)
 
         # Return a tuple of all default top-level options.
         return (
@@ -390,7 +393,7 @@ class CLIABC(object, metaclass=ABCMeta):
                 short_name='-V',
                 long_name='--version',
                 synopsis='print program version and exit',
-                version=cliutil.get_version(),
+                version=version_output,
             ),
 
             CLIOptionArgStr(
@@ -528,6 +531,29 @@ class CLIABC(object, metaclass=ABCMeta):
         #   ignition.reinit() function is called instead.
         self._module_ignition.reinit()
 
+
+    def _show_header(self) -> None:
+        '''
+        Display a human-readable synopsis of this application, typically by
+        logging the basename and current version of this application and various
+        metadata assisting debugging of end user issues.
+        '''
+
+        # Log this in a manner suitable for downstream applications requiring
+        # BETSE as an upstream dependency (e.g., BETSEE).
+        logs.log_info(
+            'Welcome to <<'
+            '{script_name} {script_version} | '
+            '{betse_name} {betse_version} | '
+            '{betse_codename}'
+            '>>.'.format(
+                script_name=self._module_metadata.NAME,
+                script_version=self._module_metadata.VERSION,
+                betse_name=betse_metadata.NAME,
+                betse_version=betse_metadata.VERSION,
+                betse_codename=betse_metadata.CODENAME,
+            ))
+
     # ..................{ EXCEPTIONS                         }..................
     @type_check
     def _handle_exception(self, exception: Exception) -> None:
@@ -610,18 +636,6 @@ class CLIABC(object, metaclass=ABCMeta):
     def _config_arg_parsing(self) -> None:
         '''
         Configure subclass-specific argument parsing.
-
-        Defaults to a noop.
-        '''
-
-        pass
-
-
-    def _show_header(self) -> None:
-        '''
-        Display a human-readable synopsis of this application, typically by
-        logging the basename and current version of this application and various
-        metadata assisting debugging of end user issues.
 
         Defaults to a noop.
         '''

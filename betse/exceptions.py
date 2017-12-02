@@ -60,6 +60,7 @@ class BetsePyException(BetseException):
     concerning the active Python interpreter (e.g., inability to retrieve this
     interpreter's absolute path).
     '''
+
     pass
 
 
@@ -68,6 +69,16 @@ class BetsePyFrozenException(BetsePyException):
     Low-level exception pertaining to **frozen executables** (i.e., Python
     codebases converted into platform-specific executables).
     '''
+
+    pass
+
+
+class BetsePyIdentifierException(BetsePyException):
+    '''
+    Low-level exception pertaining to **Python identifiers** (i.e., class,
+    module, or attribute name).
+    '''
+
     pass
 
 # ....................{ EXCEPTIONS ~ arg                  }....................

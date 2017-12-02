@@ -69,7 +69,7 @@ _IS_IGNITED = False
 
 That function uses this private boolean to guard against repeated invocations of
 the :func:`init` function from multiple modules in the same Python process
-(e.g., :mod:`betse.science.__init__`, :mod:`betse.cli.api.cliabc`). While that
+(e.g., :mod:`betse.science.__init__`, :mod:`betse.util.cli.cliabc`). While that
 function does technically support repeated calls, each additional call after the
 first inefficiently performs no meaningful work and is thus safely ignorable.
 '''

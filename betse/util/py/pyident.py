@@ -10,7 +10,7 @@ facilities.
 
 # ....................{ IMPORTS                            }....................
 import re
-from betse.exceptions import BetseStrException
+from betse.exceptions import BetsePyIdentifierException
 from betse.util.type.types import type_check, RegexMatchType
 
 # ....................{ CLASSES                            }....................
@@ -27,8 +27,8 @@ alphanumeric ASCII characters.
 
 IDENTIFIER_CHAR_CLASS = IDENTIFIER_ALPHANUMERIC_CHAR_CLASS + r'_'
 '''
-Character class (excluding `[` and `]` delimiters) matching any character of a
-**Python identifier** (i.e., class, module, or attribute name).
+Character class (excluding ``[`` and ``]`` delimiters) matching any character of
+a **Python identifier** (i.e., class, module, or attribute name).
 '''
 
 # ....................{ REGEXES                            }....................
@@ -57,7 +57,8 @@ some other format. For example, to convert CamelCase to snake_case:
 IDENTIFIER_UNQUALIFIED_REGEX = r'[{}]+'.format(IDENTIFIER_CHAR_CLASS)
 '''
 Uncompiled regular expression matching an **unqualified Python identifier**
-(i.e., module or attribute name _not_ prefixed by a package or module name).
+(i.e., class, module, or attribute name *not* prefixed by a package or module
+name).
 '''
 
 
@@ -66,21 +67,63 @@ IDENTIFIER_QUALIFIED_REGEX = (
         identifier_unqualified=IDENTIFIER_UNQUALIFIED_REGEX))
 '''
 Uncompiled regular expression matching a **qualified Python identifier** (i.e.,
-module or attribute name possibly prefixed by a package or module name).
+class, module, or attribute name possibly prefixed by a package or module name).
 '''
 
-# ....................{ PRIVATE ~ regexes                  }....................
-# This regular expression is frequently referenced at application startup and
+# ....................{ REGEX ~ compiled                   }....................
+# These regular expressions are frequently referenced at application startup and
 # thus unconditionally compiled. Specifically, this regex is referenced by the
 # sanitize_camelcase() function called by the var_alias() descriptor
 # repeatedly instantiated at class scope by "Parameters"-related classes.
-_IDENTIFIER_SANITIZE_CAMELCASE_REGEX = re.compile(
+
+_IDENTIFIER_UNQUALIFIED_REGEX_COMPILED = re.compile(
+    IDENTIFIER_UNQUALIFIED_REGEX)
+'''
+Compiled regular expression matching an **unqualified Python identifier**
+(i.e., class, module, or attribute name *not* prefixed by a package or module
+name).
+'''
+
+
+_IDENTIFIER_SANITIZE_CAMELCASE_REGEX_COMPILED = re.compile(
     r'(?:^|[^a-zA-Z0-9]+)([a-z])?')
 '''
 Compiled regular expression matching either the string start *or* one or more
 alphanumeric ASCII characters optionally followed by a lowercase alphabetic
 ASCII character, internally required by the :func:`sanitize_camelcase` function.
 '''
+
+# ....................{ EXCEPTIONS                         }....................
+@type_check
+def die_unless_var_name(text: str) -> None:
+    '''
+    Raise an exception unless the passed string is a syntactically valid
+    variable name.
+
+    See Also
+    ----------
+    :func:`is_var_name`
+        Further details
+    '''
+
+    # If this string is *NOT* a valid variable name, raise an exception.
+    if not is_var_name(text):
+        raise BetsePyIdentifierException(
+            'String "{}" not a valid variable name.'.format(text))
+
+# ....................{ TESTERS                            }....................
+@type_check
+def is_var_name(text: str) -> bool:
+    '''
+    ``True`` only if the passed string is a syntactically valid variable name.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text import regexes
+
+    # Return True only if this string matches the desired regular expression.
+    return regexes.is_match(
+        text=text, regex=_IDENTIFIER_UNQUALIFIED_REGEX_COMPILED)
 
 # ....................{ CONVERTERS ~ camel                 }....................
 def convert_camelcase_to_snakecase(identifier: str) -> str:
@@ -143,7 +186,7 @@ def sanitize_camelcase(identifier: str) -> str:
 
     Raises
     ----------
-    BetseStrException
+    BetsePyIdentifierException
         If the passed string contains no alphanumeric characters, in which case
         the resulting identifier would be empty and hence invalid.
     '''
@@ -154,7 +197,7 @@ def sanitize_camelcase(identifier: str) -> str:
     # Identifier sanitized from this unsanitized identifier as detailed above.
     identifier_sanitized = regexes.replace_substrs(
         text=identifier,
-        regex=_IDENTIFIER_SANITIZE_CAMELCASE_REGEX,
+        regex=_IDENTIFIER_SANITIZE_CAMELCASE_REGEX_COMPILED,
         replacement=_sanitize_camelcase_match,
     )
 
@@ -162,7 +205,7 @@ def sanitize_camelcase(identifier: str) -> str:
     # must necessarily have contained no alphanumeric characters. In this case,
     # raise an exception.
     if not identifier_sanitized:
-        raise BetseStrException(
+        raise BetsePyIdentifierException(
             'Unsanitized identifier "{}" contains no '
             'alphanumeric characters.'.format(identifier))
 
