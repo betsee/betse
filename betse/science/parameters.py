@@ -887,8 +887,8 @@ class Parameters(YamlFileABC):
         ro = self._conf['results options']
 
         # Avoid circular import dependencies.
-        from betse.science.config.export.confanim import SimConfAnimAll
-        from betse.science.config.export.confplot import SimConfPlotAll
+        from betse.science.config.visual.confanim import SimConfAnimAll
+        from betse.science.config.visual.confplot import SimConfPlotAll
 
         # ................{ EXPORTS ~ anim                     }................
         # Animation subconfiguration.

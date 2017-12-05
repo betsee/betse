@@ -9,7 +9,7 @@ simulated data of all cells in the cell cluster).
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.science.config.export.confvis import SimConfVisualCellsListItem
+from betse.science.config.visual.confvisabc import SimConfVisualCellsListItem
 from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil

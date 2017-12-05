@@ -13,6 +13,7 @@ import pprint
 from betse.exceptions import BetseMappingException
 from betse.util.type.types import (
     type_check, MappingType, HashableType,)
+from copy import deepcopy
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
@@ -99,12 +100,48 @@ def format(mapping: MappingType) -> str:
 
     return pprint.pformat(mapping)
 
+# ....................{ COPIERS                            }....................
+@type_check
+def copy(mapping: MappingType) -> MappingType:
+    '''
+    Dictionary of all key-value pairs deeply (i.e., recursively) duplicated from
+    the passed dictionary.
+
+    This function should *always* be called in lieu of the standard
+    :meth:`dict.__init__` and :meth:`dict.copy` methods, which only perform
+    shallow dictionary copies. These copies fail to copy data structures nested
+    in the values of the original dictionary, inviting subtle synchronization
+    woes on subsequently modifying either the original or copied dictionaries.
+
+    Parameters
+    ----------
+    mapping: MappingType
+        Dictionary to be deeply copied.
+
+    Returns
+    ----------
+    MappingType
+        Dictionary of all key-value pairs deeply (i.e., recursively) duplicated
+        from the passed dictionary.
+    '''
+
+    #FIXME: Does this simplistic approach guarantee the returned mapping to be
+    #of the same type as the passed mapping?
+    return deepcopy(mapping)
+
 # ....................{ MERGERS                            }....................
 @type_check
 def merge(*dicts: MappingType) -> MappingType:
     '''
-    Dictionary of all key-value pairs merged together from all passed
-    dictionaries (in the passed order).
+    Dictionary of all key-value pairs deeply (i.e., recursively) merged together
+    from all passed dictionaries (in the passed order).
+
+    **Order is significant.** Dictionaries passed later take precedence over
+    dictionaries passed earlier. Ergo, the last passed dictionary takes
+    precedence over *all* other passed dictionaries. Whenever any two passed
+    dictionaries collide (i.e., contain the same key), the returned dictionary
+    contains a key-value pair for that key whose value is that of the key-value
+    pair for the same key of whichever of the two dictionaries was passed last.
 
     Parameters
     ----------
@@ -115,10 +152,8 @@ def merge(*dicts: MappingType) -> MappingType:
     ----------
     MappingType
         Dictionary merged from and of the same type as the passed dictionaries.
-        For efficiency, this dictionary is only a shallow rather than deep copy
-        of these dictionaries. Note lastly that the class of the passed
-        dictionary *must* define an ``__init__()`` method accepting a dictionary
-        comprehension.
+        Note lastly that the class of the passed dictionary *must* define an
+        ``__init__()`` method accepting a dictionary comprehension.
 
     See Also
     ----------
@@ -138,7 +173,8 @@ def merge(*dicts: MappingType) -> MappingType:
     # commentary replete with timings at:
     #     http://treyhunner.com/2016/02/how-to-merge-dictionaries-in-python
     dict_merged = {
-        key: value
+        # For safety, deeply copy rather than reuse this value.
+        key: deepcopy(value)
         for dict_cur in dicts
         for key, value in dict_cur.items()
     }

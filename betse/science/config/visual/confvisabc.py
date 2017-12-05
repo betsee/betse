@@ -56,14 +56,13 @@ class SimConfVisualCellsABC(object, metaclass=ABCMeta):
 
 class SimConfVisualCellsYAMLMixin(SimConfVisualCellsABC):
     '''
-    Abstract mix-in generalizing logic common to all YAML-backed cell cluster
-    visual subconfigurations.
+    Abstract mixin generalizing implementation common to all YAML-backed cell
+    cluster visual subconfiguration subclasses.
 
-    This mix-in encapsulates the configuration of a single visual (either
-    in- or post-simulation plot or animation) parsed from the current
-    YAML-formatted simulation configuration file. For generality, this mix-in
-    provides no support for a YAML ``type`` key or corresponding :attr:`name`
-    property.
+    This mixin encapsulates configuration of a single visual (either in- or
+    post-simulation plot or animation) parsed from the current YAML-formatted
+    simulation configuration file. For generality, this mixin provides no
+    support for a YAML ``type`` key or corresponding :attr:`name` property.
     '''
 
     # ..................{ ALIASES ~ colorbar                 }..................

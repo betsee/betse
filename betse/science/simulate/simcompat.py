@@ -67,17 +67,12 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
     from betse.science import channels
     from betse.science.math import finitediff
     from betse.science.simulate import simphase
-    from betse.science.config import export
-    from betse.science.config.export import confanim, confplot, confvis
+    from betse.science.config.visual import confanim, confplot, confvisabc
     from betse.util.type.mapping import mapcls
 
     # Alias obsolete module names to current module objects.
     sys.modules['betse.science.config.confabc'] = yamlabc
-    sys.modules['betse.science.config.export.confvisabc'] = confvis
-    sys.modules['betse.science.config.visual'] = export
-    sys.modules['betse.science.config.visual.confanim'] = confanim
-    sys.modules['betse.science.config.visual.confplot'] = confplot
-    sys.modules['betse.science.config.visual.confvisualabc'] = confvis
+    sys.modules['betse.science.config.visual.confvisualabc'] = confvisabc
     sys.modules['betse.science.finitediff'] = finitediff
     sys.modules['betse.science.tissue.channels'] = channels
     sys.modules['betse.science.plot.plotconfig'] = confplot
@@ -88,14 +83,14 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
 
     # Alias obsolete to current class names.
     yamlabc.SimConfList = yamllistabc.YamlList
-    confanim.SimConfAnimOne       = confvis.SimConfVisualCellsListItem
-    confvis.SimConfVisualABC      = confvis.SimConfVisualCellsABC
-    confvis.SimConfVisualMixin    = confvis.SimConfVisualCellsYAMLMixin
-    confvis.SimConfVisualMolecule = confvis.SimConfVisualCellsNonYAML
-    confvis.SimConfVisualGeneric  = confvis.SimConfVisualCellsEmbedded
-    confvis.SimConfVisualListable = confvis.SimConfVisualCellsListItem
-    confvis.SimConfVisual         = confvis.SimConfVisualCellsListItem
-    confvis.SimConfListableVisual = confvis.SimConfVisualCellsListItem
+    confanim.SimConfAnimOne       = confvisabc.SimConfVisualCellsListItem
+    confvisabc.SimConfVisualABC      = confvisabc.SimConfVisualCellsABC
+    confvisabc.SimConfVisualMixin    = confvisabc.SimConfVisualCellsYAMLMixin
+    confvisabc.SimConfVisualMolecule = confvisabc.SimConfVisualCellsNonYAML
+    confvisabc.SimConfVisualGeneric  = confvisabc.SimConfVisualCellsEmbedded
+    confvisabc.SimConfVisualListable = confvisabc.SimConfVisualCellsListItem
+    confvisabc.SimConfVisual         = confvisabc.SimConfVisualCellsListItem
+    confvisabc.SimConfListableVisual = confvisabc.SimConfVisualCellsListItem
     simphase.SimPhaseType = simphase.SimPhaseKind
     sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
         confanim.SimConfAnimAll)
@@ -119,6 +114,7 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
 
     # Import all modules whose fully-qualified names have been modified.
     from betse.lib.yaml.abc import yamlabc  #, yamllistabc
+    from betse.science.config.visual import confanim, confplot, confvisabc
     from betse.science.tissue import tisprofile, tishandler
     from betse.science.tissue.event import tisevecut, tisevevolt
     from betse.science.tissue.picker import tispickcls, tispickimage
@@ -131,6 +127,9 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     sys.modules['betse.lib.yaml.yamlabc'] = yamlabc
     sys.modules['betse.science.config.event.eventcut'] = tisevecut
     sys.modules['betse.science.config.event.eventvoltage'] = tisevevolt
+    sys.modules['betse.science.config.export.confanim'] = confanim
+    sys.modules['betse.science.config.export.confplot'] = confplot
+    sys.modules['betse.science.config.export.confvis'] = confvisabc
     sys.modules['betse.science.tissue.bitmapper'] = tispickimage
     sys.modules['betse.science.tissue.handler'] = tishandler
     sys.modules['betse.science.tissue.tiscls'] = tisprofile

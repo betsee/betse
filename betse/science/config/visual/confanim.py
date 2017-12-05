@@ -16,7 +16,7 @@ YAML-backed simulation animation subconfigurations.
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_alias_int_positive
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import YamlList
-from betse.science.config.export.confvis import (
+from betse.science.config.visual.confvisabc import (
     SimConfVisualCellsListItem, SimConfVisualCellsEmbedded)
 from betse.util.type.types import type_check, MappingType, SequenceTypes
 

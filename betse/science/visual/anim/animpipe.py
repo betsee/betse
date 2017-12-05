@@ -12,7 +12,7 @@ exporting) post-simulation animations.
 #the generation of each animation to its own Python process. Verdant shimmers!
 
 # ....................{ IMPORTS                            }....................
-from betse.science.config.export.confvis import SimConfVisualCellsListItem
+from betse.science.config.visual.confvisabc import SimConfVisualCellsListItem
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.pipeabc import SimPipeExportABC

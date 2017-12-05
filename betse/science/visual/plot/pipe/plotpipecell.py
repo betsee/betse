@@ -10,7 +10,7 @@ simulated data of a single cell of the cell cluster).
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimConfigException
-from betse.science.config.export.confvis import SimConfVisualCellListItem
+from betse.science.config.visual.confvisabc import SimConfVisualCellListItem
 from betse.science.simulate.pipe import piperunreq
 from betse.science.visual.plot.pipe.plotpipeabc import PlotPipeABC
 from betse.science.simulate.pipe.piperun import piperunner
