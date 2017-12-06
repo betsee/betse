@@ -27,13 +27,32 @@ class YamlListItemABC(YamlABC):
     related key-value pairs (e.g., animation settings, tissue profile).
     '''
 
-    # ..................{ MAKERS                             }..................
+    # ..................{ MAKERS ~ abstract                  }..................
+    # Subclasses are required to implement the following abstract class methods.
+
+    @classmethod
+    def make_list(cls, *args, **kwargs) -> (
+        'betse.lib.yaml.abc.yamllistabc.YamlList'):
+        '''
+        Create and return a low-level YAML-backed list containing only items of
+        this specific subclass type, both loaded from and savable back into a
+        YAML-formatted file.
+
+        Parameters
+        ----------
+        All parameters are passed as is to the :meth:`YamlList.__init__` method.
+        '''
+
+        return YamlList(*args, item_type=cls, **kwargs)
+
+    # ..................{ MAKERS ~ abstract                  }..................
+    # Subclasses are required to implement the following abstract class methods.
     @classmethod
     @abstractmethod
     def make_default(
         cls,
         yaml_list: 'betse.lib.yaml.abc.yamllistabc.YamlList',
-    ) -> 'betse.science.config.confabc.YamlListItemABC':
+    ) -> 'betse.lib.yaml.abc.yamllistabc.YamlListItemABC':
         '''
         Create and return an instance of this subclass encapsulating a new
         dictionary containing default configuration settings.
@@ -76,7 +95,7 @@ class YamlListItemTypedABC(YamlListItemABC):
 # ....................{ SUPERCLASSES ~ list                }....................
 class YamlList(MutableSequence):
     '''
-    Low-level YAML-backed list both loaded from and savable back to a
+    Low-level YAML-backed list both loaded from and savable back into a
     YAML-formatted file.
 
     Each item of this list is a :class:`YamlListItemABC` instance encapsulating
@@ -88,13 +107,13 @@ class YamlList(MutableSequence):
     Attributes
     ----------
     _confs_wrap : list
-        High-level list of all instances of the :attr:`_conf_type` subclass
+        High-level list of all instances of the :attr:`_item_type` subclass
         encapsulating each dictionary in the low-level :attr:`_confs_yaml` list.
     _confs_yaml : SequenceTypes
         Low-level list of all dictionaries of related configuration settings
         both loaded from and savable back to the current YAML-formatted
         simulation configuration file.
-    _conf_type : ClassType
+    _item_type : ClassType
         Subclass of the :class:`YamlListItemABC` abstract base class with
         which to instantiate each simulation configuration object encapsulating
         each dictionary in the :attr:`_confs_yaml` list.
@@ -103,7 +122,7 @@ class YamlList(MutableSequence):
     # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
-        self, confs: SequenceOrNoneTypes, conf_type: ClassType) -> None:
+        self, confs: SequenceOrNoneTypes, item_type: ClassType) -> None:
         '''
         Initialize this low-level YAML-backed list.
 
@@ -115,7 +134,7 @@ class YamlList(MutableSequence):
             as a dictionary key) *or* ``None`` otherwise (i.e., if this file
             defines no such list). If ``None``, this sequence internally
             defaults to the empty list.
-        conf_type : ClassType
+        item_type : ClassType
             Subclass of the :class:`YamlListItemABC` abstract base class
             with which to encapsulate each low-level YAML-backed list item in
             the passed ``confs`` list. For each such item, a new instance of
@@ -125,7 +144,7 @@ class YamlList(MutableSequence):
 
         # Raise an exception unless the passed type implements the expected API.
         classes.die_unless_subclass(
-            subclass=conf_type, superclass=YamlListItemABC)
+            subclass=item_type, superclass=YamlListItemABC)
 
         # If this list is unspecified, default this list to the empty list.
         if confs is None:
@@ -133,12 +152,12 @@ class YamlList(MutableSequence):
 
         # Classify all passed parameters.
         self._confs_yaml = confs
-        self._conf_type = conf_type
+        self._item_type = item_type
 
         # Wrap each dictionary in this list with a new object of this type.
         self._confs_wrap = []
         for conf_yaml in self._confs_yaml:
-            self._confs_wrap.append(self._conf_type(conf=conf_yaml))
+            self._confs_wrap.append(self._item_type(conf=conf_yaml))
 
     # ..................{ SUPERCLASS                         }..................
     # Abstract methods required by our superclass.
@@ -168,7 +187,7 @@ class YamlList(MutableSequence):
         # Raise an exception unless the passed object is an instance of the
         # desired API, which is specified at initialization time and hence
         # cannot be type checked above by a method annotation.
-        objects.die_unless_instance(obj=value, cls=self._conf_type)
+        objects.die_unless_instance(obj=value, cls=self._item_type)
 
         # Set the high-level list item with this index to this object.
         self._confs_wrap[index] = value
@@ -188,7 +207,7 @@ class YamlList(MutableSequence):
         # Raise an exception unless the passed object is an instance of the
         # desired API, which is specified at initialization time and hence
         # cannot be type checked above by a method annotation.
-        objects.die_unless_instance(obj=value, cls=self._conf_type)
+        objects.die_unless_instance(obj=value, cls=self._item_type)
 
         # Insert this object *BEFORE* the high-level list item with this index.
         self._confs_wrap.insert(index, value)
@@ -206,13 +225,13 @@ class YamlList(MutableSequence):
         Returns
         ----------
         YamlListItemABC
-            Instance of the :attr:`_conf_type` subclass appended to the
+            Instance of the :attr:`_item_type` subclass appended to the
             high-level :attr:`_confs_wrap` list, encapsulating the new list item
             appended to the low-level :attr:`_confs_yaml` list.
         '''
 
         # New simulation configuration list item specific to this list.
-        conf_wrap = self._conf_type.make_default(self)
+        conf_wrap = self._item_type.make_default(self)
 
         # Append this list item to this list.
         self.append(conf_wrap)

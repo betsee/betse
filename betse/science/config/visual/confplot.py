@@ -12,7 +12,6 @@ YAML-backed simulation plot subconfigurations.
 # ....................{ IMPORTS                            }....................
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_alias_int_positive
 from betse.lib.yaml.abc.yamlabc import YamlABC
-from betse.lib.yaml.abc.yamllistabc import YamlList
 from betse.science.config.visual.confvisabc import (
     SimConfVisualCellsListItem, SimConfVisualCellListItem)
 from betse.util.type.types import type_check
@@ -75,18 +74,14 @@ class SimConfPlotAll(YamlABC):
         super().__init__(*args, **kwargs)
 
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
-        self.after_sim_pipeline_cell = YamlList(
-            confs=self._conf[
+        self.after_sim_pipeline_cell = SimConfVisualCellListItem.make_list(
+            self._conf[
                 'results options']['after solving'][
-                'plots']['single cell pipeline'],
-            conf_type=SimConfVisualCellListItem,
-        )
-        self.after_sim_pipeline_cells = YamlList(
-            confs=self._conf[
+                'plots']['single cell pipeline'])
+        self.after_sim_pipeline_cells = SimConfVisualCellsListItem.make_list(
+            self._conf[
                 'results options']['after solving'][
-                'plots']['cell cluster pipeline'],
-            conf_type=SimConfVisualCellsListItem,
-        )
+                'plots']['cell cluster pipeline'])
 
     # ..................{ PROPERTIES ~ after                 }..................
     @property

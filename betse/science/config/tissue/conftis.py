@@ -8,7 +8,7 @@ YAML-backed simulation subconfiguration classes for tissue and cut profiles.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta  #, abstractproperty
+from abc import ABCMeta, abstractproperty
 from betse.lib.yaml.yamlalias import (
     yaml_alias,
     yaml_alias_float_nonnegative,
@@ -20,12 +20,11 @@ from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import YamlList, YamlListItemABC
 # from betse.util.io.log import logs
 from betse.util.type.enums import make_enum
-from betse.util.type.mapping import maputil
-from betse.util.type.types import type_check, MappingType, SequenceTypes
+from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ ENUMS                              }....................
-TissueProfilePickerType = make_enum(
-    class_name='TissueProfilePickerType',
+TissuePickerType = make_enum(
+    class_name='TissuePickerType',
     member_names=('ALL', 'IMAGE', 'INDICES', 'PERCENT',))
 '''
 Enumeration of all supported types of **tissue profile pickers** (i.e., objects
@@ -46,38 +45,6 @@ PERCENT : enum
     Randomized cell picker, randomly matching a given percentage of all cells.
 '''
 
-# ....................{ DEFAULTS                           }....................
-def _get_tissue_conf_default() -> MappingType:
-    '''
-    Low-level dictionary suitable for use as the default value for the ``conf``
-    parameter of YAML-centric methods (e.g., :meth:`YamlListItemABC.__init__`)
-    generally pertaining to tissue profiles.
-
-    For orthogonality, the contents of this dictionary exactly duplicate the
-    default tissue profile listed first in our default YAML-formatted
-    simulation configuration file.
-    '''
-
-    return {
-        'name': 'base',
-        'insular': True,
-        'diffusion constants': {
-            'Dm_Na': 1.0e-18,
-            'Dm_K': 15.0e-18,
-            'Dm_Cl': 2.0e-18,
-            'Dm_Ca': 1.0e-18,
-            'Dm_H': 1.0e-18,
-            'Dm_M': 1.0e-18,
-            'Dm_P': 0.0,
-        },
-        'cell targets': {
-            'type': 'all',
-            'bitmap': {'file': 'geo/circle/circle_base.png'},
-            'indices': [3, 14, 15, 9, 265],
-            'random': 50,
-        },
-    }
-
 # ....................{ SUPERCLASSES                       }....................
 class SimConfTissueABC(object, metaclass=ABCMeta):
     '''
@@ -95,8 +62,10 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
         ``True`` only if gap junctions originating at cells in this tissue are
         **insular** (i.e., prevented from connecting to cells in other tissues),
         implying these gap junctions to be strictly intra-tissue.
+    name : str
+        Arbitrary string uniquely identifying this tissue profile in this list.
 
-    Attributes (Constant)
+    Attributes (Membrane Diffusion)
     ----------
     Dm_Na : float
         Sodium (Na+) membrane diffusion constant in m2/s.
@@ -116,6 +85,7 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
 
     # ..................{ ALIASES                            }..................
     is_gj_insular = yaml_alias("['insular']", bool)
+    name = yaml_alias("['name']", str)
 
     # ..................{ ALIASES ~ diffusion                }..................
     Dm_Na = yaml_alias_float_nonnegative("['diffusion constants']['Dm_Na']")
@@ -127,23 +97,6 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
     Dm_P  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_P']")
 
 # ....................{ SUBCLASSES                         }....................
-class SimConfTissueDefault(SimConfTissueABC, YamlABC):
-    '''
-    YAML-backed default tissue profile subconfiguration, encapsulating the
-    configuration of a single tissue profile applicable to all cells parsed from
-    a dictionary configuring at least this profile in the current YAML-formatted
-    simulation configuration file.
-    '''
-
-    # ..................{ CLASS                              }..................
-    @classmethod
-    @type_check
-    def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
-
-        # Create and return the default YAML-backed tissue profile.
-        return SimConfTissueListItem(conf=_get_tissue_conf_default())
-
-# ....................{ SUBCLASSES                         }....................
 #FIXME: Define a similar "SimConfCutListItem" class as well.
 #FIXME: Actually leverage this in "Parameters".
 class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
@@ -152,34 +105,28 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     configuration of a single tissue profile parsed from a list of these
     profiles in the current YAML-formatted simulation configuration file.
 
-    Attributes
+    Attributes (Cell Picker)
     ----------
-    name : str
-        Arbitrary string uniquely identifying this tissue profile in this list.
-
-    Attributes (Picker)
-    ----------
-    picker_type : TissueProfilePickerType
+    picker_type : TissuePickerType
         Type of **tissue profile picker** (i.e., object assigning a subset of
         all cells matching some criteria to this tissue profile).
     picker_cells_index : SequenceTypes
-        Ignored unless :attr:`picker_type` is
-        :attr:`TissueProfilePickerType.INDICES`.
+        Sequence of the indices of all cells to be assigned to this tissue.
+        Ignored unless :attr:`picker_type` is :attr:`TissuePickerType.INDICES`.
     picker_cells_percent : float
         **Percentage** (i.e., floating point number in the range ``[0.0,
-        100.0]``) of the total cell population to randomly match. Ignored unless
-        :attr:`picker_type` is :attr:`TissueProfilePickerType.PERCENT`.
+        100.0]``) of the total cell population to be randomly assigned to this
+        tissue. Ignored unless :attr:`picker_type` is
+        :attr:`TissuePickerType.PERCENT`.
     picker_image_filename : str
-        Ignored unless :attr:`picker_type` is
-        :attr:`TissueProfilePickerType.IMAGE`.
+        Absolute or relative filename of the image mask whose colored pixel area
+        defines the region of the cell cluster whose cells are all to be
+        assigned to this tissue. Ignored unless :attr:`picker_type` is
+        :attr:`TissuePickerType.IMAGE`.
     '''
 
-    # ..................{ ALIASES                            }..................
-    name = yaml_alias("['name']", str)
-
     # ..................{ ALIASES ~ picker                   }..................
-    picker_type = yaml_enum_alias(
-        "['cell targets']['type']", TissueProfilePickerType)
+    picker_type = yaml_enum_alias("['cell targets']['type']", TissuePickerType)
     picker_cells_index = yaml_alias(
         "['cell targets']['indices']", SequenceTypes)
     picker_cells_percent = yaml_alias_float_percent(
@@ -196,27 +143,43 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
         tissue_name = yamllistabc.get_list_item_name_unique(
             yaml_list=yaml_list, name_format='tissue ({{}})')
 
-        # Low-level YAML-centric dictionary configuring this tissue profile,
-        # produced by merging (in order):
-        tissue_conf = maputil.merge(
-            # The default dictionary for tissue profiles.
-            _get_tissue_conf_default(),
-
-            # The default dictionary for tissue profile list items, duplicating
-            # the first such item in our default YAML file. The list-specific
-            # "name" key of this dictionary takes precedence over the generic
-            # "name" key of the prior dictionary. This dictionary *MUST* be
-            # listed last.
-            {
-                'name': tissue_name,
-                'cell targets': {
-                    'type': 'all',
-                    'bitmap': {'file': 'geo/circle/circle_base.png'},
-                    'indices': [3, 14, 15, 9, 265],
-                    'random': 50,
-                },
+        # Create and return the equivalent YAML-backed tissue profile list item,
+        # duplicating the first such item in our default YAML file.
+        return SimConfTissueListItem(conf={
+            'name': tissue_name,
+            'insular': True,
+            'diffusion constants': {
+                'Dm_Na': 1.0e-18,
+                'Dm_K': 15.0e-18,
+                'Dm_Cl': 2.0e-18,
+                'Dm_Ca': 1.0e-18,
+                'Dm_H': 1.0e-18,
+                'Dm_M': 1.0e-18,
+                'Dm_P': 0.0,
             },
-        )
+            'cell targets': {
+                'type': 'all',
+                'bitmap': {'file': 'geo/circle/circle_base.png'},
+                'indices': [3, 14, 15, 9, 265],
+                'random': 50,
+            },
+        })
 
-        # Create and return the equivalent YAML-backed tissue profile list item.
-        return SimConfTissueListItem(conf=tissue_conf)
+# ....................{ SUBCLASSES                         }....................
+class SimConfTissueDefault(SimConfTissueABC, YamlABC):
+    '''
+    YAML-backed default tissue profile subconfiguration, encapsulating the
+    configuration of a single tissue profile applicable to all cells parsed from
+    a dictionary configuring at least this profile in the current YAML-formatted
+    simulation configuration file.
+
+    Attributes (Cell Picker)
+    ----------
+    picker_image_filename : str
+        Absolute or relative filename of the image mask whose colored pixel area
+        defines the shape of the cell cluster and hence this default tissue.
+    '''
+
+    # ..................{ ALIASES ~ picker                   }..................
+    picker_image_filename = yaml_alias(
+        "['cell targets']['bitmap']['file']", str)

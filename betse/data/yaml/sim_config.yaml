@@ -179,27 +179,27 @@ world options:
 
 tissue profile definition:
 
-  clipping:  # Geometry mask defining shape of global cell cluster.
-    bitmap:  # Image whose colored pixel area defines the region of cells to match.
-      file: geo/circle/circle_base.png   # Absolute or relative filename of this image.
+  profiles enabled: True # Apply (rather than ignore) tissue and cut profiles listed below?
 
-  profiles enabled: True  # Apply (rather than ignore) tissue and cut profiles listed below?
+  tissue: # Tissue profiles (i.e., regions of the cell cluster whose cells are assigned the
+          # same initial parameters). Ignored if "profiles enabled" is False.
 
-  tissue:  # Tissue profiles (i.e., regions of the cell cluster whose cells are assigned the
-           # same initial parameters). Ignored if "profiles enabled" is False.
-    default:  # Default tissue profile, containing all cells *NOT* specifically targeted by a
-              # tissue profile defined below.
-      name: base      # Arbitrary unique profile name.
-      insular: False  # Disable extra-tissue gap junctions (i.e., prevent gap junctions of
-                      # cells in this tissue from connecting to cells in other tissues)?
-      diffusion constants:  # Membrane diffusion constants applied to all unprofiled cells.
-        Dm_Na: 1.0e-18      # Na+ membrane diffusion constant [m2/s]
-        Dm_K: 15.0e-18      # K+ membrane diffusion constant [m2/s]
-        Dm_Cl: 2.0e-18      # Cl- membrane diffusion constant [m2/s]
-        Dm_Ca: 1.0e-18      # Ca2+ membrane diffusion constant [m2/s]
-        Dm_H: 1.0e-18       # H+ membrane diffusion constant [m2/s]
-        Dm_M: 1.0e-18       # M- membrane diffusion constant [m2/s]
-        Dm_P: 0.0           # proteins- membrane diffusion constant [m2/s]
+    default: # Default tissue profile applied to all cells *NOT* specifically targeted by a
+             # tissue profile defined below.
+      name: base     # Arbitrary unique profile name.
+      insular: False # Disable extra-tissue gap junctions (i.e., prevent gap junctions of
+                     # cells in this tissue from connecting to cells in other tissues)?
+      diffusion constants: # Membrane diffusion constants applied to all unprofiled cells.
+        Dm_Na: 1.0e-18     # Na+ membrane diffusion constant [m2/s]
+        Dm_K: 15.0e-18     # K+ membrane diffusion constant [m2/s]
+        Dm_Cl: 2.0e-18     # Cl- membrane diffusion constant [m2/s]
+        Dm_Ca: 1.0e-18     # Ca2+ membrane diffusion constant [m2/s]
+        Dm_H: 1.0e-18      # H+ membrane diffusion constant [m2/s]
+        Dm_M: 1.0e-18      # M- membrane diffusion constant [m2/s]
+        Dm_P: 0.0          # proteins- membrane diffusion constant [m2/s]
+      cell targets: # Cell population to which this profile applies.
+        bitmap:     # Image mask whose colored pixel area defines the shape of the cell cluster.
+          file: geo/circle/circle_base.png  # Absolute or relative filename of this image.
 
     profiles:  # List of all non-default tissue profiles.
       # Example tissue profile uniformly applied to all cells, overwriting the default

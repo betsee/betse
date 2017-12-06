@@ -322,3 +322,8 @@ def _upgrade_sim_conf_to_0_6_0(
     # If double layer permittivity is undefined, define a sensible default.
     if 'double layer permittivity' not in p._conf['internal parameters']:
         p._conf['internal parameters']['double layer permittivity'] = 80.0
+
+    # Shift the clipping bitmap mask into the default tissue profile.
+    if 'cell targets' not in tissue_dict['tissue']['default']:
+        tissue_dict['tissue']['default']['cell targets'] = tissue_dict[
+            'clipping']

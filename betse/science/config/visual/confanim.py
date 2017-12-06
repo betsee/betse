@@ -10,12 +10,9 @@ YAML-backed simulation animation subconfigurations.
 #FIXME: Default the "copyright" entry of video metadata to
 #"@ {}".format(current_year)".
 
-#FIXME: Define saving-ordiented methods.
-
 # ....................{ IMPORTS                            }....................
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_alias_int_positive
 from betse.lib.yaml.abc.yamlabc import YamlABC
-from betse.lib.yaml.abc.yamllistabc import YamlList
 from betse.science.config.visual.confvisabc import (
     SimConfVisualCellsListItem, SimConfVisualCellsEmbedded)
 from betse.util.type.types import type_check, MappingType, SequenceTypes
@@ -172,15 +169,12 @@ class SimConfAnimAll(YamlABC):
 
         # Encapsulate low-level dictionaries with high-level wrappers.
         self.while_sim = SimConfVisualCellsEmbedded(
-            conf=self._conf[
-                'results options']['while solving']['animations'])
+            self._conf['results options']['while solving']['animations'])
 
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
-        self.after_sim_pipeline = YamlList(
-            confs=self._conf[
-                'results options']['after solving']['animations']['pipeline'],
-            conf_type=SimConfVisualCellsListItem,
-        )
+        self.after_sim_pipeline = SimConfVisualCellsListItem.make_list(
+            self._conf[
+                'results options']['after solving']['animations']['pipeline'])
 
     # ..................{ PROPERTIES ~ while                 }..................
     @property

@@ -11,9 +11,10 @@ from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.config.confenum import (
     CellLatticeType, IonProfileType)
-from betse.science.tissue.event import tisevevolt
+from betse.science.config.tissue.conftis import (
+    SimConfTissueDefault, SimConfTissueListItem)
 from betse.science.simulate.simphase import SimPhaseKind
-from betse.science.tissue.picker.tispickimage import TissuePickerImage
+from betse.science.tissue.event import tisevevolt
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 # from betse.util.type.call.memoizers import property_cached
@@ -110,6 +111,21 @@ class Parameters(YamlFileABC):
         square environment. This should typically reside in the range ``[80e-6,
         1000e-6]``.
 
+    Attributes (Space: Tissue)
+    ----------
+    is_tissue_profiles : bool
+        ``True`` only if **tissue profiles** (i.e., user-defined regions within
+        the cell cluster to which specific base membrane diffusion profiles,
+        interventions, and individualized dynamics may be applied) are enabled.
+        Note that tissue profiles should typically *always* be enabled.
+    tissue_profile_default : SimConfTissueDefault
+        Default tissue profile applied to all cells *not* already targeted by
+        another tissue profile in the :attr:`tissue_profiles` list.
+    tissue_profiles : YamlList
+        List of **tissue profiles**
+        (i.e., instance of the :class:`ProfileABC` class identifying cells
+        to be associated with particular simulation constants and parameters).
+
     Attributes (Time: Total)
     ----------
     init_time_total : float
@@ -196,14 +212,6 @@ class Parameters(YamlFileABC):
     Attributes (Ion: Initial: Custom)
     ----------
 
-    Attributes (Tissue)
-    ----------
-    is_tissue_profiles : bool
-        ``True`` only if **tissue profiles** (i.e., user-defined regions within
-        the cluster to which specific base membrane diffusion profiles,
-        interventions, and individualized dynamics can be applied) are enabled.
-        Note that tissue profiles should typically *always* be enabled.
-
     Attributes (General: Scalars)
     ----------
     cell_polarizability : NumericTypes
@@ -224,19 +232,6 @@ class Parameters(YamlFileABC):
     I_overlay : bool
         ``True`` only if overlaying either electric current or concentration
         flux streamlines on appropriate plots and animations.
-
-    Attributes (Tissue)
-    ----------
-    clipping_bitmap_matcher : TissuePickerImage
-        Object encapsulating the bitmap whose colored pixel area specifies the
-        global geometry mask to which all tissue profile bitmaps will be
-        clipped.
-    closed_bound : bool
-        `True` if environmental boundaries are closed (i.e., _not_ open).
-    tissue_profiles : list
-        List of ordered dictionaries, each describing a **tissue profile**
-        (i.e., instance of the :class:`ProfileABC` class identifying cells
-        to be associated with particular simulation constants and parameters).
     '''
 
     # ..................{ ALIASES                            }..................
@@ -278,6 +273,13 @@ class Parameters(YamlFileABC):
         "['general options']['simulate extracellular spaces']", bool)
     world_len = yaml_alias("['world options']['world size']", float)
 
+    # ..................{ ALIASES ~ space : tissue           }..................
+    #FIXME: Does this boolean actually serve a demonstrable purpose? I might be
+    #offbase here, but don't we always want tissue profiles? Is there actually a
+    #useful use case for even disabling all tissue profiles?
+    is_tissue_profiles = yaml_alias(
+        "['tissue profile definition']['profiles enabled']", bool)
+
     # ..................{ ALIASES ~ time : total             }..................
     init_time_total = yaml_alias("['init time settings']['total time']", float)
     sim_time_total  = yaml_alias("['sim time settings']['total time']", float)
@@ -305,13 +307,6 @@ class Parameters(YamlFileABC):
     ion_profile_custom_conc_env_na = yaml_alias(
         "['general options']['customized ion profile']"
         "['extracellular Na+ concentration']", float)
-
-    # ..................{ ALIASES ~ tissue                   }..................
-    #FIXME: Does this boolean actually serve a demonstrable purpose? I might be
-    #offbase here, but don't we always want tissue profiles? Is there actually a
-    #valid use case for even disabling all tissue profiles?
-    is_tissue_profiles = yaml_alias(
-        "['tissue profile definition']['profiles enabled']", bool)
 
     # ..................{ ALIASES ~ scalar                   }..................
     cell_polarizability = yaml_alias(
@@ -369,8 +364,23 @@ class Parameters(YamlFileABC):
         # TISSUE PROFILES
         #---------------------------------------------------------------------------------------------------------------
 
-        #FIXME: Excise this method after the above logic has been enabled.
-        self._init_tissue_and_cut_profiles()
+        # Default tissue profile applied to all cells.
+        self.tissue_profile_default = SimConfTissueDefault(
+            self._conf['tissue profile definition']['tissue']['default'])
+
+        #FIXME: Replace each reference to these variables by the corresponding
+        #variables in "self.tissue_profile_default" and remove these variables.
+        #They only appear to accessed in a handful of lines elsewhere, rendering
+        #this refactoring mostly trivial.
+
+        # default membrane diffusion constants: easy control of cell's base resting potential
+        self.Dm_Na = self.tissue_profile_default.Dm_Na     # sodium [m2/s]
+        self.Dm_K  = self.tissue_profile_default.Dm_K     #  potassium [m2/s]
+        self.Dm_Cl = self.tissue_profile_default.Dm_Cl    # chloride [m2/s]
+        self.Dm_Ca = self.tissue_profile_default.Dm_Ca   #  calcium [m2/s]
+        self.Dm_H  = self.tissue_profile_default.Dm_H    #  hydrogen [m2/s]
+        self.Dm_M  = self.tissue_profile_default.Dm_M    #  anchor ion [m2/s]
+        self.Dm_P  = self.tissue_profile_default.Dm_P     #  proteins [m2/s]
 
         #---------------------------------------------------------------------------------------------------------------
         # TARGETED INTERVENTIONS
@@ -796,9 +806,14 @@ class Parameters(YamlFileABC):
         #...............................................................................................................
 
         # Environmental features and tight junctions ---------------------------------------------------
+
+        #FIXME: This doesn't appear to be used anywhere, at the moment. Is this
+        #safely removable now, or did we have Big Plans for this at some point?
         self.env_type = True # for now, can't handle air boundaries
+
+        #FIXME: Should this actually be configurable? If not, no worries! -.-
         self.cluster_open = True
-        self.closed_bound = False
+
         self.D_tj = float(self._conf['variable settings']['tight junction scaling'])
         self.D_adh = float(self._conf['variable settings']['adherens junction scaling'])
         # tight junction relative ion movement properties:
@@ -811,21 +826,6 @@ class Parameters(YamlFileABC):
         self.Dtj_rel['M']=float(self._conf['variable settings']['tight junction relative diffusion']['M'])
         self.Dtj_rel['P']=float(self._conf['variable settings']['tight junction relative diffusion']['P'])
         self.Dtj_rel['H']=float(self._conf['variable settings']['tight junction relative diffusion']['H'])
-
-        #FIXME: Replace with use of an instantiated default tissue object. On
-        #doing so, note that the calls to float() will reduce to noops and
-        #should thus be removed.
-
-        # default membrane diffusion constants: easy control of cell's base resting potential
-        mem_concs_default = self._conf['tissue profile definition']['tissue'][
-            'default']['diffusion constants']
-        self.Dm_Na = float(mem_concs_default['Dm_Na'])     # sodium [m2/s]
-        self.Dm_K  = float(mem_concs_default['Dm_K'])     #  potassium [m2/s]
-        self.Dm_Cl = float(mem_concs_default['Dm_Cl'])    # chloride [m2/s]
-        self.Dm_Ca = float(mem_concs_default['Dm_Ca'])   #  calcium [m2/s]
-        self.Dm_H  = float(mem_concs_default['Dm_H'])    #  hydrogen [m2/s]
-        self.Dm_M  = float(mem_concs_default['Dm_M'])    #  anchor ion [m2/s]
-        self.Dm_P  = float(mem_concs_default['Dm_P'])     #  proteins [m2/s]
 
         # environmental (global) boundary concentrations:
         self.cbnd = self._conf['variable settings']['env boundary concentrations']
@@ -1295,31 +1295,6 @@ class Parameters(YamlFileABC):
         dirs.make_unless_dir(
             self.init_pickle_dirname, self.sim_pickle_dirname,
             self.init_export_dirname, self.sim_export_dirname)
-
-    # ..................{ INITIALIZERS ~ tissue              }..................
-    def _init_tissue_and_cut_profiles(self) -> None:
-        '''
-        Parse tissue and cut profile-specific parameters from the current YAML
-        configuration file.
-        '''
-
-        tpd = self._conf['tissue profile definition']
-
-        #FIXME: Refactor as follows:
-        #
-        #* Replace all references to this variable elsewhere in the codebase
-        #  with references to the "name" variable the default tissue profile.
-        #* Remove this variable entirely.
-        self.default_tissue_name = (
-            self._conf['tissue profile definition']['tissue']['default']['name'])
-
-        #FIXME: Shift all such high-level objects into higher-level (and hence
-        #more appropriate) simulation classes. In particular, refactor the
-        #"clipping_bitmap_matcher" instance variable into a local variable of
-        #the Cells._make_voronoi() method, the only method referencing this
-        #variable. (Nice!)
-        self.clipping_bitmap_matcher = TissuePickerImage(
-            tpd['clipping']['bitmap']['file'], self.conf_dirname)
 
     # ..................{ EXCEPTIONS                         }..................
     def die_unless_ecm(self) -> None:

@@ -15,6 +15,7 @@ from betse.science import filehandling as fh
 from betse.science.config.confenum import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
+from betse.science.tissue.picker.tispickimage import TissuePickerImage
 from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.util.type.call.memoizers import property_cached
@@ -803,9 +804,14 @@ class Cells(object):
         # Log this creation.
         logs.log_info('Creating Voronoi geometry... ')
 
-        # Cell profile-specific image mask, leveraged below to clip the cell
-        # cluster and create various interpolation clipping functions.
-        image_mask = p.clipping_bitmap_matcher.get_image_mask(cells=self)
+        # Cell cluster image picker, producing the cell cluster image mask.
+        image_picker = TissuePickerImage(
+            filename=p.tissue_profile_default.picker_image_filename,
+            dirname=p.conf_dirname)
+
+        # Cell cluster image mask, clipping the cell cluster against a
+        # user-defined image file.
+        image_mask = image_picker.get_image_mask(cells=self)
 
         # add the bitmasker clipping curve to the points:
         seed_points = np.vstack((self.clust_xy, image_mask.clipcurve))

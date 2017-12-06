@@ -942,7 +942,7 @@ def clusterPlot(p, dyna: 'TissueHandler', cells, clrmap=cm.jet):
     z[:] = 0
 
     cb_ticks.append(0)
-    cb_tick_labels.append(p.default_tissue_name)
+    cb_tick_labels.append(p.tissue_profile_default.name)
 
     col_dic['base'] = PolyCollection(
         base_points, array=z, cmap=clrmap, edgecolors='none')
