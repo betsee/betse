@@ -806,7 +806,7 @@ class Cells(object):
 
         # Cell cluster image picker, producing the cell cluster image mask.
         image_picker = TissuePickerImage(
-            filename=p.tissue_profile_default.picker_image_filename,
+            filename=p.tissue_default.picker_image_filename,
             dirname=p.conf_dirname)
 
         # Cell cluster image mask, clipping the cell cluster against a

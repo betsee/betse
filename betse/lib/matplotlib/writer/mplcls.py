@@ -219,8 +219,8 @@ class ImageMovieWriter(NoopMovieWriter):
             # method to be passed positionally rather than as a keyword
             # argument. We know this both because:
             #
-            # * This argument is *ALWAYS* passed positionally by the
-            #   matplotlib codebase itself.
+            # * This argument is *ALWAYS* passed positionally by the matplotlib
+            #   codebase itself.
             # * The name of this argument has changed between matplotlib
             #   versions (notably, from "filename" to "fname"), preventing this
             #   argument from being reliably passed as a keyword argument. To

@@ -75,8 +75,7 @@ def _convert_version_str_to_tuple(version_str: str) -> tuple:
     assert isinstance(version_str, str), (
         '"{}" not a version string.'.format(version_str))
 
-    return tuple(
-        int(version_part) for version_part in version_str.split('.'))
+    return tuple(int(version_part) for version_part in version_str.split('.'))
 
 
 PYTHON_VERSION_MIN_PARTS = _convert_version_str_to_tuple(PYTHON_VERSION_MIN)

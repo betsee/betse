@@ -679,7 +679,7 @@ class Simulator(object):
         #
         #     # initialize diffusion constants
         #     DmH = np.zeros(self.mdl)
-        #     DmH[:] = p.Dm_H
+        #     DmH[:] = p.tissue_default.Dm_H
         #
         #     self.zH = np.zeros(self.cdl)
         #     self.zH[:] = p.z_H

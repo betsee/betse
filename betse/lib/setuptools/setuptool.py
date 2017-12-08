@@ -157,10 +157,10 @@ def die_unless_requirement(requirement: Requirement) -> None:
                 version_conflict.req, version_conflict.dist))
     #FIXME: Handle the "UnknownExtra" exception as well.
 
-    # If a human-readable exception is to be raised, do so. While it would be
-    # preferable to simply raise this exception in the exception handler above,
-    # doing so encourages Python 3 to implicitly prepend this exception by the
-    # non-human-readable exception raised above. (...Ugh!)
+    # If raising a human-readable exception, do so. While raising this exception
+    # in the exception handler above would be preferable, doing so encourages
+    # Python 3 to implicitly prepend this exception by the non-human-readable
+    # exception raised above. This convoluted logic circumvents that. (...Ugh!)
     if betse_exception:
         raise betse_exception
 

@@ -11,7 +11,7 @@ from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.config.confenum import (
     CellLatticeType, IonProfileType)
-from betse.science.config.tissue.conftis import (
+from betse.science.config.model.conftis import (
     SimConfTissueDefault, SimConfTissueListItem)
 from betse.science.simulate.simphase import SimPhaseKind
 from betse.science.tissue.event import tisevevolt
@@ -118,7 +118,7 @@ class Parameters(YamlFileABC):
         the cell cluster to which specific base membrane diffusion profiles,
         interventions, and individualized dynamics may be applied) are enabled.
         Note that tissue profiles should typically *always* be enabled.
-    tissue_profile_default : SimConfTissueDefault
+    tissue_default : SimConfTissueDefault
         Default tissue profile applied to all cells *not* already targeted by
         another tissue profile in the :attr:`tissue_profiles` list.
     tissue_profiles : YamlList
@@ -364,23 +364,11 @@ class Parameters(YamlFileABC):
         # TISSUE PROFILES
         #---------------------------------------------------------------------------------------------------------------
 
+        #FIXME: Rename to simply "tissue_default". This is too frequently used.
+
         # Default tissue profile applied to all cells.
-        self.tissue_profile_default = SimConfTissueDefault(
+        self.tissue_default = SimConfTissueDefault(
             self._conf['tissue profile definition']['tissue']['default'])
-
-        #FIXME: Replace each reference to these variables by the corresponding
-        #variables in "self.tissue_profile_default" and remove these variables.
-        #They only appear to accessed in a handful of lines elsewhere, rendering
-        #this refactoring mostly trivial.
-
-        # default membrane diffusion constants: easy control of cell's base resting potential
-        self.Dm_Na = self.tissue_profile_default.Dm_Na     # sodium [m2/s]
-        self.Dm_K  = self.tissue_profile_default.Dm_K     #  potassium [m2/s]
-        self.Dm_Cl = self.tissue_profile_default.Dm_Cl    # chloride [m2/s]
-        self.Dm_Ca = self.tissue_profile_default.Dm_Ca   #  calcium [m2/s]
-        self.Dm_H  = self.tissue_profile_default.Dm_H    #  hydrogen [m2/s]
-        self.Dm_M  = self.tissue_profile_default.Dm_M    #  anchor ion [m2/s]
-        self.Dm_P  = self.tissue_profile_default.Dm_P     #  proteins [m2/s]
 
         #---------------------------------------------------------------------------------------------------------------
         # TARGETED INTERVENTIONS
@@ -1048,6 +1036,45 @@ class Parameters(YamlFileABC):
 
         self.sharpness = float(iu.get('sharpness', 0.999))
 
+        #FIXME: Can this initialization be safely moved earlier -- say, directly
+        #*AFTER* tissue profile initialization required by this initialization?
+
+        # Initialize the ion profile specified by this configuration.
+        self._init_ion_profile()
+
+    # ..................{ INITIALIZERS ~ path                }..................
+    def _init_paths(self) -> None:
+        '''
+        Initialize pathnames specified by this configuration.
+        '''
+
+        # Absolute pathname of directories specified by this configuration.
+        self.init_pickle_dirname = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.init_pickle_dirname_relative)
+        self.sim_pickle_dirname = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.sim_pickle_dirname_relative)
+
+        # Absolute or relative paths of the directories containing saved
+        # initialization and simulation results.
+        self.init_export_dirname = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.init_export_dirname_relative)
+        self.sim_export_dirname = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.sim_export_dirname_relative)
+
+        # Create all non-existing directories.
+        dirs.make_unless_dir(
+            self.init_pickle_dirname, self.sim_pickle_dirname,
+            self.init_export_dirname, self.sim_export_dirname)
+
+    # ..................{ INITIALIZERS ~ ion                 }..................
+    def _init_ion_profile(self) -> None:
+        '''
+        Initialize the ion profile specified by this configuration.
+        '''
+
+        # Default tissue profile providing base membrane diffusion constants.
+        base = self.tissue_default
+
         # simplest ion profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile is IonProfileType.BASIC:
             self.cNa_env = 145.0
@@ -1071,15 +1098,15 @@ class Parameters(YamlFileABC):
 
             assert self.z_M_cell == -1
 
-            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':1,'M':1}
+            self.ions_dict = {'Na':1, 'K':1, 'Cl':0, 'Ca':0, 'H':0, 'P':1, 'M':1}
 
-            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'P':self.cP_cell,'M':self.cM_cell}
-            self.env_concs ={'Na':self.cNa_env, 'K':self.cK_env, 'P':self.cP_env, 'M':self.conc_env_m}
-            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'P':self.Dm_P,'M':self.Dm_M}
-            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'P':self.z_P,'M':self.z_M}
-            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'P':self.Do_P,'M':self.Do_M}
-            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'P':self.M_P,'M':self.M_M}
-            self.ion_long_name = {'Na':'sodium','K':'potassium','P':'proteins','M':'anion'}
+            self.cell_concs ={'Na': self.cNa_cell, 'K': self.cK_cell, 'P': self.cP_cell, 'M': self.cM_cell}
+            self.env_concs ={'Na': self.cNa_env, 'K': self.cK_env, 'P': self.cP_env, 'M': self.conc_env_m}
+            self.mem_perms = {'Na': base.Dm_Na, 'K': base.Dm_K, 'P': base.Dm_P, 'M': base.Dm_M}
+            self.ion_charge = {'Na': self.z_Na, 'K': self.z_K, 'P': self.z_P, 'M': self.z_M}
+            self.free_diff = {'Na': self.Do_Na, 'K': self.Do_K, 'P': self.Do_P, 'M': self.Do_M}
+            self.molar_mass = {'Na': self.M_Na, 'K': self.M_K, 'P': self.M_P, 'M': self.M_M}
+            self.ion_long_name = {'Na':'sodium', 'K':'potassium', 'P':'proteins', 'M':'anion'}
 
         elif self.ion_profile is IonProfileType.BASIC_CA:
             self.cNa_env = 145.0
@@ -1108,15 +1135,15 @@ class Parameters(YamlFileABC):
             self.cCa_er = 0.5
             self.cM_er = self.cCa_er
 
-            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
+            self.ions_dict = {'Na':1, 'K':1, 'Cl':0, 'Ca':1, 'H':0, 'P':1, 'M':1}
 
-            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'P':self.cP_cell,'M':self.cM_cell}
-            self.env_concs ={'Na':self.cNa_env, 'K':self.cK_env, 'Ca':self.cCa_env, 'P':self.cP_env, 'M':self.conc_env_m}
-            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca, 'P':self.Dm_P,'M':self.Dm_M}
-            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca, 'P':self.z_P,'M':self.z_M}
-            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca, 'P':self.Do_P,'M':self.Do_M}
-            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca, 'P':self.M_P,'M':self.M_M}
-            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','P':'proteins','M':'anion'}
+            self.cell_concs ={'Na': self.cNa_cell, 'K': self.cK_cell, 'Ca': self.cCa_cell, 'P': self.cP_cell, 'M': self.cM_cell}
+            self.env_concs ={'Na': self.cNa_env, 'K': self.cK_env, 'Ca': self.cCa_env, 'P': self.cP_env, 'M': self.conc_env_m}
+            self.mem_perms = {'Na': base.Dm_Na, 'K': base.Dm_K, 'Ca': base.Dm_Ca, 'P': base.Dm_P, 'M': base.Dm_M}
+            self.ion_charge = {'Na': self.z_Na, 'K': self.z_K, 'Ca': self.z_Ca, 'P': self.z_P, 'M': self.z_M}
+            self.free_diff = {'Na': self.Do_Na, 'K': self.Do_K, 'Ca': self.Do_Ca, 'P': self.Do_P, 'M': self.Do_M}
+            self.molar_mass = {'Na': self.M_Na, 'K': self.M_K, 'Ca': self.M_Ca, 'P': self.M_P, 'M': self.M_M}
+            self.ion_long_name = {'Na':'sodium', 'K':'potassium', 'Ca':'calcium', 'P':'proteins', 'M':'anion'}
 
         # default environmental and cytoplasmic initial values mammalian cells
         elif self.ion_profile is IonProfileType.MAMMAL:
@@ -1148,28 +1175,28 @@ class Parameters(YamlFileABC):
             self.cCa_er = 0.5
             self.cM_er = self.cCa_er
 
-            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':0,'P':1,'M':1}
+            self.ions_dict = {'Na':1, 'K':1, 'Cl':1, 'Ca':1, 'H':0, 'P':1, 'M':1}
 
-            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,
-                              'P':self.cP_cell,'M':self.cM_cell}
+            self.cell_concs ={'Na': self.cNa_cell, 'K': self.cK_cell, 'Ca': self.cCa_cell, 'Cl': self.cCl_cell,
+                              'P': self.cP_cell, 'M': self.cM_cell}
 
-            self.env_concs ={'Na':self.cNa_env, 'K':self.cK_env, 'Ca':self.cCa_env, 'Cl':self.conc_env_cl,
-                             'P':self.cP_env, 'M':self.conc_env_m}
+            self.env_concs ={'Na': self.cNa_env, 'K': self.cK_env, 'Ca': self.cCa_env, 'Cl': self.conc_env_cl,
+                             'P': self.cP_env, 'M': self.conc_env_m}
 
-            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,
-                              'P':self.Dm_P,'M':self.Dm_M}
+            self.mem_perms = {'Na': base.Dm_Na, 'K': base.Dm_K, 'Ca': base.Dm_Ca, 'Cl': base.Dm_Cl,
+                              'P': base.Dm_P, 'M': base.Dm_M}
 
-            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,
-                               'P':self.z_P,'M':self.z_M}
+            self.ion_charge = {'Na': self.z_Na, 'K': self.z_K, 'Ca': self.z_Ca, 'Cl': self.z_Cl,
+                               'P': self.z_P, 'M': self.z_M}
 
-            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,
-                              'P':self.Do_P,'M':self.Do_M}
+            self.free_diff = {'Na': self.Do_Na, 'K': self.Do_K, 'Ca': self.Do_Ca, 'Cl': self.Do_Cl,
+                              'P': self.Do_P, 'M': self.Do_M}
 
-            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,
-                               'P':self.M_P,'M':self.M_M}
+            self.molar_mass = {'Na': self.M_Na, 'K': self.M_K, 'Ca': self.M_Ca, 'Cl': self.M_Cl,
+                               'P': self.M_P, 'M': self.M_M}
 
-            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride',
-                                  'P':'proteins','M':'anion'}
+            self.ion_long_name = {'Na':'sodium', 'K':'potassium', 'Ca':'calcium', 'Cl':'chloride',
+                                  'P':'proteins', 'M':'anion'}
 
         elif self.ion_profile is IonProfileType.AMPHIBIAN:
             # initialize proton concentrations to "None" placeholders
@@ -1200,24 +1227,24 @@ class Parameters(YamlFileABC):
             self.cCa_er = 0.5
             self.cM_er = self.cCa_er
 
-            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':0,'P':1,'M':1}
+            self.ions_dict = {'Na':1, 'K':1, 'Cl':1, 'Ca':1, 'H':0, 'P':1, 'M':1}
 
-            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,
-                              'P':self.cP_cell,'M':self.cM_cell}
-            self.env_concs ={'Na':self.cNa_env, 'K':self.cK_env, 'Ca':self.cCa_env, 'Cl':self.conc_env_cl,
-                             'P':self.cP_env, 'M':self.conc_env_m}
-            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,
-                              'P':self.Dm_P,'M':self.Dm_M}
-            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,
-                               'P':self.z_P,'M':self.z_M}
-            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,
-                              'P':self.Do_P,'M':self.Do_M}
+            self.cell_concs ={'Na': self.cNa_cell, 'K': self.cK_cell, 'Ca': self.cCa_cell, 'Cl': self.cCl_cell,
+                              'P': self.cP_cell, 'M': self.cM_cell}
+            self.env_concs ={'Na': self.cNa_env, 'K': self.cK_env, 'Ca': self.cCa_env, 'Cl': self.conc_env_cl,
+                             'P': self.cP_env, 'M': self.conc_env_m}
+            self.mem_perms = {'Na': base.Dm_Na, 'K': base.Dm_K, 'Ca': base.Dm_Ca, 'Cl': base.Dm_Cl,
+                              'P': base.Dm_P, 'M': base.Dm_M}
+            self.ion_charge = {'Na': self.z_Na, 'K': self.z_K, 'Ca': self.z_Ca, 'Cl': self.z_Cl,
+                               'P': self.z_P, 'M': self.z_M}
+            self.free_diff = {'Na': self.Do_Na, 'K': self.Do_K, 'Ca': self.Do_Ca, 'Cl': self.Do_Cl,
+                              'P': self.Do_P, 'M': self.Do_M}
 
-            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,
-                               'P':self.M_P,'M':self.M_M}
+            self.molar_mass = {'Na': self.M_Na, 'K': self.M_K, 'Ca': self.M_Ca, 'Cl': self.M_Cl,
+                               'P': self.M_P, 'M': self.M_M}
 
-            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride',
-                                  'P':'proteins','M':'anion'}
+            self.ion_long_name = {'Na':'sodium', 'K':'potassium', 'Ca':'calcium', 'Cl':'chloride',
+                                  'P':'proteins', 'M':'anion'}
 
         # user-specified environmental and cytoplasm values (customized)
         elif self.ion_profile is IonProfileType.CUSTOM:
@@ -1250,51 +1277,27 @@ class Parameters(YamlFileABC):
             self.cCa_er = float(cip['endoplasmic reticulum Ca2+'])
             self.cM_er = self.cCa_er
 
-            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':0,'P':1,'M':1}
+            self.ions_dict = {'Na':1, 'K':1, 'Cl':1, 'Ca':1, 'H':0, 'P':1, 'M':1}
 
-            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell, 'P':self.cP_cell,'M':self.cM_cell}
+            self.cell_concs ={'Na': self.cNa_cell, 'K': self.cK_cell, 'Ca': self.cCa_cell, 'Cl': self.cCl_cell, 'P': self.cP_cell, 'M': self.cM_cell}
 
-            self.env_concs ={'Na':self.cNa_env, 'K':self.cK_env, 'Ca':self.cCa_env, 'Cl':self.conc_env_cl, 'P':self.cP_env, 'M':self.conc_env_m}
+            self.env_concs ={'Na': self.cNa_env, 'K': self.cK_env, 'Ca': self.cCa_env, 'Cl': self.conc_env_cl, 'P': self.cP_env, 'M': self.conc_env_m}
 
-            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl, 'P':self.Dm_P,'M':self.Dm_M}
+            self.mem_perms = {'Na': base.Dm_Na, 'K': base.Dm_K, 'Ca': base.Dm_Ca, 'Cl': base.Dm_Cl, 'P': base.Dm_P, 'M': base.Dm_M}
 
-            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl, 'P':self.z_P,'M':self.z_M}
+            self.ion_charge = {'Na': self.z_Na, 'K': self.z_K, 'Ca': self.z_Ca, 'Cl': self.z_Cl, 'P': self.z_P, 'M': self.z_M}
 
-            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl, 'P':self.Do_P,'M':self.Do_M}
+            self.free_diff = {'Na': self.Do_Na, 'K': self.Do_K, 'Ca': self.Do_Ca, 'Cl': self.Do_Cl, 'P': self.Do_P, 'M': self.Do_M}
 
-            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl, 'P':self.M_P,'M':self.M_M}
+            self.molar_mass = {'Na': self.M_Na, 'K': self.M_K, 'Ca': self.M_Ca, 'Cl': self.M_Cl, 'P': self.M_P, 'M': self.M_M}
 
-            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride',
-                                  'P':'proteins','M':'anion'}
+            self.ion_long_name = {'Na':'sodium', 'K':'potassium', 'Ca':'calcium', 'Cl':'chloride',
+                                  'P':'proteins', 'M':'anion'}
 
         # Else, this ion profile type is unrecognized. Raise an exception.
         else:
             raise BetseSimConfigException(
                 'Ion profile type "{}" unrecognized.'.format(self.ion_profile))
-
-    # ..................{ INITIALIZERS ~ path                }..................
-    def _init_paths(self) -> None:
-        '''
-        Initialize paths specified by this configuration.
-        '''
-
-        # Absolute pathname of directories specified by this configuration.
-        self.init_pickle_dirname = pathnames.join_and_canonicalize(
-            self.conf_dirname, self.init_pickle_dirname_relative)
-        self.sim_pickle_dirname = pathnames.join_and_canonicalize(
-            self.conf_dirname, self.sim_pickle_dirname_relative)
-
-        # Absolute or relative paths of the directories containing saved
-        # initialization and simulation results.
-        self.init_export_dirname = pathnames.join_and_canonicalize(
-            self.conf_dirname, self.init_export_dirname_relative)
-        self.sim_export_dirname = pathnames.join_and_canonicalize(
-            self.conf_dirname, self.sim_export_dirname_relative)
-
-        # Create all non-existing directories.
-        dirs.make_unless_dir(
-            self.init_pickle_dirname, self.sim_pickle_dirname,
-            self.init_export_dirname, self.sim_export_dirname)
 
     # ..................{ EXCEPTIONS                         }..................
     def die_unless_ecm(self) -> None:

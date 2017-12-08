@@ -307,7 +307,6 @@ class SimConfigTestWrapper(object):
         Enable both biochemical reaction and gene regulatory networks.
         '''
 
-        # self._p._conf['metabolism settings']['metabolism simulated'] = True
         self._p._conf['gene regulatory network settings'][
             'gene regulatory network simulated'] = True
 

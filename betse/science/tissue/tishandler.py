@@ -932,30 +932,32 @@ class TissueHandler(object):
         '''
 
         if p.scheduled_options['Na_mem'] != 0:
-            effector_Na = self.scalar_Namem*self.dyna_Namem(t)*\
-                          tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
-
-
-
-            sim.Dm_scheduled[sim.iNa][self.targets_Namem] = self.mem_mult_Namem*effector_Na*p.Dm_Na
+            effector_Na = (
+                self.scalar_Namem*self.dyna_Namem(t)*
+                tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem))
+            sim.Dm_scheduled[sim.iNa][self.targets_Namem] = (
+                self.mem_mult_Namem*effector_Na*p.tissue_default.Dm_Na)
 
         if p.scheduled_options['K_mem'] != 0:
-            effector_K = self.scalar_Kmem*self.dyna_Kmem(t)*\
-                         tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem)
-
-            sim.Dm_scheduled[sim.iK][self.targets_Kmem] = self.mem_mult_Kmem*effector_K*p.Dm_K
+            effector_K = (
+                self.scalar_Kmem*self.dyna_Kmem(t)*
+                tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem))
+            sim.Dm_scheduled[sim.iK][self.targets_Kmem] = (
+                self.mem_mult_Kmem*effector_K*p.tissue_default.Dm_K)
 
         if p.scheduled_options['Cl_mem'] != 0 and p.ions_dict['Cl'] != 0:
-            effector_Cl = self.scalar_Clmem*self.dyna_Clmem(t)*\
-                          tb.pulse(t,self.t_on_Clmem,self.t_off_Clmem,self.t_change_Clmem)
-
-            sim.Dm_scheduled[sim.iCl][self.targets_Clmem] = self.mem_mult_Clmem*effector_Cl*p.Dm_Cl
+            effector_Cl = (
+                self.scalar_Clmem*self.dyna_Clmem(t)*
+                tb.pulse(t,self.t_on_Clmem,self.t_off_Clmem,self.t_change_Clmem))
+            sim.Dm_scheduled[sim.iCl][self.targets_Clmem] = (
+                self.mem_mult_Clmem*effector_Cl*p.tissue_default.Dm_Cl)
 
         if p.scheduled_options['Ca_mem'] != 0 and p.ions_dict['Ca'] != 0:
-            effector_Ca = self.scalar_Camem*self.dyna_Camem(t)*\
-                          tb.pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem)
-
-            sim.Dm_scheduled[sim.iCa][self.targets_Camem] = self.mem_mult_Camem*effector_Ca*p.Dm_Ca
+            effector_Ca = (
+                self.scalar_Camem*self.dyna_Camem(t)*
+                tb.pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem))
+            sim.Dm_scheduled[sim.iCa][self.targets_Camem] = (
+                self.mem_mult_Camem*effector_Ca*p.tissue_default.Dm_Ca)
 
         if p.scheduled_options['pressure'] != 0:
             # logs.log_debug('Applying pressure event...')
@@ -964,10 +966,8 @@ class TissueHandler(object):
                     t,self.t_onP, self.t_offP, self.t_changeP))
 
         if p.scheduled_options['ecmJ'] != 0:
-
             if p.is_ecm:
                 for i, dmat in enumerate(sim.D_env):
-
                     effector_ecmJ = self.mult_ecmJ*tb.pulse(
                         t,self.t_on_ecmJ,self.t_off_ecmJ,self.t_change_ecmJ)
 

@@ -97,8 +97,10 @@ from betse.util.py import pyfreeze
 from betse.util.type import iterables, modules
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
-from betse.util.type.text import regexes, strs
-from betse.util.type.types import type_check, StrOrNoneTypes
+from betse.util.type.numeric import versions
+from betse.util.type.text import strs
+from betse.util.type.types import (
+    type_check, MappingType, SequenceTypes, SetType, StrOrNoneTypes,)
 from contextlib import contextmanager
 
 # ....................{ CONSTANTS                          }....................
@@ -129,81 +131,6 @@ Name of the non-GUI-based matplotlib backend to fallback to in the event that
 this backend is guaranteed to be usable on all platforms and systems regardless
 of matplotlib version.
 '''
-
-# ....................{ CONSTANTS ~ private : prefer       }....................
-_KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED = {
-    #FIXME: Inject the "WxAgg" backend somewhere into this list after
-    #shown to be working under Python 3.x. Sadly, since a stable
-    #version of WxPython Phoenix has yet to be released, this may take
-    #considerably longer than first assumed. The vapourware: it burns!
-
-    #FIXME: Consider revising these defaults as follows:
-    #
-    #    'Linux':   ('Qt5Agg', 'TkAgg', 'Qt4Agg',),
-    #    'Windows': ('TkAgg', 'Qt4Agg', 'Qt5Agg',),
-    #
-    #    # Preferred backends for the following platforms reuse the the
-    #    # preferred backends for Linux defined above.
-    #    'Darwin': None,
-    #
-    # In short, under *ONLY* Linux, prefer Qt5 to Tcl/Tk. Under Windows (for
-    # reasons given below), the Qt5 backend is largely considered unsafe. Under
-    # Linux, however, at least one user has noted significant rendering issues
-    # with the Tcl/Tk default -- notably, that the "plot_while_solving"
-    # animation incrementally decreases in height each frame. This has been
-    # isolated to be a Tcl/Tk issue; the Qt5 backend suffers no such complaints.
-    #
-    # Since the Qt5 backend is also aesthetically superior, we should
-    # contemplate enabling this backend as our new Linux default *IF AND ONLY
-    # IF* this backend can also be shown to be decently performant. It doesn't
-    # need to be quite as efficient as the Tcl/Tk backend, but it certainly
-    # should *NOT* induce noticable slowdown. Investigate, please.
-
-    # Under Linux, the following backends are preferred:
-    #
-    # * "TkAgg", a GUI backend with adequate (albeit not particularly
-    #   impressive) aesthetics and superior performance by compare to
-    #   less preferable backends. Tcl/Tk: who would have ever thought?
-    # * "Qt4Agg", a GUI backend with (arguably) inferior aesthetics and
-    #   (inarguably) significant performance concerns by compare to
-    #   more preferable backends. Unlike all less preferable backends (e.g.,
-    #   "Qt5Agg"), however, this backend has no remaining stability concerns.
-    #   Since stability trumps aesthetics and performance, this backend is
-    #   preferable to all remaining backends. It could be worse.
-    # * "Qt5Agg", a GUI backend with (arguably) superior aesthetics but
-    #   (inarguably) significant performance *AND* stability concerns by compare
-    #   to more preferable backends. In particular, enabling the experimental
-    #   non-blocking behaviour with "pyplot.show(block=False)" reliably induces
-    #   low-level segmentation faults with no high-level exception traceback
-    #   under at least Windows. Something is better than nothing, though.
-    'Linux': ('TkAgg', 'Qt4Agg', 'Qt5Agg',),
-
-    # Preferred backends for the following platforms reuse the the
-    # preferred backends for Linux defined above.
-    'Darwin': None,
-    'Windows': None,
-}
-'''
-Dictionary mapping from the name of each supported platform to a tuple of the
-names of all matplotlib backends to iteratively fallback to on that platform
-(in descending order of preference) in the event the the end user fails to
-explicitly specify such a name (e.g., via the `--matplotlib-backend` option).
-In this case, this method subsequently falls back to the first matplotlib
-backend usable on the current system whose name is in this tuple.
-'''
-
-# Under OS X and iOS, prefer the only genuinely usable Darwin-specific
-# backend before the same backends as preferred under Linux. Since
-# Darwin and Linux are both POSIX-compatible, cross-platform backends
-# (e.g., "Qt5Agg") tend to behave similarly under both platforms.
-_KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Darwin'] = (
-    ('MacOSX',) + _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Linux'])
-
-# Under Windows, prefer the exact same backends as preferred under
-# Linux. While POSIX-incompatible and hence irregular, Windows still
-# supports the same backends preferred under Linux in the same order.
-_KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Windows'] = (
-    _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Linux'])
 
 # ....................{ CLASSES                            }....................
 class MplConfig(object):
@@ -248,7 +175,7 @@ class MplConfig(object):
         # Initialize matplotlib in a safe manner.
         self._init_matplotlib()
 
-        # Set the default matplotlib backend *AFTER* initializing matplotlib.
+        # Define the default matplotlib backend *AFTER* initializing matplotlib.
         self._init_backend(backend_name=backend_name)
 
         # Register all custom colormaps *AFTER* initializing matplotlib.
@@ -441,7 +368,7 @@ class MplConfig(object):
 
         # Tuple of the names of all matplotlib backends to iteratively
         # fallback to on this platform if supported or None otherwise.
-        backend_names = _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED.get(
+        backend_names = self._kernel_name_to_backend_names_prefer.get(
             kernel_name, None)
 
         # If this platform is unsupported, raise an exception.
@@ -454,32 +381,61 @@ class MplConfig(object):
             # If this backend is usable, this tester has already implicitly
             # enabled this backend. Our work is done here.
             if self.is_backend_usable(backend_name):
-                break
+                # For orthogonality, reproduce the same message logged by the
+                # backend_name() setter method and return.
+                logs.log_debug(
+                    'Enabling matplotlib backend "%s"...', backend_name)
+                return
         # Else, no preferred GUI-based backend is usable on the current system
         # (e.g., due to no external widget library being installed).
-        else:
-            # If the fallback non-GUI-based backend is usable, log a non-fatal
-            # warning and default to this backend.
-            if self.is_backend_usable(_BACKEND_NAME_HEADLESS):
-                logs.log_warning(
-                    'No usable GUI-based matplotlib backend found. '
-                    'Defaulting to usable CLI-based backend "%s". '
-                    'Consider installing support for GUI-based backends %s.',
-                    _BACKEND_NAME_HEADLESS,
-                    strs.join_as_disconjunction_double_quoted(*backend_names))
-            # Else, no backends appear to be usable on the current system. For
-            # safety, raise an exception. Due to the ubiquity of the fallback
-            # backend, this should *NEVER* happen. Damn you, Murphy!
-            else:
-                raise BetseMatplotlibException(
-                    'Usable matplotlib backend not found.')
+
+        # If the fallback non-GUI-based backend is usable...
+        if self.is_backend_usable(_BACKEND_NAME_HEADLESS):
+            # Log a non-fatal warning.
+            logs.log_warning(
+                'No usable GUI-based matplotlib backend found. '
+                'Defaulting to usable CLI-based backend "%s". '
+                'Consider installing support for GUI-based backends %s.',
+                _BACKEND_NAME_HEADLESS,
+                strs.join_as_disconjunction_double_quoted(*backend_names))
+
+            # Default to this backend and return.
+            self.backend_name = _BACKEND_NAME_HEADLESS
+            return
+        # Else, no backends appear to be usable on the current system.
+
+        # For safety, raise an exception. Due to the ubiquity of the fallback
+        # backend, this should *NEVER* happen. Damn you, Murphy!
+        raise BetseMatplotlibException('No usable matplotlib backend found.')
+
+    # ..................{ PROPERTIES                         }..................
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # NOTE: To avoid desynchronization issues between low-level matplotlib
+    # internals and the following high-level properties wrapping these
+    # internals, most of these properties leverage the less efficient but safer
+    # @property decorator rather than the more efficient but less safe
+    # @property_cached decorator.
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    @property
+    def version(self) -> str:
+        '''
+        Currently installed version of matplotlib as a ``.``-delimited version
+        specifier (e.g., ``2.1.0``).
+        '''
+
+        # Delay importation of the "matplotlib.__init__" module.
+        import matplotlib
+
+        # Return this version.
+        return matplotlib.__version__
 
     # ..................{ PROPERTIES ~ path                  }..................
     @property
     def cache_dirname(self) -> str:
         '''
-        Absolute path of the platform- (and typically user-) specific directory
-        to which matplotlib caches metadata (e.g., on fonts).
+        Absolute pathname of the platform- and typically user-specific directory
+        to which matplotlib caches metadata (e.g., about fonts).
         '''
 
         # Delay importation of the "matplotlib.__init__" module.
@@ -492,7 +448,7 @@ class MplConfig(object):
     @property
     def rc_filename(self) -> str:
         '''
-        Absolute path of the currently selected ``matplotlibrc`` file
+        Absolute pathname of the currently selected ``matplotlibrc`` file
         establishing default matplotlib options.
         '''
 
@@ -647,63 +603,6 @@ class MplConfig(object):
         # Magic is magic. Do not question magic, for it is magical.
         return list(backend_canvas_class.filetypes.keys())
 
-    # ..................{ PROPERTIES ~ backend : names       }..................
-    @property_cached
-    def backend_names(self) -> list:
-        '''
-        List of the strictly lowercase names of all currently available
-        matplotlib-specific backends (e.g., `['gtk3agg', 'tkagg', 'qt4agg']`).
-
-        While matplotlib provides the canonical lists
-        :attr:`matplotlib.rcsetup.interactive_bk`,
-        :attr:`matplotlib.rcsetup.non_interactive_bk`, and
-        :attr:`matplotlib.rcsetup.all_backends`, even the latter typically
-        fails to list all possible backends (e.g., `mixed` tends to be
-        missing). For completeness, this function instead iteratively inspects
-        the current filesystem.
-        '''
-
-        # Importing such module has side effects and hence is deferred.
-        from matplotlib import backends
-
-        # Absolute path of the directory containing all backends for the
-        # currently imported "matplotlib".
-        backends_dir = modules.get_dirname(backends)
-
-        # If this directory exists, find all backends in this directory.
-        if dirs.is_dir(backends_dir):
-            # String prefixing the basenames of backend-specific modules.
-            BACKEND_BASENAME_PREFIX = 'backend_'
-
-            # Return and cache a list of these names, discovered by:
-            #
-            # * Filtering all basenames in this directory for modules.
-            # * Converting the remaining basenames to backend names.
-            # * Sorting these names in ascending lexicographic order for
-            #   readability (e.g., in the "info" subcommand).
-            return iterables.sort_ascending([
-                pathnames.get_pathname_sans_filetype(
-                    strs.remove_prefix_if_found(
-                        backend_basename, BACKEND_BASENAME_PREFIX))
-                for backend_basename in dirs.list_basenames(backends_dir)
-                if strs.is_prefix(
-                    backend_basename, BACKEND_BASENAME_PREFIX) and
-                   pathnames.is_filetype_equals(backend_basename, 'py')
-            ])
-        # Else, this directory does *NOT* exist.
-        else:
-            # If the active Python interpreter is frozen, this is expected
-            # and hence ignorable; else, this is unexpected, in which case a
-            # non-fatal warning is logged and such list is cleared.
-            if not pyfreeze.is_frozen():
-                logs.log_warning(
-                    'Directory "{}" not found. '
-                    'Matplotlib backends not queryable.'.format(
-                        backends_dir))
-
-            # In either case, return and cache the empty list.
-            return []
-
     # ..................{ PROPERTIES ~ backend : name        }..................
     @property
     def backend_name(self) -> str:
@@ -751,7 +650,192 @@ class MplConfig(object):
             # Re-raise this exception.
             raise
 
-    # ..................{ TESTERS                            }..................
+    # ..................{ PROPERTIES ~ backend : names       }..................
+    @property_cached
+    def backend_names(self) -> SequenceTypes:
+        '''
+        Sequence of the strictly lowercase names of all currently available
+        matplotlib-specific backends (e.g., `['gtk3agg', 'tkagg', 'qt4agg']`).
+
+        While matplotlib provides the canonical lists
+        :attr:`matplotlib.rcsetup.interactive_bk`,
+        :attr:`matplotlib.rcsetup.non_interactive_bk`, and
+        :attr:`matplotlib.rcsetup.all_backends`, even the latter typically
+        fails to list all possible backends (e.g., `mixed` tends to be
+        missing). For completeness, this function instead iteratively inspects
+        the current filesystem.
+
+        For efficiency, this property is created and cached on the first access.
+        '''
+
+        # Importing such module has side effects and hence is deferred.
+        from matplotlib import backends
+
+        # Absolute path of the directory containing all backends for the
+        # currently imported "matplotlib".
+        backends_dir = modules.get_dirname(backends)
+
+        # If this directory exists, find all backends in this directory.
+        if dirs.is_dir(backends_dir):
+            # String prefixing the basenames of backend-specific modules.
+            BACKEND_BASENAME_PREFIX = 'backend_'
+
+            # Return and cache a list of these names, discovered by:
+            #
+            # * Filtering all basenames in this directory for modules.
+            # * Converting the remaining basenames to backend names.
+            # * Sorting these names in ascending lexicographic order for
+            #   readability (e.g., in the "info" subcommand).
+            return iterables.sort_ascending([
+                pathnames.get_pathname_sans_filetype(
+                    strs.remove_prefix_if_found(
+                        backend_basename, BACKEND_BASENAME_PREFIX))
+                for backend_basename in dirs.list_basenames(backends_dir)
+                if strs.is_prefix(
+                    backend_basename, BACKEND_BASENAME_PREFIX) and
+                   pathnames.is_filetype_equals(backend_basename, 'py')
+            ])
+        # Else, this directory does *NOT* exist.
+        else:
+            # If the active Python interpreter is frozen, this is expected
+            # and hence ignorable; else, this is unexpected, in which case a
+            # non-fatal warning is logged and such list is cleared.
+            if not pyfreeze.is_frozen():
+                logs.log_warning(
+                    'Directory "{}" not found. '
+                    'Matplotlib backends not queryable.'.format(
+                        backends_dir))
+
+            # In either case, return and cache the empty list.
+            return []
+
+    # ..................{ PROPERTIES ~ backend : names : pri }..................
+    @property_cached
+    def _backend_names_blacklist(self) -> SetType:
+        '''
+        Unordered set of the names of all **blacklisted backends** (i.e.,
+        backends known to be dangerously unusable on the current system).
+
+        The :meth:`is_backend_usable` method directly reports these backends to
+        be unusable *without* unsafely testing this to be the case. Attempting
+        to programmatically test the unusability of these backends is known to
+        induce extreme fatal errors in the worst case, including segnmentation
+        faults with no human-readable exception messages.
+
+        These backends include:
+
+        * `Gtk3Agg`, which emits the following non-fatal warning when enabled:
+
+            UserWarning: The Gtk3Agg backend is not known to work on Python
+            3.x.
+
+        * `Gtk3cairo`, which, despite claiming to be a GTK+ 3.x-specific
+          backend, appears to attempt to dynamically load GTK+ 2.x-specific
+          shared libraries -- inducing the fatal segmentation fault above.
+        * All GTK+ 2.x-specific backends (e.g., `Gtk`, `Gtkagg`), conflicting
+          with GTK+ 3.x-specific backends (e.g., `Gtk3`, `Gtk3agg`). Attempting
+          to switch to the latter after having already switched to the former
+          typically induces the following fatal segmentation fault immediately
+          halting the current process:
+
+            (betse:5000): Gtk-ERROR **: GTK+ 2.x symbols detected. Using GTK+
+            2.x and GTK+ 3 in the same process is not supported
+            zsh: trace trap (core dumped)  betse info
+
+          This is *not* a high-level Python exception and hence cannot be
+          caught from within Python. This is a POSIX-level process signal.
+
+        Sometimes, the only winning move is not to play at all.
+        '''
+
+        # Blacklist:
+        return {
+            # All GTK+ 2.x-specific backends.
+            'gtk', 'gtkagg', 'gtkcairo',
+
+            # All GTK+ 2.x-specific backends.
+            'gtk3', 'gtk3agg', 'gtk3cairo',
+        }
+
+
+    @property_cached
+    def _kernel_name_to_backend_names_prefer(self) -> MappingType:
+        '''
+        Dictionary mapping from the name of each supported platform to a
+        sequence of the names of all matplotlib backends that the
+        :meth:`_init_backend` method iteratively defers to on that platform (in
+        descending order of preference) in the event the end user fails to
+        explicitly set this name (e.g., via the `--matplotlib-backend` option).
+
+        In that case, that method defers to the first matplotlib backend usable
+        on the current system whose name is in this tuple.
+
+        For efficiency, this property is created and cached on the first access.
+        '''
+
+        # List of the names of all backends known to be unconditionally
+        # supported by this application across *ALL* supported platforms.
+        #
+        # These are (in descending order of preference):
+        #
+        # * "Qt5Agg", a GUI backend with (arguably) superior aesthetics but
+        #   (inarguably) significant performance concerns by compare to more
+        #   preferable backends. Also, note that enabling the experimental
+        #   non-blocking behaviour via "pyplot.show(block=False)" reliably
+        #   induces segmentation faults with *NO* exception traceback under
+        #   at least Windows. Something is better than nothing, though.
+        # * "Qt4Agg", a GUI backend with (arguably) inferior aesthetics and
+        #   (inarguably) significant performance concerns by compare to more
+        #   preferable backends.
+        # * "WxAgg", a GUI backend with (arguably) inferior aesthetics and
+        #   (inarguably) significant performance *AND* stability concerns by
+        #   compare to more preferable backends. As of this writing, the
+        #   much-vaunted Python 3.x version of WxPython (i.e., Phoenix) has
+        #   only recently been released and supported by matplotlib. Issues
+        #   are likely to plague this backend for decades.
+        backend_names_prefer = ['Qt5Agg', 'Qt4Agg', 'WxAgg',]
+
+        # If this is matplotlib >= 2.0.0, deprioritize the "TkAgg" backend.
+        #
+        # For unknown reasons, all recent versions of matplotlib have
+        # fundamentally broken this backend with respect to non-blocking
+        # animations -- either with or without experimental non-blocking
+        # behaviour. This has been extensively tested and isolated to matplotlib
+        # itself, which... is frustrating. Let me tell you: we are displeased.
+        if versions.is_at_least(self.version, '2.0.0'):
+            # Append this backend to the end of this list.
+            backend_names_prefer += 'TkAgg'
+        # Else, prioritize the "TkAgg" backend. Why? Because:
+        #
+        # * "TkAgg", a GUI backend with adequate (albeit not particularly
+        #   impressive) aesthetics and superior performance by compare to
+        #   less preferable backends. (Tcl/Tk: who would've thought?)
+        else:
+            # Prepend this backend to the beginning of this list.
+            backend_names_prefer.insert(0, 'TkAgg')
+
+        # Darwin-specific list of such names, prioritizing the only truly usable
+        # Darwin-specific backend before the platform-agnostic backends. Since
+        # Darwin and Linux are both POSIX-compatible, cross-platform backends
+        # (e.g., "Qt5Agg") tend to behave similarly under both platforms.
+        backend_names_prefer_darwin = ['MacOSX',] + backend_names_prefer
+
+        # Under Windows, prefer the exact same backends as preferred under
+        # Linux. While POSIX-incompatible and hence irregular, Windows still
+        # supports the same backends preferred under Linux in the same order.
+        backend_names_prefer_windows = backend_names_prefer
+
+        # Dictionary to be returned and cached.
+        kernel_name_to_backend_names_prefer = {
+            'Linux':   backend_names_prefer,
+            'Darwin':  backend_names_prefer_darwin,
+            'Windows': backend_names_prefer_windows,
+        }
+
+        # Return and cache this dictionary
+        return kernel_name_to_backend_names_prefer
+
+    # ..................{ TESTERS ~ backend                  }..................
     def is_backend(self) -> bool:
         '''
         ``True`` only if a backend has been successfully enabled.
@@ -776,9 +860,9 @@ class MplConfig(object):
         ``True`` only if the backend with the passed name is **usable** (i.e.,
         safely switchable to without raising exceptions) on the current system.
 
-        If this backend is usable, this method switches the current backend
-        to this backend *without* restoring the previously set backend. This is
-        the unavoidable price of robust, reproducible test results. Callers
+        If this backend is usable, this method switches the current backend to
+        this backend *without* restoring the previously set backend. This is the
+        unavoidable price of robust, reproducible test results. Callers
         requiring the previously set backend to be restored must do so manually
         (e.g., by setting the :func:`property` attribute to the name of that
         backend) *after* calling this method.
@@ -790,34 +874,14 @@ class MplConfig(object):
         # Lowercase this name, ensuring case-insensitive backend names.
         backend_name = backend_name.lower()
 
-        # Unconditionally report the following backends to be unusable without
-        # actually testing these backends:
-        #
-        # * "Gtk3Agg", emitting the following non-fatal warning when enabled:
-        #     UserWarning: The Gtk3Agg backend is not known to work on Python
-        #     3.x.
-        # * All GTK+ 2.x-specific backends (e.g., "Gtk", "Gtkagg"), conflicting
-        #   with GTK+ 3.x-specific backends (e.g., "Gtk3", "Gtk3agg").
-        #   Specifically, attempting to switch to the latter after having
-        #   already switched to the former typically induces the following
-        #   fatal segmentation fault immediately halting the current process:
-        #
-        #     (betse:5000): Gtk-ERROR **: GTK+ 2.x symbols detected. Using GTK+
-        #     2.x and GTK+ 3 in the same process is not supported
-        #     zsh: trace trap (core dumped)  betse info
-        #
-        #   This is *NOT* a high-level Python exception exception and hence
-        #   cannot be caught from within Python. This is a low-level process
-        #   signal. The only winning move is not to play at all.
-        # * "Gtk3cairo", which, despite claiming to be a GTK+ 3.x-specific
-        #   backend, appears to attempt to dynamically load GTK+ 2.x-specific
-        #   shared libraries -- inducing the fatal segmentation fault above.
-
-        #FIXME: For efficiency, compile this regex for reuse during iteration.
-
-        if regexes.is_match(
-            text=backend_name, regex=r'^gtk(?:3(?:agg|cairo)|[^3]|$)'):
-            # print("bad gtk backend: " + backend_name)
+        # If:
+        if (
+            # This backend is unconditionally blacklisted.
+            (backend_name in self._backend_names_blacklist)
+        # Report this backend to be unusable *WITHOUT* unsafely attempting to
+        # switch to this backend.
+        ):
+            # logs.log_debug('blacklisted backend unusable: %s', backend_name)
             return False
 
         # Attempt to...
@@ -831,7 +895,7 @@ class MplConfig(object):
         except:
             return False
 
-    # ..................{ TESTERS                            }..................
+    # ..................{ TESTERS ~ block                    }..................
     def is_backend_current_nonblockable(self) -> bool:
         '''
         ``True`` only if the current backend supports true non-blocking display
@@ -895,7 +959,6 @@ class MplConfig(object):
         # behavior are assumed to do so; all other backends are assumed to *NOT*
         # support this behavior.
         return backend_name == 'TkAgg'
-
 
     # ..................{ GETTERS                            }..................
     def get_rc_param(self, param_name) -> object:

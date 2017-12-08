@@ -176,7 +176,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
         for the duration of this plot or animation.
         '''
 
-        # Id displaying this animation, do so in a non-blocking manner.
+        # If displaying this animation, do so in a non-blocking manner.
         if self._is_show:
             # If the current matplotlib backend supports "true" non-blocking
             # behavior, prefer this non-deprecated approach.
@@ -282,10 +282,10 @@ class AnimCellsWhileSolving(AnimCellsABC):
     @type_check
     def _update_cell_plots(self, cell_data: SequenceTypes) -> None:
         '''
-        Update _without_ recreating all cell plots for this time step with the
+        Update *without* recreating all cell plots for this time step with the
         passed array of arbitrary cell data.
 
-        This method is intended to be called _unless_ physical changes
+        This method is intended to be called *unless* physical changes
         (e.g., deformation forces, cutting events) in the underlying structure
         of the cell cluster have occurred for this simulation time step.
 

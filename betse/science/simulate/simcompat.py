@@ -114,6 +114,7 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
 
     # Import all modules whose fully-qualified names have been modified.
     from betse.lib.yaml.abc import yamlabc  #, yamllistabc
+    from betse.science.config.model import conftis
     from betse.science.config.visual import confanim, confplot, confvisabc
     from betse.science.tissue import tisprofile, tishandler
     from betse.science.tissue.event import tisevecut, tisevevolt
@@ -130,6 +131,7 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     sys.modules['betse.science.config.export.confanim'] = confanim
     sys.modules['betse.science.config.export.confplot'] = confplot
     sys.modules['betse.science.config.export.confvis'] = confvisabc
+    sys.modules['betse.science.config.tissue.conftis'] = conftis
     sys.modules['betse.science.tissue.bitmapper'] = tispickimage
     sys.modules['betse.science.tissue.handler'] = tishandler
     sys.modules['betse.science.tissue.tiscls'] = tisprofile
