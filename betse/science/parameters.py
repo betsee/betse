@@ -364,8 +364,6 @@ class Parameters(YamlFileABC):
         # TISSUE PROFILES
         #---------------------------------------------------------------------------------------------------------------
 
-        #FIXME: Rename to simply "tissue_default". This is too frequently used.
-
         # Default tissue profile applied to all cells.
         self.tissue_default = SimConfTissueDefault(
             self._conf['tissue profile definition']['tissue']['default'])

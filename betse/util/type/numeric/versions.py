@@ -8,8 +8,8 @@ Low-level versioning facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
+import pkg_resources
 from betse.util.type.types import type_check
-from packaging import version
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -33,9 +33,26 @@ def is_at_least(version1: str, version2: str) -> bool:
 
     See Also
     ----------
-    https://stackoverflow.com/a/11887885/2809027
+    https://stackoverflow.com/a/21065570/2809027
         StackOverflow overflow inspiring this implementation.
     '''
 
     # Setuptools. It's actually good for something.
-    return version.parse(version1) >= version.parse(version2)
+    #
+    # Note that there are *MANY* varying approaches for comparing version
+    # specifiers from Python, including:
+    #
+    # * The packaging.version.parse() function, whose API resembles that of
+    #   setuptools called below. In theory, the "packaging" package *SHOULD* be
+    #   a setuptools dependency and hence always importable wherever the
+    #   "pkg_resources" and "setuptools" packages are importable. In practice,
+    #   this does *NOT* appear to be the case.
+    # * The "distutils.version.LooseVersion" class, whose API resembles that of
+    #   setuptools called below. However, whereas the latter API is PEP
+    #   440-conformant, the latter API is not.
+    #
+    # Hence, the current approach.
+    return (
+        pkg_resources.parse_version(version1) >=
+        pkg_resources.parse_version(version2)
+    )
