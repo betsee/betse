@@ -74,10 +74,23 @@ class TissueProfile(CellsProfileABC):
         ``True`` only if gap junctions originating at cells in this tissue are
         **insular** (i.e., prevented from connecting to cells in other tissues),
         implying these gap junctions to be strictly intra-tissue.
-    mem_diff_name_to_const : MappingType
-        Dictionary mapping from the name of each membrane diffusion constant
-        applied to all cells in this tissue to a floating point number
-        specifying that constant.
+
+    Attributes (Membrane Diffusion)
+    ----------
+    Dm_Na : float
+        Sodium (Na+) membrane diffusion constant in m2/s.
+    Dm_K : float
+        Potassium (K+) membrane diffusion constant in m2/s.
+    Dm_Cl : float
+        Chloride (Cl-) membrane diffusion constant in m2/s.
+    Dm_Ca : float
+        Calcium (Ca2+) membrane diffusion constant in m2/s.
+    Dm_H : float
+        Hydrogen (H+) membrane diffusion constant in m2/s.
+    Dm_M : float
+        Charge balance anion (M-) membrane diffusion constant in m2/s.
+    Dm_P : float
+        Protein (P-) membrane diffusion constant in m2/s.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -85,7 +98,13 @@ class TissueProfile(CellsProfileABC):
     def __init__(
         self,
         is_gj_insular: bool,
-        mem_diff_name_to_const : MappingType,
+        Dm_Na: float,
+        Dm_K: float,
+        Dm_Cl: float,
+        Dm_Ca: float,
+        Dm_H: float,
+        Dm_M: float,
+        Dm_P: float,
         *args, **kwargs
     ) -> None:
         '''
@@ -97,10 +116,20 @@ class TissueProfile(CellsProfileABC):
             ``True`` only if gap junctions originating at cells in this tissue
             are **insular** (i.e., prevented from connecting to cells in other
             tissues), implying these gap junctions to be strictly intra-tissue.
-        mem_diff_name_to_const : MappingType
-            Dictionary mapping from the name of each membrane diffusion constant
-            applied to all cells in this tissue to a floating point number
-            specifying that constant.
+        Dm_Na : float
+            Sodium (Na+) membrane diffusion constant in m2/s.
+        Dm_K : float
+            Potassium (K+) membrane diffusion constant in m2/s.
+        Dm_Cl : float
+            Chloride (Cl-) membrane diffusion constant in m2/s.
+        Dm_Ca : float
+            Calcium (Ca2+) membrane diffusion constant in m2/s.
+        Dm_H : float
+            Hydrogen (H+) membrane diffusion constant in m2/s.
+        Dm_M : float
+            Charge balance anion (M-) membrane diffusion constant in m2/s.
+        Dm_P : float
+            Protein (P-) membrane diffusion constant in m2/s.
 
         All remaining parameters are passed as is to the superclass constructor.
         '''
@@ -110,7 +139,13 @@ class TissueProfile(CellsProfileABC):
 
         # Classify all passed parameters.
         self.is_gj_insular = is_gj_insular
-        self.mem_diff_name_to_const = mem_diff_name_to_const
+        self.Dm_Na = Dm_Na
+        self.Dm_K  = Dm_K
+        self.Dm_Cl = Dm_Cl
+        self.Dm_Ca = Dm_Ca
+        self.Dm_H  = Dm_H
+        self.Dm_M  = Dm_M
+        self.Dm_P  = Dm_P
 
 
 #FIXME: Actually do something here.

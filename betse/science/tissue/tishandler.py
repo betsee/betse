@@ -15,6 +15,7 @@ from betse.science.channels import vg_kir as vgkir
 from betse.science.channels import vg_na as vgna
 from betse.science.channels import vg_nap as vgnap
 from betse.science.channels.wound_channel import TRP
+from betse.science.config.model.conftis import CellsPickerType
 from betse.science.math import modulate as mod
 from betse.science.math import toolbox as tb
 from betse.science.tissue.tisprofile import CutProfile, TissueProfile
@@ -135,63 +136,49 @@ class TissueHandler(object):
 
         #FIXME: Replace with usage of a proper public instance variable.
         # For each low-level YAML-backed tissue profile...
-        for i, profile_conf in enumerate(
-            p._conf['tissue profile definition']['tissue']['profiles']):
-            # Name of this profile.
-            profile_name = profile_conf['name']
-
-            # If this profile is non-unique, raise an exception.
-            if profile_name in self.tissue_name_to_profile:
+        for tissue_index, tissue_profile in enumerate(p.tissue_profiles):
+            # If a prior profile collides with this profile's name, this profile
+            # is non-unique. In this case, raise an exception.
+            if tissue_profile.name in self.tissue_name_to_profile:
                 raise BetseSimTissueException(
                     'Tissue profile "{0}" non-unique '
                     '(i.e., two or more tissue profiles named "{0}").'.format(
-                        profile_name))
-
-            # Low-level YAML-backed tissue profile picker settings.
-            profile_picker_conf = profile_conf['cell targets']
+                        tissue_profile.name))
 
             # Object matching a region of the cell cluster for this profile.
-            profile_picker = None
-
-            # Type of this object.
-            profile_picker_type = profile_picker_conf['type']
+            tissue_picker = None
 
             # Conditionally define this object.
-            if profile_picker_type == 'all':
-                profile_picker = TissuePickerAll()
-            elif profile_picker_type == 'bitmap':
-                profile_picker = TissuePickerImage(
-                    filename=profile_picker_conf['bitmap']['file'],
+            if tissue_profile.picker_type is CellsPickerType.ALL:
+                tissue_picker = TissuePickerAll()
+            elif tissue_profile.picker_type is CellsPickerType.IMAGE:
+                tissue_picker = TissuePickerImage(
+                    filename=tissue_profile.picker_image_filename,
                     dirname=p.conf_dirname)
-            elif profile_picker_type == 'indices':
-                profile_picker = TissuePickerIndices(
-                    profile_picker_conf['indices'])
-            elif profile_picker_type == 'random':
-                profile_picker = TissuePickerPercent(
-                    profile_picker_conf['random'])
+            elif tissue_profile.picker_type is CellsPickerType.INDICES:
+                tissue_picker = TissuePickerIndices(
+                    cells_index=tissue_profile.picker_cells_index)
+            elif tissue_profile.picker_type is CellsPickerType.RANDOM:
+                tissue_picker = TissuePickerPercent(
+                    cells_percent=tissue_profile.picker_cells_percent)
             else:
                 raise BetseSimTissueException(
                     'Tissue profile picker type "{}" unrecognized.'.format(
-                        profile_picker_type))
+                        tissue_profile.picker_type))
 
-            # Map this profile's name to a high-level profile object.
-            self.tissue_name_to_profile[profile_name] = TissueProfile(
-                name=profile_name,
-                z_order=i + 1,
-                picker=profile_picker,
-                is_gj_insular=profile_conf['insular'],
-
-                #FIXME: Flatten this dictionary into the equivalent number of
-                #numeric scalar parameters, each explicitly passed.
-                #FIXME: Once we refactor this to leverage YAML aliases, this
-                #coercion should no longer be required, as YAML aliases with
-                #type "float" already ensure this coercion.
-
-                # For safety, coerce all diffusion constants to floats.
-                mem_diff_name_to_const={
-                    key: float(value) for key, value in (
-                        profile_conf['diffusion constants'].items())
-                },
+            # Map this profile's name to a high-level tissue profile object.
+            self.tissue_name_to_profile[tissue_profile.name] = TissueProfile(
+                name=tissue_profile.name,
+                z_order=tissue_index + 1,
+                picker=tissue_picker,
+                is_gj_insular=tissue_profile.is_gj_insular,
+                Dm_Na=tissue_profile.Dm_Na,
+                Dm_K=tissue_profile.Dm_K,
+                Dm_Cl=tissue_profile.Dm_Cl,
+                Dm_Ca=tissue_profile.Dm_Ca,
+                Dm_H=tissue_profile.Dm_H,
+                Dm_M=tissue_profile.Dm_M,
+                Dm_P=tissue_profile.Dm_P,
             )
 
         # For each low-level YAML-backed cut profile...
@@ -212,7 +199,7 @@ class TissueHandler(object):
                 name=profile_name,
                 z_order=i + 1,
                 picker=TissuePickerImage(
-                    filename=profile_conf['bitmap']['file'],
+                    filename=profile_conf['image']['file'],
                     dirname=p.conf_dirname)
             )
 
@@ -312,32 +299,32 @@ class TissueHandler(object):
                 # Set the values of Dmems and ECM diffusion based on the
                 # identified target indices.
                 if p.ions_dict['Na'] == 1:
-                    dNa = tissue_profile.mem_diff_name_to_const['Dm_Na']
-                    sim.Dm_cells[sim.iNa][tissue_mems_index] = dNa
+                    sim.Dm_cells[sim.iNa][tissue_mems_index] = (
+                        tissue_profile.Dm_Na)
 
                 if p.ions_dict['K'] == 1:
-                    dK = tissue_profile.mem_diff_name_to_const['Dm_K']
-                    sim.Dm_cells[sim.iK][tissue_mems_index] = dK
+                    sim.Dm_cells[sim.iK][tissue_mems_index] = (
+                        tissue_profile.Dm_K)
 
                 if p.ions_dict['Cl'] == 1:
-                    dCl = tissue_profile.mem_diff_name_to_const['Dm_Cl']
-                    sim.Dm_cells[sim.iCl][tissue_mems_index] = dCl
+                    sim.Dm_cells[sim.iCl][tissue_mems_index] = (
+                        tissue_profile.Dm_Cl)
 
                 if p.ions_dict['Ca'] == 1:
-                    dCa = tissue_profile.mem_diff_name_to_const['Dm_Ca']
-                    sim.Dm_cells[sim.iCa][tissue_mems_index] = dCa
+                    sim.Dm_cells[sim.iCa][tissue_mems_index] = (
+                        tissue_profile.Dm_Ca)
 
                 if p.ions_dict['H'] == 1:
-                    dH = tissue_profile.mem_diff_name_to_const['Dm_H']
-                    sim.Dm_cells[sim.iH][tissue_mems_index] = dH
+                    sim.Dm_cells[sim.iH][tissue_mems_index] = (
+                        tissue_profile.Dm_H)
 
                 if p.ions_dict['M'] == 1:
-                    dM = tissue_profile.mem_diff_name_to_const['Dm_M']
-                    sim.Dm_cells[sim.iM][tissue_mems_index] = dM
+                    sim.Dm_cells[sim.iM][tissue_mems_index] = (
+                        tissue_profile.Dm_M)
 
                 if p.ions_dict['P'] == 1:
-                    dP = tissue_profile.mem_diff_name_to_const['Dm_P']
-                    sim.Dm_cells[sim.iP][tissue_mems_index] = dP
+                    sim.Dm_cells[sim.iP][tissue_mems_index] = (
+                        tissue_profile.Dm_P)
 
     # ..................{ RUNNERS ~ init                     }..................
     def runAllInit(

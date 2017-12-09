@@ -8,7 +8,7 @@ YAML-backed simulation subconfiguration classes for tissue and cut profiles.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractproperty
+from abc import ABCMeta  #, abstractproperty
 from betse.lib.yaml.yamlalias import (
     yaml_alias,
     yaml_alias_float_nonnegative,
@@ -23,8 +23,8 @@ from betse.util.type.enums import make_enum
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ ENUMS                              }....................
-TissuePickerType = make_enum(
-    class_name='TissuePickerType',
+CellsPickerType = make_enum(
+    class_name='CellsPickerType',
     member_names=('ALL', 'IMAGE', 'INDICES', 'PERCENT',))
 '''
 Enumeration of all supported types of **tissue profile pickers** (i.e., objects
@@ -58,10 +58,6 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
 
     Attributes
     ----------
-    is_gj_insular : bool
-        ``True`` only if gap junctions originating at cells in this tissue are
-        **insular** (i.e., prevented from connecting to cells in other tissues),
-        implying these gap junctions to be strictly intra-tissue.
     name : str
         Arbitrary string uniquely identifying this tissue profile in this list.
 
@@ -84,7 +80,6 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
     '''
 
     # ..................{ ALIASES                            }..................
-    is_gj_insular = yaml_alias("['insular']", bool)
     name = yaml_alias("['name']", str)
 
     # ..................{ ALIASES ~ diffusion                }..................
@@ -105,34 +100,44 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     configuration of a single tissue profile parsed from a list of these
     profiles in the current YAML-formatted simulation configuration file.
 
+    Attributes
+    ----------
+    is_gj_insular : bool
+        ``True`` only if gap junctions originating at cells in this tissue are
+        **insular** (i.e., prevented from connecting to cells in other tissues),
+        implying these gap junctions to be strictly intra-tissue.
+
     Attributes (Cell Picker)
     ----------
-    picker_type : TissuePickerType
+    picker_type : CellsPickerType
         Type of **tissue profile picker** (i.e., object assigning a subset of
         all cells matching some criteria to this tissue profile).
     picker_cells_index : SequenceTypes
         Sequence of the indices of all cells to be assigned to this tissue.
-        Ignored unless :attr:`picker_type` is :attr:`TissuePickerType.INDICES`.
+        Ignored unless :attr:`picker_type` is :attr:`CellsPickerType.INDICES`.
     picker_cells_percent : float
         **Percentage** (i.e., floating point number in the range ``[0.0,
         100.0]``) of the total cell population to be randomly assigned to this
         tissue. Ignored unless :attr:`picker_type` is
-        :attr:`TissuePickerType.PERCENT`.
+        :attr:`CellsPickerType.PERCENT`.
     picker_image_filename : str
         Absolute or relative filename of the image mask whose colored pixel area
         defines the region of the cell cluster whose cells are all to be
         assigned to this tissue. Ignored unless :attr:`picker_type` is
-        :attr:`TissuePickerType.IMAGE`.
+        :attr:`CellsPickerType.IMAGE`.
     '''
 
+    # ..................{ ALIASES                            }..................
+    is_gj_insular = yaml_alias("['insular']", bool)
+
     # ..................{ ALIASES ~ picker                   }..................
-    picker_type = yaml_enum_alias("['cell targets']['type']", TissuePickerType)
+    picker_type = yaml_enum_alias("['cell targets']['type']", CellsPickerType)
     picker_cells_index = yaml_alias(
         "['cell targets']['indices']", SequenceTypes)
     picker_cells_percent = yaml_alias_float_percent(
         "['cell targets']['random']")
     picker_image_filename = yaml_alias(
-        "['cell targets']['bitmap']['file']", str)
+        "['cell targets']['image']['file']", str)
 
     # ..................{ CLASS                              }..................
     @classmethod
@@ -159,7 +164,7 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
             },
             'cell targets': {
                 'type': 'all',
-                'bitmap': {'file': 'geo/circle/circle_base.png'},
+                'image': {'file': 'geo/circle/circle_base.png'},
                 'indices': [3, 14, 15, 9, 265],
                 'random': 50,
             },
@@ -181,5 +186,4 @@ class SimConfTissueDefault(SimConfTissueABC, YamlABC):
     '''
 
     # ..................{ ALIASES ~ picker                   }..................
-    picker_image_filename = yaml_alias(
-        "['cell targets']['bitmap']['file']", str)
+    picker_image_filename = yaml_alias("['image']['file']", str)

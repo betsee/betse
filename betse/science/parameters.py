@@ -122,9 +122,10 @@ class Parameters(YamlFileABC):
         Default tissue profile applied to all cells *not* already targeted by
         another tissue profile in the :attr:`tissue_profiles` list.
     tissue_profiles : YamlList
-        List of **tissue profiles**
-        (i.e., instance of the :class:`ProfileABC` class identifying cells
-        to be associated with particular simulation constants and parameters).
+        List of all **non-default tissue profiles** (i.e., objects targetting a
+        region of the cell cluster to be associated with particular simulation
+        constants and parameters). Ignored if :attr:`is_tissue_profiles` is
+        ``False``.
 
     Attributes (Time: Total)
     ----------
@@ -341,10 +342,11 @@ class Parameters(YamlFileABC):
         #FIXME: This attribute is largely vestigial and currently only
         #referenced in two other locations in the codebase. While still vital,
         #there exists no demonstrable reason to ever externally configure this.
-        #Contemplate excising this configuration option from our YAML file and
+        #Contemplate removing this configuration option from our YAML file and
         #instead hard-coding this option's default value (i.e., 50) within the
         #codebase itself as a global magic number.
-        self.plot_grid_size = int(self._conf['general options']['plot grid size'])
+        self.plot_grid_size = int(
+            self._conf['general options']['plot grid size'])
 
         #---------------------------------------------------------------------------------------------------------------
         # WORLD OPTIONS
@@ -367,6 +369,10 @@ class Parameters(YamlFileABC):
         # Default tissue profile applied to all cells.
         self.tissue_default = SimConfTissueDefault(
             self._conf['tissue profile definition']['tissue']['default'])
+
+        # List of all non-default tissue profiles applied to only some cells.
+        self.tissue_profiles = SimConfTissueListItem.make_list(
+            self._conf['tissue profile definition']['tissue']['profiles'])
 
         #---------------------------------------------------------------------------------------------------------------
         # TARGETED INTERVENTIONS

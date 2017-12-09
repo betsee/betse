@@ -165,7 +165,7 @@ world options:
 # membrane diffusion profiles, interventions, and individualized dynamics (e.g., voltage
 # gated channels) can be applied. Tissue profiles can be gap-junction connected or
 # separated (isolated) from other tissue profiles. Cluster shape and individual tissues
-# can be defined by bitmaps, or specified via various functional regimes. When multiple
+# can be defined by images, or specified via various functional regimes. When multiple
 # profiles apply to the same cell, options defined by later profiles override options
 # defined by earlier profiles.
 #
@@ -181,14 +181,15 @@ tissue profile definition:
 
   profiles enabled: True # Apply (rather than ignore) tissue and cut profiles listed below?
 
-  tissue: # Tissue profiles (i.e., regions of the cell cluster whose cells are assigned the
-          # same initial parameters). Ignored if "profiles enabled" is False.
-
+  tissue: # Tissue profiles (i.e., regions whose cells are assigned the same initial values).
     default: # Default tissue profile applied to all cells *NOT* specifically targeted by a
-             # tissue profile defined below.
-      name: base     # Arbitrary unique profile name.
-      insular: False # Disable extra-tissue gap junctions (i.e., prevent gap junctions of
-                     # cells in this tissue from connecting to cells in other tissues)?
+             # tissue profile defined below. Never ignored, even if "profiles enabled" is False.
+      name: base # Arbitrary unique profile name.
+      image:     # Image mask whose pure-black pixels (red, green, and blue color values all 0)
+                 # define the cell cluster shape to be populated with cells. This image *MUST*:
+                 # * Be square (i.e., have equal pixel dimensions).
+                 # * Contain no alpha transparency layer.
+        file: geo/circle/circle_base.png  # Absolute or relative filename of this image.
       diffusion constants: # Membrane diffusion constants applied to all unprofiled cells.
         Dm_Na: 1.0e-18     # Na+ membrane diffusion constant [m2/s]
         Dm_K: 15.0e-18     # K+ membrane diffusion constant [m2/s]
@@ -197,13 +198,9 @@ tissue profile definition:
         Dm_H: 1.0e-18      # H+ membrane diffusion constant [m2/s]
         Dm_M: 1.0e-18      # M- membrane diffusion constant [m2/s]
         Dm_P: 0.0          # proteins- membrane diffusion constant [m2/s]
-      cell targets: # Cell population to which this profile applies.
-        bitmap:     # Image mask whose colored pixel area defines the shape of the cell cluster.
-          file: geo/circle/circle_base.png  # Absolute or relative filename of this image.
 
-    profiles:  # List of all non-default tissue profiles.
-      # Example tissue profile uniformly applied to all cells, overwriting the default
-      # profile defined above.
+    profiles: # List of all non-default tissue profiles. Ignored if "profiles enabled" is False.
+      # Example tissue profile uniformly applied to all cells, overriding the default profile.
       - name: all            # Arbitrary unique profile name.
         insular: False       # Disable extra-tissue gap junctions?
         diffusion constants: # Membrane diffusion constants applied to all targeted cells.
@@ -217,22 +214,22 @@ tissue profile definition:
         cell targets: # Cell population to which this profile applies.
           type: all   # Cell population type, as any following string:
                       # * "all", uniformly applying this tissue profile to all cells.
-                      # * "bitmap", matching only cells residing inside an image's colored area.
+                      # * "image", matching only cells residing inside an image's colored area.
                       # * "indices", matching only cells with the indices listed below.
                       # * "random", matching only a random subset of cells in the cell cluster.
-          bitmap:     # Image whose colored pixel area defines the region of cells to match.
-                      # Ignored unless "type: bitmap" specified above.
+          image:      # Image whose pure-black pixels define the region of cells to match.
+                      # See the "image" key of the default tissue profile above for details.
+                      # Ignored unless "type: image" specified above.
             file: geo/circle/circle_base.png  # Absolute or relative filename of this image.
-          indices: [3, 14, 15, 9, 265]  # List of all positive integers uniquely identifying each
-                                        # cell in this cluster to apply this tissue profile to.
-                                        # Ignored unless "type: indices" specified above.
-          random: 50  # Percentage of cells in this cluster to randomly apply this tissue profile
-                      # to, defined as an integer ranging from 0 to 100 (e.g., "50" randomly
-                      # applies this profile to 50% of all cells).
-                      # Ignored unless "type: random" specified above,
+          indices: [3, 14, 15, 9, 265] # List of all positive integers uniquely identifying each
+                                       # cell in this cluster to apply this tissue profile to.
+                                       # Ignored unless "type: indices" specified above.
+          random: 50 # Percentage of cells in this cluster to randomly apply this tissue
+                     # profile to, defined as an integer ranging from 0 to 100 (e.g., "50"
+                     # randomly applies this profile to 50% of all cells).
+                     # Ignored unless "type: random" specified above,
 
-      # Example tissue profile for a small, slightly depolarized cluster of
-      # cells near the cluster centre.
+      # Example tissue profile for a depolarized patch of cells at the cell cluster centre.
       - name: spot
         insular: False
         diffusion constants:
@@ -244,13 +241,12 @@ tissue profile definition:
           Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
         cell targets:
-          type: bitmap
-          bitmap: { file: geo/circle/mini_spot.png }
+          type: image
+          image: { file: geo/circle/mini_spot.png }
           indices: [3, 14, 15, 9, 265]
           random: 50
 
-      # Example tissue profile for a small, slightly depolarized cluster of
-      # cells near the cluster boundary.
+      # Example tissue profile for a depolarized wedge of cells at a cell cluster boundary.
       - name: wound
         insular: False
         diffusion constants:
@@ -262,18 +258,19 @@ tissue profile definition:
           Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
         cell targets:
-          type: bitmap
-          bitmap: { file: geo/circle/wedge.png }
+          type: image
+          image: { file: geo/circle/wedge.png }
           indices: [3, 14, 15, 9, 265]
           random: 50
 
-  cut profiles:  # List of all cut profiles (i.e., cell cluster region to be permanently
-                 # removed by a cutting event triggered during the simulation phase).
-                 # Ignored if "profiles enabled" is False.
-    # Example cut profile removing a small region of cells near a cell cluster boundary.
-    - name: surgery   # Arbitrary unique profile name.
-      bitmap:         # Bitmap whose coloured pixel area defines the cluster region to remove.
-        file: geo/circle/wedge.png
+  cut profiles: # List of all cut profiles (i.e., cell cluster regions to be permanently
+                # removed by a cutting event triggered during the simulation phase).
+                # Ignored if "profiles enabled" is False.
+    # Example cut profile removing a depolarized wedge of cells from a cell cluster boundary.
+    - name: surgery # Arbitrary unique profile name.
+      image:        # Image whose pure-black pixels define the cluster region to remove.
+                    # See the "image" key of the default tissue profile above for details.
+        file: geo/circle/wedge.png # Absolute or relative filename of this image.
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS

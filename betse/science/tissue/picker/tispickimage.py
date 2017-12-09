@@ -72,19 +72,20 @@ class TissuePickerImageMask(object):
         Load, initialize, and create a threshholded interpolation matrix from
         the passed image mask file.
 
-        Caveats
+        Format
         ----------
-        This image should ideally be completely threshholded, with black pixels
-        defining either:
+        This image should ideally be completely threshholded. Each pure black
+        pixel (i.e., with red, green, and blue color components all 0) of this
+        image collectively defines either:
 
         * The area to be used as the clipping mask for the cell cluster.
-        * The area for a tissue or boundary profile.
+        * The area for a tissue, cut, or boundary profile.
 
         This image *must* additionally:
 
         * Be square (i.e., have equal pixel dimensions). For consistency, image
           dimensions of 500x500 pixels are recommended.
-        * Not contain an alpha transparency layer, a SciPy-based constraint and
+        * Contain *no* alpha transparency layer, a SciPy-based constraint and
           hence *not* amenable to change.
 
         Parameters

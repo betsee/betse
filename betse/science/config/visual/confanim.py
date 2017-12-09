@@ -52,7 +52,7 @@ class SimConfAnimAll(YamlABC):
         ``True`` only if this configuration displays post-simulation animations.
     after_sim_pipeline : YamlList
         YAML-backed list of all post-simulation animations to be animated.
-        Ignored if :attr:``is_after_sim`` is ``False``.
+        Ignored if :attr:`is_after_sim` is ``False``.
 
     Attributes (Images)
     ----------
@@ -60,10 +60,10 @@ class SimConfAnimAll(YamlABC):
         ``True`` only if this configuration saves animation frames as images.
     image_filetype : str
         Filetype of all image files saved by this configuration. Ignored if
-        ``is_images_save`` is ``False``.
+        :attr:`is_images_save` is ``False``.
     image_dpi : int
         Dots per inch (DPI) of all image files saved by this configuration.
-        Ignored if ``is_images_save`` is ``False``.
+        Ignored if :attr:`is_images_save` is ``False``.
 
     Attributes (Video)
     ----------
@@ -71,7 +71,7 @@ class SimConfAnimAll(YamlABC):
         ``True`` only if this configuration saves animation frames as video.
     video_bitrate : int
         Bitrate in bits per second of all video files saved by this
-        configuration. Ignored if `is_video_save` is `False`.
+        configuration. Ignored if :attr:`is_video_save` is `False`.
     video_codec_names : Sequence
         List of the names of all encoder-specific codecs with which to encode
         animations (in descending order of preference), automatically:
@@ -80,13 +80,13 @@ class SimConfAnimAll(YamlABC):
           specific to the selected writer and filetype. For details, see the
           `betse.lib.matplotlib.writer.mplvideo.get_first_codec_name()`
           function.
-        Ignored if `is_video_save` is `False`.
+        Ignored if :attr:`is_video_save` is `False`.
     video_dpi : int
         Dots per inch (DPI) of all frames of all video files saved by this
-        configuration. Ignored if `is_images_save` is `False`.
+        configuration. Ignored if :attr:`is_images_save` is `False`.
     video_filetype : str
-        Filetype of all video files saved by this configuration. Ignored if
-        `is_video_save` is `False`. Supported filetypes include:
+        Filetype of all video files saved by this configuration. Supported
+        filetypes include:
         * `mkv` (Matroska), an open-standard audio and video container
           supporting all relevant codecs and hence the default.
         * `avi`, Microsoft's obsolete proprietary audio and video container.
@@ -95,22 +95,23 @@ class SimConfAnimAll(YamlABC):
         * `mov` (QuickTime), Apple's proprietary audio and video container.
         * `mp4` (MPEG-4 Part 14), an open-standard audio and video container.
         * `webm` (WebM), Google's proprietary audio and video container.
+        Ignored if :attr:`is_video_save` is `False`.
     video_framerate : int
         Framerate in frames per second of all video files saved by this
-        configuration. Ignored if `is_video_save` is `False`.
+        configuration. Ignored if :attr:`is_video_save` is `False`.
     video_metadata : dict
         Dictionary mapping from the alphabetic lowercase name of video metadata
         supported by the active video encoder to that metadata's human-readable
         string to be embedded in all video files saved by this configuration.
-        Ignored if `is_video_save` is `False`. Supported names include:
-        `title`, `artist`, `genre`, `subject`, `copyright`, `srcform`, and
-        `comment`. If this dictionary does _not_ contain a `copyright` key, such
-        a key will be automatically synthesized from the current year.
+        Supported names include: `title`, `artist`, `genre`, `subject`,
+        `copyright`, `srcform`, and `comment`. If this dictionary does *not*
+        contain a `copyright` key, such a key will be automatically synthesized
+        from the current year. Ignored if :attr:`is_video_save` is `False`.
     video_writer_names : Sequence
         List of the names of all matplotlib animation writers with which to
         encode animations (in order of descending preference), automatically
-        selecting the first writer installed on the current system. Ignored if
-        ``is_video_save`` is ``False``. Supported names include:
+        selecting the first writer installed on the current system. Supported
+        names include:
         * ``ffmpeg``, an open-source cross-platform audio and video encoder.
         * ``avconv``, an open-source cross-platform audio and video encoder
           forked from (and largely interchangeable with) `ffmpeg`.
@@ -118,6 +119,7 @@ class SimConfAnimAll(YamlABC):
           associated with MPlayer, a popular media player.
         * ``imagemagick``, an open-source cross-platform image manipulation
           suite supporting *only* creation of animated GIFs.
+        Ignored if :attr:`is_video_save` is ``False``.
     '''
 
     # ..................{ ALIASES ~ while                    }..................

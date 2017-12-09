@@ -914,6 +914,112 @@ def invert_iterable_unique(iterable: IterableTypes) -> MappingType:
     # One-liners for Great Glory.
     return {item: item_index for item_index, item in enumerate(iterable)}
 
+# ....................{ ITERATORS                          }....................
+@type_check
+def iter_items(*iterables: IterableTypes) -> GeneratorType:
+    '''
+    Generator yielding each item of each of the passed iterables (in both the
+    internal order of each iterable and the passed order of iterables).
+
+    This function is preferable for pure iteration over multiple iterables, in
+    which case a composite iterable of the same type is *not* required.
+
+    Parameters
+    ----------
+    iterables : tuple[IterableTypes]
+        Tuple of all iterables whose items are to be iterated over.
+
+    Yields
+    ----------
+    object
+        Current item of the current iterable.
+
+    See Also
+    ----------
+    :func:`join`
+        Less efficient alternative producing a composite iterable.
+    https://stackoverflow.com/a/14342360/2809027
+        Stackoverflow answer strongly inspiring this implementation.
+
+    Examples
+    ----------
+        >>> from betse.util.type import iterables
+        >>> in_xanadu = ('did', 'Kubla', 'Khan')
+        >>> a_stately = ('pleasure-dome', 'decree:')
+        >>> for word in iterables.iter_items(in_xanadu, a_stately):
+        ...     print(word, end=' ')
+        did Kubla Khan pleasure-dome decree:
+    '''
+
+    # Pure Python 3.x. Join the party.
+    #
+    # Note that the itertools.chain.from_iterable() could also be called here,
+    # but that doing so is less Pythonic than the current approach.
+    for iterable in iterables:
+        yield from iterable
+
+# ....................{ JOINERS                            }....................
+@type_check
+def join(*iterables: IterableTypes) -> IterableTypes:
+    '''
+    Join each item of each of the passed iterables (in both the internal order
+    of each iterable and the passed order of iterables) into a new iterable of
+    the same type as the first such iterable.
+
+    Parameters
+    ----------
+    iterables : tuple[IterableTypes]
+        Tuple of all iterables whose items are to be joined together.
+
+    Returns
+    ----------
+    IterableTypes
+        Iterable of the same type as the first passed iterable containing each
+        item of each of the passed iterables.
+
+    Raises
+    ----------
+    BetseIterableException
+        If the type of the first passed iterable is :class:`str`, in which case
+        the builtin :func:`str.join` function should be called for both
+        efficiency and sanity instead.
+
+    See Also
+    ----------
+    :func:`iter_items`
+        More efficient alternative intended for pure iteration, in which case a
+        composite iterable of the same type is *not* required.
+    https://stackoverflow.com/a/14342360/2809027
+        Stackoverflow answer strongly inspiring this implementation.
+
+    Examples
+    ----------
+        >>> from betse.util.type import iterables
+        >>> where_alph = ('the', 'sacred', 'river,', 'ran')
+        >>> through_caverns = ('measureless', 'to', 'man')
+        >>> for word in iterables.iter_items(where_alph, through_caverns):
+        ...     print(word, end=' ')
+        the sacred river, ran measureless to man
+    '''
+
+    # Iterator over each of the passed iterables.
+    iterator = iter(iterables)
+
+    # First passed iterable.
+    iterable_first = next(iterator)
+
+    # Type of this iterable.
+    iterable_first_type = type(iterable_first)
+
+    # If this iterable is a string, raise an exception.
+    if iterable_first_type is str:
+        raise BetseIterableException(
+            'String "{}" not joinable by iterables.join(). '
+            'Consider calling str.join() instead.'.format(iterable_first))
+
+    # Return a new iterable of this type over each item of each passed iterable.
+    return iterable_first_type(iter_items(*iterables))
+
 # ....................{ REVERSERS                          }....................
 @type_check
 def reverse(iterable: IterableTypes) -> IterableTypes:

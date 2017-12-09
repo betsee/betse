@@ -324,6 +324,19 @@ def _upgrade_sim_conf_to_0_6_0(
         p._conf['internal parameters']['double layer permittivity'] = 80.0
 
     # Shift the clipping bitmap mask into the default tissue profile.
-    if 'cell targets' not in tissue_dict['tissue']['default']:
+    if 'clipping' in tissue_dict:
         tissue_dict['tissue']['default']['cell targets'] = tissue_dict[
             'clipping']
+
+    # For disambiguity, rename "bitmap" to "image" in tissue and cut profiles.
+    if 'image' not in tissue_dict['tissue']['default']:
+        tissue_dict['tissue']['default']['image'] = tissue_dict[
+            'tissue']['default']['cell targets']['bitmap']
+    for profile in tissue_dict['tissue']['profiles']:
+        if profile['cell targets']['type'] == 'bitmap':
+            profile['cell targets']['type'] = 'image'
+        if 'image' not in profile['cell targets']:
+            profile['cell targets']['image'] = profile['cell targets']['bitmap']
+    for profile in tissue_dict['cut profiles']:
+        if 'image' not in profile:
+            profile['image'] = profile['bitmap']
