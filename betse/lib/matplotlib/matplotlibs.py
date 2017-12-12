@@ -804,7 +804,7 @@ class MplConfig(object):
         # itself, which... is frustrating. Let me tell you: we are displeased.
         if versions.is_at_least(self.version, '2.0.0'):
             # Append this backend to the end of this list.
-            backend_names_prefer += 'TkAgg'
+            backend_names_prefer.append('TkAgg')
         # Else, prioritize the "TkAgg" backend. Why? Because:
         #
         # * "TkAgg", a GUI backend with adequate (albeit not particularly
