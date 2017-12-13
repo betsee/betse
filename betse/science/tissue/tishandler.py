@@ -134,7 +134,6 @@ class TissueHandler(object):
         if not p.is_tissue_profiles:
             return
 
-        #FIXME: Replace with usage of a proper public instance variable.
         # For each low-level YAML-backed tissue profile...
         for tissue_index, tissue_profile in enumerate(p.tissue_profiles):
             # If a prior profile collides with this profile's name, this profile
@@ -182,24 +181,20 @@ class TissueHandler(object):
             )
 
         # For each low-level YAML-backed cut profile...
-        for i, profile_conf in enumerate(
-            p._conf['tissue profile definition']['cut profiles']):
-            # Name of this profile.
-            profile_name = profile_conf['name']
-
+        for cut_index, cut_profile in enumerate(p.cut_profiles):
             # If this profile is non-unique, raise an exception.
-            if profile_name in self.cut_name_to_profile:
+            if cut_profile.name in self.cut_name_to_profile:
                 raise BetseSimTissueException(
                     'Cut profile "{0}" non-unique '
                     '(i.e., two or more cut profiles named "{0}").'.format(
-                        profile_name))
+                        cut_profile.name))
 
             # Map this profile's name to a high-level profile object.
-            self.cut_name_to_profile[profile_name] = CutProfile(
-                name=profile_name,
-                z_order=i + 1,
+            self.cut_name_to_profile[cut_profile.name] = CutProfile(
+                name=cut_profile.name,
+                z_order=cut_index + 1,
                 picker=TissuePickerImage(
-                    filename=profile_conf['image']['file'],
+                    filename=cut_profile.picker_image_filename,
                     dirname=p.conf_dirname)
             )
 
@@ -1026,14 +1021,10 @@ class TissueHandler(object):
         # self.dvsign = np.sign(sim.dvm)
 
         if p.vgNa_bool:
-
             for ind, type_string in enumerate(p.vgNa_type):
-
                 object_name = 'vgNa_object' + str(ind)
-
                 init_funk = getattr(self, object_name)
                 init_funk.run(self, sim, cells, p)
-
 
             # update the voltage-gated sodium object
             # self.vgNa_object.run(self, sim, cells, p)
@@ -1041,58 +1032,43 @@ class TissueHandler(object):
         if p.vgNaP_bool:
             # update the voltage-gated sodium objects
             for ind, type_string in enumerate(p.vgNaP_type):
-
                 object_name = 'vgNaP_object' + str(ind)
-
                 init_funk = getattr(self, object_name)
                 init_funk.run(self, sim, cells, p)
-
 
             # self.vgNaP_object.run(self, sim, cells, p)
 
         if p.vgK_bool:
             # update the voltage-gated potassium object
             for ind, type_string in enumerate(p.vgK_type):
-
                 object_name = 'vgK_object' + str(ind)
-
                 init_funk = getattr(self, object_name)
                 init_funk.run(self, sim, cells, p)
-
 
             # self.vgK_object.run(self, sim, cells, p)
 
         if p.vgKir_bool:
             # update the voltage-gated potassium object
             for ind, type_string in enumerate(p.vgKir_type):
-
                 object_name = 'vgKir_object' + str(ind)
-
                 init_funk = getattr(self, object_name)
                 init_funk.run(self, sim, cells, p)
-
 
             # self.vgKir_object.run(self, sim, cells, p)
 
         if p.vgFun_bool:
             # update the voltage-gated funny current object
             for ind, type_string in enumerate(p.vgFun_type):
-
                 object_name = 'vgFun_object' + str(ind)
-
                 init_funk = getattr(self, object_name)
                 init_funk.run(self, sim, cells, p)
-
 
             # self.vgFun_object.run(self, sim, cells, p)
 
         if p.vgCa_bool and p.ions_dict['Ca'] != 0:
             # update the voltage-gated calcium object
-
             for ind, type_string in enumerate(p.vgCa_type):
-
                 object_name = 'vgCa_object' + str(ind)
-
                 init_funk = getattr(self, object_name)
                 init_funk.run(self, sim, cells, p)
             # self.vgCa_object.run(self, sim, cells, p)
@@ -1228,8 +1204,8 @@ class TissueHandler(object):
             # setting the environmental spaces around cut world to the free value -- if desired!:
             # if open_TJ is True:
         # save the x,y coordinates of the original boundary cell and membrane points:
-        old_bflag_cellxy = np.copy(cells.cell_centres[cells.bflags_cells])
-        old_bflag_memxy = np.copy(cells.mem_mids_flat[cells.bflags_mems])
+        # old_bflag_cellxy = np.copy(cells.cell_centres[cells.bflags_cells])
+        # old_bflag_memxy = np.copy(cells.mem_mids_flat[cells.bflags_mems])
 
         # set up the situation to make world joined to cut world have more permeable membranes:
         hurt_cells = np.zeros(len(cells.cell_i))
@@ -1346,6 +1322,7 @@ class TissueHandler(object):
                         setattr(sim, name, data2)
 
                 elif isinstance(data, list):
+                    index = None
                     data2 = []
 
                     if len(data) == len(cells.cell_i):

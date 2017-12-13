@@ -239,57 +239,61 @@ class YamlList(MutableSequence):
         # Return this list item.
         return conf_wrap
 
-# ....................{ GETTERS                            }....................
-@type_check
-def get_list_item_name_unique(yaml_list: YamlList, name_format: str) -> str:
-    '''
-    String formatted according to the passed format specifier, guaranteed to be
-    unique across all items of the passed low-level YAML-backed list.
+    # ....................{ GETTERS                            }....................
+    @type_check
+    def get_item_name_unique(self, name_format: str) -> str:
+        '''
+        Identifier formatted according to the passed format specifier,
+        guaranteed to be unique across all items of this list.
 
-    Parameters
-    ----------
-    yaml_list : YamlList
-        List to construct this unique list item name for. Each item of this list
-        is assumed (via duck-typing) to define an instance variable with name
-        ``name`` and value the YAML-backed name of that item; if this is *not*
-        the case, an exception is raised.
-    name_format : str
-        Format specifier containing a ``{}`` substring (e.g., ``tissue ({})``),
-        iteratively interpolated by this function with an arbitrary integer to
-        produce this unique list item name.
+        By duck typing, each item of this list is required to define a ``name``
+        instance variable whose value is the YAML-backed name of that item; if
+        this is *not* the case, an exception is raised.
 
-    Returns
-    ----------
-    str
-        List item name of this format unique to this list.
-    '''
+        This method then returns an identifier suitable for use by the caller as
+        the value of the ``name`` instance variable for a newly created item of
+        this list. Hence, callers tend to call this method from subclass
+        :meth:`make_default` implementations.
 
-    # Arbitrary unique identifier with which to uniquify (i.e., guarantee
-    # the uniqueness of) the name of a new item in this list, defaulting to the
-    # number of existing items in this list.
-    yaml_list_item_id = len(yaml_list)
+        Parameters
+        ----------
+        name_format : str
+            Format specifier containing a ``{}`` substring (e.g.,
+            ``tissue ({})``), iteratively interpolated by this function with an
+            arbitrary integer to produce this unique list item name.
 
-    # Name of this tissue profile, unique in this list.
-    yaml_list_item_name = None
+        Returns
+        ----------
+        str
+            Item name unique to this list matching this format.
+        '''
 
-    # While this name is *NOT* unique in this list, iteratively (re)search
-    # this list until obtaining a unique name. This iteration is guaranteed
-    # to (eventually) terminate successfully with a unique name.
-    while True:
-        yaml_list_item_name = name_format.format(yaml_list_item_id)
+        # Arbitrary unique identifier with which to uniquify (i.e., guarantee
+        # the uniqueness of) the name of a new item in this list, defaulting to the
+        # number of existing items in this list.
+        yaml_list_item_id = len(self)
 
-        # For each existing item of this list...
-        for yaml_list_item_other in yaml_list:
-            # If this item already has this name, this name is non-unique.
-            # In this case, increment this identifier, format a new name via
-            # this identifier, and repeat this search.
-            if yaml_list_item_name == yaml_list_item_other.name:
-                yaml_list_item_id += 1
+        # Name of this tissue profile, unique in this list.
+        yaml_list_item_name = None
+
+        # While this name is *NOT* unique in this list, iteratively (re)search
+        # this list until obtaining a unique name. This iteration is guaranteed
+        # to (eventually) terminate successfully with a unique name.
+        while True:
+            yaml_list_item_name = name_format.format(yaml_list_item_id)
+
+            # For each existing item of this list...
+            for yaml_list_item_other in self:
+                # If this item already has this name, this name is non-unique.
+                # In this case, increment this identifier, format a new name via
+                # this identifier, and repeat this search.
+                if yaml_list_item_name == yaml_list_item_other.name:
+                    yaml_list_item_id += 1
+                    break
+            # If no item already has this name, this name is unique. In that
+            # case, cease searching.
+            else:
                 break
-        # If no item already has this name, this name is unique. In that
-        # case, cease searching.
-        else:
-            break
 
-    # Return this name.
-    return yaml_list_item_name
+        # Return this name.
+        return yaml_list_item_name

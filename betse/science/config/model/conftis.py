@@ -45,7 +45,7 @@ PERCENT : enum
     Randomized cell picker, randomly matching a given percentage of all cells.
 '''
 
-# ....................{ SUPERCLASSES                       }....................
+# ....................{ SUPERCLASSES ~ tissue              }....................
 class SimConfTissueABC(object, metaclass=ABCMeta):
     '''
     Abstract mixin generalizing implementation common to all YAML-backed tissue
@@ -59,7 +59,8 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
     Attributes
     ----------
     name : str
-        Arbitrary string uniquely identifying this tissue profile in this list.
+        Arbitrary string uniquely identifying this tissue profile in the list of
+        all tissue profiles for this simulation.
 
     Attributes (Membrane Diffusion)
     ----------
@@ -91,9 +92,7 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
     Dm_M  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_M']")
     Dm_P  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_P']")
 
-# ....................{ SUBCLASSES                         }....................
-#FIXME: Define a similar "SimConfCutListItem" class as well.
-#FIXME: Actually leverage this in "Parameters".
+# ....................{ SUBCLASSES ~ tissue                }....................
 class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     '''
     YAML-backed tissue profile list item subconfiguration, encapsulating the
@@ -121,10 +120,13 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
         tissue. Ignored unless :attr:`picker_type` is
         :attr:`CellsPickerType.PERCENT`.
     picker_image_filename : str
-        Absolute or relative filename of the image mask whose colored pixel area
-        defines the region of the cell cluster whose cells are all to be
-        assigned to this tissue. Ignored unless :attr:`picker_type` is
-        :attr:`CellsPickerType.IMAGE`.
+        Absolute or relative filename of the image mask whose pure-black pixels
+        (i.e., pixels whose red, green, and blue color components are all 0)
+        define the region of the cell cluster whose cells are all to be assigned
+        to this tissue. This image *must*:
+        * Be square (i.e., have equal width and height).
+        * Contain no alpha transparency layer.
+        Ignored unless :attr:`picker_type` is :attr:`CellsPickerType.IMAGE`.
     '''
 
     # ..................{ ALIASES                            }..................
@@ -145,8 +147,8 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Name of this tissue profile unique to this list.
-        tissue_name = yamllistabc.get_list_item_name_unique(
-            yaml_list=yaml_list, name_format='tissue ({{}})')
+        tissue_name = yaml_list.get_item_name_unique(
+            name_format='tissue ({{}})')
 
         # Create and return the equivalent YAML-backed tissue profile list item,
         # duplicating the first such item in our default YAML file.
@@ -181,9 +183,50 @@ class SimConfTissueDefault(SimConfTissueABC, YamlABC):
     Attributes (Cell Picker)
     ----------
     picker_image_filename : str
-        Absolute or relative filename of the image mask whose colored pixel area
-        defines the shape of the cell cluster and hence this default tissue.
+        Absolute or relative filename of the image mask whose pure-black pixels
+        define the shape of the cell cluster to be populated with cells. See
+        the :attr:`SimConfTissueListItem.picker_image_filename` variable for
+        details.
     '''
 
     # ..................{ ALIASES ~ picker                   }..................
     picker_image_filename = yaml_alias("['image']['file']", str)
+
+# ....................{ SUBCLASSES ~ cut                   }....................
+#FIXME: Actually leverage this in "Parameters".
+class SimConfCutListItem(YamlListItemABC):
+    '''
+    YAML-backed cut profile list item subconfiguration, encapsulating the
+    configuration of a single cut profile parsed from a list of these profiles
+    in the current YAML-formatted simulation configuration file.
+
+    Attributes
+    ----------
+    name : str
+        Arbitrary string uniquely identifying this cut profile in this list.
+    picker_image_filename : str
+        Absolute or relative filename of the image mask whose pure-black pixels
+        define the region of the cell cluster whose cells are all to be removed
+        by this cut profile. See the
+        :attr:`SimConfTissueListItem.picker_image_filename` variable for
+        details.
+    '''
+
+    # ..................{ ALIASES                            }..................
+    name = yaml_alias("['name']", str)
+    picker_image_filename = yaml_alias("['image']['file']", str)
+
+    # ..................{ CLASS                              }..................
+    @classmethod
+    @type_check
+    def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
+
+        # Name of this cut profile unique to this list.
+        cut_name = yaml_list.get_item_name_unique(name_format='cut ({{}})')
+
+        # Create and return the equivalent YAML-backed cut profile list item,
+        # duplicating the first such item in our default YAML file.
+        return SimConfTissueListItem(conf={
+            'name': cut_name,
+            'image': {'file': 'geo/circle/wedge.png'},
+        })

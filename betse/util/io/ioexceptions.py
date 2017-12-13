@@ -15,6 +15,30 @@ from io import StringIO
 
 # ....................{ GETTERS                            }....................
 @type_check
+def get_traceback(exception: Exception) -> str:
+    '''
+    Non-human-readable traceback associated with the passed exception, typically
+    intended to be logged and/or displayed to end users for debugging purposes.
+
+    Parameters
+    ----------
+    exception : Exception
+        Exception to return this traceback for.
+
+    Returns
+    ----------
+    str
+        Non-human-readable traceback associated with this exception.
+    '''
+
+    # Terse synopsis and verbose traceback for this exception.
+    _, exc_traceback = get_metadata(exception)
+
+    # Return this traceback.
+    return exc_traceback
+
+
+@type_check
 def get_metadata(exception: Exception) -> tuple:
     '''
     Tuple of various metadata specific to the passed exception, typically
@@ -219,22 +243,6 @@ def raise_exception(exception: Exception) -> None:
 
     raise exception
 
-# ....................{ PRIVATE                            }....................
-#FIXME: Shift to the "betse.util.io.exceptions" submodule and rename to
-#raise_exception().
-@type_check
-def _raise_exception(exception: Exception) -> None:
-    '''
-    Raise the passed exception.
-
-    This function is principally intended to be passed as the value of the
-    ``onerror`` parameter accepted by the :func:`os.walk` and :func:`os.fwalk`
-    functions, preventing errors emitted by low-level functions called by these
-    functions (e.g., :func:`os.listdir`) from being ignored. (By default, these
-    functions silently ignore a subset of these errors.)
-    '''
-
-    raise exception
 # ....................{ PRIVATE ~ iterators                }....................
 # If the active Python interpreter is 3.4, import the private _iter_chain()
 # method from the standard "traceback" module.

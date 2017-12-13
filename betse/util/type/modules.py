@@ -423,6 +423,31 @@ def import_module(
     # Else, import and return this module.
     return importlib.import_module(module_name)
 
+
+@type_check
+def unimport_module_if_imported(*module_names: str) -> None:
+    '''
+    Dynamically unimport each of the modules, packages, or C extensions with the
+    passed fully-qualified names that have been previously imported under the
+    active Python interpreter.
+
+    Specifically, for each passed name:
+
+    * If this name is that of a previously imported module, this module is
+      removed from the canonical :attr:`sys.modules` cache of all previously
+      imported modules. On the next attempt to import this module, Python will
+      re-import and re-cache that module to this cache.
+    * Else, this module is silently ignored.
+    '''
+
+    # For each of the passed module names...
+    for module_name in module_names:
+        # If this module has already been imported, unimport this module.
+        if is_imported(module_name):
+            logs.log_debug('Unimporting module "{}"...'.format(module_name))
+            del sys.modules[module_name]
+        # Else, this module has *NOT* yet been imported. Ignore this module.
+
 # ....................{ PRIVATE ~ resolvers                }....................
 @type_check
 def _resolve_module(module : ModuleOrStrTypes) -> ModuleType:

@@ -12,7 +12,7 @@ from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.config.confenum import (
     CellLatticeType, IonProfileType)
 from betse.science.config.model.conftis import (
-    SimConfTissueDefault, SimConfTissueListItem)
+    SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
 from betse.science.simulate.simphase import SimPhaseKind
 from betse.science.tissue.event import tisevevolt
 # from betse.util.io.log import logs
@@ -113,6 +113,10 @@ class Parameters(YamlFileABC):
 
     Attributes (Space: Tissue)
     ----------
+    cut_profiles : YamlList
+        List of all **non-default cut profiles** (i.e., objects targeting a
+        region of the cell cluster to be permanently removed by a corresponding
+        simulation event). Ignored if :attr:`is_tissue_profiles` is ``False``.
     is_tissue_profiles : bool
         ``True`` only if **tissue profiles** (i.e., user-defined regions within
         the cell cluster to which specific base membrane diffusion profiles,
@@ -122,7 +126,7 @@ class Parameters(YamlFileABC):
         Default tissue profile applied to all cells *not* already targeted by
         another tissue profile in the :attr:`tissue_profiles` list.
     tissue_profiles : YamlList
-        List of all **non-default tissue profiles** (i.e., objects targetting a
+        List of all **non-default tissue profiles** (i.e., objects targeting a
         region of the cell cluster to be associated with particular simulation
         constants and parameters). Ignored if :attr:`is_tissue_profiles` is
         ``False``.
@@ -370,7 +374,9 @@ class Parameters(YamlFileABC):
         self.tissue_default = SimConfTissueDefault(
             self._conf['tissue profile definition']['tissue']['default'])
 
-        # List of all non-default tissue profiles applied to only some cells.
+        # List of all non-default profiles applied to only some cells.
+        self.cut_profiles = SimConfCutListItem.make_list(
+            self._conf['tissue profile definition']['cut profiles'])
         self.tissue_profiles = SimConfTissueListItem.make_list(
             self._conf['tissue profile definition']['tissue']['profiles'])
 

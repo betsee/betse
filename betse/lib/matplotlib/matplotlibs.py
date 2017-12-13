@@ -89,6 +89,7 @@ Footnote descriptions are as follows:
 
 import sys
 from betse.exceptions import BetseMatplotlibException
+from betse.util.io import ioexceptions
 from betse.util.io.log import logconfig, logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.os import displays, kernels, oses
@@ -343,25 +344,36 @@ class MplConfig(object):
             application requirements (_in descending order of preference_).
         '''
 
-        # If a specific backend is requested, enable this backend and return.
-        if backend_name is not None:
-            self.backend_name = backend_name
-            return
-        # Else, no specific backend is requested.
-
-        # If this process is headless and hence supports only CLIs...
-        if displays.is_headless():
+        # If no specific backend is requested *AND* the active Python process is
+        # headless and hence supports only headless backends...
+        if backend_name is None and displays.is_headless():
             # Log this observation.
             logs.log_info(
                 'Headless display environment detected. '
-                'Defaulting to non-GUI backend "%s". ',
+                'Defaulting to headless backend "%s"...',
                 _BACKEND_NAME_HEADLESS)
 
-            # Default to a headless backend and return.
-            self.backend_name = _BACKEND_NAME_HEADLESS
-            return
-        # Else, this process is headfull and hence supports GUIs. Default to
-        # the first backend usable under the current system.
+            # Default to a headless backend.
+            backend_name = _BACKEND_NAME_HEADLESS
+
+        # If a specific backend is requested...
+        if backend_name is not None:
+            # If this backend is usable, enable this backend and return. Note
+            # that, as the is_backend_usable() method internally enables this
+            # backend as a necessary side effect of testing this backend's
+            # usability, this backend need not (and, indeed, should not) be
+            # explicitly re-enabled here.
+            if self.is_backend_usable(backend_name):
+                return
+            # Else, log a non-fatal error and continue.
+            else:
+                logs.log_error(
+                    'Preferred backend "%s" unusable. '
+                    'Detecting a usable backend...', backend_name)
+        # Else, no specific backend is requested. Since the default headless
+        # backend (e.g., "Agg") should *ALWAYS* be usable, this typically
+        # implies this process to be headfull and hence support GUI backends.
+        # Default to the first backend usable under the current system.
 
         # Name of the current platform (e.g., "Linux", "Darwin", "Windows").
         kernel_name = kernels.get_name()
@@ -381,10 +393,6 @@ class MplConfig(object):
             # If this backend is usable, this tester has already implicitly
             # enabled this backend. Our work is done here.
             if self.is_backend_usable(backend_name):
-                # For orthogonality, reproduce the same message logged by the
-                # backend_name() setter method and return.
-                logs.log_debug(
-                    'Enabling matplotlib backend "%s"...', backend_name)
                 return
         # Else, no preferred GUI-based backend is usable on the current system
         # (e.g., due to no external widget library being installed).
@@ -402,11 +410,18 @@ class MplConfig(object):
             # Default to this backend and return.
             self.backend_name = _BACKEND_NAME_HEADLESS
             return
-        # Else, no backends appear to be usable on the current system.
 
-        # For safety, raise an exception. Due to the ubiquity of the fallback
-        # backend, this should *NEVER* happen. Damn you, Murphy!
-        raise BetseMatplotlibException('No usable matplotlib backend found.')
+        # Else, no backends appear to be usable on the current system. Due to
+        # the ubiquity of the headless fallback backend (e.g., "Agg"), this
+        # should only occur in extremely uncommon edge cases (e.g., manual
+        # recompilation of the entire system). If this does occur, this is
+        # typically the result of internal issues in this codebase. To assist in
+        # debugging these issues, a simple exception message is raised.
+        raise BetseMatplotlibException(
+            'No usable matplotlib backend found. '
+            '{}-supported backends tested include (in order): {}.'.format(
+                kernel_name,
+                strs.join_as_conjunction_double_quoted(*backend_names)))
 
     # ..................{ PROPERTIES                         }..................
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -417,6 +432,7 @@ class MplConfig(object):
     # @property_cached decorator.
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    # This could technically be cached. but is hardly worth doing so.
     @property
     def version(self) -> str:
         '''
@@ -521,28 +537,31 @@ class MplConfig(object):
     @property
     def backend(self) -> type(sys):
         '''
-        In-memory module object corresponding to the current backend.
+        In-memory submodule object corresponding to the current backend.
 
-        If no backend has been set yet, an exception is raised.
+        Raises
+        ----------
+        BetseMatplotlibException
+            If no backend has been set yet.
         '''
 
         # If no backend has been set yet, raise an exception.
         if not self.is_backend():
-            raise BetseMatplotlibException('Matplotlib backend undefined.')
+            raise BetseMatplotlibException('Matplotlib backend not yet set.')
 
-        # Name of this backend's module.
+        # Fully-qualified name of this backend's submodule.
         backend_module_name = (
             'matplotlib.backends.backend_' + self.backend_name)
 
-        # This backend's module. Since this backend has been set, this module
-        # *SHOULD* still be cached in-memory. Let's be sure.
+        # This backend's submodule. Since this backend has been set, this
+        # submodule *SHOULD* still be cached in-memory. Let's be sure.
         backend_module = sys.modules.get(backend_module_name, None)
         if backend_module is None:
             raise BetseMatplotlibException(
-                'Matplotlib backend module "{}" not found.'.format(
+                'Current matplotlib backend module "{}" not imported.'.format(
                     backend_module_name))
 
-        # Return this module.
+        # Return this submodule.
         return backend_module
 
 
@@ -629,14 +648,31 @@ class MplConfig(object):
     @type_check
     def backend_name(self, backend_name: str) -> None:
         '''
-        Set the current backend to the backend with the passed name.
+        Set the current backend to the usable backend with the passed name.
 
         This name is interpreted case-insensitively and hence may be in any
         case including lower- and uppercase (e.g., `tkagg`, `TKAGG`, `TkAgg`).
+
+        This backend is assumed to be usable (i.e., the
+        :meth:`is_backend_usable` method is assumed to succeed when passed this
+        name). If this is *not* the case, matplotlib will internally raise an
+        exception of indeterminate origin and readability. Welcome to hell.
         '''
 
         # Log this attempt.
         logs.log_debug('Enabling matplotlib backend "%s"...', backend_name)
+
+        # If enabling the "TkAgg" backend *AND* this is matplotlib >= 2.0.0,
+        # log a prominent warning. This backend is known to behave unstably
+        # under all newer versions of matplotlib. See the
+        # "_kernel_name_to_backend_names_prefer" poperty for further details.
+        if (
+            backend_name == 'TkAgg' and
+            versions.is_at_least(self.version, '2.0.0')
+        ):
+            logs.log_warning(
+                'Matplotlib backend "TkAgg" known to be unstable '
+                'under matplotlib >= 2.0.0.')
 
         # Attempt to enable this backend.
         try:
@@ -851,14 +887,22 @@ class MplConfig(object):
 
         # While ridiculous, this test corresponds exactly to the test performed
         # by the matplotlib.use() method itself to detect repetitious calls.
-        return 'matplotlib.backends' in sys.modules
+        # Since the "matplotlib.pyplot" subpackage internally imports this
+        # subpackage, testing only this subpackage suffices.
+        return modules.is_imported('matplotlib.backends')
 
 
     @type_check
     def is_backend_usable(self, backend_name: str) -> bool:
         '''
-        ``True`` only if the backend with the passed name is **usable** (i.e.,
-        safely switchable to without raising exceptions) on the current system.
+        ``True`` only if the backend with the passed name is usable on the
+        current system.
+
+        Specifically, this method returns ``True`` only if this backend:
+
+        * May be switched to *without* raising exceptions.
+        * May both create and destroy a hidden (i.e., invisible) empty figure
+          *without* raising exceptions.
 
         If this backend is usable, this method switches the current backend to
         this backend *without* restoring the previously set backend. This is the
@@ -869,19 +913,34 @@ class MplConfig(object):
         '''
 
         # Log this attempt.
-        logs.log_debug('Testing matplotlib backend "%s"...', backend_name)
+        logs.log_debug(
+            'Testing matplotlib backend "%s" usability...', backend_name)
 
         # Lowercase this name, ensuring case-insensitive backend names.
         backend_name = backend_name.lower()
 
-        # If:
-        if (
-            # This backend is unconditionally blacklisted.
-            (backend_name in self._backend_names_blacklist)
-        # Report this backend to be unusable *WITHOUT* unsafely attempting to
-        # switch to this backend.
-        ):
-            # logs.log_debug('blacklisted backend unusable: %s', backend_name)
+        #FIXME: Overkill and uninformative. To blacklist backends properly, what
+        #we *REALLY* want to do instead is to:
+        #
+        #* Remove the "_backend_names_blacklist" property.
+        #* Remove this conditional block entirely.
+        #* Improve the _enable_backend() method to initially:
+        #  * Define a local dictionary "BLACKLIST_BACKEND_NAME_TO_REASON"
+        #    mapping from the names of all blacklisted backend names to
+        #    human-readable exception messages describing exactly why those
+        #    backends have been blacklisted.
+        #  * Test whether the passed backend name is a key of this dictionary.
+        #  * If so, raise an exception embedding the corresponding value of this
+        #    dictionary.
+        #
+        #Yeah. That's blatantly heaps better. Hindsight is always 20-20, neh?
+
+        # If this backend is unconditionally blacklisted, report this backend to
+        # be unusable *WITHOUT* unsafely attempting to switch to this backend.
+        if backend_name in self._backend_names_blacklist:
+            logs.log_debug(
+                'Matplotlib backend "%s" unusable, '
+                'due to being internally blacklisted.', backend_name)
             return False
 
         # Attempt to...
@@ -890,9 +949,20 @@ class MplConfig(object):
             self._enable_backend(backend_name)
 
             # If doing so succeeds, this backend is usable.
+            logs.log_debug('Matplotlib backend "%s" usable.', backend_name)
             return True
-        # Else, this backend is unusable.
-        except:
+        # If doing so raises an exception, this backend is unusable.
+        except Exception as exception:
+            # Traceback for this exception.
+            traceback = ioexceptions.get_traceback(exception)
+
+            # Log this traceback for debuggability.
+            logs.log_debug(
+                'Matplotlib backend "%s" unusable, '
+                'due to raising the following exception:\n%s',
+                backend_name, traceback)
+
+            # Report this backend to be unusable.
             return False
 
     # ..................{ TESTERS ~ block                    }..................
@@ -1101,7 +1171,7 @@ class MplConfig(object):
         case including lower- and uppercase (e.g., `tkagg`, `TKAGG`, `TkAgg`).
 
         This low-level method is principally intended to be called by
-        high-level methods (e.g., :meth:`backend_name`,
+        higher-level methods (e.g., :meth:`backend_name`,
         :meth:`is_backend_usable`) wrapping this method with additional
         caller-friendly logic.
         '''
@@ -1112,97 +1182,171 @@ class MplConfig(object):
         # Lowercase this name, as backend names are case-insensitive.
         backend_name = backend_name.lower()
 
-        # If no backend has been enabled, enable this backend by calling
-        # the known-to-be-stable use() function.
-        if not self.is_backend():
-            matplotlib.use(backend_name)
-        # Else, a backend has already been enabled. In this unfortunate case,
-        # we have no recourse but to call the known-to-be-unstable
-        # switch_backend() function.
-        else:
-            # Unfortunately, if the current platform is macOS *AND* the new
-            # backend to be enabled is "TkAgg", enabling this backend is *NOT*
-            # safe and must absolutely be prohibited by raising an exception.
-            # Attempting to enable this backend under this edge case commonly
-            # results in a segmentation fault, terminating the active Python
-            # process in a non-human-readable manner resembling:
-            #
-            #     [betse] Testing matplotlib backend "tkagg"...
-            #     backend TkAgg version 8.5
-            #     2016-12-31 01:53:08.886 Python[19521:163945] -[NSApplication _setup:]: unrecognized selector sent to instance 0x7fc278fbec60
-            #     2016-12-31 01:53:08.890 Python[19521:163945] An uncaught exception was raised
-            #     2016-12-31 01:53:08.890 Python[19521:163945] -[NSApplication _setup:]: unrecognized selector sent to instance 0x7fc278fbec60
-            #     2016-12-31 01:53:08.891 Python[19521:163945] (
-            #              0   CoreFoundation                      0x00007fff936ea452 __exceptionPreprocess + 178
-            #              ...
-            #              97  ???                                 0x0000000000000004 0x0 + 4
-            #     )
-            #     2016-12-31 01:53:08.892 Python[19521:163945] *** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[NSApplication _setup:]: unrecognized selector sent to instance 0x7fc278fbec60'
-            #     *** First throw call stack:
-            #     (
-            #             0   CoreFoundation 0x00007fff936ea452 __exceptionPreprocess + 178
-            #             ...
-            #             97  ???  0x0000000000000004 0x0 + 4
-            #     )
-            #     libc++abi.dylib: terminating with uncaught exception of type NSException
-            #     Abort trap: 6
-            #
-            # This is a common issue afflicting numerous matplotlib users under
-            # all versions of macOS. The core issue appears to be that the
-            # Xcode-bundled installation of Tcl/Tk is *NOT* usable by Python.
-            # There exist two solutions (in no particular order):
-            #
-            # 1. Reinstall Python to use a Homebrew- or MacPorts-compiled
-            #    installation of Tcl/Tk instead. While this does constitute a
-            #    valid solution for end users, BETSE itself has no means of
-            #    enforcing this dictate and *MUST* thus assume the current
-            #    installation of Tcl/Tk to be the Xcode-bundled version.
-            # 2. Call "matplotlib.pyplot.use('TkAgg')" *BEFORE* the first
-            #    import of the "matplotlib.pyplot" submodule. While BETSE
-            #    itself could technically attempt to enforce this by
-            #    preferentially detecting the "TkAgg" backend *BEFORE* all
-            #    other backends, the "MacOS" backend is always preferable under
-            #    macOS and should thus always be detected first.
-            #
-            # In short, no sane solution exists. The only sane solution is to
-            # refuse to play the game at all.
-            if backend_name == 'tkagg' and oses.is_macos():
-                raise BetseMatplotlibException(
-                    'Matplotlib backend "TkAgg" unsafe on macOS.')
+        # True only if a backend has already been enabled.
+        is_backend = self.is_backend()
 
-            # Delay importation of this submodule until *ABSOLUTELY*
-            # necessary. Importing this submodule implicitly enables the
-            # default matplotlib backend (defined by the "backend" RC
-            # parameter in the current matplotlib configuration) if no
-            # backend has been enabled, which can have harmful side effects
-            # in edge cases.
+        # Wrap all attempts to import from unsafe matplotlib subpackages (e.g.,
+        # "matplotlib.backends", "matplotlib.pyplot") with logic safely undoing
+        # these imports when *NO* backend has already been set. (See below.)
+        try:
+            # If no backend has been enabled...
+            if not is_backend:
+                # Log this attempt.
+                logs.log_debug(
+                    'Enabling matplotlib backend "%s" via use()...',
+                    backend_name)
+
+                # Enable this backend by calling the use() function, which is
+                # expected to behave in a stable manner.
+                matplotlib.use(backend_name)
+            # Else, a backend has already been enabled.
+            #
+            # If this backend is tbe currently enabled backend, noop. This is
+            # substantially safer than calling the switch_backend() function in
+            # the subsequent conditional branch, which is known to be unstable.
+            elif backend_name == self.backend_name:
+                # Log this attempt.
+                logs.log_debug(
+                    'Ignoring already enabled matplotlib backend "%s".',
+                    backend_name)
+
+                # Reduce to a noop.
+                return
+            # In this unfortunate case, we have no recourse but to call the
+            # switch_backend() function known to be unstable.
+            else:
+                # Log this attempt.
+                logs.log_debug(
+                    'Enabling matplotlib backend "%s" via switch_backend()...',
+                    backend_name)
+
+                # Unfortunately, if the current platform is macOS *AND* the new
+                # backend to be enabled is "TkAgg", enabling this backend is *NOT*
+                # safe and must absolutely be prohibited by raising an exception.
+                # Attempting to enable this backend under this edge case commonly
+                # results in a segmentation fault, terminating the active Python
+                # process in a non-human-readable manner resembling:
+                #
+                #     [betse] Testing matplotlib backend "tkagg"...
+                #     backend TkAgg version 8.5
+                #     2016-12-31 01:53:08.886 Python[19521:163945] -[NSApplication _setup:]: unrecognized selector sent to instance 0x7fc278fbec60
+                #     2016-12-31 01:53:08.890 Python[19521:163945] An uncaught exception was raised
+                #     2016-12-31 01:53:08.890 Python[19521:163945] -[NSApplication _setup:]: unrecognized selector sent to instance 0x7fc278fbec60
+                #     2016-12-31 01:53:08.891 Python[19521:163945] (
+                #              0   CoreFoundation                      0x00007fff936ea452 __exceptionPreprocess + 178
+                #              ...
+                #              97  ???                                 0x0000000000000004 0x0 + 4
+                #     )
+                #     2016-12-31 01:53:08.892 Python[19521:163945] *** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[NSApplication _setup:]: unrecognized selector sent to instance 0x7fc278fbec60'
+                #     *** First throw call stack:
+                #     (
+                #             0   CoreFoundation 0x00007fff936ea452 __exceptionPreprocess + 178
+                #             ...
+                #             97  ???  0x0000000000000004 0x0 + 4
+                #     )
+                #     libc++abi.dylib: terminating with uncaught exception of type NSException
+                #     Abort trap: 6
+                #
+                # This is a common issue afflicting numerous matplotlib users under
+                # all versions of macOS. The core issue appears to be that the
+                # Xcode-bundled installation of Tcl/Tk is *NOT* usable by Python.
+                # There exist two solutions (in no particular order):
+                #
+                # 1. Reinstall Python to use a Homebrew- or MacPorts-compiled
+                #    installation of Tcl/Tk instead. While this does constitute a
+                #    valid solution for end users, BETSE itself has no means of
+                #    enforcing this dictate and *MUST* thus assume the current
+                #    installation of Tcl/Tk to be the Xcode-bundled version.
+                # 2. Call "matplotlib.pyplot.use('TkAgg')" *BEFORE* the first
+                #    import of the "matplotlib.pyplot" submodule. While BETSE
+                #    itself could technically attempt to enforce this by
+                #    preferentially detecting the "TkAgg" backend *BEFORE* all
+                #    other backends, the "MacOS" backend is always preferable under
+                #    macOS and should thus always be detected first.
+                #
+                # In short, no sane solution exists. The only sane solution is to
+                # refuse to play the game at all.
+                if backend_name == 'tkagg' and oses.is_macos():
+                    raise BetseMatplotlibException(
+                        'Matplotlib backend "TkAgg" not '
+                        'safely switchable to under macOS.')
+
+                # Delay importation of this submodule until *ABSOLUTELY* necessary.
+                # Importing this submodule implicitly enables the default matplotlib
+                # backend defined by the "backend" RC parameter in the current
+                # matplotlib configuration if no backend has been enabled, which
+                # can exhibit harmful side effects in common edge cases.
+                from matplotlib import pyplot
+
+                # Switch from the current to the passed backend.
+                pyplot.switch_backend(backend_name)
+
+            # In either case, this backend has now been set. Since this does
+            # *NOT* imply this backend to be usable, further testing is needed.
+
+            # Delay importation of this submodule until *ABSOLUTELY* necessary.
+            # See pertinent commentary above.
             from matplotlib import pyplot
 
-            # Switch from the current to the passed backend.
-            pyplot.switch_backend(backend_name)
+            # Validate the usability of this backend by attempting to create and
+            # destroy a hidden empty figure. Technically, doing so could exhibit
+            # harmful side effects on uncooperative platforms (e.g., Windows) in
+            # common edge cases.
+            #
+            # Unfortunately, doing so is also essential. The success of
+            # switching to this backend above is a necessary but insufficient
+            # condition of this backend's usability. While the success of
+            # switching to some backends (e.g., "TkAgg") does reliably imply
+            # those backends to be usable, the success of switching to other
+            # backends (e.g., "Qt5Agg") only implies that the corresponding
+            # packages (e.g., "PyQt5") are successfully importable; it does
+            # *NOT* imply these packages and thus these backends to actually be
+            # usable in any sense. Notably, the PyQt family of backends are
+            # infamous for raising non-human-readable exceptions on attempting
+            # to display the first figure. "Why, PyQt? WHY!?!?"
+            pyplot.figure()
+            pyplot.close()
+        # If an exception is raised, this backend is unusable,
+        except:
+            # If no backend was set before the current call to this method,
+            # unimport all top-level matplotlib subpackages internally
+            # imported by the above call. Doing so ensures that the next
+            # call to the is_backend() method reports False and hence that
+            # this same conditional branch is re-entered on the next call to
+            # this method.
+            #
+            # This is *NOT* merely a caller convenience. This is critical
+            # functionality required for sane testing of backend usability.
+            # In particular, if this is *NOT* done, the next call to this
+            # method is guaranteed to raise a non-human-readable exception.
+            # Why? Because, in that case:
+            #
+            # * The modules unimported here will still have been imported.
+            # * Importing this module sets the current matplotlib backend,
+            #   either to the backend requested by the first call to the
+            #   matplotlib.use() function if called or to the default
+            #   matplotlib backend set by "matplotlibrc" otherwise. In
+            #   either case, a backend has now been set.
+            # * Since that call to the matplotlib.use() function raised an
+            #   exception, that backend is unusable. If that backend is the
+            #   default matplotlib backend (e.g., "Qt5Agg"), then the
+            #   default matplotlib backend is also unusable.
+            # * The "matplotlib.pyplot" subpackage uses the current
+            #   matplotlib backend if the "matplotlib.backends" subpackage
+            #   has been imported.
+            # * Since the latter has indeed been imported, the subsequent
+            #   attempt to import the former will re-raise the same
+            #   exception as initially raised here.
+            # * Ergo, this method may only be safely called once.
+            #
+            # Since the above behaviour is insane, this subpackage is
+            # unimported instead to sanitize life.
+            if not is_backend:
+                modules.unimport_module_if_imported(
+                    'matplotlib.backends', 'matplotlib.pyplot')
 
-        # Delay importation of this submodule until *ABSOLUTELY* necessary.
-        # See pertinent commentary above.
-        from matplotlib import pyplot
-
-        # validate the usability of this backend by attempting to create
-        # and destroy a hidden empty figure. Technically, doing so could
-        # incur unintended side effects on uncooperative platforms (e.g.,
-        # Windows) in edge cases.
-        #
-        # Unfortunately, doing so is also essential. The success of
-        # switching to this backend above is a necessary but insufficient
-        # condition of this backend's usability. While the success of
-        # switching to some backends (e.g., "TkAgg") does reliably imply
-        # those backends to be usable, the success of switching to other
-        # backends (e.g., "Qt5Agg") only implies that the corresponding
-        # packages (e.g., "PyQt5") are successfully importable; this does
-        # *NOT* imply these packages and hence these backends to actually
-        # be usable in real-world use cases. Notably, the PyQt family of
-        # backends are infamous for raising non-human-readable exceptions
-        # on attempting to create the first figure. (Why, PyQt? WHY!?!?)
-        pyplot.figure()
-        pyplot.close()
+            # Re-raise this exception.
+            raise
 
 # ....................{ SINGLETONS                         }....................
 mpl_config = MplConfig()
