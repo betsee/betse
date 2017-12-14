@@ -15,7 +15,7 @@ from betse.science.channels import vg_kir as vgkir
 from betse.science.channels import vg_na as vgna
 from betse.science.channels import vg_nap as vgnap
 from betse.science.channels.wound_channel import TRP
-from betse.science.config.model.conftis import CellsPickerType
+from betse.science.config.confenum import CellsPickerType
 from betse.science.math import modulate as mod
 from betse.science.math import toolbox as tb
 from betse.science.tissue.tisprofile import CutProfile, TissueProfile

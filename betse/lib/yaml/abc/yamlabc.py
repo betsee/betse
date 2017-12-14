@@ -18,16 +18,17 @@ from betse.util.type.types import (
     type_check,
     IterableTypes,
     MappingType,
+    NoneType,
     StrOrNoneTypes,
 )
 
 # ....................{ SUPERCLASSES                       }....................
 class YamlABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all configuration subclasses, each encapsulating a
-    dictionary of related configuration settings (e.g., representing one tissue
-    profile) both loaded from and savable back to a parent YAML-formatted
-    configuration file.
+    Abstract base class of all YAML-backed configuration subclasses, each
+    encapsulating a low-level YAML dictionary of related configuration settings
+    (e.g., representing one tissue profile) both loaded from and savable back to
+    a parent YAML-formatted configuration file.
 
     Attributes
     ----------
@@ -65,6 +66,14 @@ class YamlABC(object, metaclass=ABCMeta):
         '''
 
         return self._conf
+
+
+# Intended for use in callable type validation.
+YamlABCOrNoneTypes = (YamlABC, NoneType)
+'''
+Tuple of both the YAML-backed configuration type *and* the type of the singleton
+``None`` object.
+'''
 
 # ....................{ SUPERCLASSES ~ file                }....................
 class YamlFileABC(YamlABC):

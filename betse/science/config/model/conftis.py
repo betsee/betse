@@ -15,35 +15,11 @@ from betse.lib.yaml.yamlalias import (
     yaml_alias_float_percent,
     yaml_enum_alias,
 )
-from betse.lib.yaml.abc import yamllistabc
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import YamlList, YamlListItemABC
+from betse.science.config.confenum import CellsPickerType
 # from betse.util.io.log import logs
-from betse.util.type.enums import make_enum
 from betse.util.type.types import type_check, SequenceTypes
-
-# ....................{ ENUMS                              }....................
-CellsPickerType = make_enum(
-    class_name='CellsPickerType',
-    member_names=('ALL', 'IMAGE', 'INDICES', 'PERCENT',))
-'''
-Enumeration of all supported types of **tissue profile pickers** (i.e., objects
-assigning a subset of all cells matching some criteria to the corresponding
-tissue profile).
-
-Attributes
-----------
-ALL : enum
-    All-inclusive tissue picker, unconditionally matching *all* cells.
-IMAGE : enum
-    Image-based tissue picker, matching all cells residing inside the colored
-    pixel area defined by an associated on-disk image mask file.
-INDICES : enum
-    Cell indices-based tissue picker, matching all cells whose indices are
-    defined by a given sequence.
-PERCENT : enum
-    Randomized cell picker, randomly matching a given percentage of all cells.
-'''
 
 # ....................{ SUPERCLASSES ~ tissue              }....................
 class SimConfTissueABC(object, metaclass=ABCMeta):

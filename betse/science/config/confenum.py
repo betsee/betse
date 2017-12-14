@@ -11,7 +11,7 @@ typed data in simulation configuration files.
 # ....................{ IMPORTS                            }....................
 from betse.util.type.enums import make_enum
 
-# ....................{ ENUMS                              }....................
+# ....................{ ENUMS ~ cell                       }....................
 CellLatticeType = make_enum(
     class_name='CellLatticeType', member_names=('HEXAGONAL', 'SQUARE',))
 '''
@@ -26,10 +26,33 @@ SQUARE : enum
     Rectilinear base cell lattice, situating cells along a square grid.
 '''
 
+# ....................{ ENUMS ~ cells                      }....................
+CellsPickerType = make_enum(
+    class_name='CellsPickerType',
+    member_names=('ALL', 'IMAGE', 'INDICES', 'PERCENT',))
+'''
+Enumeration of all supported types of **tissue profile pickers** (i.e., objects
+assigning a subset of all cells matching some criteria to the corresponding
+tissue profile).
 
+Attributes
+----------
+ALL : enum
+    All-inclusive tissue picker, unconditionally matching *all* cells.
+IMAGE : enum
+    Image-based tissue picker, matching all cells residing inside the colored
+    pixel area defined by an associated on-disk image mask file.
+INDICES : enum
+    Cell indices-based tissue picker, matching all cells whose indices are
+    defined by a given sequence.
+PERCENT : enum
+    Randomized cell picker, randomly matching a given percentage of all cells.
+'''
+
+# ....................{ ENUMS ~ ion                        }....................
 IonProfileType = make_enum(
-    class_name='IonProfileType', member_names=(
-        'BASIC', 'BASIC_CA', 'MAMMAL', 'AMPHIBIAN', 'CUSTOM',))
+    class_name='IonProfileType',
+    member_names=('BASIC', 'BASIC_CA', 'MAMMAL', 'AMPHIBIAN', 'CUSTOM',))
 '''
 Enumeration of all supported types of **ion profiles** (i.e., predefined sets of
 all extracellular and cytosolic ions enabled by this simulation).
