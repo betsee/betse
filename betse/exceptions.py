@@ -82,11 +82,19 @@ class BetsePyIdentifierException(BetsePyException):
     pass
 
 # ....................{ EXCEPTIONS ~ arg                  }....................
-#FIXME: Raise this exception throughout the "betse.cli" subpackage.
-class BetseCLIArgException(BetseException):
+class BetseCLIException(BetseException):
     '''
-    Command-line argument-specific exception.
+    General-purpose command-line interface (CLI) exception.
     '''
+
+    pass
+
+
+class BetseCLIArgException(BetseCLIException):
+    '''
+    Command-line interface (CLI) argument-specific exception.
+    '''
+
     pass
 
 
@@ -96,6 +104,7 @@ class BetseCLIArgParserException(SystemExit):
     the :meth:`betse.script.argparse.parse_args` method to have unsuccessfully
     parsed the argument list passed to the current command-line application.
     '''
+
     pass
 
 # ....................{ EXCEPTIONS ~ object                }....................

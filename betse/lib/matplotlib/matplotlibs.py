@@ -99,7 +99,7 @@ from betse.util.type import iterables, modules
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.numeric import versions
-from betse.util.type.text import strs
+from betse.util.type.text import regexes, strs
 from betse.util.type.types import (
     type_check, MappingType, SequenceTypes, SetType, StrOrNoneTypes,)
 from contextlib import contextmanager
@@ -367,9 +367,7 @@ class MplConfig(object):
                 return
             # Else, log a non-fatal error and continue.
             else:
-                logs.log_error(
-                    'Preferred backend "%s" unusable. '
-                    'Detecting a usable backend...', backend_name)
+                logs.log_error('Preferred backend "%s" unusable.', backend_name)
         # Else, no specific backend is requested. Since the default headless
         # backend (e.g., "Agg") should *ALWAYS* be usable, this typically
         # implies this process to be headfull and hence support GUI backends.
@@ -387,6 +385,10 @@ class MplConfig(object):
         if backend_names is None:
             raise BetseMatplotlibException(
                 'Platform "{}" unsupported.'.format(kernel_name))
+
+        # Log this iteration.
+        logs.log_debug(
+            'Finding usable backend in: %r', backend_names)
 
         # For each such backend (in descending order of preference)...
         for backend_name in backend_names:
@@ -432,8 +434,7 @@ class MplConfig(object):
     # @property_cached decorator.
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    # This could technically be cached. but is hardly worth doing so.
-    @property
+    @property_cached
     def version(self) -> str:
         '''
         Currently installed version of matplotlib as a ``.``-delimited version
@@ -443,8 +444,33 @@ class MplConfig(object):
         # Delay importation of the "matplotlib.__init__" module.
         import matplotlib
 
-        # Return this version.
-        return matplotlib.__version__
+        # Currently installed version of matplotlib to be returned.
+        version_return = matplotlib.__version__
+
+        # Either:
+        #
+        # * If this version exhibits formatting discrepancies introduced in
+        #   recent matplotlib versions violating Python conventions for version
+        #   specifiers (e.g., the non-compliant version "2.1.0-python3_4" rather
+        #   than the compliant version ""2.1.0"), sequence whose single item is
+        #   this version stripped of these discrepencies.
+        # * Else, "None".
+        #
+        # Note that this regular expression need *NOT* be compiled for
+        # efficiency, as this property is cached and hence called only once.
+        version_munged_or_none = regexes.get_match_groups_numbered_or_none(
+            text=version_return, regex=r'^([^-]+)-')
+
+        # Else, this version is non-compliant. In this case, reduce this to a
+        # compliant version.
+        if version_munged_or_none is not None:
+            logs.log_debug(
+                'Sanitizing matplotlib version from "%s" to "%s"...',
+                version_return, version_munged_or_none[0])
+            version_return = version_munged_or_none[0]
+
+        # Return this possibly munged version.
+        return version_return
 
     # ..................{ PROPERTIES ~ path                  }..................
     @property

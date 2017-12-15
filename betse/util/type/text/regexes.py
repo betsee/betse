@@ -64,7 +64,7 @@ def is_match(text: str, regex: RegexTypes, **kwargs) -> bool:
         ``True`` only if this string matches this regular expression.
     '''
 
-    return get_match_if_any(text, regex, **kwargs) is not None
+    return get_match_or_none(text, regex, **kwargs) is not None
 
 
 def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
@@ -91,11 +91,11 @@ def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
 
     See Also
     ----------
-    :func:`get_match_line_first_if_any`
+    :func:`get_match_line_first_or_none`
         Further details.
     '''
 
-    return get_match_line_first_if_any(text, regex, **kwargs) is not None
+    return get_match_line_first_or_none(text, regex, **kwargs) is not None
 
 # ....................{ MATCHERS ~ group : named           }....................
 def get_match_groups_named(
@@ -147,7 +147,7 @@ def get_match_groups_named(
 
     See Also
     ----------
-    :func:`get_match_if_any`
+    :func:`get_match_or_none`
         Further details on regular expressions and keyword arguments.
     '''
 
@@ -157,10 +157,10 @@ def get_match_groups_named(
 def get_match_groups_numbered(
     text: str, regex: RegexTypes, **kwargs) -> SequenceTypes:
     '''
-    List of all groups matched anchored to the beginning of the passed subject
-    string against the passed regular expression (ordered by the left-to-right
-    lexical position at which each such group was matched) if any *or* raise an
-    exception otherwise.
+    Sequence of all groups matched anchored to the beginning of the passed
+    subject string against the passed regular expression (ordered by the
+    left-to-right lexical position at which each such group was matched) if any
+    *or* raise an exception otherwise.
 
     Unmatched groups will have the value `None`.
 
@@ -179,7 +179,7 @@ def get_match_groups_numbered(
     Returns
     ----------
     SequenceTypes
-        List of matched groups.
+        Sequence of all matched groups.
 
     Raises
     ----------
@@ -188,20 +188,20 @@ def get_match_groups_numbered(
 
     See Also
     ----------
-    :func:`get_match_if_any`
+    :func:`get_match_or_none`
         Further details.
     '''
 
     return get_match(text, regex, **kwargs).groups()
 
 
-def get_match_groups_numbered_if_any(
+def get_match_groups_numbered_or_none(
     text: str, regex: RegexTypes, **kwargs) -> SequenceOrNoneTypes:
     '''
-    List of all groups matched anchored to the beginning of the passed subject
-    string against the passed regular expression (ordered by the left-to-right
-    lexical position at which each such group was matched) if any *or* ``None``
-    otherwise.
+    Sequence of all groups matched anchored to the beginning of the passed
+    subject string against the passed regular expression (ordered by the
+    left-to-right lexical position at which each such group was matched) if any
+    *or* ``None`` otherwise.
 
     Unmatched groups will have the value ``None``.
 
@@ -221,21 +221,21 @@ def get_match_groups_numbered_if_any(
     ----------
     SequenceOrNoneTypes
         Either:
-        * If this string matches this regular expression, the list of all groups
-          matched from this string.
+        * If this string matches this regular expression, the sequence of all
+          groups matched from this string.
         * Else, ``None``.
 
     See Also
     ----------
-    :func:`get_match_if_any`
+    :func:`get_match_or_none`
         Further details.
     '''
 
-    match = get_match_if_any(text, regex, **kwargs)
+    match = get_match_or_none(text, regex, **kwargs)
     return match.groups() if match is not None else None
 
 # ....................{ MATCHERS ~ full : first            }....................
-def get_match_full_first_if_any(
+def get_match_full_first_or_none(
     text: str, regex: RegexTypes, **kwargs) -> SequenceOrNoneTypes:
     '''
     First complete substring matched anchored to the beginning of the passed
@@ -264,11 +264,11 @@ def get_match_full_first_if_any(
 
     See Also
     ----------
-    :func:`get_match_if_any`
+    :func:`get_match_or_none`
         Further details.
     '''
 
-    match = get_match_if_any(text, regex, **kwargs)
+    match = get_match_or_none(text, regex, **kwargs)
     return match.group(0) if match is not None else None
 
 # ....................{ MATCHERS ~ obj                     }....................
@@ -302,12 +302,12 @@ def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
 
     See Also
     ----------
-    :func:`get_match_if_any`
+    :func:`get_match_or_none`
         Further details on calling conventions.
     '''
 
     # Object matching this string against this expression.
-    match = get_match_if_any(text, regex, **kwargs)
+    match = get_match_or_none(text, regex, **kwargs)
 
     # If no match was found, convert the non-fatal "None" returned by the
     # re.match() function into a fatal exception. By design, no callables in the
@@ -322,7 +322,7 @@ def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
 
 
 @type_check
-def get_match_if_any(
+def get_match_or_none(
     text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
     '''
     Match object obtained by matching zero or more characters anchored to the
@@ -361,14 +361,14 @@ def get_match_if_any(
     '''
 
     # Sanitize the passed match flags.
-    _init_kwargs_flags(regex, kwargs)
+    _init_kwargs_flags_nonline(regex, kwargs)
 
     # Return the only object matching this string against this expression.
     return re.match(regex, text, **kwargs)
 
 # ....................{ MATCHERS ~ obj : first             }....................
 @type_check
-def get_match_first_if_any(
+def get_match_first_or_none(
     text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
     '''
     First match object obtained by matching the passed subject string against
@@ -406,14 +406,14 @@ def get_match_first_if_any(
     '''
 
     # Sanitize the passed match flags.
-    _init_kwargs_flags(regex, kwargs)
+    _init_kwargs_flags_nonline(regex, kwargs)
 
     # Return the first object matching this string against this expression.
     return re.search(regex, text, **kwargs)
 
 # ....................{ MATCHERS ~ obj : line : first      }....................
 @type_check
-def get_match_line_first_if_any(
+def get_match_line_first_or_none(
     text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
     '''
     First match object obtained by matching the passed subject string against
@@ -505,7 +505,7 @@ def iter_matches(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     '''
 
     # Sanitize the passed match flags.
-    _init_kwargs_flags(regex, kwargs)
+    _init_kwargs_flags_nonline(regex, kwargs)
 
     # Return this generator.
     return re.finditer(regex, text, **kwargs)
@@ -638,7 +638,7 @@ def replace_substrs(
     '''
 
     # Sanitize the passed match flags.
-    _init_kwargs_flags(regex, kwargs)
+    _init_kwargs_flags_nonline(regex, kwargs)
 
     # Substitute, if you please.
     return re.sub(regex, replacement, text, **kwargs)
@@ -722,9 +722,8 @@ def compile_regex(regex: str, **kwargs) -> RegexCompiledType:
     return re.compile(regex, **kwargs)
 
 # ....................{ SUBSTITUTERS                       }....................
-#FIXME: For disambiguity, rename to _init_kwargs_flags_nonline().
 @type_check
-def _init_kwargs_flags(regex: RegexTypes, kwargs: MappingType) -> None:
+def _init_kwargs_flags_nonline(regex: RegexTypes, kwargs: MappingType) -> None:
     '''
     Sanitize the list of match flags in the passed dictionary for
     non-line-oriented matching.

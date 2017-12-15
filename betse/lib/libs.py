@@ -482,11 +482,11 @@ def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
 
     Parameters
     ----------
-    matplotlib_backend_name: optional[str]
+    matplotlib_backend_name : StrOrNoneTypes
         Name of the matplotlib backend to explicitly enable. Defaults to
         ``None``, in which case this method implicitly enables the first
-        importable backend known to be both usable and supported by application
-        requirements (in descending order of preference).
+        importable backend known to be both usable and supported by this
+        application (in descending order of preference).
     '''
 
     # If this function has already been called, noop.

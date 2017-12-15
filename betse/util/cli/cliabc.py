@@ -19,6 +19,7 @@ import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
 from betse import metadata as betse_metadata
 from betse import pathtree
+from betse.exceptions import BetseCLIException
 from betse.lib import libs
 from betse.util.cli.cliarg import SemicolonAwareHelpFormatter
 from betse.util.io.log import logs, logconfig
@@ -35,6 +36,7 @@ from betse.util.type.types import (
     ModuleType,
     SequenceTypes,
     SequenceOrNoneTypes,
+    StrOrNoneTypes,
 )
 
 # ....................{ SUPERCLASS                         }....................
@@ -164,13 +166,11 @@ class CLIABC(object, metaclass=ABCMeta):
             # logging of exceptions raised by this parsing.
             self._parse_args()
 
-            # (Re-)initialize all mandatory runtime dependencies *AFTER* parsing
-            # and handling all logging-specific CLI options and hence finalizing
-            # the logging configuration for the active Python process. This
-            # initialization integrates the custom logging and debugging schemes
-            # implemented by these dependencies with that implemented by BETSE.
-            libs.reinit(
-                matplotlib_backend_name=self._args.matplotlib_backend_name)
+            # (Re-)initialize all mandatory runtime dependencies of this
+            # application *AFTER* parsing and handling all logging-specific CLI
+            # options and thus finalizing the logging configuration for the
+            # active Python process.
+            self._init_app_libs()
 
             # Run the command-line interface (CLI) defined by this subclass,
             # profiled by the type specified by the "--profile-type" option.
@@ -281,6 +281,46 @@ class CLIABC(object, metaclass=ABCMeta):
         # Return this dictionary.
         return arg_parser_top_kwargs
 
+    # ..................{ PROPERTIES ~ matplotlib            }..................
+    @property
+    def _is_option_matplotlib_backend(self) -> bool:
+        '''
+        ``True`` only if this CLI exposes the ``--matplotlib-backend`` option,
+        permitting users to externally specify an arbitrary matplotlib backend at
+        the command line.
+
+        Design
+        ----------
+        Defaults to ``True``. Subclasses overriding this default to ``False``
+        should explicitly specify the desired matplotlib backend to use by
+        overriding the :meth:`_matplotlib_backend_name` property.
+        '''
+
+        return True
+
+
+    @property
+    def _matplotlib_backend_name(self) -> StrOrNoneTypes:
+        '''
+        Name of the matplotlib backend to be explicitly initialized by the
+        :meth:`_init_app_libs` method if any *or* ``None`` otherwise, in which
+        case the first importable backend known to be both usable and supported
+        by this application is defaulted to (in descending order of preference).
+
+        Defaults to the following logic:
+
+        * If this CLI exposes the ``--matplotlib-backend`` option, the current
+          value of this option is returned.
+        * Else, ``None`` is returned.
+        '''
+
+        # Return the current value of the "--matplotlib-backend" option if
+        # exposed by this CLI *OR* "None" otherwise.
+        if self._is_option_matplotlib_backend:
+            return self._args.matplotlib_backend_name
+        else:
+            return None
+
     # ..................{ ARGS                               }..................
     def _parse_args(self) -> None:
         '''
@@ -381,8 +421,8 @@ class CLIABC(object, metaclass=ABCMeta):
         version_output = '{} {}'.format(
             cmds.get_current_basename(), self._module_metadata.VERSION)
 
-        # Return a tuple of all default top-level options.
-        return (
+        # List of all default top-level options to be returned.
+        options_top = [
             CLIOptionBoolTrue(
                 short_name='-v',
                 long_name='--verbose',
@@ -394,16 +434,6 @@ class CLIABC(object, metaclass=ABCMeta):
                 long_name='--version',
                 synopsis='print program version and exit',
                 version=version_output,
-            ),
-
-            CLIOptionArgStr(
-                long_name='--matplotlib-backend',
-                synopsis=(
-                    'name of matplotlib backend to use '
-                    '(see: "betse info")'
-                ),
-                var_name='matplotlib_backend_name',
-                default_value=None,
             ),
 
             CLIOptionArgStr(
@@ -449,7 +479,22 @@ class CLIABC(object, metaclass=ABCMeta):
                 var_name='profile_filename',
                 default_value=pathtree.get_profile_default_filename(),
             ),
-        )
+        ]
+
+        # If conditionally exposing the "--matplotlib-backend" option, do so.
+        if self._is_option_matplotlib_backend:
+            options_top.append(CLIOptionArgStr(
+                long_name='--matplotlib-backend',
+                synopsis=(
+                    'name of matplotlib backend to use '
+                    '(see: "betse info")'
+                ),
+                var_name='matplotlib_backend_name',
+                default_value=None,
+            ))
+
+        # Return this list.
+        return options_top
 
 
     def _parse_options_top(self) -> None:
@@ -511,12 +556,15 @@ class CLIABC(object, metaclass=ABCMeta):
     # ..................{ IGNITERS                           }..................
     def _ignite_app(self) -> None:
         '''
-        (Re-)initialize this application *BEFORE* performing subsequent logic
+        (Re-)initialize this application *before* performing subsequent logic
         assuming this application to have already been initialized.
 
-        Defaults to (re-)initializing all low-level BETSE logic. Subclasses may
-        override this method to perform additional initialization, in which
-        case this superclass method should still be called to initialize BETSE.
+        Design
+        ----------
+        Defaults to (re-)initializing all low-level application logic.
+        Subclasses may override this method to perform additional
+        initialization, in which case this superclass method should still be
+        called to properly initialize this application.
         '''
 
         # (Re-)initialize BETSE. Note that calling the ignition.init() function:
@@ -530,6 +578,32 @@ class CLIABC(object, metaclass=ABCMeta):
         #   model the real world as closely as reasonable, the
         #   ignition.reinit() function is called instead.
         self._module_ignition.reinit()
+
+
+    def _init_app_libs(self) -> None:
+        '''
+        (Re-)initialize all mandatory runtime dependencies of this application
+        *after* parsing and handling all logging-specific CLI options and thus
+        finalizing the logging configuration for the active Python process.
+
+        This initialization integrates the custom logging and debugging schemes
+        implemented by these dependencies with those implemented by this
+        application.
+
+        Design
+        ----------
+        Defaults to (re-)initializing all mandatory runtime dependencies of
+        BETSE. Subclasses may override this method to perform additional
+        initialization, in which case this superclass method should still be
+        called to properly initialize these dependencies.
+        '''
+
+        # (Re-)initialize all mandatory runtime dependencies *AFTER* parsing
+        # and handling all logging-specific CLI options and hence finalizing
+        # the logging configuration for the active Python process. This
+        # initialization integrates the custom logging and debugging schemes
+        # implemented by these dependencies with that implemented by BETSE.
+        libs.reinit(matplotlib_backend_name=self._matplotlib_backend_name)
 
 
     def _show_header(self) -> None:
