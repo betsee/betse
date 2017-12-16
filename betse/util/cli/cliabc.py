@@ -19,7 +19,6 @@ import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
 from betse import metadata as betse_metadata
 from betse import pathtree
-from betse.exceptions import BetseCLIException
 from betse.lib import libs
 from betse.util.cli.cliarg import SemicolonAwareHelpFormatter
 from betse.util.io.log import logs, logconfig
@@ -36,7 +35,6 @@ from betse.util.type.types import (
     ModuleType,
     SequenceTypes,
     SequenceOrNoneTypes,
-    StrOrNoneTypes,
 )
 
 # ....................{ SUPERCLASS                         }....................
@@ -293,33 +291,12 @@ class CLIABC(object, metaclass=ABCMeta):
         ----------
         Defaults to ``True``. Subclasses overriding this default to ``False``
         should explicitly specify the desired matplotlib backend to use by
-        overriding the :meth:`_matplotlib_backend_name` property.
+        overriding the :meth:`_init_app_libs` method to manually pass the name
+        of that backend to the :func:`libs.init`` function
+        (e.g., ``libs.init(matplotlib_backend_name='Qt5Agg')``).
         '''
 
         return True
-
-
-    @property
-    def _matplotlib_backend_name(self) -> StrOrNoneTypes:
-        '''
-        Name of the matplotlib backend to be explicitly initialized by the
-        :meth:`_init_app_libs` method if any *or* ``None`` otherwise, in which
-        case the first importable backend known to be both usable and supported
-        by this application is defaulted to (in descending order of preference).
-
-        Defaults to the following logic:
-
-        * If this CLI exposes the ``--matplotlib-backend`` option, the current
-          value of this option is returned.
-        * Else, ``None`` is returned.
-        '''
-
-        # Return the current value of the "--matplotlib-backend" option if
-        # exposed by this CLI *OR* "None" otherwise.
-        if self._is_option_matplotlib_backend:
-            return self._args.matplotlib_backend_name
-        else:
-            return None
 
     # ..................{ ARGS                               }..................
     def _parse_args(self) -> None:
@@ -593,17 +570,22 @@ class CLIABC(object, metaclass=ABCMeta):
         Design
         ----------
         Defaults to (re-)initializing all mandatory runtime dependencies of
-        BETSE. Subclasses may override this method to perform additional
-        initialization, in which case this superclass method should still be
-        called to properly initialize these dependencies.
+        BETSE. Subclasses overriding this method to perform additional
+        initialization must manually call the :meth:`libs.reinit` method to
+        initialize these dependencies.
         '''
 
-        # (Re-)initialize all mandatory runtime dependencies *AFTER* parsing
-        # and handling all logging-specific CLI options and hence finalizing
-        # the logging configuration for the active Python process. This
-        # initialization integrates the custom logging and debugging schemes
-        # implemented by these dependencies with that implemented by BETSE.
-        libs.reinit(matplotlib_backend_name=self._matplotlib_backend_name)
+        # Name of the matplotlib backend explicitly requested by the user if any
+        # *OR* "None" otherwise.
+        matplotlib_backend_name = None
+
+        # If this CLI exposes the "--matplotlib-backend" option to users, this
+        # name is the value of this option.
+        if self._is_option_matplotlib_backend:
+            matplotlib_backend_name = self._args.matplotlib_backend_name
+
+        # (Re-)initialize all mandatory runtime dependencies.
+        libs.reinit(matplotlib_backend_name=matplotlib_backend_name)
 
 
     def _show_header(self) -> None:

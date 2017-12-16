@@ -98,7 +98,9 @@ def ignite() -> None:
 # ....................{ INITIALIZERS                       }....................
 def reinit() -> None:
     '''
-    (Re-)initialize the current application.
+    (Re-)initialize this application -- but *not* mandatory third-party
+    dependencies of this application, which requires external resources (e.g.,
+    command-line options, configuration files) to be parsed.
 
     Specifically:
 
@@ -106,6 +108,11 @@ def reinit() -> None:
       Python process, this application will be initilialized.
     * Else, this application has already been initialized under the active
       Python process. In this case, this application will be re-initilialized.
+
+    See Also
+    ----------
+    :func:`betse.lib.libs.reinit`
+        Function (re)-initializing all mandatory third-party dependencies.
     '''
 
     # Force the init() function to reinitialize this application.

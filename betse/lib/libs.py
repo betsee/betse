@@ -19,7 +19,7 @@ such dependencies.
 # exist at initial runtime (i.e., standard Python and application packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from betse import metadeps
+from betse import metadata, metadeps
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, MappingType, StrOrNoneTypes
@@ -450,13 +450,6 @@ def reinit(*args, **kwargs) -> None:
     (Re-)initialize all mandatory runtime dependencies of this application with
     the passed parameters.
 
-    Specifically:
-
-    * If these dependencies have _not_ already been initialized under the active
-      Python process, these dependencies will be initilialized.
-    * Else, these dependencies have already been initialized under the active
-      Python process. In this case, these dependencies will be re-initilialized.
-
     Parameters
     ----------
     All passed parameters are passed to the :func:`init` function as is.
@@ -501,8 +494,8 @@ def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
 
     # Log this initialization. Since initializing heavyweight third-party
     # dependencies (especially matplotlib) consumes non-trivial time, this
-    # logging is intentionally elevated to the "INFO" level.
-    logs.log_info('Loading third-party dependencies...')
+    # message is intentionally exposed to all users by default.
+    logs.log_info('Loading third-party %s dependencies...', metadata.NAME)
 
     # Initialize these dependencies.
     mpl_config.init(backend_name=matplotlib_backend_name)
