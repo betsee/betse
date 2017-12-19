@@ -291,6 +291,11 @@ BETSE is releasable to all supported platforms as follows:
    #. The ``betse.metadata.CODENAME`` global should be incremented according
       to the `best practices <Code Naming_>`__ provided below.
 
+#. (\ *Optional*\ ) **Bump downstream metadata.** As example, if the current
+   version of BETSEE_ strictly requires the current version of BETSE, the
+   ``betsee.guimetadeps.BETSE_VERSION_REQUIRED_MIN`` global string variable of
+   the former should be incremented to reflect the latter.
+
 #. **Create another announcement commit.** This commit should have a message
    whose first line is of the format ``"BETSE {version} ({codename})
    started."``, where:
@@ -374,6 +379,10 @@ Unlike the `Ubuntu code name schema`_, the first letter of the code name for
 each version need *not* succeed the first letter of the code name for the prior
 version. For our insignificant purposes, preserving alphabetization across code
 names is a fruitless and hence worthless goal.
+
+.. # ------------------( LINKS ~ betsee                      )------------------
+.. _BETSEE:
+   https://gitlab.com/betse/betsee
 
 .. # ------------------( LINKS ~ codebase                    )------------------
 .. _tarballs:
