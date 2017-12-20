@@ -279,10 +279,10 @@ Usage
 ============
 
 BETSE itself provides the ``betse`` command, a low-level command line interface
-(CLI) optimized for non-interactive scripting (e.g., for implementing massively
-parallel `genetic algorithms`_). See the following external documents for
-detailed usage instructions – complete with explanatory examples, sample plots,
-and ample screenshots:
+(CLI) optimized for non-interactive scripting (e.g., for implementing `massively
+parallel genetic algorithms <genetic algorithms_>`_). See the following
+external documents for detailed usage instructions – complete with explanatory
+examples, sample plots, and ample screenshots:
 
 - Official `BETSE 0.4 documentation`_. (\ *PDF format; 72 pages.*\ )
 - Official `BETSE 0.3 documentation`_. (\ *PDF format; 77 pages.*\ )
@@ -421,7 +421,7 @@ For details, see our recently published `introductory paper <Reference_>`__.
 License
 =======
 
-BETSE is open-source software `released <LICENSE>`__ under the permissive `BSD
+BETSE is open-source software `released <license_>`__ under the permissive `BSD
 2-clause license`_.
 
 Reference
@@ -432,17 +432,27 @@ Third-party papers, theses, and other texts leveraging BETSE should (ideally)
 cite the following:
 
     `Pietak, Alexis`_ and `Levin, Michael`_, 2016. |2016 article name|_
-    |2016 journal name|_ *4*\ (55). :sup:`DOI: 10.3389/fbioe.2016.00055`
+    |2016 article supplement|_ [#supplement]_ |2016 journal name|_ *4*\ (55).
+    :sup:`DOI: 10.3389/fbioe.2016.00055`
 
 Subsequent papers expanding the BETSE architecture with additional theory,
 experimental results, and comparative metrics include:
 
     `Pietak, Alexis`_ and `Levin, Michael`_, 2017. |2017 article name|_
-    |2017 journal name|_ *14*\ (134), p.20170425. :sup:`DOI:
-    10.1098/rsif.2017.0425`
+    |2017 article supplement|_ [#supplement]_ |2017 journal name|_ *14*\ (134),
+    p.20170425.  :sup:`DOI: 10.1098/rsif.2017.0425`
 
 .. # FIXME: Add an image thumbnail above displaying the cover image selected by
 .. # the prior journal for that edition's cover article.
+
+.. # Note that, for unknown reasons, this footnote *MUST* be refenced above and
+.. # defined here rather than in the supplement replacements defined below.
+
+.. [#supplement]
+   This article's supplement extends the cursory theory presented by this
+   article with a rigorous treatment of the mathematics, formalisms, and
+   abstractions required to fully reproduce this work. If theoretical questions
+   remain after completing the main article, please consult this supplement.
 
 Authors
 =======
@@ -479,6 +489,8 @@ For prospective contributors:
    https://gitlab.com/betse/betse/graphs/master
 .. _dependencies:
    doc/md/INSTALL.md
+.. _license:
+   LICENSE
 .. _testing:
    https://gitlab.com/betse/betse/pipelines
 .. _tarballs:
@@ -522,6 +534,11 @@ For prospective contributors:
 .. _2016 article name:
    http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract
 
+.. |2016 article supplement| replace::
+   **(**\ *Supplement*\ **).**
+.. _2016 article supplement:
+   https://www.frontiersin.org/articles/file/downloadfile/203679_supplementary-materials_datasheets_1_pdf/octet-stream/Data%20Sheet%201.PDF/1/203679
+
 .. |2016 journal name| replace::
    *Frontiers in Bioengineering and Biotechnology,*
 .. _2016 journal name:
@@ -532,6 +549,11 @@ For prospective contributors:
    **Bioelectric gene and reaction networks: computational modelling of genetic, biochemical and bioelectrical dynamics in pattern regulation.**
 .. _2017 article name:
    http://rsif.royalsocietypublishing.org/content/14/134/20170425
+
+.. |2017 article supplement| replace::
+   **(**\ *Supplement*\ **).**
+.. _2017 article supplement:
+   https://figshare.com/collections/Supplementary_material_from_Bioelectric_gene_and_reaction_networks_computational_modelling_of_genetic_biochemical_and_bioelectrical_dynamics_in_pattern_regulation_/3878404
 
 .. |2017 journal name| replace::
    *Journal of The Royal Society Interface,*
@@ -568,6 +590,8 @@ For prospective contributors:
    https://en.wikipedia.org/wiki/Gene_regulatory_network
 .. _genetics:
    https://en.wikipedia.org/wiki/Genetics
+.. _genetic algorithms:
+   https://en.wikipedia.org/wiki/Genetic_algorithm
 .. _Hodgkin-Huxley (HH) formalism:
    https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model
 .. _local field potentials:

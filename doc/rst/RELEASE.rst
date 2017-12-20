@@ -51,6 +51,31 @@ BETSE is releasable to all supported platforms as follows:
    `Test PyPI`_. While optional, securely registering and uploading PyPI
    distributions *without* twine_ is typically non-trivial, banal, and tedious.
    :sup:`Your mileage may vary.`
+#. (\ *Optional*\ ) **Validate reStructuredText (reST) rendering.** The
+   human-readable description for this release derives directly from `the
+   top-level README.rst file <readme_>`__ for this project. Sadly, PyPI's reST
+   renderer supports only a proper subset of the syntax supported by the reST
+   standard – itself only a proper subset of the syntax supported by Sphinx. If
+   `this file <readme_>`__ contains syntax unsupported by PyPI's reST renderer,
+   PyPI erroneously preserves this file as plaintext rather than rendering this
+   file as HTML. To avoid this:
+   
+   #. Install the ``collective.checkdocs`` Python package.
+
+      .. code:: bash
+   
+         $ sudo pip3 install collective.checkdocs
+   
+   #. Validate the PyPI-specific compatilibility of `this file <readme_>`__.
+
+      .. code:: bash
+   
+         $ python3 setup.py checkdocs
+
+   #. After submitting this release to PyPI via ``twine`` below, manually browse
+      to `the PyPI-hosted page <PyPI BETSE_>`__ for this project and verify by
+      cursory inspection that this project's description is rendered as HTML.
+
 #. (\ *Optional*\ ) **Bump release metadata.** Assuming the prior release
    followed these instructions, release metadata has already been bumped in
    preparation for the next (i.e., this) release. If another bump is required
@@ -287,9 +312,9 @@ BETSE is releasable to all supported platforms as follows:
 #. **Bump release metadata.** In preparation for developing the next release:
 
    #. The ``betse.metadata.__version__`` global should be incremented according
-      to the `best practices <Versioning_>`__ provided below.
+      to the `best practices <Version Nomenclature_>`__ provided below.
    #. The ``betse.metadata.CODENAME`` global should be incremented according
-      to the `best practices <Code Naming_>`__ provided below.
+      to the `best practices <Codename Nomenclature_>`__ provided below.
 
 #. (\ *Optional*\ ) **Bump downstream metadata.** As example, if the current
    version of BETSEE_ strictly requires the current version of BETSE, the
@@ -333,7 +358,7 @@ BETSE is releasable to all supported platforms as follows:
    source tarballs. In either case, expect installation to consume non-trivial
    space and time. The cheese shop was not instantiated in a day.
 
-Versioning
+Version Nomenclature
 ============
 
 This application should be **versioned** (i.e., assigned a new version)
@@ -362,7 +387,7 @@ three ``.``-delimited integers ``{major}.{minor}.{patch}``, where:
 
 When in doubt, bump only the minor version and reset only the patch version.
 
-Code Naming
+Codename Nomenclature
 ============
 
 This application should be **code named** (i.e., assigned a new human-readable
@@ -380,13 +405,17 @@ each version need *not* succeed the first letter of the code name for the prior
 version. For our insignificant purposes, preserving alphabetization across code
 names is a fruitless and hence worthless goal.
 
+.. # ------------------( LINKS ~ betse                       )------------------
+.. _readme:
+   https://gitlab.com/betse/betse/blob/master/README.rst
+.. _tarballs:
+   https://gitlab.com/betse/betse/tags
+.. _PyPI BETSE:
+   https://pypi.python.org/pypi/betse
+
 .. # ------------------( LINKS ~ betsee                      )------------------
 .. _BETSEE:
    https://gitlab.com/betse/betsee
-
-.. # ------------------( LINKS ~ codebase                    )------------------
-.. _tarballs:
-   https://gitlab.com/betse/betse/tags
 
 .. # ------------------( LINKS ~ pypi                       )------------------
 .. _Test PyPI:
