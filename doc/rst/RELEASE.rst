@@ -112,23 +112,23 @@ BETSE is releasable to all supported platforms as follows:
 
       $ git push && git push --tags
 
+#. **Package both a source tarball and binary wheel.**
+
+   .. code:: bash
+
+      $ python3 setup.py sdist bdist_wheel
+
+#. (\ *Optional*\ ) **List the contents of this source tarball,** where
+   ``${version}`` is the purely numeric version of this release (e.g.,
+   ``0.4.1``). Verify by inspection that no unwanted paths were packaged.
+
+   .. code:: bash
+
+      $ tar -tvzf dist/betse-${version}.tar.gz | less
+
 #. (\ *Optional*\ ) **Test the installation of this release.** If installation
    of this release differs from that of prior releases, testing *before*
    publishing this release to PyPI_ and elsewhere is advisable.
-
-   #. **Package both a source tarball and binary wheel.**
-
-      .. code:: bash
-
-         $ python3 setup.py sdist bdist_wheel
-
-   #. **List the contents of this source tarball,** where ``${version}`` is
-      the purely numeric version of this release (e.g., ``0.4.1``). Verify by
-      inspection that no unwanted paths were packaged.
-
-      .. code:: bash
-
-         $ tar -tvzf dist/betse-${version}.tar.gz | less
 
    #. **Test this source tarball locally.**
 
