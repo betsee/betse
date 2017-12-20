@@ -390,6 +390,12 @@ class MplConfig(object):
         logs.log_debug(
             'Finding usable backend in: %r', backend_names)
 
+        #FIXME: If this is Matplotlib >= 2.0.0 and the only available backend is
+        #"TkAgg", a non-fatal warning should be logged instructing the user to
+        #install a more stable backend (e.g., "Qt5Agg", "Qt4Agg", "WxAgg"). To
+        #leverage the local "backend_names" list, this warning should probably
+        #be emitted here rather than in the is_backend_usable() method.
+
         # For each such backend (in descending order of preference)...
         for backend_name in backend_names:
             # If this backend is usable, this tester has already implicitly

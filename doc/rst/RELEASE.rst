@@ -127,16 +127,6 @@ BETSE is releasable to all supported platforms as follows:
 
       $ git tag -a v{version}
 
-#. **Push this tagged commit.** After doing so, Gitlab will automatically
-   publish source tarballs in various formats (e.g., ``.zip``, ``.tar.bz2``)
-   containing the contents of this repository at this tagged commit in this
-   project's `source tarball archive <tarballs_>`__. No further work is required
-   to distribute source tarballs via Gitlab.
-
-   .. code:: bash
-
-      $ git push && git push --tags
-
 #. **Package both a source tarball and binary wheel.**
 
    .. code:: bash
@@ -151,9 +141,9 @@ BETSE is releasable to all supported platforms as follows:
 
       $ tar -tvzf dist/betse-${version}.tar.gz | less
 
-#. (\ *Optional*\ ) **Test the installation of this release.** If installation
-   of this release differs from that of prior releases, testing *before*
-   publishing this release to PyPI_ and elsewhere is advisable.
+#. (\ *Optional*\ ) **Test the local installation of this release.** If
+   installation of this release differs from that of prior releases, testing
+   *before* publishing this release to PyPI_ and elsewhere is advisable.
 
    #. **Test this source tarball locally.**
 
@@ -208,6 +198,44 @@ BETSE is releasable to all supported platforms as follows:
          .. code:: bash
 
             $ rm -rf /tmp/betse-wheel /tmp/sample_sim && cd -
+
+#. **Bump release metadata.** In preparation for developing the next release:
+
+   #. The ``betse.metadata.__version__`` global should be incremented according
+      to the `best practices <Version Nomenclature_>`__ provided below.
+   #. The ``betse.metadata.CODENAME`` global should be incremented according
+      to the `best practices <Codename Nomenclature_>`__ provided below.
+
+#. (\ *Optional*\ ) **Bump downstream metadata.** As example, if the current
+   version of BETSEE_ strictly requires the current version of BETSE, the
+   ``betsee.guimetadeps.BETSE_VERSION_REQUIRED_MIN`` global string variable of
+   the former should be incremented to reflect the latter.
+
+#. **Create another announcement commit.** This commit should have a message
+   whose first line is of the format ``"BETSE {version} ({codename})
+   started."``, where:
+
+     * ``{version}`` is the new value of the ``betse.metadata.__version__``
+       global.
+     * ``{codename}`` is the new value of the ``betse.metadata.CODENAME``
+       global.
+
+   Since no changelog for this release yet exists, a single-line message
+   suffices for this commit. For example::
+
+       BETSE 0.4.1 (Gladder Galvani) started.
+
+#. **Push this tagged commit.** After doing so, Gitlab will automatically
+   publish source tarballs in various formats (e.g., ``.zip``, ``.tar.bz2``)
+   containing the contents of this repository at this tagged commit in this
+   project's `source tarball archive <tarballs_>`__. No further work is required
+   to distribute source tarballs via Gitlab.
+
+   .. code:: bash
+
+      $ git push && git push --tags
+
+#. (\ *Optional*\ ) **Test the remote installation of this release.**
 
    #. **Test this release on** `Test PyPI`_. Note that, as this server is a
       moving target, the `official instructions <Test PyPI instructions_>`__
@@ -309,43 +337,13 @@ BETSE is releasable to all supported platforms as follows:
 
             $ rm -rf /tmp/betse-pypi /tmp/sample_sim && cd -
 
-#. **Bump release metadata.** In preparation for developing the next release:
-
-   #. The ``betse.metadata.__version__`` global should be incremented according
-      to the `best practices <Version Nomenclature_>`__ provided below.
-   #. The ``betse.metadata.CODENAME`` global should be incremented according
-      to the `best practices <Codename Nomenclature_>`__ provided below.
-
-#. (\ *Optional*\ ) **Bump downstream metadata.** As example, if the current
-   version of BETSEE_ strictly requires the current version of BETSE, the
-   ``betsee.guimetadeps.BETSE_VERSION_REQUIRED_MIN`` global string variable of
-   the former should be incremented to reflect the latter.
-
-#. **Create another announcement commit.** This commit should have a message
-   whose first line is of the format ``"BETSE {version} ({codename})
-   started."``, where:
-
-     * ``{version}`` is the new value of the ``betse.metadata.__version__``
-       global.
-     * ``{codename}`` is the new value of the ``betse.metadata.CODENAME``
-       global.
-
-   Since no changelog for this release yet exists, a single-line message
-   suffices for this commit. For example::
-
-       BETSE 0.4.1 (Gladder Galvani) started.
-
-#. **Push this commit.** Thus begins the dawn of a new scientific epoch.
-
-   .. code:: bash
-
-      $ git push
-
 #. (\ *Optional*\ ) **Update third-party platform-specific packages.** As of
    this writing, these include (in no particular order):
 
    * The official `Gentoo Linux BETSE ebuild`_, currently hosted at the
      `raiagent overlay`_ maintained by a co-maintainer of BETSE.
+
+Thus begins the dawn of a new scientific epoch.
 
 .. [#tags]
    Do *not* create a lightweight tag, which omits critical metadata (e.g.,
