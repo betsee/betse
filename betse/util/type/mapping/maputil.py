@@ -8,6 +8,8 @@ Low-level **mapping utilities** (i.e., functions operating on dictionary-like
 types and instances).
 '''
 
+#FIXME: Rename this submodule to "mappings".
+
 # ....................{ IMPORTS                            }....................
 import pprint
 from betse.exceptions import BetseMappingException
@@ -94,6 +96,7 @@ def is_values_unique(mapping: MappingType) -> bool:
     return iterables.is_items_unique(mapping.values())
 
 # ....................{ FORMATTERS                         }....................
+#FIXME: Rename to format_dict() for disambiguity.
 @type_check
 def format(mapping: MappingType) -> str:
     '''
@@ -103,6 +106,7 @@ def format(mapping: MappingType) -> str:
     return pprint.pformat(mapping)
 
 # ....................{ COPIERS                            }....................
+#FIXME: Rename to copy_dict() for disambiguity.
 @type_check
 def copy(mapping: MappingType) -> MappingType:
     '''
@@ -131,7 +135,15 @@ def copy(mapping: MappingType) -> MappingType:
     #of the same type as the passed mapping?
     return deepcopy(mapping)
 
+# ....................{ INVERTERS                          }....................
+#FIXME: Define us up, please.
+@type_check
+def invert_dict_unique(dict: MappingType) -> MappingType:
+
+    pass
+
 # ....................{ MERGERS                            }....................
+#FIXME: Rename to merge_dict() for disambiguity.
 @type_check
 def merge(*dicts: MappingType) -> MappingType:
     '''

@@ -881,16 +881,24 @@ def exhaust(iterable: IterableTypes) -> object:
         return None
 
 # ....................{ INVERTERS                          }....................
+#FIXME: Actually defer to the
+#betse.util.type.mapping.maputil.invert_dict_unique() function if this iterable
+#is a mapping.
 @type_check
 def invert_iterable_unique(iterable: IterableTypes) -> MappingType:
     '''
     Dictionary inverted from the passed iterable if internally unique (i.e.,
     containing no duplicate items) *or* raise an exception otherwise.
 
-    Specifically, this dictionary maps from each item of this iterable to the
-    0-based index of that item in this iterable. Since this dictionary's values
-    are guaranteed to be integers rather than containers of integers, all
-    iterable items *must* be strictly unique.
+    Specifically:
+
+    * If this iterable is a dictionary, the
+      :func:`betse.util.type.mapping.maputil.invert_dict_unique` function is
+      silently deferred to.
+    * Else, the returned dictionary maps from each item of this iterable to the
+      0-based index of that item in this iterable. Since this dictionary's
+      values are guaranteed to be integers rather than containers of integers,
+      all iterable items *must* be strictly unique.
 
     Parameters
     ----------
