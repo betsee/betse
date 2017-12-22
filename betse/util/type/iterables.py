@@ -881,24 +881,21 @@ def exhaust(iterable: IterableTypes) -> object:
         return None
 
 # ....................{ INVERTERS                          }....................
-#FIXME: Actually defer to the
-#betse.util.type.mapping.maputil.invert_dict_unique() function if this iterable
-#is a mapping.
 @type_check
 def invert_iterable_unique(iterable: IterableTypes) -> MappingType:
     '''
-    Dictionary inverted from the passed iterable if internally unique (i.e.,
+    Dictionary inverted from the passed iterable if **internally unique** (i.e.,
     containing no duplicate items) *or* raise an exception otherwise.
 
     Specifically:
 
     * If this iterable is a dictionary, the
-      :func:`betse.util.type.mapping.maputil.invert_dict_unique` function is
-      silently deferred to.
+      :func:`betse.util.type.mapping.mappings.invert_dict_unique` function is
+      silently deferred to. The type of the returned dictionary is guaranteed to
+      be the same as the type of the passed dictionary.
     * Else, the returned dictionary maps from each item of this iterable to the
-      0-based index of that item in this iterable. Since this dictionary's
-      values are guaranteed to be integers rather than containers of integers,
-      all iterable items *must* be strictly unique.
+      0-based index of that item in this iterable. The type of this dictionary
+      is guaranteed to *not* be the same as the type of this iterable.
 
     Parameters
     ----------
@@ -916,11 +913,28 @@ def invert_iterable_unique(iterable: IterableTypes) -> MappingType:
         If at least one item of this iterable is a duplicate.
     '''
 
-    # If one or more items of this iterable are duplicates, raise an exception.
-    die_unless_items_unique(iterable)
+    # Avoid circular import dependencies.
+    from betse.util.type.mapping import mappings
 
-    # One-liners for Great Glory.
-    return {item: item_index for item_index, item in enumerate(iterable)}
+    # If this iterable is a mapping...
+    if mappings.is_mapping(iterable):
+        # Invert this iterable specifically as a mapping.
+        #
+        # While mappings are technically iterables and hence invertable via the
+        # generic approach applied below, doing so incorrectly returns a
+        # dictionary mapping from the keys of the passed dictionary to arbitrary
+        # 0-based integers. As the adjective "arbitrary" implies, this renders
+        # the resulting dictionary effectively useless for most purposes.
+        return mappings.invert_map_unique(iterable)
+    # Else, this iterable is a non-mapping. In this case, a generic approach
+    # suffices... usually.
+    else:
+        # If one or more items of this iterable are duplicates, raise an
+        # exception.
+        die_unless_items_unique(iterable)
+
+        # One-liners for Great Glory.
+        return {item: item_index for item_index, item in enumerate(iterable)}
 
 # ....................{ ITERATORS                          }....................
 @type_check

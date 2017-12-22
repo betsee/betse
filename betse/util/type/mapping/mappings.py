@@ -8,8 +8,6 @@ Low-level **mapping utilities** (i.e., functions operating on dictionary-like
 types and instances).
 '''
 
-#FIXME: Rename this submodule to "mappings".
-
 # ....................{ IMPORTS                            }....................
 import pprint
 from betse.exceptions import BetseMappingException
@@ -21,8 +19,10 @@ from copy import deepcopy
 @type_check
 def die_unless_values_unique(mapping: MappingType) -> None:
     '''
-    Raise an exception unless *all* values of the passed dictionary are
-    **unique** (i.e., no two values of two distinct key-value pairs are equal).
+    Raise an exception unless all values of the passed dictionary are unique.
+
+    Equivalently, this function raises an exception if any two key-value pairs
+    of this dictionary share the same values.
 
     Parameters
     ----------
@@ -75,8 +75,8 @@ def is_keys(mapping: MappingType, *keys: HashableType) -> bool:
 @type_check
 def is_values_unique(mapping: MappingType) -> bool:
     '''
-    ``True`` only if *all* values of the passed dictionary are **unique** (i.e.,
-    no two values of two distinct key-value pairs are equal).
+    ``True`` only if all values of the passed dictionary are **unique** (i.e.,
+    if *no* two key-value pairs of this dictionary share the same values).
 
     Parameters
     ----------
@@ -96,9 +96,8 @@ def is_values_unique(mapping: MappingType) -> bool:
     return iterables.is_items_unique(mapping.values())
 
 # ....................{ FORMATTERS                         }....................
-#FIXME: Rename to format_dict() for disambiguity.
 @type_check
-def format(mapping: MappingType) -> str:
+def format_map(mapping: MappingType) -> str:
     '''
     Convert the passed dictionary into a human-readable string.
     '''
@@ -106,9 +105,8 @@ def format(mapping: MappingType) -> str:
     return pprint.pformat(mapping)
 
 # ....................{ COPIERS                            }....................
-#FIXME: Rename to copy_dict() for disambiguity.
 @type_check
-def copy(mapping: MappingType) -> MappingType:
+def copy_map(mapping: MappingType) -> MappingType:
     '''
     Dictionary of all key-value pairs deeply (i.e., recursively) duplicated from
     the passed dictionary.
@@ -136,16 +134,77 @@ def copy(mapping: MappingType) -> MappingType:
     return deepcopy(mapping)
 
 # ....................{ INVERTERS                          }....................
-#FIXME: Define us up, please.
 @type_check
-def invert_dict_unique(dict: MappingType) -> MappingType:
+def invert_map_unique(mapping: MappingType) -> MappingType:
+    '''
+    Dictionary inverted from the passed dictionary if no two key-value pairs of
+    this dictionary share the same values *or* raise an exception otherwise.
 
-    pass
+    Specifically, the returned dictionary maps from each value to each key of
+    the passed dictionary *and* is guaranteed to be the same type as that of
+    the passed dictionary.
+
+    Parameters
+    ----------
+    mapping : MappingType
+        Dictionary to be inverted. The type of this dictionary *must* define an
+        ``__init__`` method accepting a single parameter whose value is an
+        iterable of 2-iterables ``(key, value)`` providing all key-value pairs
+        with which to initialize a new such dictionary. See the
+        :meth:`dict.__init__` method for further details.
+
+    Returns
+    ----------
+    MappingType
+        Dictionary inverted from this dictionary as detailed above.
+
+    Raises
+    ----------
+    BetseMappingException
+        If one or more key-value pairs of this dictionary share the same values.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/1679702/2809027
+        StackOverflow answer strongly inspiring this implementation.
+    '''
+
+    # If any values of this dictionary are are duplicates, raise an exception.
+    die_unless_values_unique(mapping)
+
+    # Type of this dictionary.
+    mapping_type = type(mapping)
+
+    # If this is an unordered dictionary, return a dictionary comprehension
+    # efficiently inverting this dictionary in the trivial way.
+    if mapping_type is dict:
+        return {value: key for key, value in mapping.items()}
+    # Else, this is possibly an ordered dictionary. In this case, a considerably
+    # less trivial and slightly less efficient approach is required.
+    else:
+        # Iterable of reversed 2-iterables "(value, pair)" for each key-value
+        # pair of the passed dictionary. Dismantled, this is:
+        #
+        # * "mapping.items()", an iterable of 2-iterables "(key, value)" for
+        #   each key-value pair of the passed dictionary.
+        # * "reversed", a builtin which when passed such a 2-iterable returns
+        #   the reversed 2-iterable "(value, pair)" for that key-value pair.
+        # * "map(...)", a builtin applying the prior builtin to each such pair.
+        value_key_pairs = map(reversed, mapping.items())
+
+        # Return a new instance of this type of dictionary by invoking the
+        # "dict(iterable)" form of this type's __init__() method. To quote the
+        # dict.__init__() docstring:
+        #
+        # "dict(iterable) -> new dictionary initialized as if via:
+        #      d = {}
+        #      for k, v in iterable:
+        #          d[k] = v"
+        return mapping_type(value_key_pairs)
 
 # ....................{ MERGERS                            }....................
-#FIXME: Rename to merge_dict() for disambiguity.
 @type_check
-def merge(*dicts: MappingType) -> MappingType:
+def merge_maps(*dicts: MappingType) -> MappingType:
     '''
     Dictionary of all key-value pairs deeply (i.e., recursively) merged together
     from all passed dictionaries (in the passed order).

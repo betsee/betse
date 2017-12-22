@@ -52,7 +52,7 @@ import subprocess
 from betse.exceptions import BetseCommandException
 from betse.util.io.log import logs
 from betse.util.io.log.logenum import LogLevel
-from betse.util.type.mapping import maputil
+from betse.util.type.mapping import mappings
 from betse.util.type.types import (
     type_check,
     MappingType,
@@ -445,7 +445,7 @@ def _init_popen_kwargs(
     logs.log_debug('Running command: %s', ' '.join(command_words))
 
     # If this is vanilla Windows, sanitize the "close_fds" argument.
-    if oses.is_windows_vanilla() and not maputil.is_keys(
+    if oses.is_windows_vanilla() and not mappings.is_keys(
         popen_kwargs, 'stdin', 'stdout', 'stderr', 'close_fds'):
         popen_kwargs['close_fds'] = False
 

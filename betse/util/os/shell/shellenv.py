@@ -76,11 +76,11 @@ def is_var(*names: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.mapping import maputil
+    from betse.util.type.mapping import mappings
 
     # Return True only if the names of these environment variables are all keys
     # of the corresponding dictionary global.
-    return maputil.is_keys(environ, *names)
+    return mappings.is_keys(environ, *names)
 
 # ....................{ GETTERS                            }....................
 def get_env() -> MappingType:
