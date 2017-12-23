@@ -38,6 +38,55 @@ def die_unless_subclass(subclass: ClassType, superclass: ClassType) -> None:
             'Class {!r} not a subclass of class {!r}'.format(
                 subclass, superclass))
 
+# ....................{ GETTERS ~ metadata                 }....................
+@type_check
+def get_name(cls: ClassType) -> str:
+    '''
+    Unqualified name of the passed class.
+
+    Parameters
+    ----------
+    cls : ClassType
+        Class to retrieve this unqualified name for.
+
+    Returns
+    ----------
+    str
+        Unqualified name of this class.
+    '''
+
+    # Elegant simplicity diminishes aggressive tendencies.
+    return cls.__name__
+
+
+@type_check
+def get_module_name(cls: ClassType) -> str:
+    '''
+    Fully-qualified name of the module defining the passed class.
+
+    Parameters
+    ----------
+    cls : ClassType
+        Class to retrieve this module name for.
+
+    Returns
+    ----------
+    str
+        Fully-qualified name of this module.
+
+    Raises
+    ----------
+    BetseTypeException
+        If this class has no ``__module__`` attribute, which should ideally
+        *never* happen.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj import objects
+
+    # Defer to this existing function, which suffices.
+    return objects.get_class_module_name(cls)
+
 # ....................{ ITERATORS                          }....................
 @type_check
 def iter_methods(cls: ClassType) -> GeneratorType:

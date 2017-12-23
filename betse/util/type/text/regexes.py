@@ -40,6 +40,51 @@ By default:
   newline (if any) at the end of this string.
 '''
 
+# ....................{ EXCEPTIONS                         }....................
+@type_check
+def die_unless_replace_substrs_line(
+    text: str,
+    regex: RegexTypes,
+    replacement: CallableOrStrTypes,
+    **kwargs
+) -> str:
+    '''
+    Passed subject string with all substrings matching the passed regular
+    expression replaced by the passed substitution in a line-oriented manner if
+    this subject string contains at least one such substring *or* raise an
+    exception otherwise.
+
+    Raises
+    ----------
+    BetseRegexException
+        If this subject string fails to match this regular expression.
+
+    See Also
+    ----------
+    :func:`replace_substrs_line`
+        Further details.
+    '''
+
+    # If this subject string fails to match this regex, raise an exception.
+    #
+    # Sadly, the re.sub() function called by the replace_substrs_line() function
+    # called below fails to return metadata detailing the number of replacements
+    # performed or even whether any replacements were performed. Hence, this
+    # validation *MUST* be performed manually beforehand.
+    if not is_match_line(text=text, regex=regex, **kwargs):
+        raise BetseRegexException(
+            'Subject string "{}" not matched by '
+            'regular expression "{}".'.format(text, regex))
+
+    # Else, this subject string matches this regex. In this case, perform this
+    # search-and-replacement and return the result.
+    return replace_substrs_line(
+        text=text,
+        regex=regex,
+        replacement=replacement,
+        **kwargs
+    )
+
 # ....................{ TESTERS                            }....................
 def is_match(text: str, regex: RegexTypes, **kwargs) -> bool:
     '''
@@ -643,7 +688,7 @@ def replace_substrs(
     # Substitute, if you please.
     return re.sub(regex, replacement, text, **kwargs)
 
-
+# ....................{ REPLACERS : line                   }....................
 @type_check
 def replace_substrs_line(
     text: str,
@@ -654,6 +699,10 @@ def replace_substrs_line(
     '''
     Passed subject string with all substrings matching the passed regular
     expression replaced by the passed substitution in a line-oriented manner.
+
+    If this subject string contains no such substrings, this function silently
+    reduces to a noop. If undesirable, consider calling the stricter
+    :func:`die_unless_replace_substrs_line` function instead.
 
     Match Flags
     ----------

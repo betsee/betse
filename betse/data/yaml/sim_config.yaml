@@ -149,7 +149,7 @@ world options:
   lattice type: hex           # Type of base cell lattice (i.e., uniform grid to
                               # which cells are situated before random lattice
                               # disorder is applied), as any following string:
-                              # * "hexagonal" for hexagonal cells.
+                              # * "hex" for hexagonal cells.
                               # * "square" for square cells.
 
   lattice disorder: 0.4       # noise level for the lattice

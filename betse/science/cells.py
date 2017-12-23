@@ -671,7 +671,7 @@ class Cells(object):
             xypts = np.vstack((x_2d.ravel(), y_2d.ravel())).T
 
         # If a hexagonal square cell lattice is requested, create this lattice.
-        elif p.cell_lattice_type is CellLatticeType.HEXAGONAL:
+        elif p.cell_lattice_type is CellLatticeType.HEX:
             # Log this creation.
             logs.log_info('Creating hexagonal cell lattice...')
 

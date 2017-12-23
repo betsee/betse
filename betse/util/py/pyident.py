@@ -95,10 +95,10 @@ ASCII character, internally required by the :func:`sanitize_camelcase` function.
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
-def die_unless_var_name(text: str) -> None:
+def die_unless_var_name(*texts: str) -> None:
     '''
-    Raise an exception unless the passed string is a syntactically valid
-    variable name.
+    Raise an exception unless all passed strings are syntactically valid
+    variable names.
 
     See Also
     ----------
@@ -106,10 +106,12 @@ def die_unless_var_name(text: str) -> None:
         Further details
     '''
 
-    # If this string is *NOT* a valid variable name, raise an exception.
-    if not is_var_name(text):
-        raise BetsePyIdentifierException(
-            'String "{}" not a valid variable name.'.format(text))
+    # For each such string...
+    for text in texts:
+        # If this string is *NOT* a valid variable name, raise an exception.
+        if not is_var_name(text):
+            raise BetsePyIdentifierException(
+                'String "{}" not a valid variable name.'.format(text))
 
 # ....................{ TESTERS                            }....................
 @type_check

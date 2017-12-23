@@ -260,8 +260,8 @@ def _upgrade_sim_conf_to_0_5_2(
         results_dict['network colormap'] = 'coolwarm'
 
     # Patch old- to new-style cell lattice types.
-    if world_dict['lattice type'] == 'hex':
-        world_dict['lattice type'] = 'hexagonal'
+    if world_dict['lattice type'] == 'hexagonal':
+        world_dict['lattice type'] = 'hex'
     elif world_dict['lattice type'] == 'rect':
         world_dict['lattice type'] = 'square'
 

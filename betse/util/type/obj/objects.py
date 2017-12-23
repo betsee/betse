@@ -215,7 +215,45 @@ def is_c_based(obj: object) -> bool:
 
     return not is_pure_python(obj)
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS ~ metadata                 }....................
+def get_class_module_name(obj: object) -> str:
+    '''
+    Fully-qualified name of the module defining the passed object if this object
+    is itself a class *or* the class of this object otherwise (i.e., if this
+    object is *not* a class).
+
+    Parameters
+    ----------
+    obj : object
+        Object to retrieve this module name for.
+
+    Returns
+    ----------
+    str
+        Fully-qualified name of this module.
+
+    Raises
+    ----------
+    BetseTypeException
+        If this class has no ``__module__`` attribute, which should ideally
+        *never* happen.
+    '''
+
+    # This object's subclass if this object is not already a class *OR* this
+    # object as is otherwise.
+    cls = obj if isinstance(obj, ClassType) else obj.__class__
+
+    # If this module does *NOT* provide the special "__file__" attribute, raise
+    # an exception. All modules including builtin modules should provide this.
+    if not hasattr(cls, '__module__'):
+        raise BetseTypeException(
+            'Class "{}.__module__" attribute not found.'.format(
+                cls.__name__))
+
+    # Else, return this attribute's value.
+    return cls.__module__
+
+# ....................{ GETTERS : method                   }....................
 @type_check
 def get_method(obj: object, method_name: str) -> CallableTypes:
     '''
@@ -282,42 +320,6 @@ def get_method_or_none(obj: object, method_name: str) -> CallableOrNoneTypes:
 
     # If this attribute is a method, return this attribute; else, return None.
     return method if method is not None and callable(method) else None
-
-# ....................{ GETTERS ~ special                  }....................
-def get_class_module_name(obj: object) -> str:
-    '''
-    Fully-qualified name of the module defining the passed object's subclass.
-
-    Parameters
-    ----------
-    obj : object
-        Object to retrieve this module name for.
-
-    Returns
-    ----------
-    str
-        Fully-qualified name of the module defining this object's subclass.
-
-    Raises
-    ----------
-    BetseObjectException
-        If this subclass has no ``__module__`` attribute, which should ideally
-        *never* happen.
-    '''
-
-    # This object's subclass if this object is *NOT* already a class or this
-    # object as is otherwise.
-    cls = obj if isinstance(obj, ClassType) else obj.__class__
-
-    # If this module does *NOT* provide the special "__file__" attribute, raise
-    # an exception. All modules including builtin modules should provide this.
-    if not hasattr(cls, '__module__'):
-        raise BetseTypeException(
-            'Class "{}.__module__" attribute not found.'.format(
-                cls.__name__))
-
-    # Else, return this attribute's value.
-    return cls.__module__
 
 # ....................{ ITERATORS ~ attrs                  }....................
 @type_check

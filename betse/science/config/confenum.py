@@ -13,14 +13,14 @@ from betse.util.type.enums import make_enum
 
 # ....................{ ENUMS ~ cell                       }....................
 CellLatticeType = make_enum(
-    class_name='CellLatticeType', member_names=('HEXAGONAL', 'SQUARE',))
+    class_name='CellLatticeType', member_names=('HEX', 'SQUARE',))
 '''
 Enumeration of all supported types of **base cell lattices** (i.e., uniform grid
 to which cells are situated *before* random lattice disorder is applied).
 
 Attributes
 ----------
-HEXAGONAL : enum
+HEX : enum
     Hexagonal base cell lattice, situating cells along a hexagonal grid.
 SQUARE : enum
     Rectilinear base cell lattice, situating cells along a square grid.
