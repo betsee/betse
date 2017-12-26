@@ -1042,9 +1042,11 @@ class Parameters(YamlFileABC):
 
         self.rho = 1050 # mass density of system [kg/m3]
 
-        self.fast_update_ecm = iu.get('fast update ecm', True)  # quick or slow update to cell<--> ecm grid exchange?
+        self.fast_update_ecm = iu.get('fast update ecm', False)  # quick or slow update to cell<--> ecm grid exchange?
 
         self.sharpness = float(iu.get('sharpness', 0.999))
+
+        self.fluid_cap = float(iu.get('fluid flow ceiling', 99999))
 
         #FIXME: Can this initialization be safely moved earlier -- say, directly
         #*AFTER* tissue profile initialization required by this initialization?

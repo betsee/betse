@@ -81,6 +81,8 @@ def get_current(sim, cells, p):
         v_env = ((sim.rho_env) / ((sim.ko_env ** 2) * p.eo * p.eedl))
         v_env = v_env.reshape(cells.X.shape)
 
+        cenv = fd.integrator(v_env, sharp=p.sharpness)
+
         # add in extra boundary conditions for the case of an externally-applied voltage event:
         v_env[:, -1] = sim.bound_V['R']
         v_env[:, 0] = sim.bound_V['L']

@@ -5394,23 +5394,15 @@ class Molecule(object):
                     # normal component of fluid flow at membranes from *extra*cellular flow:
                     _, _, uflow = stb.map_to_cells(sim.u_env_x, sim.u_env_y, cells, p, smoothing = 0.0)
 
-                    #estimate fluid flow from div-free component of currents:
-                    # cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
-                    # zz = sim.zs.mean()
-                    #
-                    # _, _, uflow = stb.map_to_cells(-sim.J_env_x/(p.F*cc*zz), -sim.J_env_y/(p.F*cc*zz),
-                    #                                cells, p, smoothing = 0.0)
+                    if p.fluid_cap != 99999:
+
+                        uflow[uflow > p.fluid_cap] = p.fluid_cap
+                        uflow[uflow < -p.fluid_cap] = -p.fluid_cap
+
                     uflow[cells.bflags_mems] = 0.0
 
 
                 else:
-
-                    #estimate steady-state electroosmotic fluid flow from div-free component of currents:
-                    # cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
-                    # zz = sim.zs.mean()
-                    #
-                    # _, _, uflow = stb.map_to_cells(-sim.J_env_x/(p.F*cc*zz), -sim.J_env_y/(p.F*cc*zz),
-                    #                                cells, p, smoothing = 0.0)
 
                     uflow = 0.0
 

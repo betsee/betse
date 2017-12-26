@@ -508,7 +508,7 @@ def gradient_bitmap(pc, cells, p):
 
     a1_F = np.flipud(a1_F)
 
-    # a1_F = gaussian_filter(a1_F, 2)
+    # a1_F = fd.interp(a1_F, 2)
 
     xa = np.linspace(xmi, xma, a1_F.shape[1])
     ya = np.linspace(ymi, yma, a1_F.shape[0])
@@ -524,8 +524,6 @@ def gradient_bitmap(pc, cells, p):
     f = fe.ravel()[xmap]
 
     p.grad_bm_offset = np.max((p.grad_bm_offset, 0.0))
-
-    # print(p.grad_bm_offset)
 
     f = (f/f.max()) + p.grad_bm_offset
 
