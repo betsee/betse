@@ -95,7 +95,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         z_ion = sim.zs[sim.iK] * IdM
 
         # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmK*P*1.0e-9*self.modulator*sim.rho_channel   # 1.0e-9 multiplier to approximately convert from conductivity
+        Dchan = dyna.maxDmK*P*self.modulator*sim.rho_channel   # 1.0e-9 multiplier to approximately convert from conductivity
 
         self.Dmem_time = Dchan   # save the membrane state of the channel
 

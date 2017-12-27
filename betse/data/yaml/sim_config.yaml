@@ -62,7 +62,7 @@ results file saving:          # Initialization and simulation exports to save.
 # Settings specific to the initialization.
 
 init time settings:
-  time step: 1.0e-2           # time step-size [s] (recommended at least 1.0e-3 or smaller)
+  time step: 1.0e-2           # time step-size [s] (recommended at least 1.0e-2 or smaller)
   total time: 1.0             # end time [s] (recommend 5 seconds or more)
   sampling rate: 0.1          # time interval to sample data [s] (at least value of time-step or larger)
 
@@ -75,7 +75,7 @@ automatically run initialization: True     # If init file is not found, do you w
 
 sim time settings:
 
-  time step: 1.0e-2       # time step-size [s] (recommended 1.0e-3 or smaller)
+  time step: 1.0e-2       # time step-size [s] (recommended 1.0e-2 or smaller)
   total time: 1.0         # time to end sim run [s]
   sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
 
@@ -89,10 +89,10 @@ sim time settings:
 general options:
 
   comp grid size: 40   # grid used in computation of environmental parameters (min 10; keep smaller than 50)
-  plot grid size: 50   # grid used for interpolated data plotting (recommend 50 to 250)
 
   simulate extracellular spaces: True    # include extracellular spaces and true environment simulation?
 
+  # FIXME: do a propper amphibian profile
   ion profile: basic   # ion profile options:
                        # 'basic' (Na+, K+, M-, and proteins-)
                        # 'basic_Ca' (Na+, K+, Ca2+, M- and proteins-)
@@ -177,6 +177,11 @@ world options:
 #
 # No File synch issues: Tissue profiles can be altered after the time of the 'betse seed' command.
 
+# Image masks must have pure-black pixels (red, green, and blue color values all 0)
+# define the exterior shape of the entire cell cluster or tissue profile. This image *MUST*:
+# * Be square (i.e., have equal width and height).
+# * Contain no alpha transparency layer.
+
 tissue profile definition:
 
   profiles enabled: True # Apply (rather than ignore) tissue and cut profiles listed below?
@@ -185,10 +190,7 @@ tissue profile definition:
     default: # Default tissue profile applied to all cells *NOT* specifically targeted by a
              # tissue profile defined below. Never ignored, even if "profiles enabled" is False.
       name: base # Arbitrary unique profile name.
-      image:     # Image mask whose pure-black pixels (red, green, and blue color values all 0)
-                 # define the exterior shape of the entire cell cluster. This image *MUST*:
-                 # * Be square (i.e., have equal width and height).
-                 # * Contain no alpha transparency layer.
+      image:     # Image defines shape of entire cell cluster
         file: geo/circle/circle_base.png  # Absolute or relative filename of this image.
       diffusion constants: # Membrane diffusion constants applied to all unprofiled cells.
         Dm_Na: 1.0e-18     # Na+ membrane diffusion constant [m2/s]
@@ -382,17 +384,20 @@ modulator function properties:   # set properties of modulating functions which 
 
   gradient_x:           # generate a spatial gradient of a property in the x-direction
       slope: 1.0        # rate of change of gradient per unit x-dimension
-      offset: 0         # offset to all gradient values
+      x-offset: 0         # offset to all gradient values along the horizontal axis
+      z-offset: 0
       exponent: 1      # Hill exponent for gradient values
 
   gradient_y:           # generate a spatial gradient of a property in the y-direction
       slope: 1.0        # rate of change of gradient per unit x-dimension
-      offset: 0         # offset to all gradient values
+      x-offset: 0         # offset to all gradient values
+      z-offset: 0
       exponent: 1      # Hill exponent for gradient values
 
   gradient_r:           # generate a radial spatial gradient of a property
       slope: 1.0        # radial gradient rate of change per unit radius
-      offset: 0
+      x-offset: 0
+      z-offset: 0
       exponent: 1      # Hill exponent for gradient values
 
   periodic:              # generate a sinusoidal oscillation of a property
@@ -405,7 +410,7 @@ modulator function properties:   # set properties of modulating functions which 
 
   gradient_bitmap:           # generate a spatial gradient of a property from an imported bitmap image (png)
       file: geo/ellipse/gradient.png
-      offset: 0.0
+      z-offset: 0.0
 
 # ----------------------------------------------------------------------------------------------------------------------
 # DYNAMIC ION CHANNELS
@@ -421,49 +426,50 @@ voltage gated Na+:
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
     channel type: ['Nav1p2']         # available types: 'Nav1p2' (adult brain), 'Nav1p3' (embryo)
                                   # 'NavRat1', 'NaVRat2'
-    max value: 5.0e-6             # maximum channel conductivity when channel fully open [S/m2] (1.0e-6 to 5.0e-5)
+    max value: 5.0e-15             # maximum membrane diffusion when channel fully open [m2/s] (1.0e-16 to 5.0e-15)
 
 persistent vg Na+:
     turn on: False                 # voltage gated sodium channel with persistant current
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
     channel type: ['Nav1p6']         # available types: 'Nav1p6' (persistent brain)
-    max value: 1.0e-7             # maximum channel conductivity when channel fully open [S/m2] (1.0e-8 to 1.0e-6)
+    max value: 1.0e-16             # maximum membrane diffusion when channel fully open [m2/s] (1.0e-17 to 1.0e-16)
 
 stretch gated Na+:         # mechano-sensitive Na+/K+ cation channel channel
     turn on: False
     apply to: ['all']          # tissue profile(s) to apply to
-    max value: 1.0e-8         # maximum channel conductivity when channel fully open [S/m2] (1.0e-8 to 1.0e-6)
+    max value: 1.0e-17         # maximum membrane diffusion when channel fully open [m2/s]  (1.0e-18 to 1.0e-16)
 
 voltage gated K+:             # voltage gated potassium channel, delayed rectifyer (NOTE: use time-step <= 1.0e-3)
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
     channel type: ['K_Slow','Kv1p3']      # available types: 'Kv1p1', 'Kv1p2', 'Kv1p3', 'Kv1p5',
                                            # 'K_Slow', 'K_Fast', 'Kv2p1'
-    max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2] (5.0e-6 to 1.0e-7)
+    max value: 1.0e-16         # maximum membrane diffusion when channel fully open [m2/s]  (5.0e-15 to 1.0e-16)
 
 additional voltage gated K+:    # Other types of K+ currents including inward-rectifying (NOTE: use time-step <= 1.0e-3)
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
     channel type: ['Kir2p1']      # available types: 'Kir2p1', 'Kv3p4' and 'Kv3p3' (A-currents)
-    max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2] (5.0e-6 to 1.0e-7)
+    max value: 1.0e-16         # maximum membrane diffusion when channel fully open [m2/s]  (5.0e-15 to 1.0e-16)
 
 calcium gated K+:              # calcium gated potassium channel
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
-    max value: 1.0e-7        # maximum channel conductivity when channel fully open [S/m2]
+    max value: 1.0e-16        # maximum membrane diffusion when channel fully open [m2/s]
 
 funny current:                 # "funny current" K+/Na+ channel
     turn on: False
     apply to: ['all']
     channel type: ['HCN4']         # available types: 'HCN1', 'HCN2' or 'HCN4'
-    max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2] (1.0e-6 to 1.0e-7)
+    max value: 1.0e-16         # maximum membrane diffusion when channel fully open [m2/s] (1.0e-15 to 1.0e-16)
 
 voltage gated Ca2+:            # voltage gated calcium channel
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
     channel type: ['Ca_L']        # available types: 'Ca_L', 'Ca_T', 'Ca_PQ'
-    max value: 5.0e-7        # maximum channel conductivity when channel fully open [S/m2] (1.0e-7 to 1.0e-4)
+    max value: 5.0e-16        # maximum membrane diffusion when channel fully open [m2/s] (1.0e-16 to 1.0e-13)
 
+# FIXME CHECK THESE TO MAKE SURE THEY WORK!
 Ca dynamics:                   # include full calcium dynamics in the situation?
     turn on: False               # this creates an endoplasmic reticulum (ER) in each cell
     serca pump max: 1.0e-8        # maximum value of the serca pump
@@ -574,8 +580,11 @@ general network:
 
   implement network: False     # Turn the entire network defined below on (True) or off (False)
 
+# FIXME CHECK OUT MITOCHONDRIA!
   enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
 
+# FIXME: FIX THE OPTIMIZER
+# FIXME: Make sure this isn't needing networkx by default!
   optimization:              # Not required by default. A tool to "best fit" your network to target data.
     optimize network: False   # run an optimization of the network to obtain max rates at steady state concentrations?
     optimization steps: 50 # number of itteration steps to run with basinhopper
@@ -608,7 +617,6 @@ general network:
 # Define transmembrane transporters and associated cytosolic chemical reactions between any substances defined in
 # "custom biomolecules" and/or BETSE default ions. See "extra_config_template.yaml" in the "extra_configs"
 # directory for examples.
-
   transporters:
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -636,6 +644,8 @@ general network:
 # See "extra_config_template.yaml" in the "extra_configs"
 # directory for examples.
 
+# FIXME: Fix direction surfaces, they're useful
+# FIXME: Consider having I-V curves here too...
 
   direction surfaces:
 
@@ -651,11 +661,16 @@ gene regulatory network settings:
 
   gene regulatory network config: extra_configs/grn_basic.yaml
 
-  sim-grn settings:
+  sim-grn settings: # Sim-grn allows you to calculate GRN on last time frame of bioelectricity simulation
+
     run network on: init    # (for sim-grn command, run the network on a pre-made betse seed, init, or sim ?)
     save to directory: GRN
     save to file: GRN_1H_1.betse.gz # where to save the resulting sim-grn file
     load from: None                # load a previously-run sim-grn file to start with? (None initializes to defaults)
+    # FIXME: Implement these!
+    time step: 1.0       # time step-size [s] (recommended 1.0 or smaller)
+    total time: 1.8e3         # time to end sim run [s]
+    sampling rate: 10.0      # period to sample data [s] (at least time step or larger)
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -668,6 +683,7 @@ variable settings:
   env boundary concentrations:   # these concentrations are placed at the global boundary during init and sim
                                  # altering these is an easy way to change extracellular ion concentrations
                                  # uncomment the fields below to set new env boundaries, otherwise feature ignored!
+# FIXME: do this as an "enable: True/False" rather than commenting stuff out
 
 #    Na: 145.0    # Na+ concentration at bound [mM]
 #    K: 5.0      # K+ concentration at bound [mM]
@@ -679,6 +695,7 @@ variable settings:
   temperature: 310            # system temperature [K]
 
 
+# FIXME: CONSIDER GETTING RID OF THIS
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
     turn on: False        # turn on electroosmosis of pumps and channels
@@ -687,13 +704,13 @@ variable settings:
     membrane mobility: 1e-12  # mobility factor (diffusion constant) for pumps and channels [m2/s] (1e-10 to 1e-12)
 
 
-
+# FIXME: DECIDE on how to handle fluid flow, and if osmosis will be added
   fluid flow:
 
     include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
     water viscocity: 1.0      # viscocity of water [Pa s] (applies to ease of flow)
 
-
+# FIXME: DECIDE on how to handle these deformations
   deformation:
 
     turn on: False       # include deformation under the osmotic pressure influx and electric fields?
@@ -702,12 +719,14 @@ variable settings:
     fixed cluster boundary: True   # Exterior cells of the cluster are fixed (True) or free to move (False)
     young modulus: 1.0e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
 
+# FIXME: FIX THESE
   pressures:
 
     include osmotic pressure: False    # include osmotic pressure in flow & deformation?
     membrane water conductivity: 1e-2   # mem conductivity for osmotic inflow (aquaporin per unit surface) (~ 1e-3)
 
 
+  # FIXME remove this, or figure out how to do it better
   noise:
 
     static noise level: 0    # level of variance in K+ leaks on cell membranes
@@ -742,13 +761,13 @@ variable settings:
     K: 1
     Cl: 1
     Ca: 1
-    H: 1
     M: 1
     P: 1
 
   adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
 
+  # FIXME move out to networks
   microtubules:
 
     use microtubules: False      # compute microtubule dynamics?
@@ -761,7 +780,7 @@ variable settings:
     microtubule initial x asymmetry: None # initial asymmetry of microtubules 'x' component
     microtubule initial y asymmetry: None # initial asymmetry of microtubules 'y' component
 
-
+# FIXME: add network substances to Goldman calculator, also add in pumps
   use Goldman calculator: False   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK)
                                  # voltage equation for comparison purposes?
 
@@ -776,10 +795,11 @@ results options:
 
   enumerate cells: False         # number the cells on 2D plots with their simulation index?
 
-
+  # FIXME do this as a profile list, add plots with legend to 1D plots
   plot cell index: 0              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
+  # FIXME plot this the tripcolor way
   show cells: True                # if True, plots and animations show individual cells,
                                   # each displayed with color-coded data.
 
@@ -793,9 +813,11 @@ results options:
 
   plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
 
+  # FIXME what is this?
   plot masked geometry: True      # plot the geometry using the overall shape as a mask
 
 
+  # FIXME allow each plot to have its own colormap
   default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
                              # options include
                              # coolwarm, hot, rainbow, jet, Blues, Greens, bone
@@ -814,11 +836,13 @@ results options:
   vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
                                  # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
 
+  # FIXME these should be part of networks, not just stuck here!
   plot networks: True               # export regulatory networks to
                                     # interconnected graph images?
   plot networks single cell: True   # export regulatory networks for single cell to
                                     # interconnected graph images?
 
+  #FIXME allow each one ot have its own colormap
   while solving:          # Results exported during simulation computation.
     animations:           # Animations exported during simulation computation.
       show: True          # Display animations during simulation computation?
@@ -839,6 +863,8 @@ results options:
       save: True          # Save plots after simulation computation with
                           # plot saving options defined below?
 
+      # FIXME allow these to plot multiple trendlines
+      # FIXME add in I-V current plots
       single cell pipeline:   # List of all single-cell plots for the cell
                               # selected by "plot cell index" for all time
                               # steps. Ignored if "show" and "save" are False.
@@ -1000,7 +1026,7 @@ results options:
                         # (QuickTime), "avi" (Microsoft), "webm" (WebM),
                         # "ogv" (Theora), and "gif" (animated).
         dpi: 150        # Image dots per inch (DPI) of each video frame.
-        bitrate: 1500   # Video bitrate in bits per second.
+        bitrate: 6000   # Video bitrate in bits per second.
         framerate: 15    # Video framerate in frames per second.
 
         metadata:       # Video metadata embedded in each video file.
@@ -1021,6 +1047,7 @@ results options:
         codecs: ['auto']
         #codecs: ['libvpx', 'libtheora', 'libx264', 'libxvid', 'mpeg4', 'h263', 'mpeg2video', 'hevc', 'auto']  # example listing all preferred codecs before defaulting to "auto"
 
+    # Change this to "data export"
     data:              # Saving options for spreadsheet-compatible data.
       all:             # All data points for all cells for all time steps.
         enabled: True  # Save this data to disk?
@@ -1049,6 +1076,7 @@ results options:
 # Simulation instability may result from poor choice of these more sensitive parameters.
 # BETSE requires these parameters for its internal use only.
 
+# FIXME, do these even exist?
 gated ion channel options:   # changing these will alter network dynamics -- but do so with caution!
 
     flux threshold: 1.0e-4     # flux cut off maximum
@@ -1089,9 +1117,10 @@ internal parameters:
 
   sharpness: 0.995  # Factor smoothing environmental concentrations, 0.0 max smoothing, 1.0 no smoothing
 
+  # FIXME -- is this needed?
   double layer permittivity: 80.0  # Relative dialectric constant of the electrical double layer [F/m]
 
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.
-version: "0.5.0"
+version: "0.7.0"

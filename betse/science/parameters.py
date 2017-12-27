@@ -352,14 +352,7 @@ class Parameters(YamlFileABC):
 
         self.autoInit = self._conf['automatically run initialization']
 
-        #FIXME: This attribute is largely vestigial and currently only
-        #referenced in two other locations in the codebase. While still vital,
-        #there exists no demonstrable reason to ever externally configure this.
-        #Contemplate removing this configuration option from our YAML file and
-        #instead hard-coding this option's default value (i.e., 50) within the
-        #codebase itself as a global magic number.
-        self.plot_grid_size = int(
-            self._conf['general options']['plot grid size'])
+        self.plot_grid_size = 50
 
         #---------------------------------------------------------------------------------------------------------------
         # WORLD OPTIONS
@@ -832,7 +825,6 @@ class Parameters(YamlFileABC):
         self.Dtj_rel['Ca']=float(self._conf['variable settings']['tight junction relative diffusion']['Ca'])
         self.Dtj_rel['M']=float(self._conf['variable settings']['tight junction relative diffusion']['M'])
         self.Dtj_rel['P']=float(self._conf['variable settings']['tight junction relative diffusion']['P'])
-        self.Dtj_rel['H']=float(self._conf['variable settings']['tight junction relative diffusion']['H'])
 
         # environmental (global) boundary concentrations:
         self.cbnd = self._conf['variable settings']['env boundary concentrations']
@@ -852,19 +844,21 @@ class Parameters(YamlFileABC):
         self.f_scan_properties = {}
 
         self.gradient_x_properties['slope'] =float(self._conf['modulator function properties']['gradient_x']['slope'])
-        self.gradient_x_properties['offset'] =float(self._conf['modulator function properties']['gradient_x']['offset'])
+        self.gradient_x_properties['x-offset'] =float(self._conf['modulator function properties']['gradient_x'].get('x-offset', 0.0))
+        self.gradient_x_properties['z-offset'] =float(self._conf['modulator function properties']['gradient_x'].get('z-offset', 0.0))
         self.gradient_x_properties['exponent'] = float(
                                         self._conf['modulator function properties']['gradient_x'].get('exponent', 1))
 
         self.gradient_y_properties['slope'] =float(self._conf['modulator function properties']['gradient_y']['slope'])
-        self.gradient_y_properties['offset'] = float(self._conf['modulator function properties']['gradient_y']['offset'])
+        self.gradient_y_properties['x-offset'] = float(self._conf['modulator function properties']['gradient_y'].get('x-offset', 0.0))
+        self.gradient_y_properties['z-offset'] = float(self._conf['modulator function properties']['gradient_y'].get('z-offset', 0.0))
         self.gradient_y_properties['exponent'] = float(
                                     self._conf['modulator function properties']['gradient_y'].get('exponent', 1))
 
         self.gradient_r_properties['slope'] = float(self._conf['modulator function properties']['gradient_r']['slope'])
-        self.gradient_r_properties['offset'] = float(self._conf['modulator function properties']['gradient_r']['offset'])
-        self.gradient_r_properties['exponent'] = float(
-            self._conf['modulator function properties']['gradient_r'].get('exponent', 1))
+        self.gradient_r_properties['x-offset'] = float(self._conf['modulator function properties']['gradient_r'].get('x-offset', 0.0))
+        self.gradient_r_properties['z-offset'] = float(self._conf['modulator function properties']['gradient_r'].get('z-offset', 0.0))
+        self.gradient_r_properties['exponent'] = float(self._conf['modulator function properties']['gradient_r'].get('exponent', 1))
 
         self.periodic_properties['frequency'] = float(self._conf['modulator function properties']['periodic']['frequency'])
         self.periodic_properties['phase'] = float(self._conf['modulator function properties']['periodic']['phase'])
@@ -884,7 +878,7 @@ class Parameters(YamlFileABC):
 
         if chk is not None:
             self.grad_bm_fn = self._conf['modulator function properties']['gradient_bitmap']['file']
-            self.grad_bm_offset = self._conf['modulator function properties']['gradient_bitmap'].get('offset', 0.0)
+            self.grad_bm_offset = self._conf['modulator function properties']['gradient_bitmap'].get('z-offset', 0.0)
 
         else:
             self.grad_bm_fn = None

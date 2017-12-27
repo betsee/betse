@@ -103,7 +103,7 @@ class HemiABC(ChannelsABC, metaclass=ABCMeta):
         z_K = sim.zs[sim.iK] * IdM
 
         # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmCat * P * 1.0e-9
+        Dchan = dyna.maxDmCat * P
 
         # calculate specific ion flux contribution for this channel:
         delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)

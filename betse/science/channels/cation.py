@@ -98,7 +98,7 @@ class CationABC(ChannelsABC, metaclass=ABCMeta):
         z_K = sim.zs[sim.iK] * IdM
 
         # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmCat * P * 1.0e-9*self.modulator
+        Dchan = dyna.maxDmCat * P *self.modulator
 
         self.Dmem_time = Dchan   # save the membrane state of the channel
 

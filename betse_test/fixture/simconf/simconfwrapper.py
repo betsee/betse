@@ -259,7 +259,7 @@ class SimConfigTestWrapper(object):
         # computational grid size specified below appears to be a hard minimum.
         ecm = self._p._conf['general options']
         ecm['comp grid size'] = min(int(ecm['comp grid size']), 20)
-        ecm['plot grid size'] = min(int(ecm['plot grid size']), 50)
+        # ecm['plot grid size'] = min(int(ecm['plot grid size']), 50)
 
     # ..................{ DISABLERS                          }..................
     #FIXME: The implementation of the following methods is fundamentally unsafe.
