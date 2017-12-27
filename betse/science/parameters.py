@@ -922,7 +922,10 @@ class Parameters(YamlFileABC):
 
         # True if numbering cells in plots and animations.
         self.enumerate_cells = ro['enumerate cells']
+
+        # FIXME, let this be a list!
         self.plot_cell = ro['plot cell index']             # State the cell index to use for single-cell time plots
+
         self.plot_networks_single_cell = ro['plot networks single cell']
         self.showCells = ro['show cells']     # True = polygon patch plots, False = trimesh
         self.I_overlay = ro['overlay currents']
@@ -1004,10 +1007,7 @@ class Parameters(YamlFileABC):
         self.mu = 1.275e-6   # magnetic permeability [H/m or N/A2]
         self.NAv = 6.022e23     # Avagadro's Number
         self.er = 80.0          # relative dielectric constant of electrolyte
-        self.eedl = 6.0         # relative dielectric constant of screening layer
-
-        self.eedl = (
-            self._conf['internal parameters']['double layer permittivity'])
+        self.eedl = 80.0         # relative dielectric constant of screening layer
 
         self.deltaGATP = -37000    # free energy released in ATP hydrolysis under standard phys conditions [J/mol]
 

@@ -670,7 +670,6 @@ variable settings:
   env boundary concentrations:   # these concentrations are placed at the global boundary during init and sim
                                  # altering these is an easy way to change extracellular ion concentrations
                                  # uncomment the fields below to set new env boundaries, otherwise feature ignored!
-# FIXME: do this as an "enable: True/False" rather than commenting stuff out
 
 #    Na: 145.0    # Na+ concentration at bound [mM]
 #    K: 5.0      # K+ concentration at bound [mM]
@@ -777,7 +776,6 @@ results options:
   plot cell index: 0              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
-  # FIXME plot this the tripcolor way
   show cells: True                # if True, plots and animations show individual cells,
                                   # each displayed with color-coded data.
 
@@ -791,7 +789,6 @@ results options:
 
   plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
 
-  # FIXME what is this?
   plot masked geometry: True      # plot the geometry using the overall shape as a mask
 
 
@@ -814,7 +811,6 @@ results options:
   vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
                                  # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
 
-  # FIXME these should be part of networks, not just stuck here!
   plot networks: True               # export regulatory networks to
                                     # interconnected graph images?
   plot networks single cell: True   # export regulatory networks for single cell to
@@ -1094,9 +1090,6 @@ internal parameters:
   fast update ecm: False  # use a coarse (fast) or fine (slow) method to update between env and cell grids?
 
   sharpness: 0.995  # Factor smoothing environmental concentrations, 0.0 max smoothing, 1.0 no smoothing
-
-  # FIXME -- is this needed?
-  double layer permittivity: 80.0  # Relative dialectric constant of the electrical double layer [F/m]
 
 
 # Configuration file version that this file conforms to. For reliable

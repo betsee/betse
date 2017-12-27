@@ -118,15 +118,14 @@ class LayerCellsVectorSmoothRegions(LayerCellsVectorColorfulABC):
 
     def _layer_first_color_mappables(self) -> IterableTypes:
 
-        # X and Y coordinates of the centers of all polygonol regions of the
-        # Voronoi diagram defining this cell cluster.
-        regions_centre_x = expmath.upscale_coordinates(
-            self._phase.cells.voronoi_centres[:,0])
-        regions_centre_y = expmath.upscale_coordinates(
-            self._phase.cells.voronoi_centres[:,1])
+        # X and Y coordinates of all cell membrane midpoints.
+        membranes_midpoint_x = expmath.upscale_coordinates(
+            self._phase.cells.mem_mids_flat[:,0])
+        membranes_midpoint_y = expmath.upscale_coordinates(
+            self._phase.cells.mem_mids_flat[:,1])
 
-        # One-dimensional array of all region-centred data for this time step.
-        regions_centre_data = self._vector.times_regions_centre[
+        # Membrane midpoint-centred data for this time step.
+        membranes_midpoint_data = self._vector.times_membranes_midpoint[
             self._visual.time_step]
 
         # Gouraud-shaded triangulation mesh for this cell cluster, computed from
@@ -136,7 +135,7 @@ class LayerCellsVectorSmoothRegions(LayerCellsVectorColorfulABC):
             # matplotlib.tri.tripcolor() function parsing arguments passed
             # to the matplotlib.axes.tripcolor() method called here, the first
             # four arguments *MUST* be passed as positional arguments.
-            regions_centre_x, regions_centre_y, regions_centre_data,
+            membranes_midpoint_x, membranes_midpoint_y, membranes_midpoint_data,
 
             # Keyword arguments. All remaining arguments *MUST* be passed as
             # keyword arguments.
@@ -158,9 +157,9 @@ class LayerCellsVectorSmoothRegions(LayerCellsVectorColorfulABC):
 
     def _layer_next(self) -> None:
 
-        # One-dimensional array of all region-centred data for this time step.
-        regions_centre_data = self._vector.times_regions_centre[
+        # Membrane midpoint-centred data for this time step.
+        membranes_midpoint_data = self._vector.times_membranes_midpoint[
             self._visual.time_step]
 
         # Gouraud-shade this triangulation mesh with these color values.
-        self._cluster_tri_mesh.set_array(regions_centre_data)
+        self._cluster_tri_mesh.set_array(membranes_midpoint_data)

@@ -1394,6 +1394,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     #FIXME: This plots somewhat similarly to the presumably superior
     #"LayerCellsVectorSurfaceDiscrete" subclass. Generalize this method into a
     #new "LayerCellsGouraudContinuous" subclass of the same submodule.
+
+    # FIXME: Your Layers API is totally incomprehensible. I can't figure out wtf is going on!
+    # FIXME: I like this version better than the current one that animates things like Vmem when p.showCells is False
     def _plot_cell_mesh(self, cell_data: np.ndarray) -> 'TriMesh':
         '''
         Plot and return a mesh plot of all cells with colours corresponding to
@@ -1419,12 +1422,19 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # If the passed cell data is defined on membrane midpoints, average that
         # to correspond to cell centres instead.
         if len(cell_data) == len(self._phase.cells.mem_i):
-            cell_data = np.dot(
-                self._phase.cells.M_sum_mems, cell_data) / self._phase.cells.num_mems
+            # cell_data = np.dot(
+            #     self._phase.cells.M_sum_mems, cell_data) / self._phase.cells.num_mems
+            xi = self._phase.p.um*self._phase.cells.mem_mids_flat[:,0]
+            yi = self._phase.p.um*self._phase.cells.mem_mids_flat[:, 1]
+
+        else:
+
+            xi = self._phase.p.um*self._phase.cells.cell_centres[:,0]
+            yi = self._phase.p.um*self._phase.cells.cell_centres[:, 1]
 
         # Unstructured triangular grid assigned the passed cell data.
-        triangular_grid = np.zeros(len(self._phase.cells.voronoi_centres))
-        triangular_grid[self._phase.cells.cell_to_grid] = cell_data
+        # triangular_grid = np.zeros(len(self._phase.cells.voronoi_centres))
+        # triangular_grid[self._phase.cells.cell_to_grid] = cell_data
 
         # cmin = membranes_midpoint_data.min()
         # cmax = membranes_midpoint_data.max()
@@ -1437,8 +1447,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         #
         # Behold! The ultimate examplar of nonsensical API design.
         return self._axes.tripcolor(
-            self._phase.p.um * self._phase.cells.cell_centres[:, 0],
-            self._phase.p.um * self._phase.cells.cell_centres[:, 1],
+            xi,
+            yi,
             cell_data,
             shading='gouraud',
             cmap=self._colormap

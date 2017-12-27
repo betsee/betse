@@ -1344,23 +1344,27 @@ def env_stream(datax,datay,ax,cells,p, cmap=None):
     return streams, ax
 
 
-#FIXME: Fix us up, please. This function is effectively broken at the moment,
-#plotting a spatially symmetric distribution even where the underlying data is
-#asymmetric (in which case one would hope for some sort of distinct gradient).
-#This function is frequently leveraged elsewhere and hence fairly critical.
 def cell_mesh(data, ax, cells, p, clrmap):
 
-    # If the data is defined on membrane midpoints, average to cell centres.
+    # If the data is defined on membrane midpoints get membrane midpoint coordinates
     if len(data) == len(cells.mem_i):
-        data = np.dot(cells.M_sum_mems,data)/cells.num_mems
+        # data = np.dot(cells.M_sum_mems,data)/cells.num_mems
+        xi = p.um*cells.mem_mids_flat[:,0]
+        yi = p.um*cells.mem_mids_flat[:,1]
 
-    data_grid = np.zeros(len(cells.voronoi_centres))
-    data_grid[cells.cell_to_grid] = data
+    elif len(data) == len(cells.cell_i): # otherwise
+
+        xi = p.um*cells.cell_centres[:,0]
+        yi = p.um*cells.cell_centres[:,1]
+
+
+    # data_grid = np.zeros(len(cells.voronoi_centres))
+    # data_grid[cells.cell_to_grid] = data
 
     msh = ax.tripcolor(
-        p.um*cells.voronoi_centres[:,0],
-        p.um*cells.voronoi_centres[:,1],
-        data_grid,
+        xi,
+        yi,
+        data,
         shading='gouraud',
         cmap=clrmap,
     )

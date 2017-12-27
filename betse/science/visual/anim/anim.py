@@ -108,8 +108,9 @@ class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
         if self._phase.p.showCells is True:
             zz_grid = zv
         else:
-            zz_grid = np.zeros(len(self._phase.cells.voronoi_centres))
-            zz_grid[self._phase.cells.cell_to_grid] = zv
+            zz_grid = zv
+            # zz_grid = np.zeros(len(self._phase.cells.voronoi_centres))
+            # zz_grid[self._phase.cells.cell_to_grid] = zv
 
         # Update the cell plot for this frame.
         self._cell_plot.set_array(zz_grid)

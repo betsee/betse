@@ -7,7 +7,7 @@ Abstract base classes of all matplotlib-based layer subclasses  spatially
 plotting onto the cell cluster.
 '''
 
-#FIXME: The current approach to implementing animation overlays is
+#FIXME: The current approach to implementing animation overlays is totally BALLS
 #fundamentally flawed. We currently attempt to provide a crude form of plot
 #composition (i.e., merging two or more types of plots together into a single
 #plot) by adding new booleans to the "AnimCellsABC" base class (e.g.,
