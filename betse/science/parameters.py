@@ -201,7 +201,7 @@ class Parameters(YamlFileABC):
     ----------
     conc_env_ca : float
         Initial extracellular concentration of the Ca2+ (calcium) cation.
-    conc_env_cl : float
+    cCl_env : float
         Initial extracellular concentration of the Cl- (chloride) anion.
     conc_env_k : float
         Initial extracellular concentration of the K+ (potassium) cation.
@@ -1165,13 +1165,13 @@ class Parameters(YamlFileABC):
             # initialize proton concentrations to "None" placeholders
             self.cNa_env = 145.0
             self.cK_env = 5.0
-            self.conc_env_cl = 105.0
+            self.cCl_env = 105.0
             self.cCa_env = 1.0
             self.cP_env = 10.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]
 
-            conc_env = [self.cNa_env, self.cK_env, self.conc_env_cl, self.cCa_env, self.cP_env]
+            conc_env = [self.cNa_env, self.cK_env, self.cCl_env, self.cCa_env, self.cP_env]
             self.conc_env_m, self.z_M_env = bal_charge(conc_env,zs)
 
             assert self.z_M_env == -1
@@ -1195,7 +1195,7 @@ class Parameters(YamlFileABC):
             self.cell_concs ={'Na': self.cNa_cell, 'K': self.cK_cell, 'Ca': self.cCa_cell, 'Cl': self.cCl_cell,
                               'P': self.cP_cell, 'M': self.cM_cell}
 
-            self.env_concs ={'Na': self.cNa_env, 'K': self.cK_env, 'Ca': self.cCa_env, 'Cl': self.conc_env_cl,
+            self.env_concs ={'Na': self.cNa_env, 'K': self.cK_env, 'Ca': self.cCa_env, 'Cl': self.cCl_env,
                              'P': self.cP_env, 'M': self.conc_env_m}
 
             self.mem_perms = {'Na': base.Dm_Na, 'K': base.Dm_K, 'Ca': base.Dm_Ca, 'Cl': base.Dm_Cl,
@@ -1217,13 +1217,13 @@ class Parameters(YamlFileABC):
             # initialize proton concentrations to "None" placeholders
             self.cNa_env = 14.50
             self.cK_env = 0.5
-            self.conc_env_cl = 10.50
+            self.cCl_env = 10.50
             self.cCa_env = 0.2
             self.cP_env = 0.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]
 
-            conc_env = [self.cNa_env, self.cK_env, self.conc_env_cl, self.cCa_env, self.cP_env]
+            conc_env = [self.cNa_env, self.cK_env, self.cCl_env, self.cCa_env, self.cP_env]
             self.conc_env_m, self.z_M_env = bal_charge(conc_env,zs)
 
             assert self.z_M_env == -1
@@ -1246,7 +1246,7 @@ class Parameters(YamlFileABC):
 
             self.cell_concs ={'Na': self.cNa_cell, 'K': self.cK_cell, 'Ca': self.cCa_cell, 'Cl': self.cCl_cell,
                               'P': self.cP_cell, 'M': self.cM_cell}
-            self.env_concs ={'Na': self.cNa_env, 'K': self.cK_env, 'Ca': self.cCa_env, 'Cl': self.conc_env_cl,
+            self.env_concs ={'Na': self.cNa_env, 'K': self.cK_env, 'Ca': self.cCa_env, 'Cl': self.cCl_env,
                              'P': self.cP_env, 'M': self.conc_env_m}
             self.mem_perms = {'Na': base.Dm_Na, 'K': base.Dm_K, 'Ca': base.Dm_Ca, 'Cl': base.Dm_Cl,
                               'P': base.Dm_P, 'M': base.Dm_M}
@@ -1268,13 +1268,13 @@ class Parameters(YamlFileABC):
 
             self.cNa_env = float(cip['extracellular Na+ concentration'])
             self.cK_env = float(cip['extracellular K+ concentration'])
-            self.conc_env_cl = float(cip['extracellular Cl- concentration'])
+            self.cCl_env = float(cip['extracellular Cl- concentration'])
             self.cCa_env = float(cip['extracellular Ca2+ concentration'])
             self.cP_env = float(cip['extracellular protein- concentration'])
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]
 
-            conc_env = [self.cNa_env, self.cK_env, self.conc_env_cl, self.cCa_env, self.cP_env]
+            conc_env = [self.cNa_env, self.cK_env, self.cCl_env, self.cCa_env, self.cP_env]
             self.conc_env_m, self.z_M_env = bal_charge(conc_env, zs)
 
             self.cNa_cell = float(cip['cytosolic Na+ concentration'])
@@ -1296,7 +1296,7 @@ class Parameters(YamlFileABC):
 
             self.cell_concs ={'Na': self.cNa_cell, 'K': self.cK_cell, 'Ca': self.cCa_cell, 'Cl': self.cCl_cell, 'P': self.cP_cell, 'M': self.cM_cell}
 
-            self.env_concs ={'Na': self.cNa_env, 'K': self.cK_env, 'Ca': self.cCa_env, 'Cl': self.conc_env_cl, 'P': self.cP_env, 'M': self.conc_env_m}
+            self.env_concs ={'Na': self.cNa_env, 'K': self.cK_env, 'Ca': self.cCa_env, 'Cl': self.cCl_env, 'P': self.cP_env, 'M': self.conc_env_m}
 
             self.mem_perms = {'Na': base.Dm_Na, 'K': base.Dm_K, 'Ca': base.Dm_Ca, 'Cl': base.Dm_Cl, 'P': base.Dm_P, 'M': base.Dm_M}
 

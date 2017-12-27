@@ -92,7 +92,6 @@ general options:
 
   simulate extracellular spaces: True    # include extracellular spaces and true environment simulation?
 
-  # FIXME: do a propper amphibian profile
   ion profile: basic   # ion profile options:
                        # 'basic' (Na+, K+, M-, and proteins-)
                        # 'basic_Ca' (Na+, K+, Ca2+, M- and proteins-)
@@ -466,7 +465,7 @@ funny current:                 # "funny current" K+/Na+ channel
 voltage gated Ca2+:            # voltage gated calcium channel
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
-    channel type: ['Ca_L']        # available types: 'Ca_L', 'Ca_T', 'Ca_PQ'
+    channel type: ['Ca_L']        # available types: 'Cav1p2', 'Cav1p3', 'Cav2p1', 'Cav2p3', 'Cav3p1', 'Cav3p3',
     max value: 5.0e-16        # maximum membrane diffusion when channel fully open [m2/s] (1.0e-16 to 1.0e-13)
 
 # FIXME CHECK THESE TO MAKE SURE THEY WORK!

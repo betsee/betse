@@ -136,7 +136,7 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
 
 # ....................{ SUBCLASS                           }....................
 
-class Ca_T(VgCaABC):
+class Cav3p3(VgCaABC):
     '''
 
     T-type calcium channel model from Traboulsie et al. Based on a Cav3.3 channel.
@@ -154,7 +154,7 @@ class Ca_T(VgCaABC):
 
         """
 
-        logs.log_info('You are using the vgCa channel type: Ca_T')
+        logs.log_info('You are using the vgCa channel type: Cav3p3')
 
         self.vrev = 30     # reversal voltage used in model [mV]
         Texpt = 0.0    # temperature of the model in degrees C
@@ -184,7 +184,7 @@ class Ca_T(VgCaABC):
         self._hInf = 1 / (1 + np.exp((V - (-74.031965)) / 8.416382))
         self._hTau = 109.701136 + (0.003816 * np.exp(-V / 4.781719))
 
-class Ca_PQ(VgCaABC):
+class Cav2p1(VgCaABC):
     '''
 
     P/Q-type calcium channel (Cav2.1) model from Miyasho et al.
@@ -207,7 +207,7 @@ class Ca_PQ(VgCaABC):
 
         """
 
-        logs.log_info('You are using the vgCa channel type: Ca_PQ')
+        logs.log_info('You are using the vgCa channel type: Cav2p1')
 
         self.vrev = 135.0     # reversal voltage used in model [mV]
         Texpt = 0.0    # temperature of the model in degrees C
@@ -353,6 +353,118 @@ class Cav1p2(VgCaABC):
         self._hInf = 1.0000 / (1 + np.exp((V - -80.000) / 6.4))
         self._hTau = (20.0000 + 50.0000 / (1 + np.exp((V - -40.000) / 7)))
 
+class Cav2p3(VgCaABC):
+    '''
+
+    R-type calcium channel model from Miyasho et al. based on Cav2p3.
+
+
+    Reference: Miyasho T. et al. Low-threshold potassium channels and a low-threshold calcium channel
+    regulate Ca2+ spike firing in the dendrites of cerebellar Purkinje neurons:
+    a modeling study. Brain Res., 2001 Feb 9 , 891 (106-15).
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the R-type vgCa channel type: Cav2p3')
+
+        self.vrev = 30     # reversal voltage used in model [mV]
+        Texpt = 0.0    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0  # FIXME implement this!
+
+        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
+        mAlpha = 2.6 / (1 + np.exp((V + 7) / -8))
+        mBeta = 0.18 / (1 + np.exp((V + 26) / 4))
+        hAlpha = 0.0025 / (1 + np.exp((V + 32) / 8))
+        hBeta = 0.19 / (1 + np.exp((V + 42) / -10))
+
+
+        dyna.m_Ca = mAlpha / (mAlpha + mBeta)
+        dyna.h_Ca = hAlpha / (hAlpha + hBeta)
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 1
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        mAlpha = 2.6 / (1 + np.exp((V + 7) / -8))
+        mBeta = 0.18 / (1 + np.exp((V + 26) / 4))
+        hAlpha = 0.0025 / (1 + np.exp((V + 32) / 8))
+        hBeta = 0.19 / (1 + np.exp((V + 42) / -10))
+
+        self._mInf = mAlpha / (mAlpha + mBeta)
+        self._mTau = 1 / (mAlpha + mBeta)
+        self._hInf =hAlpha / (hAlpha + hBeta)
+        self._hTau = 1 / (hAlpha + hBeta)
+
+class Cav3p1(VgCaABC):
+    '''
+
+    T-type calcium channel model from Traboulsie et al, based on Cav3p1.
+
+
+    Reference: Traboulsie A. et al. Subunit-specific modulation of T-type calcium channels by zinc.
+    J. Physiol. (Lond.), 2007 Jan 1 , 578 (159-71).
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the T-type vgCa channel type: Cav3p1')
+
+        self.vrev = 30     # reversal voltage used in model [mV]
+        Texpt = 0.0    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0  # FIXME implement this!
+
+        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
+        dyna.m_Ca = 1 / (1 + np.exp((V - (-42.921064)) / -5.163208))
+        dyna.h_Ca = 1 / (1 + np.exp((V - (-72.907420)) / 4.575763))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 1
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self._mInf = 1 / (1 + np.exp((V - (-42.921064)) / -5.163208))
+
+        inds_lt10 = (V < -10e-3).nonzero()
+        inds_gt10 = (V >= -10e-3).nonzero()
+
+        self._mTau[inds_lt10] = -0.855809 + (1.493527 * np.exp(-V / 27.414182))
+        self._mTau[inds_gt10] = 1.0
+        self._hInf = 1 / (1 + np.exp((V - (-72.907420)) / 4.575763))
+        self._hTau = 9.987873 + (0.002883 * np.exp(-V / 5.598574))
 
 class Ca_L2(VgCaABC):
     '''
