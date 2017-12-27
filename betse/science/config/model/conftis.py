@@ -69,6 +69,26 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
     Dm_P  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_P']")
 
 # ....................{ SUBCLASSES ~ tissue                }....................
+class SimConfTissueDefault(SimConfTissueABC, YamlABC):
+    '''
+    YAML-backed default tissue profile subconfiguration, encapsulating the
+    configuration of a single tissue profile applicable to all cells parsed from
+    a dictionary configuring at least this profile in the current YAML-formatted
+    simulation configuration file.
+
+    Attributes (Cell Picker)
+    ----------
+    picker_image_filename : str
+        Absolute or relative filename of the image mask whose pure-black pixels
+        define the shape of the cell cluster to be populated with cells. See
+        the :attr:`SimConfTissueListItem.picker_image_filename` variable for
+        details.
+    '''
+
+    # ..................{ ALIASES ~ picker                   }..................
+    picker_image_filename = yaml_alias("['image']['file']", str)
+
+
 class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     '''
     YAML-backed tissue profile list item subconfiguration, encapsulating the
@@ -147,29 +167,7 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
                 'random': 50,
             },
         })
-
-# ....................{ SUBCLASSES                         }....................
-class SimConfTissueDefault(SimConfTissueABC, YamlABC):
-    '''
-    YAML-backed default tissue profile subconfiguration, encapsulating the
-    configuration of a single tissue profile applicable to all cells parsed from
-    a dictionary configuring at least this profile in the current YAML-formatted
-    simulation configuration file.
-
-    Attributes (Cell Picker)
-    ----------
-    picker_image_filename : str
-        Absolute or relative filename of the image mask whose pure-black pixels
-        define the shape of the cell cluster to be populated with cells. See
-        the :attr:`SimConfTissueListItem.picker_image_filename` variable for
-        details.
-    '''
-
-    # ..................{ ALIASES ~ picker                   }..................
-    picker_image_filename = yaml_alias("['image']['file']", str)
-
 # ....................{ SUBCLASSES ~ cut                   }....................
-#FIXME: Actually leverage this in "Parameters".
 class SimConfCutListItem(YamlListItemABC):
     '''
     YAML-backed cut profile list item subconfiguration, encapsulating the

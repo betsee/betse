@@ -317,7 +317,16 @@ class Parameters(YamlFileABC):
     cell_polarizability = yaml_alias(
         "['internal parameters']['cell polarizability']", float)
 
-    # ..................{ READERS                            }..................
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Initialize our superclass with all passed parameters.
+        super().__init__(*args, **kwargs)
+
+        # Default tissue profile applied to all cells.
+        self.tissue_default = SimConfTissueDefault()
+
+    # ..................{ LOADERS                            }..................
     #FIXME: Convert all or most of the variables parsed by this method into
     #aliases of the above form. Brainy rainbows!
     @type_check
@@ -371,7 +380,7 @@ class Parameters(YamlFileABC):
         #---------------------------------------------------------------------------------------------------------------
 
         # Default tissue profile applied to all cells.
-        self.tissue_default = SimConfTissueDefault(
+        self.tissue_default.conf = (
             self._conf['tissue profile definition']['tissue']['default'])
 
         # List of all non-default profiles applied to only some cells.
@@ -1311,6 +1320,15 @@ class Parameters(YamlFileABC):
             raise BetseSimConfigException(
                 'Ion profile type "{}" unrecognized.'.format(self.ion_profile))
 
+    # ..................{ UNLOADERS                          }..................
+    def unload(self) -> None:
+
+        # Unload our superclass.
+        super().unload()
+
+        # Unload all previously loaded subconfigurations for safety.
+        self.tissue_default.unload()
+
     # ..................{ EXCEPTIONS                         }..................
     def die_unless_ecm(self) -> None:
         '''
@@ -1369,9 +1387,7 @@ class Parameters(YamlFileABC):
         # the current gap junction acceleration factor.
         self.total_time_accelerated = self.total_time
 
-    # ..................{ SUPERCLASS ~ optional              }..................
-    # Methods intended to be optionally overriden by subclasses.
-
+    # ..................{ SUPERCLASS                         }..................
     #FIXME: Actually implement this properly. Ideally, this method should return
     #the set of all subdirectories internally referenced by the current
     #top-level YAML file. Instead, it simply returns all subdirectories
@@ -1380,8 +1396,8 @@ class Parameters(YamlFileABC):
     #prevails!
     def _iter_conf_subdirnames(self) -> IterableTypes:
 
-        # If no file has been read, raise an exception.
-        self._die_unless_loaded()
+        # If no YAML file has been loaded yet, raise an exception.
+        self.die_unless_loaded()
 
         # Default to the basenames of all direct subdirectories of the parent
         # directory containing the default simulation configuration file, which

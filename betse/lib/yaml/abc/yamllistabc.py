@@ -70,6 +70,11 @@ class YamlListItemABC(YamlABC):
         pass
 
 
+#FIXME: Consider removing. The two aliases supplied by this subclass are *NOT*
+#sufficiently general-purpose to warrant a high-level ABC. Instead, simply:
+#
+#* Shift these aliases directly into whatever subclasses require them.
+#* Remove this ABC.
 class YamlListItemTypedABC(YamlListItemABC):
     '''
     Abstract base class of all low-level YAML-backed typed list item subclasses,
@@ -93,6 +98,19 @@ class YamlListItemTypedABC(YamlListItemABC):
     name       = yaml_alias("['type']", str)
 
 # ....................{ SUPERCLASSES ~ list                }....................
+#FIXME: Generalize to support loading and unloading as follows:
+#
+#* Additionally subclass the "YamlABC" class. We're unsure how well exactly that
+#  will play with the existing superclass, but let's give it a go, eh? Assuming
+#  "MutableSequence" has no unload() method, we should be good to go.
+#* Refactor the "YamlABC.conf" property to accept either a mapping or sequence.
+#* Refactor the YamlList.__init__() method to no longer accept a "confs"
+#  parameter. Instead, callers should set the "conf" property to this sequence
+#  *AFTER* instantiating this object.
+#* Remove the "YamlList._confs_yaml" variable.
+#* Rename the "YamlList._confs_wrap" variable to "_conf_wrap".
+#
+#Non-trivial, but critical.
 class YamlList(MutableSequence):
     '''
     Low-level YAML-backed list both loaded from and savable back into a
