@@ -997,22 +997,25 @@ class Simulator(object):
             self.cellso = cells
 
         # if simulating electrodiffusive movement of membrane pumps and channels:-------------
-        if p.sim_eosmosis is True:
+        # if p.sim_eosmosis is True:
+        #
+        #     # if cells.gradMem is None:
+        #     #     logs.log_info("Creating tools for self-electrodiffusion of membrane pumps and channels.")
+        #     #     cells.eosmo_tools(p)
+        #
+        #     self.rho_pump = np.ones(self.mdl)
+        #     self.rho_channel = np.ones(self.mdl)
+        #
+        #     self.move_pumps_channels = MoveChannel(self, cells, p)
 
-            # if cells.gradMem is None:
-            #     logs.log_info("Creating tools for self-electrodiffusion of membrane pumps and channels.")
-            #     cells.eosmo_tools(p)
-
-            self.rho_pump = np.ones(self.mdl)
-            self.rho_channel = np.ones(self.mdl)
-
-            self.move_pumps_channels = MoveChannel(self, cells, p)
-
-        else:
-            self.rho_pump = 1  # else just define it as identity.
-            self.rho_channel = 1
-
-            self.move_pumps_channels = None
+        # else:
+        #     self.rho_pump = 1  # else just define it as identity.
+        #     self.rho_channel = 1
+        #
+        #     self.move_pumps_channels = None
+        # FIXME: eventually remove these entirely
+        self.rho_pump = 1
+        self.rho_channel = 1
 
 
         # Initialize core user-specified interventions:
@@ -1380,10 +1383,10 @@ class Simulator(object):
                 getFlow(self,cells, p)
 
             # if desired, electroosmosis of membrane channels
-            if p.sim_eosmosis is True:
-
-                # self.run_sim = True
-                self.move_pumps_channels.run(self, cells, p)
+            # if p.sim_eosmosis is True:
+            #
+            #     # self.run_sim = True
+            #     self.move_pumps_channels.run(self, cells, p)
 
 
 
@@ -1526,9 +1529,9 @@ class Simulator(object):
 
             self.grn.core.clear_cache()
 
-        if p.sim_eosmosis is True:
-            self.rho_channel_time = []
-            self.rho_pump_time = []
+        # if p.sim_eosmosis is True:
+        #     self.rho_channel_time = []
+        #     self.rho_pump_time = []
 
         if p.Ca_dyn is True:
             self.endo_retic.clear_cache()
@@ -1606,9 +1609,9 @@ class Simulator(object):
             self.u_cells_x_time.append(self.u_cells_x[:])
             self.u_cells_y_time.append(self.u_cells_y[:])
 
-        if p.sim_eosmosis:
-            self.rho_channel_time.append(self.rho_channel*1)
-            self.rho_pump_time.append(self.rho_pump*1)
+        # if p.sim_eosmosis:
+        #     self.rho_channel_time.append(self.rho_channel*1)
+        #     self.rho_pump_time.append(self.rho_pump*1)
 
         self.gjopen_time.append(self.gjopen*1)
         self.time.append(t)
@@ -1730,7 +1733,7 @@ class Simulator(object):
             logs.log_info('Cells per env grid square ' + str(round(cells.ratio_cell2ecm, 2)))
 
         logs.log_info('Electroosmotic fluid flow: ' + str(p.fluid_flow))
-        logs.log_info('Ion pump and channel electodiffusion in membrane: ' + str(p.sim_eosmosis))
+        # logs.log_info('Ion pump and channel electodiffusion in membrane: ' + str(p.sim_eosmosis))
         logs.log_info('Force-induced cell deformation: ' + str(p.deformation))
         logs.log_info('Osmotic pressure: ' + str(p.deform_osmo))
         # logs.log_info('Electrostatic pressure: ' + str(p.deform_electro))

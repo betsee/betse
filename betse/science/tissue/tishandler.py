@@ -1435,11 +1435,11 @@ class TissueHandler(object):
                     logs.log_info('Creating cell network Poisson solver...')
                     cells.graphLaplacian(p)
 
-        if p.sim_eosmosis is True:
-
-            if sim.move_pumps_channels is not None:
-
-                sim.move_pumps_channels.remove_data(target_inds_cell)
+        # if p.sim_eosmosis is True:
+        #
+        #     if sim.move_pumps_channels is not None:
+        #
+        #         sim.move_pumps_channels.remove_data(target_inds_cell)
 
         # calculate targets for wound channel:
         match_inds = (sim.hurt_mask == 1.0).nonzero()

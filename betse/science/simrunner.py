@@ -116,8 +116,8 @@ class SimRunner(object):
             if p.deformation is True:
                 cells.deform_tools(p)
 
-        if p.sim_eosmosis is True:
-            cells.eosmo_tools(p)
+        # if p.sim_eosmosis is True:
+        #     cells.eosmo_tools(p)
 
         # finish up:
         cells.save_cluster(p)

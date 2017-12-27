@@ -668,17 +668,7 @@ class Parameters(YamlFileABC):
         # Calcium TissueHandler: Calcium Induced Calcium Release (CICR).....................................................
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)?
-        self.Ca_dyn = self._conf['Ca dynamics']['turn on']
-
-        if self.Ca_dyn:
-            self.serca_max = self._conf['Ca dynamics']['serca pump max'] # maximum rate of the ER membrane Ca++ ATPase (serca)
-            self.max_er = self._conf['Ca dynamics']['max er']    # maximum conductivity of ER membrane Ca++ channel
-            self.act_Km_Ca = self._conf['Ca dynamics']['act Km Ca'] # concentration at which calcium activates ER opening
-            self.act_n_Ca = self._conf['Ca dynamics']['act n Ca']    # exponent for Ca activation
-            self.inh_Km_Ca = self._conf['Ca dynamics']['inh Km Ca']  # concentration at which calcium inhibits ER opening
-            self.inh_n_Ca = self._conf['Ca dynamics']['inh n Ca']     # exponent for Ca inhibition
-            self.act_Km_IP3 = self._conf['Ca dynamics']['act Km IP3']   # concentration at which IP3 (if included in biomolecules) activates opening
-            self.act_n_IP3 = self._conf['Ca dynamics']['act n IP3']     # exponent for IP3 (if included in biomolecules) activates opening
+        self.Ca_dyn = False
 
         #--------------------------------------------------------------------------------------------------------------
         #  CUSTOM GENERAL NETWORK (defined in main config file)
@@ -742,10 +732,10 @@ class Parameters(YamlFileABC):
         self.mu_water = float(self._conf['variable settings']['fluid flow']['water viscocity']) # visc water [Pa.s]
 
         # electrodiffusive movement pumps and channels -----------------------------------
-        self.sim_eosmosis = self._conf['variable settings']['channel electroosmosis']['turn on']
-        self.D_membrane = float(self._conf['variable settings']['channel electroosmosis']['membrane mobility'])
-        self.z_channel = float(self._conf['variable settings']['channel electroosmosis']['channel charge'])
-        self.z_pump = float(self._conf['variable settings']['channel electroosmosis']['pump charge'])
+        self.sim_eosmosis = False
+        # self.D_membrane = float(self._conf['variable settings']['channel electroosmosis']['membrane mobility'])
+        # self.z_channel = float(self._conf['variable settings']['channel electroosmosis']['channel charge'])
+        # self.z_pump = float(self._conf['variable settings']['channel electroosmosis']['pump charge'])
 
         # mechanical deformation ----------------------------------------------------------
         self.deformation = self._conf['variable settings']['deformation']['turn on']

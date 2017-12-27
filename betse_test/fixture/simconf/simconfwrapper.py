@@ -524,7 +524,7 @@ class SimConfigTestWrapper(object):
         # Enable all simulation features required by these exports.
         self._p.ion_profile = IonProfileType.MAMMAL
         self._p._conf['apply pressure']['event happens'] = True
-        variable['channel electroosmosis']['turn on'] = True
+        # variable['channel electroosmosis']['turn on'] = True  # This feature has been removed
         variable['deformation']['turn on'] = True
         variable['fluid flow']['include fluid flow'] = True
         variable['pressures']['include osmotic pressure'] = True

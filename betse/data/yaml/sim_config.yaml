@@ -468,18 +468,6 @@ voltage gated Ca2+:            # voltage gated calcium channel
     channel type: ['Ca_L']        # available types: 'Cav1p2', 'Cav1p3', 'Cav2p1', 'Cav2p3', 'Cav3p1', 'Cav3p3',
     max value: 5.0e-16        # maximum membrane diffusion when channel fully open [m2/s] (1.0e-16 to 1.0e-13)
 
-# FIXME CHECK THESE TO MAKE SURE THEY WORK!
-Ca dynamics:                   # include full calcium dynamics in the situation?
-    turn on: False               # this creates an endoplasmic reticulum (ER) in each cell
-    serca pump max: 1.0e-8        # maximum value of the serca pump
-    max er: 1.0e-15                # maximum conductivity of ER membrane Ca++ channel
-    act Km Ca: 0.6e-3             # concentration at which calcium activates ER opening
-    act n Ca: 3.0                 # exponent for Ca activation
-    inh Km Ca: 1.5e-3            # concentration at which calcium inhibits ER opening
-    inh n Ca: 3.0                # exponent for Ca inhibition
-    act Km IP3: 1.0e-3           # concentration at which IP3 (if included in biomolecules) activates opening
-    act n IP3: 3.0                # exponent for IP3 (if included in biomolecules) activates opening
-
 # ----------------------------------------------------------------------------------------------------------------------
 # GLOBAL INTERVENTIONS
 # ----------------------------------------------------------------------------------------------------------------------
@@ -692,15 +680,6 @@ variable settings:
 #    M: 37.0     # Anion (bicarbonate) concentration at bound [mM]
 
   temperature: 310            # system temperature [K]
-
-
-# FIXME: CONSIDER GETTING RID OF THIS
-  channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
-
-    turn on: False        # turn on electroosmosis of pumps and channels
-    channel charge: -1         # charge of membrane channels
-    pump charge: 1          # charge of pumps (controls direction they move in)
-    membrane mobility: 1e-12  # mobility factor (diffusion constant) for pumps and channels [m2/s] (1e-10 to 1e-12)
 
 
 # FIXME: DECIDE on how to handle fluid flow, and if osmosis will be added
