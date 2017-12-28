@@ -207,8 +207,8 @@ tissue profile definition:
         insular: False
         diffusion constants:
           Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
-          Dm_K: 15.0e-18    # K+ membrane diffusion constant [m2/s]
-          Dm_Cl: 2.0e-18   # Cl- membrane diffusion constant [m2/s]
+          Dm_K: 1.0e-18    # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
           Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
           Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
           Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
@@ -232,14 +232,14 @@ tissue profile definition:
         insular: False
         diffusion constants:
           Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
-          Dm_K: 75.0e-18  # K+ membrane diffusion constant [m2/s]
+          Dm_K: 50.0e-18  # K+ membrane diffusion constant [m2/s]
           Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
           Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
           Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
           Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
         cell targets:
-          type: percent
+          type: image
           image: { file: geo/circle/tissue_A.png }
           indices: [0]
           percent: 25
