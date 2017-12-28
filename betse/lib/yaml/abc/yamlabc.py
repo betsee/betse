@@ -19,24 +19,25 @@ from betse.util.type.types import (
     IterableTypes,
     MappingType,
     MappingOrNoneTypes,
+    MappingOrSequenceTypes,
+    MappingOrSequenceOrNoneTypes,
     NoneType,
-    StrOrNoneTypes,
 )
 
 # ....................{ SUPERCLASSES                       }....................
 class YamlABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all YAML-backed configuration subclasses, each
-    encapsulating a low-level YAML dictionary of related configuration settings
+    encapsulating a low-level YAML container of related configuration settings
     (e.g., representing one tissue profile) both loaded from and savable back to
     a parent YAML-formatted configuration file.
 
     Attributes
     ----------
-    _conf : MappingOrNoneTypes
-        Low-level dictionary of related configuration settings loaded from and
-        saved back to a YAML-formatted configuration file if the :meth:`conf`
-        property has been explicitly set by the caller *or* ``None`` otherwise.
+    _conf : MappingOrSequenceOrNoneTypes
+        Low-level container of related configuration settings loaded from and
+        saved back to a YAML-formatted configuration file if the :meth:`load`
+        method has been called *or* ``None`` otherwise.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -58,22 +59,21 @@ class YamlABC(object, metaclass=ABCMeta):
     #          self.tissue_default = SimConfTissueDefault()
     #
     #      def load(self, *args, **kwargs) -> None:
-    #          self.tissue_default.conf = (
+    #          self.tissue_default.load(
     #              self._conf['tissue profile definition']['tissue']['default']))
     #* Remove this optional "conf" parameter from this method entirely.
     @type_check
-    def __init__(self, conf: MappingOrNoneTypes = None) -> None:
+    def __init__(self, conf: MappingOrSequenceOrNoneTypes = None) -> None:
         '''
         Initialize this YAML-backed configuration.
 
         Parameters
         ----------
-        conf : MappingOrNoneTypes
-            Low-level dictionary of related configuration settings loaded from
+        conf : MappingOrSequenceOrNoneTypes
+            Low-level container of related configuration settings loaded from
             and saved back to a YAML-formatted configuration file. Defaults to
-            ``None``, in which case the caller is responsible for explicitly
-            setting the :meth:`conf` property to a non-``None`` value prior to
-            the first access of this property.
+            ``None``, in which case the caller is responsible for calling the
+            :meth:`load` method prior to the first access of this property.
         '''
 
         # Classify all passed parameters.
@@ -86,66 +86,70 @@ class YamlABC(object, metaclass=ABCMeta):
     def is_loaded(self) -> bool:
         '''
         ``True`` only if this configuration is in the **loaded state** (i.e.,
-        the :meth:`conf` property has been explicitly set by a caller).
+        the :meth:`load` method has been called more recently than the
+        :meth:`unload` method has been called).
 
         If ``True``, the :meth:`conf` property is safely accessible by callers.
         '''
 
         return self._conf is not None
 
-    # ..................{ PROPERTIES ~ conf                  }..................
+
     @property
-    def conf(self) -> MappingType:
+    def conf(self) -> MappingOrSequenceTypes:
         '''
-        Low-level dictionary of related configuration settings loaded from and
-        saved back to a YAML-formatted configuration file if the :meth:`conf`
-        property has been explicitly set by a caller *or* raise an exception
-        otherwise.
+        Low-level container of related configuration settings loaded from and
+        saved back to a YAML-formatted configuration file if the :meth:`load`
+        method has been called more recently than the :meth:`unload` method has
+        been called *or* raise an exception otherwise.
 
         Raises
         ----------
         BetseYamlException
-             If the :meth:`conf` property has yet to be set by a caller.
+             If the :meth:`load` method has yet be called.
         '''
 
         # If this property has yet to be set, raise an exception.
         self.die_unless_loaded()
 
-        # Else, this property is a dictionary. Return this dictionary.
+        # Else, this property is a container. Return this container.
         return self._conf
-
-
-    @conf.setter
-    @type_check
-    def conf(self, conf: MappingType) -> None:
-        '''
-        Associate this configuration with the passed YAML-backed dictionary.
-
-        Parameters
-        ----------
-        conf : MappingOrNoneTypes
-            Low-level dictionary of related configuration settings loaded from
-            and saved back to a YAML-formatted configuration file.
-        '''
-
-        self._conf = conf
 
     # ..................{ EXCEPTIONS                         }..................
     def die_unless_loaded(self) -> None:
         '''
-        Raise an exception unless this configuration is in the **loaded state** (i.e.,
-        the :meth:`conf` property has been explicitly set by a caller).
+        Raise an exception unless this configuration is in the loaded state.
+
+        See Also
+        ----------
+        :meth:`is_loaded`
+            Further details.
         '''
 
         if not self.is_loaded:
             raise BetseYamlException(
                 'YAML configuration not loaded '
-                '(i.e., "YamlABC.conf" property not set).')
+                '(i.e., load() method not called yet).')
 
-    # ..................{ UNLOADERS                          }..................
+    # ..................{ LOADERS                            }..................
+    @type_check
+    def load(self, conf: MappingOrSequenceTypes) -> None:
+        '''
+        Associate this configuration with the passed YAML-backed container.
+
+        Parameters
+        ----------
+        conf : MappingOrSequenceTypes
+            Low-level container of related configuration settings loaded from
+            and saved back to a YAML-formatted configuration file.
+        '''
+
+        self._conf = conf
+
+
     def unload(self) -> None:
         '''
-        Deassociate this configuration from its YAML-backed dictionary if any
+        Deassociate this configuration from its YAML-backed container if any
         *or* reduce to a noop otherwise.
 
         This method serves as a low-level safety mechanism ensuring that the
@@ -179,7 +183,7 @@ class YamlFileABC(YamlABC):
     erforce this recommendation but does log non-fatal warnings where violated.
 
     External callers should ideally *never* access the public :meth:`conf`
-    property returning a low-level dictionary containing this entire simulation
+    property returning a low-level container containing this entire simulation
     configuration. The settings encapsulated by this dictionary are safely
     retrievable and modifiable by callers *only* via public :func:`yaml_alias`
     data descriptors leveraged by subclasses.
@@ -293,8 +297,11 @@ class YamlFileABC(YamlABC):
         logs.log_debug(
             'Loading YAML file "%s"...', pathnames.get_basename(conf_filename))
 
-        # Deserialize this file into this dictionary.
-        self.conf = yamls.load(conf_filename)
+        # Low-level dictionary deserialized from this file.
+        conf = yamls.load(conf_filename)
+
+        # Load this dictionary into our superclass.
+        super().load(conf=conf)
 
         # Associate this object with this file *AFTER* successfully
         # deserializing this file.
@@ -334,9 +341,6 @@ class YamlFileABC(YamlABC):
         # Log this operation.
         logs.log_debug(
             'Saving YAML file "%s"...', pathnames.get_basename(conf_filename))
-
-        # If no file to be saved has been read, raise an exception.
-        self.die_unless_loaded()
 
         # Save this dictionary to this file.
         yamls.save(
@@ -389,9 +393,6 @@ class YamlFileABC(YamlABC):
         logs.log_debug(
             'Overwriting YAML file "%s"...',
             pathnames.get_basename(self.conf_filename))
-
-        # If no file to be saved has been read, raise an exception.
-        self.die_unless_loaded()
 
         # Resave this dictionary to this file.
         yamls.save(

@@ -169,10 +169,12 @@ class SimConfAnimAll(YamlABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
+        #FIXME: Rename to "anim_while_sim" for disambiguity.
         # Encapsulate low-level dictionaries with high-level wrappers.
         self.while_sim = SimConfVisualCellsEmbedded(
             self._conf['results options']['while solving']['animations'])
 
+        #FIXME: Rename to "anims_after_sim" for disambiguity.
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
         self.after_sim_pipeline = SimConfVisualCellsListItem.make_list(
             self._conf[

@@ -13,14 +13,15 @@ from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.util.type.cls import classes
 from betse.util.type.obj import objects
-from betse.util.type.types import type_check, SequenceOrNoneTypes, ClassType
+from betse.util.type.types import (
+    type_check, ClassType, SequenceTypes, SequenceOrNoneTypes)
 from collections import MutableSequence
 
 # ....................{ SUPERCLASSES ~ list item           }....................
 class YamlListItemABC(YamlABC):
     '''
-    Abstract base class of all low-level YAML-backed list item subclasses, each
-    instance of which is intended to be added to a :class:`YamlList` container.
+    Abstract base class of all YAML-backed list item subclasses, each instance
+    of which is intended to be added to a parent :class:`YamlList` container.
 
     Each such instance may technically encapsulate any valid YAML type (e.g.,
     :class:`int`, :class:`str`) but typically encapsulates a YAML dictionary of
@@ -75,6 +76,7 @@ class YamlListItemABC(YamlABC):
 #
 #* Shift these aliases directly into whatever subclasses require them.
 #* Remove this ABC.
+
 class YamlListItemTypedABC(YamlListItemABC):
     '''
     Abstract base class of all low-level YAML-backed typed list item subclasses,
@@ -98,59 +100,50 @@ class YamlListItemTypedABC(YamlListItemABC):
     name       = yaml_alias("['type']", str)
 
 # ....................{ SUPERCLASSES ~ list                }....................
-#FIXME: Generalize to support loading and unloading as follows:
-#
-#* Additionally subclass the "YamlABC" class. We're unsure how well exactly that
-#  will play with the existing superclass, but let's give it a go, eh? Assuming
-#  "MutableSequence" has no unload() method, we should be good to go.
-#* Refactor the "YamlABC.conf" property to accept either a mapping or sequence.
-#* Refactor the YamlList.__init__() method to no longer accept a "confs"
-#  parameter. Instead, callers should set the "conf" property to this sequence
-#  *AFTER* instantiating this object.
-#* Remove the "YamlList._confs_yaml" variable.
-#* Rename the "YamlList._confs_wrap" variable to "_conf_wrap".
-#
-#Non-trivial, but critical.
-class YamlList(MutableSequence):
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# CAUTION: To avoid diamond inheritance issues, neither this subclass nor any
+# application-specific superclasses of this subclass (e.g., "YamlABC") should
+# override any methods already defined by the "MutableSequence" superclass. This
+# includes but is *NOT* limited to the public "MutableSequence" methods:
+# append(), clear(), count(), extend(), index(), insert(), mro(), pop(),
+# register(), remove(), and reverse().
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+class YamlList(YamlABC, MutableSequence):
     '''
-    Low-level YAML-backed list both loaded from and savable back into a
+    YAML-backed list subconfiguration both loaded from and saved back into a
     YAML-formatted file.
 
     Each item of this list is a :class:`YamlListItemABC` instance encapsulating
-    the corresponding low-level YAML-backed list item. Each such item may
-    technically encapsulate any valid YAML type (e.g., :class:`int`,
-    :class:`str`) but typically encapsulates a YAML dictionary of related
-    key-value pairs (e.g., animation settings, tissue profile).
+    the corresponding YAML-backed list item. Each such item may technically
+    encapsulate any valid YAML type (e.g., :class:`int`, :class:`str`) but
+    typically encapsulates a YAML dictionary of related key-value pairs (e.g.,
+    animation settings, tissue profile).
 
     Attributes
     ----------
     _confs_wrap : list
-        High-level list of all instances of the :attr:`_item_type` subclass
-        encapsulating each dictionary in the low-level :attr:`_confs_yaml` list.
-    _confs_yaml : SequenceTypes
-        Low-level list of all dictionaries of related configuration settings
-        both loaded from and savable back to the current YAML-formatted
-        simulation configuration file.
+        High-level list of each instance of the :attr:`_item_type` subclass
+        encapsulating each dictionary in the low-level :attr:`_conf` list.
     _item_type : ClassType
         Subclass of the :class:`YamlListItemABC` abstract base class with
-        which to instantiate each simulation configuration object encapsulating
-        each dictionary in the :attr:`_confs_yaml` list.
+        which to instantiate each wrapper in the high-level :attr:`_confs_wrap`
+        list encapsulating each dictionary in the low-level :attr:`_conf` list.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
-        self, confs: SequenceOrNoneTypes, item_type: ClassType) -> None:
+        self, conf: SequenceOrNoneTypes, item_type: ClassType) -> None:
         '''
         Initialize this low-level YAML-backed list.
 
         Attributes
         ----------
-        confs : SequenceOrNoneTypes
-            List of all low-level YAML-backed list items both loaded from and
-            savable back to a YAML-formatted file if defined by this file (e.g.,
-            as a dictionary key) *or* ``None`` otherwise (i.e., if this file
-            defines no such list). If ``None``, this sequence internally
+        conf : SequenceOrNoneTypes
+            Sequence of all low-level YAML-backed list items both loaded from
+            and saved back to a YAML-formatted file if defined by this file
+            (e.g., as a dictionary key) *or* ``None`` otherwise (i.e., if this
+            file defines no such list). If ``None``, this sequence internally
             defaults to the empty list.
         item_type : ClassType
             Subclass of the :class:`YamlListItemABC` abstract base class
@@ -160,25 +153,58 @@ class YamlList(MutableSequence):
             storing these instances.
         '''
 
-        # Raise an exception unless the passed type implements the expected API.
+        # Initialize our superclass.
+        super().__init__()
+
+        # If the passed type is *NOT* a high-level YAML-backed list item
+        # subclass, raise an exception.
         classes.die_unless_subclass(
             subclass=item_type, superclass=YamlListItemABC)
 
         # If this list is unspecified, default this list to the empty list.
-        if confs is None:
-            confs = []
+        if conf is None:
+            conf = []
 
         # Classify all passed parameters.
-        self._confs_yaml = confs
         self._item_type = item_type
 
-        # Wrap each dictionary in this list with a new object of this type.
-        self._confs_wrap = []
-        for conf_yaml in self._confs_yaml:
-            self._confs_wrap.append(self._item_type(conf=conf_yaml))
+        # Nullify all remaining parameters for safety.
+        self._confs_wrap = None
 
-    # ..................{ SUPERCLASS                         }..................
-    # Abstract methods required by our superclass.
+        # Load this low-level list.
+        self.load(conf)
+
+    # ..................{ SUPERCLASS ~ YamlABC               }..................
+    # Concrete methods provided by our YamlABC superclass.
+
+    @type_check
+    def load(self, conf: SequenceTypes) -> None:
+
+        # Load our superclass with the passed sequence.
+        super().load(conf=conf)
+
+        # Initialize a high-level list of high-level wrappers.
+        self._confs_wrap = []
+
+        # For each low-level dictionary in this low-level sequence...
+        for conf_yaml in conf:
+            # High-level wrapper of the caller-specified type.
+            conf_wrap = self._item_type(conf=conf_yaml)
+
+            # Wrap this dictionary with this wrapper.
+            self._confs_wrap.append(conf_wrap)
+
+
+    def unload(self) -> None:
+
+        # Unload our superclass.
+        super().unload()
+
+        # Nullify this high-level list of high-level wrappers.
+        self._confs_wrap = None
+
+    # ..................{ SUPERCLASS ~ MutableSequence       }..................
+    # Abstract methods required by our MutableSequence superclass.
 
     def __len__(self):
         return len(self._confs_wrap)
@@ -186,7 +212,7 @@ class YamlList(MutableSequence):
 
     @type_check
     def __delitem__(self, index: int) -> None:
-        del self._confs_yaml[index]
+        del self._conf[index]
         del self._confs_wrap[index]
 
 
@@ -202,9 +228,9 @@ class YamlList(MutableSequence):
         the passed such item.
         '''
 
-        # Raise an exception unless the passed object is an instance of the
-        # desired API, which is specified at initialization time and hence
-        # cannot be type checked above by a method annotation.
+        # If the passed object is *NOT* an instance of the caller-defined type,
+        # raise an exception. This type is specified at initialization time and
+        # hence cannot be type-checked via a method annotation.
         objects.die_unless_instance(obj=value, cls=self._item_type)
 
         # Set the high-level list item with this index to this object.
@@ -212,7 +238,7 @@ class YamlList(MutableSequence):
 
         # Set the low-level list item with this index to this object's
         # underlying YAML-backed dictionary.
-        self._confs_yaml[index] = value.conf
+        self._conf[index] = value.conf
 
 
     @type_check
@@ -232,7 +258,7 @@ class YamlList(MutableSequence):
 
         # Insert this object's underlying YAML-backed dictionary *BEFORE* the
         # low-level list item with this index.
-        self._confs_yaml.insert(index, value.conf)
+        self._conf.insert(index, value.conf)
 
     # ..................{ APPENDERS                          }..................
     def append_default(self) -> YamlListItemABC:
@@ -245,7 +271,7 @@ class YamlList(MutableSequence):
         YamlListItemABC
             Instance of the :attr:`_item_type` subclass appended to the
             high-level :attr:`_confs_wrap` list, encapsulating the new list item
-            appended to the low-level :attr:`_confs_yaml` list.
+            appended to the low-level :attr:`_conf` list.
         '''
 
         # New simulation configuration list item specific to this list.
@@ -289,7 +315,7 @@ class YamlList(MutableSequence):
         # Arbitrary unique identifier with which to uniquify (i.e., guarantee
         # the uniqueness of) the name of a new item in this list, defaulting to the
         # number of existing items in this list.
-        yaml_list_item_id = len(self)
+        yaml_list_item_id = len(self._confs_wrap)
 
         # Name of this tissue profile, unique in this list.
         yaml_list_item_name = None
@@ -301,7 +327,7 @@ class YamlList(MutableSequence):
             yaml_list_item_name = name_format.format(yaml_list_item_id)
 
             # For each existing item of this list...
-            for yaml_list_item_other in self:
+            for yaml_list_item_other in self._confs_wrap:
                 # If this item already has this name, this name is non-unique.
                 # In this case, increment this identifier, format a new name via
                 # this identifier, and repeat this search.

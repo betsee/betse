@@ -58,6 +58,13 @@ class TissueHandler(object):
         Dictionary mapping from the name of each tissue profile enabled by the
         current simulation configuration to a one-dimensional NumPy array of the
         indices of all cells in the cluster belonging to this tissue.
+    tissue_default : TissueProfile
+        **Default tissue profile** (i.e., profile applicable to all cells *not*
+        already assigned to a non-default tissue profile). For convenience, this
+        profile is accessible via both this instance variable *and* as a
+        standard tissue profile (i.e., as a value of a key-value pair of the
+        ordered :attr:`tissue_name_to_profile` dictionary whose key is the name
+        of this profile).
     tissue_name_to_profile : OrderedDict
         Ordered dictionary mapping from the name of each tissue profile enabled
         by the current simulation configuration (in YAML list order) to the
@@ -102,7 +109,8 @@ class TissueHandler(object):
         self.data_length = len(cells.mem_i)
 
         # Initialize tissue and cut profiles.
-        self._init_profiles(p)
+        self._init_tissues(p)
+        self._init_cuts(p)
 
         # Initialize scheduled interventions *AFTER* tissue and cut profiles, as
         # the former requires the latter.
@@ -110,19 +118,18 @@ class TissueHandler(object):
 
 
     @type_check
-    def _init_profiles(self, p: 'betse.science.parameters.Parameters') -> None:
+    def _init_tissues(self, p: 'betse.science.parameters.Parameters') -> None:
         '''
-        Initialize all tissue and cut profiles defined by the passed simulation
-        configuration.
+        Internally initialize all tissue profiles defined by the passed
+        simulation configuration.
 
-        Specifically, this method encapsulate each low-level YAML-formatted list
-        item defining a tissue and cut profile in this configuration with a
-        high-level instance of the :class:`CellsRegionABC` class.
+        Specifically, this method encapsulates each low-level YAML-formatted
+        list item defining a tissue profile in this configuration with a
+        high-level instance of the :class:`CellsProfileABC` class.
         '''
 
-        # Ordered dictionaries mapping from each tissue and cut profile name to
-        # the corresponding profile, initialized *BEFORE* a possible noop.
-        self.cut_name_to_profile = OrderedDict()
+        # Ordered dictionaries mapping from the name of each each tissue profile
+        # to the corresponding profile.
         self.tissue_name_to_profile = OrderedDict()
 
         # Nullify all remaining tissue-centric attributes for safety.
@@ -130,50 +137,43 @@ class TissueHandler(object):
         self.env_target_inds = None
         self.tissue_target_inds = None
 
-        # If tissue and cut profiles are disabled, silently noop.
+        # If tissue profiles are disabled, silently noop.
         if not p.is_tissue_profiles:
             return
 
-        #FIXME: Simplify the current approach to handling the default tissue profile.
-        #While this technically works, it also results in code duplication. Instead:
-        #
-        #* Copy the "p.tissue_profiles" list into a local list variable. To do so
-        #  without modifying the underlying YAML dictionary, we'll probably need to
-        #  add a new copy() method to the "YamlListABC" class.
-        #* Insert the "p.tissue_default" profile as the first item of the
-        #  "p.tissue_profiles" list, synthesizing a picker as appropriate.
-
-        # 1-based index of the current tissue profile.
+        # 1-based index of the default tissue profile.
         tissue_z_order = 1
 
-        # Object selecting a region of the cell cluster for the default tissue
-        # profile.
+        # Object assigning a cell cluster region to the default tissue profile.
         tissue_picker = TissuePickerImage(
             filename=p.tissue_default.picker_image_filename,
             dirname=p.conf_dirname)
 
-        #FIXME: Ensure that we're not duplicating this structure elsewhere. In
-        #particular, the "cells" submodule almost certainly recreates this
-        #default tissue picker.
+        # For convenience, encapsulate the default tissue profile as a
+        # high-level object accessible both as a separate instance variable
+        # *AND* as a standard tissue profile (i.e., as a value of a key-value
+        # pair whose key is the name of the default tissue profile).
+        self.tissue_default = self.tissue_name_to_profile[
+            p.tissue_default.name] = TissueProfile(
+                name=p.tissue_default.name,
+                z_order=tissue_z_order,
+                picker=tissue_picker,
 
-        # Map the default tissue profile's name to a high-level object.
-        self.tissue_name_to_profile[p.tissue_default.name] = TissueProfile(
-            name=p.tissue_default.name,
-            z_order=tissue_z_order,
-            picker=tissue_picker,
+                # By definition, the cell cluster shares no gap junctions with cells
+                # in the environment -- since, of course, there *ARE* no cells
+                # in the environment.
+                is_gj_insular=True,
 
-            #FIXME: Document this.
-            is_gj_insular=True,
-            Dm_Na=p.tissue_default.Dm_Na,
-            Dm_K=p.tissue_default.Dm_K,
-            Dm_Cl=p.tissue_default.Dm_Cl,
-            Dm_Ca=p.tissue_default.Dm_Ca,
-            Dm_H=p.tissue_default.Dm_H,
-            Dm_M=p.tissue_default.Dm_M,
-            Dm_P=p.tissue_default.Dm_P,
-        )
+                Dm_Na=p.tissue_default.Dm_Na,
+                Dm_K=p.tissue_default.Dm_K,
+                Dm_Cl=p.tissue_default.Dm_Cl,
+                Dm_Ca=p.tissue_default.Dm_Ca,
+                Dm_H=p.tissue_default.Dm_H,
+                Dm_M=p.tissue_default.Dm_M,
+                Dm_P=p.tissue_default.Dm_P,
+            )
 
-        # For each low-level YAML-backed tissue profile...
+        # For each non-default tissue profile...
         for tissue_profile in p.tissue_profiles:
             # If a prior profile collides with this profile's name, this profile
             # is non-unique. In this case, raise an exception.
@@ -183,10 +183,10 @@ class TissueHandler(object):
                     '(i.e., two or more tissue profiles named "{0}").'.format(
                         tissue_profile.name))
 
-            # Increment the 1-based index of the current tissue profile.
+            # 1-based index of this tissue profile.
             tissue_z_order += 1
 
-            # Object selecting a region of the cell cluster for this profile.
+            # Object assigning a cell cluster region to this tissue profile.
             tissue_picker = None
 
             # Conditionally define this object.
@@ -222,7 +222,27 @@ class TissueHandler(object):
                 Dm_P=tissue_profile.Dm_P,
             )
 
-        # For each low-level YAML-backed cut profile...
+
+    @type_check
+    def _init_cuts(self, p: 'betse.science.parameters.Parameters') -> None:
+        '''
+        Internally initialize all cut profiles defined by the passed simulation
+        configuration.
+
+        Specifically, this method encapsulates each low-level YAML-formatted
+        list item defining a cut profile in this configuration with a high-level
+        instance of the :class:`CellsProfileABC` class.
+        '''
+
+        # Ordered dictionaries mapping from the name of each each cut profile
+        # to the corresponding profile.
+        self.cut_name_to_profile = OrderedDict()
+
+        # If cut profiles are disabled, silently noop.
+        if not p.is_tissue_profiles:
+            return
+
+        # For each low-level cut profile...
         for cut_index, cut_profile in enumerate(p.cut_profiles):
             # If this profile is non-unique, raise an exception.
             if cut_profile.name in self.cut_name_to_profile:
@@ -960,28 +980,28 @@ class TissueHandler(object):
                 self.scalar_Namem*self.dyna_Namem(t)*
                 tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem))
             sim.Dm_scheduled[sim.iNa][self.targets_Namem] = (
-                self.mem_mult_Namem*effector_Na*p.tissue_default.Dm_Na)
+                self.mem_mult_Namem*effector_Na*self.tissue_default.Dm_Na)
 
         if p.scheduled_options['K_mem'] != 0:
             effector_K = (
                 self.scalar_Kmem*self.dyna_Kmem(t)*
                 tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem))
             sim.Dm_scheduled[sim.iK][self.targets_Kmem] = (
-                self.mem_mult_Kmem*effector_K*p.tissue_default.Dm_K)
+                self.mem_mult_Kmem*effector_K*self.tissue_default.Dm_K)
 
         if p.scheduled_options['Cl_mem'] != 0 and p.ions_dict['Cl'] != 0:
             effector_Cl = (
                 self.scalar_Clmem*self.dyna_Clmem(t)*
                 tb.pulse(t,self.t_on_Clmem,self.t_off_Clmem,self.t_change_Clmem))
             sim.Dm_scheduled[sim.iCl][self.targets_Clmem] = (
-                self.mem_mult_Clmem*effector_Cl*p.tissue_default.Dm_Cl)
+                self.mem_mult_Clmem*effector_Cl*self.tissue_default.Dm_Cl)
 
         if p.scheduled_options['Ca_mem'] != 0 and p.ions_dict['Ca'] != 0:
             effector_Ca = (
                 self.scalar_Camem*self.dyna_Camem(t)*
                 tb.pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem))
             sim.Dm_scheduled[sim.iCa][self.targets_Camem] = (
-                self.mem_mult_Camem*effector_Ca*p.tissue_default.Dm_Ca)
+                self.mem_mult_Camem*effector_Ca*self.tissue_default.Dm_Ca)
 
         if p.scheduled_options['pressure'] != 0:
             # logs.log_debug('Applying pressure event...')

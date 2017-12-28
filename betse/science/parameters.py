@@ -373,7 +373,7 @@ class Parameters(YamlFileABC):
         #---------------------------------------------------------------------------------------------------------------
 
         # Default tissue profile applied to all cells.
-        self.tissue_default.conf = (
+        self.tissue_default.load(
             self._conf['tissue profile definition']['tissue']['default'])
 
         # List of all non-default profiles applied to only some cells.

@@ -471,32 +471,40 @@ Tuple of both the integer type *and* the type of the singleton ``None`` object.
 IterableOrNoneTypes = IterableTypes + NoneTypes
 '''
 Tuple of all container base classes conforming to (but _not_ necessarily
-subclassing) the canonical :class:`collections.abc.Iterable` API as well as the
-type of the singleton ``None`` object.
+subclassing) the canonical :class:`Iterable` API as well as the type of the
+singleton ``None`` object.
 '''
 
 
 MappingOrNoneTypes = (MappingType,) + NoneTypes
 '''
 Tuple of all container base classes conforming to (but *not* necessarily
-subclassing) the canonical :class:`collections.abc.Mapping` API as well as the
-type of the singleton ``None`` object.
+subclassing) the canonical :class:`Mapping` API as well as the type of the
+singleton ``None`` object.
+'''
+
+
+MappingOrSequenceOrNoneTypes = MappingOrSequenceTypes + NoneTypes
+'''
+Tuple of all container base classes conforming to (but *not* necessarily
+subclassing) the canonical :class:`Mapping` *or* :class:`Sequence` APIs as well
+as the type of the singleton ``None`` object.
 '''
 
 
 NumericOrSequenceOrNoneTypes = NumericOrSequenceTypes + NoneTypes
 '''
 Tuple of all numeric types, all container base classes conforming to (but *not*
-necessarily subclassing) the canonical :class:`Sequence` API, and the type of
-the singletone ``None`` object.
+necessarily subclassing) the canonical :class:`int`, :class:`float`, *or*
+:class:`Sequence` APIs as well as the type of the singletone ``None`` object.
 '''
 
 
 SequenceOrNoneTypes = SequenceTypes + NoneTypes
 '''
 Tuple of all container base classes conforming to (but *not* necessarily
-subclassing) the canonical :class:`collections.abc.Sequence` API as well as the
-type of the singleton ``None`` object.
+subclassing) the canonical :class:`Sequence` API as well as the type of the
+singleton ``None`` object.
 '''
 
 

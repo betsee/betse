@@ -15,7 +15,6 @@ from betse.science import filehandling as fh
 from betse.science.config.confenum import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
-from betse.science.tissue.picker.tispickimage import TissuePickerImage
 from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.util.type.call.memoizers import property_cached
@@ -804,7 +803,28 @@ class Cells(object):
         # Log this creation.
         logs.log_info('Creating Voronoi geometry... ')
 
+        #FIXME: Non-ideal. The cell cluster image mask should ideally be
+        #instantiated via the existing "TissueHandler.tissue_default.picker"
+        #object. Unfortunately, the "TissueHandler" object and hence that
+        #"picker" object is inaccessible at this early point. But there's no
+        #rational reason for this to be the case. The "TissueHandler" object
+        #absolutely should be accessible at this early point. To enable this to
+        #be the case, perform the following refactorings:
+        #
+        #* Add a new "dyna" instance variable to the "SimPhase" class. This
+        #  variable's value should be the "TissueHandler" object for this phase.
+        #* Generalize the "simrunner" submodule to:
+        #  * Instantiate the "TissueHandler" object earlier.
+        #  * Pass this object to each instantiation of the "SimPhase" class.
+        #* Generalize all initialization methods of this class (notably, this
+        #  and the parent makeWorld() method) to accept higher-level "SimPhase"
+        #  rather than lower-level "Parameters" objects.
+        #* Rewrite the cell cluster image mask line below to resemble:
+        #
+        #    image_mask = phase.dyna.tissue_default.picker.get_image_mask(cells=self)
+
         # Cell cluster image picker, producing the cell cluster image mask.
+        from betse.science.tissue.picker.tispickimage import TissuePickerImage
         image_picker = TissuePickerImage(
             filename=p.tissue_default.picker_image_filename,
             dirname=p.conf_dirname)
@@ -838,42 +858,43 @@ class Cells(object):
             if np.any(vor_edge == -1): # if either of the two ridge values are undefined (-1)
 
                 # find the ridge vertice that's not equal to -1
-                    new_edge = vor_edge[vor_edge != -1][0]
+                new_edge = vor_edge[vor_edge != -1][0]
+
                 # calculate the tangent of two seed points sharing that ridge
-                    tang = vor.points[pnt_indx[1]] - vor.points[pnt_indx[0]]
-                    tang /= np.linalg.norm(tang)  # make the tangent a unit vector
-                    norml = np.array([-tang[1], tang[0]])  # calculate the normal of the two points sharing the ridge
+                tang = vor.points[pnt_indx[1]] - vor.points[pnt_indx[0]]
+                tang /= np.linalg.norm(tang)  # make the tangent a unit vector
+                norml = np.array([-tang[1], tang[0]])  # calculate the normal of the two points sharing the ridge
 
-                    # calculate the midpoint between the two points of the ridge
-                    midpoint = vor.points[pnt_indx].mean(axis=0)
-                    # now there's enough information to calculate the missing direction and location of missing point
-                    direction = np.sign(np.dot(midpoint - cluster_center, norml)) * norml
-                    #far_point = self.vor.vertices[new_edge] + direction * self.cluster_axis.max()
-                    far_point = vor.vertices[new_edge] + direction * p.d_cell
+                # calculate the midpoint between the two points of the ridge
+                midpoint = vor.points[pnt_indx].mean(axis=0)
+                # now there's enough information to calculate the missing direction and location of missing point
+                direction = np.sign(np.dot(midpoint - cluster_center, norml)) * norml
+                #far_point = self.vor.vertices[new_edge] + direction * self.cluster_axis.max()
+                far_point = vor.vertices[new_edge] + direction * p.d_cell
 
-                    # get the current size of the voronoi vertices array, this will be the n+1 index after adding point
-                    vor_ind = vor.vertices.shape[0]
+                # get the current size of the voronoi vertices array, this will be the n+1 index after adding point
+                vor_ind = vor.vertices.shape[0]
 
-                    vor.vertices = np.vstack((vor.vertices,far_point)) # add the new point to the vertices array
-                    vor.ridge_vertices[i] = [new_edge,vor_ind]  # add the new index at the right spot
+                vor.vertices = np.vstack((vor.vertices,far_point)) # add the new point to the vertices array
+                vor.ridge_vertices[i] = [new_edge,vor_ind]  # add the new index at the right spot
 
-                    for j, region in enumerate(vor.regions):    # step through each polygon region
+                for j, region in enumerate(vor.regions):    # step through each polygon region
 
-                        if len(region):
+                    if len(region):
 
-                            if -1 in region and new_edge in region:  # if the region has edge of interest...
-                                a = region.index(-1)              # find index in the region that is undefined (-1)
-                                vor.regions[j][a] = vor_ind # add in the new vertex index to the appropriate region
+                        if -1 in region and new_edge in region:  # if the region has edge of interest...
+                            a = region.index(-1)              # find index in the region that is undefined (-1)
+                            vor.regions[j][a] = vor_ind # add in the new vertex index to the appropriate region
 
-                            verts = vor.vertices[region]   # get the vertices for this region
-                            region = np.asarray(region)      # convert region to a numpy array so it can be sorted
+                        verts = vor.vertices[region]   # get the vertices for this region
+                        region = np.asarray(region)      # convert region to a numpy array so it can be sorted
 
-                            cent = verts.mean(axis=0)     # calculate the centre point
-                            angles = np.arctan2(verts[:,1]-cent[1], verts[:,0] - cent[0])  # calculate point angles
-                            #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
-                            sorted_region = region[np.argsort(angles)]   # sort indices counter-clockwise
-                            sorted_region_b = sorted_region.tolist()
-                            vor.regions[j] = sorted_region_b   # add sorted list to the regions structure
+                        cent = verts.mean(axis=0)     # calculate the centre point
+                        angles = np.arctan2(verts[:,1]-cent[1], verts[:,0] - cent[0])  # calculate point angles
+                        #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
+                        sorted_region = region[np.argsort(angles)]   # sort indices counter-clockwise
+                        sorted_region_b = sorted_region.tolist()
+                        vor.regions[j] = sorted_region_b   # add sorted list to the regions structure
 
         # Clip the Voronoi cluster to the shape of the clipping bitmap -------------------------------------------------
         self.ecm_verts = [] # voronoi verts of clipped cluster
@@ -1379,6 +1400,10 @@ class Cells(object):
         # matrix for calculating gradients around the cell circumference:
         self.gradTheta = np.zeros((len(self.mem_i), len(self.mem_i)))
 
+        #FIXME: "cell_i" appears to be unused here. In optimistic theory, this
+        #implies that this loop should be reducible to:
+        #    for mem_i in self.cell_to_mems:
+        #Maybe? Praise be to Grand Master Dragon Sword!
         for cell_i, mem_i in enumerate(self.cell_to_mems):
 
             mem_io = np.roll(mem_i, 1)
@@ -1514,14 +1539,14 @@ class Cells(object):
 
         for verts in self.ecm_verts:
             for i in range(0,len(verts)):
-                        pt1 = verts[i-1]
-                        pt2 = verts[i]
-                        pt1 = np.asarray(pt1)
-                        pt2 = np.asarray(pt2)
-                        mid = (pt1 + pt2)/2       # midpoint calculation
-                        mx = mid[0]
-                        my = mid[1]
-                        ecm_mids.add((mx,my))
+                pt1 = verts[i-1]
+                pt2 = verts[i]
+                pt1 = np.asarray(pt1)
+                pt2 = np.asarray(pt2)
+                mid = (pt1 + pt2)/2       # midpoint calculation
+                mx = mid[0]
+                my = mid[1]
+                ecm_mids.add((mx,my))
 
         ecm_mids = list(ecm_mids)
         self.ecm_mids = np.asarray(ecm_mids)
@@ -2315,6 +2340,10 @@ class Cells(object):
 
         self.M_int_mems = np.zeros((len(self.mem_i), len(self.mem_i)))
 
+        #FIXME: "i" appears to be unused here. In optimistic theory, this
+        #implies that this loop should be reducible to:
+        #    for inds in self.cell_to_mems:
+        #Maybe? May the misty dawn exhale its hot breath upon you!
         for i, inds in enumerate(self.cell_to_mems):
 
             # get the set of indices for the cell:
@@ -2590,6 +2619,10 @@ class Cells(object):
 
         self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
 
+        #FIXME: "i" appears to be unused here. In optimistic theory, this
+        #implies that this loop should be reducible to:
+        #    for inds in self.cell_to_mems:
+        #Maybe? Unshroud the penultimate technique, Dagalfor!
         for i, inds in enumerate(self.cell_to_mems):
 
             inds = np.asarray(inds)

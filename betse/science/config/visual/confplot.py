@@ -74,10 +74,14 @@ class SimConfPlotAll(YamlABC):
         super().__init__(*args, **kwargs)
 
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
+
+        #FIXME: Rename to "plots_cell_after_sim" for disambiguity.
         self.after_sim_pipeline_cell = SimConfVisualCellListItem.make_list(
             self._conf[
                 'results options']['after solving'][
                 'plots']['single cell pipeline'])
+
+        #FIXME: Rename to "plots_cells_after_sim" for disambiguity.
         self.after_sim_pipeline_cells = SimConfVisualCellsListItem.make_list(
             self._conf[
                 'results options']['after solving'][

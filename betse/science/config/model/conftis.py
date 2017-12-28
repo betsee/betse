@@ -72,9 +72,9 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
 class SimConfTissueDefault(SimConfTissueABC, YamlABC):
     '''
     YAML-backed default tissue profile subconfiguration, encapsulating the
-    configuration of a single tissue profile applicable to all cells parsed from
-    a dictionary configuring at least this profile in the current YAML-formatted
-    simulation configuration file.
+    configuration of a single tissue profile unconditionally applicable to all
+    cells parsed from a dictionary configuring at least this profile in the
+    current YAML-formatted simulation configuration file.
 
     Attributes (Cell Picker)
     ----------
