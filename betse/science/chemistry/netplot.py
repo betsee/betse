@@ -16,9 +16,6 @@ and plot.
 
 from betse.exceptions import BetsePyDotException
 from betse.lib import libs
-from betse.util.io.log import logs
-import sys
-import importlib.util
 
 
 def set_net_opts(self, net_plot_opts, p):
@@ -563,7 +560,6 @@ def plot_master_network(self, p):
 
     return base_graph
 
-
 def make_subgraphs(self, base_graph, p):
 
     # If PyDot or Networkx are unimportable, raise an exception.
@@ -642,8 +638,6 @@ def make_subgraphs(self, base_graph, p):
 
     return master_graph
 
-
-
 def graph_influencers(self, base_graph, name, a_list, i_list, p, reaction_zone = 'cell', zone_tags_a = None,
     zone_tags_i = None):
     """
@@ -721,7 +715,6 @@ def graph_influencers(self, base_graph, name, a_list, i_list, p, reaction_zone =
 
             base_graph.add_edge(
                 pydot.Edge(inh_name, name, arrowhead='tee', color='red', penwidth = self.edge_width))
-
 
 def write_nodes(nx_graph, py_graph):
 

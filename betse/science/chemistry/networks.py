@@ -15,7 +15,7 @@ from betse.science.channels import vg_cl as vgcl
 from betse.science.channels import vg_funny as vgfun
 from betse.science.channels import vg_k as vgk
 from betse.science.channels import vg_na as vgna
-from betse.science.chemistry.netplot import plot_master_network, set_net_opts
+from betse.science.chemistry.netplot import set_net_opts
 from betse.science.config.visual.confvisabc import SimConfVisualCellsNonYAML
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
@@ -31,7 +31,6 @@ from betse.util.type.types import type_check
 from collections import OrderedDict
 from matplotlib import cm
 from matplotlib import colors
-from scipy.ndimage.filters import gaussian_filter
 from scipy.optimize import basinhopping
 
 # ....................{ CLASSES                            }....................
@@ -4013,6 +4012,9 @@ class MasterOfNetworks(object):
             # with both.
             if libs.is_runtime_optional('networkx', 'pydot'):
                 # whole_graph = self.plot_network(p)
+
+                from betse.science.chemistry.netplot import plot_master_network, set_net_opts
+
                 whole_graph = plot_master_network(self, p)
                 savename = self.imagePath + 'NetworkGraph_Cell_' + str(p.plot_cell) + '.svg'
                 whole_graph.write_svg(savename)

@@ -134,8 +134,47 @@ class TissueHandler(object):
         if not p.is_tissue_profiles:
             return
 
+        #FIXME: Simplify the current approach to handling the default tissue profile.
+        #While this technically works, it also results in code duplication. Instead:
+        #
+        #* Copy the "p.tissue_profiles" list into a local list variable. To do so
+        #  without modifying the underlying YAML dictionary, we'll probably need to
+        #  add a new copy() method to the "YamlListABC" class.
+        #* Insert the "p.tissue_default" profile as the first item of the
+        #  "p.tissue_profiles" list, synthesizing a picker as appropriate.
+
+        # 1-based index of the current tissue profile.
+        tissue_z_order = 1
+
+        # Object selecting a region of the cell cluster for the default tissue
+        # profile.
+        tissue_picker = TissuePickerImage(
+            filename=p.tissue_default.picker_image_filename,
+            dirname=p.conf_dirname)
+
+        #FIXME: Ensure that we're not duplicating this structure elsewhere. In
+        #particular, the "cells" submodule almost certainly recreates this
+        #default tissue picker.
+
+        # Map the default tissue profile's name to a high-level object.
+        self.tissue_name_to_profile[p.tissue_default.name] = TissueProfile(
+            name=p.tissue_default.name,
+            z_order=tissue_z_order,
+            picker=tissue_picker,
+
+            #FIXME: Document this.
+            is_gj_insular=True,
+            Dm_Na=p.tissue_default.Dm_Na,
+            Dm_K=p.tissue_default.Dm_K,
+            Dm_Cl=p.tissue_default.Dm_Cl,
+            Dm_Ca=p.tissue_default.Dm_Ca,
+            Dm_H=p.tissue_default.Dm_H,
+            Dm_M=p.tissue_default.Dm_M,
+            Dm_P=p.tissue_default.Dm_P,
+        )
+
         # For each low-level YAML-backed tissue profile...
-        for tissue_index, tissue_profile in enumerate(p.tissue_profiles):
+        for tissue_profile in p.tissue_profiles:
             # If a prior profile collides with this profile's name, this profile
             # is non-unique. In this case, raise an exception.
             if tissue_profile.name in self.tissue_name_to_profile:
@@ -144,7 +183,10 @@ class TissueHandler(object):
                     '(i.e., two or more tissue profiles named "{0}").'.format(
                         tissue_profile.name))
 
-            # Object matching a region of the cell cluster for this profile.
+            # Increment the 1-based index of the current tissue profile.
+            tissue_z_order += 1
+
+            # Object selecting a region of the cell cluster for this profile.
             tissue_picker = None
 
             # Conditionally define this object.
@@ -157,7 +199,7 @@ class TissueHandler(object):
             elif tissue_profile.picker_type is CellsPickerType.INDICES:
                 tissue_picker = TissuePickerIndices(
                     cells_index=tissue_profile.picker_cells_index)
-            elif tissue_profile.picker_type is CellsPickerType.RANDOM:
+            elif tissue_profile.picker_type is CellsPickerType.PERCENT:
                 tissue_picker = TissuePickerPercent(
                     cells_percent=tissue_profile.picker_cells_percent)
             else:
@@ -168,7 +210,7 @@ class TissueHandler(object):
             # Map this profile's name to a high-level tissue profile object.
             self.tissue_name_to_profile[tissue_profile.name] = TissueProfile(
                 name=tissue_profile.name,
-                z_order=tissue_index + 1,
+                z_order=tissue_z_order,
                 picker=tissue_picker,
                 is_gj_insular=tissue_profile.is_gj_insular,
                 Dm_Na=tissue_profile.Dm_Na,

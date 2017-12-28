@@ -133,7 +133,7 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     picker_cells_index = yaml_alias(
         "['cell targets']['indices']", SequenceTypes)
     picker_cells_percent = yaml_alias_float_percent(
-        "['cell targets']['random']")
+        "['cell targets']['percent']")
     picker_image_filename = yaml_alias(
         "['cell targets']['image']['file']", str)
 
@@ -164,9 +164,10 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
                 'type': 'all',
                 'image': {'file': 'geo/circle/circle_base.png'},
                 'indices': [3, 14, 15, 9, 265],
-                'random': 50,
+                'percent': 50,
             },
         })
+
 # ....................{ SUBCLASSES ~ cut                   }....................
 class SimConfCutListItem(YamlListItemABC):
     '''

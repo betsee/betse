@@ -329,14 +329,22 @@ def _upgrade_sim_conf_to_0_6_0(
             'clipping']
 
     # For disambiguity, rename "bitmap" to "image" in tissue and cut profiles.
+    # Likewise, rename "random" to "percent".
     if 'image' not in tissue_dict['tissue']['default']:
         tissue_dict['tissue']['default']['image'] = tissue_dict[
             'tissue']['default']['cell targets']['bitmap']
+
     for profile in tissue_dict['tissue']['profiles']:
         if profile['cell targets']['type'] == 'bitmap':
             profile['cell targets']['type'] = 'image'
+        elif profile['cell targets']['type'] == 'random':
+            profile['cell targets']['type'] = 'percent'
+
         if 'image' not in profile['cell targets']:
             profile['cell targets']['image'] = profile['cell targets']['bitmap']
+        if 'percent' not in profile['cell targets']:
+            profile['cell targets']['percent'] = profile['cell targets']['random']
+
     for profile in tissue_dict['cut profiles']:
         if 'image' not in profile:
             profile['image'] = profile['bitmap']

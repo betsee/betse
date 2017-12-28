@@ -40,31 +40,31 @@ class PlotCellsPipe(PlotPipeABC):
         return self._phase.p.plot.after_sim_pipeline_cells
 
     # ..................{ EXPORTERS ~ channel                }..................
-    @piperunner(
-        categories=('Ion Channel', 'Density Factor',),
-        requirements={piperunreq.ELECTROOSMOSIS,},
-    )
-    def export_channel_density(self, conf: SimConfVisualCellsListItem) -> None:
-        '''
-        Plot all cell membrane ion channel density factors for the cell cluster
-        at the last time step.
-        '''
-
-        # Prepare to export the current plot.
-        self._export_prep()
-
-        plotutil.plotMemData(
-            self._phase.cells,
-            self._phase.p,
-            zdata=self._phase.sim.rho_channel,
-            clrmap=self._phase.p.default_cm,
-        )
-        pyplot.xlabel('Spatial Dimension [um]')
-        pyplot.ylabel('Spatial Dimension [um]')
-        pyplot.title('Membrane ion channel density factor')
-
-        # Export this plot to disk and/or display.
-        self._export(basename='final_channels_2D')
+    # @piperunner(
+    #     categories=('Ion Channel', 'Density Factor',),
+    #     requirements={piperunreq.ELECTROOSMOSIS,},
+    # )
+    # def export_channel_density(self, conf: SimConfVisualCellsListItem) -> None:
+    #     '''
+    #     Plot all cell membrane ion channel density factors for the cell cluster
+    #     at the last time step.
+    #     '''
+    #
+    #     # Prepare to export the current plot.
+    #     self._export_prep()
+    #
+    #     plotutil.plotMemData(
+    #         self._phase.cells,
+    #         self._phase.p,
+    #         zdata=self._phase.sim.rho_channel,
+    #         clrmap=self._phase.p.default_cm,
+    #     )
+    #     pyplot.xlabel('Spatial Dimension [um]')
+    #     pyplot.ylabel('Spatial Dimension [um]')
+    #     pyplot.title('Membrane ion channel density factor')
+    #
+    #     # Export this plot to disk and/or display.
+    #     self._export(basename='final_channels_2D')
 
     # ..................{ EXPORTERS ~ current                }..................
     @piperunner(
@@ -343,42 +343,42 @@ class PlotCellsPipe(PlotPipeABC):
         self._export(basename='Final_environmental_calcium')
 
     # ..................{ EXPORTERS ~ ion : hydrogen         }..................
-    @piperunner(
-        categories=('Ion Concentration', 'Hydrogen', 'Intracellular',),
-        requirements={piperunreq.ION_HYDROGEN,},
-    )
-    def export_ion_hydrogen_intra(self, conf: SimConfVisualCellsListItem) -> None:
-        '''
-        Plot all intracellular hydrogen (i.e., H+) ion concentrations for the
-        cell cluster at the last time step.
-        '''
-
-        # Prepare to export the current plot.
-        self._export_prep()
-
-        pHdata = -np.log10(1e-3*self._phase.sim.cc_time[-1][self._phase.sim.iH])
-
-        figH, axH, cbH = plotutil.plotPolyData(
-            self._phase.sim, self._phase.cells, self._phase.p,
-            zdata=pHdata,
-            number_cells=self._phase.p.enumerate_cells,
-            clrmap=self._phase.p.default_cm,
-            clrAutoscale=conf.is_color_autoscaled,
-            clrMin=conf.color_min,
-            clrMax=conf.color_max,
-        )
-
-        # figH, axH, cbH = plotutil.plotPrettyPolyData(pHdata, sim,cells,p,
-        #     number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_pH,
-        #     clrMin = p.pH_min_clr, clrMax = p.pH_max_clr, clrmap = p.default_cm)
-
-        axH.set_title('Final cytosolic pH')
-        axH.set_xlabel('Spatial distance [um]')
-        axH.set_ylabel('Spatial distance [um]')
-        cbH.set_label('pH')
-
-        # Export this plot to disk and/or display.
-        self._export(basename='final_pH_2D')
+    # @piperunner(
+    #     categories=('Ion Concentration', 'Hydrogen', 'Intracellular',),
+    #     requirements={piperunreq.ION_HYDROGEN,},
+    # )
+    # def export_ion_hydrogen_intra(self, conf: SimConfVisualCellsListItem) -> None:
+    #     '''
+    #     Plot all intracellular hydrogen (i.e., H+) ion concentrations for the
+    #     cell cluster at the last time step.
+    #     '''
+    #
+    #     # Prepare to export the current plot.
+    #     self._export_prep()
+    #
+    #     pHdata = -np.log10(1e-3*self._phase.sim.cc_time[-1][self._phase.sim.iH])
+    #
+    #     figH, axH, cbH = plotutil.plotPolyData(
+    #         self._phase.sim, self._phase.cells, self._phase.p,
+    #         zdata=pHdata,
+    #         number_cells=self._phase.p.enumerate_cells,
+    #         clrmap=self._phase.p.default_cm,
+    #         clrAutoscale=conf.is_color_autoscaled,
+    #         clrMin=conf.color_min,
+    #         clrMax=conf.color_max,
+    #     )
+    #
+    #     # figH, axH, cbH = plotutil.plotPrettyPolyData(pHdata, sim,cells,p,
+    #     #     number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_pH,
+    #     #     clrMin = p.pH_min_clr, clrMax = p.pH_max_clr, clrmap = p.default_cm)
+    #
+    #     axH.set_title('Final cytosolic pH')
+    #     axH.set_xlabel('Spatial distance [um]')
+    #     axH.set_ylabel('Spatial distance [um]')
+    #     cbH.set_label('pH')
+    #
+    #     # Export this plot to disk and/or display.
+    #     self._export(basename='final_pH_2D')
 
     # ..................{ EXPORTERS ~ junction               }..................
     @piperunner(
@@ -449,30 +449,30 @@ class PlotCellsPipe(PlotPipeABC):
         self._export(basename='Final_Microtubules')
 
     # ..................{ EXPORTERS ~ pump                   }..................
-    @piperunner(
-        categories=('Ion Pump', 'Density Factor',),
-        requirements={piperunreq.ELECTROOSMOSIS,},
-    )
-    def export_pump_density(self, conf: SimConfVisualCellsListItem) -> None:
-        '''
-        Plot all cell membrane ion pump density factors for the cell cluster at
-        the last time step.
-        '''
-
-        # Prepare to export the current plot.
-        self._export_prep()
-
-        plotutil.plotMemData(
-            self._phase.cells, self._phase.p,
-            zdata=self._phase.sim.rho_pump,
-            clrmap=self._phase.p.default_cm,
-        )
-        pyplot.xlabel('Spatial Dimension [um]')
-        pyplot.ylabel('Spatial Dimension [um]')
-        pyplot.title('Membrane ion pump density factor')
-
-        # Export this plot to disk and/or display.
-        self._export(basename='final_pumps_2D')
+    # @piperunner(
+    #     categories=('Ion Pump', 'Density Factor',),
+    #     requirements={piperunreq.ELECTROOSMOSIS,},
+    # )
+    # def export_pump_density(self, conf: SimConfVisualCellsListItem) -> None:
+    #     '''
+    #     Plot all cell membrane ion pump density factors for the cell cluster at
+    #     the last time step.
+    #     '''
+    #
+    #     # Prepare to export the current plot.
+    #     self._export_prep()
+    #
+    #     plotutil.plotMemData(
+    #         self._phase.cells, self._phase.p,
+    #         zdata=self._phase.sim.rho_pump,
+    #         clrmap=self._phase.p.default_cm,
+    #     )
+    #     pyplot.xlabel('Spatial Dimension [um]')
+    #     pyplot.ylabel('Spatial Dimension [um]')
+    #     pyplot.title('Membrane ion pump density factor')
+    #
+    #     # Export this plot to disk and/or display.
+    #     self._export(basename='final_pumps_2D')
 
 
     @piperunner(categories=('Ion Pump', 'Pump Rate', 'Na-K-ATPase',))

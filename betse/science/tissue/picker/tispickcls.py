@@ -14,6 +14,7 @@ from betse.lib.numpy import nparray
 from betse.science.math import toolbox
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
+import numpy as np
 
 # ....................{ SUPERCLASS                         }....................
 class TissuePickerABC(object, metaclass=ABCMeta):
@@ -214,10 +215,10 @@ class TissuePickerPercent(TissuePickerABC):
         # Total number of cells to randomly select from this cluster.
         data_fraction = int((self.cells_percent/100)*data_length)
 
-        # cell_i_copy = cells.cell_i[:]
-        # random.shuffle(cell_i_copy)
+        cell_i_copy = cells.cell_i[:]
+        np.random.shuffle(cell_i_copy)
 
         # For simplicity, non-randomly select the indices of the first
         # "data_fraction"-th cells in this cluster. While technically
         # non-random, this simplistic approach currently suffices.
-        return [cells.cell_i[x] for x in range(0, data_fraction)]
+        return [cell_i_copy[x] for x in range(0, data_fraction)]

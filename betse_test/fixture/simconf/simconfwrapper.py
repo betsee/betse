@@ -364,14 +364,14 @@ class SimConfigTestWrapper(object):
         voltage_gated_sodium_channel['turn on'] = True
         voltage_gated_sodium_channel['channel type'] = ['Nav1p2',]
         # voltage_gated_sodium_channel['max value'] = 5.0e-6
-        voltage_gated_sodium_channel['apply to'] = ['all',]
+        voltage_gated_sodium_channel['apply to'] = ['base',]
 
         # Enable the voltage-gated potassium (K+) channel K_Slow.
         voltage_gated_potassium_channel = self._p._conf['voltage gated K+']
         voltage_gated_potassium_channel['turn on'] = True
         voltage_gated_potassium_channel['channel type'] = ['K_Slow',]
         # voltage_gated_potassium_channel['max value'] = 5.0e-7
-        voltage_gated_potassium_channel['apply to'] = ['all',]
+        voltage_gated_potassium_channel['apply to'] = ['base',]
 
     # ..................{ ENABLERS ~ export                  }..................
     @type_check

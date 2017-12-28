@@ -172,7 +172,7 @@ def yaml_alias_float_percent(keys: str) -> YamlAliasABC:
     return yaml_alias(
         keys=keys,
         cls=float,
-        predicate_expr='not 0.0 <= value <= 100.0',
+        predicate_expr='0.0 <= value <= 100.0',
         predicate_label='percentage',
     )
 

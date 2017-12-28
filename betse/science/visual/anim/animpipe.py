@@ -334,31 +334,31 @@ class AnimCellsPipe(SimPipeExportABC):
         )
 
 
-    @piperunner(
-        categories=('Ion Concentration', 'Hydrogen',),
-        requirements={piperunreq.ION_HYDROGEN,},
-    )
-    def export_ion_hydrogen_intra(
-        self, conf: SimConfVisualCellsListItem) -> None:
-        '''
-        Animate all intracellular hydrogen ion (i.e., H+) concentrations over
-        all sampled time steps, scaled to correspond exactly to pH.
-        '''
-
-        # Layer sequence containing only a single layer animating these ion
-        # concentrations.
-        layers = (lyrvecabc.make_layer(
-            phase=self._phase,
-            vector=self._phase.cache.vector.ion_hydrogen_intra),)
-
-        # Animate these layers.
-        AnimCellsAfterSolvingLayered(
-            phase=self._phase,
-            conf=conf,
-            layers=layers,
-            figure_title='Cytosolic pH',
-            colorbar_title='pH',
-        )
+    # @piperunner(
+    #     categories=('Ion Concentration', 'Hydrogen',),
+    #     requirements={piperunreq.ION_HYDROGEN,},
+    # )
+    # def export_ion_hydrogen_intra(
+    #     self, conf: SimConfVisualCellsListItem) -> None:
+    #     '''
+    #     Animate all intracellular hydrogen ion (i.e., H+) concentrations over
+    #     all sampled time steps, scaled to correspond exactly to pH.
+    #     '''
+    #
+    #     # Layer sequence containing only a single layer animating these ion
+    #     # concentrations.
+    #     layers = (lyrvecabc.make_layer(
+    #         phase=self._phase,
+    #         vector=self._phase.cache.vector.ion_hydrogen_intra),)
+    #
+    #     # Animate these layers.
+    #     AnimCellsAfterSolvingLayered(
+    #         phase=self._phase,
+    #         conf=conf,
+    #         layers=layers,
+    #         figure_title='Cytosolic pH',
+    #         colorbar_title='pH',
+    #     )
 
     # ..................{ EXPORTERS ~ junction               }..................
     @piperunner(categories=('Gap Junction', 'Connectivity State',))
@@ -443,25 +443,25 @@ class AnimCellsPipe(SimPipeExportABC):
         )
 
     # ..................{ EXPORTERS ~ pump                   }..................
-    @piperunner(
-        categories=('Ion Pump', 'Density Factor',),
-        requirements={piperunreq.ELECTROOSMOSIS,},
-    )
-    def export_pump_density(self, conf: SimConfVisualCellsListItem) -> None:
-        '''
-        Animate all cell membrane ion pump density factors for the cell cluster
-        over all sampled time steps.
-        '''
-
-        # Animate this animation.
-        AnimMembraneTimeSeries(
-            phase=self._phase,
-            conf=conf,
-            time_series=self._phase.sim.rho_pump_time,
-            label='rhoPump',
-            figure_title='Pump Density Factor',
-            colorbar_title='mol fraction/m2',
-        )
+    # @piperunner(
+    #     categories=('Ion Pump', 'Density Factor',),
+    #     requirements={piperunreq.ELECTROOSMOSIS,},
+    # )
+    # def export_pump_density(self, conf: SimConfVisualCellsListItem) -> None:
+    #     '''
+    #     Animate all cell membrane ion pump density factors for the cell cluster
+    #     over all sampled time steps.
+    #     '''
+    #
+    #     # Animate this animation.
+    #     AnimMembraneTimeSeries(
+    #         phase=self._phase,
+    #         conf=conf,
+    #         time_series=self._phase.sim.rho_pump_time,
+    #         label='rhoPump',
+    #         figure_title='Pump Density Factor',
+    #         colorbar_title='mol fraction/m2',
+    #     )
 
     # ..................{ EXPORTERS ~ voltage                }..................
     @piperunner(
