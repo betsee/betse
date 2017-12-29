@@ -46,7 +46,7 @@ class PlotCellPipe(PlotPipeABC):
     # ..................{ SUPERCLASS                         }..................
     @property
     def _runners_conf(self) -> IterableTypes:
-        return self._phase.p.plot.after_sim_pipeline_cell
+        return self._phase.p.plot.plots_cell_after_sim
 
     # ..................{ EXPORTERS ~ cell : current         }..................
     #FIXME: Force every currently optional "conf" parameter to be mandatory.

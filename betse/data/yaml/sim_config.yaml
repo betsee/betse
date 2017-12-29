@@ -175,9 +175,10 @@ world options:
 #    Cut profiles are ignored unless the cutting event defined below is also enabled.
 #
 # No File synch issues: Tissue profiles can be altered after the time of the 'betse seed' command.
-
-# Image masks must have pure-black pixels (red, green, and blue color values all 0)
-# define the exterior shape of the entire cell cluster or tissue profile. This image *MUST*:
+#
+# Image masks must have pure-black pixels (red, green, and blue color values all
+# 0) defining the exterior shape of the entire cell cluster or tissue profile.
+# Image masks *MUST*:
 # * Be square (i.e., have equal width and height).
 # * Contain no alpha transparency layer.
 
@@ -189,8 +190,8 @@ tissue profile definition:
     default: # Default tissue profile applied to all cells *NOT* specifically targeted by a
              # tissue profile defined below. Never ignored, even if "profiles enabled" is False.
       name: base # Arbitrary unique profile name.
-      image:     # Image defines shape of entire cell cluster
-        file: geo/circle/circle_base.png  # Absolute or relative filename of this image.
+      image: geo/circle/circle_base.png # Absolute or relative filename of the image whose
+                                        # pure-black pixels define the cell cluster shape.
       diffusion constants: # Membrane diffusion constants applied to all unprofiled cells.
         Dm_Na: 1.0e-18     # Na+ membrane diffusion constant [m2/s]
         Dm_K: 15.0e-18     # K+ membrane diffusion constant [m2/s]
@@ -219,7 +220,7 @@ tissue profile definition:
                         # * "image", selecting only cells residing in an image's pure-black area.
                         # * "indices", selecting only cells with the indices listed below.
                         # * "percent", selecting only a random subset of cells in the cluster.
-          image: { file: geo/circle/spot_3.png } # Absolute or relative filename of this image.
+          image: geo/circle/spot_3.png # Absolute or relative filename of this image.
           indices: [3, 14, 15, 9, 265] # List of all positive integers uniquely identifying each
                                        # cell in this cluster to apply this tissue profile to.
                                        # Ignored unless "type: indices" specified above.
@@ -240,7 +241,7 @@ tissue profile definition:
           Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
         cell targets:
           type: image
-          image: { file: geo/circle/tissue_A.png }
+          image: geo/circle/tissue_A.png
           indices: [0]
           percent: 25
 
@@ -249,9 +250,8 @@ tissue profile definition:
                 # Ignored if "profiles enabled" is False.
     # Example cut profile removing a depolarized wedge of cells from a cell cluster boundary.
     - name: surgery # Arbitrary unique profile name.
-      image:        # Image whose pure-black pixels define the region of cells to remove.
-                    # See the default tissue profile's "image" setting above.
-        file: geo/circle/wedge.png # Absolute or relative filename of this image.
+      image: geo/circle/wedge.png # Absolute or relative filename of the image whose pure-black
+                                  # pixels define the region of cells to remove.
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -738,7 +738,7 @@ variable settings:
     microtubule initial x asymmetry: None # initial asymmetry of microtubules 'x' component
     microtubule initial y asymmetry: None # initial asymmetry of microtubules 'y' component
 
-# FIXME: add network substances to Goldman calculator, also add in pumps
+  # FIXME: add network substances to Goldman calculator, also add in pumps
   use Goldman calculator: False   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK)
                                  # voltage equation for comparison purposes?
 
@@ -797,7 +797,7 @@ results options:
   plot networks single cell: True   # export regulatory networks for single cell to
                                     # interconnected graph images?
 
-  #FIXME allow each one ot have its own colormap
+  #FIXME allow each one to have its own colormap
   while solving:          # Results exported during simulation computation.
     animations:           # Animations exported during simulation computation.
       show: True          # Display animations during simulation computation?

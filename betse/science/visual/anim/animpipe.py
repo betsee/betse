@@ -61,7 +61,7 @@ class AnimCellsPipe(SimPipeExportABC):
 
     @property
     def _runners_conf(self) -> IterableTypes:
-        return self._phase.p.anim.after_sim_pipeline
+        return self._phase.p.anim.anims_after_sim
 
     # ..................{ EXPORTERS ~ current                }..................
     @piperunner(

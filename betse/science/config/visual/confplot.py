@@ -26,7 +26,7 @@ class SimConfPlotAll(YamlABC):
     This subconfiguration saves (i.e., writes, serializes) in-memory plots to
     on-disk cache, image, and/or video files configured by this configuration.
 
-    Attributes (After)
+    Attributes (After Solving)
     ----------
     is_after_sim : bool
         ``True`` only if this configuration displays and/or saves
@@ -36,12 +36,12 @@ class SimConfPlotAll(YamlABC):
     is_after_sim_save : bool
         ``True`` only if this configuration saves post-simulation plots.
 
-    Attributes (After : Single-cell)
+    Attributes (After Solving: Single-cell)
     ----------
-    after_sim_pipeline_cell : YamlList
+    plots_cell_after_sim : YamlList
         YAML-backed list of all post-simulation single-cell plots to be
         animated. Ignored if :attr:``is_after_sim`` is ``False``.
-    after_sim_pipeline_cells : YamlList
+    plots_cells_after_sim : YamlList
         YAML-backed list of all post-simulation cell cluster plots to be
         animated. Ignored if :attr:``is_after_sim`` is ``False``.
 
@@ -74,18 +74,32 @@ class SimConfPlotAll(YamlABC):
         super().__init__(*args, **kwargs)
 
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
+        self.plots_cell_after_sim = SimConfVisualCellListItem.make_list()
+        self.plots_cells_after_sim = SimConfVisualCellsListItem.make_list()
 
-        #FIXME: Rename to "plots_cell_after_sim" for disambiguity.
-        self.after_sim_pipeline_cell = SimConfVisualCellListItem.make_list(
-            self._conf[
-                'results options']['after solving'][
-                'plots']['single cell pipeline'])
+    # ..................{ LOADERS                            }..................
+    def load(self, *args, **kwargs) -> None:
 
-        #FIXME: Rename to "plots_cells_after_sim" for disambiguity.
-        self.after_sim_pipeline_cells = SimConfVisualCellsListItem.make_list(
-            self._conf[
-                'results options']['after solving'][
-                'plots']['cell cluster pipeline'])
+        # Load our superclass with all passed arguments.
+        super().load(*args, **kwargs)
+
+        # Load all subconfigurations of this configuration.
+        self.plots_cell_after_sim.load(conf=self._conf[
+            'results options']['after solving'][
+            'plots']['single cell pipeline'])
+        self.plots_cells_after_sim.load(conf=self._conf[
+            'results options']['after solving'][
+            'plots']['cell cluster pipeline'])
+
+
+    def unload(self) -> None:
+
+        # Unload our superclass.
+        super().unload()
+
+        # Unload all subconfigurations of this configuration.
+        self.plots_cell_after_sim.unload()
+        self.plots_cells_after_sim.unload()
 
     # ..................{ PROPERTIES ~ after                 }..................
     @property

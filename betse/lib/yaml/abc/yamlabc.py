@@ -17,8 +17,6 @@ from betse.util.type.iterators import empty_iterator
 from betse.util.type.types import (
     type_check,
     IterableTypes,
-    MappingType,
-    MappingOrNoneTypes,
     MappingOrSequenceTypes,
     MappingOrSequenceOrNoneTypes,
     NoneType,
@@ -41,43 +39,13 @@ class YamlABC(object, metaclass=ABCMeta):
     '''
 
     # ..................{ INITIALIZERS                       }..................
-    #FIXME: Refectar as follows:
-    #
-    #* Refactor all current instantiations of this superclass passing a "conf"
-    #  parameter (typically positionally) to instead:
-    #  * Instantiate this superclass *WITHOUT* passing such a parameter.
-    #  * Set the "conf" parameter *AFTER* instantiation to the desired "dict".
-    #  For example:
-    #
-    #      # Instead of this...
-    #      def load(self, *args, **kwargs) -> None:
-    #          self.tissue_default = SimConfTissueDefault(
-    #              self._conf['tissue profile definition']['tissue']['default'])
-    #
-    #      # ...just do this.
-    #      def __init__(self, *args, **kwargs) -> None:
-    #          self.tissue_default = SimConfTissueDefault()
-    #
-    #      def load(self, *args, **kwargs) -> None:
-    #          self.tissue_default.load(
-    #              self._conf['tissue profile definition']['tissue']['default']))
-    #* Remove this optional "conf" parameter from this method entirely.
     @type_check
-    def __init__(self, conf: MappingOrSequenceOrNoneTypes = None) -> None:
+    def __init__(self) -> None:
         '''
         Initialize this YAML-backed configuration.
-
-        Parameters
-        ----------
-        conf : MappingOrSequenceOrNoneTypes
-            Low-level container of related configuration settings loaded from
-            and saved back to a YAML-formatted configuration file. Defaults to
-            ``None``, in which case the caller is responsible for calling the
-            :meth:`load` method prior to the first access of this property.
         '''
 
-        # Classify all passed parameters.
-        self._conf = conf
+        pass
 
     # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from resetting these attributes.
@@ -133,7 +101,8 @@ class YamlABC(object, metaclass=ABCMeta):
 
     # ..................{ LOADERS                            }..................
     @type_check
-    def load(self, conf: MappingOrSequenceTypes) -> None:
+    def load(self, conf: MappingOrSequenceTypes) -> (
+        'betse.lib.yaml.abc.yamlabc.YamlABC'):
         '''
         Associate this configuration with the passed YAML-backed container.
 
@@ -142,9 +111,18 @@ class YamlABC(object, metaclass=ABCMeta):
         conf : MappingOrSequenceTypes
             Low-level container of related configuration settings loaded from
             and saved back to a YAML-formatted configuration file.
+
+        Returns
+        ----------
+        YamlABC
+            This configuration, returned for convenience chaining in callers.
         '''
 
+        # Classify this container.
         self._conf = conf
+
+        # Return this configuration for convenience.
+        return self
 
 
     def unload(self) -> None:
@@ -200,25 +178,6 @@ class YamlFileABC(YamlABC):
         which this object was most recently deserialized if any *or* ``None``
         otherwise.
     '''
-
-    # ..................{ MAKERS                             }..................
-    @classmethod
-    @type_check
-    def make(cls, conf_filename: str) -> (
-        'betse.lib.yaml.abc.yamlabc.YamlFileABC'):
-        '''
-        Create return an instance of this subclass deserialized (i.e., read)
-        from the passed YAML-formatted configuration file.
-
-        Parameters
-        ----------
-        conf_filename : str
-            Absolute or relative path of the source file to be deserialized.
-        '''
-
-        self = cls()
-        self.load(conf_filename)
-        return self
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
@@ -279,9 +238,9 @@ class YamlFileABC(YamlABC):
         return self._conf_dirname
 
     # ..................{ LOADERS                            }..................
-    #FIXME: Validate the contents of this file (e.g., via "yamale").
     @type_check
-    def load(self, conf_filename: str) -> None:
+    def load(self, conf_filename: str) -> (
+        'betse.lib.yaml.abc.yamlabc.YamlFileABC'):
         '''
         Deserialize the passed YAML-formatted simulation configuration file into
         a low-level dictionary internally stored in this object, replacing the
@@ -291,6 +250,11 @@ class YamlFileABC(YamlABC):
         ----------
         conf_filename : str
             Absolute or relative path of the source file to be deserialized.
+
+        Returns
+        ----------
+        YamlFileABC
+            This configuration, returned for convenience chaining in callers.
         '''
 
         # Log this operation.
@@ -306,6 +270,9 @@ class YamlFileABC(YamlABC):
         # Associate this object with this file *AFTER* successfully
         # deserializing this file.
         self._set_conf_filename(conf_filename)
+
+        # Return this configuration for convenience.
+        return self
 
 
     def unload(self) -> None:

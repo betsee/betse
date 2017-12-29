@@ -15,13 +15,14 @@ from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
 from betse.science.simulate.simphase import SimPhaseKind
 from betse.science.tissue.event import tisevevolt
+from betse.science.config.visual.confanim import SimConfAnimAll
+from betse.science.config.visual.confplot import SimConfPlotAll
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 # from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
 
 # ....................{ CLASSES                            }....................
-#FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
 class Parameters(YamlFileABC):
     '''
     High-level simulation configuration encapsulating the low-level dictionary
@@ -234,9 +235,6 @@ class Parameters(YamlFileABC):
         Defaults to 0, the index assigned to the first cell guaranteed to exist.
         Note that cell indices are seed-specific and may be visualized via the
         :attr:`enumerate_cells` boolean.
-    I_overlay : bool
-        ``True`` only if overlaying either electric current or concentration
-        flux streamlines on appropriate plots and animations.
     '''
 
     # ..................{ ALIASES                            }..................
@@ -323,14 +321,20 @@ class Parameters(YamlFileABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
-        # Default tissue profile applied to all cells.
+        # Classify unloaded tissue and cut profiles.
+        self.cut_profiles = SimConfCutListItem.make_list()
         self.tissue_default = SimConfTissueDefault()
+        self.tissue_profiles = SimConfTissueListItem.make_list()
+
+        # Classify unloaded plot and animation subconfigurations.
+        self.anim = SimConfAnimAll()
+        self.plot = SimConfPlotAll()
 
     # ..................{ LOADERS                            }..................
     #FIXME: Convert all or most of the variables parsed by this method into
     #aliases of the above form. Brainy rainbows!
     @type_check
-    def load(self, *args, **kwargs) -> None:
+    def load(self, *args, **kwargs) -> 'betse.science.parameters.Parameters':
 
         # Avoid circular import dependencies.
         from betse.science.config import confcompat
@@ -372,14 +376,12 @@ class Parameters(YamlFileABC):
         # TISSUE PROFILES
         #---------------------------------------------------------------------------------------------------------------
 
-        # Default tissue profile applied to all cells.
+        # Load all tissue and cut profiles.
+        self.cut_profiles.load(
+            self._conf['tissue profile definition']['cut profiles'])
         self.tissue_default.load(
             self._conf['tissue profile definition']['tissue']['default'])
-
-        # List of all non-default profiles applied to only some cells.
-        self.cut_profiles = SimConfCutListItem.make_list(
-            self._conf['tissue profile definition']['cut profiles'])
-        self.tissue_profiles = SimConfTissueListItem.make_list(
+        self.tissue_profiles.load(
             self._conf['tissue profile definition']['tissue']['profiles'])
 
         #---------------------------------------------------------------------------------------------------------------
@@ -877,13 +879,10 @@ class Parameters(YamlFileABC):
         # ................{ EXPORTS                            }................
         ro = self._conf['results options']
 
-        # Avoid circular import dependencies.
-        from betse.science.config.visual.confanim import SimConfAnimAll
-        from betse.science.config.visual.confplot import SimConfPlotAll
-
         # ................{ EXPORTS ~ anim                     }................
-        # Animation subconfiguration.
-        self.anim = SimConfAnimAll(conf=self._conf)
+        # Load all animation and plot subconfigurations.
+        self.anim.load(conf=self._conf)
+        self.plot.load(conf=self._conf)
 
         # CSV subconfiguration.
         self.exportData = ro['save']['data']['all']['enabled']     # export all stored data for the plot_cell to a csv text file
@@ -893,9 +892,6 @@ class Parameters(YamlFileABC):
         self.GHK_calc = self._conf['variable settings']['use Goldman calculator']
 
         # ................{ EXPORTS ~ plot                     }................
-        # Plot subconfiguration.
-        self.plot = SimConfPlotAll(conf=self._conf)
-
         #FIXME: Replace all instances of "p.turn_all_plots_off" in the codebase
         #by "not p.plot.is_after_sim_show" and remove this attribute entirely.
         self.turn_all_plots_off = not self.plot.is_after_sim_show
@@ -928,7 +924,6 @@ class Parameters(YamlFileABC):
 
         self.plot_networks_single_cell = ro['plot networks single cell']
         self.showCells = ro['show cells']     # True = polygon patch plots, False = trimesh
-        self.I_overlay = ro['overlay currents']
         self.stream_density = ro['streamline density']
         self.IecmPlot = ro['plot total current']    # True = plot extracellular currents, false plot gj
         self.plotMask = ro['plot masked geometry']
@@ -1046,6 +1041,9 @@ class Parameters(YamlFileABC):
 
         # Initialize the ion profile specified by this configuration.
         self._init_ion_profile()
+
+        # Return this configuration for convenience.
+        return self
 
     # ..................{ INITIALIZERS ~ path                }..................
     def _init_paths(self) -> None:
@@ -1311,7 +1309,9 @@ class Parameters(YamlFileABC):
         super().unload()
 
         # Unload all previously loaded subconfigurations for safety.
+        self.cut_profiles.unload()
         self.tissue_default.unload()
+        self.tissue_profiles.unload()
 
     # ..................{ EXCEPTIONS                         }..................
     def die_unless_ecm(self) -> None:

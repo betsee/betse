@@ -37,7 +37,7 @@ def seed(source: (SimRunner, str)) -> SimRunner:
     '''
 
     if types.is_simrunner(source):
-        source.makeWorld()
+        source.make_world()
         return source
     else:
         runner = SimRunner(conf_filename=source)

@@ -98,6 +98,7 @@ from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplcls import ImageMovieWriter, NoopMovieWriter
+from betse.science.simulate.simphase import SimPhaseKind
 from betse.science.visual.layer.vectorfield.lyrvecfldabc import (
     LayerCellsFieldColorlessABC)
 from betse.science.visual.layer.vectorfield.lyrvecfldstream import (
@@ -156,8 +157,8 @@ class AnimCellsABC(VisualCellsABC):
     _is_current_overlayable : BoolOrNoneTypes
         ``True`` only if overlaying either electric current or concentration
         flux streamlines on this animation when requested by the current
-        simulation configuration (as governed by the :attr:`p.I_overlay`
-        parameter) *or* ``False`` otherwise.
+        simulation configuration (as governed by the
+        ``p.anim.is_overlay_current`` parameter).
     _is_current_overlay_only_gj : bool
         ``True`` only if overlaying intracellular current *or* ``False``
         otherwise (i.e., if overlaying both intra- and extracellular current).
@@ -216,27 +217,27 @@ class AnimCellsABC(VisualCellsABC):
             animation's frames will be saved when requested by the current
             simulation configuration.
         is_current_overlayable : optional[bool]
-            `True` if overlaying either electric current or concentration flux
-            streamlines on this animation when requested by the current
-            simulation configuration (as governed by the `p.I_overlay`
-            parameter) _or_ `False` otherwise. All subclasses except those
-            already plotting streamlines (e.g., by calling the superclass
+            ``True`` only if overlaying either electric current or concentration
+            flux streamlines on this animation when requested by the current
+            simulation configuration (as governed by the
+            ``p.anim.is_overlay_current`` parameter). All subclasses except
+            those already plotting streamlines (e.g., by calling the superclass
             :meth:`_plot_stream` method) should unconditionally enable this
             boolean.
         is_current_overlay_only_gj : optional[bool]
-            `True` if only overlaying intracellular current _or_ `False` if
-            overlaying both intra- and extracellular current. Ignored if
-            current is _not_ being overlayed at all (i.e., if
-            `_is_current_overlay` is `False`). If `None`, defaults to the
-            following state:
-            * `False` if extracellular spaces are enabled _and_ both
+            ``True`` if only overlaying intracellular current *or* ``False`` if
+            overlaying both intra- and extracellular current. Ignored if current
+            is _not_ being overlayed at all (i.e., if
+            :attr:`_is_current_overlay` is ``False``). If ``None``, defaults to
+            the following state:
+            * ``False`` if extracellular spaces are enabled _and_ both
                intracellular and extracellular current is being animated.
-            * `True` if either extracellular spaces are disabled _or_ are
+            * ``True`` if either extracellular spaces are disabled _or_ are
                enabled but only intracellular current is being animated.
         is_ecm_required : optional[bool]
-            `True` if this animation is specific to extracellular spaces or
-            `False` otherwise. If `True` and extracellular spaces are currently
-            disabled, an exception is raised. Defaults to `False`.
+            ``True`` only if this animation is specific to extracellular spaces.
+            If ``True`` and extracellular spaces are currently disabled, an
+            exception is raised. Defaults to ``False``.
         time_step_count : optional[int]
             Number of frames to be plotted. If `None`, defaults to the number
             of sampled time steps in the current tissue simulation.
@@ -254,8 +255,19 @@ class AnimCellsABC(VisualCellsABC):
                 self._label))
 
         # Default unpassed parameters.
+        #
+        # If unpassed, overlay streamlines onto this animation only if all of
+        # these conditions are satisfied:
+        #
+        # * The current simulation phase is any phase after the "seed" phase
+        #   (i.e., any phase except the "seed" phase). Streamlines require
+        #   simulation data defined during the "init" phase and are thus
+        #   unavailable in earlier phases.
+        # * The current simulation configuration enables this overlay.
         if is_current_overlayable is None:
-            is_current_overlayable = self._phase.p.I_overlay
+            is_current_overlayable = (
+                self._phase.kind >= SimPhaseKind.INIT and
+                self._phase.p.anim.is_overlay_current)
         if is_current_overlay_only_gj is None:
             is_current_overlay_only_gj = not (
                 self._phase.p.is_ecm and self._phase.p.IecmPlot)

@@ -139,3 +139,15 @@ class SimPhase(object):
         else:
             raise BetseSimPhaseException(
                 'Simulation phase {} unrecognized.'.format(kind.name))
+
+    # ..................{ EXCEPTIONS                         }..................
+    @type_check
+    def die_unless_kind(self, kind: SimPhaseKind) -> None:
+        '''
+        Raise an exception unless the kind of this simulation phase is exactly
+        the passed kind of such phases (e.g., seed, initialization, simulation).
+        '''
+
+        if self.kind is not kind:
+            raise BetseSimPhaseException(
+                'Simulation phase "{}" not "{}".'.format(self.kind, kind))

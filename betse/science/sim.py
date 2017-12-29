@@ -11,14 +11,14 @@ from betse.science import sim_toolbox as stb
 from betse.science.channels.gap_junction import Gap_Junction
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.molecules import MasterOfMolecules
-from betse.science.config.confenum import IonProfileType
+# from betse.science.config.confenum import IonProfileType
 from betse.science.math import finitediff as fd
 from betse.science.organelles.endo_retic import EndoRetic
 from betse.science.physics.deform import (
     getDeformation, timeDeform, implement_deform_timestep)
 from betse.science.physics.flow import getFlow
 from betse.science.physics.ion_current import get_current
-from betse.science.physics.move_channels import MoveChannel
+# from betse.science.physics.move_channels import MoveChannel
 from betse.science.physics.pressures import osmotic_P
 from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.science.organelles.microtubules import Mtubes
@@ -2190,7 +2190,7 @@ class Simulator(object):
             # Create this animation.
             anim_cells = AnimCellsWhileSolving(
                 phase=phase_deformed,
-                conf=phase.p.anim.while_sim,
+                conf=phase.p.anim.anim_while_sim,
 
                 # Number of frames to animate, corresponding to the number of
                 # sampled time steps. The plot_frame() method of this animation

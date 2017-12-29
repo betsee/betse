@@ -14,7 +14,7 @@ from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.util.type.cls import classes
 from betse.util.type.obj import objects
 from betse.util.type.types import (
-    type_check, ClassType, SequenceTypes, SequenceOrNoneTypes)
+    type_check, ClassType, SequenceTypes)
 from collections import MutableSequence
 
 # ....................{ SUPERCLASSES ~ list item           }....................
@@ -132,19 +132,12 @@ class YamlList(YamlABC, MutableSequence):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(
-        self, conf: SequenceOrNoneTypes, item_type: ClassType) -> None:
+    def __init__(self, item_type: ClassType) -> None:
         '''
         Initialize this low-level YAML-backed list.
 
         Attributes
         ----------
-        conf : SequenceOrNoneTypes
-            Sequence of all low-level YAML-backed list items both loaded from
-            and saved back to a YAML-formatted file if defined by this file
-            (e.g., as a dictionary key) *or* ``None`` otherwise (i.e., if this
-            file defines no such list). If ``None``, this sequence internally
-            defaults to the empty list.
         item_type : ClassType
             Subclass of the :class:`YamlListItemABC` abstract base class
             with which to encapsulate each low-level YAML-backed list item in
@@ -161,24 +154,18 @@ class YamlList(YamlABC, MutableSequence):
         classes.die_unless_subclass(
             subclass=item_type, superclass=YamlListItemABC)
 
-        # If this list is unspecified, default this list to the empty list.
-        if conf is None:
-            conf = []
-
         # Classify all passed parameters.
         self._item_type = item_type
 
         # Nullify all remaining parameters for safety.
         self._confs_wrap = None
 
-        # Load this low-level list.
-        self.load(conf)
-
     # ..................{ SUPERCLASS ~ YamlABC               }..................
     # Concrete methods provided by our YamlABC superclass.
 
     @type_check
-    def load(self, conf: SequenceTypes) -> None:
+    def load(self, conf: SequenceTypes) -> (
+        'betse.lib.yaml.abc.yamllistabc.YamlList'):
 
         # Load our superclass with the passed sequence.
         super().load(conf=conf)
@@ -189,10 +176,14 @@ class YamlList(YamlABC, MutableSequence):
         # For each low-level dictionary in this low-level sequence...
         for conf_yaml in conf:
             # High-level wrapper of the caller-specified type.
-            conf_wrap = self._item_type(conf=conf_yaml)
+            conf_wrap = self._item_type()
+            conf_wrap.load(conf=conf_yaml)
 
             # Wrap this dictionary with this wrapper.
             self._confs_wrap.append(conf_wrap)
+
+        # Return this configuration for convenience.
+        return self
 
 
     def unload(self) -> None:

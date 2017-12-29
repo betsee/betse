@@ -86,7 +86,7 @@ class SimConfTissueDefault(SimConfTissueABC, YamlABC):
     '''
 
     # ..................{ ALIASES ~ picker                   }..................
-    picker_image_filename = yaml_alias("['image']['file']", str)
+    picker_image_filename = yaml_alias("['image']", str)
 
 
 class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
@@ -135,7 +135,7 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     picker_cells_percent = yaml_alias_float_percent(
         "['cell targets']['percent']")
     picker_image_filename = yaml_alias(
-        "['cell targets']['image']['file']", str)
+        "['cell targets']['image']", str)
 
     # ..................{ CLASS                              }..................
     @classmethod
@@ -148,7 +148,7 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
 
         # Create and return the equivalent YAML-backed tissue profile list item,
         # duplicating the first such item in our default YAML file.
-        return SimConfTissueListItem(conf={
+        return SimConfTissueListItem().load(conf={
             'name': tissue_name,
             'insular': True,
             'diffusion constants': {
@@ -162,7 +162,7 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
             },
             'cell targets': {
                 'type': 'all',
-                'image': {'file': 'geo/circle/circle_base.png'},
+                'image': 'geo/circle/circle_base.png',
                 'indices': [3, 14, 15, 9, 265],
                 'percent': 50,
             },
@@ -189,7 +189,7 @@ class SimConfCutListItem(YamlListItemABC):
 
     # ..................{ ALIASES                            }..................
     name = yaml_alias("['name']", str)
-    picker_image_filename = yaml_alias("['image']['file']", str)
+    picker_image_filename = yaml_alias("['image']", str)
 
     # ..................{ CLASS                              }..................
     @classmethod
@@ -201,7 +201,7 @@ class SimConfCutListItem(YamlListItemABC):
 
         # Create and return the equivalent YAML-backed cut profile list item,
         # duplicating the first such item in our default YAML file.
-        return SimConfTissueListItem(conf={
+        return SimConfTissueListItem().load(conf={
             'name': cut_name,
-            'image': {'file': 'geo/circle/wedge.png'},
+            'image': 'geo/circle/wedge.png',
         })

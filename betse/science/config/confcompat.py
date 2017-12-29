@@ -9,7 +9,7 @@ Simulation configuration backward compatibility facilities.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.io.log import logs
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, MappingType
 
 # ....................{ UPGRADERS                          }....................
 #FIXME: If the current third-party YAML dependency is "ruamel.yaml" rather than
@@ -328,11 +328,17 @@ def _upgrade_sim_conf_to_0_6_0(
         tissue_dict['tissue']['default']['cell targets'] = tissue_dict[
             'clipping']
 
-    # For disambiguity, rename "bitmap" to "image" in tissue and cut profiles.
-    # Likewise, rename "random" to "percent".
+    # For disambiguity, upgrade tissue and cut profiles as follows:
+    #
+    # * Rename "bitmap" to "image" and reduce "image" from a dictionary to
+    #   string by promoting its sole key-value pair to itself.
+    # * Rename "random" to "percent".
     if 'image' not in tissue_dict['tissue']['default']:
         tissue_dict['tissue']['default']['image'] = tissue_dict[
             'tissue']['default']['cell targets']['bitmap']
+    if isinstance(tissue_dict['tissue']['default']['image'], MappingType):
+        tissue_dict['tissue']['default']['image'] = tissue_dict[
+            'tissue']['default']['image']['file']
 
     for profile in tissue_dict['tissue']['profiles']:
         if profile['cell targets']['type'] == 'bitmap':
@@ -343,8 +349,14 @@ def _upgrade_sim_conf_to_0_6_0(
         if 'image' not in profile['cell targets']:
             profile['cell targets']['image'] = profile['cell targets']['bitmap']
         if 'percent' not in profile['cell targets']:
-            profile['cell targets']['percent'] = profile['cell targets']['random']
+            profile['cell targets']['percent'] = profile[
+                'cell targets']['random']
+        if isinstance(profile['cell targets']['image'], MappingType):
+            profile['cell targets']['image'] = profile[
+                'cell targets']['image']['file']
 
     for profile in tissue_dict['cut profiles']:
         if 'image' not in profile:
             profile['image'] = profile['bitmap']
+        if isinstance(profile['image'], MappingType):
+            profile['image'] = profile['image']['file']

@@ -28,7 +28,13 @@ class SimConfAnimAll(YamlABC):
     to on-disk cache, image, and/or video files configured by this
     configuration.
 
-    Attributes (While)
+    Attributes (General)
+    ----------
+    is_overlay_current : bool
+        ``True`` only if this configuration overlays streamlines (e.g., electric
+        current, concentration flux) onto appropriate animations.
+
+    Attributes (While Solving)
     ----------
     is_while_sim : bool
         ``True`` only if this configuration displays and/or saves in-simulation
@@ -37,11 +43,11 @@ class SimConfAnimAll(YamlABC):
         ``True`` only if this configuration saves in-simulation animations.
     is_while_sim_show : bool
         ``True`` only if this configuration displays in-simulation animations.
-    while_sim : SimConfVisualCellsEmbedded
+    anim_while_sim : SimConfVisualCellsEmbedded
         Generic configuration applicable to all in-simulation animations. Ignored if
         :attr:``is_while_sim`` is ``False``.
 
-    Attributes (After)
+    Attributes (After Solving)
     ----------
     is_after_sim : bool
         ``True`` only if this configuration displays and/or saves
@@ -50,7 +56,7 @@ class SimConfAnimAll(YamlABC):
         ``True`` only if this configuration saves post-simulation animations.
     is_after_sim_show : bool
         ``True`` only if this configuration displays post-simulation animations.
-    after_sim_pipeline : YamlList
+    anims_after_sim : YamlList
         YAML-backed list of all post-simulation animations to be animated.
         Ignored if :attr:`is_after_sim` is ``False``.
 
@@ -122,6 +128,10 @@ class SimConfAnimAll(YamlABC):
         Ignored if :attr:`is_video_save` is ``False``.
     '''
 
+    # ..................{ ALIASES                            }..................
+    is_overlay_current = yaml_alias(
+        "['results options']['overlay currents']", bool)
+
     # ..................{ ALIASES ~ while                    }..................
     is_while_sim_save = yaml_alias(
         "['results options']['while solving']['animations']['save']", bool)
@@ -169,16 +179,33 @@ class SimConfAnimAll(YamlABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
-        #FIXME: Rename to "anim_while_sim" for disambiguity.
         # Encapsulate low-level dictionaries with high-level wrappers.
-        self.while_sim = SimConfVisualCellsEmbedded(
-            self._conf['results options']['while solving']['animations'])
+        self.anim_while_sim = SimConfVisualCellsEmbedded()
 
-        #FIXME: Rename to "anims_after_sim" for disambiguity.
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
-        self.after_sim_pipeline = SimConfVisualCellsListItem.make_list(
-            self._conf[
-                'results options']['after solving']['animations']['pipeline'])
+        self.anims_after_sim = SimConfVisualCellsListItem.make_list()
+
+    # ..................{ LOADERS                            }..................
+    def load(self, *args, **kwargs) -> None:
+
+        # Load our superclass with all passed arguments.
+        super().load(*args, **kwargs)
+
+        # Load all subconfigurations of this configuration.
+        self.anim_while_sim.load(conf=self._conf[
+            'results options']['while solving']['animations'])
+        self.anims_after_sim.load(conf=self._conf[
+            'results options']['after solving']['animations']['pipeline'])
+
+
+    def unload(self) -> None:
+
+        # Unload our superclass.
+        super().unload()
+
+        # Unload all subconfigurations of this configuration.
+        self.anim_while_sim.unload()
+        self.anims_after_sim.unload()
 
     # ..................{ PROPERTIES ~ while                 }..................
     @property

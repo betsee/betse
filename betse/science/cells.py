@@ -15,6 +15,7 @@ from betse.science import filehandling as fh
 from betse.science.config.confenum import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
+from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.util.type.call.memoizers import property_cached
@@ -42,7 +43,6 @@ class Cells(object):
     Methods
     -------
     seed()                       Create a cell cluster for simulation purposes
-    deformWorld(p, ecm_verts)         Modifies Cells object under a deformation
     cell_index()                      Returns a list of [x,y] points defining the cell centres in order
     cellVerts()                       Copy & scale in points from the ecm matrix to create unique polygonal cells
     quickVerts()                      Reformulates an exisitng cell world
@@ -357,42 +357,52 @@ class Cells(object):
 
     # Avoid circular import dependencies.
     @type_check
-    def makeWorld(self, p: 'betse.science.parameters.Parameters') -> None:
+    def make_world(self, phase: SimPhase) -> None:
         '''
-        Setup the cell cluster.
+        Construct the entire world (including both the cell cluster and
+        extracellular environment) to be simulated for the passed seed
+        simulation phase.
+
+        Parameters
+        --------
+        phase : SimPhase
+            Current simulation phase.
         '''
+
+        # If the current simulation phase is *NOT* a seed (e.g., is an
+        # initialization or simulation), raise an exception.
+        phase.die_unless_kind(SimPhaseKind.SEED)
 
         # Create the cell lattice, which serves as the seed grid underlying all
         # subsequent data structures.
-        self._make_cell_lattice(p)
+        self._make_cell_lattice(phase.p)
 
         # Create the Voronoi diagram *AFTER* the cell lattice.
-        self._make_voronoi(p)
+        self._make_voronoi(phase)
 
-        # clean the Voronoi diagram of empty data structures
-        logs.log_info('Cleaning Voronoi geometry... ')
-        self.cleanVoronoi(p)
+        # Clean the Voronoi diagram of empty data structures.
+        self._clean_voronoi(phase.p)
 
         logs.log_info('Defining cell-specific geometric properties... ')
-        self.cell_index(p)  # Calculate the correct centre and index for each cell
-        self.cellVerts(p)  # create individual cell polygon vertices
+        self.cell_index(phase.p)  # Calculate the correct centre and index for each cell
+        self.cellVerts(phase.p)  # create individual cell polygon vertices
 
         logs.log_info('Creating computational matrices for cell-cell transfers... ')
-        self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
-        self.cell_vols(p)   # calculate the volume of cell and its internal regions
+        self.cellMatrices(phase.p)  # creates a variety of matrices used in routine cells calculations
+        self.cell_vols(phase.p)   # calculate the volume of cell and its internal regions
         # self.cellDivM(p)    # create matrix to invert divergence
         # self.memLaplacian()   # creates an inverse matrix to calculate voltage on individual membranes
 
         logs.log_info('Creating gap junctions... ')
-        self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
-        self.near_neigh(p)  # Calculate the nn array for each cell
-        self.voronoiGrid(p)
+        self.mem_processing(phase.p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
+        self.near_neigh(phase.p)  # Calculate the nn array for each cell
+        self.voronoiGrid(phase.p)
 
         logs.log_info('Setting global environmental conditions... ')
-        self.makeECM(p)  # create the ecm grid
-        self.environment(p)  # define features of the ecm grid
+        self.makeECM(phase.p)  # create the ecm grid
+        self.environment(phase.p)  # define features of the ecm grid
         self.grid_len = len(self.xypts)
-        self.make_maskM(p)
+        self.make_maskM(phase.p)
         # self.env_weighting(p)
 
         logs.log_info('Creating environmental Poisson solver for voltage...')
@@ -447,14 +457,13 @@ class Cells(object):
 
         self.cell_i = np.asarray(self.cell_i) # we need this to be an array for advanced indexing & assignments
 
-    def deformWorld(self,p, ecm_verts):
+
+    def deformWorld(self, p, ecm_verts) -> None:
         """
-        Runs necessary methods to recalculate essential world
-        data structures after a mechanical deformation.
+        Recalculates the current world to accomodate a mechanical deformation.
 
         Note: each cell is assumed to be incompressible by default. Therefore, cell
         volumes and total surface area are not updated in a deformation routine.
-
         """
 
         # begin by creating new cell centres from the passed Voronoi patch vertices:
@@ -771,9 +780,7 @@ class Cells(object):
 
 
     @type_check
-    def _make_voronoi(
-        # Avoid circular import dependencies.
-        self, p: 'betse.science.parameters.Parameters') -> None:
+    def _make_voronoi(self, phase: SimPhase) -> None:
         '''
         Calculate, close, and clip the Voronoi diagram from the cell lattice
         previously created by the :func:`_make_cell_lattice` method.
@@ -786,9 +793,9 @@ class Cells(object):
         #. Removes all cells from this diagram to define a cluster shape.
 
         Parameters
-        ----------
-        p : Parameters
-            Current simulation configuration.
+        --------
+        phase : SimPhase
+            Current simulation phase.
 
         Creates
         ---------
@@ -817,7 +824,7 @@ class Cells(object):
         #  * Instantiate the "TissueHandler" object earlier.
         #  * Pass this object to each instantiation of the "SimPhase" class.
         #* Generalize all initialization methods of this class (notably, this
-        #  and the parent makeWorld() method) to accept higher-level "SimPhase"
+        #  and the parent make_world() method) to accept higher-level "SimPhase"
         #  rather than lower-level "Parameters" objects.
         #* Rewrite the cell cluster image mask line below to resemble:
         #
@@ -826,8 +833,8 @@ class Cells(object):
         # Cell cluster image picker, producing the cell cluster image mask.
         from betse.science.tissue.picker.tispickimage import TissuePickerImage
         image_picker = TissuePickerImage(
-            filename=p.tissue_default.picker_image_filename,
-            dirname=p.conf_dirname)
+            filename=phase.p.tissue_default.picker_image_filename,
+            dirname=phase.p.conf_dirname)
 
         # Cell cluster image mask, clipping the cell cluster against a
         # user-defined image file.
@@ -870,7 +877,7 @@ class Cells(object):
                 # now there's enough information to calculate the missing direction and location of missing point
                 direction = np.sign(np.dot(midpoint - cluster_center, norml)) * norml
                 #far_point = self.vor.vertices[new_edge] + direction * self.cluster_axis.max()
-                far_point = vor.vertices[new_edge] + direction * p.d_cell
+                far_point = vor.vertices[new_edge] + direction * phase.p.d_cell
 
                 # get the current size of the voronoi vertices array, this will be the n+1 index after adding point
                 vor_ind = vor.vertices.shape[0]
@@ -901,11 +908,11 @@ class Cells(object):
 
         self.voronoi_verts = []  # track all voronoi cells, even those not in cluster (used as grid for masking)
 
-        ave_area = np.pi*p.cell_radius**2
+        ave_area = np.pi*phase.p.cell_radius**2
 
         for poly_ind in vor.regions: # step through the regions of the voronoi diagram
 
-            if len(poly_ind) >= p.cell_sides:
+            if len(poly_ind) >= phase.p.cell_sides:
                 cell_poly = vor.vertices[poly_ind]
                 point_check = np.zeros(len(cell_poly))
 
@@ -945,7 +952,7 @@ class Cells(object):
             pty = vert[1]
             ecm_verts_set.add((ptx,pty))
 
-        #FIXME: The following three lines safely reduce to the one-liner:
+        #FIXME: The following three lines should safely reduce to a one-liner:
         #
         #    # Action, Jackson!
         #    self.ecm_verts_unique = np.asarray(list(ecm_verts_set))
@@ -953,12 +960,16 @@ class Cells(object):
             list(ecm_verts) for ecm_verts in list(ecm_verts_set)]
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
 
-    def cleanVoronoi(self,p):
+
+    def _clean_voronoi(self, p) -> None:
         """
         Removes empty data structures from the Voronoi object
         and defines a set of unique ecm vertices.
-
         """
+
+        # Log this attempt.
+        logs.log_info('Cleaning Voronoi geometry... ')
+
         # first need to go through and make sure each patch has unique vertex points
 
         #-----clipping out redundant points--------------------------------------------------------

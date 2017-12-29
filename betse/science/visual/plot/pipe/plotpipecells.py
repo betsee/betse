@@ -37,7 +37,7 @@ class PlotCellsPipe(PlotPipeABC):
     # ..................{ SUPERCLASS                         }..................
     @property
     def _runners_conf(self) -> IterableTypes:
-        return self._phase.p.plot.after_sim_pipeline_cells
+        return self._phase.p.plot.plots_cells_after_sim
 
     # ..................{ EXPORTERS ~ channel                }..................
     # @piperunner(

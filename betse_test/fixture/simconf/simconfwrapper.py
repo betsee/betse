@@ -118,7 +118,7 @@ class SimConfigTestWrapper(object):
         from betse.science.parameters import Parameters
 
         # In-memory simulation configuration deserialized from this file.
-        self._p = Parameters.make(filename)
+        self._p = Parameters().load(filename)
 
     # ..................{ PROPERTIES                         }..................
     # For safety, these properties lack setters and hence are read-only.
@@ -547,7 +547,7 @@ class SimConfigTestWrapper(object):
         '''
 
         return (
-            (PlotCellPipe,  self._p.plot.after_sim_pipeline_cell),
-            (PlotCellsPipe, self._p.plot.after_sim_pipeline_cells),
-            (AnimCellsPipe, self._p.anim.after_sim_pipeline),
+            (PlotCellPipe,  self._p.plot.plots_cell_after_sim),
+            (PlotCellsPipe, self._p.plot.plots_cells_after_sim),
+            (AnimCellsPipe, self._p.anim.anims_after_sim),
         )

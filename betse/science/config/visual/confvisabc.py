@@ -142,7 +142,7 @@ class SimConfVisualCellsListItem(
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Duplicate the default animation listed first in our default YAML file.
-        return SimConfVisualCellsListItem(conf={
+        return SimConfVisualCellsListItem().load(conf={
             'type': 'voltage_membrane',
             'enabled': True,
             'colorbar': {
@@ -152,15 +152,18 @@ class SimConfVisualCellsListItem(
             },
         })
 
-    # ..................{ INITIALIZERS                       }..................
-    def __init__(self, *args, **kwargs) -> None:
+    # ..................{ LOADERS                            }..................
+    def load(self, *args, **kwargs) -> YamlListItemABC:
 
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, **kwargs)
+        # Load our superclass with all passed parameters.
+        super().load(*args, **kwargs)
 
         # Upgrade this configuration to each successive format. For safety, each
         # upgrade is performed in strict chronological order.
         self._upgrade_sim_conf_to_0_5_0()
+
+        # Return this configuration for convenience.
+        return self
 
 
     def _upgrade_sim_conf_to_0_5_0(self) -> None:
@@ -192,7 +195,7 @@ class SimConfVisualCellListItem(YamlListItemTypedABC):
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Duplicate the default animation listed first in our default YAML file.
-        return SimConfVisualCellListItem(conf={
+        return SimConfVisualCellListItem().load(conf={
             'type': 'voltage_membrane',
             'enabled': True,
         })
