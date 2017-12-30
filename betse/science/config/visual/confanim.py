@@ -7,9 +7,6 @@
 YAML-backed simulation animation subconfigurations.
 '''
 
-#FIXME: Default the "copyright" entry of video metadata to
-#"@ {}".format(current_year)".
-
 # ....................{ IMPORTS                            }....................
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_alias_int_positive
 from betse.lib.yaml.abc.yamlabc import YamlABC
@@ -23,10 +20,6 @@ class SimConfAnimAll(YamlABC):
     YAML-backed simulation animations subconfiguration, encapsulating the
     configuration of all animations (both in- and post-simulation) parsed from
     the current YAML-formatted simulation configuration file.
-
-    This subconfiguration saves (i.e., writes, serializes) in-memory animations
-    to on-disk cache, image, and/or video files configured by this
-    configuration.
 
     Attributes (General)
     ----------
@@ -186,6 +179,8 @@ class SimConfAnimAll(YamlABC):
         self.anims_after_sim = SimConfVisualCellsListItem.make_list()
 
     # ..................{ LOADERS                            }..................
+    #FIXME: Default the "copyright" entry of video metadata to
+    #"@ {}".format(current_year)".
     def load(self, *args, **kwargs) -> None:
 
         # Load our superclass with all passed arguments.

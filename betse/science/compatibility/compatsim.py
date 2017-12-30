@@ -4,8 +4,9 @@
 # See "LICENSE" for further details.
 
 '''
-**Pickled simulation** (i.e., previously pickled seed, initialization, and
-simulation files) backward compatibility facilities.
+Facilities guaranteeing backward compatibility with prior file formats for
+**pickled simulations** (i.e., previously pickled seed, initialization, and
+simulation files).
 '''
 
 # ....................{ IMPORTS                            }....................

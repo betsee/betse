@@ -14,7 +14,7 @@ simulation objects.
 
 # ....................{ IMPORTS                            }....................
 from betse.lib.pickle import pickles
-from betse.science.simulate import simcompat
+from betse.science.compatibility import compatsim
 from betse.util.type.types import type_check
 from collections.abc import Sequence
 
@@ -78,7 +78,7 @@ def loadSim(loadPath) -> tuple:
     '''
 
     # Preserve backward importability with obsolete pickled objects.
-    simcompat.upgrade_sim_imports()
+    compatsim.upgrade_sim_imports()
 
     # Unpickle these objects *AFTER* preserving backward importability.
     sim, cells, p = pickles.load(loadPath)
@@ -107,7 +107,7 @@ def loadWorld(loadPath) -> tuple:
     '''
 
     # Preserve backward importability with obsolete pickled objects.
-    simcompat.upgrade_sim_imports()
+    compatsim.upgrade_sim_imports()
 
     # Unpickle these objects *AFTER* preserving backward importability.
     cells, p = pickles.load(loadPath)

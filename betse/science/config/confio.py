@@ -22,7 +22,18 @@ from betse.util.type.types import type_check  #, GeneratorType
 #
 #* Subclass all top-level classes currently calling this function (e.g.,
 #  "MasterOfMolecules") from the the "betse.lib.yaml.yamlabc.YamlFileABC" class.
-#* Replace all calls to this function with calls to "self.read(conf_filename)".
+#* Replace all calls to this function with calls to "self.load(conf_filename)".
+#FIXME: Actually, we probably want to keep YAML-backed configuration separate
+#from the remainder of the codebase for obvious reasons (e.g., usage from
+#BETSEE). To do so, instead:
+#
+#* Create a new "betse.science.config.grn.confgrn" submodule.
+#* Define a new "SimConfGrnFile" subclass of the "YamlFileABC" superclass in
+#  this submodule.
+#* Add a new "grn" instance variable to the "Parameters" class, instantiated to
+#  be an in instance of the "SimConfGrnFile" class.
+#* In the Parameters.load() method, load the "grn" variable by passing it
+#  "self.grn_conf_filename".
 
 @type_check
 def read_metabo(conf_filename: str) -> dict:
@@ -43,9 +54,6 @@ def read_metabo(conf_filename: str) -> dict:
 
     # Load this dictionary from this YAML file.
     config = yamls.load(conf_filename)
-
-    #FIXME: Implement me *AFTER* the structure of such file settles down a tad.
-    # Validate the contents of this file.
 
     # Return this dictionary.
     return config

@@ -4,10 +4,12 @@
 # See "LICENSE" for further details.
 
 '''
-Simulation configuration backward compatibility facilities.
+Facilities guaranteeing backward compatibility with prior file formats for
+simulation configurations.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.science.parameters import Parameters
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, MappingType
 
@@ -25,7 +27,7 @@ from betse.util.type.types import type_check, MappingType
 #already contain this substring. Trivially accomplished, thankfully.
 
 @type_check
-def upgrade_sim_conf(p: 'betse.science.parameters.Parameters') -> None:
+def upgrade_sim_conf(p: Parameters) -> None:
     '''
     Upgrade the in-memory contents of the passed simulation configuration to
     reflect the newest structure of these contents expected by the current
@@ -58,11 +60,11 @@ def upgrade_sim_conf(p: 'betse.science.parameters.Parameters') -> None:
     _upgrade_sim_conf_to_0_5_0(p)
     _upgrade_sim_conf_to_0_5_2(p)
     _upgrade_sim_conf_to_0_6_0(p)
+    _upgrade_sim_conf_to_0_7_0(p)
 
 # ....................{ UPGRADERS ~ 0.5.0                  }....................
 @type_check
-def _upgrade_sim_conf_to_0_5_0(
-    p: 'betse.science.parameters.Parameters') -> None:
+def _upgrade_sim_conf_to_0_5_0(p: Parameters) -> None:
     '''
     Upgrade the in-memory contents of the passed simulation configuration to
     reflect the newest structure of these contents expected by version 0.5.0
@@ -237,8 +239,7 @@ def _upgrade_sim_conf_to_0_5_0(
 
 # ....................{ UPGRADERS ~ 0.5.2                  }....................
 @type_check
-def _upgrade_sim_conf_to_0_5_2(
-    p: 'betse.science.parameters.Parameters') -> None:
+def _upgrade_sim_conf_to_0_5_2(p: Parameters) -> None:
     '''
     Upgrade the in-memory contents of the passed simulation configuration to
     reflect the newest structure of these contents expected by version 0.5.2
@@ -277,8 +278,7 @@ def _upgrade_sim_conf_to_0_5_2(
 
 # ....................{ UPGRADERS ~ 0.6.0                  }....................
 @type_check
-def _upgrade_sim_conf_to_0_6_0(
-    p: 'betse.science.parameters.Parameters') -> None:
+def _upgrade_sim_conf_to_0_6_0(p: Parameters) -> None:
     '''
     Upgrade the in-memory contents of the passed simulation configuration to
     reflect the newest structure of these contents expected by version 0.6.0
@@ -360,3 +360,15 @@ def _upgrade_sim_conf_to_0_6_0(
             profile['image'] = profile['bitmap']
         if isinstance(profile['image'], MappingType):
             profile['image'] = profile['image']['file']
+
+
+@type_check
+def _upgrade_sim_conf_to_0_7_0(p: Parameters) -> None:
+    '''
+    Upgrade the in-memory contents of the passed simulation configuration to
+    reflect the newest structure of these contents expected by version 0.7.0
+    of this application.
+    '''
+
+    # Log this upgrade attempt.
+    logs.log_debug('Upgrading simulation configuration to 0.7.0 format...')

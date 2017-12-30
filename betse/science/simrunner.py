@@ -699,6 +699,7 @@ class SimRunner(object):
 
             # read the config file into a dictionary:
             config_dic = confio.read_metabo(configPath)
+
             # reinitialize the plot settings:
             sim.grn.core.plot_init(config_dic, p)
 
@@ -808,54 +809,6 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-    # #FIXME: This and all other BRN methods are safely removable, now.
-    # def plot_brn(self) -> SimPhase:
-    #     '''
-    #     Visualize the pure bioenergetics reaction network (BRN) initialized and
-    #     simulated by a prior call to the :meth:`sim_brn` method and export the
-    #     resulting plots and animations to various output files, specified by the
-    #     current configuration file.
-    #
-    #     Returns
-    #     ----------
-    #     SimPhase
-    #         High-level simulation phase instance encapsulating all objects
-    #         internally created by this method to run this phase.
-    #     '''
-    #
-    #     # Simulation phase type.
-    #     phase_kind = SimPhaseKind.INIT
-    #
-    #     # Simulation configuration.
-    #     p = Parameters().load(self._config_filename)
-    #     p.set_time_profile(phase_kind)  # force the time profile to be initialize
-    #
-    #     MoM = MasterOfMetabolism(p)
-    #     MoM, cells, _ = fh.loadSim(MoM.savedMoM)
-    #
-    #     # Simulation simulator.
-    #     sim = Simulator(p)
-    #
-    #     # Simulation phase.
-    #     phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
-    #
-    #     # Initialize simulation data structures
-    #     sim.baseInit_all(cells, p)
-    #     sim.time = MoM.time
-    #
-    #     MoM.core.init_saving(cells, p, plot_type='init', nested_folder_name='Metabolism')
-    #     MoM.core.export_all_data(sim, cells, p, message='metabolic molecules')
-    #     MoM.core.plot(sim, cells, p, message='metabolic molecules')
-    #     MoM.core.anim(phase=phase, message='metabolic molecules')
-    #
-    #     # If displaying plots, block on all previously plots previously
-    #     # displayed as non-blocking. If this is *NOT* done, these plots will
-    #     # effectively *NEVER* displayed be on most systems.
-    #     if p.plot.is_after_sim_show:
-    #         plt.show()
-    #
-    #     # Return this phase.
-    #     return phase
 
     def plot_grn(self) -> SimPhase:
         '''

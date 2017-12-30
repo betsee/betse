@@ -537,22 +537,25 @@ interventions:
 #-----------------------------------------------------------------------------------------------------------------------
 #  GENERAL NETWORK
 #-----------------------------------------------------------------------------------------------------------------------
-# The "General Network" allows you to define a bioelectricity integrated gene and reaction network with custom
-# biomolecules, chemical reactions, channels, and transporters. Use this section to define general network main
-# properties. See "extra_config_template.yaml" in the "extra_configs" directory for examples.
-# NOTE: The "optimization" is *not* required to run a general network; this is a tool that supplies you
-# with a list of membrane diffusion constants and reaction/transporter maximum rate constants that are a "best fit"
-# match to the target Vmem and initial concentrations listed for the "custom biomolecules" section of the network.
+# The "General Network" allows you to define a bioelectricity-integrated gene and reaction
+# network with custom biomolecules, chemical reactions, channels, and transporters. Use this
+# section to define general network main properties.  See "extra_config_template.yaml" in the
+# "extra_configs" directory for examples.
+#
+# NOTE: The "optimization" is *not* required to run a general network; this is a tool that
+# supplies you with a list of membrane diffusion constants and reaction/transporter maximum
+# rate constants that are a "best fit" match to the target Vmem and initial concentrations
+# listed for the "custom biomolecules" section of the network.
 
 general network:
 
   implement network: False     # Turn the entire network defined below on (True) or off (False)
 
-# FIXME CHECK OUT MITOCHONDRIA!
+  # FIXME CHECK OUT MITOCHONDRIA!
   enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
 
-# FIXME: FIX THE OPTIMIZER
-# FIXME: Make sure this isn't needing networkx by default!
+  # FIXME: FIX THE OPTIMIZER
+  # FIXME: Make sure this isn't needing networkx by default!
   optimization:              # Not required by default. A tool to "best fit" your network to target data.
     optimize network: False   # run an optimization of the network to obtain max rates at steady state concentrations?
     optimization steps: 50 # number of itteration steps to run with basinhopper
@@ -561,67 +564,64 @@ general network:
     optimization step: 0.5          # step-size of the basin hopping routine
     target Vmem: -50e-3               # Vmem to use in optimization
 
-#-----------------------------------------------------------------------------------------------------------------------
-# CUSTOM BIOMOLECULES
-#-----------------------------------------------------------------------------------------------------------------------
-# Additional biochemical substances that can electrodiffuse across cell membranes, between cells via GJ, or
-# in the environment. Also can be produced/consumed in the cytoplasm, act as gating ligand for a specific channel,
-# be actively pumped in or out of cells, changed at the boundary, or plotted/animated at the end of the simulation.
-#  See "extra_config_template.yaml" in the "extra_configs" directory for examples.
-
+  #-----------------------------------------------------------------------------------------------------------------------
+  # CUSTOM BIOMOLECULES
+  #-----------------------------------------------------------------------------------------------------------------------
+  # Additional biochemical substances that can electrodiffuse across cell membranes, between
+  # cells via GJ, or in the environment. Also can be produced/consumed in the cytoplasm, act as
+  # gating ligand for a specific channel, be actively pumped in or out of cells, changed at the
+  # boundary, or plotted/animated at the end of the simulation. See
+  # "extra_config_template.yaml" in the "extra_configs" directory for examples.
   biomolecules:  # specify the properties of any number of auxiliary chemicals
 
-#-----------------------------------------------------------------------------------------------------------------------
-#  CUSTOM CHEMICAL REACTIONS
-#-----------------------------------------------------------------------------------------------------------------------
-# Define chemical reactions between any substances defined in "custom biomolecules" and BETSE default ions.
-# See "extra_config_template.yaml" in the "extra_configs" directory for examples.
-
+  #-----------------------------------------------------------------------------------------------------------------------
+  #  CUSTOM CHEMICAL REACTIONS
+  #-----------------------------------------------------------------------------------------------------------------------
+  # Define chemical reactions between any substances defined in "custom biomolecules" and BETSE
+  # default ions. See "extra_config_template.yaml" in the "extra_configs" directory for
+  # examples.
   reactions:
 
-#-----------------------------------------------------------------------------------------------------------------------
-# CUSTOM TRANSPORTERS
-#-----------------------------------------------------------------------------------------------------------------------
-# Define transmembrane transporters and associated cytosolic chemical reactions between any substances defined in
-# "custom biomolecules" and/or BETSE default ions. See "extra_config_template.yaml" in the "extra_configs"
-# directory for examples.
+  #-----------------------------------------------------------------------------------------------------------------------
+  # CUSTOM TRANSPORTERS
+  #-----------------------------------------------------------------------------------------------------------------------
+  # Define transmembrane transporters and associated cytosolic chemical reactions between any
+  # substances defined in "custom biomolecules" and/or BETSE default ions. See
+  # "extra_config_template.yaml" in the "extra_configs" directory for examples.
   transporters:
 
-#-----------------------------------------------------------------------------------------------------------------------
-#  CUSTOM CHANNELS
-#-----------------------------------------------------------------------------------------------------------------------
-# Incorporate dynamic channel types and have their behaviour be activated/inhibited by the concentration of any
-# user-defined biomolecules and/or BETSE default ions. See "extra_config_template.yaml" in the "extra_configs"
-# directory for examples.
-
+  #-----------------------------------------------------------------------------------------------------------------------
+  #  CUSTOM CHANNELS
+  #-----------------------------------------------------------------------------------------------------------------------
+  # Incorporate dynamic channel types and have their behaviour be activated/inhibited by the
+  # concentration of any user-defined biomolecules and/or BETSE default ions. See
+  # "extra_config_template.yaml" in the "extra_configs" directory for examples.
   channels:
 
-#-----------------------------------------------------------------------------------------------------------------------
-# CUSTOM MODULATORS
-#-----------------------------------------------------------------------------------------------------------------------
-# Allow user-defined biomolecules and/or BETSE default ions to activate/inhibit core BETSE structures such as gap
-# junctions and the default Na/K-ATPase pump. See "extra_config_template.yaml" in the "extra_configs"
-# directory for examples.
-
+  #-----------------------------------------------------------------------------------------------------------------------
+  # CUSTOM MODULATORS
+  #-----------------------------------------------------------------------------------------------------------------------
+  # Allow user-defined biomolecules and/or BETSE default ions to activate/inhibit core BETSE structures such as gap
+  # junctions and the default Na/K-ATPase pump. See "extra_config_template.yaml" in the "extra_configs"
+  # directory for examples.
   modulators:
 
-
-#-----------------------------------------------------------------------------------------------------------------------
-# DIRECTION SURFACE PLOTS
-#-----------------------------------------------------------------------------------------------------------------------
-# See "extra_config_template.yaml" in the "extra_configs"
-# directory for examples.
-
-# FIXME: Fix direction surfaces, they're useful
-# FIXME: Consider having I-V curves here too...
-
+  #-----------------------------------------------------------------------------------------------------------------------
+  # DIRECTION SURFACE PLOTS
+  #-----------------------------------------------------------------------------------------------------------------------
+  # See "extra_config_template.yaml" in the "extra_configs"
+  # directory for examples.
+  
+  # FIXME: Fix direction surfaces, they're useful
+  # FIXME: Consider having I-V curves here too...
   direction surfaces:
 
 
 #-----------------------------------------------------------------------------------------------------------------------
 # GENE REGULATORY NETWORK
 #-----------------------------------------------------------------------------------------------------------------------
-# Define an auxillary network in an external config file and read it in and run from that extra file.
+# Define an auxillary network in an external config file and read it in and run from that
+# extra file.
 
 gene regulatory network settings:
 
@@ -805,12 +805,12 @@ results options:
                           # specified below during simulation computation?
 
       colorbar:           # Animation colorbar settings.
-        autoscale: True   # Automatically scale colorbar to minimum and
-                          # maximum values of underlying data series?
-        minimum: -70.0    # Minimum fixed colorbar value. Ignored if
-                          # "autoscale" is True.
-        maximum:  10.0    # Maximum fixed colorbar value. Ignored if
-                          # "autoscale" is True.
+        colormap: None    # Matplotlib-specific name of colormap displayed by this colorbar or
+                          # "None" to default to "default colormap". See above for details.
+        autoscale: True   # Automatically scale colorbar to minimum and maximum values of
+                          # underlying data series?
+        minimum: -70.0    # Minimum fixed colorbar value. Ignored if "autoscale" is True.
+        maximum:  10.0    # Maximum fixed colorbar value. Ignored if "autoscale" is True.
 
   after solving:          # Results exported after simulation computation.
     plots:                # Plots exported after simulation computation.

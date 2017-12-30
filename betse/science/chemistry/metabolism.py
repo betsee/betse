@@ -15,6 +15,9 @@ initialize, define the core computations for a simulation loop, save and report
 on data, and plot.
 '''
 
+#FIXME: This submodule no longer appears to be used anywhere in the codebase.
+#Can we safely remove this now? If not, no worries. Lumbering lumberjacks!
+
 import numpy as np
 from betse.science import filehandling as fh
 from betse.util.io.log import logs
@@ -341,28 +344,3 @@ class MasterOfMetabolism(object):
         sim.met_concs = {'cATP': self.core.cell_concs['ATP'][cells.mem_to_cells],
             'cADP': self.core.cell_concs['ADP'][cells.mem_to_cells],
             'cPi': self.core.cell_concs['Pi'][cells.mem_to_cells]}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

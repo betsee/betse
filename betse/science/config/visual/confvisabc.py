@@ -170,13 +170,14 @@ class SimConfVisualCellsListItem(
         '''
         Upgrade the in-memory contents of the simulation subconfiguration
         associated with this list item to reflect the newest structure of these
-        contents expected by version 0.5.0 (i.e., "Happy Hodgkin") of this
-        application.
+        contents expected by version 0.5.0 of this application.
         '''
 
+        # Add the "enabled" boolean.
         if 'enabled' not in self._conf:
             self._conf['enabled'] = True
 
+        # For disambiguity, rename "polarization" to "voltage_polarity".
         if self.name == 'polarization':
             self.name = 'voltage_polarity'
 

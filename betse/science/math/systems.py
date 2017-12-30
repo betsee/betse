@@ -2,6 +2,12 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+#FIXME: This module, which appears to be a partial copy-and-paste of the
+#"betse.science.chemistry.networks" module with minor differences, doesn't
+#appear to be used anymore. That's great! Would removing this module or perhaps
+#shifting its most important functionality into the "networks" module be
+#possible? If not, no worries! Translucent lucidity erupts the thunder!
+
 # ....................{ IMPORTS                            }....................
 import csv
 import matplotlib.pyplot as plt

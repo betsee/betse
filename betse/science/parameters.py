@@ -11,6 +11,7 @@ from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.config.confenum import (
     CellLatticeType, IonProfileType)
+from betse.science.config.grn.confgrn import SimConfGrnFile
 from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
 from betse.science.simulate.simphase import SimPhaseKind
@@ -25,9 +26,9 @@ from betse.util.type.types import type_check, IterableTypes, SequenceTypes
 # ....................{ CLASSES                            }....................
 class Parameters(YamlFileABC):
     '''
-    High-level simulation configuration encapsulating the low-level dictionary
-    deserialized (i.e., parsed) from the user-defined YAML-formatted file
-    underlying the current simulation.
+    Root YAML-backed in-memory and on-disk simulation configuration,
+    encapsulating a low-level container of simulation configuration settings
+    both loaded from and saved back to a YAML-formatted configuration file.
 
     Attributes (Path: Export)
     ----------
@@ -177,6 +178,15 @@ class Parameters(YamlFileABC):
         sampled time step:
         * ``t + t_resample`` is the next sampled time step (if any).
         * ``t - t_resample`` is the prior sampled time step (if any).
+
+    Attributes (Gene Regulatory Network)
+    ----------
+    grn : SimConfGrnFile
+        Gene regulatory network (GRN) subconfiguration, encapsulating *all*
+        GRN-related settings both loaded from and saved back to the separate
+        YAML-formatted configuration file with filename
+        :attr:`grn_config_filename`. Ignored if :attr:`grn_enabled` is
+        ``False``.
 
     Attributes (Ion)
     ----------
@@ -330,14 +340,17 @@ class Parameters(YamlFileABC):
         self.anim = SimConfAnimAll()
         self.plot = SimConfPlotAll()
 
+        # Classify unloaded GRN subconfigurations.
+        self.grn = SimConfGrnFile()
+
     # ..................{ LOADERS                            }..................
     #FIXME: Convert all or most of the variables parsed by this method into
     #aliases of the above form. Brainy rainbows!
     @type_check
-    def load(self, *args, **kwargs) -> 'betse.science.parameters.Parameters':
+    def load(self, *args, **kwargs) -> YamlFileABC:
 
         # Avoid circular import dependencies.
-        from betse.science.config import confcompat
+        from betse.science.compatibility import compatconf
 
         # Defer to the superclass implementation.
         super().load(*args, **kwargs)
@@ -345,7 +358,7 @@ class Parameters(YamlFileABC):
         # Preserve backward compatibility with prior configuration formats
         # *BEFORE* other initialization, which expects the passed YAML file to
         # conform to the current configuration format.
-        confcompat.upgrade_sim_conf(self)
+        compatconf.upgrade_sim_conf(self)
 
         # Initialize paths specified by this configuration.
         self._init_paths()
@@ -692,6 +705,13 @@ class Parameters(YamlFileABC):
         self.grn_enabled = self._conf['gene regulatory network settings']['gene regulatory network simulated']
 
         self.grn_config_filename = self._conf['gene regulatory network settings']['gene regulatory network config']
+
+        #FIXME: Replace all current calls to the confio.read_metabo() function
+        #with usage of this instance variable; then remove that function.
+
+        # If a GRN is enabled, load this GRN from this file.
+        if self.grn_enabled:
+            self.grn.load(conf_filename=self.grn_config_filename)
 
         simgrndic = self._conf['gene regulatory network settings'].get('sim-grn settings', None)
 
@@ -1312,6 +1332,9 @@ class Parameters(YamlFileABC):
         self.cut_profiles.unload()
         self.tissue_default.unload()
         self.tissue_profiles.unload()
+        self.anim.unload()
+        self.plot.unload()
+        self.grn.unload()
 
     # ..................{ EXCEPTIONS                         }..................
     def die_unless_ecm(self) -> None:

@@ -17,7 +17,7 @@ from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.chemistry.netplot import set_net_opts
-from betse.science.math.systems import SimMaster
+# from betse.science.math.systems import SimMaster
 
 
 class MasterOfMolecules(object):
@@ -105,8 +105,7 @@ class MasterOfMolecules(object):
         set_net_opts(self.core, self.core.net_plot_opts, p)
 
         # plot up direction surfaces:  # FIXME move this to its own command in Simrunner
-        dyna_surf = SimMaster(self.config_dic, p)
-
+        # dyna_surf = SimMaster(self.config_dic, p)
 
         # FIXME move this to its own command in Simrunner
         # after primary initialization, check and see if optimization required:
@@ -133,7 +132,6 @@ class MasterOfMolecules(object):
 
         # Time dilation:
         self.core.time_dila = float(self.config_dic.get('time dilation factor', 1.0))
-
 
         # obtain specific sub-dictionaries from the config file:
         substances_config = self.config_dic['biomolecules']

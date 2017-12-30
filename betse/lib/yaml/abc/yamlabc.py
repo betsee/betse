@@ -25,10 +25,10 @@ from betse.util.type.types import (
 # ....................{ SUPERCLASSES                       }....................
 class YamlABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all YAML-backed configuration subclasses, each
-    encapsulating a low-level YAML container of related configuration settings
-    (e.g., representing one tissue profile) both loaded from and savable back to
-    a parent YAML-formatted configuration file.
+    Abstract base class of all YAML-backed in-memory configuration subclasses,
+    each encapsulating a low-level container of related configuration settings
+    (e.g., representing one tissue profile) both loaded from and saved back to a
+    parent YAML-formatted configuration file.
 
     Attributes
     ----------
@@ -45,7 +45,7 @@ class YamlABC(object, metaclass=ABCMeta):
         Initialize this YAML-backed configuration.
         '''
 
-        pass
+        self._conf = None
 
     # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from resetting these attributes.
@@ -148,23 +148,22 @@ Tuple of both the YAML-backed configuration type *and* the type of the singleton
 # ....................{ SUPERCLASSES ~ file                }....................
 class YamlFileABC(YamlABC):
     '''
-    Abstract base class of all top-level configuration subclasses, each directly
-    backed by a low-level YAML-formatted configuration file in format and hence
-    both **serializable** (i.e., writable) to and **deserializable** (i.e.,
-    readable) from that file.
+    Abstract base class of all YAML-backed in-memory and on-disk configuration
+    subclasses, encapsulating a low-level container of *all* configuration
+    settings both loaded from and saved back to a YAML-formatted configuration
+    file.
 
     Caveats
     ----------
     The ``conf_filename`` parameter accepted by most methods of this class
-    (e.g., :meth:`read`, :meth:`write`) should be suffixed by a valid YAML
+    (e.g., :meth:`load`, :meth:`write`) should be suffixed by a valid YAML
     filetype -- namely, either ``.yml`` or ``.yaml``. This class does *not*
     erforce this recommendation but does log non-fatal warnings where violated.
 
-    External callers should ideally *never* access the public :meth:`conf`
-    property returning a low-level container containing this entire simulation
-    configuration. The settings encapsulated by this dictionary are safely
-    retrievable and modifiable by callers *only* via public :func:`yaml_alias`
-    data descriptors leveraged by subclasses.
+    External callers should *never* access the low-level :meth:`conf` property,
+    as doing so violates type safety and value constraints. The configuration
+    settings persisted by this property are safely retrievable and modifiable
+    *only* via :func:`yaml_alias` data descriptors defined by subclasses.
 
     Attributes
     ----------
@@ -262,7 +261,7 @@ class YamlFileABC(YamlABC):
             'Loading YAML file "%s"...', pathnames.get_basename(conf_filename))
 
         # Low-level dictionary deserialized from this file.
-        conf = yamls.load(conf_filename)
+        conf = yamls.load(filename=conf_filename)
 
         # Load this dictionary into our superclass.
         super().load(conf=conf)
@@ -277,10 +276,11 @@ class YamlFileABC(YamlABC):
 
     def unload(self) -> None:
 
-        # Log this operation.
-        logs.log_debug(
-            'Closing YAML file "%s"...',
-            pathnames.get_basename(self.conf_filename))
+        # If this file is actually loaded, log this operation.
+        if self.is_loaded:
+            logs.log_debug(
+                'Closing YAML file "%s"...',
+                pathnames.get_basename(self.conf_filename))
 
         # Unload our superclass.
         super().unload()

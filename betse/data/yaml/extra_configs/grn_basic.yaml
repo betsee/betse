@@ -1,9 +1,10 @@
 %YAML 1.1
 ---
-# The BETSE basic gene regulatory network configuration file, which takes a coarse view of a GNR set-up.
-# This file reproduces the GRN results from Figure 2, page 774 of: Karlebach, G. & Shamir, R. Modelling
-# and analysis of gene regulatory networks Nature Reviews Molecular Cell Biology, 2008, 9, 770-780.
-
+# The BETSE basic gene regulatory network configuration file, which takes a coarse view of a
+# GNR set-up. This file reproduces the GRN results from Figure 2, page 774 of: Karlebach, G.
+# & Shamir, R. Modelling and analysis of gene regulatory networks Nature Reviews Molecular
+# Cell Biology, 2008, 9, 770-780.
+#
 # A Note on YAML
 # ----------
 # This file is formatted according to the YAML ([Y]AML [A]in't [M]arkup
