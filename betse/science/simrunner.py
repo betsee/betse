@@ -353,11 +353,8 @@ class SimRunner(object):
                         "Please run 'betse seed' to try again.")
 
         elif p.grn_piggyback == 'init':
-
             if files.is_file(sim.savedInit):
-
                 logs.log_info('Running gene regulatory network on betse init...')
-
                 sim, cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
             else:
@@ -371,13 +368,11 @@ class SimRunner(object):
                     sim, cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
                 else:
-
                     raise BetseSimException(
                         'Simulation terminated due to missing core initialization. '
                         'Please run a betse initialization and try again.')
 
         elif p.grn_piggyback == 'sim':
-
             if files.is_file(sim.savedSim):
                 logs.log_info('Running gene regulatory network on betse sim...')
                 sim, cells, p_old = fh.loadSim(sim.savedSim)  # load the initialization from cache
@@ -385,7 +380,6 @@ class SimRunner(object):
             else:
                 logs.log_warning(
                     "No simulation file found to run the GRN simulation!")
-
                 raise BetseSimException(
                     'Simulation terminated due to missing core simulation. '
                     'Please run a betse simulation and try again.')
@@ -396,9 +390,8 @@ class SimRunner(object):
         # Simulation phase.
         phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
 
-
+        # If loading from a previously pickled "sim-grn" file...
         if p.loadMoG is not None and files.is_file(p.loadMoG):
-
             # load previously run instance of master of genes:
             MoG, _, _ = pickles.load(p.loadMoG)
 
@@ -414,14 +407,12 @@ class SimRunner(object):
                     'A cutting event has been run, so the GRN object needs to be modified...')
 
                 if files.is_file(simu.savedInit):
-
                     logs.log_info(
                         'Loading betse init from cache for reference to original cells...')
 
                     init, cellso, p_old = fh.loadSim(simu.savedInit)  # load the initialization from cache
 
                     dyna = TissueHandler(init, cellso, p)  # create the tissue dynamics object on original cells
-
                     dyna.tissueProfiles(init, cellso, p)  # initialize all tissue profiles on original cells
 
                     for cut_profile_name in dyna.event_cut.profile_names:
@@ -459,10 +450,16 @@ class SimRunner(object):
                         'Simulation terminated due to missing core init. '
                         'Please alter GRN settings and try again.')
 
+        # Else, a previously pickled "sim-grn" file is *NOT* being loaded from.
+        # In this case, create a new GRN from scratch.
         else:
+            # If GRN support is disabled, raise an exception.
+            if not p.grn_enabled:
+                raise BetseSimException('GRN support disabled.')
 
             # create an instance of master of metabolism
             MoG = MasterOfGenes(p)
+
             # initialize it:
             logs.log_info("Initializing the gene regulatory network...")
             MoG.read_gene_config(sim, cells, p)
@@ -695,14 +692,8 @@ class SimRunner(object):
             sim.molecules.core.anim(phase=phase, message='auxiliary molecules')
 
         if p.grn_enabled and sim.grn is not None:
-            configPath = pathnames.join(p.conf_dirname, p.grn_config_filename)
-
-            # read the config file into a dictionary:
-            config_dic = confio.read_metabo(configPath)
-
             # reinitialize the plot settings:
-            sim.grn.core.plot_init(config_dic, p)
-
+            sim.grn.core.plot_init(p.grn.conf, p)
             sim.grn.core.init_saving(
                 cells, p, plot_type='init', nested_folder_name='GRN')
             sim.grn.core.export_all_data(sim, cells, p, message='GRN molecules')
@@ -782,13 +773,8 @@ class SimRunner(object):
             sim.molecules.core.anim(phase=phase, message='auxiliary molecules')
 
         if p.grn_enabled and sim.grn is not None:
-            configPath = pathnames.join(p.conf_dirname, p.grn_config_filename)
-
-            # read the config file into a dictionary:
-            config_dic = confio.read_metabo(configPath)
             # reinitialize the plot settings:
-            sim.grn.core.plot_init(config_dic, p)
-
+            sim.grn.core.plot_init(p.grn.conf, p)
             sim.grn.core.init_saving(cells, p, plot_type='sim', nested_folder_name='GRN')
             sim.grn.core.export_all_data(sim, cells, p, message='GRN molecules')
             sim.grn.core.plot(sim, cells, p, message='GRN molecules')
@@ -844,12 +830,7 @@ class SimRunner(object):
         sim.baseInit_all(cells, p)
         sim.time = MoG.time
 
-        configPath = pathnames.join(p.conf_dirname, p.grn_config_filename)
-        # read the config file into a dictionary:
-        config_dic = confio.read_metabo(configPath)
-
-        MoG.core.plot_init(config_dic, p)
-
+        MoG.core.plot_init(p.grn.conf, p)
         MoG.core.init_saving(cells, p, plot_type='grn', nested_folder_name='RESULTS')
         MoG.core.export_all_data(sim, cells, p, message='gene products')
         MoG.core.plot(sim, cells, p, message='gene products')

@@ -706,9 +706,6 @@ class Parameters(YamlFileABC):
 
         self.grn_config_filename = self._conf['gene regulatory network settings']['gene regulatory network config']
 
-        #FIXME: Replace all current calls to the confio.read_metabo() function
-        #with usage of this instance variable; then remove that function.
-
         # If a GRN is enabled, load this GRN from this file.
         if self.grn_enabled:
             self.grn.load(conf_filename=self.grn_config_filename)
@@ -725,7 +722,8 @@ class Parameters(YamlFileABC):
             self.grn_loadfrom = simgrndic['load from']
 
             if self.grn_loadfrom is not None and self.grn_loadfrom != 'None':
-                self.loadMoG = pathnames.join(self.conf_dirname, self.grn_loadfrom)
+                self.loadMoG = pathnames.join(
+                    self.conf_dirname, self.grn_loadfrom)
 
             else:
                 self.loadMoG = None

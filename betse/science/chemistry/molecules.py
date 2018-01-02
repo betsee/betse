@@ -35,21 +35,21 @@ class MasterOfMolecules(object):
     def read_mol_config(self, sim, cells, p):
 
         # read the config file into a dictionary:
-        self.config_dic = p.network_config
+        config_dic = p.network_config
 
         # obtain specific sub-dictionaries from the config file:
-        substances_config = self.config_dic['biomolecules']
-        reactions_config = self.config_dic.get('reactions', None)
-        transporters_config = self.config_dic.get('transporters', None)
-        channels_config = self.config_dic.get('channels', None)
-        modulators_config = self.config_dic.get('modulators', None)
+        substances_config = config_dic['biomolecules']
+        reactions_config = config_dic.get('reactions', None)
+        transporters_config = config_dic.get('transporters', None)
+        channels_config = config_dic.get('channels', None)
+        modulators_config = config_dic.get('modulators', None)
 
         # initialize the substances of metabolism in a core field encapsulating
         # Master of Molecules:
         self.core = MasterOfNetworks(sim, cells, substances_config, p)
 
         # Time dilation:
-        self.core.time_dila = float(self.config_dic.get('time dilation factor', 1.0))
+        self.core.time_dila = float(config_dic.get('time dilation factor', 1.0))
 
         # read in substance properties from the config file, and initialize basic properties:
         self.core.read_substances(sim, cells, substances_config, p)
@@ -99,22 +99,22 @@ class MasterOfMolecules(object):
             self.modulators = False
 
         # read in network plotting options:
-        self.core.net_plot_opts = self.config_dic.get('network plotting', None)
+        self.core.net_plot_opts = config_dic.get('network plotting', None)
 
         # set plotting options for the network:
         set_net_opts(self.core, self.core.net_plot_opts, p)
 
         # plot up direction surfaces:  # FIXME move this to its own command in Simrunner
-        # dyna_surf = SimMaster(self.config_dic, p)
+        # dyna_surf = SimMaster(config_dic, p)
 
         # FIXME move this to its own command in Simrunner
         # after primary initialization, check and see if optimization required:
-        opti = self.config_dic['optimization']['optimize network']
-        self.core.opti_N = self.config_dic['optimization']['optimization steps']
-        self.core.opti_method = self.config_dic['optimization']['optimization method']
-        self.core.target_vmem = float(self.config_dic['optimization']['target Vmem'])
-        self.core.opti_T = float(self.config_dic['optimization']['optimization T'])
-        self.core.opti_step = float(self.config_dic['optimization']['optimization step'])
+        opti = config_dic['optimization']['optimize network']
+        self.core.opti_N = config_dic['optimization']['optimization steps']
+        self.core.opti_method = config_dic['optimization']['optimization method']
+        self.core.target_vmem = float(config_dic['optimization']['target Vmem'])
+        self.core.opti_T = float(config_dic['optimization']['optimization T'])
+        self.core.opti_step = float(config_dic['optimization']['optimization step'])
 
         if opti is True:
             logs.log_info("The General Network is being analyzed for optimal rates...")
@@ -128,17 +128,17 @@ class MasterOfMolecules(object):
     def reinitialize(self, sim, cells, p):
 
         # read the config file into a dictionary:
-        self.config_dic = p.network_config
+        config_dic = p.network_config
 
         # Time dilation:
-        self.core.time_dila = float(self.config_dic.get('time dilation factor', 1.0))
+        self.core.time_dila = float(config_dic.get('time dilation factor', 1.0))
 
         # obtain specific sub-dictionaries from the config file:
-        substances_config = self.config_dic['biomolecules']
-        reactions_config = self.config_dic.get('reactions', None)
-        transporters_config = self.config_dic.get('transporters', None)
-        channels_config = self.config_dic.get('channels', None)
-        modulators_config = self.config_dic.get('modulators', None)
+        substances_config = config_dic['biomolecules']
+        reactions_config = config_dic.get('reactions', None)
+        transporters_config = config_dic.get('transporters', None)
+        channels_config = config_dic.get('channels', None)
+        modulators_config = config_dic.get('modulators', None)
 
         self.core.tissue_init(sim, cells, substances_config, p)
 

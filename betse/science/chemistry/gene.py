@@ -18,7 +18,7 @@ from betse.util.path import pathnames
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.config import confio
 from betse.science.chemistry.netplot import set_net_opts
-from betse.science import sim_toolbox as stb
+# from betse.science import sim_toolbox as stb
 from betse.science.visual.plot import plotutil as viz
 import matplotlib.pyplot as plt
 from betse.science.organelles.microtubules import Mtubes
@@ -33,31 +33,28 @@ class MasterOfGenes(object):
 
     def read_gene_config(self, sim, cells, p):
 
-        # create the path to read the metabolism config file:
-        self.configPath = pathnames.join(p.conf_dirname, p.grn_config_filename)
-
-        # read the config file into a dictionary:
-        self.config_dic = confio.read_metabo(self.configPath)
+        # Previously loaded GRN-specific configuration file as a dictionary.
+        config_dic = p.grn.conf
 
         # obtain specific sub-dictionaries from the config file:
-        substances_config = self.config_dic['biomolecules']
-        reactions_config = self.config_dic.get('reactions', None)
-        transporters_config = self.config_dic.get('transporters', None)
-        channels_config = self.config_dic.get('channels', None)
-        modulators_config = self.config_dic.get('modulators', None)
+        substances_config = config_dic['biomolecules']
+        reactions_config = config_dic.get('reactions', None)
+        transporters_config = config_dic.get('transporters', None)
+        channels_config = config_dic.get('channels', None)
+        modulators_config = config_dic.get('modulators', None)
 
         # initialize the substances of metabolism in a core field encapsulating
         # Master of Molecules:
         self.core = MasterOfNetworks(sim, cells, substances_config, p)
 
         # Time dilation:
-        self.core.time_dila = float(self.config_dic.get('time dilation factor', 1.0))
+        self.core.time_dila = float(config_dic.get('time dilation factor', 1.0))
 
         # reset microtubules?
-        self.reset_MT = self.config_dic.get('reset microtubules', False)
+        self.reset_MT = config_dic.get('reset microtubules', False)
 
         # recalculate fluid flow?
-        self.recalc_fluid = self.config_dic.get('recalculate fluid', False)
+        self.recalc_fluid = config_dic.get('recalculate fluid', False)
 
         # read in substance properties from the config file, and initialize basic properties:
         self.core.read_substances(sim, cells, substances_config, p)
@@ -107,20 +104,20 @@ class MasterOfGenes(object):
             self.modulators = False
 
         # read in network plotting options:
-        self.core.net_plot_opts = self.config_dic.get('network plotting', None)
+        self.core.net_plot_opts = config_dic.get('network plotting', None)
 
         # set plotting options for the network:
         set_net_opts(self.core, self.core.net_plot_opts, p)
 
         # after primary initialization, check and see if optimization required:
             # after primary initialization, check and see if optimization required:
-        opti = self.config_dic['optimization']['optimize network']
-        self.core.opti_N = self.config_dic['optimization']['optimization steps']
-        self.core.opti_method = self.config_dic['optimization']['optimization method']
-        self.core.target_vmem = float(self.config_dic['optimization']['target Vmem'])
-        self.core.opti_T = float(self.config_dic['optimization']['optimization T'])
-        self.core.opti_step = float(self.config_dic['optimization']['optimization step'])
-        # self.core.opti_run = self.config_dic['optimization']['run from optimization']
+        opti = config_dic['optimization']['optimize network']
+        self.core.opti_N = config_dic['optimization']['optimization steps']
+        self.core.opti_method = config_dic['optimization']['optimization method']
+        self.core.target_vmem = float(config_dic['optimization']['target Vmem'])
+        self.core.opti_T = float(config_dic['optimization']['optimization T'])
+        self.core.opti_step = float(config_dic['optimization']['optimization step'])
+        # self.core.opti_run = config_dic['optimization']['run from optimization']
 
         if opti is True:
             logs.log_info("The Gene Network is being analyzed for optimal rates...")
@@ -141,27 +138,24 @@ class MasterOfGenes(object):
     #_init_genes() method internally called by these two methods.
     def reinitialize(self, sim, cells, p):
 
-        # create the path to read the metabolism config file:
-        self.configPath = pathnames.join(p.conf_dirname, p.grn_config_filename)
-
-        # read the config file into a dictionary:
-        self.config_dic = confio.read_metabo(self.configPath)
+        # Previously loaded GRN-specific configuration file as a dictionary.
+        config_dic = p.grn.conf
 
         # Time dilation:
-        self.core.time_dila = float(self.config_dic.get('time dilation factor', 1.0))
+        self.core.time_dila = float(config_dic.get('time dilation factor', 1.0))
 
         # reset microtubules?
-        self.reset_MT = self.config_dic.get('reset microtubules', False)
+        self.reset_MT = config_dic.get('reset microtubules', False)
 
         # recalculate fluid flow?
-        self.recalc_fluid = self.config_dic.get('recalculate fluid flow', False)
+        self.recalc_fluid = config_dic.get('recalculate fluid flow', False)
 
         # obtain specific sub-dictionaries from the config file:
-        substances_config = self.config_dic['biomolecules']
-        reactions_config = self.config_dic.get('reactions', None)
-        transporters_config = self.config_dic.get('transporters', None)
-        channels_config = self.config_dic.get('channels', None)
-        modulators_config = self.config_dic.get('modulators', None)
+        substances_config = config_dic['biomolecules']
+        reactions_config = config_dic.get('reactions', None)
+        transporters_config = config_dic.get('transporters', None)
+        channels_config = config_dic.get('channels', None)
+        modulators_config = config_dic.get('modulators', None)
 
         self.core.tissue_init(sim, cells, substances_config, p)
 

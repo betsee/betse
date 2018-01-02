@@ -32,6 +32,9 @@ def test_cli_grn_isolated(betse_cli_sim: 'CLISimTester') -> None:
         Object running BETSE CLI simulation subcommands.
     '''
 
+    # Enable these networks.
+    betse_cli_sim.sim_state.config.enable_networks()
+
     # Enable the saving of visuals, preventing the "plot sim-grn" subcommand
     # tested below from silently reducing to a noop.
     betse_cli_sim.sim_state.config.enable_visuals_save()
