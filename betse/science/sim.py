@@ -1775,17 +1775,16 @@ class Simulator(object):
 
             # Electrical polarization charge component created by extracellular electric field:
             # P_env = p.cell_polarizability*self.Jme*(1/self.sigma_env.ravel()[cells.map_mem2ecm])
-            P_env = p.cell_polarizability*self.Eme
+            P_env = p.cell_polarizability*p.eo*self.Eme
 
             # Electrical polarization charge component created by intracellular electric field:
-            P_cells = p.cell_polarizability*self.Jn*(1/self.sigma_cell[cells.mem_to_cells])
+            P_cells = p.cell_polarizability*p.eo*self.Emc
 
             # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
             # convert volume charge density to surface charge density:
             rho_surf = self.rho_cells*cells.diviterm
 
             self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
-
 
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
@@ -1954,8 +1953,10 @@ class Simulator(object):
         # update concentration in the environment:
         cenv = cenv + div_fa * p.dt
 
-        # smooth concentration in the environment:
-        cenv = fd.integrator(cenv, sharp = p.sharpness)
+        if p.sharpness < 1.0:
+
+            # smooth concentration in the environment:
+            cenv = fd.integrator(cenv, sharp = p.sharpness)
 
         self.cc_env[i] = cenv.ravel()
 

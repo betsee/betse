@@ -1056,7 +1056,7 @@ internal parameters:
 
   membrane capacitance: 0.05 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
 
-  cell polarizability: 0.0  # cell polarizability constant in electric fields (0.0 to 5.0e-4 [F/m])
+  cell polarizability: 0.0  # cell relative dielectric constant (static, low frequency) (0.0 to 5.0e7)
 
   fast update ecm: False  # use a coarse (fast) or fine (slow) method to update between env and cell grids?
 

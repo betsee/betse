@@ -991,7 +991,10 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
             cenv = cenv + div_fa * p.dt*time_dilation_factor
 
-            cenv = fd.integrator(cenv, sharp = p.sharpness)
+
+            if p.sharpness < 1.0:
+
+                cenv = fd.integrator(cenv, sharp = p.sharpness)
 
             cX_env_o = cenv.ravel()
 

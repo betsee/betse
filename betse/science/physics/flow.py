@@ -48,7 +48,23 @@ def getFlow(sim, cells, p):
         #
         # _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(muFx, muFy, cells)
 
-        # Alternative method #2 calculates flow in terms of curl component of current density:--------------------------
+
+        #--Alternative method #2 calculates fluid flow in terms of slip velocity only using Helmholtz-Smoluchowski:-----
+
+        # slip velocity forces:
+        # This assumes that the *screening* charge is pulled on by the self-generated electric field.
+        # Further investigation may be warranted in the future as to the sign of the slip velocity
+
+        # vme = np.zeros(sim.edl)
+        # vme[cells.map_mem2ecm] = sim.vm/2
+        # vme = vme.reshape(cells.X.shape)
+        #
+        # muFx = (1/p.mu_water)*sim.E_env_x*(vme)*p.eo*p.er
+        # muFy = (1/p.mu_water)*sim.E_env_y*(vme)*p.eo*p.er
+        #
+        # _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(muFx, muFy, cells)
+
+        # Alternative method #3 calculates flow in terms of curl component of current density:--------------------------
         cc = sim.cc_env.mean(axis=0).reshape(cells.X.shape)
         zz = sim.zs.mean()
 
