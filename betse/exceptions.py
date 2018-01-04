@@ -108,10 +108,20 @@ class BetseCLIArgParserException(SystemExit):
     pass
 
 # ....................{ EXCEPTIONS ~ object                }....................
+class BetseAttributeException(BetseException):
+    '''
+    **Attribute** (i.e., variable or method bound to an object)-specific
+    exception.
+    '''
+
+    pass
+
+
 class BetseModuleException(BetseException):
     '''
     Module-specific exception.
     '''
+
     pass
 
 # ....................{ EXCEPTIONS ~ callable              }....................
@@ -307,6 +317,7 @@ class BetseTestException(BetseException):
     '''
     General-purpose exception pertaining to this application's test suite.
     '''
+
     pass
 
 # ....................{ EXCEPTIONS ~ type                  }....................
@@ -314,6 +325,7 @@ class BetseTypeException(BetseException):
     '''
     General-purpose exception applicable to types (i.e., classes).
     '''
+
     pass
 
 
@@ -321,6 +333,7 @@ class BetseEnumException(BetseTypeException):
     '''
     Enumeration-specific type or value exception.
     '''
+
     pass
 
 
@@ -328,6 +341,7 @@ class BetseNumericException(BetseTypeException):
     '''
     Exception generally applicable to both integer and float types and values.
     '''
+
     pass
 
 
@@ -335,6 +349,7 @@ class BetseIntException(BetseTypeException):
     '''
     Integer-specific type or value exception.
     '''
+
     pass
 
 
@@ -342,6 +357,7 @@ class BetseMappingException(BetseTypeException):
     '''
     Dictionary-specific type or value exception.
     '''
+
     pass
 
 
@@ -349,6 +365,7 @@ class BetseIterableException(BetseTypeException):
     '''
     Iterable-specific type or value exception.
     '''
+
     pass
 
 
@@ -356,6 +373,7 @@ class BetseSequenceException(BetseTypeException):
     '''
     Sequence-specific type or value exception.
     '''
+
     pass
 
 
@@ -364,6 +382,7 @@ class BetseStrException(BetseTypeException):
     '''
     String-specific type or value exception.
     '''
+
     pass
 
 
@@ -371,6 +390,7 @@ class BetseCharException(BetseStrException):
     '''
     **Character** (i.e., string of length 1)-specific type or value exception.
     '''
+
     pass
 
 
@@ -379,6 +399,7 @@ class BetseRegexException(BetseStrException):
     '''
     Regular exception-specific type or value exception.
     '''
+
     pass
 
 # ....................{ EXCEPTIONS ~ yaml                  }....................
@@ -394,6 +415,7 @@ class BetseSimException(BetseException):
     '''
     General-purpose simulation exception.
     '''
+
     pass
 
 
@@ -401,6 +423,7 @@ class BetseSimConfigException(BetseSimException):
     '''
     Simulation configuration-specific exception.
     '''
+
     pass
 
 
@@ -409,6 +432,7 @@ class BetseSimInstabilityException(BetseSimException):
     Simulation-specific exception indicating the current simulation to have
     unexpectedly failed due to computational instability.
     '''
+
     pass
 
 
@@ -416,6 +440,7 @@ class BetseSimPhaseException(BetseSimException):
     '''
     Simulation phase-specific exception.
     '''
+
     pass
 
 
@@ -423,6 +448,7 @@ class BetseSimTissueException(BetseSimException):
     '''
     Simulation tissue-specific exception.
     '''
+
     pass
 
 
@@ -430,6 +456,7 @@ class BetseSimVectorException(BetseSimException):
     '''
     Vector-specific exception.
     '''
+
     pass
 
 # ....................{ EXCEPTIONS ~ science : visual      }....................
@@ -438,6 +465,7 @@ class BetseSimVisualException(BetseSimException):
     Simulation visualization-specific exception, applicable to both plots and
     animations.
     '''
+
     pass
 
 
@@ -445,6 +473,7 @@ class BetseSimVisualLayerException(BetseSimVisualException):
     '''
     Simulation visualization layer-specific exception.
     '''
+
     pass
 
 # ....................{ EXCEPTIONS ~ science : pipe        }....................
@@ -452,6 +481,7 @@ class BetseSimPipeException(BetseSimException):
     '''
     Simulation pipeline-specific exception.
     '''
+
     pass
 
 

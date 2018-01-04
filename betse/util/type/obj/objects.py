@@ -9,7 +9,8 @@ Low-level object facilities.
 
 # ....................{ IMPORTS                            }....................
 import inspect, platform
-from betse.exceptions import BetseMethodException, BetseTypeException
+from betse.exceptions import (
+    BetseAttributeException, BetseMethodException, BetseTypeException)
 from betse.util.type.types import (
     type_check, CallableTypes, CallableOrNoneTypes, ClassType, GeneratorType)
 
@@ -253,11 +254,80 @@ def get_class_module_name(obj: object) -> str:
     # Else, return this attribute's value.
     return cls.__module__
 
+# ....................{ GETTERS : attr                     }....................
+@type_check
+def get_attr(obj: object, attr_name: str) -> object:
+    '''
+    Attribute with the passed name bound to the passed object if any *or* raise
+    an exception otherwise.
+
+    Parameters
+    ----------
+    obj : object
+        Object to obtain this attribute from.
+    attr_name : str
+        Name of the attribute to be obtained.
+
+    Returns
+    ----------
+    object
+        Attribute with this name bound to this object.
+
+    Raises
+    ----------
+    BetseAttributeException
+        If no such attribute is bound to this object.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
+
+    # Attribute with this name in this object if any or the sentinel otherwise.
+    attr = get_attr_or_sentinel(obj, attr_name)
+
+    # If no such attribute exists, raise an exception.
+    if attr is SENTINEL:
+        raise BetseAttributeException(
+            'Object attribute "{}.{}" undefined.'.format(
+                obj.__class__.__name__, attr_name))
+
+    # Else, this attribute exists. Return this attribute as is.
+    return attr
+
+
+@type_check
+def get_attr_or_sentinel(obj: object, attr_name: str) -> object:
+    '''
+    Value of the attribute with the passed name bound to the passed object if
+    any *or* :attr:`betse.util.type.obj.sentinels.SENTINEL` otherwise,
+    permitting callers to distinguish between attributes that do *not* exist and
+    attributes that do exist but whose values are ``None``.
+
+    Parameters
+    ----------
+    obj : object
+        Object to obtain this attr from.
+    attr_name : str
+        Name of the attribute to be obtained.
+
+    Returns
+    ----------
+    object
+        Value of this attribute if any *or* the sentinel singleton otherwise.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
+
+    # Return this attribute if any or the sentinel otherwise.
+    return getattr(obj, attr_name, SENTINEL)
+
 # ....................{ GETTERS : method                   }....................
 @type_check
 def get_method(obj: object, method_name: str) -> CallableTypes:
     '''
-    Method with the passed name bound to the passed object.
+    Method with the passed name bound to the passed object if any *or* raise
+    an exception otherwise.
 
     Parameters
     ----------
@@ -277,15 +347,21 @@ def get_method(obj: object, method_name: str) -> CallableTypes:
         If no such method is bound to this object.
     '''
 
-    # Attribute with this name in this object if any or None otherwise.
-    method = getattr(obj, method_name, None)
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
+
+    # Attribute with this name in this object if any or the sentinel otherwise.
+    # To raise human-readable exceptions, this attribute is *NOT* retrieved the
+    # higher-level get_method_or_none() method; doing so would obscure whether
+    # this attribute does not exist or does but is not a method.
+    method = get_attr_or_sentinel(obj, method_name)
 
     # If no such attribute exists, raise an exception.
-    if method is None:
+    if method is SENTINEL:
         raise BetseMethodException('Method {}.{}() undefined.'.format(
             obj.__class__.__name__, method_name))
 
-    # If such an attribute exists but is *NOT* a method, raise an exception.
+    # If this attribute exists but is *NOT* a method, raise an exception.
     if not callable(method):
         raise BetseMethodException(
             'Object attribute "{}.{}" not a method: {!r}'.format(
@@ -311,15 +387,17 @@ def get_method_or_none(obj: object, method_name: str) -> CallableOrNoneTypes:
     Returns
     ----------
     CallableOrNoneTypes
-        Method with this name bound to this object if any *or* ``None``
-        otherwise.
+        This method if any *or* ``None`` otherwise.
     '''
 
-    # Attribute with this name in this object if any or None otherwise.
-    method = getattr(obj, method_name, None)
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
 
-    # If this attribute is a method, return this attribute; else, return None.
-    return method if method is not None and callable(method) else None
+    # Attribute with this name in this object if any or the sentinel otherwise.
+    method = get_attr_or_sentinel(obj, method_name)
+
+    # If this attribute is a method, return this attribute; else, return "None".
+    return method if method is not SENTINEL and callable(method) else None
 
 # ....................{ ITERATORS ~ attrs                  }....................
 @type_check

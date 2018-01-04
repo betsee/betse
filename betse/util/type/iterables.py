@@ -30,35 +30,6 @@ from betse.util.type.types import (
 from collections import deque
 from operator import itemgetter
 
-# ....................{ CLASSES                            }....................
-class Sentinel(object):
-    '''
-    Class encapsulating sentinel objects of arbitrary (albeit unique) value.
-
-    Instances of this class are intended to be used as placeholder objects in
-    iterables, typically to identify erroneous or edge-case algorithm input.
-    '''
-
-    def __repr__(self) -> str:
-        '''
-        Human- and machine-readable representation of this sentinel.
-
-        This method has been overridden purely to improve the debuggability of
-        algorithms requiring instances of this class.
-        '''
-
-        return 'Sentinel()'
-
-# ....................{ CONSTANTS                          }....................
-SENTINEL = Sentinel()
-'''
-Sentinel object of arbitrary value.
-
-This object is internally leveraged by various utility functions (e.g.,
-:func:`zip_isometric`) to identify erroneous and edge-case input (e.g.,
-iterables of insufficient length).
-'''
-
 # ....................{ EXCEPTIONS                         }....................
 @type_check
 def die_unless_items_instance_of(
@@ -235,6 +206,9 @@ def is_item_satisfying(
     bool
         ``True`` only if some item of this iterable satisfies this predicate.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
 
     # First item satisfying this predicate in this iterable if any *OR* the
     # sentinel placeholder otherwise.
@@ -455,8 +429,9 @@ def get_item_first_satisfying_or_sentinel(
     '''
     First item of the passed iterable satisfying the passed **predicate** (i.e.,
     callable accepting one parameter, returning `True` only if this parameter
-    suffices) if this iterable contains such an item *or* the :data:`SENTINEL`
-    placeholder constant otherwise.
+    suffices) if this iterable contains such an item *or* the
+    :attr:`betse.util.type.obj.sentinels.SENTINEL` placeholder constant
+    otherwise.
 
     If the passed iterable is a:
 
@@ -478,13 +453,16 @@ def get_item_first_satisfying_or_sentinel(
     ----------
     object
         First element satisfying this predicate in this iterable if any *or*
-        :data:`SENTINEL` otherwise.
+        :attr:`betse.util.type.obj.sentinels.SENTINEL` otherwise.
 
     Raises
     ----------
     BetseIterableException
         If this iterable contains no such item.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
 
     # Collective efficiency is our middle names.
     return next((item for item in iterable if predicate(item)), SENTINEL)
@@ -528,6 +506,9 @@ def get_item_first_satisfying(
     :func:`get_item_first_satisfying_or_sentinel`
         Further details on ordering guarantees.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
 
     # First item satisfying this predicate in this iterable if any *OR* the
     # sentinel placeholder otherwise.
@@ -611,7 +592,7 @@ def get_item_last_instance_of_or_none(
     ----------
     object
         Last instance of this class in this iterable if any *or*
-        :data:`SENTINEL` otherwise.
+        :attr:`betse.util.type.obj.sentinels.SENTINEL` otherwise.
 
     Raises
     ----------
@@ -623,6 +604,9 @@ def get_item_last_instance_of_or_none(
     :func:`get_item_last_satisfying`
         Further details on ordering guarantees.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
 
     # Last instance of this class in this iterable if any or the sentinel
     # placeholder otherwise.
@@ -641,9 +625,10 @@ def get_item_last_satisfying_or_sentinel(
     iterable: IterableTypes, predicate: CallableTypes) -> object:
     '''
     Last element of the passed iterable satisfying the passed **predicate**
-    (i.e., callable accepting one parameter, returning `True` only if this
-    parameter suffices) if this iterable contains such an element _or_ the
-    :data:`SENTINEL` placeholder constant otherwise.
+    (i.e., callable accepting one parameter, returning ``True`` only if this
+    parameter suffices) if this iterable contains such an element *or* the
+    :attr:`betse.util.type.obj.sentinels.SENTINEL` placeholder constant
+    otherwise.
 
     If the passed iterable is a:
 
@@ -664,8 +649,8 @@ def get_item_last_satisfying_or_sentinel(
     Returns
     ----------
     object
-        Last element satisfying this predicate in this iterable if any _or_
-        :data:`SENTINEL` otherwise.
+        Last element satisfying this predicate in this iterable if any *or*
+        :attr:`betse.util.type.obj.sentinels.SENTINEL` otherwise.
 
     Raises
     ----------
@@ -1282,10 +1267,8 @@ def zip_isometric(*iterables: IterableTypes) -> GeneratorType:
         Stackoverflow answer strongly inspiring this implementation.
     '''
 
-    # For efficiency, declare this frequently accessed variable to be global,
-    # preventing Python from continually attempting to access this variable as a
-    # local in the loop below. (This has been timed.)
-    global SENTINEL
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
 
     # Iteratively zip and yield each n-tuple from the passed n iterables. To
     # efficiently detect iterables of insufficient length, the C-based
@@ -1327,6 +1310,9 @@ def _zip_isometric_error(iterables: tuple, ntuple: tuple) -> None:
     This private function is _only_ intended to be called by the
     :func:`zip_isometric` function.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
 
     # Index of the erroneously short iterable in this tuple of iterables,
     # identical to the index of the first sentinel in the passed zipped tuple.
