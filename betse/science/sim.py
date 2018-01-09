@@ -1875,13 +1875,13 @@ class Simulator(object):
         conc_mem = self.cc_at_mem[i]
 
 
-        grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/(cells.gj_len)
+        # grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/(cells.gj_len)
 
-        gcx = grad_cgj*cells.mem_vects_flat[:, 2]
-        gcy = grad_cgj*cells.mem_vects_flat[:, 3]
-
-        # midpoint concentration:
-        c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
+        # gcx = grad_cgj*cells.mem_vects_flat[:, 2]
+        # gcy = grad_cgj*cells.mem_vects_flat[:, 3]
+        #
+        # # midpoint concentration:
+        # c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
 
         # electroosmotic fluid velocity at gap junctions:
         # if p.fluid_flow is True:
@@ -1890,17 +1890,29 @@ class Simulator(object):
         #
         # else:
 
-        ux = 0
-        uy = 0
+        # ux = 0
+        # uy = 0
 
 
-        fgj_x, fgj_y = stb.nernst_planck_flux(c, gcx, gcy, -self.E_gj_x,
-                                          -self.E_gj_y, ux, uy,
-                                              p.gj_surface*self.gjopen*self.D_gj[i],
-                                              self.zs[i],
-                                              self.T, p)
+        # fgj_x, fgj_y = stb.nernst_planck_flux(c, gcx, gcy, -self.E_gj_x,
+        #                                   -self.E_gj_y, ux, uy,
+        #                                       p.gj_surface*self.gjopen*self.D_gj[i],
+        #                                       self.zs[i],
+        #                                       self.T, p)
 
-        fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
+
+        fgj_X = stb.electroflux(conc_mem[cells.mem_i],
+                       conc_mem[cells.nn_i],
+                       self.D_gj[i]*p.gj_surface*self.gjopen,
+                       cells.gj_len*np.ones(self.mdl),
+                       self.zs[i]*np.ones(self.mdl),
+                       self.vgj,
+                       p.T,
+                       p,
+                       rho=1
+                       )
+
+        # fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
 
         # enforce zero flux at outer boundary:
         fgj_X[cells.bflags_mems] = 0.0

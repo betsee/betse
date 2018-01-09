@@ -2,7 +2,6 @@
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# FIXME all pumps should now take and return cATP, cADP and cP as parameters (or a "metabo" object)
 
 import numpy as np
 import numpy.ma as ma
@@ -69,11 +68,6 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
                         cA[inotzero]*exp_alpha[inotzero])/deno[inotzero])
 
     flux = flux*rho
-
-    # Nernst-Planck equation alternative:
-
-    # flux = rho*(Dc * ((cA - cB) / d) - (vBA / d) * ((cA + cB) / 2) * ((Dc * zc * p.q) / (p.kb * T)))
-
 
     return flux
 
@@ -898,28 +892,40 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
     if ignoreGJ is False:
         # Update dye concentration in the gj connected cell network:
 
-        grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
+        # grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
 
-        gcx = grad_cgj*cells.mem_vects_flat[:, 2]
-        gcy = grad_cgj*cells.mem_vects_flat[:, 3]
+        # gcx = grad_cgj*cells.mem_vects_flat[:, 2]
+        # gcy = grad_cgj*cells.mem_vects_flat[:, 3]
+        #
+        # # midpoint concentration:
+        # cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
+        #
+        # # fluid flow will never affect concentration of ions as it's divergence free; therefore, set this to zero:
+        # ux = 0
+        # uy = 0
+        #
+        #
+        # Egjx = sim.E_gj_x
+        # Egjy = sim.E_gj_y
 
-        # midpoint concentration:
-        cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
 
-        # fluid flow will never affect concentration of ions as it's divergence free; therefore, set this to zero:
-        ux = 0
-        uy = 0
+        # fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -Egjx,
+        #                                   -Egjy, ux, uy,
+        #                                   sim.gjopen*Dgj*sim.gj_block, z, sim.T, p)
 
-
-        Egjx = sim.E_gj_x
-        Egjy = sim.E_gj_y
+        # fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
 
 
-        fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -Egjx,
-                                          -Egjy, ux, uy,
-                                          sim.gjopen*Dgj*sim.gj_block, z, sim.T, p)
-
-        fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
+        fgj_X = electroflux(cX_mems[cells.mem_i],
+                       cX_mems[cells.nn_i],
+                       Dgj*sim.gj_block*sim.gjopen,
+                       cells.gj_len*np.ones(sim.mdl),
+                       z*np.ones(sim.mdl),
+                       sim.vgj,
+                       p.T,
+                       p,
+                       rho=1
+                       )
 
 
         # enforce zero flux at outer boundary:
