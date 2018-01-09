@@ -5,8 +5,8 @@
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from scipy import interpolate
-from betse.lib.numpy import npimage
-from betse.lib.numpy.npimage import ImageModeType
+from betse.lib.pil import pilnumpy
+from betse.lib.pil.pilnumpy import ImageModeType
 from betse.util.path import pathnames
 from scipy.ndimage.filters import gaussian_filter
 
@@ -247,7 +247,7 @@ def gradient_bitmap(pc, cells, p):
 
     # Three-dimensional Numpy array of the RGB-ordered integer components of all
     # pixels loaded from this image.
-    a1 = npimage.load_image(filename=fn1, mode=ImageModeType.COLOR_RGB)
+    a1 = pilnumpy.load_image(filename=fn1, mode=ImageModeType.COLOR_RGB)
 
     a1_F = (a1[:, :, 0] -  a1[:, :, 2]) / 255
 

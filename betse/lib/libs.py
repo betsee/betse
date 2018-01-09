@@ -490,6 +490,7 @@ def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
     # Defer heavyweight imports.
     from betse.lib.matplotlib.matplotlibs import mpl_config
     from betse.lib.numpy import numpys
+    from betse.lib.pil import pils
     from betse.lib.yaml import yamls
 
     # Log this initialization. Since initializing heavyweight third-party
@@ -500,6 +501,7 @@ def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
     # Initialize these dependencies.
     mpl_config.init(backend_name=matplotlib_backend_name)
     numpys.init()
+    pils.init()
     yamls.init()
 
     # Record this function as having been called *AFTER* successfully doing so.

@@ -53,7 +53,7 @@ class ImageModeType(Enum):
     '''
     Enumeration of all types of **image modes** (i.e., :mod:`PIL`-specific
     identifier defining both the type and depth of all pixels in an image)
-    supported by functions of the :mod:`betse.lib.numpy.npimage` submodule.
+    supported by functions defined by this submodule.
 
     This enumeration wraps the non-typesafe, non-human-readable ``mode`` string
     parameter commonly accepted by :mod:`PIL` functions (e.g.,
@@ -106,7 +106,6 @@ Tuple of the type of all image mode enumeration members *and* of the singleton
 '''
 
 # ....................{ CONVERTERS                         }....................
-#FIXME: Actually call us throughout the codebase.
 @type_check
 def load_image(
     # Mandatory parameters.

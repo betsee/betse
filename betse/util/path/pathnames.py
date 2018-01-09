@@ -28,6 +28,23 @@ these errors into raised exceptions. Under Linux, for example, a
 '''
 
 # ....................{ EXCEPTIONS ~ absolute              }....................
+def die_if_absolute(*pathnames: str) -> None:
+    '''
+    Raise an exception if any passed path is absolute (i.e., unless all passed
+    paths are relative).
+
+    See Also
+    ----------
+    :func:`is_absolute`
+        Further details.
+    '''
+
+    for pathname in pathnames:
+        if is_absolute(pathname):
+            raise BetsePathnameException(
+                'Pathname "{}" absolute rather than relative.'.format(pathname))
+
+
 def die_if_relative(*pathnames: str) -> None:
     '''
     Raise an exception if any passed path is relative (i.e., unless all passed

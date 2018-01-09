@@ -10,8 +10,8 @@ of the total cell population to the corresponding tissue profile.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseImageException
-from betse.lib.numpy import npimage
-from betse.lib.numpy.npimage import ImageModeType
+from betse.lib.pil import pilnumpy
+from betse.lib.pil.pilnumpy import ImageModeType
 from betse.science.tissue.picker.tispickcls import TissuePickerABC
 from betse.util.path import files, pathnames
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
@@ -113,7 +113,7 @@ class TissuePickerImageMask(object):
 
         # Load this bitmap as a grayscale Numpy array, preserving floating point
         # precision across this necessarily lossy reduction.
-        bitmap = npimage.load_image(
+        bitmap = pilnumpy.load_image(
             filename=filename, mode=ImageModeType.GRAYSCALE_FLOAT)
 
         # If this bitmap has non-square dimensions, raise an exception.
