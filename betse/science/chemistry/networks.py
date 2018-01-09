@@ -5363,6 +5363,7 @@ class Molecule(object):
             rho=sim.rho_channel,
             cmems=self.cc_at_mem,
             time_dilation_factor=self.modify_time_factor,
+            update_intra = self.update_intra_conc,
         )
 
     def updateC(self, flux, sim, cells, p):
@@ -5476,16 +5477,16 @@ class Molecule(object):
             # smooth the concentration:
             self.cc_at_mem = self.smooth_weight_mem*self.cc_at_mem + self.smooth_weight_o*cav
 
-            # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
-            indsZ = (self.cc_at_mem < 0.0).nonzero()
-
-            if len(indsZ[0]):
-
-                raise BetseSimInstabilityException("Network concentration " + self.name + " on membrane below zero! Your simulation has"
-                                                   " become unstable.")
-
             # update the main matrices:
             self.flux_intra = cflux*1
+
+        # deal with the fact that abnormally large time-steps may leave some sub-zero concentrations:
+        indsZ = (self.cc_at_mem < 0.0).nonzero()
+
+        if len(indsZ[0]):
+            raise BetseSimInstabilityException(
+                "Network concentration " + self.name + " on membrane below zero! Your simulation has"
+                                                       " become unstable.")
 
     def pump(self, sim, cells, p):
 

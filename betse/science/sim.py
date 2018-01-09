@@ -1920,10 +1920,11 @@ class Simulator(object):
         # divergence calculation for individual cells (finite volume expression)
         delta_cco = np.dot(cells.M_sum_mems, -fgj_X*cells.mem_sa) / cells.cell_vol
 
-        # Calculate the final concentration change:
+        # Calculate the final concentration change assuming instant mixing in the cell:
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cco
+        self.cc_at_mem[i] = self.cc_cells[i][cells.mem_to_cells]
 
-        self.cc_at_mem[i] = conc_mem - fgj_X*(cells.mem_sa / cells.mem_vol)*p.dt
+        # self.cc_at_mem[i] = conc_mem - fgj_X*(cells.mem_sa / cells.mem_vol)*p.dt
 
         self.fluxes_gj[i] = self.fluxes_gj[i] + fgj_X   # store gap junction flux for this ion
 

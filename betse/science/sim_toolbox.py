@@ -827,7 +827,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
 def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, Dgj=1.0e-12, Ftj = 1.0, c_bound=1.0e-6,
                    ignoreECM = True, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, cmems = None,
-                   time_dilation_factor = 1.0):
+                   time_dilation_factor = 1.0, update_intra = False):
 
     """
     Transports a generic molecule across the membrane,
@@ -890,31 +890,6 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     # ------------------------------------------------------------
     if ignoreGJ is False:
-        # Update dye concentration in the gj connected cell network:
-
-        # grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
-
-        # gcx = grad_cgj*cells.mem_vects_flat[:, 2]
-        # gcy = grad_cgj*cells.mem_vects_flat[:, 3]
-        #
-        # # midpoint concentration:
-        # cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
-        #
-        # # fluid flow will never affect concentration of ions as it's divergence free; therefore, set this to zero:
-        # ux = 0
-        # uy = 0
-        #
-        #
-        # Egjx = sim.E_gj_x
-        # Egjy = sim.E_gj_y
-
-
-        # fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -Egjx,
-        #                                   -Egjy, ux, uy,
-        #                                   sim.gjopen*Dgj*sim.gj_block, z, sim.T, p)
-
-        # fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
-
 
         fgj_X = electroflux(cX_mems[cells.mem_i],
                        cX_mems[cells.nn_i],
@@ -936,8 +911,13 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
 
         # Calculate the final concentration change (the acceleration effectively speeds up time):
-        cX_cells = cX_cells + p.dt*delta_cco*time_dilation_factor
-        cX_mems = cX_mems - fgj_X*p.dt*(cells.mem_sa/cells.mem_vol)*time_dilation_factor
+
+        if update_intra is False: # do the GJ transfer assuming instant mixing in the cell:
+            cX_cells = cX_cells + p.dt*delta_cco*time_dilation_factor
+            cX_mems = cX_cells[cells.mem_to_cells]
+
+        else: # only do the GJ transfer to the membrane domains:
+            cX_mems = cX_mems - fgj_X*p.dt*(cells.mem_sa/cells.mem_vol)*time_dilation_factor
 
 
     else:
@@ -1015,6 +995,19 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         cX_env_o[:] = cX_env_temp
         fenvx = 0
         fenvy = 0
+
+    # check for sub-zero concentrations:
+    indsZm = (cX_mems < 0.0).nonzero()[0]
+    indsZc = (cX_cells < 0.0).nonzero()[0]
+    indsZe = (cX_env_o < 0.0).nonzero()[0]
+
+    # variable summing all sub-zero array checks
+    lencheck = len(indsZm) + len(indsZc) + len(indsZe)
+
+    if lencheck > 0:
+        raise BetseSimInstabilityException(
+            "Network concentration " + " below zero! Your simulation has"
+                                                   " become unstable.")
 
 
     return cX_env_o, cX_cells, cX_mems, f_X_ED, fgj_X, fenvx, fenvy
