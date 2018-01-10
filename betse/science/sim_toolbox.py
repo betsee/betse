@@ -1006,7 +1006,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     if lencheck > 0:
         raise BetseSimInstabilityException(
-            "Network concentration " + " below zero! Your simulation has"
+            "Network concentration below zero! Your simulation has"
                                                    " become unstable.")
 
 
