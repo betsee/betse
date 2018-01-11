@@ -105,10 +105,10 @@ def is_dir(dirname: str) -> bool:
 
 # ....................{ GETTERS                            }....................
 @type_check
-def get_dir_component_last(dirname: str) -> str:
+def get_parent_dir_last(pathname: str) -> str:
     '''
-    Last directory component of the passed absolute pathname that is an existing
-    directory.
+    Absolute pathname of the most deeply nested existing parent directory of the
+    path with the passed pathname.
 
     Since the passed pathname is required to be absolute *and* since the root
     directory (e.g., ``/`` on POSIX-compatible platforms) always exists, this
@@ -116,19 +116,19 @@ def get_dir_component_last(dirname: str) -> str:
 
     Parameters
     -----------
-    dirname : str
-        Absolute pathname of the directory to inspect.
+    pathname : str
+        Absolute pathname of the path to inspect.
 
     Returns
     -----------
     str
-        Absolute pathname of the last directory component of this pathname that
-        is an existing directory.
+        Absolute pathname of the most deeply nested existing parent directory of
+        this path.
 
     Examples
     -----------
-    Assuming the directory ``/the/garden/of/earthly/`` exists but its
-    subdirectory ``/the/garden/of/earthly/delights/`` does *not*:
+    Given an existing directory ``/the/garden/of/earthly/`` and non-existing
+    subdirectory ``/the/garden/of/earthly/delights/`` of that directory:
 
         >>> from betse.util.path import dirs
         >>> dirs.get_parent_dir_last('/the/garden/of/earthly/delights/')
@@ -139,10 +139,10 @@ def get_dir_component_last(dirname: str) -> str:
     from betse.util.path import pathnames
 
     # If this pathname is relative rather than absolute, raise an exception.
-    pathnames.die_if_relative(dirname)
+    pathnames.die_if_relative(pathname)
 
     # Current directory component of this path to inspect the existence of.
-    dirname_component = dirname
+    dirname_component = pathname
 
     # While this directory component is *NOT* an existing directory...
     while not is_dir(dirname_component):

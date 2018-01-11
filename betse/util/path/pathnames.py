@@ -329,7 +329,7 @@ def is_parent(parent_dirname: str, child_pathname: str) -> bool:
     parent_dirname_suffixed = strs.add_suffix_unless_found(
         text=parent_dirname, suffix=os_path.sep)
 
-    # True only if this child pathname is suffixed by this dirname.
+    # Return true only if this child pathname is suffixed by this dirname.
     return strs.is_prefix(text=child_pathname, prefix=parent_dirname_suffixed)
 
 # ....................{ TESTERS ~ filetype                 }....................
@@ -337,7 +337,7 @@ def is_parent(parent_dirname: str, child_pathname: str) -> bool:
 def is_filetype_equals(pathname: str, filetype: str) -> bool:
     '''
     ``True`` only if the passed pathname has a filetype *and* the **last
-    filetype** (i.e., last `.`-prefixed substring of the basename) of this
+    filetype** (i.e., last ``.``-prefixed substring of the basename) of this
     pathname is the passed filetype.
 
     The passed filetype may contain arbitrarily many ``.`` characters, including
@@ -360,9 +360,11 @@ def is_filetype_equals(pathname: str, filetype: str) -> bool:
     # Avoid circular import dependencies.
     from betse.util.type.text import strs
 
-    # Test this filetype, prefixed by "." unless already prefixed.
-    return strs.is_suffix(
-        pathname, strs.add_prefix_unless_found(filetype, '.'))
+    # Prefix this filetype by "." if needed.
+    filetype = dot_filetype(filetype)
+
+    # Return true only if this pathname is suffixed by this filetype.
+    return strs.is_suffix(pathname, filetype)
 
 
 @type_check
@@ -621,6 +623,29 @@ def get_filetype_undotted_or_none(pathname: str) -> str:
     # Return this string stripped of this prefix if non-empty or "None"
     # otherwise.
     return filetype[1:] if filetype is not None else None
+
+# ....................{ DOTTERS                            }....................
+@type_check
+def dot_filetype(filetype: str) -> str:
+    '''
+    The passed filetype prefixed by a ``.`` character if *not* already prefixed.
+
+    Parameters
+    ----------
+    filetype : str
+        Filetype to be prefixed.
+
+    Returns
+    ----------
+    str
+        This filetype prefixed by a ``.`` character if *not* already prefixed.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text import strs
+
+    # Return this filetype prefixed by "." if needed.
+    return strs.add_prefix_unless_found(filetype, '.')
 
 # ....................{ CANONICALIZERS                     }....................
 @type_check

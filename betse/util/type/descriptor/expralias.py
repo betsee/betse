@@ -72,7 +72,7 @@ protocol dynamically defined at class scope) facilities.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import (
-    BetseDescriptorException, BetseEnumException, BetseTypeException)
+    BetseExprAliasException, BetseEnumException, BetseTypeException)
 from betse.util.type.types import (
     type_check,
     BoolOrNoneTypes,
@@ -318,7 +318,7 @@ def expr_alias(
 
     # If the passed object name is already reserved, raise an exception.
     if obj_name in RESERVED_ARG_NAMES:
-        raise BetseDescriptorException(
+        raise BetseExprAliasException(
             'Object name "{}" reserved for internal use.'.format(obj_name))
 
     # Dictionary eventually containing only the following three keys:
@@ -337,16 +337,22 @@ def expr_alias(
         '__expr_alias_predicate': predicate,
     }
 
-    # Expression to be embedded in this data descriptor's __get__() method
+    # Expression to be embedded in this data descriptor's __get__() method.
     expr_gettable = expr
 
-    # Expression to be embedded in this data descriptor's __set__() method
+    # Expression to be embedded in this data descriptor's __set__() method.
     if expr_settable is None:
         expr_settable = expr_gettable
 
     # True only if the value to which this expression evaluates is castable.
     if is_castable is None:
         is_castable = cls is float
+
+    # Expression to be embedded in human-readable single-quoted exception
+    # messages raised by this data descriptor's __get__() method. To permit this
+    # expression to be embedded in single-quoted strings, all single quotes in
+    # this expression are globally escaped for safety.
+    expr_gettable_single_quotable = expr_gettable.replace("'", "\\'")
 
     # Python code snippet listing all optional arguments to be accepted by this
     # data descriptor's __init__() method.
@@ -380,9 +386,13 @@ def expr_alias(
         # non-human-readable low-level exception raised by Python with a
         # human-readable high-level exception.
         #
-        # While this type validation could also be performed by decorating the
-        # __get__() and __set__() methods defined below by the @type_check
-        # decorator, doing so would impose additional overhead for little gain.
+        # Note that:
+        #
+        # * The "value" local has been previously defined and hence is
+        #   safely accessible here. (See subsequent logic for this definition.)
+        # * While this type validation could be performed by decorating the
+        #   __get__() and __set__() methods defined below by the @type_check
+        #   decorator, doing so would impose overhead for little gain.
         value_test_block += '''
     if not isinstance(value, self_descriptor.expr_alias_cls):'''
         if is_castable:
@@ -392,24 +402,20 @@ def expr_alias(
         except Exception as exception:
             raise BetseTypeException(
                 'Expression alias value {!r} not a {!r}.'.format(
-                value, self_descriptor.expr_alias_cls)) from exception
-    '''
-                # 'Expression alias value {{!r}} not '
-                # 'a {{!r}} or {{!r}}.'.format(value, float, int))
+                value, self_descriptor.expr_alias_cls)) from exception'''
         # Else, raise an exception unless this value is of the expected type(s).
         else:
             value_test_block += '''
         raise BetseTypeException(
             'Expression alias value {!r} not a {!r}.'.format(
-                value, self_descriptor.expr_alias_cls))
-    '''
+                value, self_descriptor.expr_alias_cls))'''
 
 
     # If a predicate was passed...
     if predicate is not None:
         # If no predicate label was passed, raise an exception.
         if predicate_label is None:
-            raise BetseDescriptorException(
+            raise BetseExprAliasException(
                 'Parameter "predicate_expr" but not "predicate_label" passed.')
 
         # Pass this predicate to this method.
@@ -431,8 +437,9 @@ def expr_alias(
     if predicate_expr is not None:
         # If no predicate label was passed, raise an exception.
         if predicate_label is None:
-            raise BetseDescriptorException(
-                'Parameter "predicate_expr" but not "predicate_label" passed.')
+            raise BetseExprAliasException(
+                'Parameter "predicate_expr" passed, but '
+                'parameter "predicate_label" unpassed.')
 
         # Raise an exception unless the value to which this expression evaluates
         # satisfies the same predicate.
@@ -472,15 +479,33 @@ def expr_alias(
     if value_test_block:
         # Implement the __get__() method body to validate this expression.
         class_get_body += '''
-    # Value to which this expression evaluates to be returned.
-    value = {expr_gettable}
+    # Value to which this expression evaluates to be returned. For readability,
+    # wrap all exceptions raised by this evaluation with a human-readable
+    # exception exposing this expression alias.
+    #
+    # While exception handling technically imposes a minor performance penalty,
+    # this cost is substantially outweighed by the usability gains. Indeed,
+    # "try" blocks are faster in Python than the corresponding "if" statements
+    # assuming no exceptions are raised. For detailed timings, see the following
+    # authoritative StackOverflow answer:
+    #
+    #     https://stackoverflow.com/a/2522013/2809027
+    try:
+        value = {expr_gettable}
+    except Exception as exception:
+        raise BetseExprAliasException(
+            'Expression alias "{expr_gettable_single_quotable}" invalid.'
+        ) from exception
 
     # Validate this value.
     {value_test_block}
 
     # Return this value.
     return value'''.format(
-        expr_gettable=expr_gettable, value_test_block=value_test_block)
+            expr_gettable=expr_gettable,
+            expr_gettable_single_quotable=expr_gettable_single_quotable,
+            value_test_block=value_test_block
+        )
 
         # Implement the __set__() method body to validate this expression.
         class_set_body = '''
@@ -489,7 +514,8 @@ def expr_alias(
 
     # Set this expression to this value.
     {expr_settable} = value'''.format(
-        expr_settable=expr_settable, value_test_block=value_test_block)
+            expr_settable=expr_settable,
+            value_test_block=value_test_block)
     # Else, this expression is unvalidated. For efficiency, reduce the
     # __get__() and __set__() method bodies to the expected one-liners.
     else:

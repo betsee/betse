@@ -339,6 +339,7 @@ def _upgrade_sim_conf_to_0_6_0(p: Parameters) -> None:
     if isinstance(tissue_dict['tissue']['default']['image'], MappingType):
         tissue_dict['tissue']['default']['image'] = tissue_dict[
             'tissue']['default']['image']['file']
+    # logs.log_debug('Default tissue: %r', tissue_dict['tissue']['default'])
 
     for profile in tissue_dict['tissue']['profiles']:
         if profile['cell targets']['type'] == 'bitmap':

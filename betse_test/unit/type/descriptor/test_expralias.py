@@ -8,10 +8,9 @@ Unit tests exercising the :func:`betse.util.type.cls.descriptors.expr_alias`
 descriptor.
 '''
 
-from enum import Enum
-
 # ....................{ IMPORTS                            }....................
 import pytest
+from enum import Enum
 from pytest import fixture
 
 # ....................{ SUPERCLASSES                       }....................
@@ -280,7 +279,8 @@ def test_expralias_fail(betse_expralias) -> None:
     '''
 
     # Imports deferred for safety.
-    from betse.exceptions import BetseEnumException, BetseTypeException
+    from betse.exceptions import (
+        BetseExprAliasException, BetseEnumException, BetseTypeException)
     from betse.util.type.descriptor.expralias import expr_enum_alias
 
     # Test instantiating the enumeration-typed data descriptor with an
@@ -327,7 +327,7 @@ def test_expralias_fail(betse_expralias) -> None:
 
     # Test an invalid untyped data descriptor's __get__() implementation,
     # aliased to access a non-existing key of an existing dictionary.
-    with pytest.raises(KeyError):
+    with pytest.raises(BetseExprAliasException):
         betse_expralias.soa_line_none
 
     # Test the invalid data descriptor's __set__() implementation, aliased to

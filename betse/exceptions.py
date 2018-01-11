@@ -140,13 +140,6 @@ class BetseDecoratorException(BetseCallableException):
     pass
 
 
-class BetseDescriptorException(BetseCallableException):
-    '''
-    Descriptor-specific exception.
-    '''
-    pass
-
-
 class BetseFunctionException(BetseCallableException):
     '''
     Function-specific exception.
@@ -191,6 +184,21 @@ class BetseMethodUnimplementedException(
         # Initialize our superclass with a human-readable exception message.
         super().__init__('Method {}() unimplemented.'.format(
             callers.get_caller_basename()))
+
+# ....................{ EXCEPTIONS ~ callable : descriptor }....................
+class BetseDescriptorException(BetseCallableException):
+    '''
+    Descriptor-specific exception.
+    '''
+    pass
+
+
+class BetseExprAliasException(BetseDescriptorException):
+    '''
+    Expression alias-specific exception.
+    '''
+    pass
+
 
 # ....................{ EXCEPTIONS ~ lib                   }....................
 class BetseLibException(BetseException):
