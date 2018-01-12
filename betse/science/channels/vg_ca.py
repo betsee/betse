@@ -413,6 +413,71 @@ class Cav2p3(VgCaABC):
         self._hInf =hAlpha / (hAlpha + hBeta)
         self._hTau = 1 / (hAlpha + hBeta)
 
+class Cav2p2(VgCaABC):
+    '''
+
+    N-type calcium channel model from Huang SJ et al.
+
+
+    Reference: Huang SJ. et al. Activation and inactivation properties of voltage-gated calcium currents
+    in developing cat retinal ganglion cells. Neuroscience, 1998 Jul , 85 (239-47).
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the N-type vgCa channel type: Cav2p2')
+
+        self.vrev = 135     # reversal voltage used in model [mV]
+        Texpt = 36.0    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0
+
+        indsV = (V == 20.0).nonzero()
+        V[indsV] += 1.0e-6
+
+        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
+        mAlpha = (0.1 * (V - 20) / (1 - np.exp(-(V - 20) / 10)))
+        mBeta = 0.4 * np.exp(-(V + 25) / 18)
+        hAlpha = 0.01 * np.exp(-(V + 50) / 10)
+        hBeta =  0.1 / (1 + np.exp(-(V + 17) / 17))
+
+
+        dyna.m_Ca = mAlpha / (mAlpha + mBeta)
+        dyna.h_Ca = hAlpha / (hAlpha + hBeta)
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 2
+        self._hpower = 1
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        indsV = (V == 20.0).nonzero()
+        V[indsV] += 1.0e-6
+
+        mAlpha = (0.1 * (V - 20) / (1 - np.exp(-(V - 20) / 10)))
+        mBeta = 0.4 * np.exp(-(V + 25) / 18)
+        hAlpha = 0.01 * np.exp(-(V + 50) / 10)
+        hBeta =  0.1 / (1 + np.exp(-(V + 17) / 17))
+
+        self._mInf = mAlpha / (mAlpha + mBeta)
+        self._mTau = 1 / (mAlpha + mBeta)
+        self._hInf =hAlpha / (hAlpha + hBeta)
+        self._hTau = 1 / (hAlpha + hBeta)
+
 class Cav3p1(VgCaABC):
     '''
 
