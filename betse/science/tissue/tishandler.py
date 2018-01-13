@@ -145,9 +145,15 @@ class TissueHandler(object):
         tissue_z_order = 1
 
         # Object assigning a cell cluster region to the default tissue profile.
-        tissue_picker = TissuePickerImage(
-            filename=p.tissue_default.picker_image_filename,
-            dirname=p.conf_dirname)
+        tissue_picker = TissuePickerAll()
+
+        #FIXME: Set this picker for the "tissue_default" object, while still
+        #setting the above tissue picker for the
+        #"tissue_name_to_profile["p.tissue_default.name]" object -- implying
+        #that these two objects should be different objects. Viola!
+        # tissue_picker = TissuePickerImage(
+        #     filename=p.tissue_default.picker_image_filename,
+        #     dirname=p.conf_dirname)
 
         # For convenience, encapsulate the default tissue profile as a
         # high-level object accessible both as a separate instance variable

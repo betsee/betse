@@ -934,7 +934,7 @@ class Cells(object):
 
                         area_check = (tb.area(verts_clip) / ave_area)
 
-                        if area_check > 0.4:
+                        if area_check > 0.5:
                             self.ecm_verts.append(verts_clip)   # this makes a more solid boundary of cells
 
                     # self.ecm_verts.append(cell_polya)

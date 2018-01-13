@@ -501,13 +501,6 @@ class SimRunner(object):
         sim = Simulator(p)
         cells = Cells(p)
 
-        #FIXME: Bizarre logic. We create a "Cells" instance above only to test
-        #whether a single file exists and, if so, replace that instance with a
-        #pickled "Cells" instance unpickled from that file. Let's cut out the
-        #API middleman, as it were, by obtaining the pathname for this file from
-        #the "Parameters" instance instead and then removing the above
-        #instantiation of "cells = Cells(p)".
-
         if files.is_file(cells.savedWorld):
             cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
             logs.log_info('Cell cluster loaded.')

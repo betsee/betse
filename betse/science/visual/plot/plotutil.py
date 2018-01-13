@@ -929,27 +929,22 @@ def clusterPlot(p, dyna: 'TissueHandler', cells, clrmap=cm.jet):
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    # profile_names = list(p.profiles.keys())
-
     col_dic = {}
-
     cb_ticks = []
     cb_tick_labels = []
 
-    base_points = np.multiply(cells.cell_verts, p.um)
+    profile_zorder = 0
+    profile_zorder_max = len(dyna.tissue_name_to_profile)
 
-    z = np.zeros(len(base_points))
-    z[:] = 0
+    if p.plot_cutlines and dyna.event_cut is not None:
+        profile_zorder_max += len(dyna.cut_name_to_profile)
 
-    cb_ticks.append(0)
-    cb_tick_labels.append(p.tissue_default.name)
-
-    col_dic['base'] = PolyCollection(
-        base_points, array=z, cmap=clrmap, edgecolors='none')
-    ax.add_collection(col_dic['base'])
-
+    #FIXME: Reduce code duplication between this and the next if conditional.
     if dyna.tissue_name_to_profile:
         for tissue_name, tissue_profile in dyna.tissue_name_to_profile.items():
+            # logs.log_debug('Plotting tissue "%s"...', tissue_name)
+            profile_zorder += 1
+
             # One-dimensional Numpy array of the indices of all cells in the
             # cluster belonging to this tissue.
             cell_inds = dyna.cell_target_inds[tissue_name]
@@ -962,46 +957,47 @@ def clusterPlot(p, dyna: 'TissueHandler', cells, clrmap=cm.jet):
             points = np.multiply(cells.cell_verts[cell_inds], p.um)
 
             z = np.zeros(len(points))
-            z[:] = tissue_profile.z_order
+            z[:] = profile_zorder
 
             col_dic[tissue_name] = PolyCollection(
                 points, array=z, cmap=clrmap, edgecolors='none')
-            col_dic[tissue_name].set_clim(
-                0, len(dyna.tissue_name_to_profile))
+            col_dic[tissue_name].set_clim(0, profile_zorder_max)
 
             # col_dic[tissue_name].set_alpha(0.8)
-            col_dic[tissue_name].set_zorder(tissue_profile.z_order)
+            col_dic[tissue_name].set_zorder(profile_zorder)
             ax.add_collection(col_dic[tissue_name])
 
-            # Add this profile tissue_name to the colour legend.
-            cb_ticks.append(tissue_profile.z_order)
+            # Add this profile name to the colour legend.
+            cb_ticks.append(profile_zorder)
             cb_tick_labels.append(tissue_name)
 
     if p.plot_cutlines and dyna.event_cut is not None:
         # For each profile cutting a subset of the cell population...
-        for cut_profile_name in dyna.event_cut.profile_names:
-            cut_profile = dyna.cut_name_to_profile[cut_profile_name]
+        for cut_profile_name, cut_profile in dyna.cut_name_to_profile.items():
+            # logs.log_debug('Plotting cut "%s"...', cut_profile_name)
+            profile_zorder += 1
 
             # Indices of all cells cut by this profile.
             cut_cell_indices = cut_profile.picker.pick_cells(cells=cells, p=p)
-
             points = np.multiply(cells.cell_verts[cut_cell_indices], p.um)
+
+            z = np.zeros(len(points))
+            z[:] = profile_zorder
+
             col_dic[cut_profile_name] = PolyCollection(
-                points, color='k', cmap=clrmap, edgecolors='none')
+                points, array=z, cmap=clrmap, edgecolors='none')
+            col_dic[cut_profile_name].set_clim(0, profile_zorder_max)
+            # col_dic[cut_profile_name].set_alpha(0.8)
 
-            # col_dic[name].set_clim(0,len(dyna.tissue_profile_names) + len(names))
-            # col_dic[name].set_alpha(0.8)
-
-            col_dic[cut_profile_name].set_zorder(cut_profile.z_order)
+            col_dic[cut_profile_name].set_zorder(profile_zorder)
             ax.add_collection(col_dic[cut_profile_name])
 
-            #FIXME: Interestingly, this doesn't appear to do anything. I have
-            #no idea why. The matpotlib is weak with me. Legends and old elves!
-
             # Add this profile name to the colour legend.
-            cb_tick_next = len(cb_ticks)
-            cb_ticks.append(cb_tick_next)
+            cb_ticks.append(profile_zorder)
             cb_tick_labels.append(cut_profile_name)
+
+    # logs.log_debug('Plotting colorbar ticks: %r', cb_ticks)
+    # logs.log_debug('Plotting colorbar tick labels: %r', cb_tick_labels)
 
     ax_cb = None
     if dyna.tissue_name_to_profile:
