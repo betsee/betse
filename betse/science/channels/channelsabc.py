@@ -80,8 +80,8 @@ class ChannelsABC(object, metaclass=ABCMeta):
         sim.cc_cells[ion_index] = (ccell + divQ*p.dt)
 
         # next on membranes:
-        sim.cc_at_mem[ion_index] = (sim.cc_at_mem[ion_index] +
-                                             delta_Q*(cells.mem_sa/cells.mem_vol)*p.dt)
+        # sim.cc_at_mem[ion_index] = (sim.cc_at_mem[ion_index] +
+        #                                      delta_Q*(cells.mem_sa/cells.mem_vol)*p.dt)
 
         if p.is_ecm is False:
 

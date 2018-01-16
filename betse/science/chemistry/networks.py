@@ -2772,7 +2772,23 @@ class MasterOfNetworks(object):
             for name_env, deltae in zip(self.env_concs, self.delta_conc_env):
 
                 conce = self.env_concs[name_env]
+
                 self.env_concs[name_env] = conce + deltae*p.dt
+
+            #     # update the boundary condition as well:
+            #     # get mean concentration at the boundary:
+            #     DC = deltae.reshape(cells.X.shape)
+            #     # DC = self.env_concs[name_env].reshape(cells.X.shape)
+            #     mean_at_b = DC[:,0].mean() + DC[:,-1].mean() + DC[0,:].mean() + DC[-1,:].mean()
+            #     # self.bound_concs[name_env] += mean_at_b
+            #     self.bound_concs[name_env] += mean_at_b*p.dt
+            #
+            # #     print(name_env, self.bound_concs[name_env])
+            # #
+            #     if name_env == 'K':
+            #         print(self.env_concs['K'].mean())
+            # print('---------------')
+
 
         for ii, (name, deltac) in enumerate(zip(self.cell_concs, self.delta_conc)):
 
@@ -5364,6 +5380,7 @@ class Molecule(object):
             cmems=self.cc_at_mem,
             time_dilation_factor=self.modify_time_factor,
             update_intra = self.update_intra_conc,
+            name = self.name,
         )
 
     def updateC(self, flux, sim, cells, p):
@@ -5686,7 +5703,6 @@ class Molecule(object):
             elif p.is_ecm is True:
 
                 self.c_bound = self.change_bounds_target*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
-                # self.c_bound = self.conc_MorphEnv*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
 
     #FIXME: Ideally, this method should be refactored to comply with the
     #new pipeline API.

@@ -825,9 +825,9 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
     return cX_cell_1, cX_env_1, f_X
 
-def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, Dgj=1.0e-12, Ftj = 1.0, c_bound=1.0e-6,
+def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, Dgj=1.0e-12, Ftj = 1.0, c_bound=0.0,
                    ignoreECM = True, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, cmems = None,
-                   time_dilation_factor = 1.0, update_intra = False):
+                   time_dilation_factor = 1.0, update_intra = False, name = "Unknown"):
 
     """
     Transports a generic molecule across the membrane,
@@ -932,7 +932,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         env_check = len((cX_env_o != 0.0).nonzero()[0])
 
-        if  env_check != 0.0:
+        if  env_check != 0.0 or c_bound > 1.0e-15:
 
             cenv = cX_env_o
             cenv = cenv.reshape(cells.X.shape)
@@ -978,9 +978,9 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
             cenv = cenv + div_fa * p.dt*time_dilation_factor
 
 
-            if p.sharpness < 1.0:
-
-                cenv = fd.integrator(cenv, sharp = p.sharpness)
+            # if p.sharpness < 1.0:
+            #
+            #     cenv = fd.integrator(cenv, sharp = p.sharpness)
 
             cX_env_o = cenv.ravel()
 
@@ -998,16 +998,33 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     # check for sub-zero concentrations:
     indsZm = (cX_mems < 0.0).nonzero()[0]
+
+    if len(indsZm) > 0:
+        raise BetseSimInstabilityException(
+            "Network concentration of " + name + " on membrane below zero! Your simulation has"
+                                                   " become unstable.")
     indsZc = (cX_cells < 0.0).nonzero()[0]
+
+    if len(indsZc) > 0:
+        raise BetseSimInstabilityException(
+            "Network concentration of " + name + " in cells below zero! Your simulation has"
+                                                   " become unstable.")
+
     indsZe = (cX_env_o < 0.0).nonzero()[0]
 
-    # variable summing all sub-zero array checks
-    lencheck = len(indsZm) + len(indsZc) + len(indsZe)
-
-    if lencheck > 0:
+    if len(indsZe) > 0:
+        print(name, c_bound)
         raise BetseSimInstabilityException(
-            "Network concentration below zero! Your simulation has"
+            "Network concentration of " + name + " in environment below zero! Your simulation has"
                                                    " become unstable.")
+
+    # variable summing all sub-zero array checks
+    # lencheck = len(indsZm) + len(indsZc) + len(indsZe)
+
+    # if lencheck > 0:
+    #     raise BetseSimInstabilityException(
+    #         "Network concentration of " + name + " below zero! Your simulation has"
+    #                                                " become unstable.")
 
 
     return cX_env_o, cX_cells, cX_mems, f_X_ED, fgj_X, fenvx, fenvy
@@ -1038,8 +1055,9 @@ def update_Co(sim, cX_cell, cX_mem, cX_env, flux, cells, p, ignoreECM = True):
 
     # update cell concentration of substance:
     cX_cell = cX_cell + delta_cells * p.dt
+    cX_mem = cX_cell[cells.mem_to_cells]
 
-    cX_mem = cX_mem + flux*(cells.mem_sa/cells.mem_vol)*p.dt
+    # cX_mem = cX_mem + flux*(cells.mem_sa/cells.mem_vol)*p.dt
 
     if p.is_ecm is True:
 

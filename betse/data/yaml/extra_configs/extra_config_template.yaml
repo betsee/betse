@@ -166,12 +166,10 @@ transporters:
     transporter activators: None   # additional defined substances or ions increasing activity of transporter
     activator Km: None
     activator n: None
-    activator zone: None
     transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
     inhibitor Km: None
     inhibitor n: None
-    inhibitor zone: None
-
+    # Note: transporter activators/inhibitors only work from intracellular concentrations at the membrane
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM CHANNELS
 #-----------------------------------------------------------------------------------------------------------------------
