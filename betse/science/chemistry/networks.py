@@ -9,12 +9,12 @@ import numpy as np
 from betse.exceptions import BetseSimConfigException, BetseSimInstabilityException
 from betse.lib import libs
 from betse.science import sim_toolbox as stb
-from betse.science.channels import cation as vgcat
-from betse.science.channels import vg_ca as vgca
-from betse.science.channels import vg_cl as vgcl
-from betse.science.channels import vg_funny as vgfun
-from betse.science.channels import vg_k as vgk
-from betse.science.channels import vg_na as vgna
+from betse.science.channelo import cation as vgcat
+from betse.science.channelo import vg_ca as vgca
+from betse.science.channelo import vg_cl as vgcl
+from betse.science.channelo import vg_funny as vgfun
+from betse.science.channelo import vg_k as vgk
+from betse.science.channelo import vg_na as vgna
 from betse.science.chemistry.netplot import set_net_opts
 from betse.science.config.visual.confvisabc import SimConfVisualCellsNonYAML
 from betse.science.math import modulate as mods
@@ -557,8 +557,6 @@ class MasterOfNetworks(object):
                                               "/(p.R*sim.T)))/(1-np.exp(-(self.zmol[{}]*" \
                                               "p.F*sim.vm)/(p.R*sim.T))))".format(name, name, name, name, name, name)
 
-
-
             elif self.zmol[k] == 0.0 and self.Dmem[k] != 0.0:
 
                 if p.is_ecm is True:
@@ -1013,11 +1011,6 @@ class MasterOfNetworks(object):
 
 
             obj.alpha_eval_string = "(" + all_alpha + ")"
-
-        # for name in self.channels:
-        #
-        #     msg = "Including the network channel: {}".format(name)
-        #     logs.log_info(msg)
 
     def read_modulators(self, config_modulators, sim, cells, p):
 
@@ -3006,13 +2999,70 @@ class MasterOfNetworks(object):
         # get the object corresponding to the specific transporter:
         for i, name in enumerate(self.channels):
 
+            chan = self.channels[name]
+
             # compute the channel activity
             # calculate the value of the channel modulation constant:
-            moddy = eval(self.channels[name].alpha_eval_string, globalo, localo)
+            moddy = eval(chan.alpha_eval_string, globalo, localo)
 
-            self.channels[name].channel_core.modulator = moddy
+            # set the modulator state in the channel core
+            chan.channel_core.modulator = moddy
 
-            self.channels[name].channel_core.run(self.channels[name].dummy_dyna, sim, cells, p)
+            # run the channel to update its state:
+            chan.channel_core.run(sim.vm, p)
+
+            # update concentrations according to the channel state:
+            for ion in chan.channel_core.ions:
+
+                # get the charge of the ion:
+                zzz = self.zmol[ion]
+
+                ioni = sim.get_ion(ion)
+
+                # obtain the channel's effective diffusion constant:
+                DChan = chan.channel_core.P*chan.channel_core.rel_perm*chan.maxDm
+
+                if ion in self.env_concs:
+
+                    # print("found ", ion, " in env concs, with charge of ", zzz)
+                    cenv = self.env_concs[ion]
+
+                if ion in self.cell_concs:
+                    # print("found ", ion, " in cell concs!")
+                    ccell = self.cell_concs[ion]
+                    cmem = self.cell_concs[ion][cells.mem_to_cells]
+
+
+                # Electrodiffuse ions through the channel:
+                IdM = np.ones(sim.mdl)
+
+                if p.is_ecm:
+
+                    f_ED = stb.electroflux(cenv[cells.map_mem2ecm], cmem,
+                        DChan, IdM*p.tm, zzz*IdM, sim.vm, sim.T, p,
+                        rho=sim.rho_channel)
+
+                else:
+
+                    f_ED = stb.electroflux(cenv,cmem, DChan,IdM*p.tm,zzz*IdM,
+                                           sim.vm,sim.T,p,rho=sim.rho_channel)
+
+
+                self.cell_concs[ion], self.mem_concs[ion], self.env_concs[ion] = stb.update_Co(sim, ccell,
+                                                                                    cmem,
+                                                                                    cenv, f_ED,
+                                                                                    cells, p,
+                                                                                    ignoreECM = sim.ignore_ecm)
+
+                # print(name, f_ED[chan.channel_core.targets]*p.F)
+
+                # Add channel flux to the membrane fluxes data array:
+                sim.fluxes_mem[ioni] += f_ED
+
+                # Store channel flux specific to the channel as well:
+                chan.channel_core.chan_flux = f_ED
+
+            # print('---------')
 
     def run_loop_modulators(self, sim, cells, p):
 
@@ -6145,61 +6195,51 @@ class Channel(object):
 
     def __init__(self, sim, cells, p):
 
-        self.dummy_dyna = TissueHandler(sim, cells, p)
-        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
+        pass
+
 
     def init_channel(self, ion_string, type_string, max_val, sim, cells, p):
+
+        # asign maximum channel effective diffusion constant:
+        self.maxDm = max_val
 
         # get targets for the reaction
         if self.channel_profiles_list is not None and self.channel_profiles_list != 'all':
 
-            self.channel_targets_mem = []
+            targets = []
 
             for profile in self.channel_profiles_list:
+                targets_mem = sim.dyna.tissue_target_inds[profile]
+                targets.extend(targets_mem)
 
-                targets_mem = self.dummy_dyna.tissue_target_inds[profile]
-                self.channel_targets_mem.extend(targets_mem)
-
-            self.channel_targets_mem = np.asarray(self.channel_targets_mem)
+            targets = np.asarray(targets)
 
         elif self.channel_profiles_list is None or self.channel_profiles_list == 'all':
 
-            self.channel_targets_mem = np.asarray(cells.mem_i)
+            targets = np.asarray(cells.mem_i)
 
         if ion_string == 'Na':
 
-            self.dummy_dyna.maxDmNa = max_val
-            self.dummy_dyna.targets_vgNa = self.channel_targets_mem
             class_string = vgna
 
         elif ion_string == 'K':
 
-            self.dummy_dyna.maxDmK = max_val
-            self.dummy_dyna.targets_vgK = self.channel_targets_mem
             class_string = vgk
 
         elif ion_string == 'Cl':
 
-            self.dummy_dyna.maxDmCl = max_val
-            self.dummy_dyna.targets_vgCl = self.channel_targets_mem
             class_string = vgcl
 
         elif ion_string == 'Ca':
 
-            self.dummy_dyna.maxDmCa = max_val
-            self.dummy_dyna.targets_vgCa = self.channel_targets_mem
             class_string = vgca
 
         elif ion_string == 'Fun':
 
-            self.dummy_dyna.maxDmFun = max_val
-            self.dummy_dyna.targets_vgFun = self.channel_targets_mem
             class_string = vgfun
 
         elif ion_string == 'Cat':
 
-            self.dummy_dyna.maxDmCat = max_val
-            self.dummy_dyna.targets_vgCat = self.channel_targets_mem
             class_string = vgcat
 
         else:
@@ -6207,17 +6247,15 @@ class Channel(object):
             raise BetseSimConfigException("Substance-modulated ion type not available. "
                                            "Valid choices: Na, K, Ca, NaP, Kir, and Fun")
 
-            # create the desired voltage gated sodium channel instance:
-
+        # create the desired dynamic channel class instance:
         self.channel_core = getattr(class_string,type_string)()
 
-        # if p.run_sim is True:
-        #     # initialize the channel object
-        self.channel_core.init(self.dummy_dyna, sim, cells, p)
+        # initialize the channel object:
+        self.channel_core.init(sim.vm, cells, p, targets = targets)
 
-    def update_channel(self, sim, cells, p):
-        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
-        self.init_channel(self.channel_class, self.channel_type, self.channelMax, sim, cells, p)
+        # Initialize channel flux storage array:
+        self.channel_core.chan_flux = np.zeros(sim.mdl)
+
 
     def plot_2D(self, sim, cells, p, saveImagePath):
 

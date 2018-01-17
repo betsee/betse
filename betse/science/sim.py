@@ -1564,31 +1564,31 @@ class Simulator(object):
             self.vm_GHK_time.append(self.vm_GHK) # data array holding GHK vm estimates
 
         # add the new concentration and voltage data to the time-storage matrices:
-        self.efield_gj_x_time.append(self.E_gj_x[:])
-        self.efield_gj_y_time.append(self.E_gj_y[:])
+        self.efield_gj_x_time.append(self.E_gj_x*1)
+        self.efield_gj_y_time.append(self.E_gj_y*1)
 
-        concs = np.copy(self.cc_cells[:])
+        concs = np.copy(self.cc_cells)
         self.cc_time.append(concs)
         concs = None
 
-        envsc = np.copy(self.cc_env[:])
+        envsc = np.copy(self.cc_env)
         self.cc_env_time.append(envsc)
         envsc = None
 
-        ddc = np.copy(self.Dm_cells[:])
+        ddc = np.copy(self.Dm_cells)
         ddc.tolist()
         self.dd_time.append(ddc)
         ddc = None
 
-        self.I_cell_x_time.append(self.J_cell_x[:])
-        self.I_cell_y_time.append(self.J_cell_y[:])
+        self.I_cell_x_time.append(self.J_cell_x*1)
+        self.I_cell_y_time.append(self.J_cell_y*1)
 
-        self.I_mem_time.append(self.I_mem[:])
+        self.I_mem_time.append(self.I_mem*1)
 
-        self.vm_time.append(self.vm[:])
+        self.vm_time.append(self.vm*1)
 
-        self.rho_cells_time.append(self.rho_cells[:])
-        self.rate_NaKATP_time.append(self.rate_NaKATP[:])
+        self.rho_cells_time.append(self.rho_cells*1)
+        self.rate_NaKATP_time.append(self.rate_NaKATP*1)
         self.P_cells_time.append(self.P_cells)
 
         if p.deform_osmo:
@@ -1602,12 +1602,12 @@ class Simulator(object):
             # make a copy of cells to apply deformation to:
             # self.cellso = copy.deepcopy(cells)
             implement_deform_timestep(self, self.cellso, t, p)
-            self.dx_cell_time.append(self.d_cells_x[:])
-            self.dy_cell_time.append(self.d_cells_y[:])
+            self.dx_cell_time.append(self.d_cells_x*1)
+            self.dy_cell_time.append(self.d_cells_y*1)
 
         if p.fluid_flow:
-            self.u_cells_x_time.append(self.u_cells_x[:])
-            self.u_cells_y_time.append(self.u_cells_y[:])
+            self.u_cells_x_time.append(self.u_cells_x*1)
+            self.u_cells_y_time.append(self.u_cells_y*1)
 
         # if p.sim_eosmosis:
         #     self.rho_channel_time.append(self.rho_channel*1)
@@ -1627,18 +1627,18 @@ class Simulator(object):
         if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
             self.endo_retic.write_cache(self)
 
-        self.I_tot_x_time.append(self.J_env_x[:])
-        self.I_tot_y_time.append(self.J_env_y[:])
+        self.I_tot_x_time.append(self.J_env_x*1)
+        self.I_tot_y_time.append(self.J_env_y*1)
 
         if p.is_ecm:
-            self.efield_ecm_x_time.append(self.E_env_x[:])
-            self.efield_ecm_y_time.append(self.E_env_y[:])
+            self.efield_ecm_x_time.append(self.E_env_x*1)
+            self.efield_ecm_y_time.append(self.E_env_y*1)
 
             self.venv_time.append(self.v_env*1)
 
             if p.fluid_flow:
-                self.u_env_x_time.append(self.u_env_x[:])
-                self.u_env_y_time.append(self.u_env_y[:])
+                self.u_env_x_time.append(self.u_env_x*1)
+                self.u_env_y_time.append(self.u_env_y*1)
 
         self.vm_ave_time.append(self.vm_ave)
 
@@ -1758,17 +1758,15 @@ class Simulator(object):
         # get the currents and in-cell and environmental voltages:
         get_current(self, cells, p)
 
-        # self.get_rho_mem(cells, p)
-
         if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
             # change in charge density at the membrane:
-            # self.vm = self.vm + (1/p.cm)*self.divJ_cell[cells.mem_to_cells]*p.dt
+            self.vm += -(1/p.cm)*self.Jn*p.dt
 
-            rho_surf = self.rho_cells*cells.diviterm
+            # rho_surf = self.rho_cells*cells.diviterm
 
             # voltage across the membrane depends on surface charge inside cells:
-            self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
+            # self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
 
         else:
 
@@ -1784,7 +1782,9 @@ class Simulator(object):
             # convert volume charge density to surface charge density:
             rho_surf = self.rho_cells*cells.diviterm
 
+            # FIXME: HOW TO DO THIS AS A CURRENT???
             self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
+            # self.vm += -(1/p.cm)*self.Jn*p.dt + (1/p.cm)*P_env + (1/p.cm)*P_cells
 
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
