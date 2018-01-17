@@ -3,7 +3,7 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-'''
+r'''
 Low-level \*ML (e.g., HTML, SGML, XML) facilities.
 '''
 
@@ -15,7 +15,7 @@ from betse.util.type.types import type_check, RegexCompiledType
 # ....................{ GETTERS                            }....................
 @callable_cached
 def get_tag_regex() -> RegexCompiledType:
-    '''
+    r'''
     Compiled regular expression matching a syntactically but *not* necessarily
     semantically valid \*ML (e.g., HTML, SGML, XML) tag.
 
@@ -72,7 +72,7 @@ def get_tag_regex() -> RegexCompiledType:
 # ....................{ TESTERS                            }....................
 @type_check
 def is_ml(text: str) -> bool:
-    '''
+    r'''
     ``True`` only if the passed string contains one or more \*ML tags and hence
     superficially appears to contain \*ML-specific syntax.
 
@@ -96,7 +96,7 @@ def is_ml(text: str) -> bool:
 # ....................{ ESCAPERS                           }....................
 @type_check
 def escape_ml(text: str) -> str:
-    '''
+    r'''
     Passed string with all \*ML-specific syntax escaped and hence guaranteed to
     contain *no* \*ML-specific syntax.
 
@@ -117,8 +117,8 @@ def escape_ml(text: str) -> str:
     directly displayed as HTML to end users. For example, the following call to
     this function preserves a JavaScript fragment unescaped:
 
-        >>> from betse.util.type.text import strs
-        >>> strs.escape_ml('<a href="javascript:alert()">')
+        >>> from betse.util.type.text import mls
+        >>> mls.escape_ml('<a href="javascript:alert()">')
         '&lt;a href=&quot;javascript:alert()&quot;&gt;'
 
     Parameters

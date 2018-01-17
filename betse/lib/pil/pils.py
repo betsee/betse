@@ -14,19 +14,23 @@ High-level support facilities for Pillow, the Python Image Library
 # ....................{ IMPORTS                            }....................
 from PIL import Image
 from betse.util.io.log import logs
-from betse.util.type.types import IterableTypes  # type_check,
+from betse.util.path import pathnames
+from betse.util.type.call.memoizers import callable_cached
+from betse.util.type.types import SetType  # type_check,
 
 # ....................{ GETTERS                            }....................
-def get_filetypes() -> IterableTypes:
+@callable_cached
+def get_filetypes() -> SetType:
     '''
-    Set-like iterable (specifically, a dictionary view) of all ``.``-prefixed
-    image filetypes supported by the current version of Pillow.
+    Set of all image filetypes supported by the current version of Pillow.
+
+    For generality, these filetypes are *not* prefixed by a ``.`` delimiter.
 
     Examples
     ----------
-    >>> from betse.lib.pil import pils
-    >>> pils.get_filetypes()
-    dict_keys(['.flc', '.bmp', '.ppm', '.webp', '.j2k', '.jpf', '.jpe', '.pcd'])
+        >>> from betse.lib.pil import pils
+        >>> pils.get_filetypes()
+        {'flc', 'bmp', 'ppm', 'webp', 'j2k', 'jpf', 'jpe', 'pcd'}
     '''
 
     # Initialize Pillow if uninitialized.
@@ -40,8 +44,13 @@ def get_filetypes() -> IterableTypes:
     # initializing Pillow here is cost-free. (Cost-free is the way to be.)
     init()
 
-    # Return this set-like iterable.
-    return Image.EXTENSION.keys()
+    # Return a set of...
+    return set(
+        # This filetype strips of this prefixing ".".
+        pathnames.undot_filetype(filetype_dotted)
+        # For each "."-prefixed filetype supported by Pillow...
+        for filetype_dotted in Image.EXTENSION.keys()
+    )
 
 # ....................{ ENUMERATIONS                       }....................
 def init() -> None:

@@ -446,7 +446,7 @@ tuples of types containing this type.
 
 BoolOrNoneTypes = (bool, NoneType)
 '''
-Tuple of both the boolean type *and* the type of the singleton ``None`` object.
+Tuple of both the boolean type *and* that of the singleton ``None`` object.
 '''
 
 
@@ -458,13 +458,13 @@ Tuple of all callable classes *and* the type of the singleton ``None`` object.
 
 ClassOrNoneTypes = (ClassType, NoneType)
 '''
-Tuple of the type of all types *and* of the singleton ``None`` object.
+Tuple of the type of all types *and* that of the singleton ``None`` object.
 '''
 
 
 IntOrNoneTypes = (int, NoneType)
 '''
-Tuple of both the integer type *and* the type of the singleton ``None`` object.
+Tuple of both the integer type *and* that of the singleton ``None`` object.
 '''
 
 

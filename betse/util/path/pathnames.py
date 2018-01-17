@@ -11,7 +11,8 @@ Low-level pathname (e.g., basename, dirname, filetype) facilities.
 import errno, os
 from betse.exceptions import BetsePathnameException
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, ModuleType, ContainerType
+from betse.util.type.types import (
+    type_check, ContainerType, ModuleType, StrOrNoneTypes)
 from os import path as os_path
 
 # ....................{ CONSTANTS                          }....................
@@ -559,7 +560,7 @@ def get_pathname_sans_filetype(pathname: str) -> str:
 
 # ....................{ GETTERS ~ filetype : undotted      }....................
 @type_check
-def get_filetype_dotted_or_none(pathname: str) -> str:
+def get_filetype_dotted_or_none(pathname: str) -> StrOrNoneTypes:
     '''
     ``.``-prefixed **last filetype** (i.e., last ``.``-prefixed substring of the
     basename) of the passed pathname if this pathname is suffixed by a filetype
@@ -584,7 +585,8 @@ def get_filetype_undotted(pathname: str) -> str:
     Raises
     ----------
     :exc:`BetsePathnameException`
-        If this pathname is *not* suffixed by a filetype.
+        If this pathname is suffixed by no filetype (i.e., if this pathname
+        contains no ``.`` character).
 
     See Also
     ----------
@@ -605,7 +607,7 @@ def get_filetype_undotted(pathname: str) -> str:
 
 
 @type_check
-def get_filetype_undotted_or_none(pathname: str) -> str:
+def get_filetype_undotted_or_none(pathname: str) -> StrOrNoneTypes:
     '''
     **Last filetype** (i.e., last ``.``-prefixed substring of the basename
     excluding this ``.``) of the passed pathname if this pathname is suffixed by
@@ -628,7 +630,8 @@ def get_filetype_undotted_or_none(pathname: str) -> str:
 @type_check
 def dot_filetype(filetype: str) -> str:
     '''
-    The passed filetype prefixed by a ``.`` character if *not* already prefixed.
+    The passed filetype prefixed by a ``.`` character if needed (i.e., if not
+    already prefixed by this character *or* this filetype as is otherwise).
 
     Parameters
     ----------
@@ -645,7 +648,33 @@ def dot_filetype(filetype: str) -> str:
     from betse.util.type.text import strs
 
     # Return this filetype prefixed by "." if needed.
-    return strs.add_prefix_unless_found(filetype, '.')
+    return strs.add_prefix_unless_found(text=filetype, prefix='.')
+
+
+@type_check
+def undot_filetype(filetype: str) -> str:
+    '''
+    The passed filetype prefixed by no ``.`` character.
+
+    Parameters
+    ----------
+    filetype : str
+        Filetype to be unprefixed.
+
+    Returns
+    ----------
+    str
+        Either:
+        * If this filetype is prefixed by a ``.`` character, this filetype
+          stripped of this prefix.
+        * Else, this filetype unmodified.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text import strs
+
+    # Return this filetype prefixed by "." if needed.
+    return strs.remove_prefix_if_found(text=filetype, prefix='.')
 
 # ....................{ CANONICALIZERS                     }....................
 @type_check
