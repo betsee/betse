@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2017 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-'''
+r'''
 Core **type** (i.e., class) functionality, enumerating a variety of core types
 and :func:`instanceof`\ -friendly tuples of such types *and* the pivotal
 :func:`type_check` decorator validating callable parameters to be of such types.

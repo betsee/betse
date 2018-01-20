@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2017 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -227,21 +227,6 @@ def get_metadata(exception: Exception) -> tuple:
 
     # Return the string contents of these buffers in the expected order.
     return (exc_iota_buffer.getvalue(), exc_full_buffer.getvalue())
-
-# ....................{ RAISERS                            }....................
-@type_check
-def raise_exception(exception: Exception) -> None:
-    '''
-    Raise the passed exception.
-
-    This function is principally intended to be passed as the value of the
-    ``onerror`` parameter accepted by the :func:`os.walk` and :func:`os.fwalk`
-    functions, preventing errors emitted by low-level functions called by these
-    functions (e.g., :func:`os.listdir`) from being ignored. (By default, these
-    functions silently ignore a subset of these errors.)
-    '''
-
-    raise exception
 
 # ....................{ PRIVATE ~ iterators                }....................
 # If the active Python interpreter is 3.4, import the private _iter_chain()

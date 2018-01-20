@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2017 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -9,10 +9,11 @@ Low-level directory facilities.
 
 # ....................{ IMPORTS                            }....................
 import os, shutil
-from betse.exceptions import BetseDirException
+from betse.exceptions import BetseDirException, BetsePathException
 from betse.util.io.log import logs
 from betse.util.type.types import (
     type_check,
+    CallableTypes,
     GeneratorType,
     IterableOrNoneTypes,
     NumericTypes,
@@ -165,9 +166,6 @@ if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
     @type_check
     def get_mtime_recursive_newest(dirname: str) -> NumericTypes:
 
-        # Avoid circular import dependencies.
-        from betse.util.io.ioexceptions import raise_exception
-
         # Log this recursion.
         logs.log_debug(
             'Recursively computing newest fwalk()-based mtime of: %s', dirname)
@@ -202,8 +200,7 @@ if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
                 # a directory handle to this directory such that errors emitted
                 # by low-level functions called by os.walk() (e.g.,
                 # os.listdir()) are *NOT* silently ignored...
-                for _, _, child_file_basenames, parent_dir_fd
-                 in os.fwalk(dirname, onerror=raise_exception)
+                for _, _, child_file_basenames, parent_dir_fd in _fwalk(dirname)
             ),
         )
 
@@ -211,9 +208,6 @@ if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
 else:
     @type_check
     def get_mtime_recursive_newest(dirname: str) -> NumericTypes:
-
-        # Avoid circular import dependencies.
-        from betse.util.io.ioexceptions import raise_exception
 
         # Log this recursion.
         logs.log_debug(
@@ -243,8 +237,7 @@ else:
                 # sequence of the filenames of all files in this directory such
                 # that errors emitted by low-level functions called by
                 # os.walk() (e.g., os.listdir()) are *NOT* silently ignored...
-                for parent_dirname, _, child_file_basenames
-                 in os.walk(dirname, onerror=raise_exception)
+                for parent_dirname, _, child_file_basenames in _walk(dirname)
             ),
         )
 
@@ -585,9 +578,6 @@ def iter_subdirnames(dirname: str) -> GeneratorType:
         StackOverflow answer strongly inspiring this implementation.
     '''
 
-    # Avoid circular import dependencies.
-    from betse.util.io.ioexceptions import raise_exception
-
     # Sequence of the basenames of all subdirectories of this directory
     # implemented as follows:
     #
@@ -599,7 +589,7 @@ def iter_subdirnames(dirname: str) -> GeneratorType:
     #   * An ignorable sequence of the basenames of all files of this directory.
     # * Errors emitted by low-level functions called by os.walk() (e.g.,
     #   os.listdir()) are *NOT* silently ignored.
-    _, subdir_basenames, _ = next(os.walk(dirname, onerror=raise_exception))
+    _, subdir_basenames, _ = next(_walk(dirname))
 
     # Return a generator comprehension prefixing each such basename by the
     # absolute or relative path of the parent directory.
@@ -626,12 +616,102 @@ def iter_subdir_basenames(dirname: str) -> SequenceTypes:
         Sequence of direct subdirectory basenames of this parent directory.
     '''
 
-    # Avoid circular import dependencies.
-    from betse.util.io.ioexceptions import raise_exception
-
     # Sequence of the basenames of all subdirectories of this directory. See the
     # iter_subdirnames() function for further details.
-    _, subdir_basenames, _ = next(os.walk(dirname, onerror=raise_exception))
+    _, subdir_basenames, _ = next(_walk(dirname))
 
     # Return this sequence of basenames as is.
     return subdir_basenames
+
+# ....................{ PRIVATE ~ raisers                  }....................
+@type_check
+def _raise_exception_dir(dirname: str) -> CallableTypes:
+    '''
+    Closure raising an application-specific exception encapsulating a passed
+    OS exception with additional metadata describing the top-level directory
+    against which this exception occurred.
+
+    By default, exceptions raised by standard path functions (e.g.,
+    :func:`os.walk`) do *not* expose this directory. When functions
+    recursively change directories, these exceptions typically have
+    non-human-readable messages ala:
+
+        PermissionError: [Errno 13] Permission denied: '__pycache__'
+
+    This closure encapsulates these low-level exceptions with higher-level
+    exceptions having human-readable messages ala:
+
+        BetsePathException: [Errno 13] Permission denied: '__pycache__' in
+        "/home/leycec/py/betse/betse/util/path/".
+
+    Design
+    -----------
+    This closure is principally intended to be passed as the value of the
+    ``onerror`` parameter accepted by the :func:`os.walk` and :func:`os.fwalk`
+    functions, preventing errors emitted by low-level functions called by these
+    functions (e.g., :func:`os.listdir`) from being ignored. (By default, these
+    functions silently ignore a subset of these errors.)
+
+    Parameters
+    -----------
+    dirname : str
+        Absolute pathname of the top-level directory to raise exceptions against
+        in this closure.
+
+    Returns
+    -----------
+    CallableTypes
+        Closure raising such exceptions.
+    '''
+
+    @type_check
+    def _raise_exception_dir_inner(exception: Exception) -> None:
+        '''
+        Closure encapsulating an exception passed by low-level path functions
+        (e.g., :func:`os.walk`) against the absolute pathname of the top-level
+        directory passed to the :func:`_raise_exception_dir` factory function.
+
+        Parameters
+        -----------
+        exception : Exception
+            Low-level exception raised by a low-level path function.
+
+        Raises
+        -----------
+        BetsePathException
+            High-level exception encapsulating this low-level exception.
+        '''
+
+        # Encapsulate this low-level exception with a higher-level exception.
+        raise BetsePathException(
+            '{} in "{}/".'.format(str(exception), dirname)
+        ) from exception
+
+    # Return this closure.
+    return _raise_exception_dir_inner
+
+# ....................{ PRIVATE ~ walkers                  }....................
+# Undocumented os.fwalk() and os.walk() wrappers defaulting to a sane "onerror"
+# callable (namely, the _raise_exception_dir() closure defined above), but
+# otherwise identical to their standard variants.
+
+def _fwalk(top, *args, **kwargs) -> GeneratorType:
+
+    # If no "onerror" parameter was explicitly passed, default to a sane
+    # exception handler.
+    if 'onerror' not in kwargs:
+        kwargs['onerror'] = _raise_exception_dir(top)
+
+    # Wrap the standard variant of this generator.
+    return os.fwalk(top, *args, **kwargs)
+
+
+def _walk(top, *args, **kwargs) -> GeneratorType:
+
+    # If no "onerror" parameter was explicitly passed, default to a sane
+    # exception handler.
+    if 'onerror' not in kwargs:
+        kwargs['onerror'] = _raise_exception_dir(top)
+
+    # Wrap the standard variant of this generator.
+    return os.walk(top, *args, **kwargs)

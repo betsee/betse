@@ -40,10 +40,10 @@ RUNTIME_MANDATORY = {
     # * SciPy >= 1.0.0 requires Numpy >= 1.8.2.
     #
     # SciPy wins.
-    'Numpy':   '>= 1.8.2',
-    'Pillow':  '>= 2.3.0',
-    'SciPy':   '>= 0.12.0',
-    'dill':    '>= 0.2.3',
+    'Numpy':  '>= 1.8.2',
+    'Pillow': '>= 2.3.0',
+    'SciPy':  '>= 0.12.0',
+    'dill':   '>= 0.2.3',
 
     # Matplotlib >= 1.5.0 is required for the newly added "viridis" colormap.
     'matplotlib': '>= 1.5.0',

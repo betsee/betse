@@ -111,17 +111,9 @@ https://pypi.python.org/pypi?%3Aaction=list_classifiers
 '''
 
 # ....................{ INITIALIZERS                       }....................
-def init() -> None:
+def _init() -> None:
     '''
     Finalize the definition of all globals declared by this script.
-    '''
-
-    init_description()
-
-
-def init_description() -> None:
-    '''
-    Finalize the :data:`_DESCRIPTION` global declared by this script.
     '''
 
     # Global variables assigned to below.
@@ -158,12 +150,22 @@ def init_description() -> None:
 
 # ....................{ INITIALIZERS ~ main                }....................
 # Finalize the definition of all globals declared by this module.
-init()
+_init()
+
+#FIXME: O.K.; it would appear that setuptools >= 38.0.0 now requires iterables
+#to strictly be ordered sequences, whereas before it accepted unordered
+#sequences. So, setuptools broke backwards compatibility yet again. Fortunately,
+#the fix should be (mostly) trivial: just compact the
+#"metadeps.RUNTIME_MANDATORY" dictionary passed to the "install_requires"
+#parameter into a tuple of concatenated strings instead. We'll also need to do
+#so for any other parameters accepting similar iterables. *sigh*
+
+# print('mandatory runtime dependencies: {}'.format(metadeps.RUNTIME_MANDATORY))
 
 # ....................{ OPTIONS                            }....................
 # Setuptools-specific options. Keywords not explicitly recognized by either
 # setuptools or distutils must be added to the above dictionary instead.
-setup_options = {
+_setup_options = {
     # ..................{ CORE                               }..................
     # Self-explanatory metadata.
     'name':             metadata.PACKAGE_NAME,
@@ -185,7 +187,7 @@ setup_options = {
 
     # ..................{ DEPENDENCIES                       }..................
     # Mandatory runtime dependencies.
-    'install_requires': metadeps.RUNTIME_MANDATORY,
+    'install_requires': libs.get_runtime_mandatory_tuple(),
 
     # Optional nuntime dependencies. Whereas mandatory dependencies are defined
     # as sequences, optional dependencies are defined as a dictionary mapping
@@ -196,13 +198,11 @@ setup_options = {
     # "sudo pip3 install betse[all]", installing both the application and all
     # mandatory and optional dependencies required by the application).
     'extras_require': {
-        # All optional runtime dependencies, dynamically converted into a
-        # sequence from the "metadeps.RUNTIME_OPTIONAL" dictionary global.
         'all': libs.get_runtime_optional_tuple(),
     },
 
     # Mandatory testing dependencies.
-    'tests_require': metadeps.TESTING_MANDATORY,
+    'tests_require': libs.get_testing_mandatory_tuple(),
 
     # ..................{ PACKAGES                           }..................
     # List of all Python packages (i.e., directories containing zero or more
@@ -217,25 +217,23 @@ setup_options = {
     #   package, required only by a prior application installation.
     # * "freeze", providing PyInstaller-specific functionality required only for
     #   application freezing (i.e., conversion into an executable binary).
-    'packages': setuptools.find_packages(
-        exclude = [
-            metadata.PACKAGE_NAME + '_test',
-            metadata.PACKAGE_NAME + '_test.*',
-            metadata.PACKAGE_NAME + '_setup',
-            metadata.PACKAGE_NAME + '_setup.*',
-            'build',
-            'freeze',
-        ],
-    ),
+    'packages': setuptools.find_packages(exclude=(
+        metadata.PACKAGE_NAME + '_test',
+        metadata.PACKAGE_NAME + '_test.*',
+        metadata.PACKAGE_NAME + '_setup',
+        metadata.PACKAGE_NAME + '_setup.*',
+        'build',
+        'freeze',
+    )),
 
     # ..................{ PATHS                              }..................
     # Cross-platform script wrappers dynamically created at installation time.
     'entry_points': {
         # CLI-specific scripts.
-        'console_scripts': [
+        'console_scripts': (
             '{} = {}.__main__:main'.format(
                 metadata.SCRIPT_BASENAME, metadata.PACKAGE_NAME),
-        ],
+        ),
     },
 
     #FIXME; This isn't quite true. Undesirable files are excludable in this
@@ -299,7 +297,7 @@ customize these options (e.g., by defining custom commands).
 # print('extras: {}'.format(setup_options['extras_require']))
 
 
-setup_options_custom = {
+_setup_options_custom = {
     # While currently empty, it's likely we'll want this again... someday.
 }
 '''
@@ -315,7 +313,7 @@ instead.
 # ....................{ COMMANDS                           }....................
 # Define all application-specific setuptools commands.
 for setup_module in (build, freeze, symlink, test):
-    setup_module.add_setup_commands(setup_options_custom, setup_options)
+    setup_module.add_setup_commands(_setup_options_custom, _setup_options)
 
 # ....................{ SETUP                              }....................
-setuptools.setup(**setup_options)
+setuptools.setup(**_setup_options)

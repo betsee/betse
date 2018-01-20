@@ -311,27 +311,26 @@ def is_requirements_dict_keys(
     # Avoid circular import dependencies.
     from betse.lib.setuptools import setuptool
 
+    # Tuple of requirements strings converted from this subset of key-value
+    # pairs of these requirements.
+    requirements_tuple = setuptool.convert_requirements_dict_keys_to_tuple(
+        requirements_dict, *requirement_names)
+
     # Return True only if...
     return (
-        # These dependencies are all satisfied, converting all key-value pairs
-        # of these requirements into a tuple of requirements strings.
-        setuptool.is_requirement_str(
-            *setuptool.convert_requirements_dict_keys_to_tuple(
-                requirements_dict, *requirement_names)) and
-
+        # These dependencies are all satisfied.
+        setuptool.is_requirement_str(*requirements_tuple) and
         # All external commands required by these dependencies are installed.
         is_commands(*requirement_names)
     )
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS ~ runtime                  }....................
 def get_runtime_mandatory_tuple() -> tuple:
     '''
     Tuple listing the :mod:`setuptools`-specific requirement string containing
     the mandatory name and optional version and extras constraints of each
-    optional runtime dependency for this application.
-
-    This tuple is dynamically converted from the
-    :data:`metadata.RUNTIME_OPTIONAL` dictionary.
+    mandatory runtime dependency for this application, dynamically converted
+    from the :data:`metadata.RUNTIME_MANDATORY` dictionary.
     '''
 
     # Avoid circular import dependencies.
@@ -346,10 +345,8 @@ def get_runtime_optional_tuple() -> tuple:
     '''
     Tuple listing the :mod:`setuptools`-specific requirement string containing
     the mandatory name and optional version and extras constraints of each
-    optional runtime dependency for this application.
-
-    This tuple is dynamically converted from the
-    :data:`metadata.RUNTIME_OPTIONAL` dictionary.
+    optional runtime dependency for this application, dynamically converted from
+    the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
     '''
 
     # Avoid circular import dependencies.
@@ -358,6 +355,22 @@ def get_runtime_optional_tuple() -> tuple:
     # Convert this dictionary into a tuple.
     return setuptool.convert_requirements_dict_to_tuple(
         metadeps.RUNTIME_OPTIONAL)
+
+# ....................{ GETTERS ~ testing                  }....................
+def get_testing_mandatory_tuple() -> tuple:
+    '''
+    Tuple listing the :mod:`setuptools`-specific requirement string containing
+    the mandatory name and optional version and extras constraints of each
+    mandatory testing dependency for this application, dynamically converted
+    from the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.lib.setuptools import setuptool
+
+    # Convert this dictionary into a tuple.
+    return setuptool.convert_requirements_dict_to_tuple(
+        metadeps.TESTING_MANDATORY)
 
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadatas() -> tuple:
