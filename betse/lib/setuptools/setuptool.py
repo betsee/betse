@@ -221,42 +221,43 @@ def die_unless_requirement(requirement: Requirement) -> None:
 @type_check
 def is_requirement_str(*requirement_strs: str) -> bool:
     '''
-    ``True`` only if all passed :mod:`setuptools`-formatted requirements strings
+    ``True`` only if all passed :mod:`setuptools`-formatted requirement strings
     (e.g., `Numpy >= 1.8.0`) are satisfiable, implying the corresponding
-    third-party packages to be both importable and of satisfactory version.
+    third-party packages to be importable *and* of satisfactory versions.
 
-    Equivalently, this function returns ``False`` if at least one such
-    requirement is unsatisfied. For importable unsatisfied dependencies with
-    :mod:`setuptools`-specific metadata (e.g., `.egg-info/`-suffixed
-    subdirectories of the ``site-packages/`` directory for the active Python 3
-    interpreter, typically created by :mod:`setuptools` at install time), this
-    function additionally validates the versions of these dependencies to
-    satisfy these requirements.
+    Parameters
+    ----------
+    requirement_strs : tuple[str]
+        Tuple of all requirement strings to test.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if these requirements are all satisfiable.
     '''
 
     # List of all requirement objects parsed from these requirement strings.
     requirements = get_requirements(*requirement_strs)
 
-    # If any such requirement is unsatisfied, fail.
-    for requirement in requirements:
-        if not is_requirement(requirement):
-            return False
-
-    # Else, succeed.
-    return True
+    # Return "True" only if these requirements are all satisfiable.
+    return all(
+        is_requirement(requirement)
+        for requirement in requirements
+    )
 
 
 @type_check
 def is_requirement(requirement: Requirement) -> bool:
     '''
-    ``True`` only if the passed :mod:`setuptools`-specific requirement is
-    satisfiable, implying the corresponding third-party package to be both
+    ``True`` only if the passed :mod:`setuptools`-specific **requirement**
+    (i.e., object describing this module or package's required name and version)
+    is satisfiable, implying the corresponding third-party package to be both
     importable and of satisfactory version.
 
     Parameters
     ----------
     requirement : Requirement
-        Object describing this module or package's required name and version.
+        Requirement to test.
 
     Returns
     ----------

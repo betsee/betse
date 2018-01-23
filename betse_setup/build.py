@@ -22,7 +22,7 @@ maintaining backward compatibility with older :mod:`setuptools` versions.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse_setup import util
+from betse_setup import buputil
 from distutils.errors import DistutilsClassError
 from pkg_resources import Distribution
 from setuptools.command import easy_install
@@ -57,7 +57,7 @@ def is_module_root(module_name: str) -> bool:
         raise ImportError('Module "{{}}" not a top-level module.'.format(
             module_name))
 
-    # See betse.util.py.modules.is_module() for implementation details.
+    # See betse.buputil.py.modules.is_module() for implementation details.
     try:
         return importlib.find_loader(module_name) is not None
     except ValueError:
@@ -190,7 +190,7 @@ def _patched_get_args(
 
     # For each entry point of this distribution...
     for script_basename, script_type, entry_point in (
-        util.package_distribution_entry_points(distribution)):
+        buputil.package_distribution_entry_points(distribution)):
         # If this entry point provides the name of the main function in this
         # entry module to be called, define script code calling this function.
         if len(entry_point.attrs):
@@ -202,7 +202,7 @@ def _patched_get_args(
 
             # Print a non-fatal warning, as the resulting script may *NOT*
             # necessarily be runnable or freezable as expected.
-            util.output_warning(
+            buputil.output_warning(
                 'Entry module "{}" entry function undefined.'.format(
                 entry_point.module_name))
 

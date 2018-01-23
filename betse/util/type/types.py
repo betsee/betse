@@ -25,7 +25,7 @@ from collections.abc import (
     Set, Sized,
 )
 from enum import Enum, EnumMeta
-from functools import wraps
+from functools import partial, wraps
 from io import IOBase
 from inspect import Parameter, Signature
 from weakref import CallableProxyType, ProxyType
@@ -61,17 +61,6 @@ Type of all types.
 '''
 
 
-ContainerType = Container
-'''
-Abstract interface implemented by all **containers** (i.e., objects
-implementing the standard `__contains__()` method internally called by the
-`in` operator).
-
-This class is a synonym of the :class:`collections.abc.Container` class,
-permitting callers to avoid importing that class.
-'''
-
-
 FileType = IOBase
 '''
 Abstract base class implemented by *all* **file-like objects** (i.e., objects
@@ -79,46 +68,6 @@ implementing the standard ``read()`` and ``write()`` methods).
 
 This class is a synonym of the `io.IOBase` class, provided merely as a
 convenience to callers preferring to avoid importing that class.
-'''
-
-
-HashableType = Hashable
-'''
-Abstract interface implemented by all **hashables** (i.e., objects implementing
-the standard ``__hash__()`` method required by all dictionary keys).
-
-This class is a synonym of the `collections.abc.Hashable` class, provided
-merely as a convenience to callers preferring to avoid importing that class.
-'''
-
-
-IteratorType = Iterator
-'''
-Abstract interface implemented by all **iterators** (i.e., objects implementing
-the standard `__iter__()` and `__next__()` methods, typically iterating over an
-associated container).
-
-This class is a synonym of the `collections.abc.Iterator` class, provided
-merely as a convenience to callers preferring to avoid importing that class.
-'''
-
-
-MappingType = Mapping
-'''
-Abstract interface implemented by all dictionary-like objects, both mutable and
-immutable.
-
-This class is a synonym of the `collections.abc.Mapping` class, provided merely
-as a convenience to callers preferring to avoid importing that class.
-'''
-
-
-MutableMappingType = MutableMapping
-'''
-Abstract interface implemented by all mutable dictionary-like objects.
-
-This class is a synonym of the `collections.abc.MutableMapping` class, provided
-merely as a convenience to callers preferring to avoid importing that class.
 '''
 
 
@@ -141,11 +90,60 @@ module defined the same type with the same name under Python 2.x but _not_ 3.x.
 Depressingly, this type must now be manually redefined everywhere.
 '''
 
+# ....................{ TYPES ~ arg                        }....................
+ArgParserType = ArgumentParser
+'''
+Type of argument parsers parsing all command-line arguments for either top-level
+commands *or* subcommands of those commands.
+
+This class is a synonym of the :class:`argparse.ArgumentParser` class,
+permitting callers to avoid importing that class.
+'''
+
+
+ArgSubparsersType = _SubParsersAction
+'''
+Type of argument subparser containers parsing subcommands for parent argument
+parsers parsing either top-level commands *or* subcommands of those commands.
+
+This class is a synonym of the :class:`argparse._SubParsersAction` class,
+permitting callers to avoid importing that private class.
+'''
+
+# ....................{ TYPES ~ callable                   }....................
+CallablePartialType = partial
+'''
+Type of all **partial callables** (i.e., callables dynamically produced by the
+function-like :class:`partial` class).
+'''
+
 
 PropertyType = property
 '''
 Type of all **property methods** (i.e., methods decorated by the builtin
 :class:`property` class decorator).
+'''
+
+# ....................{ TYPES ~ container                  }....................
+ContainerType = Container
+'''
+Abstract interface implemented by all **containers** (i.e., objects
+implementing the standard `__contains__()` method internally called by the
+`in` operator).
+
+This class is a synonym of the :class:`collections.abc.Container` class,
+permitting callers to avoid importing that class.
+'''
+
+
+IteratorType = Iterator
+'''
+Abstract interface implemented by all **iterators** (i.e., objects implementing
+the standard `__iter__()` and `__next__()` methods, typically iterating over an
+associated container).
+
+This class is a synonym of the `collections.abc.Iterator` class, provided
+merely as a convenience to callers preferring to avoid importing that class.
 '''
 
 
@@ -167,24 +165,33 @@ This class is a synonym of the `collections.abc.Sized` class, provided merely
 as a convenience to callers preferring to avoid importing that class.
 '''
 
-# ....................{ TYPES ~ arg                        }....................
-ArgParserType = ArgumentParser
+# ....................{ TYPES ~ container : mapping        }....................
+HashableType = Hashable
 '''
-Type of argument parsers parsing all command-line arguments for either top-level
-commands *or* subcommands of those commands.
+Abstract interface implemented by all **hashables** (i.e., objects implementing
+the standard ``__hash__()`` method required by all dictionary keys).
 
-This class is a synonym of the :class:`argparse.ArgumentParser` class,
-permitting callers to avoid importing that class.
+This class is a synonym of the `collections.abc.Hashable` class, provided
+merely as a convenience to callers preferring to avoid importing that class.
 '''
 
 
-ArgSubparsersType = _SubParsersAction
+MappingType = Mapping
 '''
-Type of argument subparser containers parsing subcommands for parent argument
-parsers parsing either top-level commands *or* subcommands of those commands.
+Abstract interface implemented by all dictionary-like objects, both mutable and
+immutable.
 
-This class is a synonym of the :class:`argparse._SubParsersAction` class,
-permitting callers to avoid importing that private class.
+This class is a synonym of the `collections.abc.Mapping` class, provided merely
+as a convenience to callers preferring to avoid importing that class.
+'''
+
+
+MappingMutableType = MutableMapping
+'''
+Abstract interface implemented by all mutable dictionary-like objects.
+
+This class is a synonym of the `collections.abc.MutableMapping` class, provided
+merely as a convenience to callers preferring to avoid importing that class.
 '''
 
 # ....................{ TYPES ~ enum                       }....................

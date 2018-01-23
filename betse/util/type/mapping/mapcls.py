@@ -18,7 +18,7 @@ from betse.util.type.types import (
     HashableType,
     IteratorType,
     MappingType,
-    MutableMappingType,
+    MappingMutableType,
 )
 from collections import OrderedDict
 
@@ -146,7 +146,7 @@ class DynamicValue(object):
         self.set_value = set_value
 
 
-class DynamicValueDict(MutableMappingType):
+class DynamicValueDict(MappingMutableType):
     '''
     Dictionary whose values are all **dynamic** (i.e., instances of the
     `DynamicValue` class, whose actual underlying values are gettable and

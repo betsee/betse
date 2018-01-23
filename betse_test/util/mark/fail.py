@@ -19,7 +19,7 @@ from betse.util.type.types import type_check
 xfail_if = pytest.mark.xfail
 '''
 Conditionally mark the decorated test as ignorably known to fail with the
-passed human-readable justification if the passed boolean is `False`.
+passed human-readable justification if the passed boolean is ``False``.
 
 Parameters
 ----------
@@ -30,8 +30,8 @@ reason : str
 
 See Also
 ----------
-xfail
-    Further details on the `XFAIL` test state.
+:func:`pytest.mark.xfail`
+    Further details on the ``XFAIL`` test state.
 '''
 
 

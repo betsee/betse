@@ -26,7 +26,7 @@ package -- which largely has the same effect, albeit less resiliently. While
 
 # ....................{ IMPORTS                            }....................
 import os
-from betse_setup import util
+from betse_setup import buputil
 from setuptools.command.install import install
 from setuptools.command.install_lib import install_lib
 from setuptools.command.install_scripts import install_scripts
@@ -38,7 +38,7 @@ def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     Add `symlink` subcommands to the passed dictionary of `setuptools` options.
     '''
 
-    util.add_setup_command_classes(
+    buputil.add_setup_command_classes(
         metadata, setup_options,
         symlink, symlink_lib, symlink_scripts, unsymlink)
 
@@ -85,22 +85,22 @@ class symlink(install):
 
         # If the current system is OS X *AND* the OS X-specific Homebrew package
         # manager is installed...
-        if util.is_os_os_x() and util.is_pathable('brew'):
+        if buputil.is_os_os_x() and buputil.is_pathable('brew'):
              # Absolute path of Homebrew's top-level system-wide cellar
              # directory (e.g., "/usr/local/Cellar").
-             brew_cellar_dir = util.get_command_output('brew', '--cellar')
+             brew_cellar_dir = buputil.get_command_output('brew', '--cellar')
              #print('Here!')
 
              # Absolute path of Homebrew's top-level system-wide directory
              # (e.g., "/usr/local").
-             brew_dir = util.get_command_output('brew', '--prefix')
+             brew_dir = buputil.get_command_output('brew', '--prefix')
 
              # Absolute path of Homebrew's top-level system-wide binary
              # directory (e.g., "/usr/local/bin").
              brew_binary_dir = path.join(brew_dir, 'bin')
 
              # If this directory does not exist, raise an exception.
-             util.die_unless_dir(brew_binary_dir)
+             buputil.die_unless_dir(brew_binary_dir)
 
              # If the directory to which wrappers will be installed is a Python-
              # specific subdirectory of this cellar directory (e.g.,
@@ -119,12 +119,12 @@ class symlink(install):
         '''Run the current command and all subcommands thereof.'''
         # If the current operating system is POSIX-incompatible, this system
         # does *NOT* support conventional symbolic links. See details above.
-        if not util.is_os_posix():
+        if not buputil.is_os_posix():
             # Avoid circular import dependencies.
             from betse_setup import build
 
             # Print a non-fatal warning.
-            util.output_warning(
+            buputil.output_warning(
                 'Symbolic links require POSIX compatibility. '
                 'Since the current platform is\n'
                 'POSIX-incompatible (e.g., Windows), '
@@ -133,7 +133,7 @@ class symlink(install):
 
             # Absolute path of the parent directory containing the top-level
             # "betse" package.
-            parent_dirname = util.get_project_dirname()
+            parent_dirname = buputil.get_project_dirname()
             # print('parent: ' + parent_dirname)
 
             # Prepend the template for subsequently installed entry points by a
@@ -184,7 +184,7 @@ class symlink_lib(install_lib):
     def run(self):
         # If the current operating system is POSIX-incompatible, such system
         # does *NOT* support conventional symbolic links. Return immediately.
-        if not util.is_os_posix():
+        if not buputil.is_os_posix():
             return
 
         # Absolute path of betse's top-level Python package in the current
@@ -197,7 +197,7 @@ class symlink_lib(install_lib):
             self._setup_options['name'])
 
         # (Re)create such link.
-        util.make_symlink(package_dirname, symlink_filename)
+        buputil.make_symlink(package_dirname, symlink_filename)
 
 
 class symlink_scripts(install_scripts):
@@ -295,13 +295,13 @@ class unsymlink(install):
         # If the current operating system is POSIX-compatible, such system
         # supports symbolic links. In such case, remove the previously installed
         # symbolic link.
-        if util.is_os_posix():
-            util.remove_symlink(path.join(
+        if buputil.is_os_posix():
+            buputil.remove_symlink(path.join(
                 self.install_package_dirname,
                 self._setup_options['name'],
             ))
 
         # Remove all installed scripts.
-        for script_basename, _, _ in util.command_entry_points(self):
-            util.remove_file(path.join(
+        for script_basename, _, _ in buputil.command_entry_points(self):
+            buputil.remove_file(path.join(
                 self.install_wrapper_dirname, script_basename))

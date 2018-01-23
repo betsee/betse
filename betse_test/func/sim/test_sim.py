@@ -11,10 +11,21 @@ those specific to biochemical reaction and gene regulatory networks (e.g.,
 
 # ....................{ IMPORTS                            }....................
 import pytest
-from betse_test.util.mark.skip import skip_unless_matplotlib_anim_writer
 from betse_test.util.mark.fail import xfail
+from betse_test.util.mark.skip import (
+    skip_unless_matplotlib_anim_writer, skip_unless_requirement)
 
 # ....................{ TESTS                              }....................
+#FIXME: This is... unfortunate. Since setuptools >= 38.0.0 will eventually
+#become industry-standard, this functional test and hence our backward
+#compatibility guarantee will eventually be untestable. To correct this, we have
+#little choice but to drop backward compatibility with older versions.
+#Specifically:
+#
+#* Bump the "betse.metadata.GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY" tag to
+#  'v0.6.2'.
+#* Remove this decoration here.
+@skip_unless_requirement('setuptools < 38.0.0')
 def test_cli_sim_compat(
     betse_cli_sim_backward_compatibility: 'CLISimTester') -> None:
     '''
@@ -61,10 +72,10 @@ def test_cli_sim_compat(
         # Avoid overwriting the previously exported simulation configuration.
         is_config_overwrite=False,)
 
-    #FIXME: When we unavoidably break backward compatibility with respect to
-    #pickled objects and hence currently only test backward compatibility with
-    #respect to the simulation configuration. This is non-ideal, but sufficient
-    #for the moment. Ideally, this should be reverted on releasing a new version.
+    #FIXME: We unavoidably break backward compatibility with respect to pickled
+    #objects and hence currently only test backward compatibility with respect
+    #to the simulation configuration. This is non-ideal, but sufficient for the
+    #moment. Ideally, this should be reverted on releasing a new version.
     # betse_cli_sim_backward_compatibility.run_subcommands(
     #     ('seed',),
     #     is_overwriting_config=False,)

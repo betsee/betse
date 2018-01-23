@@ -13,7 +13,13 @@ on whether the conditions signified by the passed parameters are satisfied
 
 # ....................{ IMPORTS                            }....................
 import pytest
-from betse.util.type.types import type_check
+from betse.util.type.types import (
+    type_check,
+    CallableTypes,
+    ClassType,
+    SequenceOrNoneTypes,
+    MappingOrNoneTypes,
+)
 
 # ....................{ IMPORTS ~ private                  }....................
 # Sadly, the following imports require private modules and packages.
@@ -131,11 +137,12 @@ def skip_unless_matplotlib_anim_writer(writer_name: str):
             'Matplotlib animation writer "{}" either not found or '
             'unrecognized by BETSE.'.format(writer_name))
 
-# ....................{ SKIP ~ module                      }....................
+# ....................{ SKIP ~ module : setuptools         }....................
+#FIXME: Code duplication is bad. Let's stop replicating this structure.
 @type_check
 def skip_unless_lib_runtime_optional(*lib_names: str):
     '''
-    Skip the decorated test if at least one of the optional runtime dependencies
+    Skip the decorated test if one or more of the optional runtime dependencies
     of this application with the passed :mod:`setuptools`-specific project names
     are **unsatisfiable** (i.e., unimportable *or* of unsatisfactory version).
 
@@ -143,7 +150,7 @@ def skip_unless_lib_runtime_optional(*lib_names: str):
     ----------
     lib_names : str
         Tuple of the names of all :mod:`setuptools`-specific projects
-        corresponding to these dependencies (e.g., ``NetworkX``).
+        identifying these dependencies (e.g., ``NetworkX``).
 
     Returns
     ----------
@@ -155,36 +162,47 @@ def skip_unless_lib_runtime_optional(*lib_names: str):
     # Defer heavyweight imports.
     from betse.exceptions import BetseLibException
     from betse.lib import libs
-    from betse.util.io import stderrs
-    from betse.util.type.decorators import identity_decorator
 
-    # Validate these dependencies.
-    try:
-        # To reuse the human-readable messages embedded in raised exceptions,
-        # this rather than the libs.is_runtime_optional() method is called.
-        libs.die_unless_runtime_optional(*lib_names)
-    # If at least one such dependency is unsatisfiable, skip this test.
-    except BetseLibException as exc:
-        return skip(str(exc))
-    # If an unexpected exception is raised...
-    except Exception as exc:
-        # Print this exception's stacktrace to stderr.
-        stderrs.output_exception(heading=(
-            'skip_unless_lib_runtime_optional{} '
-            'raised unexpected exception:\n'.format(lib_names)))
-
-        # Skip this test with this exception's message.
-        return skip(str(exc))
-    # Else, these dependencies are all satisfiable. Reduce this decoration to a
-    # noop.
-    else:
-        return identity_decorator
+    # Skip this test if one or more such dependences are unsatisfiable.
+    return _skip_if_callable_raises_exception(
+        exception_type=BetseLibException,
+        func=libs.die_unless_runtime_optional,
+        args=lib_names,
+    )
 
 
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: The higher-level skip_unless_lib_runtime_optional() decorator should
-# *ALWAYS* be called in favor of this lower-level decorator.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+@type_check
+def skip_unless_requirement(*requirement_strs: str):
+    '''
+    Skip the decorated test if one or more of the dependencies identified by the
+    passed :mod:`setuptools`-formatted requirement strings are **unsatisfiable**
+    (i.e., unimportable *or* of unsatisfactory version).
+
+    Parameters
+    ----------
+    requirement_strs : str
+        Tuple of all :mod:`setuptools`-formatted requirement strings
+        identifying these dependencies (e.g., `Numpy >= 1.8.0`).
+
+    Returns
+    ----------
+    pytest.skipif
+        Decorator describing these requirements if unmet *or* the identity
+        decorator reducing to a noop otherwise.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.exceptions import BetseLibException
+    from betse.lib.setuptools import setuptool
+
+    # Skip this test if one or more such dependences are unsatisfiable.
+    return _skip_if_callable_raises_exception(
+        exception_type=BetseLibException,
+        func=setuptool.die_unless_requirement_str,
+        args=requirement_strs,
+    )
+
+# ....................{ SKIP ~ module : importlib          }....................
 @type_check
 def skip_unless_module(module_name: str, minimum_version: str = None):
     '''
@@ -196,6 +214,23 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
     call the higher-level :func:`skip_unless_lib_runtime_optional` decorator
     instead, which implicitly validates the versions of those dependencies
     rather than requiring those versions be explicitly passed.
+
+    Caveats
+    ----------
+    The higher-level :func:`skip_unless_lib_runtime_optional` and
+    :func:`skip_unless_requirement` decorators (which are implemented in terms
+    of robust :mod:`setuptools` machinery) should typically be called in lieu
+    of this lower-level decorator (which are implemented in terms of fragile
+    :mod:`importlib` machinery).
+
+    See Also
+    ----------
+    :func:`skip_unless_lib_runtime_optional`
+        Higher-level decorator skipping the decorated test if the passed
+        optional runtime dependency is .
+
+        Higher-level decorator skipping the decorated test if one or more passed
+        requirement strings are unsatisfiable.
 
     Parameters
     ----------
@@ -213,45 +248,100 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
         decorator reducing to a noop otherwise.
     '''
 
-    # Defer heavyweight imports.
-    from betse.util.io import stderrs
-    from betse.util.type.decorators import identity_decorator
-
-    # Attempt to import this module and module version.
-    try:
-        pytest.importorskip(module_name, minimum_version)
-    # If this module is unimportable, skip this test.
-    except Skipped as exc:
-        return skip(str(exc))
-    # If an unexpected exception is raised...
-    except Exception as exc:
-        # Print this exception's stacktrace to stderr.
-        stderrs.output_exception(heading=(
-            'skip_unless_module({}, {}) '
-            'raised unexpected exception:\n'.format(
-                module_name, minimum_version)))
-
-        # Skip this test with this exception's message.
-        return skip(str(exc))
-    # Else, this module is importable. Reduce this decoration to a noop.
-    else:
-        return identity_decorator
+    return _skip_if_callable_raises_exception(
+        exception_type=Skipped,
+        func=pytest.importorskip,
+        args=(module_name, minimum_version),
+    )
 
 # ....................{ SKIP ~ plugin                      }....................
-skip_unless_plugin_xdist = skip_unless_module('xdist')
-'''
-Skip the decorated test if the `pytest-xdist` plugin is *not* installed.
+def skip_unless_plugin_xdist():
+    '''
+    Skip the decorated test if the ``pytest-xdist`` plugin is *not* installed.
 
-This decorator is typically applied to tests requiring **process isolation**
-(i.e., isolating tests to dedicated subprocesses of the current test session).
-While this plugin provides such isolation out-of-the-box, vanilla :mod:`pytest`
-does not. Hence, these tests *must* be skipped in the absence of this plugin.
+    This decorator is typically applied to tests requiring **process isolation**
+    (i.e., isolating tests to dedicated subprocesses of the current test
+    session).  While this plugin provides such isolation out-of-the-box, vanilla
+    :mod:`pytest` does not. Hence, these tests *must* be skipped in the absence
+    of this plugin.
 
-Examples of tests requiring process isolation include:
+    Examples of tests requiring process isolation include:
 
-* Unit tests testing importability. Since Python caches imports performed by the
-  active Python interpreter (e.g., via :attr:`sys.modules`) *and* since the
-  order in which :mod:`pytest` runs tests should be assumed to be non-
-  deterministic, importability *cannot* be reliably tested within a single
-  Python process.
-'''
+    * Unit tests testing importability. Since Python caches imports performed by
+      the active Python interpreter (e.g., via :attr:`sys.modules`) *and* since
+      the order in which :mod:`pytest` runs tests should be assumed to be
+      non-deterministic, importability *cannot* be reliably tested within a
+      single Python process.
+    '''
+
+    return skip_unless_module('xdist')
+
+# ....................{ PRIVATE ~ skip                     }....................
+@type_check
+def _skip_if_callable_raises_exception(
+    # Mandatory parameters.
+    exception_type: ClassType,
+    func: CallableTypes,
+
+    # Optional parameters.
+    args: SequenceOrNoneTypes = None,
+    kwargs: MappingOrNoneTypes = None,
+):
+    '''
+    Skip the decorated test if calling the passed function with the passed
+    positional and keyword arguments raises an exception of the passed type.
+
+    If calling this function raises:
+
+    * Any other type of exception, this test is marked as a failure.
+    * No exception, this test continues as expected.
+
+    Parameters
+    ----------
+    exception_type : ClassType
+        Type of exception expected to be raised by this callable.
+    func : CallableTypes
+        Callable to pass these arguments.
+    args : SequenceOrNoneTypes
+        Sequence of all positional arguments to unconditionally pass to the
+        passed callable if any *or* ``None`` otherwise. Defaults to ``None``.
+    kwargs : MappingOrNoneTypes
+        Dictionary of all keyword arguments to unconditionally pass to the
+        passed callable if any *or* ``None`` otherwise. Defaults to ``None``.
+
+    Returns
+    ----------
+    pytest.skipif
+        Decorator skipping this test if this callable raises this exception *or*
+        the identity decorator reducing to a noop otherwise.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.util.type.decorators import identity_decorator
+
+    # Default all unpassed arguments to sane values.
+    if args is None:
+        args = ()
+    if kwargs is None:
+        kwargs = {}
+
+    # Attempt to call this callable with these arguments.
+    try:
+        func(*args, **kwargs)
+    # If this callable raises an expected exception, skip this test.
+    except exception_type as exception:
+        return skip(str(exception))
+    # If this callable raises an unexpected exception, fail this test. To
+    # preserve this exception's stack trace, reraise this exception as is.
+    except Exception as exception:
+        raise
+        # # Print this exception's stacktrace to stderr.
+        # stderrs.output_exception(heading=(
+        #     'skip_unless_lib_runtime_optional{} '
+        #     'raised unexpected exception:\n'.format(lib_names)))
+        #
+        # # Skip this test with this exception's message.
+        # return skip(str(exception))
+    # Else, this callable raised no exception. Reduce this decoration to a noop.
+    else:
+        return identity_decorator

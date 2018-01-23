@@ -8,7 +8,8 @@ Decorators marking tests and fixtures as being **parametrized** (i.e., accepting
 two or more sets of parameters passed to these tests and fixtures).
 
 Most of these decorators mark tests and fixtures with BETSE-specific keywords
-inspected _only_ by BETSE-specific py.test hooks defined by `conftest` plugins.
+inspected *only* by BETSE-specific py.test hooks defined by ``conftest``
+plugins.
 '''
 
 # ....................{ IMPORTS                            }....................

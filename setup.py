@@ -35,9 +35,9 @@ tasks (e.g., installation, freezing, test running) for this application.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import setuptools
-from betse import metadata, metadeps
+from betse import metadata
 from betse.lib import libs
-from betse_setup import build, freeze, symlink, test, util
+from betse_setup import build, freeze, symlink, test, buputil
 
 # ....................{ METADATA                           }....................
 # PyPI-specific metadata declared here rather than in the "betse.metadata"
@@ -137,14 +137,14 @@ def _init() -> None:
 
     # Description read from this description file.
     try:
-        _DESCRIPTION = util.get_chars(DESCRIPTION_FILENAME)
+        _DESCRIPTION = buputil.get_chars(DESCRIPTION_FILENAME)
         # print('description: {}'.format(_DESCRIPTION))
     # If this file is *NOT* readable, print a non-fatal warning and reduce this
     # description to the empty string. While unfortunate, this description is
     # *NOT* required for most operations and hence mostly ignorable.
     except Exception as exception:
         _DESCRIPTION = ''
-        util.output_warning(
+        buputil.output_warning(
             'Description file "{}" not found or not readable:\n{}'.format(
                 DESCRIPTION_FILENAME, exception))
 

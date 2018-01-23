@@ -9,7 +9,7 @@ Application-specific ``test`` subcommand for :mod:`setuptools`.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type.obj import objects
-from betse_setup import util
+from betse_setup import buputil
 from distutils.errors import DistutilsClassError
 from setuptools import Command
 
@@ -20,7 +20,7 @@ def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     options.
     '''
 
-    util.add_setup_command_classes(metadata, setup_options, test)
+    buputil.add_setup_command_classes(metadata, setup_options, test)
 
 # ....................{ CLASSES ~ base                     }....................
 class test(Command):
@@ -183,7 +183,7 @@ class test(Command):
         import machinery:
 
             # Don't do this.
-            >>> pytest_main = util.import_module(
+            >>> pytest_main = buputil.import_module(
             ...    'pytest.main', exception_message=(
             ...    'py.test not installed under the current Python interpreter.'))
 
@@ -205,10 +205,10 @@ class test(Command):
         # configuration required by submodules of the private "_pytest" package.
         # The former *MUST* always be imported before the latter. Failing to do
         # so raises obtuse exceptions at runtime... which is bad.
-        self._pytest_public = util.import_module(
+        self._pytest_public = buputil.import_module(
             'pytest', exception_message=(
             'py.test not installed under the current Python interpreter.'))
-        self._pytest_private = util.import_module(
+        self._pytest_private = buputil.import_module(
             '_pytest', exception_message=(
             'py.test not installed under the current Python interpreter.'))
 
@@ -312,15 +312,15 @@ class test(Command):
         #arbitrary test slaves and hence Python processes. Until "pytest-xdist"
         #permits tests to be isolated to the same test slave, "pytest-xdist"
         #must *NOT* be enabled. Non-fatal warning to output might resemble:
-        #    util.output_warning(
+        #    buputil.output_warning(
         #        'py.test plugin "pytest-xdist" fails to support serial tests.')
-        #    util.output_warning(
+        #    buputil.output_warning(
         #        'Tests will *NOT* be parallelized across multiple processors.')
 
         # True only if the optional third-party "pytest-xdist" plugin is both
         # importable and *NOT* explicitly disabled below (e.g., due to the end
         # user having passed CLI options incompatible with this plugin).
-        is_xdist = util.is_module('xdist')
+        is_xdist = buputil.is_module('xdist')
 
         #FIXME: Disabled for the moment. "xdist" appears to be inexplicably
         #failing with non-human-readable exceptions. The lack of official
@@ -334,9 +334,9 @@ class test(Command):
         # If this plugin is unimportable, print a non-fatal warning. Due to the
         # cost of running tests, parallelization is highly recommended.
         # if not is_xdist:
-        #     util.output_warning(
+        #     buputil.output_warning(
         #         'Optional py.test plugin "pytest-xdist" not found.')
-        #     util.output_warning(
+        #     buputil.output_warning(
         #         'Tests will *NOT* be parallelized across multiple processors.')
 
         # Pass options passed to this subcommand to this py.test command,
@@ -353,9 +353,9 @@ class test(Command):
             # https://github.com/pytest-dev/pytest/issues/680
             if is_xdist:
                 # Print a non-fatal warning.
-                util.output_warning(
+                buputil.output_warning(
                     'Option "-s" unsupported by py.test plugin "pytest-xdist".')
-                util.output_warning(
+                buputil.output_warning(
                     'Tests will *NOT* be parallelized across '
                     'multiple processors.')
 
@@ -420,4 +420,4 @@ class test(Command):
 
         # Fork the "py.test" command, propagating its exit status as our own.
         print('Running py.test with arguments: {}'.format(pytest_args))
-        util.exit_with_status(self._pytest_public.main(pytest_args))
+        buputil.exit_with_status(self._pytest_public.main(pytest_args))
