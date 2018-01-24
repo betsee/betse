@@ -343,16 +343,6 @@ cutting event:
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
     break TJ: True           # break tight junctions? (otherwise assumes instant barrier healing)
     wound TJ: 1.0e-1         # how leaky are the tight junctions at the wound (max 1.0)
-    wound channel:
-      use channel: False      # use a channel associated with wounding (mechanosensitive Na channel)
-      max conductivity: 1.0e-8   # maximum conductivity of the channel to sodium when fully open
-      closure delay: 5.0       # how fast does the channel close after activation? (larger = faster decay)
-      activators: None         # list of defined substances or simulation ions activating channel
-      Km activators: None      # list of half-maximum values for activators
-      n activators: None       # list of Hill exponent of activators
-      inhibitors: None   # list of defined substances or simulation ions inhibiting channel
-      Km inhibitors: None      # list of half-maximum values for inhibitors
-      n inhibitors: None        # list of Hill exponent of inhibitors
 
 #-----------------------------------------------------------------------------------------------------------------------
 # MODULATOR FUNCTION PROPERTIES
@@ -391,63 +381,6 @@ modulator function properties:   # set properties of modulating functions which 
   gradient_bitmap:           # generate a spatial gradient of a property from an imported bitmap image (png)
       file: geo/ellipse/gradient.png
       z-offset: 0.0
-
-# ----------------------------------------------------------------------------------------------------------------------
-# DYNAMIC ION CHANNELS
-# ----------------------------------------------------------------------------------------------------------------------
-# Dynamic ion channels respond to simulation variables to change state (e.g. voltage gating)
-# Specify dynamic ion channels expressed by certain cells in the cluster using links to tissue profiles.
-# Dynamic ion channels only appear in sim runs (not in init).
-
-# No file synch issues: Dynamic ion channel settings can be altered between seed, init and sim.
-
-voltage gated Na+:
-    turn on: False                 # voltage gated sodium channel (NOTE: use time-step <= 1.0e-4)
-    apply to: ['base']              # name(s) of the tissue profile(s) to apply it to
-    channel type: ['Nav1p2']         # available types: 'Nav1p2' (adult brain), 'Nav1p3' (embryo)
-                                  # 'NavRat1', 'NaVRat2'
-    max value: 5.0e-15             # maximum membrane diffusion when channel fully open [m2/s] (1.0e-16 to 5.0e-15)
-
-persistent vg Na+:
-    turn on: False                 # voltage gated sodium channel with persistant current
-    apply to: ['base']              # name(s) of the tissue profile(s) to apply it to
-    channel type: ['Nav1p6']         # available types: 'Nav1p6' (persistent brain)
-    max value: 1.0e-16             # maximum membrane diffusion when channel fully open [m2/s] (1.0e-17 to 1.0e-16)
-
-stretch gated Na+:         # mechano-sensitive Na+/K+ cation channel channel
-    turn on: False
-    apply to: ['base']          # tissue profile(s) to apply to
-    max value: 1.0e-17         # maximum membrane diffusion when channel fully open [m2/s]  (1.0e-18 to 1.0e-16)
-
-voltage gated K+:             # voltage gated potassium channel, delayed rectifyer (NOTE: use time-step <= 1.0e-3)
-    turn on: False
-    apply to: ['base']          # name(s) of the tissue profile(s) to apply it to
-    channel type: ['K_Slow','Kv1p3']      # available types: 'Kv1p1', 'Kv1p2', 'Kv1p3', 'Kv1p5',
-                                           # 'K_Slow', 'K_Fast', 'Kv2p1'
-    max value: 1.0e-16         # maximum membrane diffusion when channel fully open [m2/s]  (5.0e-15 to 1.0e-16)
-
-additional voltage gated K+:    # Other types of K+ currents including inward-rectifying (NOTE: use time-step <= 1.0e-3)
-    turn on: False
-    apply to: ['base']          # name(s) of the tissue profile(s) to apply it to
-    channel type: ['Kir2p1']      # available types: 'Kir2p1', 'Kv3p4' and 'Kv3p3' (A-currents)
-    max value: 1.0e-16         # maximum membrane diffusion when channel fully open [m2/s]  (5.0e-15 to 1.0e-16)
-
-calcium gated K+:              # calcium gated potassium channel
-    turn on: False
-    apply to: ['base']         # name(s) of the tissue profile(s) to apply it to
-    max value: 1.0e-16        # maximum membrane diffusion when channel fully open [m2/s]
-
-funny current:                 # "funny current" K+/Na+ channel
-    turn on: False
-    apply to: ['base']
-    channel type: ['HCN4']         # available types: 'HCN1', 'HCN2' or 'HCN4'
-    max value: 1.0e-16         # maximum membrane diffusion when channel fully open [m2/s] (1.0e-15 to 1.0e-16)
-
-voltage gated Ca2+:            # voltage gated calcium channel
-    turn on: False
-    apply to: ['base']         # name(s) of the tissue profile(s) to apply it to
-    channel type: ['Ca_L']        # available types: 'Cav1p2', 'Cav1p3', 'Cav2p1', 'Cav2p3', 'Cav3p1', 'Cav3p3',
-    max value: 5.0e-16        # maximum membrane diffusion when channel fully open [m2/s] (1.0e-16 to 1.0e-13)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # GLOBAL INTERVENTIONS
@@ -1020,17 +953,6 @@ results options:
 # While the following settings are available to you, please avoid editing them.
 # Simulation instability may result from poor choice of these more sensitive parameters.
 # BETSE requires these parameters for its internal use only.
-
-# FIXME, do these even exist?
-gated ion channel options:   # changing these will alter network dynamics -- but do so with caution!
-
-    flux threshold: 1.0e-4     # flux cut off maximum
-
-    stretch gated Na:          # parameters for the mechano-sensitive ion channel
-
-        hill K_half: 0.2         # half-maxium activity coefficient for Hill function (as level of cell strain)
-        hill n: 3                 # Hill function coefficient
-
 
 internal parameters:
 

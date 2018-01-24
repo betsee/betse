@@ -503,16 +503,6 @@ class Parameters(YamlFileABC):
         # Parameterize the cutting event if enabled.
         self.break_TJ = self._conf['cutting event'].get('break TJ', True)
         self.wound_TJ = float(self._conf['cutting event'].get('wound TJ', 0.1))
-        wc = self._conf['cutting event']['wound channel']
-        self.use_wound_channel = wc['use channel']
-        self.wound_Dmax = float(wc['max conductivity'])
-        self.wound_close_factor = float(wc['closure delay'])
-        self.wound_channel_activators_list = wc.get('activators', None)
-        self.wound_channel_activators_Km = wc.get('Km activators', None)
-        self.wound_channel_activators_n = wc.get('n activators', None)
-        self.wound_channel_inhibitors_list = wc.get('inhibitors', None)
-        self.wound_channel_inhibitors_Km = wc.get('Km inhibitors', None)
-        self.wound_channel_inhibitors_n = wc.get('n inhibitors', None)
 
         #---------------------------------------------------------------------------------------------------------------
         # GLOBAL INTERVENTIONS
@@ -586,99 +576,6 @@ class Parameters(YamlFileABC):
             rate_nak = float(self._conf['block NaKATP pump']['change rate'])
             nak = [on_nak,off_nak,rate_nak]
             self.global_options['NaKATP_block'] = nak
-
-
-        #--------------------------------------------------------------------------------------------------------------
-        # DYNAMIC CHANNELS
-        #--------------------------------------------------------------------------------------------------------------
-
-        # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
-        # self.gated_targets = self._config['ion channel target cells']
-
-        bool_cagK = bool(self._conf['calcium gated K+']['turn on'])
-        bool_stretch = bool(self._conf['stretch gated Na+']['turn on'])
-
-        # set specific character of gated ion channel dynamics:
-        opNa = self._conf['voltage gated Na+']
-        opNaP = self._conf['persistent vg Na+']
-        opK = self._conf['voltage gated K+']
-        opKir = self._conf['additional voltage gated K+']
-        opFun = self._conf['funny current']
-        opCa = self._conf['voltage gated Ca2+']
-        # opcK = self._config['calcium gated K+']
-
-        opStretch = self._conf['gated ion channel options']['stretch gated Na']
-
-        self.flux_threshold = self._conf['gated ion channel options']['flux threshold']
-
-        # voltage gated sodium:
-        self.vgNa_bool = opNa['turn on']
-        self.vgNa_type = opNa['channel type']
-        self.vgNa_max = opNa['max value']
-        self.vgNa_apply = opNa['apply to']
-
-        # persistent voltage gated sodium:
-        self.vgNaP_bool = opNaP['turn on']
-        self.vgNaP_type = opNaP['channel type']
-        self.vgNaP_max = opNaP['max value']
-        self.vgNaP_apply = opNaP['apply to']
-
-        # voltage gated potassium:
-        self.vgK_bool = opK['turn on']
-        self.vgK_type = opK['channel type']
-        self.vgK_max = opK['max value']
-        self.vgK_apply = opK['apply to']
-
-        # inward rectifying voltage gated potassium:
-        self.vgKir_bool = opKir['turn on']
-        self.vgKir_type = opKir['channel type']
-        self.vgKir_max = opKir['max value']
-        self.vgKir_apply = opKir['apply to']
-
-        # funny current voltage gated potassium:
-        self.vgFun_bool = opFun['turn on']
-        self.vgFun_type = opFun['channel type']
-        self.vgFun_max = opFun['max value']
-        self.vgFun_apply = opFun['apply to']
-
-        # voltage gated Calcium:
-        self.vgCa_bool = opCa['turn on']
-        self.vgCa_type = opCa['channel type']
-        self.vgCa_max = opCa['max value']
-        self.vgCa_apply = opCa['apply to']
-
-
-        # calcium gated K
-
-        max_NaSt = float(self._conf['stretch gated Na+']['max value']) * 1.0e-9
-        max_cagK = float(self._conf['calcium gated K+']['max value']) * 1.0e-9
-
-        cagK = [max_cagK, 1.0e-3, 3.0]
-
-        apply_cagK = self._conf['calcium gated K+']['apply to']
-
-        cagK.append(apply_cagK)
-
-        # stretch gated Na
-
-        stNa = [max_NaSt,float(opStretch['hill K_half']),float(opStretch['hill n'])]
-
-        apply_stNa = self._conf['stretch gated Na+']['apply to']
-
-        stNa.append(apply_stNa)
-
-        # initialize dictionary holding options for dynamic channels:
-        self.vg_options = {}
-
-        if bool_cagK is False:
-            self.vg_options['K_cag'] = 0
-        elif bool_cagK is True:
-            self.vg_options['K_cag'] = cagK
-
-        if bool_stretch is False:
-            self.vg_options['Na_stretch'] = 0
-        elif bool_stretch is True:
-            self.vg_options['Na_stretch'] = stNa
 
         # Calcium TissueHandler: Calcium Induced Calcium Release (CICR).....................................................
 

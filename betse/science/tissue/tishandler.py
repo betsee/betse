@@ -8,19 +8,11 @@
 import copy
 import numpy as np
 from betse.exceptions import BetseSimTissueException
-from betse.science.channels import vg_ca as vgca
-from betse.science.channels import vg_funny as vgfun
-from betse.science.channels import vg_k as vgk
-from betse.science.channels import vg_kir as vgkir
-from betse.science.channels import vg_na as vgna
-from betse.science.channels import vg_nap as vgnap
-from betse.science.channels.wound_channel import TRP
 from betse.science.config.confenum import CellsPickerType
 from betse.science.math import modulate as mod
 from betse.science.math import toolbox as tb
 from betse.science.tissue.tisprofile import CutProfile, TissueProfile
 from betse.science.tissue.event.tisevecut import SimEventCut
-from betse.science.tissue.channels_o import cagPotassium
 from betse.science.tissue.picker.tispickcls import (
     TissuePickerAll, TissuePickerIndices, TissuePickerPercent)
 from betse.science.tissue.picker.tispickimage import TissuePickerImage
@@ -400,7 +392,6 @@ class TissueHandler(object):
 
         self._init_events_global(  sim, cells, p)
         self._init_events_tissue(  sim, cells, p)
-        self._init_channels_tissue(sim, cells, p)
 
     # ..................{ RUNNERS ~ apply                    }..................
     def runAllDynamics(self, sim, cells, p, t: float):
@@ -412,7 +403,6 @@ class TissueHandler(object):
 
         self._sim_events_global(  sim, cells, p, t)
         self._sim_events_tissue(  sim, cells, p, t)
-        self._sim_channels_tissue(sim, cells, p, t)
         self.makeAllChanges(sim)
 
     def _init_events_global(self,sim,cells,p):
@@ -641,284 +631,6 @@ class TissueHandler(object):
             self.targets_ecmJ = [
                 item for sublist in self.targets_ecmJ for item in sublist]
 
-    def _init_channels_tissue(self, sim, cells, p):
-        '''
-        Initialize all **targeted ion channels** (i.e., ion channels only
-        applicable to specific tissue profiles) specified by the passed
-        user-specified parameters with the passed tissue simulation and
-        cellular world.
-        '''
-
-        # voltage gated sodium channel --------------------------------------------------------------------------------
-        if p.vgNa_bool:
-
-            # Initialization of logic values for voltage gated sodium channel
-            self.maxDmNa = p.vgNa_max
-
-            self.apply_vgNa = p.vgNa_apply
-
-            self.targets_vgNa = []
-
-            for profile in self.apply_vgNa:
-                targets = self.tissue_target_inds[profile]
-                self.targets_vgNa.append(targets)
-
-            self.targets_vgNa = [item for sublist in self.targets_vgNa for item in sublist]
-            self.targets_vgNa = np.asarray(self.targets_vgNa)
-
-            # create the desired voltage gated sodium channel instance:
-            for ind, type_string in enumerate(p.vgNa_type):
-
-                Na_class = getattr(vgna,type_string,'Nav1p2')
-
-                object_name = 'vgNa_object' + str(ind)
-
-                setattr(self,object_name,Na_class())
-
-                if p.run_sim is True:
-                    # initialize the voltage-gated sodium object
-                    init_funk = getattr(self,object_name)
-                    init_funk.init(self, sim, cells, p)
-
-        # persistent voltage gated sodium channel:---------------------------------------------------------------------
-        if p.vgNaP_bool:
-
-            # Initialization of logic values for persistent voltage gated sodium channel
-            self.maxDmNaP = p.vgNaP_max
-
-            self.apply_vgNaP = p.vgNaP_apply
-
-            self.targets_vgNaP = []
-
-            for profile in self.apply_vgNaP:
-                targets = self.tissue_target_inds[profile]
-                self.targets_vgNaP.append(targets)
-
-            self.targets_vgNaP = [item for sublist in self.targets_vgNaP for item in sublist]
-            self.targets_vgNaP = np.asarray(self.targets_vgNaP)
-
-            # create the desired voltage gated sodium channel instances:
-
-            for ind, type_string in enumerate(p.vgNaP_type):
-
-                NaP_class = getattr(vgnap,type_string,'Nav1p6')
-
-                object_name = 'vgNaP_object' + str(ind)
-
-                setattr(self,object_name,NaP_class())
-
-                if p.run_sim is True:
-                    # initialize the voltage-gated sodium object
-                    init_funk = getattr(self,object_name)
-                    init_funk.init(self, sim, cells, p)
-
-
-            # NaP_class_ = getattr(vgnap,p.vgNaP_type,'Nav1p6')
-            # self.vgNaP_object = NaP_class_()
-            #
-            # if p.run_sim is True:
-            #     # initialize the voltage-gated sodium object
-            #     self.vgNaP_object.init(self, sim, cells, p)
-
-        # voltage gated potassium channel ----------------------------------------------------------------------------
-        if p.vgK_bool:
-
-            # Initialization of logic values forr voltage gated potassium channel
-            self.maxDmK = p.vgK_max
-
-            self.apply_vgK = p.vgK_apply
-
-            self.targets_vgK = []
-
-            for profile in self.apply_vgK:
-                targets = self.tissue_target_inds[profile]
-                self.targets_vgK.append(targets)
-
-            self.targets_vgK = [item for sublist in self.targets_vgK for item in sublist]
-            self.targets_vgK = np.asarray(self.targets_vgK)
-
-            # create the desired voltage gated potassium channel instances:
-            for ind, type_string in enumerate(p.vgK_type):
-
-                K_class = getattr(vgk,type_string,'Kv1p2')
-
-                object_name = 'vgK_object' + str(ind)
-
-                setattr(self,object_name,K_class())
-
-                if p.run_sim is True:
-                    # initialize the voltage-gated sodium object
-                    init_funk = getattr(self,object_name)
-                    init_funk.init(self, sim, cells, p)
-
-
-            # K_class_ = getattr(vgk,p.vgK_type,'Kv1p2')
-            # self.vgK_object = K_class_()
-            #
-            # if p.run_sim is True:
-            #     # initialize the voltage-gated sodium object
-            #     self.vgK_object.init(self, sim, cells, p)
-
-        # Inward rectifying voltage gated potassium channel -----------------------------------------------------------
-        if p.vgKir_bool:
-
-            # Initialization of logic values for voltage gated potassium channel
-            self.maxDmKir = p.vgKir_max
-
-            self.apply_vgKir = p.vgKir_apply
-
-            self.targets_vgKir = []
-
-            for profile in self.apply_vgKir:
-                targets = self.tissue_target_inds[profile]
-                self.targets_vgKir.append(targets)
-
-            self.targets_vgKir = [item for sublist in self.targets_vgKir for item in sublist]
-            self.targets_vgKir = np.asarray(self.targets_vgKir)
-
-            # create the desired voltage gated potassium channel instances:
-            for ind, type_string in enumerate(p.vgKir_type):
-
-                Kir_class = getattr(vgkir,type_string,'Kir2p1')
-
-                object_name = 'vgKir_object' + str(ind)
-
-                setattr(self,object_name,Kir_class())
-
-                if p.run_sim is True:
-                    # initialize the voltage-gated potassium object
-                    init_funk = getattr(self,object_name)
-                    init_funk.init(self, sim, cells, p)
-
-            # Kir_class_ = getattr(vgkir,p.vgKir_type,'Kir2p1')
-            # self.vgKir_object = Kir_class_()
-            #
-            # if p.run_sim is True:
-            #     # initialize the voltage-gated potassium object
-            #     self.vgKir_object.init(self, sim, cells, p)
-
-        #-------Funny Current------------------------------------------------------------------------------------------
-        if p.vgFun_bool:
-
-            # Initialization of logic values for voltage gated potassium channel
-            self.maxDmFun = p.vgFun_max
-
-            self.apply_vgFun = p.vgFun_apply
-
-            self.targets_vgFun = []
-
-            for profile in self.apply_vgFun:
-                targets = self.tissue_target_inds[profile]
-                self.targets_vgFun.append(targets)
-
-            self.targets_vgFun = [item for sublist in self.targets_vgFun for item in sublist]
-            self.targets_vgFun = np.asarray(self.targets_vgFun)
-
-            # create the desired funny current channel instances:
-            for ind, type_string in enumerate(p.vgFun_type):
-
-                Fun_class = getattr(vgfun,type_string,'HCN4')
-
-                object_name = 'vgFun_object' + str(ind)
-
-                setattr(self,object_name,Fun_class())
-
-                if p.run_sim is True:
-                    # initialize the voltage-gated sodium object
-                    init_funk = getattr(self,object_name)
-                    init_funk.init(self, sim, cells, p)
-
-
-            # Fun_class_ = getattr(vgfun,p.vgFun_type,'HCN4')
-            # self.vgFun_object = Fun_class_()
-            #
-            # if p.run_sim is True:
-            #     # initialize the voltage-gated sodium/potassium object
-            #     self.vgFun_object.init(self, sim, cells, p)
-
-        #-------Calcium Channels--------------------------------------------------------------------------------------
-
-        if p.vgCa_bool and p.ions_dict['Ca'] != 0:
-
-            # Initialization of logic values for voltage gated sodium channel
-            self.maxDmCa = p.vgCa_max
-
-            self.apply_vgCa = p.vgCa_apply
-
-            self.targets_vgCa = []
-
-            for profile in self.apply_vgCa:
-                targets = self.tissue_target_inds[profile]
-                self.targets_vgCa.append(targets)
-
-            self.targets_vgCa = [item for sublist in self.targets_vgCa for item in sublist]
-            self.targets_vgCa = np.asarray(self.targets_vgCa)
-
-            # create the desired voltage gated calcium channel instances:
-            for ind, type_string in enumerate(p.vgCa_type):
-
-                Ca_class = getattr(vgca,type_string,'Ca_L')
-
-                object_name = 'vgCa_object' + str(ind)
-
-                setattr(self,object_name,Ca_class())
-
-                if p.run_sim is True:
-                    # initialize the voltage-gated sodium object
-                    init_funk = getattr(self,object_name)
-                    init_funk.init(self, sim, cells, p)
-
-            # Ca_class_ = getattr(vgca, p.vgCa_type, 'Ca_L')
-            # self.vgCa_object = Ca_class_()
-            #
-            # if p.run_sim is True:
-            #     # initialize the voltage-gated sodium object
-            #     self.vgCa_object.init(self, sim, cells, p)
-
-        #--------------------------------------------------------------------------------------------------------------
-        if p.vg_options['K_cag'] != 0:
-            self.maxDmKcag = p.vg_options['K_cag'][0]
-            self.Kcag_halfmax = p.vg_options['K_cag'][1]
-            self.Kcag_n = p.vg_options['K_cag'][2]
-            self.apply_cagK = p.vg_options['K_cag'][3]
-
-            # Initialize matrices defining states of cag K channels for each cell membrane:
-            self.active_cagK = np.zeros(self.data_length)
-
-            self.targets_cagK = []
-            for profile in self.apply_cagK:
-                targets = self.tissue_target_inds[profile]
-                self.targets_cagK.append(targets)
-
-            self.targets_cagK = [item for sublist in self.targets_cagK for item in sublist]
-
-            self.targets_cagK = np.asarray(self.targets_cagK)
-
-            self.target_mask_cagK = np.zeros(self.data_length)
-            self.target_mask_cagK[self.targets_cagK] = 1
-
-        # stretch activated ion channels:
-        if p.vg_options['Na_stretch'] != 0:
-            self.maxDmNaStretch = p.vg_options['Na_stretch'][0]
-            self.NaStretch_halfmax = p.vg_options['Na_stretch'][1]
-            self.NaStretch_n = p.vg_options['Na_stretch'][2]
-            self.apply_NaStretch = p.vg_options['Na_stretch'][3]
-
-             # Initialize matrices defining states of cag K channels for each cell membrane:
-            self.active_NaStretch = np.zeros(self.data_length)
-
-            self.targets_NaStretch = []
-            for profile in self.apply_NaStretch:
-                targets = self.tissue_target_inds[profile]
-                self.targets_NaStretch.append(targets)
-
-            self.targets_NaStretch = [item for sublist in self.targets_NaStretch for item in sublist]
-
-            self.targets_NaStretch = np.asarray(self.targets_NaStretch)
-
-            self.target_mask_NaStretch = np.zeros(self.data_length)
-            self.target_mask_NaStretch[self.targets_NaStretch] = 1
-
     def _sim_events_global(self, sim, cells, p, t) -> None:
         '''
         Apply all **global scheduled interventions** (i.e., events globally
@@ -1078,78 +790,6 @@ class TissueHandler(object):
         if p.scheduled_options['extV'] is not None:
             p.scheduled_options['extV'].fire(sim, t)
 
-    def _sim_channels_tissue(self, sim, cells, p, t):
-        '''
-        Handle all **targeted ion channels** (i.e., ion channels only applicable
-        to specific tissue profiles) specified by the passed user-specified
-        parameters to the passed tissue simulation and cellular world for the
-        passed time step.
-        '''
-
-        # self.dvsign = np.sign(sim.dvm)
-
-        if p.vgNa_bool:
-            for ind, type_string in enumerate(p.vgNa_type):
-                object_name = 'vgNa_object' + str(ind)
-                init_funk = getattr(self, object_name)
-                init_funk.run(self, sim, cells, p)
-
-            # update the voltage-gated sodium object
-            # self.vgNa_object.run(self, sim, cells, p)
-
-        if p.vgNaP_bool:
-            # update the voltage-gated sodium objects
-            for ind, type_string in enumerate(p.vgNaP_type):
-                object_name = 'vgNaP_object' + str(ind)
-                init_funk = getattr(self, object_name)
-                init_funk.run(self, sim, cells, p)
-
-            # self.vgNaP_object.run(self, sim, cells, p)
-
-        if p.vgK_bool:
-            # update the voltage-gated potassium object
-            for ind, type_string in enumerate(p.vgK_type):
-                object_name = 'vgK_object' + str(ind)
-                init_funk = getattr(self, object_name)
-                init_funk.run(self, sim, cells, p)
-
-            # self.vgK_object.run(self, sim, cells, p)
-
-        if p.vgKir_bool:
-            # update the voltage-gated potassium object
-            for ind, type_string in enumerate(p.vgKir_type):
-                object_name = 'vgKir_object' + str(ind)
-                init_funk = getattr(self, object_name)
-                init_funk.run(self, sim, cells, p)
-
-            # self.vgKir_object.run(self, sim, cells, p)
-
-        if p.vgFun_bool:
-            # update the voltage-gated funny current object
-            for ind, type_string in enumerate(p.vgFun_type):
-                object_name = 'vgFun_object' + str(ind)
-                init_funk = getattr(self, object_name)
-                init_funk.run(self, sim, cells, p)
-
-            # self.vgFun_object.run(self, sim, cells, p)
-
-        if p.vgCa_bool and p.ions_dict['Ca'] != 0:
-            # update the voltage-gated calcium object
-            for ind, type_string in enumerate(p.vgCa_type):
-                object_name = 'vgCa_object' + str(ind)
-                init_funk = getattr(self, object_name)
-                init_funk.run(self, sim, cells, p)
-            # self.vgCa_object.run(self, sim, cells, p)
-
-        if p.vg_options['K_cag'] != 0 and p.ions_dict['Ca'] != 0:
-            cagPotassium(self,sim,cells,p)
-
-        if p.vg_options['Na_stretch'] != 0:
-            self.stretchChannel(sim,cells,p,t)
-
-        if self._wound_channel is not None:
-            self.wound_channel.run(self, sim, cells, p)
-
     def stretchChannel(self,sim,cells,p,t):
 
         dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
@@ -1181,7 +821,6 @@ class TissueHandler(object):
 
         sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch
         sim.Dm_stretch[sim.iK] = self.maxDmNaStretch*self.active_NaStretch
-
 
     def makeAllChanges(self, sim) -> None:
         '''
@@ -1564,13 +1203,6 @@ class TissueHandler(object):
             #
             #     # environmental conductivity matrix needs to be smoothed to assured simulation stability:
             #     sim.sigma_env = gaussian_filter(sim.sigma_env.reshape(cells.X.shape), 1).ravel()
-
-        # WOUND CHANNEL FINALIZATION-----------------------------------------
-        if p.use_wound_channel:
-            self.maxDmWound = p.wound_Dmax   # FIXME add to params and config!
-
-            self._wound_channel = TRP()
-            self._wound_channel.init(self, sim, cells, p)
 
         # need to also re-do tissue profiles and GJ
         self.tissueProfiles(sim, cells, p)
