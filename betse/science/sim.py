@@ -1242,24 +1242,24 @@ class Simulator(object):
                 self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
 
                 # update the concentrations of Na and K in cells and environment:
-                self.cc_cells[self.iNa], self.cc_at_mem[self.iNa], self.cc_env[self.iNa] =  stb.update_Co(
-                                                                            self, self.cc_cells[self.iNa],
-                                                                            self.cc_at_mem[self.iNa],
-                                                                            self.cc_env[self.iNa],fNa_NaK, cells, p,
-                                                                            ignoreECM = self.ignore_ecm)
-
-                self.cc_cells[self.iK], self.cc_at_mem[self.iK], self.cc_env[self.iK] = stb.update_Co(
-                                                                             self, self.cc_cells[self.iK],
-                                                                             self.cc_at_mem[self.iK],
-                                                                             self.cc_env[self.iK], fK_NaK,
-                                                                             cells, p, ignoreECM = self.ignore_ecm)
+                # self.cc_cells[self.iNa], self.cc_at_mem[self.iNa], self.cc_env[self.iNa] =  stb.update_Co(
+                #                                                             self, self.cc_cells[self.iNa],
+                #                                                             self.cc_at_mem[self.iNa],
+                #                                                             self.cc_env[self.iNa],fNa_NaK, cells, p,
+                #                                                             ignoreECM = self.ignore_ecm)
+                #
+                # self.cc_cells[self.iK], self.cc_at_mem[self.iK], self.cc_env[self.iK] = stb.update_Co(
+                #                                                              self, self.cc_cells[self.iK],
+                #                                                              self.cc_at_mem[self.iK],
+                #                                                              self.cc_env[self.iK], fK_NaK,
+                #                                                              cells, p, ignoreECM = self.ignore_ecm)
 
 
             # ----------------ELECTRODIFFUSION---------------------------------------------------------------------------
 
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
 
-            shuffle(self.movingIons)
+            # shuffle(self.movingIons)
 
             for i in self.movingIons:
 
@@ -1281,14 +1281,14 @@ class Simulator(object):
                     f_ED[cells.bflags_mems] = 0
 
                 # add membrane flux to storage
-                self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
+                self.fluxes_mem[i] += f_ED
 
-                # update ion concentrations in cell and ecm:
-                self.cc_cells[i], self.cc_at_mem[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
-                                                                                    self.cc_at_mem[i],
-                                                                                    self.cc_env[i], f_ED,
-                                                                                    cells, p,
-                                                                                    ignoreECM = self.ignore_ecm)
+                # # update ion concentrations in cell and ecm:
+                # self.cc_cells[i], self.cc_at_mem[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
+                #                                                                     self.cc_at_mem[i],
+                #                                                                     self.cc_env[i], f_ED,
+                #                                                                     cells, p,
+                #                                                                     ignoreECM = self.ignore_ecm)
 
                 # update flux between cells due to gap junctions
                 self.update_gj(cells, p, t, i)
@@ -1300,8 +1300,7 @@ class Simulator(object):
                 # update concentration gradient to estimate concentrations at membranes:
                 self.update_intra(cells, p, i)
 
-                # ensure no negative concentrations:
-                stb.no_negs(self.cc_cells[i])
+
 
             # ----transport and handling of special ions------------------------------------------------------------
 
@@ -1401,6 +1400,8 @@ class Simulator(object):
                 elif p.td_deform is True:
 
                     timeDeform(self,cells, t, p)
+
+            self.update_all_concs(cells, p)
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells, p)
@@ -1761,12 +1762,12 @@ class Simulator(object):
         if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
             # change in charge density at the membrane:
-            self.vm += -(1/p.cm)*self.Jn*p.dt
+            Jm = np.dot(cells.M_sum_mems, self.Jn*cells.mem_sa)/cells.cell_sa
+            self.vm += -(1/p.cm)*Jm[cells.mem_to_cells]*p.dt
 
-            # rho_surf = self.rho_cells*cells.diviterm
+            # without averaging J:
+            # self.vm += -(1/p.cm)*self.Jn*p.dt
 
-            # voltage across the membrane depends on surface charge inside cells:
-            # self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
 
         else:
 
@@ -1794,6 +1795,27 @@ class Simulator(object):
 
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt
+
+    def update_all_concs(self, cells, p):
+
+        for i in self.movingIons:
+
+            f_mem_i = self.fluxes_mem[i]
+
+            f_gj_i = self.fluxes_gj[i]
+
+            self.cc_cells[i], self.cc_at_mem[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
+                                                                                self.cc_at_mem[i],
+                                                                                self.cc_env[i], f_mem_i,
+                                                                                cells, p,
+                                                                                ignoreECM = self.ignore_ecm)
+
+            delta_cgj = np.dot(cells.M_sum_mems, -f_gj_i*cells.mem_sa) / cells.cell_vol
+
+            self.cc_cells[i] +=  p.dt*delta_cgj
+
+            # ensure no negative concentrations:
+            stb.no_negs(self.cc_cells[i])
 
     def acid_handler(self, cells, p) -> None:
         '''
@@ -1837,15 +1859,15 @@ class Simulator(object):
                 f_CaATP[cells.bflags_mems] = 0
 
             # store the transmembrane flux for this ion
-            self.fluxes_mem[self.iCa] = self.fluxes_mem[self.iCa]  + self.rho_pump*(f_CaATP)
+            self.fluxes_mem[self.iCa] += self.rho_pump*(f_CaATP)
 
 
             # update calcium concentrations in cell and ecm:
-
-            self.cc_cells[self.iCa], self.cc_at_mem[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self,
-                                                                self.cc_cells[self.iCa], self.cc_at_mem[self.iCa],
-                                                                self.cc_env[self.iCa], f_CaATP,
-                                                                cells, p, ignoreECM = True)
+            #
+            # self.cc_cells[self.iCa], self.cc_at_mem[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self,
+            #                                                     self.cc_cells[self.iCa], self.cc_at_mem[self.iCa],
+            #                                                     self.cc_env[self.iCa], f_CaATP,
+            #                                                     cells, p, ignoreECM = True)
 
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling
@@ -1918,11 +1940,11 @@ class Simulator(object):
         fgj_X[cells.bflags_mems] = 0.0
 
         # divergence calculation for individual cells (finite volume expression)
-        delta_cco = np.dot(cells.M_sum_mems, -fgj_X*cells.mem_sa) / cells.cell_vol
+        # delta_cco = np.dot(cells.M_sum_mems, -fgj_X*cells.mem_sa) / cells.cell_vol
 
         # Calculate the final concentration change assuming instant mixing in the cell:
-        self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cco
-        self.cc_at_mem[i] = self.cc_cells[i][cells.mem_to_cells]
+        # self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cco
+        # self.cc_at_mem[i] = self.cc_cells[i][cells.mem_to_cells]
 
         # self.cc_at_mem[i] = conc_mem - fgj_X*(cells.mem_sa / cells.mem_vol)*p.dt
 

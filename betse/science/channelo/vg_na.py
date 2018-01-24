@@ -42,20 +42,30 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
 
         if targets is None:
 
-            self.targets = cells.mem_i
+            self.targets = None
+
+            if type(vm) == float or type(vm) == np.float64:
+                self.data_length = 1
+
+            else:
+                self.data_length = len(vm)
+
 
         else:
             self.targets = targets
-
-        self.data_length = len(self.targets)
-        self.mdl = len(cells.mem_i)
+            self.data_length = len(self.targets)
+            self.mdl = len(cells.mem_i)
 
         self.modulator = 1.0
 
-        self.v_corr = 0.0   # in experiments, the measurement junction voltage is about 10 mV
+        self.v_corr = 0.0  # in experiments, the measurement junction voltage is about 10 mV
 
-        V = vm[self.targets]*1000 + self.v_corr
-        # V = vm * 1000 + self.v_corr
+        if self.targets is None:
+
+            V = vm * 1000 + self.v_corr
+
+        else:
+            V = vm[self.targets] * 1000 + self.v_corr
 
         self._init_state(V)
 
@@ -73,9 +83,13 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        V = vm[self.targets]*1000 + self.v_corr
+        if self.targets is None:
 
-        # V = vm * 1000 + self.v_corr
+            V = vm*1000 + self.v_corr
+
+        else:
+
+            V = vm[self.targets] * 1000 + self.v_corr
 
         self._calculate_state(V)
 
@@ -89,8 +103,13 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the open-probability of the channel:
         P = (self.m ** self._mpower) * (self.h ** self._hpower)
 
-        self.P = np.zeros(self.mdl)
-        self.P[self.targets] = P
+        if self.targets is None:
+
+            self.P = P
+
+        else:
+            self.P = np.zeros(self.mdl)
+            self.P[self.targets] = P
 
 
     @abstractmethod
@@ -233,7 +252,7 @@ class NavRat2(VgNaABC):
 
         logs.log_info('You are using the vgNa channel: NavRat2')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.vrev = 50  # reversal voltage used in model [mV]
 

@@ -778,7 +778,6 @@ class Cells(object):
         self.xmax = self.xmax + p.cell_radius
         self.ymax = self.ymax + p.cell_radius
 
-
     @type_check
     def _make_voronoi(self, phase: SimPhase) -> None:
         '''
@@ -959,7 +958,6 @@ class Cells(object):
         self.ecm_verts_unique = [
             list(ecm_verts) for ecm_verts in list(ecm_verts_set)]
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
-
 
     def _clean_voronoi(self, p) -> None:
         """

@@ -28,6 +28,8 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         pass
 
+
+
     @abstractmethod
     def run(self, vm, p):
         '''
@@ -48,7 +50,7 @@ class ChannelsABC(object, metaclass=ABCMeta):
         # self.m += dm(self.m, p.dt)
         # self.h += dh(self.h, p.dt)
 
-        # Update channel state using Implicit Euler method:-------------------
+        # Update channel state using semi-Implicit Euler method:-------------------
         dt = p.dt*self.time_unit
 
         self.m = (self._mTau*self.m + dt*self._mInf)/(self._mTau + dt)

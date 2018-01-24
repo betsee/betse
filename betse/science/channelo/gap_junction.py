@@ -65,7 +65,11 @@ class Gap_Junction(object):
         self.beta = beta / (1 + 50 * beta)
 
         # update GJ conductivity with incremental change of channel state (time is converted to be in ms):
-        sim.gjopen = sim.gjopen + ((1.0 - sim.gjopen)*self.alpha - (sim.gjopen - p.gj_min)*self.beta)*p.dt*1e3
+        # sim.gjopen = sim.gjopen + ((1.0 - sim.gjopen)*self.alpha - (sim.gjopen - p.gj_min)*self.beta)*p.dt*1e3
+        dt = p.dt*1e3 # transform the time-step to model's milisecond units
+
+        # advance the gap junction state using Implicit Euler:
+        sim.gjopen = (sim.gjopen + dt*(self.alpha + self.beta*p.gj_min))/(1 + self.alpha*dt + self.beta*dt)
 
         # apply any blocking modulation:
         sim.gjopen = sim.gj_block*sim.gjopen

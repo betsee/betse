@@ -31,7 +31,7 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
         Time-constant function for h-gates of channel
     '''
 
-    def init(self, sim, cells, p, targets = None):
+    def init(self, vm, cells, p, targets = None):
         '''
         Initialize targeted voltage-gated calcium channels at the initial
         time step of the simulation based on the initial cell Vmems.
@@ -40,17 +40,40 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
-        super().init(sim, cells, p, targets=targets)
+        if targets is None:
 
-        V = sim.vm[self.targets]*1000 + self.v_corr
+            self.targets = None
 
-        self._init_state(V=V, sim=sim, p=p)
+            if type(vm) == float or type(vm) == np.float64:
+                self.data_length = 1
+
+            else:
+                self.data_length = len(vm)
+
+
+        else:
+            self.targets = targets
+            self.data_length = len(self.targets)
+            self.mdl = len(cells.mem_i)
+
+        self.modulator = 1.0
+
+        self.v_corr = 0.0  # in experiments, the measurement junction voltage is about 10 mV
+
+        if self.targets is None:
+
+            V = vm * 1000 + self.v_corr
+
+        else:
+            V = vm[self.targets] * 1000 + self.v_corr
+
+        self._init_state(V)
 
         self.ions = ['Ca']
         self.rel_perm = [1.0]
 
 
-    def run(self, sim, cells, p):
+    def run(self, vm, p):
         '''
         Handle all targeted voltage-gated sodium channels by working with the passed
         user-specified parameters on the tissue simulation and cellular
@@ -60,13 +83,19 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
 
         '''
-        V = sim.vm[self.targets]*1000 + self.v_corr
+        if self.targets is None:
 
-        self._calculate_state(V, sim=sim, p=p)
+            V = vm*1000 + self.v_corr
 
-        self._implement_state(V, sim, cells, p)
+        else:
 
-    def _implement_state(self, V, sim, cells, p):
+            V = vm[self.targets] * 1000 + self.v_corr
+
+        self._calculate_state(V)
+
+        self._implement_state(V, p)
+
+    def _implement_state(self, V, p):
 
         # Update the 'm' and 'h' gating functions:
         self.update_mh(p, time_unit = self.time_unit)
@@ -74,13 +103,17 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the open-probability of the channel:
         P = (self.m ** self._mpower) * (self.h ** self._hpower)
 
-        self.P = np.zeros(sim.mdl)
-        self.P[self.targets] = P
+        if self.targets is None:
 
+            self.P = P
+
+        else:
+            self.P = np.zeros(self.mdl)
+            self.P[self.targets] = P
 
 
     @abstractmethod
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         '''
         Do something.
         '''
@@ -88,7 +121,7 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
 
 
     @abstractmethod
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         '''
         Do something.
         '''
@@ -107,7 +140,7 @@ class Cav3p3(VgCaABC):
 
     '''
 
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -116,11 +149,10 @@ class Cav3p3(VgCaABC):
 
         logs.log_info('You are using the vgCa channel type: Cav3p3')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.vrev = 30     # reversal voltage used in model [mV]
         Texpt = 0.0    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
         # self.qt = 2.3**((simT-Texpt)/10)
         self.qt = 1.0
 
@@ -133,7 +165,7 @@ class Cav3p3(VgCaABC):
         self._hpower = 1
 
 
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -162,7 +194,7 @@ class Cav2p1(VgCaABC):
 
     '''
 
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -171,11 +203,10 @@ class Cav2p1(VgCaABC):
 
         logs.log_info('You are using the vgCa channel type: Cav2p1')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.vrev = 135.0     # reversal voltage used in model [mV]
         Texpt = 0.0    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
         # self.qt = 2.3**((simT-Texpt)/10)
         self.qt = 1.0  # FIXME implement this!
 
@@ -191,7 +222,7 @@ class Cav2p1(VgCaABC):
         self._hpower = 0
 
 
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -219,7 +250,7 @@ class Cav1p3(VgCaABC):
 
     '''
 
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -228,12 +259,11 @@ class Cav1p3(VgCaABC):
 
         logs.log_info('You are using the vgCa channel type: Cav1.3')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.vrev = 113.0     # reversal voltage used in model [mV]
         Texpt = 21.0    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        self.qt = 2.3**((simT-Texpt)/10)
+        # self.qt = 2.3**((simT-Texpt)/10)
 
         # V = V - 10
 
@@ -246,7 +276,7 @@ class Cav1p3(VgCaABC):
         self._hpower = 1
 
 
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -254,12 +284,6 @@ class Cav1p3(VgCaABC):
 
         """
 
-        # self._mInf = 1.0000 / (1 + np.exp(((V - 10) + 30.000) / -6))
-        # self._mTau = 5.0000 + 20.0000 / (1 + np.exp(((V - 10) + 25.000) / 5))
-        # self._hInf = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
-        # self._hTau = 20.0000 + 50.0000 / (1 + np.exp(((V - 10) + 40.000) / 7))
-
-        # V = V - 10
         self._mInf = 1.0000 / (1 + np.exp((V - -30.000) / -6))
         self._mTau = (5.0000 + 20.0000 / (1 + np.exp((V - -25.000) / 5)))
         self._hInf = 1.0000 / (1 + np.exp((V - -80.000) / 6.4))
@@ -275,7 +299,7 @@ class Cav1p2(VgCaABC):
 
     '''
 
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -284,12 +308,11 @@ class Cav1p2(VgCaABC):
 
         logs.log_info('You are using the vgCa channel type: Cav1.2')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.vrev = 131.0     # reversal voltage used in model [mV]
         Texpt = 21.0    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        self.qt = 2.3**((simT-Texpt)/10)
+        # self.qt = 2.3**((simT-Texpt)/10)
 
         V = V - 10
 
@@ -302,18 +325,13 @@ class Cav1p2(VgCaABC):
         self._hpower = 1
 
 
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
         simulation Vmem.
 
         """
-
-        # self._mInf = 1.0000 / (1 + np.exp(((V - 10) + 30.000) / -6))
-        # self._mTau = 5.0000 + 20.0000 / (1 + np.exp(((V - 10) + 25.000) / 5))
-        # self._hInf = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
-        # self._hTau = 20.0000 + 50.0000 / (1 + np.exp(((V - 10) + 40.000) / 7))
 
         V = V - 10
         self._mInf = 1.0000 / (1 + np.exp((V - -30.000) / -6))
@@ -333,7 +351,7 @@ class Cav2p3(VgCaABC):
 
     '''
 
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -342,11 +360,10 @@ class Cav2p3(VgCaABC):
 
         logs.log_info('You are using the R-type vgCa channel type: Cav2p3')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.vrev = 30     # reversal voltage used in model [mV]
         Texpt = 0.0    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
         # self.qt = 2.3**((simT-Texpt)/10)
         self.qt = 1.0  # FIXME implement this!
 
@@ -364,7 +381,7 @@ class Cav2p3(VgCaABC):
         self._hpower = 1
 
 
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -393,7 +410,7 @@ class Cav2p2(VgCaABC):
 
     '''
 
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -402,16 +419,15 @@ class Cav2p2(VgCaABC):
 
         logs.log_info('You are using the N-type vgCa channel type: Cav2p2')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.vrev = 135     # reversal voltage used in model [mV]
         Texpt = 36.0    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
         # self.qt = 2.3**((simT-Texpt)/10)
         self.qt = 1.0
 
-        indsV = (V == 20.0).nonzero()
-        V[indsV] += 1.0e-6
+        # indsV = (V == 20.0).nonzero()
+        # V[indsV] += 1.0e-6
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
         mAlpha = (0.1 * (V - 20) / (1 - np.exp(-(V - 20) / 10)))
@@ -428,7 +444,7 @@ class Cav2p2(VgCaABC):
         self._hpower = 1
 
 
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -436,8 +452,8 @@ class Cav2p2(VgCaABC):
 
         """
 
-        indsV = (V == 20.0).nonzero()
-        V[indsV] += 1.0e-6
+        # indsV = (V == 20.0).nonzero()
+        # V[indsV] += 1.0e-6
 
         mAlpha = (0.1 * (V - 20) / (1 - np.exp(-(V - 20) / 10)))
         mBeta = 0.4 * np.exp(-(V + 25) / 18)
@@ -460,7 +476,7 @@ class Cav3p1(VgCaABC):
 
     '''
 
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -469,11 +485,10 @@ class Cav3p1(VgCaABC):
 
         logs.log_info('You are using the T-type vgCa channel type: Cav3p1')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.vrev = 30     # reversal voltage used in model [mV]
         Texpt = 0.0    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
         # self.qt = 2.3**((simT-Texpt)/10)
         self.qt = 1.0  # FIXME implement this!
 
@@ -486,7 +501,7 @@ class Cav3p1(VgCaABC):
         self._hpower = 1
 
 
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -499,7 +514,7 @@ class Cav3p1(VgCaABC):
         inds_lt10 = (V < -10e-3).nonzero()
         inds_gt10 = (V >= -10e-3).nonzero()
 
-        self._mTau[inds_lt10] = -0.855809 + (1.493527 * np.exp(-V / 27.414182))
+        self._mTau = -0.855809 + (1.493527 * np.exp(-V / 27.414182))
         self._mTau[inds_gt10] = 1.0
         self._hInf = 1 / (1 + np.exp((V - (-72.907420)) / 4.575763))
         self._hTau = 9.987873 + (0.002883 * np.exp(-V / 5.598574))
@@ -519,7 +534,7 @@ class Ca_L2(VgCaABC):
 
     '''
 
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -528,11 +543,10 @@ class Ca_L2(VgCaABC):
 
         logs.log_info('You are using the vgCa channel type: Ca_L2')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.vrev = 131.0     # reversal voltage used in model [mV]
         Texpt = 36.0    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
         # self.qt = 2.3**((simT-Texpt)/10)
         self.qt = 1.0
 
@@ -545,19 +559,13 @@ class Ca_L2(VgCaABC):
         self._hpower = 1
 
 
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
         simulation Vmem.
 
         """
-
-        # self._mInf = 1.0000 / (1 + np.exp(((V - 10) + 30.000) / -6))
-        # self._mTau = 5.0000 + 20.0000 / (1 + np.exp(((V - 10) + 25.000) / 5))
-        # self._hInf = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
-        # self._hTau = 20.0000 + 50.0000 / (1 + np.exp(((V - 10) + 40.000) / 7))
-
 
         self._mInf = 1.0000 / (1 + np.exp((V - -30.000) / -6))
         self._mTau = 10.0
@@ -579,7 +587,7 @@ class Ca_L3(VgCaABC):
 
     '''
 
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -588,11 +596,10 @@ class Ca_L3(VgCaABC):
 
         logs.log_info('You are using the vgCa channel type: Ca_L3')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.vrev = 131.0     # reversal voltage used in model [mV]
         Texpt = 36.0    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
         # self.qt = 2.3**((simT-Texpt)/10)
         self.qt = 1.0
 
@@ -607,7 +614,7 @@ class Ca_L3(VgCaABC):
         self._hpower = 1
 
 
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -640,7 +647,7 @@ class Cav_G(VgCaABC):
 
     '''
 
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -649,11 +656,10 @@ class Cav_G(VgCaABC):
 
         logs.log_info('You are using the vgCa channel type: Cav_G')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.vrev = 131.0     # reversal voltage used in model [mV]
         Texpt = 36.0    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
         # self.qt = 2.3**((simT-Texpt)/10)
         self.qt = 1.0
 
@@ -672,18 +678,13 @@ class Cav_G(VgCaABC):
         self._hpower = 1
 
 
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
         simulation Vmem.
 
         """
-
-        # self._mInf = 1.0000 / (1 + np.exp(((V - 10) + 30.000) / -6))
-        # self._mTau = 5.0000 + 20.0000 / (1 + np.exp(((V - 10) + 25.000) / 5))
-        # self._hInf = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
-        # self._hTau = 20.0000 + 50.0000 / (1 + np.exp(((V - 10) + 40.000) / 7))
 
 
         mAlpha = (0.055 * (-27 - V)) / (np.exp((-27 - V) / 3.8) - 1)
@@ -702,7 +703,7 @@ class CaLeak(VgCaABC):
 
     '''
 
-    def _init_state(self, V, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -713,22 +714,20 @@ class CaLeak(VgCaABC):
 
         self.time_unit = 1.0
 
-
         self.vrev = 30     # reversal voltage used in model [mV]
         Texpt = 23    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
         self.qt = 1.0
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        self.m = np.ones(sim.mdl)
-        self.h = np.ones(sim.mdl)
+        self.m = np.ones(self.data_length)
+        self.h = np.ones(self.data_length)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0
         self._hpower = 0
 
 
-    def _calculate_state(self, V, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present

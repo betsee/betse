@@ -45,29 +45,37 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     """
 
+    # Reasonably small real number, preventing divide by zero errors.
+    # Note that "betse.util.type.numeric.floats.FLOAT_MIN", the
+    # smallest possible real number, is too small for this use case.
+    FLOAT_NONCE = 1.0e-25
+
+    vBA += FLOAT_NONCE
+
+    zc += FLOAT_NONCE
+
     alpha = (zc*vBA*p.F)/(p.R*T)
 
     exp_alpha = np.exp(-alpha)
 
-    deno = 1 - exp_alpha   # calculate the denominator for the electrodiffusion equation,..
+    deno = -np.expm1(-alpha)   # calculate the denominator for the electrodiffusion equation,..
+    #
+    # izero = (deno==0).nonzero()     # get the indices of the zero and non-zero elements of the denominator
+    # inotzero = (deno!=0).nonzero()
+    #
+    # # initialize data matrices to the same shape as input data
+    # flux = np.zeros(deno.shape)
+    #
+    # if len(deno[izero]):   # if there's anything in the izero array:
+    #      # calculate the flux for those elements as standard diffusion [mol/m2s]:
+    #     flux[izero] = -(Dc[izero]/d[izero])*(cB[izero] - cA[izero])
+    #
+    # if len(deno[inotzero]):   # if there's any indices in the inotzero array:
 
-    izero = (deno==0).nonzero()     # get the indices of the zero and non-zero elements of the denominator
-    inotzero = (deno!=0).nonzero()
+    # calculate the flux for those elements:
+    flux = -((Dc*alpha)/d)*((cB -cA*exp_alpha)/deno)*rho
 
-    # initialize data matrices to the same shape as input data
-    flux = np.zeros(deno.shape)
-
-    if len(deno[izero]):   # if there's anything in the izero array:
-         # calculate the flux for those elements as standard diffusion [mol/m2s]:
-        flux[izero] = -(Dc[izero]/d[izero])*(cB[izero] - cA[izero])
-
-    if len(deno[inotzero]):   # if there's any indices in the inotzero array:
-
-        # calculate the flux for those elements:
-        flux[inotzero] = -((Dc[inotzero]*alpha[inotzero])/d[inotzero])*((cB[inotzero] -
-                        cA[inotzero]*exp_alpha[inotzero])/deno[inotzero])
-
-    flux = flux*rho
+    # flux = flux*rho
 
     return flux
 
@@ -881,9 +889,6 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         if p.cluster_open is False:
             f_X_ED[cells.bflags_mems] = 0
 
-        # update concentrations due to electrodiffusion:
-        cX_cells, cX_mems, cX_env_o = update_Co(sim, cX_cells, cX_mems, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
-
     else:
 
         f_X_ED = np.zeros(sim.mdl)
@@ -922,6 +927,9 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     else:
         fgj_X = np.zeros(sim.mdl)
+
+    # update concentrations due to electrodiffusion, updated at the end to do as many updates in one piece as possible:
+    cX_cells, cX_mems, cX_env_o = update_Co(sim, cX_cells, cX_mems, cX_env_o, f_X_ED, cells, p, ignoreECM=ignoreECM)
 
 
     #------------------------------------------------------------------------------------------------------------

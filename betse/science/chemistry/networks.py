@@ -2826,11 +2826,13 @@ class MasterOfNetworks(object):
                 if p.substances_affect_charge:
                     # calculate the charge density this substance contributes to cell and environment:
                     self.extra_rho_cells[:] += p.F*obj.c_cells*obj.z*obj.scale_factor
-                    self.extra_rho_env[:] += p.F*obj.c_env*obj.z*obj.scale_factor
                     self.extra_J_mem[:] +=  -obj.z*obj.f_mem*p.F*obj.scale_factor + obj.z*obj.f_gj*p.F*obj.scale_factor
                     # self.extra_rho_mems[:] += p.F*obj.cc_at_mem*obj.z*obj.scale_factor
-                    self.extra_Jenv_x += obj.fenvx.ravel()*obj.z*p.F*obj.scale_factor
-                    self.extra_Jenv_y += obj.fenvy.ravel()*obj.z*p.F*obj.scale_factor
+
+                    if p.is_ecm:
+                        self.extra_rho_env[:] += p.F * obj.c_env * obj.z * obj.scale_factor
+                        self.extra_Jenv_x += obj.fenvx.ravel()*obj.z*p.F*obj.scale_factor
+                        self.extra_Jenv_y += obj.fenvy.ravel()*obj.z*p.F*obj.scale_factor
 
 
             if self.mit_enabled and len(self.reactions_mit)>0:
@@ -3020,7 +3022,7 @@ class MasterOfNetworks(object):
                 ioni = sim.get_ion(ion)
 
                 # obtain the channel's effective diffusion constant:
-                DChan = chan.channel_core.P*chan.channel_core.rel_perm*chan.maxDm
+                DChan = chan.channel_core.P*chan.channel_core.rel_perm*chan.maxDm*moddy
 
                 if ion in self.env_concs:
 
@@ -5327,9 +5329,6 @@ class MasterOfNetworks(object):
 
         return alpha, alpha_tex, tex_list
 
-
-#FIXME: For maintainability, would shifting this class into the existing
-#"betse.science.chemistry.molecules" module be feasible? If not, no worries!
 class Molecule(object):
     '''
     Low-level object aggregating all simulated properties for a single molecule

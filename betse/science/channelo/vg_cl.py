@@ -42,20 +42,31 @@ class VgClABC(ChannelsABC, metaclass=ABCMeta):
 
         if targets is None:
 
-            self.targets = cells.mem_i
+            self.targets = None
+
+            if type(vm) == float or type(vm) == np.float64:
+                self.data_length = 1
+
+            else:
+                self.data_length = len(vm)
+
 
         else:
             self.targets = targets
-
-        self.data_length = len(self.targets)
-        self.mdl = len(cells.mem_i)
+            self.data_length = len(self.targets)
+            self.mdl = len(cells.mem_i)
 
         self.modulator = 1.0
 
-        self.v_corr = 0.0   # in experiments, the measurement junction voltage is about 10 mV
+        self.v_corr = 0.0  # in experiments, the measurement junction voltage is about 10 mV
 
-        V = vm[self.targets]*1000 + self.v_corr
-        # V = vm * 1000 + self.v_corr
+        if self.targets is None:
+
+            V = vm * 1000 + self.v_corr
+
+        else:
+            V = vm[self.targets] * 1000 + self.v_corr
+
 
         self._init_state(V)
 
@@ -74,7 +85,13 @@ class VgClABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        V = vm[self.targets]*1000 + self.v_corr
+        if self.targets is None:
+
+            V = vm*1000 + self.v_corr
+
+        else:
+
+            V = vm[self.targets] * 1000 + self.v_corr
 
         self._calculate_state(V)
 
@@ -86,12 +103,15 @@ class VgClABC(ChannelsABC, metaclass=ABCMeta):
         self.update_mh(p, time_unit = self.time_unit)
 
         # calculate the open-probability of the channel:
-        self.P = (self.m ** self._mpower) * (self.h ** self._hpower)
+        P = (self.m ** self._mpower) * (self.h ** self._hpower)
 
-        P = np.zeros(self.mdl)
-        self.P[self.targets] = P
+        if self.targets is None:
 
+            self.P = P
 
+        else:
+            self.P = np.zeros(self.mdl)
+            self.P[self.targets] = P
 
     @abstractmethod
     def _init_state(self, V):
