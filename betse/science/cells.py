@@ -457,7 +457,6 @@ class Cells(object):
 
         self.cell_i = np.asarray(self.cell_i) # we need this to be an array for advanced indexing & assignments
 
-
     def deformWorld(self, p, ecm_verts) -> None:
         """
         Recalculates the current world to accomodate a mechanical deformation.
@@ -626,7 +625,6 @@ class Cells(object):
 
         if ymax > self.ymax:
             self.ymax = ymax
-
 
     @type_check
     def _make_cell_lattice(
@@ -840,7 +838,8 @@ class Cells(object):
         image_mask = image_picker.get_image_mask(cells=self)
 
         # add the bitmasker clipping curve to the points:
-        seed_points = np.vstack((self.clust_xy, image_mask.clipcurve))
+        # seed_points = np.vstack((self.clust_xy, image_mask.clipcurve))
+        seed_points = self.clust_xy
 
         # define the Voronoi diagram from the seed points:
         # vor = sps.Voronoi(self.clust_xy)

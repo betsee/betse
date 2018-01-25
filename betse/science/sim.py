@@ -1238,8 +1238,8 @@ class Simulator(object):
                     fK_NaK[cells.bflags_mems] = 0
 
                 # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
-                self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa]  + fNa_NaK
-                self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
+                self.fluxes_mem[self.iNa] +=  fNa_NaK
+                self.fluxes_mem[self.iK] += fK_NaK
 
                 # update the concentrations of Na and K in cells and environment:
                 # self.cc_cells[self.iNa], self.cc_at_mem[self.iNa], self.cc_env[self.iNa] =  stb.update_Co(
@@ -1364,9 +1364,6 @@ class Simulator(object):
                                                         self.cc_env[self.iP], self.protein_noise_flux, cells,
                                                         p, ignoreECM = self.ignore_ecm)
 
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                # self.update_V(cells, p)
-
             #-----forces, fields, and flow-----------------------------------------------------------------------------
 
             # calculate specific forces and pressures:
@@ -1401,6 +1398,7 @@ class Simulator(object):
 
                     timeDeform(self,cells, t, p)
 
+            # Use fluxes to update all concentrations in the cells
             self.update_all_concs(cells, p)
 
             # recalculate the net, unbalanced charge and voltage in each cell:
@@ -1761,9 +1759,13 @@ class Simulator(object):
 
         if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
+            rho_surf = self.rho_cells * cells.diviterm
+
+            self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells]
+
             # change in charge density at the membrane:
-            Jm = np.dot(cells.M_sum_mems, self.Jn*cells.mem_sa)/cells.cell_sa
-            self.vm += -(1/p.cm)*Jm[cells.mem_to_cells]*p.dt
+            # Jm = np.dot(cells.M_sum_mems, self.Jn*cells.mem_sa)/cells.cell_sa
+            # self.vm += -(1/p.cm)*Jm[cells.mem_to_cells]*p.dt
 
             # without averaging J:
             # self.vm += -(1/p.cm)*self.Jn*p.dt
@@ -1783,7 +1785,6 @@ class Simulator(object):
             # convert volume charge density to surface charge density:
             rho_surf = self.rho_cells*cells.diviterm
 
-            # FIXME: HOW TO DO THIS AS A CURRENT???
             self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
             # self.vm += -(1/p.cm)*self.Jn*p.dt + (1/p.cm)*P_env + (1/p.cm)*P_cells
 
@@ -1899,10 +1900,7 @@ class Simulator(object):
 
         # grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/(cells.gj_len)
 
-        # gcx = grad_cgj*cells.mem_vects_flat[:, 2]
-        # gcy = grad_cgj*cells.mem_vects_flat[:, 3]
-        #
-        # # midpoint concentration:
+        # midpoint concentration:
         # c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
 
         # electroosmotic fluid velocity at gap junctions:
@@ -1915,12 +1913,10 @@ class Simulator(object):
         # ux = 0
         # uy = 0
 
+        # Dgj = self.D_gj[i]*p.gj_surface*self.gjopen
+        #
+        # fgj_X = -Dgj*grad_cgj + ((c*Dgj*p.q*self.zs[i])/(p.kb*self.T))*self.Egj
 
-        # fgj_x, fgj_y = stb.nernst_planck_flux(c, gcx, gcy, -self.E_gj_x,
-        #                                   -self.E_gj_y, ux, uy,
-        #                                       p.gj_surface*self.gjopen*self.D_gj[i],
-        #                                       self.zs[i],
-        #                                       self.T, p)
 
 
         fgj_X = stb.electroflux(conc_mem[cells.mem_i],
@@ -1934,19 +1930,9 @@ class Simulator(object):
                        rho=1
                        )
 
-        # fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
-
         # enforce zero flux at outer boundary:
         fgj_X[cells.bflags_mems] = 0.0
 
-        # divergence calculation for individual cells (finite volume expression)
-        # delta_cco = np.dot(cells.M_sum_mems, -fgj_X*cells.mem_sa) / cells.cell_vol
-
-        # Calculate the final concentration change assuming instant mixing in the cell:
-        # self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cco
-        # self.cc_at_mem[i] = self.cc_cells[i][cells.mem_to_cells]
-
-        # self.cc_at_mem[i] = conc_mem - fgj_X*(cells.mem_sa / cells.mem_vol)*p.dt
 
         self.fluxes_gj[i] = self.fluxes_gj[i] + fgj_X   # store gap junction flux for this ion
 
