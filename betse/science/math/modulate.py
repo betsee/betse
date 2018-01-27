@@ -113,8 +113,6 @@ def gradient_x(pc, cells,p):
 
     return fx, dynamics
 
-#
-
 def gradient_y(pc, cells,p):
     """
     Creates a spatial gradient along the y-axis from 0 to 1 over a patch
@@ -206,7 +204,6 @@ def gradient_r(pc, cells,p):
     dynamics = lambda t: 1
 
     return r, dynamics
-
 
 def gradient_bitmap(pc, cells, p):
 

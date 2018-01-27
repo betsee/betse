@@ -530,6 +530,8 @@ class Simulator(object):
 
         self.TJ_modulator = None # register the tight junction modulator field to a 'None" object
 
+        self.c_env_bound = []  # moving ion concentration at global boundary
+
         if p.is_ecm:  # special items specific to simulation of extracellular spaces only:
 
             # vectors storing separate cell and env voltages
@@ -538,7 +540,6 @@ class Simulator(object):
             self.rho_env = np.zeros(self.edl)  # charge in the full environment
             self.z_array_env = []  # ion valence array matched to env points
             self.D_env = []  # an array of diffusion constants for each ion defined on env grid
-            self.c_env_bound = []  # moving ion concentration at global boundary
             self.Dtj_rel = []  # relative diffusion constants for ions across tight junctions
 
             self.E_env_x = np.zeros(cells.X.shape)  # electric field in environment, x component
@@ -632,8 +633,10 @@ class Simulator(object):
 
                 self.fluxes_mem.append(self.flx_mem_i)
 
+                self.c_env_bound.append(p.env_concs[name])
+
                 if p.is_ecm:
-                    self.c_env_bound.append(p.env_concs[name])
+
                     self.z_array_env.append(vars(self)[str_z2])
                     self.D_env.append(vars(self)[str_Denv])
                     self.Dtj_rel.append(p.Dtj_rel[name])
@@ -796,21 +799,22 @@ class Simulator(object):
         self.initDenv(cells, p)
 
         # Re-initialize global boundary fixed concentrations.
-        if p.is_ecm:
-            # For each possible ion...
-            for key, val in p.ions_dict.items():
-                # If this ion is enabled...
-                if val == 1:
-                    # If this is *NOT* the H+ ion...
-                    # if key != 'H':
-                    ion_i = self.get_ion(key)
-                    # print("resetting c_env from ", self.c_env_bound[ion_i], 'to ', p.cbnd[key], "for ", key)
+        # if p.is_ecm:
+        # For each possible ion...
+        for key, val in p.ions_dict.items():
+            # If this ion is enabled...
+            if val == 1:
+                # If this is *NOT* the H+ ion...
+                # if key != 'H':
+                ion_i = self.get_ion(key)
+                # print("resetting c_env from ", self.c_env_bound[ion_i], 'to ', p.cbnd[key], "for ", key)
 
-                    if p.cbnd is not None:
-                        self.c_env_bound[ion_i] = p.cbnd[key]
-                    # # Else if this is the H+ ion *NOT* under a custom profile...
-                    # elif p.ion_profile is not IonProfileType.CUSTOM:
-                    #     self.c_env_bound[self.iH] = p.env_concs['H']
+                if p.cbnd is not None:
+                    self.c_env_bound[ion_i] = p.cbnd[key]
+                # # Else if this is the H+ ion *NOT* under a custom profile...
+                # elif p.ion_profile is not IonProfileType.CUSTOM:
+                #     self.c_env_bound[self.iH] = p.env_concs['H']
+
 
         self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles

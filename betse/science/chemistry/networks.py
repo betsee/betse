@@ -3827,7 +3827,7 @@ class MasterOfNetworks(object):
         for name in self.channels:
             obj = self.channels[name]
 
-            obj.update_channel(sim, cells, p)
+            obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, sim, cells, p)
 
     def redefine_dynamic_dics(self, sim, cells, p):
 
@@ -6196,7 +6196,6 @@ class Channel(object):
 
         pass
 
-
     def init_channel(self, ion_string, type_string, max_val, sim, cells, p):
 
         # asign maximum channel effective diffusion constant:
@@ -6254,7 +6253,6 @@ class Channel(object):
 
         # Initialize channel flux storage array:
         self.channel_core.chan_flux = np.zeros(sim.mdl)
-
 
     def plot_2D(self, sim, cells, p, saveImagePath):
 
