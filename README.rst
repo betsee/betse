@@ -99,7 +99,6 @@ For new users, BETSE is readily installable as follows:
         .. code:: bash
   
            conda install dill
-           conda install -c conda-forge imageio
   
      #. Install **BETSE.** [#pip3_not]_
   
@@ -705,7 +704,7 @@ For prospective contributors:
 
 .. # ------------------( LINKS ~ software                   )------------------
 .. _Anaconda:
-   https://www.continuum.io/downloads
+   https://www.anaconda.com/download
 .. _Appveyor:
    https://ci.appveyor.com/project/betse/betse/branch/master
 .. _BSD 2-clause license:

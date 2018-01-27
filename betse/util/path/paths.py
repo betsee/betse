@@ -9,7 +9,7 @@ and non-directory files.
 '''
 
 # ....................{ IMPORTS                            }....................
-import shutil
+import os, shutil
 from betse.exceptions import BetsePathException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, IterableTypes, NumericTypes
@@ -73,15 +73,11 @@ def die_if_special(pathname: str) -> None:
         Further details.
     '''
 
-    # If this special file exists...
+    # If this special file exists, raise a human-readable exception.
     if is_special(pathname):
-        # Avoid circular import dependencies.
-        from betse.util.path import paths
-
-        # Raise a human-readable exception.
         raise BetsePathException(
             'Path "{}" already an existing {}.'.format(
-                pathname, paths.get_type_label(pathname)))
+                pathname, get_type_label(pathname)))
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -100,6 +96,16 @@ def is_path(pathname: str) -> bool:
     # contexts. Under POSIX semantics, dangling symbolic links are essential to
     # common usage patterns and should *NOT* be discriminated against here.
     return os_path.lexists(pathname)
+
+
+@type_check
+def is_readable(pathname: str) -> bool:
+    '''
+    ``True`` only if the passed path both exists *and* is readable by the
+    current user.
+    '''
+
+    return is_path(pathname) and os.access(pathname, os.R_OK)
 
 
 def is_special(pathname: str) -> bool:
