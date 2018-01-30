@@ -18,7 +18,6 @@ from betse.util.type.types import (
     type_check,
     IterableTypes,
     MappingOrSequenceTypes,
-    MappingOrSequenceOrNoneTypes,
     NoneType,
 )
 
@@ -317,21 +316,17 @@ class YamlFileABC(YamlABC):
         )
 
         # Absolute paths of the parent directories containing the current file
-        # and the passed file.
-        src_dirname = self.conf_dirname
-        trg_dirname = pathnames.get_dirname(conf_filename)
+        # and the passed file, canonicalized to permit comparison below.
+        src_dirname = pathnames.canonicalize(self.conf_dirname)
+        trg_dirname = pathnames.canonicalize(
+            pathnames.get_dirname(conf_filename))
 
         # If these paths differ, recursively copy all relative subdirectories
         # internally referenced and hence required by this file.
         if src_dirname != trg_dirname:
-            # For the absolute or relative path of each such subdirectory...
+            # For relative pathname of each such subdirectory...
             for conf_subdirname in self._iter_conf_subdirnames():
-                # If this path is absolute, silently ignore this subdirectory.
-                if pathnames.is_absolute(conf_subdirname):
-                    continue
-                # Else, this path is relative and hence requires copying.
-
-                # Absolute path of the old subdirectory.
+                # Absolute pathname of the old subdirectory.
                 src_subdirname = pathnames.join(src_dirname, conf_subdirname)
 
                 # Recursively copy from the old into the new subdirectory.

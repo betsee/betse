@@ -348,17 +348,17 @@ def copy(
     trg_dirname : str
         Absolute or relative path of the target directory to recursively copy to.
     is_overwritable : optional[bool]
-        If this target directory already exists and this boolean is ``True``,
-        this directory is silently updated with the contents of this source
-        directory; else, an exception is raised. For safety, all child paths of
-        this target directory *not* also child paths of this source directory
-        are preserved as is rather than removed. Defaults to ``False``.
+        ``True`` if existing target paths are to be silently overwritten *or*
+        ``False`` if an exception is to be raised if any target path already
+        exists. For safety, all child paths of this target directory *not* also
+        child paths of this source directory are preserved as is rather than
+        removed. Defaults to ``False``.
     ignore_basename_globs : optional[IterableTypes]
         Iterable of shell-style globs (e.g., ``('*.tmp', '.keep')``) matching
         the basenames of all paths transitively owned by this source directory
         to be ignored during recursion and hence neither copied nor visited.
         If non-``None`` and the ``is_overwritable`` parameter is ``True``, this
-        iterable is ignored and a non-fatal warning logged. Defaults to
+        iterable is ignored and a non-fatal warning is logged. Defaults to
         ``None``, in which case *all* paths transitively owned by this source
         directory are unconditionally copied and visited.
 
@@ -384,7 +384,7 @@ def copy(
     if is_overwritable:
         # If an iterable of shell-style globs matching ignorable basenames was
         # passed, log a non-fatal warning. Since the dir_util.copy_tree()
-        # function fails to support such functionality and we are currently too
+        # function fails to support this functionality and we are currently too
         # lazy to do so, a warning is as much as we're willing to give.
         if ignore_basename_globs is not None:
             logs.log_warning(

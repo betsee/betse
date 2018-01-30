@@ -721,38 +721,49 @@ def canonicalize(pathname: str) -> str:
     return os_path.realpath(os_path.expanduser(pathname))
 
 # ....................{ JOINERS                            }....................
-#FIXME: According to the Python documentation, os_path.join() implicitly
-#performs the following hideous operation:
-#
-#    If a component is an absolute path, all previous components are thrown away
-#    and joining continues from the absolute path component.
-#
-#This is inherently dumb and we wish it to stop. Fortunately, we can! Maybe?
-#It's trivial to strip leading directory separators from all passed paths except
-#the first as follows:
-#
-#    pathnames_munged = [pathnames[0]]
-#    pathnames_munged.extend(
-#        pathname[1:] if path.isabs(pathname) else pathname
-#        for pathname in pathnames[1:]
-#    )
-#
-#Unfortunately, that fails to take into account the drive letter prefixing
-#absolute Windows pathnames. There appears to exist a function path.splitdrive()
-#doing so, but such function inefficiently returns a tuple. "Who cares about
-#efficiency under Windows?" is my retort! *shrug*
-
 @type_check
 def join(*partnames: str) -> str:
     '''
     Join (i.e., concatenate) the passed pathnames with the directory separator
     specific to the current platform.
 
-    This is a convenience function wrapping the standard :func:`os_path.join`
-    function *without* adding functionality to that function -- principally to
-    unify and hence simplify ``import`` statements in other modules.
+    Caveats
+    ----------
+    This high-level wrapper should *always* be called in lieu of the low-level
+    :func:`os.path.join` function, which sadly violates Python's core "Explicit
+    is better than implicit." design principle. Specifically, to quote official
+    :func:`os.path.join` documentation:
+
+        If a component is an absolute path, all previous components are thrown
+        away and joining continues from the absolute path component.
+
+    Non-intuitive path mangling of that sort only promotes non-debuggable bugs.
+    This function prevents these bugs by explicitly raising an exception if any
+    passed pathname except the first is absolute.
+
+    Parameters
+    ----------
+    partnames : tuple[str]
+        Tuple of all pathnames to be joined. The first such pathname may be
+        absolute or relative. All remaining pathnames *must* be relative.
+
+    Returns
+    ----------
+    str
+        Absolute or relative pathname joined from these pathnames.
+
+    Raises
+    ----------
+    BetsePathnameException
+        If any such pathname except the first is absolute.
     '''
 
+    # If more than one partname was passed *AND* any such partname is absolute,
+    # raise an exception. See above for commentary.
+    if len(partnames) > 1:
+        die_if_absolute(*partnames[1:])
+
+    # Return the concatenation of these partnames.
     return os_path.join(*partnames)
 
 # ....................{ RELATIVIZERS                       }....................

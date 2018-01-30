@@ -349,7 +349,9 @@ from input files defined by this configuration.
 
         # Avoid importing modules importing dependencies at the top level.
         from betse.science.config import confio
-        confio.write_default(self._args.conf_filename)
+
+        # Write this configuration file.
+        confio.write_default(conf_filename=self._args.conf_filename)
 
 
     def _do_seed(self) -> object:

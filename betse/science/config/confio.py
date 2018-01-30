@@ -16,8 +16,61 @@ from betse.util.path import dirs, files, pathnames
 from betse.util.type.types import type_check  #, GeneratorType
 
 # ....................{ WRITERS                            }....................
+#FIXME: It should be feasible to replace this entire function (and hence remove
+#this entire submodule) by:
+#
+#* Define a new "OverwritePolicy" enum in the "betse.util.path.dirs" submodule,
+#  providing the following three members:
+#  * "DIE_ON_EXISTING", raising a fatal exception if any target path to be
+#    written to already exists.
+#  * "IGNORE_EXISTING", skipping each target path to be written that already
+#    exists with a non-fatal warning.
+#  * "OVERWRITE_EXISTING", silently overwriting each target path to be written
+#    that already exists.
+#* Refactor the betse.util.path.dirs.copy() and copy_into_dir() functions as
+#  follows:
+#  * Replace the existing "is_overwritable" boolean parameter with a new
+#    "overwrite_policy : OverwritePolicy = OverwritePolicy.DIE_ON_EXISTING" enum
+#    parameter.
+#  * Implement the "IGNORE_EXISTING" case by manually implementing recursive
+#    directory copying. This is somewhat easier than expected. See this erudite
+#    StackOverflow answer:
+#    https://stackoverflow.com/a/22588775/2809027
+#* Refactor the YamlFileABC.save() method signature to resemble this method's
+#  signature as follows:
+#
+#    @type_check
+#    def save(
+#        # Mandatory parameters.
+#        conf_filename: str,
+#
+#        # Optional parameters.
+#        is_conf_overwritable: bool = False,
+#        data_overwrite_policy: OverwritePolicy = OverwritePolicy.IGNORE_EXISTING,
+#    ) -> None:
+#
+#  Note our use of the "IGNORE_EXISTING" policy, which seems quite sensible,
+#  safey, and sanitary for all YAML saving purposes.
+#
+#  *CAUTION*. Since the existing save() method performs overwriting by default,
+#  we'll need to grep all calls to this method and explicitly pass the desired
+#  parameters. Presumably, BETSEE already performs at least one such call.
+#* Instantiating a "Parameters" object as follows:
+#    p = Parameters().load(
+#        conf_filename=pathtree.get_sim_config_default_filename())
+#* Calling the save() method of this object.
+#
+#That's pretty obvious, frankly. Tragic that we didn't concoct it until now.
 @type_check
-def write_default(conf_filename: str, is_overwritable: bool = False) -> None:
+def write_default(
+    # Mandatory parameters.
+    conf_filename: str,
+
+    # Optional parameters.
+    is_conf_overwritable: bool = False,
+    is_data_overwritable: bool = False,
+    # is_data_preservable: bool = False,
+) -> None:
     '''
     Write a default YAML simulation configuration to the file with the passed
     path *and* recursively copy all external resources (e.g., images) required
@@ -30,12 +83,24 @@ def write_default(conf_filename: str, is_overwritable: bool = False) -> None:
     ----------
     conf_filename : str
         Absolute or relative path of the target YAML file to be written.
-    is_overwritable : optional[bool]
-        For any path to be written by this function that already exists when
-        this boolean is:
-        * ``True``, that path is silently overwritten.
-        * ``False``, an exception is raised.
-        Defaults to ``False``.
+    is_conf_overwritable : optional[bool]
+        ``True`` if an existing target YAML file is to be silently overwritten
+        *or* ``False`` if an exception is to be raised if this file already
+        exists. Defaults to ``False``.
+    is_data_overwritable : optional[bool]
+        ``True`` if existing target resources required by this target YAML file
+        are to be silently overwritten *or* ``False`` if an exception is to be
+        raised if any such resource already exists. Defaults to ``False``.
+    is_data_preservable : optional[bool]
+        ``True`` if existing target resources required by this target YAML file
+        are to be preserved "as is" with a non-fatal warning *or* ``False`` if
+        an exception is to be raised if any such resource already exists.
+        Defaults to ``False``. The ``is_data_overwritable`` parameter takes
+        precedence over this parameter. Specifically, if the
+        ``is_data_overwritable`` parameter is ``True`` and this parameter is:
+        * ``True``, an exception is raised. These two parameters conflict and
+          hence *cannot* both be concurrently enabled.
+        * ``False``, this parameter is silently ignored.
 
     Raises
     ----------
@@ -50,7 +115,7 @@ def write_default(conf_filename: str, is_overwritable: bool = False) -> None:
     files.copy(
         src_filename=pathtree.get_sim_config_default_filename(),
         trg_filename=conf_filename,
-        is_overwritable=is_overwritable,
+        is_overwritable=is_conf_overwritable,
     )
 
     # Source directory containing the default simulation configuration.
@@ -78,7 +143,7 @@ def write_default(conf_filename: str, is_overwritable: bool = False) -> None:
         dirs.copy_into_dir(
             src_dirname=src_subdirname,
             trg_dirname=trg_dirname,
-            is_overwritable=is_overwritable,
+            is_overwritable=is_data_overwritable,
 
             # Ignore all empty ".gitignore" files in all subdirectories of this
             # source directory. These files serve as placeholders instructing
