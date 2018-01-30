@@ -107,7 +107,6 @@ class MasterOfMolecules(object):
         # plot up direction surfaces:  # FIXME move this to its own command in Simrunner
         # dyna_surf = SimMaster(config_dic, p)
 
-        # FIXME move this to its own command in Simrunner
         # after primary initialization, check and see if optimization required:
         opti = config_dic['optimization']['optimize network']
         self.core.opti_N = config_dic['optimization']['optimization steps']
@@ -121,7 +120,7 @@ class MasterOfMolecules(object):
             self.core.optimizer(sim, cells, p)
             self.reinitialize(sim, cells, p)
 
-    #FIXME: Oh, boy. Most of this method appears to have been copy-and-pasted
+    #FIXME: Most of this method appears to have been copy-and-pasted
     #from the read_mol_config() method above. That's... not the best. Let's
     #extract the code shared in common between these two methods into a new
     #_init_mols() method internally called by these two methods.

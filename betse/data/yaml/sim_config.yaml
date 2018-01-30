@@ -63,8 +63,8 @@ results file saving:          # Initialization and simulation exports to save.
 
 init time settings:
   time step: 1.0e-2           # time step-size [s] (recommended at least 1.0e-2 or smaller)
-  total time: 1.0             # end time [s] (recommend 5 seconds or more)
-  sampling rate: 0.1          # time interval to sample data [s] (at least value of time-step or larger)
+  total time: 5.0             # end time [s]
+  sampling rate: 1.0          # time interval to sample data [s] (at least value of time-step or larger)
 
 # ------------------------------------------------------------------------------
 # SIMULATION SETTINGS
@@ -75,9 +75,9 @@ automatically run initialization: True     # If init file is not found, do you w
 
 sim time settings:
 
-  time step: 1.0e-2       # time step-size [s] (recommended 1.0e-2 or smaller)
-  total time: 1.0         # time to end sim run [s]
-  sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
+  time step: 1.0e-4       # time step-size [s] (recommended 1.0e-2 or smaller)
+  total time: 0.025         # time to end sim run [s]
+  sampling rate: 1.0e-3      # period to sample data [s] (at least time step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # GENERAL OPTIONS
@@ -88,7 +88,7 @@ sim time settings:
 
 general options:
 
-  comp grid size: 40   # grid used in computation of environmental parameters (min 10; keep smaller than 50)
+  comp grid size: 25   # grid used in computation of environmental parameters (min 10; keep smaller than 50)
 
   simulate extracellular spaces: True    # include extracellular spaces and true environment simulation?
 
@@ -130,7 +130,7 @@ general options:
 
 world options:
 
-  world size: 250e-6    # dimension of the square world space [m]
+  world size: 150e-6    # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1000e-6 m
 
@@ -194,8 +194,8 @@ tissue profile definition:
                                         # pure-black pixels define the cell cluster shape.
       diffusion constants: # Membrane diffusion constants applied to all unprofiled cells.
         Dm_Na: 1.0e-18     # Na+ membrane diffusion constant [m2/s]
-        Dm_K: 15.0e-18     # K+ membrane diffusion constant [m2/s]
-        Dm_Cl: 2.0e-18     # Cl- membrane diffusion constant [m2/s]
+        Dm_K: 1.0e-18     # K+ membrane diffusion constant [m2/s]
+        Dm_Cl: 1.0e-18     # Cl- membrane diffusion constant [m2/s]
         Dm_Ca: 1.0e-18     # Ca2+ membrane diffusion constant [m2/s]
         Dm_H: 1.0e-18      # H+ membrane diffusion constant [m2/s]
         Dm_M: 1.0e-18      # M- membrane diffusion constant [m2/s]
@@ -228,22 +228,6 @@ tissue profile definition:
                      # profile to in the range [0, 100] (e.g., 50 selects 50% of all cells).
                      # Ignored unless "type: random" specified above,
 
-      # Example tissue profile for a depolarized wedge of cells at a cell cluster boundary.
-      - name: splotches
-        insular: False
-        diffusion constants:
-          Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
-          Dm_K: 50.0e-18  # K+ membrane diffusion constant [m2/s]
-          Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
-          Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-          Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
-          Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
-          Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
-        cell targets:
-          type: image
-          image: geo/circle/tissue_A.png
-          indices: [0]
-          percent: 25
 
   cut profiles: # List of all cut profiles (i.e., cell cluster regions to be permanently
                 # removed by a cutting event triggered during the simulation phase).
@@ -482,7 +466,7 @@ interventions:
 
 general network:
 
-  implement network: False     # Turn the entire network defined below on (True) or off (False)
+  implement network: True     # Turn the entire network defined below on (True) or off (False)
 
   # FIXME CHECK OUT MITOCHONDRIA!
   enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
@@ -507,6 +491,34 @@ general network:
   # "extra_config_template.yaml" in the "extra_configs" directory for examples.
   biomolecules:  # specify the properties of any number of auxiliary chemicals
 
+    - name: 'X'    # Gating ligand
+
+      Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+      Do: 1.0e-10          # free diffusion constant in extra and intracellular spaces [m2/s]
+      Dgj: 1.0e-15        # effective diffusion constant through gap junctions
+      z: 0               # ionic charge
+      env conc: 0.0        # initial concentration in the environment [mmol/L]
+      cell conc: 0.0     # initial concentration in the cytoplasm [mmol/L]
+      scale factor: 1.0  # amount to scale molecule concentration by in charge calculations
+      update intracellular: False  # shuts off intracellular transport for fast diffusion with stability
+      use time dilation: False  # use time dilation factor for transport and growth/decay of this substance?
+      transmem: False   # substance embeded in membrane (and therefore movable by extracellular fields, flow?)
+      initial asymmetry: None   # modulator function applied to initial cell concentrations
+      TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+      GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)
+      TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+      growth and decay:    # settings for production/decay of substances (standard GRN model)
+        production rate: 0.1 #$$ 0.05  # maximum rate at which molecule is produced in the cytoplasm
+        decay rate: 0.1    #$$ 0.05     # maximum rate at which molecule is degraded in the cytoplasm
+        apply to: ['spot']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+        modulator function: None  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+      plotting:
+        plot 2D: True         # create a unique set of plots for the substance
+        animate: True         # animate the substance during the sampled time-steps of the simulation
+        autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+        max val: 2.0                # if autoscale is False, max value to use for plot in umol/L
+        min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
   #-----------------------------------------------------------------------------------------------------------------------
   #  CUSTOM CHEMICAL REACTIONS
   #-----------------------------------------------------------------------------------------------------------------------
@@ -530,6 +542,40 @@ general network:
   # concentration of any user-defined biomolecules and/or BETSE default ions. See
   # "extra_config_template.yaml" in the "extra_configs" directory for examples.
   channels:
+
+    - name: Nav
+      channel class: Na        # class of the channels (Na, K, Ca, Cl, Fun, and Cat)
+      channel type: Nav1p3    # channel type (see below)
+      max conductivity: 2.0e-14  #      maximum membrane diffusion constant to ion when channel fully open
+      apply to: all               #    list of profiles to apply channel to or 'all' for all cells
+      init active: False                # Is the channel active during the Init (True) or only during Sim (False)?
+
+    - name: Kv
+      channel class: K        # class of the channels: Na, K, Ca, Cl, Fun, and Cat
+      channel type: Kv1p5    # channel type (see below)
+      max conductivity: 1.0e-15  #         maximum membrane diffusion constant to ion when channel fully open
+      apply to: all               #    list of profiles to apply channel to or 'all' for all cells
+      init active: False               # Is the channel active during the Init (True) or only during Sim (False)?
+
+    - name: K
+      channel class: K        #class of the channels: Na, K, Ca, Cl, Fun, and Cat
+      channel type: KLeak    #identify the channel as one of the available voltage gated types in each class
+      max conductivity: 0.5e-17  #        maximum membrane diffusion constant to ion when channel fully open
+      apply to: all                #    list of profiles to apply channel to or 'all' for all cells
+      init active: True            # Is the channel active during the initialization?
+      channel inhibitors: ['X']    # additional defined substances or ions decreasing activity of transporter
+      inhibitor Km: [0.05]
+      inhibitor n: [2.0]
+      inhibitor zone: ['cell']
+
+    # available channel types for each channel class:
+    #                        Na: Nav1p2, Nav1p3, NavRat1, NavRat2, Nav1p6, NaLeak
+    #                        K: K_Slow, K_Fast, Kv1p1, Kv1p2, Kv1p3, Kv1.4, Kv1.5, Kv1.6,
+    #                            Kv2p1, Kv2p2, Kv3p1, Kv3p2, Kv3p3, Kv3p4, Kir2p1, KLeak
+    #                        Ca: Cav1p2, Cav1p3, Cav2p1, Cav2p3, Cav3p1, Cav3p3, Cav_L2, Cav_L3, Cav_G, CaLeak
+    #                        Cl: ClLeak
+    #                        Fun: HCN1, HCN2, HCN4
+    #                        Cat: CatLeak
 
   #-----------------------------------------------------------------------------------------------------------------------
   # CUSTOM MODULATORS
@@ -740,10 +786,10 @@ results options:
       colorbar:           # Animation colorbar settings.
         colormap: None    # Matplotlib-specific name of colormap displayed by this colorbar or
                           # "None" to default to "default colormap". See above for details.
-        autoscale: True   # Automatically scale colorbar to minimum and maximum values of
+        autoscale: False   # Automatically scale colorbar to minimum and maximum values of
                           # underlying data series?
         minimum: -70.0    # Minimum fixed colorbar value. Ignored if "autoscale" is True.
-        maximum:  10.0    # Maximum fixed colorbar value. Ignored if "autoscale" is True.
+        maximum:  20.0    # Maximum fixed colorbar value. Ignored if "autoscale" is True.
 
   after solving:          # Results exported after simulation computation.
     plots:                # Plots exported after simulation computation.
@@ -976,13 +1022,13 @@ internal parameters:
 
   environment volume multiplier: 1.0  # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
 
-  membrane capacitance: 0.05 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
+  membrane capacitance: 0.02 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
 
   cell polarizability: 0.0  # cell relative dielectric constant (static, low frequency) (0.0 to 5.0e7)
 
   fast update ecm: False  # use a coarse (fast) or fine (slow) method to update between env and cell grids?
 
-  sharpness: 0.995  # Factor smoothing environmental concentrations, 0.0 max smoothing, 1.0 no smoothing
+  sharpness: 0.90  # Factor smoothing environmental concentrations, 0.0 max smoothing, 1.0 no smoothing
 
 
 # Configuration file version that this file conforms to. For reliable

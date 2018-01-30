@@ -35,6 +35,7 @@ from betse.science.simulate.pipe import piperunreq
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
 from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
+from betse.util.io.log import logs
 from betse.util.type.types import type_check
 
 # ....................{ SUPERCLASSES                       }....................
@@ -214,7 +215,7 @@ class SimConfigTestWrapper(object):
 
         # Total simulation time in seconds. The first digit effectively defines
         # the number of sampled time steps, by the above choice of time step.
-        self._p.init_time_total = min(self._p.init_time_total, 3.0e-3)
+        self._p.init_time_total = self._p.init_time_step * 3
 
         # Minify simulation time to the same durations. To ensure that
         # property setter validation compares durations in the expected manner,
@@ -223,8 +224,7 @@ class SimConfigTestWrapper(object):
             self._p.sim_time_step, self._p.init_time_step)
         self._p.sim_time_sampling = min(
             self._p.sim_time_sampling, self._p.sim_time_step)
-        self._p.sim_time_total = min(
-            self._p.sim_time_total, self._p.init_time_total)
+        self._p.sim_time_total = self._p.sim_time_step * 3
 
         # Minify the physical dimensions of the cell cluster in meters. By
         # experimentation, the default simulation configuration both:
@@ -260,6 +260,19 @@ class SimConfigTestWrapper(object):
         ecm = self._p._conf['general options']
         ecm['comp grid size'] = min(int(ecm['comp grid size']), 20)
         # ecm['plot grid size'] = min(int(ecm['plot grid size']), 50)
+
+        # Log this minification.
+        logs.log_debug(
+            'Minifying simulation to init '
+            'for %f s at [ %f | %f ] s and sim '
+            'for %f s at [ %f | %f ] s...',
+            self._p.init_time_step,
+            self._p.init_time_sampling,
+            self._p.init_time_total,
+            self._p.sim_time_step,
+            self._p.sim_time_sampling,
+            self._p.sim_time_total,
+        )
 
     # ..................{ DISABLERS                          }..................
     #FIXME: The implementation of the following methods is fundamentally unsafe.

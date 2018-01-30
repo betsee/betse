@@ -1137,6 +1137,7 @@ class Simulator(object):
         if exception_instability is not None:
             raise exception_instability
 
+
     @type_check
     def _run_sim_core_loop(
         self,
@@ -1329,7 +1330,7 @@ class Simulator(object):
                     self.molecules.core.run_loop_transporters(t, self, cells, p)
 
                 if self.molecules.channels:
-                    self.molecules.core.run_loop_channels(self, cells, p)
+                    self.molecules.core.run_loop_channels(phase)
 
                 if self.molecules.modulators:
                     self.molecules.core.run_loop_modulators(self, cells, p)
@@ -1346,7 +1347,7 @@ class Simulator(object):
                     self.grn.core.run_loop_transporters(t, self, cells, p)
 
                 if self.grn.channels:
-                    self.grn.core.run_loop_channels(self, cells, p)
+                    self.grn.core.run_loop_channels(phase)
 
                 if self.grn.modulators:
                     self.grn.core.run_loop_modulators(self, cells, p)

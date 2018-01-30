@@ -20,7 +20,7 @@ from betse.science.config.visual.confvisabc import SimConfVisualCellsNonYAML
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
-from betse.science.simulate.simphase import SimPhase
+from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.science.tissue.tishandler import TissueHandler
 from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.visual.plot import plotutil as viz
@@ -169,109 +169,109 @@ class MasterOfNetworks(object):
                         lambda value, ion_index=ion_index: sim.cc_mit.__setitem__(ion_index, value))
 
 
+        if config_substances is not None:
+            # Now move on to building the data structures for the user-defined substances:
+            for q, mol_dic in enumerate(config_substances):
+                # get each user-defined name-filed in the dictionary:
+                name = str(mol_dic['name'])
 
-        # Now move on to building the data structures for the user-defined substances:
-        for q, mol_dic in enumerate(config_substances):
-            # get each user-defined name-filed in the dictionary:
-            name = str(mol_dic['name'])
+                # add a field to the MasterOfMolecules corresponding to Molecule object with that name:
+                self.molecules[name] = Molecule(sim, cells, p)
 
-            # add a field to the MasterOfMolecules corresponding to Molecule object with that name:
-            self.molecules[name] = Molecule(sim, cells, p)
+                # now set the attributes of that Molecule object with the cornucopia of variables:
+                # define an alias so we don't have to keep typing the long version:
+                mol = self.molecules[name]
 
-            # now set the attributes of that Molecule object with the cornucopia of variables:
-            # define an alias so we don't have to keep typing the long version:
-            mol = self.molecules[name]
+                # assign general properties
+                mol.name = name   # let object know who it is
 
-            # assign general properties
-            mol.name = name   # let object know who it is
+                mol.c_envo = mol_dic['env conc']  # initial concentration in the environment [mmol/L]
+                mol.c_cello = mol_dic['cell conc']  # initial concentration in the cytoplasm [mmol/L]
+                mol.c_mito = mol_dic.get('mit conc', None)  # initialized to None if optional fields not present
 
-            mol.c_envo = mol_dic['env conc']  # initial concentration in the environment [mmol/L]
-            mol.c_cello = mol_dic['cell conc']  # initial concentration in the cytoplasm [mmol/L]
-            mol.c_mito = mol_dic.get('mit conc', None)  # initialized to None if optional fields not present
+                # use time dilation for this substance's updates?
+                mol.use_time_dilation = mol_dic.get('use time dilation', False)
 
-            # use time dilation for this substance's updates?
-            mol.use_time_dilation = mol_dic.get('use time dilation', False)
+                # if the key is True, set a new field called "mol.modify_time_factor"
+                if mol.use_time_dilation:
 
-            # if the key is True, set a new field called "mol.modify_time_factor"
-            if mol.use_time_dilation:
+                    mol.modify_time_factor = self.time_dila
 
-                mol.modify_time_factor = self.time_dila
+                else: # otherwise, make the multiplier 1.0
 
-            else: # otherwise, make the multiplier 1.0
+                    mol.modify_time_factor = 1.0
 
-                mol.modify_time_factor = 1.0
+                # determine if the user has requested an asymmetric initial condition:
+                init_asym = mol_dic.get('initial asymmetry', None)
 
-            # determine if the user has requested an asymmetric initial condition:
-            init_asym = mol_dic.get('initial asymmetry', None)
+                if init_asym != 'None' and init_asym is not None:
 
-            if init_asym != 'None' and init_asym is not None:
+                    mol.init_asym, _ = getattr(mods, init_asym)(cells.cell_i, cells, p)
 
-                mol.init_asym, _ = getattr(mods, init_asym)(cells.cell_i, cells, p)
+                else:
 
-            else:
-
-                mol.init_asym = np.ones(sim.cdl)
+                    mol.init_asym = np.ones(sim.cdl)
 
 
-            # create concentration data arrays:
-            mol.c_cells = np.ones(sim.cdl) * mol.c_cello*mol.init_asym
-            # mol.c_mems = np.ones(sim.mdl) * mol.c_cello
+                # create concentration data arrays:
+                mol.c_cells = np.ones(sim.cdl) * mol.c_cello*mol.init_asym
+                # mol.c_mems = np.ones(sim.mdl) * mol.c_cello
 
-            #FIXME: Add explicit checks to avoid name conflicts between
-            #user-defined substances defined below and ions defined above.
-            #Na, K, Cl, Ca, H, M, P == reserved names for ions!
+                #FIXME: Add explicit checks to avoid name conflicts between
+                #user-defined substances defined below and ions defined above.
+                #Na, K, Cl, Ca, H, M, P == reserved names for ions!
 
-            # create dynamic mappings for the cell conc vectors:
-            cell_concs_mapping[name] = DynamicValue(
-                lambda name = name: self.molecules[name].c_cells,
-                lambda value, name = name: setattr(self.molecules[name], 'c_cells', value))
+                # create dynamic mappings for the cell conc vectors:
+                cell_concs_mapping[name] = DynamicValue(
+                    lambda name = name: self.molecules[name].c_cells,
+                    lambda value, name = name: setattr(self.molecules[name], 'c_cells', value))
 
-            # initialize array for data stored at membranes:
-            mol.cc_at_mem = mol.c_cells[cells.mem_to_cells]
+                # initialize array for data stored at membranes:
+                mol.cc_at_mem = mol.c_cells[cells.mem_to_cells]
 
-            # create dynamic mappings for the mem conc vectors:
-            mem_concs_mapping[name] = DynamicValue(
-                lambda name = name: self.molecules[name].cc_at_mem,
-                lambda value, name = name: setattr(self.molecules[name], 'cc_at_mem', value))
+                # create dynamic mappings for the mem conc vectors:
+                mem_concs_mapping[name] = DynamicValue(
+                    lambda name = name: self.molecules[name].cc_at_mem,
+                    lambda value, name = name: setattr(self.molecules[name], 'cc_at_mem', value))
 
-            # storage array for intracellular flux:
-            mol.flux_intra = np.zeros(sim.mdl)
+                # storage array for intracellular flux:
+                mol.flux_intra = np.zeros(sim.mdl)
 
-            # if there is an initial concentration for mitochondria and mit are enabled, define a conc vector for it:
-            if self.mit_enabled:
+                # if there is an initial concentration for mitochondria and mit are enabled, define a conc vector for it:
+                if self.mit_enabled:
 
-                if mol.c_mito is not None:
+                    if mol.c_mito is not None:
 
-                    mol.c_mit = np.ones(sim.cdl) * mol.c_mito
+                        mol.c_mit = np.ones(sim.cdl) * mol.c_mito
 
-                elif mol.c_mito is None: # else just set it to zero
-                    mol.c_mit = np.zeros(sim.cdl)
+                    elif mol.c_mito is None: # else just set it to zero
+                        mol.c_mit = np.zeros(sim.cdl)
 
-                mit_concs_mapping[name] = DynamicValue(
-                    lambda name = name: self.molecules[name].c_mit,
-                    lambda value, name = name: setattr(self.molecules[name], 'c_mit', value))
+                    mit_concs_mapping[name] = DynamicValue(
+                        lambda name = name: self.molecules[name].c_mit,
+                        lambda value, name = name: setattr(self.molecules[name], 'c_mit', value))
 
-            # initialize concentration in the environment:
-            if p.is_ecm is False:
-                mol.c_env = np.ones(sim.mdl) * mol.c_envo
-            else:
-                mol.c_env = np.ones(sim.edl) * mol.c_envo
+                # initialize concentration in the environment:
+                if p.is_ecm is False:
+                    mol.c_env = np.ones(sim.mdl) * mol.c_envo
+                else:
+                    mol.c_env = np.ones(sim.edl) * mol.c_envo
 
-            env_concs_mapping[name] = DynamicValue(
-                lambda name = name: self.molecules[name].c_env,
-                lambda value, name = name: setattr(self.molecules[name], 'c_env', value))
+                env_concs_mapping[name] = DynamicValue(
+                    lambda name = name: self.molecules[name].c_env,
+                    lambda value, name = name: setattr(self.molecules[name], 'c_env', value))
 
-            # initialize concentration at the boundary
-            mol.c_bound = mol.c_envo
+                # initialize concentration at the boundary
+                mol.c_bound = mol.c_envo
 
-            bound_concs_mapping[name] = DynamicValue(
-                lambda name = name: self.molecules[name].c_bound,
-                lambda value, name = name: setattr(self.molecules[name], 'c_bound', value))
+                bound_concs_mapping[name] = DynamicValue(
+                    lambda name = name: self.molecules[name].c_bound,
+                    lambda value, name = name: setattr(self.molecules[name], 'c_bound', value))
 
-            if self.mit_enabled:
-                mol.mit_enabled = True
-            else:
-                mol.mit_enabled = False
+                if self.mit_enabled:
+                    mol.mit_enabled = True
+                else:
+                    mol.mit_enabled = False
 
         self.cell_concs = DynamicValueDict(cell_concs_mapping)
         self.mem_concs = DynamicValueDict(mem_concs_mapping)
@@ -296,212 +296,214 @@ class MasterOfNetworks(object):
 
         logs.log_info("Initializing substances/reaction network...")
 
-        for q, mol_dic in enumerate(config_substances):
-            # get each user-defined name-filed in the dictionary:
-            name = str(mol_dic['name'])
+        if config_substances is not None:
 
-            # If this molecule is unrecognized...
-            if name not in self.molecules:
-                # Log a non-fatal warning.
-                logs.log_warning(
-                    "WARNING: You've added a new substance, which was not in your initialization."
-                    "It will be ignored. Please re-run an init to see all your substances in action.")
+            for q, mol_dic in enumerate(config_substances):
+                # get each user-defined name-filed in the dictionary:
+                name = str(mol_dic['name'])
 
-                # Skip to the next molecule.
-                continue
+                # If this molecule is unrecognized...
+                if name not in self.molecules:
+                    # Log a non-fatal warning.
+                    logs.log_warning(
+                        "WARNING: You've added a new substance, which was not in your initialization."
+                        "It will be ignored. Please re-run an init to see all your substances in action.")
 
-            # Else, this molecule is recognized. Initialize this molecule.
-            mol = self.molecules[name]
+                    # Skip to the next molecule.
+                    continue
 
-            mol.Dm = float(mol_dic['Dm'])  # membrane diffusion coefficient [m2/s]
-            mol.Do = float(mol_dic['Do'])  # free diffusion constant in extra and intracellular spaces [m2/s]
-            mol.Dgj = float(mol_dic.get('Dgj', 1.0e-16))  # effective diffusion coefficient of substance through GJ
-            mol.z = float(mol_dic['z'])  # charge (oxidation state)
+                # Else, this molecule is recognized. Initialize this molecule.
+                mol = self.molecules[name]
 
-            # does the substance update in the intracellular region?
-            mol.update_intra_conc = mol_dic.get('update intracellular', True)
+                mol.Dm = float(mol_dic['Dm'])  # membrane diffusion coefficient [m2/s]
+                mol.Do = float(mol_dic['Do'])  # free diffusion constant in extra and intracellular spaces [m2/s]
+                mol.Dgj = float(mol_dic.get('Dgj', 1.0e-16))  # effective diffusion coefficient of substance through GJ
+                mol.z = float(mol_dic['z'])  # charge (oxidation state)
 
-            # factors describing potential transport along current-aligned microtubules
-            mol.u_mt = float(mol_dic.get('u_mtube', 0.0))
-            mol.Mu_mem = float(mol_dic.get('Mu_mem', 0.0))
+                # does the substance update in the intracellular region?
+                mol.update_intra_conc = mol_dic.get('update intracellular', True)
 
-            # is substance a transmembrane protein?
-            mol.transmem = mol_dic.get('transmem', False)
+                # factors describing potential transport along current-aligned microtubules
+                mol.u_mt = float(mol_dic.get('u_mtube', 0.0))
+                mol.Mu_mem = float(mol_dic.get('Mu_mem', 0.0))
 
-            # smoothing fraction for substance:
-            mol.sharp = float(mol_dic.get('sharpness', 2.0))
-            mol.smooth_weight_mem = (
-            (mol.sharp * cells.num_mems[cells.mem_to_cells] - 1) / (mol.sharp * cells.num_mems[cells.mem_to_cells]))
-            mol.smooth_weight_o = 1 / (mol.sharp * cells.num_mems[cells.mem_to_cells])
+                # is substance a transmembrane protein?
+                mol.transmem = mol_dic.get('transmem', False)
 
-            self.zmol[name] = mol.z
-            self.Dmem[name] = mol.Dm
+                # smoothing fraction for substance:
+                mol.sharp = float(mol_dic.get('sharpness', 2.0))
+                mol.smooth_weight_mem = (
+                (mol.sharp * cells.num_mems[cells.mem_to_cells] - 1) / (mol.sharp * cells.num_mems[cells.mem_to_cells]))
+                mol.smooth_weight_o = 1 / (mol.sharp * cells.num_mems[cells.mem_to_cells])
 
-            # level to re-scale concentrations of molecule for current, charge and other calculations:
-            mol.scale_factor = float(mol_dic.get('scale factor', 1.0))
+                self.zmol[name] = mol.z
+                self.Dmem[name] = mol.Dm
 
-            mol.ignore_ECM_pump = mol_dic['ignore ECM']
+                # level to re-scale concentrations of molecule for current, charge and other calculations:
+                mol.scale_factor = float(mol_dic.get('scale factor', 1.0))
 
-            # mol.ignore_ECM_pump = True
+                mol.ignore_ECM_pump = True
 
-            mol.ignoreTJ = mol_dic['TJ permeable']  # ignore TJ?
-            mol.ignoreGJ = mol_dic['GJ impermeable'] # ignore GJ?
+                # mol.ignore_ECM_pump = True
 
-            mol.TJ_factor = float(mol_dic['TJ factor']) # relative movement of substance across TJ barrier
+                mol.ignoreTJ = mol_dic['TJ permeable']  # ignore TJ?
+                mol.ignoreGJ = mol_dic['GJ impermeable'] # ignore GJ?
 
-            # factors involving growth and decay (gad) in the cytoplasm
-            gad = mol_dic.get('growth and decay', None)
+                mol.TJ_factor = float(mol_dic['TJ factor']) # relative movement of substance across TJ barrier
 
-            if gad != 'None' and gad is not None:
+                # factors involving growth and decay (gad) in the cytoplasm
+                gad = mol_dic.get('growth and decay', None)
 
-                mol.simple_growth = True
+                if gad != 'None' and gad is not None:
 
-                mol.r_production = gad['production rate']
-                mol.r_decay = gad['decay rate']
-                # mol.Kgd = gad['Km']
-                # mol.n_decay = gad['n']
+                    mol.simple_growth = True
 
-                mol.growth_profiles_list = gad['apply to']
+                    mol.r_production = gad['production rate']
+                    mol.r_decay = gad['decay rate']
+                    # mol.Kgd = gad['Km']
+                    # mol.n_decay = gad['n']
 
-                modulator_function_name = gad.get('modulator function', None)
+                    mol.growth_profiles_list = gad['apply to']
 
-                mol.growth_activators_list = gad.get('activators', None)
-                mol.growth_activators_zone = gad.get('zone activators', None)
-                mol.growth_activators_Km = gad.get('Km activators', None)
-                mol.growth_activators_n = gad.get('n activators', None)
+                    modulator_function_name = gad.get('modulator function', None)
 
-                mol.growth_inhibitors_list = gad.get('inhibitors', None)
-                mol.growth_inhibitors_zone = gad.get('zone inhibitors', None)
-                mol.growth_inhibitors_Km = gad.get('Km inhibitors', None)
-                mol.growth_inhibitors_n = gad.get('n inhibitors', None)
+                    mol.growth_activators_list = gad.get('activators', None)
+                    mol.growth_activators_zone = gad.get('zone activators', None)
+                    mol.growth_activators_Km = gad.get('Km activators', None)
+                    mol.growth_activators_n = gad.get('n activators', None)
 
-                # Fill in the blanks if zones aren't supplied:
-                mol.growth_activators_zone, mol.growth_inhibitors_zone = self.default_zones(
-                    mol.growth_activators_zone,
-                    mol.growth_inhibitors_zone,
-                    mol.growth_activators_list,
-                    mol.growth_inhibitors_list)
+                    mol.growth_inhibitors_list = gad.get('inhibitors', None)
+                    mol.growth_inhibitors_zone = gad.get('zone inhibitors', None)
+                    mol.growth_inhibitors_Km = gad.get('Km inhibitors', None)
+                    mol.growth_inhibitors_n = gad.get('n inhibitors', None)
 
-                mol.init_growth(cells, p)
+                    # Fill in the blanks if zones aren't supplied:
+                    mol.growth_activators_zone, mol.growth_inhibitors_zone = self.default_zones(
+                        mol.growth_activators_zone,
+                        mol.growth_inhibitors_zone,
+                        mol.growth_activators_list,
+                        mol.growth_inhibitors_list)
 
-                # the modulator function, if requested, makes gad occur modulated by a function.
-                # Make this happen, if it's requested:
+                    mol.init_growth(cells, p)
 
-                if modulator_function_name != 'None' and modulator_function_name is not None:
-                    # mol.growth_mod_function_mems, _ = getattr(mods, modulator_function_name)(cells.mem_i,
-                    #                                                                           cells, p)
-                    mol.growth_mod_function_cells, _ = getattr(mods, modulator_function_name)(cells.cell_i,
-                                                                                                cells, p)
+                    # the modulator function, if requested, makes gad occur modulated by a function.
+                    # Make this happen, if it's requested:
 
-                else:
-                    # mol.growth_mod_function_mems = np.ones(sim.mdl)
-                    mol.growth_mod_function_cells = np.ones(sim.cdl)
+                    if modulator_function_name != 'None' and modulator_function_name is not None:
+                        # mol.growth_mod_function_mems, _ = getattr(mods, modulator_function_name)(cells.mem_i,
+                        #                                                                           cells, p)
+                        mol.growth_mod_function_cells, _ = getattr(mods, modulator_function_name)(cells.cell_i,
+                                                                                                    cells, p)
 
-            else:
-                mol.simple_growth = False
-                mol.growth_profiles_list = None
-
-            # assign ion channel gating properties
-            icg = mol_dic.get('ion channel gating', None)
-
-            if icg is not None:
-
-                mol.ion_channel_gating = True
-
-                mol.gating_channel_name = icg.get('channel name', 'Gated channel')
-
-                mol.gating_ion_name = icg['ion channel target']  # get a target ion label to gate membrane to (or 'None')
-
-                if mol.gating_ion_name != 'None':
-                    mol.use_gating_ligand = True
-
-                    mol.gating_ion = []
-
-                    for ion_o in mol.gating_ion_name:
-                        mol.gating_ion.append(sim.get_ion(ion_o))
+                    else:
+                        # mol.growth_mod_function_mems = np.ones(sim.mdl)
+                        mol.growth_mod_function_cells = np.ones(sim.cdl)
 
                 else:
-                    mol.use_gating_ligand = False
-                    mol.gating_ion = []
+                    mol.simple_growth = False
+                    mol.growth_profiles_list = None
 
-                mol.gating_Hill_K = float(icg['target Hill coefficient'])
-                mol.gating_Hill_n = float(icg['target Hill exponent'])
-                mol.gating_max_val = float(icg['peak channel opening'])
-                mol.gating_extracell = icg['acts extracellularly']
+                # assign ion channel gating properties
+                icg = mol_dic.get('ion channel gating', None)
 
-                # get any optional activators and inhibitors for the channel:
-                mol.ion_activators_list = icg.get('activators', None)
-                mol.ion_activators_Km = icg.get('Km activators', None)
-                mol.ion_activators_n = icg.get('n activators', None)
-                mol.ion_activators_zone = icg.get('zone activators', None)
+                if icg is not None:
 
-                mol.ion_inhibitors_list = icg.get('inhibitors', None)
-                mol.ion_inhibitors_Km = icg.get('Km inhibitors', None)
-                mol.ion_inhibitors_n = icg.get('n inhibitors', None)
-                mol.ion_inhibitors_zone = icg.get('zone inhibitors', None)
+                    mol.ion_channel_gating = True
 
-                # Fill in the blanks if zones aren't supplied:
-                mol.ion_activators_zone, mol.ion_inhibitors_zone = self.default_zones(
-                                                                        mol.ion_activators_zone,
-                                                                        mol.ion_inhibitors_zone,
-                                                                        mol.ion_activators_list,
-                                                                        mol.ion_inhibitors_list)
+                    mol.gating_channel_name = icg.get('channel name', 'Gated channel')
 
-                tex_vars = []
+                    mol.gating_ion_name = icg['ion channel target']  # get a target ion label to gate membrane to (or 'None')
 
-                # define the modulating coefficients:
-                alpha_ion, alpha_tex, tex_vars = \
-                    self.get_influencers(mol.ion_activators_list,
-                    mol.ion_activators_Km, mol.ion_activators_n,
-                    mol.ion_inhibitors_list, mol.ion_inhibitors_Km,
-                    mol.ion_inhibitors_n, reaction_zone='mem', tex_list = tex_vars,
-                    zone_tags_a=mol.ion_activators_zone,
-                    zone_tags_i=mol.ion_inhibitors_zone,
-                    in_mem_tag=True)
+                    if mol.gating_ion_name != 'None':
+                        mol.use_gating_ligand = True
 
-                mol.gating_mod_eval_string = "(" + alpha_ion + ")"
+                        mol.gating_ion = []
 
-            else:
-                mol.ion_channel_gating = False
+                        for ion_o in mol.gating_ion_name:
+                            mol.gating_ion.append(sim.get_ion(ion_o))
 
-            # assign active pumping properties
-            ap = mol_dic.get('active pumping', None)
+                    else:
+                        mol.use_gating_ligand = False
+                        mol.gating_ion = []
 
-            if ap is not None:
+                    mol.gating_Hill_K = float(icg['target Hill coefficient'])
+                    mol.gating_Hill_n = float(icg['target Hill exponent'])
+                    mol.gating_max_val = float(icg['peak channel opening'])
+                    mol.gating_extracell = icg['acts extracellularly']
 
-                mol.active_pumping = True
-                mol.use_pumping = ap['turn on']
-                mol.pump_to_cell = ap['pump to cell']
-                mol.pump_max_val = ap['maximum rate']
-                mol.pump_Km = ap['pump Km']
-                mol.pumps_use_ATP = ap['uses ATP']
+                    # get any optional activators and inhibitors for the channel:
+                    mol.ion_activators_list = icg.get('activators', None)
+                    mol.ion_activators_Km = icg.get('Km activators', None)
+                    mol.ion_activators_n = icg.get('n activators', None)
+                    mol.ion_activators_zone = icg.get('zone activators', None)
+
+                    mol.ion_inhibitors_list = icg.get('inhibitors', None)
+                    mol.ion_inhibitors_Km = icg.get('Km inhibitors', None)
+                    mol.ion_inhibitors_n = icg.get('n inhibitors', None)
+                    mol.ion_inhibitors_zone = icg.get('zone inhibitors', None)
+
+                    # Fill in the blanks if zones aren't supplied:
+                    mol.ion_activators_zone, mol.ion_inhibitors_zone = self.default_zones(
+                                                                            mol.ion_activators_zone,
+                                                                            mol.ion_inhibitors_zone,
+                                                                            mol.ion_activators_list,
+                                                                            mol.ion_inhibitors_list)
+
+                    tex_vars = []
+
+                    # define the modulating coefficients:
+                    alpha_ion, alpha_tex, tex_vars = \
+                        self.get_influencers(mol.ion_activators_list,
+                        mol.ion_activators_Km, mol.ion_activators_n,
+                        mol.ion_inhibitors_list, mol.ion_inhibitors_Km,
+                        mol.ion_inhibitors_n, reaction_zone='mem', tex_list = tex_vars,
+                        zone_tags_a=mol.ion_activators_zone,
+                        zone_tags_i=mol.ion_inhibitors_zone,
+                        in_mem_tag=True)
+
+                    mol.gating_mod_eval_string = "(" + alpha_ion + ")"
+
+                else:
+                    mol.ion_channel_gating = False
+
+                # assign active pumping properties
+                ap = mol_dic.get('active pumping', None)
+
+                if ap is not None:
+
+                    mol.active_pumping = True
+                    mol.use_pumping = ap['turn on']
+                    mol.pump_to_cell = ap['pump to cell']
+                    mol.pump_max_val = ap['maximum rate']
+                    mol.pump_Km = ap['pump Km']
+                    mol.pumps_use_ATP = ap['uses ATP']
 
 
-            else:
-                mol.active_pumping = False
+                else:
+                    mol.active_pumping = False
 
-            # assign boundary change event properties
-            cab = mol_dic.get('change at bounds', None)
+                # assign boundary change event properties
+                cab = mol_dic.get('change at bounds', None)
 
-            if cab is not None:
-                mol.change_bounds = True
-                mol.change_at_bounds = cab['event happens']
-                mol.change_bounds_start = cab['change start']
-                mol.change_bounds_end = cab['change finish']
-                mol.change_bounds_rate = cab['change rate']
-                mol.change_bounds_target = cab['concentration']
+                if cab is not None:
+                    mol.change_bounds = True
+                    mol.change_at_bounds = cab['event happens']
+                    mol.change_bounds_start = cab['change start']
+                    mol.change_bounds_end = cab['change finish']
+                    mol.change_bounds_rate = cab['change rate']
+                    mol.change_bounds_target = cab['concentration']
 
-            else:
-                mol.change_bounds = False
+                else:
+                    mol.change_bounds = False
 
-            # assign plotting properties
-            pd = mol_dic['plotting']
-            mol.make_plots = pd['plot 2D']
-            mol.make_ani = pd['animate']
+                # assign plotting properties
+                pd = mol_dic['plotting']
+                mol.make_plots = pd['plot 2D']
+                mol.make_ani = pd['animate']
 
-            mol.plot_autoscale = pd['autoscale colorbar']
-            mol.plot_max = pd['max val']
-            mol.plot_min = pd['min val']
+                mol.plot_autoscale = pd['autoscale colorbar']
+                mol.plot_max = pd['max val']
+                mol.plot_min = pd['min val']
 
         # balance charge in cells, env, and mits
         if p.substances_affect_charge and self.charge_has_been_balanced is False:
@@ -955,6 +957,7 @@ class MasterOfNetworks(object):
             obj.channel_type = chan_dic['channel type']
             obj.channelMax = chan_dic['max conductivity']
             obj.channel_profiles_list = chan_dic['apply to']
+            obj.init_active = chan_dic.get('init active', True)
 
             obj.channel_activators_list = chan_dic.get('channel activators', None)
             obj.channel_activators_Km = chan_dic.get('activator Km', None)
@@ -2993,7 +2996,22 @@ class MasterOfNetworks(object):
         #
         #     sim.extra_J_mem = self.extra_J_mem
 
-    def run_loop_channels(self, sim, cells, p):
+
+    @type_check
+    def run_loop_channels(self, phase: SimPhase) -> None:
+        '''
+        Perform all dynamic channels enabled by this gene regulatory network (GRN)
+        for the current simulation time step.
+
+        Parameters
+        --------
+        phase : SimPhase
+            Current simulation phase.
+        '''
+
+        sim = phase.sim
+        cells = phase.cells
+        p = phase.p
 
         globalo = globals()
         localo = locals()
@@ -3003,68 +3021,76 @@ class MasterOfNetworks(object):
 
             chan = self.channels[name]
 
-            # compute the channel activity
-            # calculate the value of the channel modulation constant:
-            moddy = eval(chan.alpha_eval_string, globalo, localo)
+            pass_chan = False
 
-            # set the modulator state in the channel core
-            chan.channel_core.modulator = moddy
+            if phase.kind is SimPhaseKind.INIT and chan.init_active is False:
 
-            # run the channel to update its state:
-            chan.channel_core.run(sim.vm, p)
+                pass_chan = True
 
-            # update concentrations according to the channel state:
-            for ion in chan.channel_core.ions:
+            if pass_chan is False:
 
-                # get the charge of the ion:
-                zzz = self.zmol[ion]
+                # compute the channel activity
+                # calculate the value of the channel modulation constant:
+                moddy = eval(chan.alpha_eval_string, globalo, localo)
 
-                ioni = sim.get_ion(ion)
+                # set the modulator state in the channel core
+                chan.channel_core.modulator = moddy
 
-                # obtain the channel's effective diffusion constant:
-                DChan = chan.channel_core.P*chan.channel_core.rel_perm*chan.maxDm*moddy
+                # run the channel to update its state:
+                chan.channel_core.run(sim.vm, p)
 
-                if ion in self.env_concs:
+                # update concentrations according to the channel state:
+                for ion in chan.channel_core.ions:
 
-                    # print("found ", ion, " in env concs, with charge of ", zzz)
-                    cenv = self.env_concs[ion]
+                    # get the charge of the ion:
+                    zzz = self.zmol[ion]
 
-                if ion in self.cell_concs:
-                    # print("found ", ion, " in cell concs!")
-                    ccell = self.cell_concs[ion]
-                    cmem = self.cell_concs[ion][cells.mem_to_cells]
+                    ioni = sim.get_ion(ion)
 
+                    # obtain the channel's effective diffusion constant:
+                    DChan = chan.channel_core.P*chan.channel_core.rel_perm*chan.maxDm*moddy
 
-                # Electrodiffuse ions through the channel:
-                IdM = np.ones(sim.mdl)
+                    if ion in self.env_concs:
 
-                if p.is_ecm:
+                        # print("found ", ion, " in env concs, with charge of ", zzz)
+                        cenv = self.env_concs[ion]
 
-                    f_ED = stb.electroflux(cenv[cells.map_mem2ecm], cmem,
-                        DChan, IdM*p.tm, zzz*IdM, sim.vm, sim.T, p,
-                        rho=sim.rho_channel)
-
-                else:
-
-                    f_ED = stb.electroflux(cenv,cmem, DChan,IdM*p.tm,zzz*IdM,
-                                           sim.vm,sim.T,p,rho=sim.rho_channel)
+                    if ion in self.cell_concs:
+                        # print("found ", ion, " in cell concs!")
+                        ccell = self.cell_concs[ion]
+                        cmem = self.cell_concs[ion][cells.mem_to_cells]
 
 
-                self.cell_concs[ion], self.mem_concs[ion], self.env_concs[ion] = stb.update_Co(sim, ccell,
-                                                                                    cmem,
-                                                                                    cenv, f_ED,
-                                                                                    cells, p,
-                                                                                    ignoreECM = sim.ignore_ecm)
+                    # Electrodiffuse ions through the channel:
+                    IdM = np.ones(sim.mdl)
 
-                # print(name, f_ED[chan.channel_core.targets]*p.F)
+                    if p.is_ecm:
 
-                # Add channel flux to the membrane fluxes data array:
-                sim.fluxes_mem[ioni] += f_ED
+                        f_ED = stb.electroflux(cenv[cells.map_mem2ecm], cmem,
+                            DChan, IdM*p.tm, zzz*IdM, sim.vm, sim.T, p,
+                            rho=sim.rho_channel)
 
-                # Store channel flux specific to the channel as well:
-                chan.channel_core.chan_flux = f_ED
+                    else:
 
-            # print('---------')
+                        f_ED = stb.electroflux(cenv,cmem, DChan,IdM*p.tm,zzz*IdM,
+                                               sim.vm,sim.T,p,rho=sim.rho_channel)
+
+
+                    self.cell_concs[ion], self.mem_concs[ion], self.env_concs[ion] = stb.update_Co(sim, ccell,
+                                                                                        cmem,
+                                                                                        cenv, f_ED,
+                                                                                        cells, p,
+                                                                                        ignoreECM = sim.ignore_ecm)
+
+                    # print(name, f_ED[chan.channel_core.targets]*p.F)
+
+                    # Add channel flux to the membrane fluxes data array:
+                    sim.fluxes_mem[ioni] += f_ED
+
+                    # Store channel flux specific to the channel as well:
+                    chan.channel_core.chan_flux = f_ED
+
+                # print('---------')
 
     def run_loop_modulators(self, sim, cells, p):
 
