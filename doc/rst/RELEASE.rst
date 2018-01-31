@@ -59,17 +59,17 @@ BETSE is releasable to all supported platforms as follows:
    `this file <readme_>`__ contains syntax unsupported by PyPI's reST renderer,
    PyPI erroneously preserves this file as plaintext rather than rendering this
    file as HTML. To avoid this:
-   
+
    #. Install the ``collective.checkdocs`` Python package.
 
       .. code:: bash
-   
+
          $ sudo pip3 install collective.checkdocs
-   
+
    #. Validate the PyPI-specific compatilibility of `this file <readme_>`__.
 
       .. code:: bash
-   
+
          $ python3 setup.py checkdocs
 
    #. After submitting this release to PyPI via ``twine`` below, manually browse

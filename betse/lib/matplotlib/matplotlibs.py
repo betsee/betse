@@ -758,7 +758,7 @@ class MplConfig(object):
                 pathnames.get_pathname_sans_filetype(
                     strs.remove_prefix_if_found(
                         backend_basename, BACKEND_BASENAME_PREFIX))
-                for backend_basename in dirs.list_basenames(backends_dir)
+                for backend_basename in dirs.iter_basenames(backends_dir)
                 if strs.is_prefix(
                     backend_basename, BACKEND_BASENAME_PREFIX) and
                    pathnames.is_filetype_equals(backend_basename, 'py')

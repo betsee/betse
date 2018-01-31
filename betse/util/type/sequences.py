@@ -256,13 +256,13 @@ def get_items_prefixed_by(
 def omit_item(sequence: SequenceTypes, item: object) -> SequenceTypes:
     '''
     New non-string sequence containing all elements of the first passed
-    non-string sequence _not_ equalling the passed object.
+    non-string sequence *not* equalling the passed object.
 
     Parameters
     ----------
     sequence : SequenceTypes
         Original sequence to return a proper subset of. For safety, this
-        function does _not_ modify this sequence.
+        function does *not* modify this sequence.
     item : object
         Object to be omitted from the returned sequence.
 
@@ -280,13 +280,13 @@ def omit_item(sequence: SequenceTypes, item: object) -> SequenceTypes:
 def omit_items(sequence: SequenceTypes, items: Container) -> SequenceTypes:
     '''
     New non-string sequence containing all elements of the passed non-string
-    sequence _not_ contained in the passed non-string container.
+    sequence *not* contained in the passed non-string container.
 
     Parameters
     ----------
     sequence : SequenceTypes
         Original sequence to return a proper subset of. For safety, this
-        function does _not_ modify this sequence.
+        function does *not* modify this sequence.
     items : Container
         Container containing all elements to be omitted from the returned
         sequence.

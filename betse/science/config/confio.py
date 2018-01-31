@@ -13,29 +13,13 @@ Simulation configuration file input and output (I/O) facilities.
 from betse import pathtree
 from betse.util.io.log import logs
 from betse.util.path import dirs, files, pathnames
+from betse.util.path.dirs import DirOverwritePolicy
 from betse.util.type.types import type_check  #, GeneratorType
 
 # ....................{ WRITERS                            }....................
 #FIXME: It should be feasible to replace this entire function (and hence remove
 #this entire submodule) by:
 #
-#* Define a new "OverwritePolicy" enum in the "betse.util.path.dirs" submodule,
-#  providing the following three members:
-#  * "DIE_ON_EXISTING", raising a fatal exception if any target path to be
-#    written to already exists.
-#  * "IGNORE_EXISTING", skipping each target path to be written that already
-#    exists with a non-fatal warning.
-#  * "OVERWRITE_EXISTING", silently overwriting each target path to be written
-#    that already exists.
-#* Refactor the betse.util.path.dirs.copy() and copy_into_dir() functions as
-#  follows:
-#  * Replace the existing "is_overwritable" boolean parameter with a new
-#    "overwrite_policy : OverwritePolicy = OverwritePolicy.DIE_ON_EXISTING" enum
-#    parameter.
-#  * Implement the "IGNORE_EXISTING" case by manually implementing recursive
-#    directory copying. This is somewhat easier than expected. See this erudite
-#    StackOverflow answer:
-#    https://stackoverflow.com/a/22588775/2809027
 #* Refactor the YamlFileABC.save() method signature to resemble this method's
 #  signature as follows:
 #
@@ -45,8 +29,9 @@ from betse.util.type.types import type_check  #, GeneratorType
 #        conf_filename: str,
 #
 #        # Optional parameters.
-#        is_conf_overwritable: bool = False,
-#        data_overwrite_policy: OverwritePolicy = OverwritePolicy.IGNORE_EXISTING,
+#        is_conf_file_overwritable: bool = False,
+#        conf_subdir_overwrite_policy: DirOverwritePolicy = (
+#            DirOverwritePolicy.SKIP_WITH_WARNING),
 #    ) -> None:
 #
 #  Note our use of the "IGNORE_EXISTING" policy, which seems quite sensible,
@@ -143,7 +128,14 @@ def write_default(
         dirs.copy_into_dir(
             src_dirname=src_subdirname,
             trg_dirname=trg_dirname,
-            is_overwritable=is_data_overwritable,
+
+            # Ignore (i.e., skip) each target resource of this subdirectory that
+            # already exists with a non-fatal warning. This is purely a caller
+            # convenience, permitting multiple configuration files with
+            # different basenames to be created in the same parent directory
+            # *WITHOUT* either raising exceptions on or silently overwriting
+            # duplicate target resources.
+            overwrite_policy=DirOverwritePolicy.SKIP_WITH_WARNING,
 
             # Ignore all empty ".gitignore" files in all subdirectories of this
             # source directory. These files serve as placeholders instructing

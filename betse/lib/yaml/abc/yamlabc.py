@@ -13,6 +13,7 @@ from betse.exceptions import BetseYamlException
 from betse.lib.yaml import yamls
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
+from betse.util.path.dirs import DirOverwritePolicy
 from betse.util.type.iterators import empty_iterator
 from betse.util.type.types import (
     type_check,
@@ -324,7 +325,7 @@ class YamlFileABC(YamlABC):
         # If these paths differ, recursively copy all relative subdirectories
         # internally referenced and hence required by this file.
         if src_dirname != trg_dirname:
-            # For relative pathname of each such subdirectory...
+            # For the relative pathname of each such subdirectory...
             for conf_subdirname in self._iter_conf_subdirnames():
                 # Absolute pathname of the old subdirectory.
                 src_subdirname = pathnames.join(src_dirname, conf_subdirname)
@@ -333,7 +334,7 @@ class YamlFileABC(YamlABC):
                 dirs.copy_into_dir(
                     src_dirname=src_subdirname,
                     trg_dirname=trg_dirname,
-                    is_overwritable=True,
+                    overwrite_policy=DirOverwritePolicy.OVERWRITE,
                 )
 
         # Associate this object with this file *AFTER* successfully copying to

@@ -11,6 +11,7 @@ Low-level directory facilities.
 import os, shutil
 from betse.exceptions import BetseDirException, BetsePathException
 from betse.util.io.log import logs
+from betse.util.type.enums import make_enum
 from betse.util.type.types import (
     type_check,
     CallableTypes,
@@ -22,7 +23,35 @@ from betse.util.type.types import (
 from distutils import dir_util
 from os import path as os_path
 
-# ....................{ GLOBALS                            }....................
+# ....................{ GLOBALS ~ enum                     }....................
+DirOverwritePolicy = make_enum(
+    class_name='DirOverwritePolicy',
+    member_names=(
+        'HALT_WITH_EXCEPTION',
+        'SKIP_WITH_WARNING',
+        'OVERWRITE',
+    ),
+)
+'''
+Enumeration of all supported types of **directory overwrite policies** (i.e.,
+strategies for handling existing paths visited by recursive directory
+operations).
+
+Attributes
+----------
+HALT_WITH_EXCEPTION : enum
+    Policy raising a fatal exception if any target path already exists. This
+    constitutes the strictest and hence safest such policy.
+SKIP_WITH_WARNING : enum
+    Policy ignoring (i.e., skipping) each target path that already exists with a
+    logged non-fatal warning. This policy strikes a convenient balance between
+    strictness and laxness.
+OVERWRITE : enum
+    Policy silently overwriting each target path that already exists. This
+    constitutes the laxest and hence riskiest such policy.
+'''
+
+# ....................{ GLOBALS ~ regex                    }....................
 # There exist only two possible directory separators for all modern platforms.
 # Hence, this reliably suffices with no error handling required.
 SEPARATOR_REGEX = r'/' if os_path.sep == '/' else r'\\'
@@ -329,7 +358,8 @@ def copy(
     trg_dirname: str,
 
     # Optional parameters.
-    is_overwritable: bool = False,
+    overwrite_policy: DirOverwritePolicy = (
+        DirOverwritePolicy.HALT_WITH_EXCEPTION),
     ignore_basename_globs: IterableOrNoneTypes = None,
 ) -> None:
     '''
@@ -347,20 +377,20 @@ def copy(
         copied from.
     trg_dirname : str
         Absolute or relative path of the target directory to recursively copy to.
-    is_overwritable : optional[bool]
-        ``True`` if existing target paths are to be silently overwritten *or*
-        ``False`` if an exception is to be raised if any target path already
-        exists. For safety, all child paths of this target directory *not* also
-        child paths of this source directory are preserved as is rather than
-        removed. Defaults to ``False``.
+    overwrite_policy : DirOverwritePolicy
+        **Directory overwrite policy** (i.e., strategy for handling existing
+        paths to be overwritten by this copy) to apply. Defaults to
+        :attr:`DirOverwritePolicy.HALT_WITH_EXCEPTION`, raising an exception if
+        any target path already exists.
     ignore_basename_globs : optional[IterableTypes]
         Iterable of shell-style globs (e.g., ``('*.tmp', '.keep')``) matching
         the basenames of all paths transitively owned by this source directory
         to be ignored during recursion and hence neither copied nor visited.
-        If non-``None`` and the ``is_overwritable`` parameter is ``True``, this
-        iterable is ignored and a non-fatal warning is logged. Defaults to
-        ``None``, in which case *all* paths transitively owned by this source
-        directory are unconditionally copied and visited.
+        If non-``None`` and the ``overwrite_policy`` parameter is
+        :attr:`DirOverwritePolicy.OVERWRITE`, this iterable is ignored and a
+        non-fatal warning is logged. Defaults to ``None``, in which case *all*
+        paths transitively owned by this source directory are unconditionally
+        copied and visited.
 
     Raises
     -----------
@@ -371,6 +401,12 @@ def copy(
           are also subdirectories of the source directory. For safety, this
           function always preserves rather than overwrites existing target
           subdirectories.
+
+    See Also
+    -----------
+    https://stackoverflow.com/a/22588775/2809027
+        StackOverflow answer strongly inspiring this function's
+        :attr:`DirOverwritePolicy.SKIP_WITH_WARNING` implementation.
     '''
 
     # Log this copy.
@@ -379,9 +415,47 @@ def copy(
     # Raise an exception unless the source directory exists.
     die_unless_dir(src_dirname)
 
-    # If overwriting the contents of this target directory with those of this
-    # source directory...
-    if is_overwritable:
+    # If passed an iterable of shell-style globs matching ignorable basenames,
+    # convert this iterable into a predicate function of the form required by
+    # the shutil.copytree() function. Specifically, this function accepts the
+    # absolute or relative pathname of an arbitrary directory and an iterable of
+    # the basenames of all subdirectories and files directly in this directory;
+    # this function returns an iterable of the basenames of all subdirectories
+    # and files in this directory to be ignored. This signature resembles:
+    #
+    #     def ignore_basename_func(
+    #         parent_dirname: str,
+    #         child_basenames: IterableTypes) -> IterableTypes
+    ignore_basename_func = None
+    if ignore_basename_globs is not None:
+        ignore_basename_func = shutil.ignore_patterns(*ignore_basename_globs)
+
+    # If raising a fatal exception if any target path already exists...
+    if overwrite_policy is DirOverwritePolicy.HALT_WITH_EXCEPTION:
+        # Dictionary of all keyword arguments to pass to shutil.copytree(),
+        # preserving symbolic links as is.
+        copytree_kwargs = {
+            'symlinks': True,
+        }
+
+        # If ignoring basenames, inform shutil.copytree() of these basenames.
+        if ignore_basename_func is not None:
+            copytree_kwargs['ignore'] = ignore_basename_func
+
+        # Raise an exception if this target directory already exists. While we
+        # could defer to the exception raised by the shutil.copytree() function
+        # for this case, this exception's message erroneously refers to this
+        # directory as a file and is hence best avoided as non-human-readable:
+        #
+        #     [Errno 17] File exists: 'sample_sim'
+        die_if_dir(trg_dirname)
+
+        # Recursively copy this source to target directory. To avoid silently
+        # overwriting all conflicting target paths, the shutil.copytree() rather
+        # than dir_util.copy_tree() function is called.
+        shutil.copytree(src=src_dirname, dst=trg_dirname, **copytree_kwargs)
+    # Else if overwriting this target directory with this source directory...
+    elif overwrite_policy is DirOverwritePolicy.OVERWRITE:
         # If an iterable of shell-style globs matching ignorable basenames was
         # passed, log a non-fatal warning. Since the dir_util.copy_tree()
         # function fails to support this functionality and we are currently too
@@ -396,39 +470,127 @@ def copy(
         # dir_util.copy_tree() rather than shutil.copytree() function is called.
         dir_util.copy_tree(
             src_dirname, trg_dirname, preserve_symlinks=1)
+
+    #FIXME: Given how awesomely flexible the manual approach implemented below
+    #is, we should probably consider simply rewriting the above two approaches
+    #to reuse the exact same logic. It works. It's preferable. Let's reuse it.
+
+    # Else if logging a warning for each target path that already exists, do so
+    # by manually implementing recursive directory copying. Sadly, Python
+    # provides no means of doing so "out of the box."
+    elif overwrite_policy is DirOverwritePolicy.SKIP_WITH_WARNING:
+        # Avoid circular import dependencies.
+        from betse.util.path import files, paths, pathnames
+        from betse.util.type import sequences
+
+        # Passed parameters renamed for disambiguity.
+        src_root_dirname = src_dirname
+        trg_root_dirname = trg_dirname
+
+        # Basename of the top-level target directory to be copied to.
+        trg_root_basename = pathnames.get_basename(src_root_dirname)
+
+        # For the absolute pathname of each recursively visited source
+        # directory, an iterable of the basenames of all subdirectories of this
+        # directory, and an iterable of the basenames of all files of this
+        # directory...
+        for src_parent_dirname, subdir_basenames, file_basenames in _walk(
+            src_root_dirname):
+            # Relative pathname of the currently visited source directory
+            # relative to the absolute pathname of this directory.
+            parent_dirname_relative = pathnames.relativize(
+                src_dirname=src_root_dirname, trg_pathname=src_parent_dirname)
+
+            # If ignoring basenames...
+            if ignore_basename_func is not None:
+                # Sets of the basenames of all ignorable subdirectories and
+                # files of this source directory.
+                subdir_basenames_ignored = ignore_basename_func(
+                    src_parent_dirname, subdir_basenames)
+                file_basenames_ignored = ignore_basename_func(
+                    src_parent_dirname, file_basenames)
+
+                # If ignoring one or more subdirectories...
+                if subdir_basenames_ignored:
+                    # Log the basenames of these subdirectories.
+                    logs.log_debug(
+                        'Ignoring source "%s/%s" subdirectories: %r',
+                        trg_root_basename,
+                        parent_dirname_relative,
+                        subdir_basenames_ignored)
+
+                    # Remove these subdirectories from the original iterable.
+                    # Since the os.walk() function supports in-place changes to
+                    # this iterable, this iterable is modified via this less
+                    # efficient function rather than efficient alternatives
+                    # (e.g., set subtraction).
+                    sequences.remove_items(
+                        sequence=subdir_basenames,
+                        items=subdir_basenames_ignored)
+
+                # If ignoring one or more files...
+                if file_basenames_ignored:
+                    # Log the basenames of these files.
+                    logs.log_debug(
+                        'Ignoring source "%s/%s" files: %r',
+                        trg_root_basename,
+                        parent_dirname_relative,
+                        file_basenames_ignored)
+
+                    # Remove these files from the original iterable. Unlike
+                    # above, we could technically modify this iterable via
+                    # set subtraction: e.g.,
+                    #     subdir_basenames -= subdir_basenames_ignored
+                    # For orthogonality, we preserve the above approach instead.
+                    sequences.remove_items(
+                        sequence=file_basenames,
+                        items=file_basenames_ignored)
+
+            # Absolute pathname of the corresponding target directory.
+            trg_parent_dirname = pathnames.join(
+                trg_root_dirname, parent_dirname_relative)
+
+            # Create this target directory if needed.
+            make_unless_dir(trg_parent_dirname)
+
+            # For the basename of each non-ignorable file of this source
+            # directory...
+            for file_basename in file_basenames:
+                # Absolute filenames of this source and target file.
+                src_filename = pathnames.join(src_parent_dirname, file_basename)
+                trg_filename = pathnames.join(trg_parent_dirname, file_basename)
+
+                # If this target file already exists...
+                if paths.is_path(trg_filename):
+                    # Relative filename of this file. The absolute filename of
+                    # this source or target file could be logged instead, but
+                    # this relative filename is significantly more terse.
+                    filename_relative = pathnames.join(
+                        trg_root_basename,
+                        parent_dirname_relative,
+                        file_basename)
+
+                    # Warn of this file being ignored.
+                    logs.log_warning(
+                        'Ignoring existing target file: %s', filename_relative)
+
+                    # Ignore this file by continuing to the next.
+                    continue
+
+                # Copy this source to target file.
+                files.copy(
+                    src_filename=src_filename, trg_filename=trg_filename)
+    # Else, this overwrite policy is unrecognized. Raise an exception.
     else:
-        # Dictionary of all keyword arguments to pass to shutil.copytree(),
-        # preserving symbolic links as is.
-        copytree_kwargs = {
-            'symlinks': True,
-        }
-
-        # If an iterable of shell-style globs matching ignorable basenames was
-        # passed, convert this iterable into a predicate function of the form
-        # required by the shutil.copytree() function.
-        if ignore_basename_globs is not None:
-            copytree_kwargs['ignore'] = shutil.ignore_patterns(
-                *ignore_basename_globs)
-
-        # Raise an exception if this target directory already exists. While we
-        # could defer to the exception raised by the shutil.copytree() function
-        # for this case, this exception's message erroneously refers to this
-        # directory as a file and is hence best avoided as non-human-readable:
-        #
-        #     [Errno 17] File exists: 'sample_sim'
-        die_if_dir(trg_dirname)
-
-        # Recursively copy this source to target directory. To avoid silently
-        # overwriting all conflicting target paths, the shutil.copytree() rather
-        # than dir_util.copy_tree() function is called.
-        shutil.copytree(src=src_dirname, dst=trg_dirname, **copytree_kwargs)
+        raise BetseDirException(
+            'Overwrite policy "{}" unrecognized.'.format(overwrite_policy))
 
 # ....................{ MAKERS                             }....................
 @type_check
 def make_unless_dir(*dirnames: str) -> None:
     '''
-    Create the directory with each passed pathname for each such directory that
-    does *not* already exist.
+    Create all passed directories that do *not* already exist, silently ignoring
+    those that *do* already exist.
 
     All nonexistent parents of this directory are also recursively created,
     reproducing the action of the POSIX-compliant ``mkdir -p`` shell command.
@@ -462,8 +624,8 @@ def make_unless_dir(*dirnames: str) -> None:
 @type_check
 def make_parent_unless_dir(*pathnames: str) -> None:
     '''
-    Create the parent directory of each passed pathname for each such directory
-    that does *not* already exist.
+    Create the parent directories of all passed directories that do *not*
+    already exist, silently ignoring those that *do* already exist.
 
     Parameters
     -----------
@@ -536,12 +698,21 @@ def join_and_make_unless_dir(*partnames: str) -> str:
     return dirname
 
 # ....................{ ITERATORS                          }....................
-#FIXME: For orthogonality, rename to iter_basenames().
 @type_check
-def list_basenames(dirname: str) -> SequenceTypes:
+def iter_basenames(dirname: str) -> SequenceTypes:
     '''
     Sequence of the basenames of all paths (e.g., non-directory files,
     subdirectories) directly contained within the passed directory.
+
+    Parameters
+    -----------
+    dirname : str
+        Absolute or relative path of the parent directory to inspect.
+
+    Returns
+    -----------
+    SequenceTypes
+        Sequence of the basenames of all child paths of this parent directory.
     '''
 
     # If this directory does *NOT* exist, raise an exception.
