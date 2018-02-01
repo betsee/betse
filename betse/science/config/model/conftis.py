@@ -48,8 +48,6 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
         Chloride (Cl-) membrane diffusion constant in m2/s.
     Dm_Ca : float
         Calcium (Ca2+) membrane diffusion constant in m2/s.
-    Dm_H : float
-        Hydrogen (H+) membrane diffusion constant in m2/s.
     Dm_M : float
         Charge balance anion (M-) membrane diffusion constant in m2/s.
     Dm_P : float
@@ -64,7 +62,7 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
     Dm_K  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_K']")
     Dm_Cl = yaml_alias_float_nonnegative("['diffusion constants']['Dm_Cl']")
     Dm_Ca = yaml_alias_float_nonnegative("['diffusion constants']['Dm_Ca']")
-    Dm_H  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_H']")
+    # Dm_H  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_H']")
     Dm_M  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_M']")
     Dm_P  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_P']")
 
@@ -156,7 +154,7 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
                 'Dm_K': 15.0e-18,
                 'Dm_Cl': 2.0e-18,
                 'Dm_Ca': 1.0e-18,
-                'Dm_H': 1.0e-18,
+                # 'Dm_H': 1.0e-18,
                 'Dm_M': 1.0e-18,
                 'Dm_P': 0.0,
             },

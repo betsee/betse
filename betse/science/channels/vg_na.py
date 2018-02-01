@@ -31,7 +31,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         Time-constant function for h-gates of channel
     '''
 
-    def init(self, dyna, sim, cells, p):
+    def init(self, vm, cells, p, targets = None):
         '''
         Initialize targeted voltage-gated sodium channels at the initial
         time step of the simulation based on the initial cell Vmems.
@@ -40,15 +40,39 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
+        if targets is None:
+
+            self.targets = None
+
+            if type(vm) == float or type(vm) == np.float64:
+                self.data_length = 1
+
+            else:
+                self.data_length = len(vm)
+
+
+        else:
+            self.targets = targets
+            self.data_length = len(self.targets)
+            self.mdl = len(cells.mem_i)
+
         self.modulator = 1.0
 
-        self.v_corr = 0.0  # offset of voltages in the model -- experimental junction voltage [mV]
+        self.v_corr = 0.0  # in experiments, the measurement junction voltage is about 10 mV
 
-        V = sim.vm*1000 + self.v_corr
+        if self.targets is None:
 
-        self._init_state(V=V, dyna=dyna, sim=sim, p=p)
+            V = vm * 1000 + self.v_corr
 
-    def run(self, dyna, sim, cells, p):
+        else:
+            V = vm[self.targets] * 1000 + self.v_corr
+
+        self._init_state(V)
+
+        self.ions = ['Na']
+        self.rel_perm = [1.0]
+
+    def run(self, vm, p):
         '''
         Handle all targeted voltage-gated sodium channels by working with the passed
         user-specified parameters on the tissue simulation and cellular
@@ -58,61 +82,38 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
 
         '''
-        V = sim.vm*1000 + self.v_corr
 
-        self._calculate_state(V, dyna=dyna, sim=sim, p=p)
+        if self.targets is None:
 
-        self._implement_state(V, dyna, sim, cells, p)
-
-    def _implement_state(self, V, dyna, sim, cells, p):
-
-        # calculate m and h channel states using RK4:
-        dmNa = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
-        dhNa = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
-
-        dyna.m_Na = dmNa(dyna.m_Na, p.dt*1e3) + dyna.m_Na
-        dyna.h_Na = dhNa(dyna.h_Na, p.dt*1e3) + dyna.h_Na
-
-        # calculate the open-probability of the channel:
-        P = (dyna.m_Na ** self._mpower) * (dyna.h_Na ** self._hpower)
-
-        # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
-        # which is described by the original Hodgkin Huxley equation.
-
-        # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        # delta_Q = -(dyna.maxDmNa*P*(V - self.vrev))
-
-        # obtain concentration of ion inside and out of the cell, as well as its charge z:
-        c_mem = sim.cc_cells[sim.iNa][cells.mem_to_cells]
-
-        if p.is_ecm is True:
-            c_env = sim.cc_env[sim.iNa][cells.map_mem2ecm]
+            V = vm*1000 + self.v_corr
 
         else:
-            c_env = sim.cc_env[sim.iNa]
 
-        IdM = np.ones(sim.mdl)
+            V = vm[self.targets] * 1000 + self.v_corr
 
-        z_ion = sim.zs[sim.iNa] * IdM
+        self._calculate_state(V)
 
-        # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmNa*P*self.modulator*sim.rho_channel
+        self._implement_state(V, p)
 
-        self.Dmem_time = Dchan   # save the membrane state of the channel
+    def _implement_state(self, V, p):
 
-        # calculate specific ion flux contribution for this channel:
-        delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
+        # Update the 'm' and 'h' gating functions:
+        self.update_mh(p, time_unit = self.time_unit)
 
-        self.chan_flux = np.zeros(sim.mdl)
-        self.chan_flux[dyna.targets_vgNa] = -delta_Q[dyna.targets_vgNa]
+        # calculate the open-probability of the channel:
+        P = (self.m ** self._mpower) * (self.h ** self._hpower)
 
-        self.clip_flux(delta_Q, threshold=p.flux_threshold)
+        if self.targets is None:
 
-        self.update_charge(sim.iNa, delta_Q, dyna.targets_vgNa, sim, cells, p)
+            self.P = P
+
+        else:
+            self.P = np.zeros(self.mdl)
+            self.P[self.targets] = P
 
 
     @abstractmethod
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         '''
         Do something.
         '''
@@ -120,7 +121,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
 
 
     @abstractmethod
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         '''
         Do something.
         '''
@@ -139,7 +140,7 @@ class Nav1p2(VgNaABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -148,26 +149,24 @@ class Nav1p2(VgNaABC):
 
         logs.log_info('You are using the vgNa channel type: Nav1.2')
 
+        # time scale of the model (most models are in miliseconds, some are in seconds)
+        self.time_unit = 1.0e3
 
         self.vrev = 50     # reversal voltage used in model [mV]
-        Texpt = 23    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0  # FIXME implement this!
 
         mAlpha = (0.182 * ((V - 10.0) - -35.0)) / (1 - (np.exp(-((V - 10.0) - -35.0) / 9)))
         mBeta = (0.124 * (-(V - 10.0) - 35.0)) / (1 - (np.exp(-(-(V - 10.0) - 35.0) / 9)))
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_Na = mAlpha / (mAlpha + mBeta)
-        dyna.h_Na = 1.0 / (1 + np.exp((V - -65.0 - 10.0) / 6.2))
+        self.m = mAlpha / (mAlpha + mBeta)
+        self.h = 1.0 / (1 + np.exp((V - -65.0 - 10.0) / 6.2))
 
         # define the power of m and h gates used in the final channel state equation:
-        self._mpower = 3  # FIXME 2 or 3 or user option?
+        self._mpower = 3
         self._hpower = 1
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -179,12 +178,12 @@ class Nav1p2(VgNaABC):
         mBeta = (0.124 * (-(V - 10.0) - 35.0)) / (1 - (np.exp(-(-(V - 10.0) - 35.0) / 9)))
 
         self._mInf = mAlpha / (mAlpha + mBeta)
-        self._mTau = (1 / (mAlpha + mBeta))/self.qt
+        self._mTau = (1 / (mAlpha + mBeta))
         self._hInf = 1.0 / (1 + np.exp((V - -65.0 - 10.0) / 6.2))
         self._hTau = (1 / (
             (0.024 * ((V - 10.0) - -50.0)) /
             (1 - (np.exp(-((V - 10.0) - -50.0) / 5))) + (
-                0.0091 * (-(V - 10.0) - 75.000123)) / (1 - (np.exp(-(-(V - 10) - 75.000123) / 5)))))/self.qt
+                0.0091 * (-(V - 10.0) - 75.000123)) / (1 - (np.exp(-(-(V - 10) - 75.000123) / 5)))))
 
 class Nav1p3(VgNaABC):
 
@@ -208,15 +207,14 @@ class Nav1p3(VgNaABC):
 
     """
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
 
         logs.log_info('You are using the vgNa channel: Nav1p3')
 
+        # time scale of the model (most models are in miliseconds, some are in seconds)
+        self.time_unit = 1.0e3
+
         self.vrev = 50     # reversal voltage used in model [mV]
-        Texpt = 23    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0  # FIXME implement this!
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 3
@@ -226,10 +224,10 @@ class Nav1p3(VgNaABC):
 
         mBeta = (0.124 * (-(V) - 26)) / (1 - (np.exp(-(-(V) - 26) / 9)))
 
-        dyna.m_Na = mAlpha / (mAlpha + mBeta)
-        dyna.h_Na = 1 / (1 + np.exp((V - (-65.0)) / 8.1))
+        self.m = mAlpha / (mAlpha + mBeta)
+        self.h = 1 / (1 + np.exp((V - (-65.0)) / 8.1))
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
 
 
         mAlpha = (0.182 * ((V) - -26)) / (1 - (np.exp(-((V) - -26) / 9)))
@@ -250,9 +248,11 @@ class NavRat2(VgNaABC):
     thalamocortical relay neurons. J. Neurophysiol., 1992 Oct , 68 (1384-400).
     """
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
 
         logs.log_info('You are using the vgNa channel: NavRat2')
+
+        self.time_unit = 1.0e3
 
         self.vrev = 50  # reversal voltage used in model [mV]
 
@@ -263,15 +263,15 @@ class NavRat2(VgNaABC):
         mAlpha = 0.091 * (V + 38) / (1 - np.exp((-V - 38) / 5))
         mBeta = -0.062 * (V + 38) / (1 - np.exp((V + 38) / 5))
 
-        dyna.m_Na = mAlpha / (mAlpha + mBeta)
+        self.m = mAlpha / (mAlpha + mBeta)
 
         hAlpha = 0.016 * np.exp((-55 - V) / 15)
         hBeta = 2.07 / (np.exp((17 - V) / 21) + 1)
 
-        dyna.h_Na = hAlpha / (hAlpha + hBeta)
+        self.h = hAlpha / (hAlpha + hBeta)
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
 
         mAlpha = 0.091 * (V + 38) / (1 - np.exp((-V - 38) / 5))
         mBeta = -0.062 * (V + 38) / (1 - np.exp((V + 38) / 5))
@@ -294,9 +294,12 @@ class NavRat1(VgNaABC):
      appearance of a slowly inactivating component. J. Neurophysiol., 1988 Mar , 59 (778-95).
     """
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
 
         logs.log_info('You are using the vgNa channel: NavRat1')
+
+        # time scale of the model (most models are in miliseconds, some are in seconds)
+        self.time_unit = 1.0e3
 
         self.vrev = 50  # reversal voltage used in model [mV]
 
@@ -307,11 +310,11 @@ class NavRat1(VgNaABC):
         mAlpha = (0.182 * (V - -35)) / (1 - (np.exp(-(V - -35) / 9)))
         mBeta = (0.124 * (-V - 35)) / (1 - (np.exp(-(-V - 35) / 9)))
 
-        dyna.m_Na = mAlpha / (mAlpha + mBeta)
-        dyna.h_Na = 1.0 / (1 + np.exp((V - -65) / 6.2))
+        self.m = mAlpha / (mAlpha + mBeta)
+        self.h = 1.0 / (1 + np.exp((V - -65) / 6.2))
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
 
 
         mAlpha = (0.182 * (V - -35)) / (1 - (np.exp(-(V - -35) / 9)))
@@ -324,7 +327,7 @@ class NavRat1(VgNaABC):
         self._hTau = 1 / ((0.024 * (V - -50)) / (1 - (np.exp(-(V - -50) / 5))) + (0.0091 * (-V - 75.000123)) / (
         1 - (np.exp(-(-V - 75.000123) / 5))))
 
-class NavRat3(VgNaABC):  # FIXME finish this!
+class NavRat3(VgNaABC):
 
     """
     Generic vgNa channel.
@@ -333,9 +336,12 @@ class NavRat3(VgNaABC):  # FIXME finish this!
     thalamocortical relay neurons. J. Neurophysiol., 1992 Oct , 68 (1384-400).
     """
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
 
         logs.log_info('You are using the vgNa channel: NavRat3')
+
+        # time scale of the model (most models are in miliseconds, some are in seconds)
+        self.time_unit = 1.0e3
 
         self.vrev = 50  # reversal voltage used in model [mV]
 
@@ -346,11 +352,11 @@ class NavRat3(VgNaABC):  # FIXME finish this!
         mAlpha = (0.182 * (V - -35)) / (1 - (np.exp(-(V - -35) / 9)))
         mBeta = (0.124 * (-V - 35)) / (1 - (np.exp(-(-V - 35) / 9)))
 
-        dyna.m_Na = mAlpha / (mAlpha + mBeta)
-        dyna.h_Na = 1.0 / (1 + np.exp((V - -65) / 6.2))
+        self.m = mAlpha / (mAlpha + mBeta)
+        self.h = 1.0 / (1 + np.exp((V - -65) / 6.2))
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
 
 
         mAlpha = (0.182 * (V - -35)) / (1 - (np.exp(-(V - -35) / 9)))
@@ -370,7 +376,7 @@ class NaLeak(VgNaABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -379,22 +385,21 @@ class NaLeak(VgNaABC):
 
         logs.log_info('You are using an Na+ leak channel')
 
+        # time scale of the model (most models are in miliseconds, some are in seconds)
+        self.time_unit = 1.0
 
         self.vrev = 50     # reversal voltage used in model [mV]
-        Texpt = 23    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        self.qt = 1.0
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_Na = np.ones(sim.mdl)
-        dyna.h_Na = np.ones(sim.mdl)
+        self.m = np.ones(self.data_length)
+        self.h = np.ones(self.data_length)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0
         self._hpower = 0
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -406,6 +411,90 @@ class NaLeak(VgNaABC):
         self._mTau = 1
         self._hInf = 1
         self._hTau = 1
+
+class Nav1p6(VgNaABC):
+
+    """
+    Nav1.6 was detected during the embryonic period in brain. This is the most abundantly expressed
+    NaV channel in the CNS during adulthood. Is the most abundant channel at mature nodes of Ranvier
+    in myelinated axons in the CNS. NaV1.6 is broadly expressed in the nervous system in a variety
+    of cells including Purkinje cells, motor neurons, pyramidal and granule neurons, glial cells and
+    Schwann cells and is enriched at the nodes of Ranvier.
+    Nav1.6 channels have been also detected in immune cells, such microglia and macrophagues
+     and in cultured microglia, Nav1.6 is the most prominently expressed sodium channel.
+
+     Reference: Smith MR. et al. Functional analysis of the mouse Scn8a sodium channel. \
+     J. Neurosci., 1998 Aug 15 , 18 (6093-102).
+
+    """
+
+    def _init_state(self, V):
+
+        logs.log_info('You are using the persistent vgNa channel: Nav1p6')
+
+        # time scale of the model (most models are in miliseconds, some are in seconds)
+        self.time_unit = 1.0e3
+
+        self.vrev = 50     # reversal voltage used in model [mV]
+
+        self._mpower = 1.0
+        self._hpower = 0.0
+
+        self.m = 1.0000 / (1 + np.exp(-0.03937 * 4.2 * (V - -17.000)))
+        self.h = 1.0
+
+    def _calculate_state(self, V):
+
+        self._mInf = 1.0000 / (1 + np.exp(-0.03937 * 4.2 * (V - -17.000)))
+        self._mTau = 1
+
+        self._hInf = 1.0
+        self._hTau = 1.0
+
+# class Nav(VgNaABC):
+#
+#     """
+#     Minimal, general model of voltage gated sodium channels, from Pospischil et al 2008.
+#
+#
+#      Reference: Pospischil M. et al. Minimal Hodgkin–Huxley type models for different classes
+#      of cortical and thalamic neurons. Biological Cybernetics., 2008.
+#
+#      This model was not obtained from Channelpedia.
+#
+#     """
+#
+#     def _init_state(self, V, sim, p):
+#
+#         logs.log_info('You are using the general Nav channel: Nav')
+#
+#         self.time_unit = 1.0
+#
+#         self.vrev = 50     # reversal voltage used in model [mV]
+#
+#         self._mpower = 3.0
+#         self._hpower = 1.0
+#
+#
+#         self._alpha_m = -(0.32*(V - 13))/(np.exp(-(V-13)/4)-1)
+#         self._beta_m = -(0.28 * (V - 40)) / (np.exp((V - 40) / 5) - 1)
+#
+#         self._alpha_h = 0.128*np.exp((V - 17)/18)
+#         self._beta_h = 4/ (np.exp(-(V - 40) / 5) + 1)
+#
+#         self.m = self._alpha_m/(self._alpha_m + self._beta_m)
+#         self.h = self._alpha_h/(self._alpha_h + self._beta_h)
+#
+#     def _calculate_state(self, V, sim, p):
+#
+#         self._alpha_m = -(0.32*(V - 13))/(np.exp(-(V-13)/4)-1)
+#         self._beta_m = -(0.28 * (V - 40)) / (np.exp((V - 40) / 5) - 1)
+#
+#         self._alpha_h = 0.128*np.exp((V - 17)/18)
+#         self._beta_h = 4/ (np.exp(-(V - 40) / 5) + 1)
+
+
+
 
 
 

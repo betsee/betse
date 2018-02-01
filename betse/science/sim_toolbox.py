@@ -1236,7 +1236,6 @@ def smooth_flux(Fxo, Fyo, cells):
 
     return Fx, Fy
 
-
 def map_to_cells(Fx, Fy, cells, p, smoothing=1.0):
     """
     Takes a vector field defined on the environmental spaces and maps it to the cell grid.
@@ -1264,6 +1263,17 @@ def map_to_cells(Fx, Fy, cells, p, smoothing=1.0):
     Fy_atcell = (np.dot(cells.M_sum_mems, Fy_atmem * cells.mem_sa) / cells.cell_sa)
 
     return Fx_atcell, Fy_atcell, Fmem
+
+def get_conductivity(D, z, c, d, p):
+    """
+    Simple function returns conductivity (S/m)
+    for diffusion constant D (m2/s), mean
+    concentration c, and membrane thickness 'd'.
+
+    """
+    # (D * (z ** 2) * p.F * c) / (d * p.R * p.T)
+
+    return (D * p.q *(z**2) * p.F * c) / (d * p.kb * p.T)
 
 
 

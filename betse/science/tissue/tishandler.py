@@ -166,7 +166,6 @@ class TissueHandler(object):
                 Dm_K=p.tissue_default.Dm_K,
                 Dm_Cl=p.tissue_default.Dm_Cl,
                 Dm_Ca=p.tissue_default.Dm_Ca,
-                Dm_H=p.tissue_default.Dm_H,
                 Dm_M=p.tissue_default.Dm_M,
                 Dm_P=p.tissue_default.Dm_P,
             )
@@ -215,7 +214,6 @@ class TissueHandler(object):
                 Dm_K=tissue_profile.Dm_K,
                 Dm_Cl=tissue_profile.Dm_Cl,
                 Dm_Ca=tissue_profile.Dm_Ca,
-                Dm_H=tissue_profile.Dm_H,
                 Dm_M=tissue_profile.Dm_M,
                 Dm_P=tissue_profile.Dm_P,
             )
@@ -368,10 +366,6 @@ class TissueHandler(object):
                 if p.ions_dict['Ca'] == 1:
                     sim.Dm_cells[sim.iCa][tissue_mems_index] = (
                         tissue_profile.Dm_Ca)
-
-                if p.ions_dict['H'] == 1:
-                    sim.Dm_cells[sim.iH][tissue_mems_index] = (
-                        tissue_profile.Dm_H)
 
                 if p.ions_dict['M'] == 1:
                     sim.Dm_cells[sim.iM][tissue_mems_index] = (
@@ -830,10 +824,6 @@ class TissueHandler(object):
 
         sim.Dm_cells = (
             sim.Dm_scheduled +
-            sim.Dm_cag +
-            sim.Dm_morpho +
-            sim.Dm_stretch +
-            sim.Dm_custom +
             sim.Dm_base
         )
 

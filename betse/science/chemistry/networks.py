@@ -9,12 +9,12 @@ import numpy as np
 from betse.exceptions import BetseSimConfigException, BetseSimInstabilityException
 from betse.lib import libs
 from betse.science import sim_toolbox as stb
-from betse.science.channelo import cation as vgcat
-from betse.science.channelo import vg_ca as vgca
-from betse.science.channelo import vg_cl as vgcl
-from betse.science.channelo import vg_funny as vgfun
-from betse.science.channelo import vg_k as vgk
-from betse.science.channelo import vg_na as vgna
+from betse.science.channels import cation as vgcat
+from betse.science.channels import vg_ca as vgca
+from betse.science.channels import vg_cl as vgcl
+from betse.science.channels import vg_funny as vgfun
+from betse.science.channels import vg_k as vgk
+from betse.science.channels import vg_na as vgna
 from betse.science.chemistry.netplot import set_net_opts
 from betse.science.config.visual.confvisabc import SimConfVisualCellsNonYAML
 from betse.science.math import modulate as mods
@@ -3016,7 +3016,7 @@ class MasterOfNetworks(object):
         globalo = globals()
         localo = locals()
 
-        # get the object corresponding to the specific transporter:
+        # get the object corresponding to the specific channel:
         for i, name in enumerate(self.channels):
 
             chan = self.channels[name]
@@ -3040,7 +3040,7 @@ class MasterOfNetworks(object):
                 chan.channel_core.run(sim.vm, p)
 
                 # update concentrations according to the channel state:
-                for ion in chan.channel_core.ions:
+                for ion, rel_perm in zip(chan.channel_core.ions, chan.channel_core.rel_perm):
 
                     # get the charge of the ion:
                     zzz = self.zmol[ion]
@@ -3048,15 +3048,13 @@ class MasterOfNetworks(object):
                     ioni = sim.get_ion(ion)
 
                     # obtain the channel's effective diffusion constant:
-                    DChan = chan.channel_core.P*chan.channel_core.rel_perm*chan.maxDm*moddy
+                    DChan = chan.channel_core.P*rel_perm*chan.maxDm*moddy
 
                     if ion in self.env_concs:
-
-                        # print("found ", ion, " in env concs, with charge of ", zzz)
                         cenv = self.env_concs[ion]
 
                     if ion in self.cell_concs:
-                        # print("found ", ion, " in cell concs!")
+
                         ccell = self.cell_concs[ion]
                         cmem = self.cell_concs[ion][cells.mem_to_cells]
 
@@ -3085,12 +3083,79 @@ class MasterOfNetworks(object):
                     # print(name, f_ED[chan.channel_core.targets]*p.F)
 
                     # Add channel flux to the membrane fluxes data array:
-                    sim.fluxes_mem[ioni] += f_ED
+                    # sim.fluxes_mem[ioni] += f_ED
+                    self.extra_J_mem += -f_ED*p.F*zzz
 
                     # Store channel flux specific to the channel as well:
                     chan.channel_core.chan_flux = f_ED
 
                 # print('---------')
+
+    def run_fast_loop_channels(self, phase: SimPhase) -> None:
+        '''
+        Perform all dynamic channels enabled by this gene regulatory network (GRN)
+        for the current simulation time step.
+
+        Parameters
+        --------
+        phase : SimPhase
+            Current simulation phase.
+        '''
+
+        sim = phase.sim
+        cells = phase.cells
+        p = phase.p
+
+        globalo = globals()
+        localo = locals()
+
+        # get the object corresponding to the specific channel:
+        for i, name in enumerate(self.channels):
+
+            chan = self.channels[name]
+
+            pass_chan = False
+
+            if phase.kind is SimPhaseKind.INIT and chan.init_active is False:
+
+                pass_chan = True
+
+            if pass_chan is False:
+
+                # compute the channel activity
+                # calculate the value of the channel modulation constant:
+                moddy = eval(chan.alpha_eval_string, globalo, localo)
+
+                # set the modulator state in the channel core
+                chan.channel_core.modulator = moddy
+
+                # run the channel to update its state:
+                chan.channel_core.run(sim.vm, p)
+
+                # update concentrations according to the channel state:
+                for ion, rel_perm in zip(chan.channel_core.ions, chan.channel_core.rel_perm):
+
+                    # get the charge of the ion:
+                    zzz = self.zmol[ion]
+
+                    ioni = sim.get_ion(ion)
+
+                    # obtain the channel's effective diffusion constant:
+                    DChan = chan.channel_core.P*rel_perm*chan.maxDm*moddy
+
+                    G_Chan = stb.get_conductivity(DChan, zzz, sim.cbar_dic[ion], p.tm, p)*sim.geo_conv
+
+                    # G_Chan = np.dot(cells.M_sum_mems, G_Chano)/cells.num_mems
+
+                    J_ED = G_Chan*(sim.vm - sim.rev_E_dic[ion])
+
+                    # Add channel flux to the membrane fluxes data array:
+                    self.extra_J_mem += J_ED
+
+                    # Store channel flux specific to the channel as well:
+                    chan.channel_core.chan_flux = J_ED/(zzz*p.F)
+
+
 
     def run_loop_modulators(self, sim, cells, p):
 
@@ -5665,10 +5730,6 @@ class Molecule(object):
 
                 # calculate specific ion flux contribution for this channel:
                 chan_flx = stb.electroflux(c_env, c_mem, Dchan, p.tm*IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
-
-                # chan_flx = stb.electroflux(c_env, c_mem,
-                #                        sim.Dm_cells[ion_tag] + Dchan, IdM*p.tm, z_ion, sim.vm, sim.T, p,
-                #                        rho=sim.rho_channel)
 
                 # update the sim flux keeper to ensure this contributes to net current:
                 sim.fluxes_mem[ion_tag] = sim.fluxes_mem[ion_tag] + chan_flx

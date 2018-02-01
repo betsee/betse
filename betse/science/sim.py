@@ -11,14 +11,12 @@ from betse.science import sim_toolbox as stb
 from betse.science.channels.gap_junction import Gap_Junction
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.molecules import MasterOfMolecules
-# from betse.science.config.confenum import IonProfileType
 from betse.science.math import finitediff as fd
 from betse.science.organelles.endo_retic import EndoRetic
 from betse.science.physics.deform import (
     getDeformation, timeDeform, implement_deform_timestep)
 from betse.science.physics.flow import getFlow
 from betse.science.physics.ion_current import get_current
-# from betse.science.physics.move_channels import MoveChannel
 from betse.science.physics.pressures import osmotic_P
 from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.science.organelles.microtubules import Mtubes
@@ -29,7 +27,6 @@ from betse.util.path import pathnames
 from betse.util.type.contexts import noop_context
 from betse.util.type.types import type_check, NoneType
 from numpy import ndarray
-from random import shuffle
 from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ CLASSES                            }....................
@@ -840,27 +837,13 @@ class Simulator(object):
 
             # self.J_TJ = np.zeros(self.mdl)  # tight junction current density
 
-        # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
+        # # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
         Dm_cellsA = np.asarray(self.Dm_cells)
 
         self.Dm_base = np.copy(Dm_cellsA) # make a copy that will serve as the unaffected values base
 
-        # if tb.emptyDict(p.scheduled_options) is False:
         self.Dm_scheduled = np.copy(Dm_cellsA)
         self.Dm_scheduled[:] = 0
-
-        # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
-        self.Dm_cag = np.copy(Dm_cellsA)
-        self.Dm_cag[:] = 0
-
-        self.Dm_stretch = np.copy(Dm_cellsA)   # array for stretch activated ion channels...
-        self.Dm_stretch[:] = 0
-
-        self.Dm_morpho = np.copy(Dm_cellsA)
-        self.Dm_morpho[:] = 0
-
-        self.Dm_custom = np.copy(Dm_cellsA)  # array for customized ion channels
-        self.Dm_custom[:] = 0
 
         self.P_mod = np.copy(self.P_cells[:])
         self.P_base = np.copy(self.P_cells[:])
@@ -1097,6 +1080,8 @@ class Simulator(object):
         # handling of this instability (e.g., by saving simulation results).
         exception_instability = None
 
+        self.fast_sim_init(phase.cells, phase.p)
+
         # Attempt to...
         try:
             # Perform the time loop for this simulation phase. For the duration
@@ -1110,6 +1095,15 @@ class Simulator(object):
                     time_steps_sampled=time_steps_sampled,
                     anim_cells=anim_cells,
                 )
+
+
+            # with anim_cells or noop_context():
+            #     self._run_fast_sim_core_loop(
+            #         phase=phase,
+            #         time_steps=time_steps,
+            #         time_steps_sampled=time_steps_sampled,
+            #         anim_cells=anim_cells,
+            #     )
         # If this phase becomes computationally unstable...
         except BetseSimInstabilityException as exception:
             # Log this instability *BEFORE* logging a report and reraising this
@@ -1443,6 +1437,225 @@ class Simulator(object):
                 logs.log_info(
                     'This run should take approximately %fs to compute...',
                     time_estimate)
+
+
+    #--------------FAST SIM LOOP (EQUIVALENT CIRCUIT)-------------------------------------------
+    def fast_sim_init(self, cells, p):
+        """
+        Special initialization required for fast (equivalent circuit) sims.
+
+        """
+        self.rev_E_dic = {}  # dictionary of reversal potentials
+        self.cbar_dic = {}
+        sigma_gj = []  # temporary array of gap junction conductivities
+        sigma_mem = []  # temporary array of "leak" membrane conductivities
+
+        for ion_n, ion_i in p.ions_dict.items():  # for each ion
+
+            if ion_i == 1:  # if it's used in the simulation
+
+                ii = self.get_ion(ion_n)  # get the index
+
+                ccell = self.cc_cells[ii].mean()
+
+                if p.is_ecm:
+
+                    cenv = self.cc_env[ii].mean()
+
+                else:
+
+                    cenv = self.cc_env[ii]
+
+                cbar = (ccell + cenv) / 2
+
+                self.cbar_dic[ion_n] = cbar
+
+                # calculate the reversal potential using the Nernst Equation:
+                revE = ((p.R * self.T) / (self.zs[ii] * p.F)) * np.log(cenv / ccell)
+
+                # store the reversal potential in the dictionary
+                self.rev_E_dic[ion_n] = revE
+
+                # estimate gap junction conductivity
+                # sigma_gj.append((self.D_free[ii] * p.gj_surface * p.F * ccell *self.zs[ii]**2) / (p.cell_space * p.R * p.T))
+                # sigma_mem.append((self.Dm_cells[ii]*p.F*cbar*self.zs[ii]**2)/(p.tm*p.R*p.T))
+
+                sigma_gj.append((self.D_free[ii]* p.q * p.gj_surface * p.F * ccell *self.zs[ii]**2) / (p.cell_space * p.kb * p.T))
+                sigma_mem.append((self.Dm_cells[ii]*p.q*p.F*cbar*self.zs[ii]**2)/(p.tm*p.kb*p.T))
+
+        # get the leak channel reversibility represented by the resting potential of the base membrane:
+        stb.ghk_calculator(self, cells, p)
+
+        # get the conversion for geometry of the cluster (required to convert to conductivity):
+        # self.geo_conv = (cells.cell_sa/ np.dot(cells.M_sum_mems, cells.mem_sa))*cells.num_nn
+        self.geo_conv = 1.0
+
+        self.E_Leak = self.vm_GHK
+
+        self.sigma_mem = sigma_mem
+
+        self.cbar_all = np.mean([v for k, v in self.cbar_dic.items()])
+        self.cbar_sum = np.sum([v.mean() for k, v in self.cbar_dic.items()])
+
+        self.G_Leak = (np.dot(cells.M_sum_mems, sum(sigma_mem)*cells.mem_sa)/cells.cell_sa)*self.geo_conv
+
+        # get the average gap junction conductivity:
+        self.G_gj = sum(sigma_gj)*self.geo_conv
+
+
+    @type_check
+    def _run_fast_sim_core_loop(
+        self,
+        phase: SimPhase,
+        time_steps: ndarray,
+        time_steps_sampled: set,
+        anim_cells: (AnimCellsWhileSolving, NoneType),
+    ) -> None:
+        '''
+        Drive the time loop for the simulation phase using equivalent circuit
+        formalism.
+
+        Parameters
+        --------
+        phase : SimPhase
+            Current simulation phase.
+        time_steps : ndarray
+            One-dimensional Numpy array defining the time-steps vector for the
+            current phase.
+        time_steps_sampled : set
+            Subset of the ``time_steps`` array whose elements are **sampled
+            time steps** (i.e., time step at which to sample data,
+            substantially reducing data storage). In particular, the length of
+            this set governs the number of frames in each exported animation.
+        anim_cells : (AnimCellsWhileSolving, NoneType)
+            A mid-simulation animation of cell voltage as a function of time if
+            enabled by this configuration *or* ``None`` otherwise.
+        '''
+
+        # Localize frequently accessed variables for efficiency when iterating.
+        p = phase.p
+        cells = phase.cells
+
+        # True only on the first time step of this phase.
+        is_time_step_first = True
+
+        for t in time_steps:  # run through the loop
+            # Start the timer to approximate time for the simulation.
+            if is_time_step_first:
+                loop_measure = time.time()
+
+            # Reinitialize flux storage devices.
+            self.fluxes_mem.fill(0)
+            self.fluxes_gj.fill(0)
+
+            # Calculate the values of scheduled and dynamic quantities (e.g..
+            # ion channel multipliers).
+            if p.run_sim:
+                self.dyna.runAllDynamics(self, cells, p, t)
+
+            # update the microtubules:------------------------------------------------------------------------------
+
+            if p.use_microtubules:
+                self.mtubes.update_mtubes(cells, self, p)
+
+            # update the general molecules handler-----------------------------------------------------------------
+            if p.molecules_enabled:
+
+                self.molecules.core.clear_run_loop(self)
+
+                if self.molecules.transporters:
+                    self.molecules.core.run_loop_transporters(t, self, cells, p)
+
+                if self.molecules.channels:
+                    self.molecules.core.run_fast_loop_channels(phase)
+
+                if self.molecules.modulators:
+                    self.molecules.core.run_loop_modulators(self, cells, p)
+
+                self.molecules.core.run_loop(t, self, cells, p)
+
+            # update gene regulatory network handler--------------------------------------------------------
+
+            if p.grn_enabled:
+
+                self.grn.core.clear_run_loop(self)
+
+                if self.grn.transporters:
+                    self.grn.core.run_loop_transporters(t, self, cells, p)
+
+                if self.grn.channels:
+                    self.grn.core.run_fast_loop_channels(phase)
+
+                if self.grn.modulators:
+                    self.grn.core.run_loop_modulators(self, cells, p)
+
+                # update the main gene regulatory network:
+                self.grn.core.run_loop(t, self, cells, p)
+
+            # Update Vmem:
+            self.vgj = self.vm_ave[cells.cell_nn_i[:, 1]] - self.vm_ave[cells.cell_nn_i[:, 0]]
+
+            Jgj = self.G_gj*np.dot(cells.M_sum_mems, self.vgj)
+
+            Jmem = np.dot(cells.M_sum_mems, self.extra_J_mem*cells.mem_sa)/cells.cell_sa
+
+            self.vm_ave += p.dt*(1/p.cm)*(Jgj - Jmem - self.G_Leak*(self.vm_ave - self.E_Leak))
+
+            self.vm = self.vm_ave[cells.mem_to_cells]
+
+            # check for NaNs in voltage and stop simulation if found:
+            stb.check_v(self.vm_ave)
+
+
+            # ---------time sampling and data storage---------------------------------------------------
+            # If this time step is sampled...
+            if t in time_steps_sampled:
+                # Write data to time storage vectors.
+                self.vm_time.append(self.vm * 1)
+
+                # microtubules:
+                self.mtubes_x_time.append(self.mtubes.mtubes_x * 1)
+                self.mtubes_y_time.append(self.mtubes.mtubes_y * 1)
+
+                self.gjopen_time.append(self.gjopen*1)
+                self.time.append(t)
+
+                if p.molecules_enabled:
+                    self.molecules.core.write_data(self, cells, p)
+                    self.molecules.core.report(self, p)
+
+                if p.grn_enabled:
+                    self.grn.core.write_data(self, cells, p)
+                    self.grn.core.report(self, p)
+
+                self.vm_ave_time.append(self.vm_ave)
+
+                # If animating this phase, display and/or save the next frame
+                # of this animation. For simplicity, pass "-1" implying the
+                # last frame and hence the results of the most recently solved
+                # time step.
+                if anim_cells is not None:
+                    anim_cells.plot_frame(time_step=-1)
+
+            # Get time for loop and estimate total time for simulation.
+            if is_time_step_first:
+                # Ignore this conditional on all subsequent time steps.
+                is_time_step_first = False
+
+                loop_time = time.time() - loop_measure
+
+                # Estimated number of seconds to complete this phase.
+                if p.run_sim is True:
+                    time_estimate = round(loop_time * p.sim_tsteps, 2)
+                else:
+                    time_estimate = round(loop_time * p.init_tsteps, 2)
+
+                # Log this estimate.
+                logs.log_info(
+                    'This run should take approximately %fs to compute...',
+                    time_estimate)
+
+
 
     #.................{  INITIALIZERS & FINALIZERS  }............................................
     def clear_storage(self, cells, p):
@@ -1901,28 +2114,6 @@ class Simulator(object):
 
 
         conc_mem = self.cc_at_mem[i]
-
-
-        # grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/(cells.gj_len)
-
-        # midpoint concentration:
-        # c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
-
-        # electroosmotic fluid velocity at gap junctions:
-        # if p.fluid_flow is True:
-        #     ux = self.u_cells_x[cells.mem_to_cells]
-        #     uy = self.u_cells_y[cells.mem_to_cells]
-        #
-        # else:
-
-        # ux = 0
-        # uy = 0
-
-        # Dgj = self.D_gj[i]*p.gj_surface*self.gjopen
-        #
-        # fgj_X = -Dgj*grad_cgj + ((c*Dgj*p.q*self.zs[i])/(p.kb*self.T))*self.Egj
-
-
 
         fgj_X = stb.electroflux(conc_mem[cells.mem_i],
                        conc_mem[cells.nn_i],

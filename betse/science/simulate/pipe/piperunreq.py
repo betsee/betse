@@ -207,6 +207,15 @@ class SimPipeRunnerRequirementIon(SimPipeRunnerRequirementBodies):
             **kwargs)
 
 # ....................{ REQUIREMENTS                       }....................
+#FIXME: Add a new "FULL" requirement tracking which of the full or fast
+#variants of the simulator are enabled. Plots and animations assuming any of the
+#following simulation features should be skipped when this requirement is *NOT*
+#met: currents, fields, extracellular voltage, and voltage polarity.
+#
+#Additionally, we need to ensure that the following simulation features are
+#disabled when using the fast solver: fluid, deformation, osmosis, ion
+#concentrations, pressure.
+
 DEFORM = SimPipeRunnerRequirementBoolExpr(
     name='cellular deformation', bool_expr='phase.p.deformation')
 '''
@@ -247,13 +256,6 @@ ION_CHLORIDE = SimPipeRunnerRequirementIon(
     name='chloride ions (Cl-)', ion_name='Cl')
 '''
 Requirement that a simulation phase enable chloride ions (Cl-).
-'''
-
-
-ION_HYDROGEN = SimPipeRunnerRequirementIon(
-    name='hydrogen ions (H+)', ion_name='H')
-'''
-Requirement that a simulation phase enable hydrogen ions (H+).
 '''
 
 

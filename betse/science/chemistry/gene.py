@@ -321,17 +321,12 @@ class MasterOfGenes(object):
                 cb_title='Velocity [nm/s]'
             )
 
-            # ax.set_xlabel('X-Distance [um]')
-            # ax.set_ylabel('Y-Distance [um]')
-            # ax.set_title('Electroosmotic fluid flow')
-
             if p.autosave is True:
                 savename = self.core.imagePath + 'Fluid_ECM' + '.png'
                 plt.savefig(savename, format='png', transparent=True)
 
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
-
 
 
         self.core.export_eval_strings(p)

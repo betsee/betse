@@ -31,7 +31,7 @@ class VgClABC(ChannelsABC, metaclass=ABCMeta):
 
     '''
 
-    def init(self, dyna, sim, cells, p):
+    def init(self, vm, cells, p, targets = None):
         '''
         Initialize targeted voltage-gated potassium channels at the initial
         time step of the simulation based on the initial cell Vmems.
@@ -40,16 +40,41 @@ class VgClABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
+        if targets is None:
+
+            self.targets = None
+
+            if type(vm) == float or type(vm) == np.float64:
+                self.data_length = 1
+
+            else:
+                self.data_length = len(vm)
+
+
+        else:
+            self.targets = targets
+            self.data_length = len(self.targets)
+            self.mdl = len(cells.mem_i)
+
         self.modulator = 1.0
 
-        self.v_corr = 0.0   # in experiments, the measurement junction voltage is about 10 mV
+        self.v_corr = 0.0  # in experiments, the measurement junction voltage is about 10 mV
 
-        V = sim.vm*1000 + self.v_corr
+        if self.targets is None:
 
-        self._init_state(V, dyna, sim, p)
+            V = vm * 1000 + self.v_corr
+
+        else:
+            V = vm[self.targets] * 1000 + self.v_corr
 
 
-    def run(self, dyna, sim, cells, p):
+        self._init_state(V)
+
+        self.ions = ['Cl']
+        self.rel_perm = [1.0]
+
+
+    def run(self, vm, p):
         '''
         Handle all targeted voltage-gated sodium channels by working with the passed
         user-specified parameters on the tissue simulation and cellular
@@ -60,63 +85,36 @@ class VgClABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        V = sim.vm*1000 + self.v_corr
+        if self.targets is None:
 
-        self._calculate_state(V, dyna, sim, p)
-
-        self._implement_state(V, dyna, sim, cells, p)
-
-    def _implement_state(self, V, dyna, sim, cells, p):
-
-        # calculate m and h channel states using RK4:
-        dmCl = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
-        dhCl = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
-
-        dyna.m_Cl = dmCl(dyna.m_Cl, p.dt * 1e3) + dyna.m_Cl
-        dyna.h_Cl = dhCl(dyna.h_Cl, p.dt * 1e3) + dyna.h_Cl
-
-        # calculate the open-probability of the channel:
-        P = (dyna.m_Cl ** self._mpower) * (dyna.h_Cl ** self._hpower)
-
-        # print(P.min(), P.max(), P.mean())
-
-        # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
-        # which is described by the original Hodgkin Huxley equation.
-
-        # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        # delta_Q = - (dyna.maxDmK*P*(V - self.vrev))
-
-        # obtain concentration of ion inside and out of the cell, as well as its charge z:
-        c_mem = sim.cc_cells[sim.iCl][cells.mem_to_cells]
-
-        if p.is_ecm is True:
-            c_env = sim.cc_env[sim.iCl][cells.map_mem2ecm]
+            V = vm*1000 + self.v_corr
 
         else:
-            c_env = sim.cc_env[sim.iCl]
 
-        IdM = np.ones(sim.mdl)
+            V = vm[self.targets] * 1000 + self.v_corr
 
-        z_ion = sim.zs[sim.iCl] * IdM
+        self._calculate_state(V)
 
-        # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmCl*P*self.modulator*sim.rho_channel    # 1.0e-9 multiplier to approximately convert from conductivity
+        self._implement_state(V, p)
 
-        self.Dmem_time = Dchan   # save the membrane state of the channel
+    def _implement_state(self, V, p):
 
-        # calculate specific ion flux contribution for this channel:
-        delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
+        # Update the 'm' and 'h' gating functions:
+        self.update_mh(p, time_unit = self.time_unit)
 
-        self.chan_flux = np.zeros(sim.mdl)
-        self.chan_flux = -delta_Q[dyna.targets_vgCl]
+        # calculate the open-probability of the channel:
+        P = (self.m ** self._mpower) * (self.h ** self._hpower)
 
-        self.clip_flux(delta_Q, threshold=p.flux_threshold)
+        if self.targets is None:
 
-        self.update_charge(sim.iCl, delta_Q, dyna.targets_vgCl, sim, cells, p)
+            self.P = P
 
+        else:
+            self.P = np.zeros(self.mdl)
+            self.P[self.targets] = P
 
     @abstractmethod
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         '''
         Initializes values of the m and h gates of the channel.
         '''
@@ -124,7 +122,7 @@ class VgClABC(ChannelsABC, metaclass=ABCMeta):
 
 
     @abstractmethod
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         '''
         Calculates time-dependent values of the m and h gates of the channel.
         '''
@@ -138,7 +136,7 @@ class ClLeak(VgClABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -147,17 +145,19 @@ class ClLeak(VgClABC):
 
         logs.log_info('You are using a Cl- leak channel')
 
+        self.time_unit = 1.0
+
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_Cl = np.ones(sim.mdl)
-        dyna.h_Cl = np.ones(sim.mdl)
+        self.m = np.ones(self.data_length)
+        self.h = np.ones(self.data_length)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0
         self._hpower = 0
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present

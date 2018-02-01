@@ -34,108 +34,102 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
 
     '''
 
-    def init(self, dyna, sim, cells, p):
+    def init(self, vm, cells, p, targets = None):
         '''
         Initialize wound-induced (TRP based) channel at the point of wounding.
 
         '''
 
+        if targets is None:
+
+            self.targets = cells.mem_i
+
+        else:
+            self.targets = targets
+
+        self.data_length = len(self.targets)
+        self.mdl = len(cells.mem_i)
+
         self.modulator = 1.0
 
-        V = sim.vm*1000
+        self.v_corr = 0.0   # in experiments, the measurement junction voltage is about 10 mV
 
-        self._init_state(V=V, dyna=dyna, sim=sim, p=p)
+        V = vm[self.targets]*1000 + self.v_corr
+        # V = vm * 1000 + self.v_corr
+
+        self._init_state(V)
+
+        self.ions = ['Na', 'K']
+        self.rel_perm = [1.0, 1.0]
 
         self.W_factor = 2.0   # initial concentration of the 'wound factor' (which is basically pressure)
         self.W_decay = p.wound_close_factor
 
 
-    def run(self, dyna, sim, cells, p):
+    def run(self, vm, p):
         '''
         Simulate wound-induced (TRP based) channel activity after wounding.
 
         '''
 
-        V = sim.vm*1000
+        V = vm[self.targets]*1000
 
-        self._calculate_state(V, dyna, sim, p)
+        self._calculate_state(V)
 
         self.W_factor = self.W_factor - self.W_factor*self.W_decay*p.dt
 
-        self._implement_state(V, dyna, sim, cells, p)
+        self._implement_state(V, p)
 
-    def _implement_state(self, V, dyna, sim, cells, p):
-        # calculate m and h channel states using RK4:
-        dmWound = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
-        dhWound = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
-
-        dyna.m_Wound = dmWound(dyna.m_Wound, p.dt * 1e3) + dyna.m_Wound
-        dyna.h_Wound = dhWound(dyna.h_Wound, p.dt * 1e3) + dyna.h_Wound
+    def _implement_state(self, V, p):
+        # Update the 'm' and 'h' gating functions:
+        self.update_mh(p, time_unit = self.time_unit)
 
         # calculate the open-probability of the channel:
-        P = (dyna.m_Wound ** self._mpower) * (dyna.h_Wound ** self._hpower)
+        P = (self.m ** self._mpower) * (self.h ** self._hpower)
 
-        # get modulation coefficients by any activating/inhibiting substances:
-        # # FIXME won't this crash if sim.molecules is None???
-        # activator_alpha, inhibitor_alpha = get_influencers(sim, sim.molecules, p.wound_channel_activators_list,
-        #                                                    p.wound_channel_activators_Km, p.wound_channel_activators_n,
-        #                                                    p.wound_channel_inhibitors_list,
-        #                                                    p.wound_channel_inhibitors_Km, p.wound_channel_inhibitors_n,
-        #                                                    reaction_zone='mems')
+        self.P = np.zeros(self.mdl)
+        self.P[self.targets] = P
 
 
-        # make use of activators and inhibitors to modulate open probability:
-        # P = P*activator_alpha*inhibitor_alpha
-
-        # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-
-        # if type(P) == float:
-        #     delta_Q = - (dyna.maxDmWound * P * (V - self.vrev)) * (self.W_factor / (1 + self.W_factor))
+        # # obtain concentration of ion inside and out of the cell, as well as its charge z:
+        # c_mem_Na = sim.cc_cells[sim.iNa][cells.mem_to_cells]
+        # c_mem_K = sim.cc_cells[sim.iK][cells.mem_to_cells]
+        #
+        # if p.is_ecm is True:
+        #     c_env_Na = sim.cc_env[sim.iNa][cells.map_mem2ecm]
+        #     c_env_K = sim.cc_env[sim.iK][cells.map_mem2ecm]
         #
         # else:
+        #     c_env_Na = sim.cc_env[sim.iNa]
+        #     c_env_K = sim.cc_env[sim.iK]
         #
-        #     delta_Q = - (dyna.maxDmWound*P[dyna.targets_vgWound]*(V - self.vrev))*(self.W_factor/(1 + self.W_factor))
-
-
-        # obtain concentration of ion inside and out of the cell, as well as its charge z:
-        c_mem_Na = sim.cc_cells[sim.iNa][cells.mem_to_cells]
-        c_mem_K = sim.cc_cells[sim.iK][cells.mem_to_cells]
-
-        if p.is_ecm is True:
-            c_env_Na = sim.cc_env[sim.iNa][cells.map_mem2ecm]
-            c_env_K = sim.cc_env[sim.iK][cells.map_mem2ecm]
-
-        else:
-            c_env_Na = sim.cc_env[sim.iNa]
-            c_env_K = sim.cc_env[sim.iK]
-
-        IdM = np.ones(sim.mdl)
-
-        z_Na = sim.zs[sim.iNa] * IdM
-        z_K = sim.zs[sim.iK] * IdM
-
-        # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmWound*P*(self.W_factor/(1 + self.W_factor))*self.modulator
-
-        # calculate specific ion flux contribution for this channel:
-        delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)
-        delta_Q_K = stb.electroflux(c_env_K, c_mem_K, Dchan, p.tm * IdM, z_K, sim.vm, sim.T, p, rho=sim.rho_channel)
-
-        self.clip_flux(delta_Q_Na, threshold=p.flux_threshold)
-        self.clip_flux(delta_Q_K, threshold=p.flux_threshold)
-
-        self.chan_flux = np.zeros(sim.mdl)
-        self.chan_flux[dyna.targets_vgWound] = -delta_Q_Na[dyna.targets_vgWound] -delta_Q_K[dyna.targets_vgWound]
-
-        self.update_charge(sim.iNa, delta_Q_Na, dyna.targets_vgWound, sim, cells, p)
-        self.update_charge(sim.iK, delta_Q_K, dyna.targets_vgWound, sim, cells, p)
+        # IdM = np.ones(sim.mdl)
+        #
+        # z_Na = sim.zs[sim.iNa] * IdM
+        # z_K = sim.zs[sim.iK] * IdM
+        #
+        # # membrane diffusion constant of the channel:
+        # Dchan = dyna.maxDmWound*P*(self.W_factor/(1 + self.W_factor))*self.modulator
+        #
+        # # calculate specific ion flux contribution for this channel:
+        # delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)
+        # delta_Q_K = stb.electroflux(c_env_K, c_mem_K, Dchan, p.tm * IdM, z_K, sim.vm, sim.T, p, rho=sim.rho_channel)
+        #
+        # self.clip_flux(delta_Q_Na, threshold=p.flux_threshold)
+        # self.clip_flux(delta_Q_K, threshold=p.flux_threshold)
+        #
+        # self.chan_flux = np.zeros(sim.mdl)
+        # self.chan_flux[dyna.targets_vgWound] = -delta_Q_Na[dyna.targets_vgWound] -delta_Q_K[dyna.targets_vgWound]
+        #
+        # self.update_charge(sim.iNa, delta_Q_Na, dyna.targets_vgWound, sim, cells, p)
+        # self.update_charge(sim.iK, delta_Q_K, dyna.targets_vgWound, sim, cells, p)
 
         # if p.ions_dict['Ca'] == 1.0:
         #     self.update_charge(sim.iCa, 0.1*delta_Q, dyna.targets_vgWound, sim, cells, p)
 
 
     @abstractmethod
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V, sim, p):
         '''
         Initializes values of the m and h gates of the channel.
         '''
@@ -143,7 +137,7 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
 
 
     @abstractmethod
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V, sim, p):
         '''
         Calculates time-dependent values of the m and h gates of the channel.
         '''
@@ -156,7 +150,7 @@ class TRP(WoundABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V, sim, p):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -168,15 +162,15 @@ class TRP(WoundABC):
         self.v_corr = 0
 
         # initialize values of the m and h gates of the channel on m_inf and h_inf:
-        dyna.m_Wound = np.ones(sim.mdl)
-        dyna.h_Wound = np.ones(sim.mdl)
+        self.m = np.ones(sim.mdl)
+        self.h = np.ones(sim.mdl)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0
         self._hpower = 0
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V, sim, p):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -191,149 +185,4 @@ class TRP(WoundABC):
         self._hInf = 1.0
         self._hTau = 1.0
 
-def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                            n_i_list, reaction_zone='cell'):
 
-
-    """
-    Get coefficients representing the net effect of all activators and inhibitors on a particular reaction.
-
-    Parameters
-    ------------
-    sim                 Instance of BETSE simulator
-    sim_metabo:         Instance of MasterOfMetabolism
-    a_list:             activator names list
-    Km_a_list:          activator half-max constants
-    n_a_list:           activator Hill exponents
-    i_list:             inhibitor names list
-    Km_i_list:          inhibitor half-max constants
-    n_i_list:           inhibitor Hill exponents
-    reaction_zone:      Reaction occurring in 'cell' or 'mitochondria'
-
-    Returns
-    ------------
-    activator_alpha         Coefficient of net effect of activators
-    inhibitor_alpha         Coefficient of net effect of inhibitors
-    """
-
-    if reaction_zone == 'cell':
-        type_self = 'c_cells'
-        type_sim = 'cc_cells'
-
-    elif reaction_zone == 'mems':
-        type_self = 'c_mems'
-        type_sim = 'cc_mems'
-
-    elif reaction_zone == 'mitochondria':
-
-        type_self = 'c_mit'
-        type_sim = 'cc_mit'
-
-    elif reaction_zone == 'env':
-
-        type_self = 'c_env'
-        type_sim = 'cc_env'
-
-    # initialize a blank list
-    activator_terms = []
-
-    if a_list is not None and a_list != 'None' and len(a_list) > 0:  # if user specified activators for growth/decay
-
-        # get reaction zone for data type:
-
-        # get the activator concentration for the substance, and
-        # create a term based on Hill form:
-        for i, activator_name in enumerate(a_list):
-
-            label = 'i' + activator_name
-            ion_check = getattr(sim, label, None)
-
-            if ion_check is None:
-
-                try:
-                    obj_activator = getattr(sim_metabo, activator_name)
-                    c_act = getattr(obj_activator, type_self)
-
-                except KeyError:
-
-                    raise BetseSimConfigException('Name of reaction activator is not a defined chemical, '
-                                                   'or is not an ion currently included in the ion profile '
-                                                   'being used.'
-                                                   'Please check biomolecule definitions and ion profile'
-                                                   'settings of your config(s) and try again.')
-
-            else:
-                # define the reactant as the ion concentration from the cell concentrations object in sim:
-                sim_conco = getattr(sim, type_sim)
-                c_act = sim_conco[ion_check]
-
-            Km_act = Km_a_list[i]
-            n_act = n_a_list[i]
-
-            cs = (c_act / Km_act) ** n_act
-
-            act_term = cs / (1 + cs)
-
-            activator_terms.append(act_term)
-
-        activator_terms = np.asarray(activator_terms)
-
-        # calculate the net effect of all activator terms:
-        activator_alpha = np.prod(activator_terms, axis=0)
-
-
-    else:
-
-        activator_alpha = 1
-
-    # initialize a blank list
-    inhibitor_terms = []
-
-    if i_list is not None and i_list != 'None' and len(i_list) > 0:  # if user specified inhibitors for growth/decay
-
-        # get the inhibitor concentration for the substance, and
-        # create a term based on Hill form:
-        for j, inhibitor_name in enumerate(i_list):
-
-            label = 'i' + inhibitor_name
-            ion_check = getattr(sim, label, None)
-
-            if ion_check is None:
-
-                try:
-                    obj_inhibitor = getattr(sim_metabo, inhibitor_name)
-                    c_inh = getattr(obj_inhibitor, type_self)
-
-                except KeyError:
-
-                    raise BetseSimConfigException('Name of substance is not a defined chemical, '
-                                                   'or is not an ion currently included in the ion profile '
-                                                   'being used.'
-                                                   'Please check biomolecule definitions and ion profile'
-                                                   'settings of your config(s) and try again.')
-
-            else:
-                # define the reactant as the ion concentration from the cell concentrations object in sim:
-                sim_conco = getattr(sim, type_sim)
-                c_inh = sim_conco[ion_check]
-
-            # print(i_list, Km_i_list, n_i_list)
-
-            Km_inh = Km_i_list[j]
-            n_inh = n_i_list[j]
-
-            cs = (c_inh / Km_inh) ** n_inh
-
-            inh_term = 1 / (1 + cs)
-
-            inhibitor_terms.append(inh_term)
-
-        inhibitor_terms = np.asarray(inhibitor_terms)
-
-        # calculate the net effect of all activator terms:
-        inhibitor_alpha = np.prod(inhibitor_terms, axis=0)
-
-    else:
-        inhibitor_alpha = 1
-
-    return activator_alpha, inhibitor_alpha

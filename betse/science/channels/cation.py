@@ -33,7 +33,7 @@ class CationABC(ChannelsABC, metaclass=ABCMeta):
 
     '''
 
-    def init(self, dyna, sim, cells, p):
+    def init(self, vm, cells, p, targets = None):
         '''
         Initialize targeted voltage-gated funny current channels at the initial
         time step of the simulation based on the initial cell Vmems.
@@ -42,14 +42,30 @@ class CationABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
+        if targets is None:
+
+            self.targets = cells.mem_i
+
+        else:
+            self.targets = targets
+
+        self.data_length = len(self.targets)
+        self.mdl = len(cells.mem_i)
+
         self.modulator = 1.0
 
-        V = sim.vm*1000
+        self.v_corr = 0.0   # in experiments, the measurement junction voltage is about 10 mV
 
-        self._init_state(V=V, dyna=dyna, sim=sim, p=p)
+        V = vm[self.targets]*1000 + self.v_corr
+        # V = vm * 1000 + self.v_corr
+
+        self._init_state(V)
+
+        self.ions = ['Na', 'K', 'Ca']
+        self.rel_perm = [self._PmNa, 1.0, self._PmCa]
 
 
-    def run(self, dyna, sim, cells, p):
+    def run(self, vm, p):
         '''
         Handle all targeted voltage-gated funny current channels by working with the passed
         user-specified parameters on the tissue simulation and cellular
@@ -60,64 +76,26 @@ class CationABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        V = sim.vm*1000
+        V = vm[self.targets]*1000
 
-        self._calculate_state(V, dyna, sim, p)
+        self._calculate_state(V)
 
-        self._implement_state(V, dyna, sim, cells, p)
+        self._implement_state(V, p)
 
-    def _implement_state(self, V, dyna, sim, cells, p):
-        # calculate m and h channel states using RK4:
-        dmCat = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
-        dhCat = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
+    def _implement_state(self, V, p):
 
-        dyna.m_Cat = dmCat(dyna.m_Cat, p.dt * 1e3) + dyna.m_Cat
-        dyna.h_Cat = dhCat(dyna.h_Cat, p.dt * 1e3) + dyna.h_Cat
+        # Update the 'm' and 'h' gating functions:
+        self.update_mh(p, time_unit = self.time_unit)
 
         # calculate the open-probability of the channel:
-        P = (dyna.m_Cat ** self._mpower) * (dyna.h_Cat ** self._hpower)
+        P = (self.m ** self._mpower) * (self.h ** self._hpower)
 
-        # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        # delta_Q = - (dyna.maxDmCat*P*(V - self.vrev))
-
-        # obtain concentration of ion inside and out of the cell, as well as its charge z:
-        c_mem_Na = sim.cc_cells[sim.iNa][cells.mem_to_cells]
-        c_mem_K = sim.cc_cells[sim.iK][cells.mem_to_cells]
-
-        if p.is_ecm is True:
-            c_env_Na = sim.cc_env[sim.iNa][cells.map_mem2ecm]
-            c_env_K = sim.cc_env[sim.iK][cells.map_mem2ecm]
-
-        else:
-            c_env_Na = sim.cc_env[sim.iNa]
-            c_env_K = sim.cc_env[sim.iK]
-
-        IdM = np.ones(sim.mdl)
-
-        z_Na = sim.zs[sim.iNa] * IdM
-        z_K = sim.zs[sim.iK] * IdM
-
-        # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmCat * P *self.modulator
-
-        self.Dmem_time = Dchan   # save the membrane state of the channel
-
-        # calculate specific ion flux contribution for this channel:
-        delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)
-        delta_Q_K = stb.electroflux(c_env_K, c_mem_K, Dchan, p.tm * IdM, z_K, sim.vm, sim.T, p, rho=sim.rho_channel)
-
-        # save the delta_Q:
-        self.chan_flux = delta_Q_Na + delta_Q_K
-
-        self.clip_flux(delta_Q_Na, threshold=p.flux_threshold)
-        self.clip_flux(delta_Q_K, threshold=p.flux_threshold)
-
-        self.update_charge(sim.iNa, self._pmNa*delta_Q_Na, dyna.targets_vgCat, sim, cells, p)
-        self.update_charge(sim.iK, self._pmK*delta_Q_K, dyna.targets_vgCat, sim, cells, p)
+        self.P = np.zeros(self.mdl)
+        self.P[self.targets] = P
 
 
     @abstractmethod
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         '''
         Initializes values of the m and h gates of the channel.
         '''
@@ -125,7 +103,7 @@ class CationABC(ChannelsABC, metaclass=ABCMeta):
 
 
     @abstractmethod
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         '''
         Calculates time-dependent values of the m and h gates of the channel.
         '''
@@ -139,7 +117,7 @@ class CatLeak(CationABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -148,22 +126,24 @@ class CatLeak(CationABC):
 
         logs.log_info('You are using the cation leak channel')
 
+        self.time_unit = 1.0
+
         self.v_corr = 0
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
-        dyna.m_Cat = np.ones(sim.mdl)
-        dyna.h_Cat = np.ones(sim.mdl)
+        self.m = np.ones(self.data_length)
+        self.h = np.ones(self.data_length)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0
         self._hpower = 0
 
-        # ratio of Na to K membrane permeability of channel
+        # ratio of various ion membrane permeability of channel (relative to K+)
         self._pmNa = 1.0
-        self._pmK = 1.0
+        self._pmCa = 0.0
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -186,7 +166,7 @@ class CatLeak2(CationABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -195,11 +175,13 @@ class CatLeak2(CationABC):
 
         logs.log_info('You are using the cation leak channel Na 2:K 1')
 
+        self.time_unit = 1.0
+
         self.v_corr = 0
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
-        dyna.m_Cat = np.ones(sim.mdl)
-        dyna.h_Cat = np.ones(sim.mdl)
+        self.m = np.ones(self.data_length)
+        self.h = np.ones(self.data_length)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0
@@ -207,10 +189,10 @@ class CatLeak2(CationABC):
 
         # ratio of Na to K membrane permeability of channel
         self._pmNa = 2.0
-        self._pmK = 1.0
+        self._pmCa = 0.0
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present

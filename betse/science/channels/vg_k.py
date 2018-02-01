@@ -32,25 +32,48 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
 
     '''
 
-    def init(self, dyna, sim, cells, p):
+    def init(self, vm, cells, p, targets = None):
         '''
-        Initialize targeted voltage-gated potassium channels at the initial
+        Initialize targeted voltage-gated sodium channels at the initial
         time step of the simulation based on the initial cell Vmems.
 
         Channel model uses Hodgkin-Huxley kinetic model style
         for voltage gated channels.
         '''
 
+        if targets is None:
+
+            self.targets = None
+
+            if type(vm) == float or type(vm) == np.float64:
+                self.data_length = 1
+
+            else:
+                self.data_length = len(vm)
+
+
+        else:
+            self.targets = targets
+            self.data_length = len(self.targets)
+            self.mdl = len(cells.mem_i)
+
         self.modulator = 1.0
 
-        self.v_corr = 0.0   # in experiments, the measurement junction voltage is about 10 mV
+        self.v_corr = 0.0  # in experiments, the measurement junction voltage is about 10 mV
 
-        V = sim.vm*1000 + self.v_corr
+        if self.targets is None:
 
-        self._init_state(V, dyna, sim, p)
+            V = vm * 1000 + self.v_corr
 
+        else:
+            V = vm[self.targets] * 1000 + self.v_corr
 
-    def run(self, dyna, sim, cells, p):
+        self._init_state(V)
+
+        self.ions = ['K']
+        self.rel_perm = [1.0]
+
+    def run(self, vm, p):
         '''
         Handle all targeted voltage-gated sodium channels by working with the passed
         user-specified parameters on the tissue simulation and cellular
@@ -61,66 +84,45 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        V = sim.vm*1000 + self.v_corr
+        if self.targets is None:
 
-        self._calculate_state(V, dyna, sim, p)
-
-        self._implement_state(V, dyna, sim, cells, p)
-
-    def _implement_state(self, V, dyna, sim, cells, p):
-
-        # calculate m and h channel states using RK4:
-        dmK = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
-        dhK = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
-
-        dyna.m_K = dmK(dyna.m_K, p.dt * 1e3) + dyna.m_K
-        dyna.h_K = dhK(dyna.h_K, p.dt * 1e3) + dyna.h_K
-
-        # calculate the open-probability of the channel:
-        P = (dyna.m_K ** self._mpower) * (dyna.h_K ** self._hpower)
-
-        self.P = P
-
-        # obtain concentration of ion inside and out of the cell, as well as its charge z:
-        c_mem = sim.cc_at_mem[sim.iK]
-
-        if p.is_ecm is True:
-            c_env = sim.cc_env[sim.iK][cells.map_mem2ecm]
+            V = vm*1000 + self.v_corr
 
         else:
-            c_env = sim.cc_env[sim.iK]
 
-        IdM = np.ones(sim.mdl)
+            V = vm[self.targets] * 1000 + self.v_corr
 
-        z_ion = sim.zs[sim.iK] * IdM
 
-        # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmK*P*self.modulator*sim.rho_channel   # 1.0e-9 multiplier to approximately convert from conductivity
+        self._calculate_state(V)
 
-        self.Dmem_time = Dchan   # save the membrane state of the channel
+        self._implement_state(V, p)
 
-        # calculate specific ion flux contribution for this channel:
-        delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
+    def _implement_state(self, V, p):
 
-        # save the delta_Q:
-        self.chan_flux = np.zeros(sim.mdl)
-        self.chan_flux = -delta_Q[dyna.targets_vgK]
+        # Update the 'm' and 'h' gating functions:
+        self.update_mh(p, time_unit = self.time_unit)
 
-        self.clip_flux(delta_Q, threshold=p.flux_threshold)
+        # calculate the open-probability of the channel:
+        P = (self.m ** self._mpower) * (self.h ** self._hpower)
 
-        self.update_charge(sim.iK, delta_Q, dyna.targets_vgK, sim, cells, p)
+        if self.targets is None:
+
+            self.P = P
+
+        else:
+            self.P = np.zeros(self.mdl)
+            self.P[self.targets] = P
 
 
     @abstractmethod
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         '''
         Initializes values of the m and h gates of the channel.
         '''
         pass
 
-
     @abstractmethod
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         '''
         Calculates time-dependent values of the m and h gates of the channel.
         '''
@@ -140,7 +142,7 @@ class Kv1p1(VgKABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -149,22 +151,20 @@ class Kv1p1(VgKABC):
 
         logs.log_info('You are using the vgK channel: Kv1p1 ')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65     # reversal voltage used in model [mV]
-        Texpt = 20    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0   # FIXME implement this!
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = 1.0000 / (1 + np.exp((V - -30.5000) / -11.3943))
-        dyna.h_K = 1.0000 / (1 + np.exp((V - -30.0000) / 27.3943))
+        self.m = 1.0000 / (1 + np.exp((V - -30.5000) / -11.3943))
+        self.h = 1.0000 / (1 + np.exp((V - -30.0000) / 27.3943))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 2
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -193,7 +193,7 @@ class Kv1p2(VgKABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -202,22 +202,20 @@ class Kv1p2(VgKABC):
 
         logs.log_info('You are using the vgK channel: Kv1.2')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65     # reversal voltage used in model [mV]
-        Texpt = 20    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0   # FIXME implement this!
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = 1.0000/(1+ np.exp(-(V +21.0000)/11.3943))
-        dyna.h_K = 1.0000/(1+ np.exp((V + 22.0000)/11.3943))
+        self.m = 1.0000/(1+ np.exp(-(V +21.0000)/11.3943))
+        self.h = 1.0000/(1+ np.exp((V + 22.0000)/11.3943))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 1
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -245,7 +243,7 @@ class Kv1p3(VgKABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -254,21 +252,19 @@ class Kv1p3(VgKABC):
 
         logs.log_info('You are using the vgK channel: Kv1.3')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65     # reversal voltage used in model [mV]
-        Texpt = 20    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0   # FIXME implement this!
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = 1.0000 / (1 + np.exp((V - -14.1000) / -10.3000))
-        dyna.h_K = 1.0000 / (1 + np.exp((V - -33.0000) / 3.7000))
+        self.m = 1.0000 / (1 + np.exp((V - -14.1000) / -10.3000))
+        self.h = 1.0000 / (1 + np.exp((V - -33.0000) / 3.7000))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 1
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -292,7 +288,7 @@ class Kv1p4(VgKABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -301,21 +297,19 @@ class Kv1p4(VgKABC):
 
         logs.log_info('You are using the vgK channel: Kv1.4')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65     # reversal voltage used in model [mV]
-        Texpt = 20    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = 1.0000 / (1 + np.exp((V + 21.7000) / -16.9000))
-        dyna.h_K = 1.0000 / (1 + np.exp((V + 73.6000) / 12.8000))
+        self.m = 1.0000 / (1 + np.exp((V + 21.7000) / -16.9000))
+        self.h = 1.0000 / (1 + np.exp((V + 73.6000) / 12.8000))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 1
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -344,7 +338,7 @@ class Kv1p5(VgKABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -353,22 +347,20 @@ class Kv1p5(VgKABC):
 
         logs.log_info('You are using the vgK channel: Kv1p5 ')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65     # reversal voltage used in model [mV]
-        Texpt = 20    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0   # FIXME implement this!
 
         # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
-        dyna.m_K = 1.0000 / (1 + np.exp((V - -6.0000) / -6.4000))
-        dyna.h_K = 1.0000 / (1 + np.exp((V - -25.3000) / 3.5000))
+        self.m = 1.0000 / (1 + np.exp((V - -6.0000) / -6.4000))
+        self.h = 1.0000 / (1 + np.exp((V - -25.3000) / 3.5000))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 1
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -391,7 +383,7 @@ class Kv1p6(VgKABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -400,22 +392,20 @@ class Kv1p6(VgKABC):
 
         logs.log_info('You are using the vgK channel: Kv1p6 ')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65     # reversal voltage used in model [mV]
-        Texpt = 20    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0   # FIXME implement this!
 
         # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
-        dyna.m_K = 1 / (1 + np.exp(((V - (-20.800)) / (-8.100))))
-        dyna.h_K =  1 / (1 + np.exp(((V - (-22.000)) / (11.390))))
+        self.m = 1 / (1 + np.exp(((V - (-20.800)) / (-8.100))))
+        self.h =  1 / (1 + np.exp(((V - (-22.000)) / (11.390))))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 1
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -438,27 +428,25 @@ class Kv2p1(VgKABC):
     """
 
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
         """
         logs.log_info('You are using the vgK channel: Kv2p1 ')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65  # reversal voltage used in model [mV]
-        Texpt = 20  # temperature of the model in degrees C
-        simT = sim.T - 273  # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0  # FIXME implement this!
 
         # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
-        dyna.m_K = 1 / (1 + np.exp(((V - (-9.200)) / (-6.600))))
-        dyna.h_K = 1 / (1 + np.exp(((V - (-19.000)) / (5.000))))
+        self.m = 1 / (1 + np.exp(((V - (-9.200)) / (-6.600))))
+        self.h = 1 / (1 + np.exp(((V - (-19.000)) / (5.000))))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 1
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
 
         self._mInf = 1 / (1 + np.exp(((V - (-9.200)) / (-6.600))))
         self._mTau = 100.000 / (1 + np.exp(((V - (-46.560)) / (44.140))))
@@ -473,27 +461,25 @@ class Kv2p2(VgKABC):
     """
 
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
         """
         logs.log_info('You are using the vgK channel: Kv2p2 ')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65  # reversal voltage used in model [mV]
-        Texpt = 20  # temperature of the model in degrees C
-        simT = sim.T - 273  # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0  # FIXME implement this!
 
         # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
-        dyna.m_K = 1 / (1 + np.exp(((V - (5.000)) / (-12.000))))
-        dyna.h_K = 1 / (1 + np.exp(((V - (-16.300)) / (4.800))))
+        self.m = 1 / (1 + np.exp(((V - (5.000)) / (-12.000))))
+        self.h = 1 / (1 + np.exp(((V - (-16.300)) / (4.800))))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 1
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
 
         self._mInf = 1 / (1 + np.exp(((V - (5.000)) / (-12.000))))
         self._mTau = 130.000 / (1 + np.exp(((V - (-46.560)) / (-44.140))))
@@ -507,27 +493,25 @@ class Kv3p1(VgKABC):
     """
 
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
         """
         logs.log_info('You are using the vgK channel: Kv3p1 ')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65  # reversal voltage used in model [mV]
-        Texpt = 20  # temperature of the model in degrees C
-        simT = sim.T - 273  # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0
 
         # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
-        dyna.m_K = 1 / (1 + np.exp(((V - (18.700)) / (-9.700))))
-        dyna.h_K = 1
+        self.m = 1 / (1 + np.exp(((V - (18.700)) / (-9.700))))
+        self.h = 1
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 0
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
 
         self._mInf = 1 / (1 + np.exp(((V - (18.700)) / (-9.700))))
         self._mTau = 20.000 / (1 + np.exp(((V - (-46.560)) / (-44.140))))
@@ -541,24 +525,25 @@ class Kv3p2(VgKABC):
     """
 
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
         """
         logs.log_info('You are using the vgK channel: Kv3p2 ')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65  # reversal voltage used in model [mV]
-        self.qt = 1.0
 
         # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
-        dyna.m_K = 1 / (1 + np.exp((V - -0.373267) / -8.568187))
-        dyna.h_K = 1
+        self.m = 1 / (1 + np.exp((V - -0.373267) / -8.568187))
+        self.h = 1
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 2
         self._hpower = 0
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
 
         self._mInf =  1 / (1 + np.exp((V - -0.373267) / -8.568187))
         self._mTau = 3.241643 + (19.106496 / (1 + np.exp((V - 19.220623) / 4.451533)))
@@ -578,7 +563,7 @@ class Kv3p3(VgKABC):
 
     """
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -587,22 +572,21 @@ class Kv3p3(VgKABC):
 
         logs.log_info('You are using the A-current K+ channel: Kv3p3')
 
+        self.time_unit = 1.0e3
+
+        # FIXME: IS THIS RIGHT?????
         self.vrev = 82.0  # reversal voltage used in model [mV]
-        Texpt = 28  # temperature of the model in degrees C
-        simT = sim.T - 273  # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0  # FIXME implement this!
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = 1 / (1 + np.exp((V - 35) / -7.3))
-        dyna.h_K =  0.25 + (0.75 / (1 + np.exp((V - (-28.293856)) / 29.385636)))
+        self.m = 1 / (1 + np.exp((V - 35) / -7.3))
+        self.h =  0.25 + (0.75 / (1 + np.exp((V - (-28.293856)) / 29.385636)))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 2
         self._hpower = 1
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
 
         self._mInf = 1 / (1 + np.exp((V - 35) / -7.3))
         self._mTau = 0.676808 + (27.913114 / (1 + np.exp((V - 22.414149) / 9.704638)))
@@ -620,7 +604,7 @@ class Kv3p4(VgKABC):
 
     """
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -629,21 +613,19 @@ class Kv3p4(VgKABC):
 
         logs.log_info('You are using the K+ channel: Kv3p4')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65.0  # reversal voltage used in model [mV]
-        Texpt = 28  # temperature of the model in degrees C
-        simT = sim.T - 273  # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = 1 / (1 + np.exp(((V - (-3.400)) / (-8.400))))
-        dyna.h_K =  1 / (1 + np.exp(((V - (-53.320)) / (7.400))))
+        self.m = 1 / (1 + np.exp(((V - (-3.400)) / (-8.400))))
+        self.h =  1 / (1 + np.exp(((V - (-53.320)) / (7.400))))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 1
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -665,7 +647,7 @@ class K_Fast(VgKABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -674,22 +656,20 @@ class K_Fast(VgKABC):
 
         logs.log_info('You are using the vgK channel: K_Fast ')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -65     # reversal voltage used in model [mV]
-        Texpt = 20    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0   # FIXME implement this!
 
         # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
-        dyna.m_K = 1 / (1 + np.exp(-(V + 47) / 29))
-        dyna.h_K = 1 / (1 + np.exp(-(V + 56) / -10))
+        self.m = 1 / (1 + np.exp(-(V + 47) / 29))
+        self.h = 1 / (1 + np.exp(-(V + 56) / -10))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 1
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -701,61 +681,6 @@ class K_Fast(VgKABC):
         self._hInf = 1 / (1 + np.exp(-(V + 56) / -10))
         self._hTau = (8 + 49 * np.exp(-((V + 73) / 23)**2))
 
-class K_Slow(VgKABC):
-    '''
-    "K Slow" model from Korngreen et al.
-
-    Reference: Korngreen A. et al. Voltage-gated K+ channels in layer 5 neocortical pyramidal
-    neurones from young rats: subtypes and gradients. J. Physiol. (Lond.), 2000 Jun 15 , 525 Pt 3 (621-39).
-
-    '''
-
-    def _init_state(self, V, dyna, sim, p):
-        """
-
-        Run initialization calculation for m and h gates of the channel at starting Vmem value.
-
-        """
-
-        logs.log_info('You are using the vgK channel: K_Slow ')
-
-        self.vrev = -65     # reversal voltage used in model [mV]
-        Texpt = 20    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0   # FIXME implement this!
-
-
-        # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
-        dyna.m_K = (1 / (1 + np.exp(-(V + 14) / 14.6)))
-        dyna.h_K = 1 / (1 + np.exp(-(V + 54) / -11))
-
-        # define the power of m and h gates used in the final channel state equation:
-        self._mpower = 2
-        self._hpower = 1
-
-
-    def _calculate_state(self, V, dyna, sim, p):
-        """
-
-        Update the state of m and h gates of the channel given their present value and present
-        simulation Vmem.
-
-        """
-
-        self._mInf = (1 / (1 + np.exp(-(V + 14) / 14.6)))
-
-        inds_lt50 = (V < -50).nonzero()
-        inds_gt50 = (V >= -50).nonzero()
-
-        self._mTau = np.zeros(sim.mdl)
-
-        self._mTau[inds_lt50] = (1.25+175.03 * np.exp(-V[inds_lt50] * -0.026))
-        self._mTau[inds_gt50] = (1.25+13 * np.exp(-V[inds_gt50] * 0.026))
-
-        self._hInf = 1 / (1 + np.exp(-(V + 54) / -11))
-        self._hTau = 360 + (1010 + 24 * (V + 55)) * np.exp(-((V + 75) / 48)**2)
-
 class KLeak(VgKABC):
 
     '''
@@ -763,7 +688,7 @@ class KLeak(VgKABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -772,22 +697,20 @@ class KLeak(VgKABC):
 
         logs.log_info('You are using a K+ Leak channel')
 
+        self.time_unit = 1.0
 
         self.vrev = -65     # reversal voltage used in model [mV]
-        Texpt = 23    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        self.qt = 1.0
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = np.ones(sim.mdl)
-        dyna.h_K = np.ones(sim.mdl)
+        self.m = np.ones(self.data_length)
+        self.h = np.ones(self.data_length)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0
         self._hpower = 0
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -818,7 +741,7 @@ class Kir2p1(VgKABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -827,15 +750,13 @@ class Kir2p1(VgKABC):
 
         logs.log_info('You are using the inward rectifying K+ channel: Kir2p1')
 
+        self.time_unit = 1.0e3
+
         self.vrev = -70.6     # reversal voltage used in model [mV]
-        Texpt = 28    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0   # FIXME implement this!
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = 1 / (1 + np.exp((V - (-96.48)) / 23.26))
-        dyna.h_K = 1 / (1 + np.exp((V - (-168.28)) / -44.13))
+        self.m = 1 / (1 + np.exp((V - (-96.48)) / 23.26))
+        self.h = 1 / (1 + np.exp((V - (-168.28)) / -44.13))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
@@ -844,7 +765,7 @@ class Kir2p1(VgKABC):
         # self.rectification = -1
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present

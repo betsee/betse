@@ -32,7 +32,7 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
 
     '''
 
-    def init(self, dyna, sim, cells, p):
+    def init(self, vm, cells, p, targets = None):
         '''
         Initialize targeted voltage-gated funny current channels at the initial
         time step of the simulation based on the initial cell Vmems.
@@ -41,14 +41,40 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
+        if targets is None:
+
+            self.targets = None
+
+            if type(vm) == float or type(vm) == np.float64:
+                self.data_length = 1
+
+            else:
+                self.data_length = len(vm)
+
+
+        else:
+            self.targets = targets
+            self.data_length = len(self.targets)
+            self.mdl = len(cells.mem_i)
+
         self.modulator = 1.0
 
-        V = sim.vm*1000
+        self.v_corr = 0.0  # in experiments, the measurement junction voltage is about 10 mV
 
-        self._init_state(V=V, dyna=dyna, sim=sim, p=p)
+        if self.targets is None:
+
+            V = vm * 1000 + self.v_corr
+
+        else:
+            V = vm[self.targets] * 1000 + self.v_corr
+
+        self._init_state(V)
+
+        self.ions = ['Na', 'K', 'Ca']
+        self.rel_perm = [self._PmNa, 1.0, self._PmCa]
 
 
-    def run(self, dyna, sim, cells, p):
+    def run(self, vm, p):
         '''
         Handle all targeted voltage-gated funny current channels by working with the passed
         user-specified parameters on the tissue simulation and cellular
@@ -59,88 +85,37 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        V = sim.vm*1000
+        if self.targets is None:
 
-        self._calculate_state(V, dyna, sim, p)
-
-        self._implement_state(V, dyna, sim, cells, p)
-
-    def _implement_state(self, V, dyna, sim, cells, p):
-        # calculate m and h channel states using RK4:
-        dmFun = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
-        dhFun = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
-
-        dyna.m_Fun = dmFun(dyna.m_Fun, p.dt * 1e3) + dyna.m_Fun
-        dyna.h_Fun = dhFun(dyna.h_Fun, p.dt * 1e3) + dyna.h_Fun
-
-        # calculate the open-probability of the channel:
-        P = (dyna.m_Fun ** self._mpower) * (dyna.h_Fun ** self._hpower)
-
-        # print(P.min(), P.mean(), P.max())
-
-        # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        # delta_Q = - (dyna.maxDmFun*P*(V - self.vrev))
-
-        # obtain concentration of ion inside and out of the cell, as well as its charge z:
-        c_mem_Na = sim.cc_cells[sim.iNa][cells.mem_to_cells]
-        c_mem_K = sim.cc_cells[sim.iK][cells.mem_to_cells]
-
-        if p.ions_dict['Ca'] == 1:
-            c_mem_Ca = sim.cc_cells[sim.iCa][cells.mem_to_cells]
-
-        if p.is_ecm is True:
-            c_env_Na = sim.cc_env[sim.iNa][cells.map_mem2ecm]
-            c_env_K = sim.cc_env[sim.iK][cells.map_mem2ecm]
-
-            if p.ions_dict['Ca'] == 1:
-                c_env_Ca = sim.cc_env[sim.iCa][cells.map_mem2ecm]
+            V = vm*1000 + self.v_corr
 
         else:
-            c_env_Na = sim.cc_env[sim.iNa]
-            c_env_K = sim.cc_env[sim.iK]
 
-            if p.ions_dict['Ca'] == 1:
-                c_env_Ca = sim.cc_env[sim.iCa]
+            V = vm[self.targets] * 1000 + self.v_corr
 
+        self._calculate_state(V)
 
-        IdM = np.ones(sim.mdl)
+        self._implement_state(V, p)
 
-        z_Na = sim.zs[sim.iNa] * IdM
-        z_K = sim.zs[sim.iK] * IdM
+    def _implement_state(self, V, p):
 
-        if p.ions_dict['Ca'] == 1:
-            z_Ca = sim.zs[sim.iCa] * IdM
+        # Update the 'm' and 'h' gating functions:
+        self.update_mh(p, time_unit = self.time_unit)
 
-        # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmFun*P*self.modulator*sim.rho_channel
+        # calculate the open-probability of the channel:
+        P = (self.m ** self._mpower) * (self.h ** self._hpower)
 
-        self.Dmem_time = Dchan   # save the membrane state of the channel
+        if self.targets is None:
 
-        # calculate specific ion flux contribution for this channel:
-        delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)
-        delta_Q_K = stb.electroflux(c_env_K, c_mem_K, Dchan, p.tm * IdM, z_K, sim.vm, sim.T, p, rho=sim.rho_channel)
+            self.P = P
 
-        self.chan_flux = np.zeros(sim.mdl)
-        self.chan_flux[dyna.targets_vgFun] = -delta_Q_Na[dyna.targets_vgFun] - delta_Q_K[dyna.targets_vgFun]
-
-        if p.ions_dict['Ca'] == 1:
-            delta_Q_Ca = stb.electroflux(c_env_Ca, c_mem_Ca, Dchan, p.tm * IdM, z_Ca, sim.vm, sim.T, p, rho=sim.rho_channel)
-
-        self.clip_flux(delta_Q_Na, threshold=p.flux_threshold)
-        self.clip_flux(delta_Q_K, threshold=p.flux_threshold)
-
-        if p.ions_dict['Ca'] == 1:
-            self.clip_flux(delta_Q_Ca, threshold=p.flux_threshold)
-
-        self.update_charge(sim.iNa, self._PmNa*delta_Q_Na, dyna.targets_vgFun, sim, cells, p)
-        self.update_charge(sim.iK, delta_Q_K, dyna.targets_vgFun, sim, cells, p)
-
-        if p.ions_dict['Ca'] == 1:
-            self.update_charge(sim.iCa, self._PmCa*delta_Q_Ca, dyna.targets_vgFun, sim, cells, p)
+        else:
+            self.P = np.zeros(self.mdl)
+            self.P[self.targets] = P
 
 
     @abstractmethod
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         '''
         Initializes values of the m and h gates of the channel.
         '''
@@ -148,7 +123,7 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
 
 
     @abstractmethod
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         '''
         Calculates time-dependent values of the m and h gates of the channel.
         '''
@@ -171,7 +146,7 @@ class HCN2(VgFunABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -180,13 +155,15 @@ class HCN2(VgFunABC):
 
         logs.log_info('You are using the funny current channel: HCN2')
 
+        self.time_unit = 1.0
+
         self.v_corr = 0
 
         V = V - 10
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
-        dyna.m_Fun = 1.0000 / (1 + np.exp((V - -99) / 6.2))
-        dyna.h_Fun = 1
+        self.m = 1.0000 / (1 + np.exp((V - -99) / 6.2))
+        self.h = 1
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
@@ -196,7 +173,7 @@ class HCN2(VgFunABC):
         self._PmNa = 0.2  # channel permeability ratio to Na+
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -229,7 +206,7 @@ class HCN4(VgFunABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -238,13 +215,15 @@ class HCN4(VgFunABC):
 
         logs.log_info('You are using the funny current channel: HCN4')
 
+        self.time_unit = 1.0
+
         self.v_corr = 0
 
         V = V - 10
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
-        dyna.m_Fun = 1.0000 / (1 + np.exp((V - -100) / 9.6))
-        dyna.h_Fun = 1
+        self.m = 1.0000 / (1 + np.exp((V - -100) / 9.6))
+        self.h = 1
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
@@ -254,7 +233,7 @@ class HCN4(VgFunABC):
         self._PmNa = 0.2  # channel permeability ratio to Na+
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -282,13 +261,15 @@ class HCN1(VgFunABC):
     Eur. J. Biochem., 2001 Mar , 268 (1646-52).
     """
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
 
         logs.log_info('You are using the funny current channel: HCN1')
 
+        self.time_unit = 1.0
+
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
-        dyna.m_Fun = 1.0000 / (1 + np.exp((V - -94) / 8.1))
-        dyna.h_Fun = 1
+        self.m = 1.0000 / (1 + np.exp((V - -94) / 8.1))
+        self.h = 1
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
@@ -297,7 +278,7 @@ class HCN1(VgFunABC):
         self._PmCa = 0.05  # channel permeability ratio to Ca2+
         self._PmNa = 0.2  # channel permeability ratio to Na+
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
 
 
         self.vrev = -45  # reversal voltage used in model [mV]
@@ -322,7 +303,7 @@ class HCNLeak(VgFunABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -331,11 +312,13 @@ class HCNLeak(VgFunABC):
 
         logs.log_info('You are using the funny current channel: HCN Leak')
 
+        self.time_unit = 1.0
+
         self.v_corr = 0
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
-        dyna.m_Fun = np.ones(sim.mdl)
-        dyna.h_Fun = np.ones(sim.mdl)
+        self.m = np.ones(self.data_length)
+        self.h = np.ones(self.data_length)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0
@@ -345,7 +328,7 @@ class HCNLeak(VgFunABC):
         self._PmNa = 0.33  # channel permeability ratio to Na+
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -376,7 +359,7 @@ class HCN2_cAMP(VgFunABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -385,13 +368,15 @@ class HCN2_cAMP(VgFunABC):
 
         logs.log_info('You are using the funny current channel: HCN2 with cAMP activation.')
 
+        self.time_unit = 1.0
+
         self.v_corr = 0
 
         V = V - 20
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
-        dyna.m_Fun = 1.0000 / (1 + np.exp((V + 99) / 6.2))
-        dyna.h_Fun = 1
+        self.m = 1.0000 / (1 + np.exp((V + 99) / 6.2))
+        self.h = 1
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
@@ -401,7 +386,7 @@ class HCN2_cAMP(VgFunABC):
         self._PmNa = 0.2  # channel permeability ratio to Na+
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present
@@ -435,7 +420,7 @@ class HCN4_cAMP(VgFunABC):
 
     '''
 
-    def _init_state(self, V, dyna, sim, p):
+    def _init_state(self, V):
         """
 
         Run initialization calculation for m and h gates of the channel at starting Vmem value.
@@ -444,13 +429,15 @@ class HCN4_cAMP(VgFunABC):
 
         logs.log_info('You are using the funny current channel: HCN4 with cAMP activation.')
 
+        self.time_unit = 1.0
+
         self.v_corr = 0
 
         V = V - 20
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
-        dyna.m_Fun = 1.0000 / (1 + np.exp((V  + 100) / 9.6))
-        dyna.h_Fun = 1
+        self.m = 1.0000 / (1 + np.exp((V  + 100) / 9.6))
+        self.h = 1
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
@@ -460,7 +447,7 @@ class HCN4_cAMP(VgFunABC):
         self._PmNa = 0.20  # channel permeability ratio to Na+
 
 
-    def _calculate_state(self, V, dyna, sim, p):
+    def _calculate_state(self, V):
         """
 
         Update the state of m and h gates of the channel given their present value and present

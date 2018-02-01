@@ -197,7 +197,6 @@ tissue profile definition:
         Dm_K: 1.0e-18     # K+ membrane diffusion constant [m2/s]
         Dm_Cl: 1.0e-18     # Cl- membrane diffusion constant [m2/s]
         Dm_Ca: 1.0e-18     # Ca2+ membrane diffusion constant [m2/s]
-        Dm_H: 1.0e-18      # H+ membrane diffusion constant [m2/s]
         Dm_M: 1.0e-18      # M- membrane diffusion constant [m2/s]
         Dm_P: 0.0          # proteins- membrane diffusion constant [m2/s]
 
@@ -211,7 +210,6 @@ tissue profile definition:
           Dm_K: 1.0e-18    # K+ membrane diffusion constant [m2/s]
           Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
           Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-          Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
           Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
         cell targets:
@@ -1018,11 +1016,11 @@ internal parameters:
 
   alpha_Ca:  5.0e-8    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
-  substances affect Vmem: False  # do ionic biochemicals, metabolites and gene products affect charge state?
+  substances affect Vmem: True  # do ionic biochemicals, metabolites and gene products affect charge state?
 
   environment volume multiplier: 1.0  # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
 
-  membrane capacitance: 0.02 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
+  membrane capacitance: 0.05 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
 
   cell polarizability: 0.0  # cell relative dielectric constant (static, low frequency) (0.0 to 5.0e7)
 

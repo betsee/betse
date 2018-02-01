@@ -102,7 +102,6 @@ class TissueProfile(CellsProfileABC):
         Dm_K: float,
         Dm_Cl: float,
         Dm_Ca: float,
-        Dm_H: float,
         Dm_M: float,
         Dm_P: float,
         *args, **kwargs
@@ -143,7 +142,6 @@ class TissueProfile(CellsProfileABC):
         self.Dm_K  = Dm_K
         self.Dm_Cl = Dm_Cl
         self.Dm_Ca = Dm_Ca
-        self.Dm_H  = Dm_H
         self.Dm_M  = Dm_M
         self.Dm_P  = Dm_P
 
