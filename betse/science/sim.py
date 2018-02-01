@@ -1628,7 +1628,8 @@ class Simulator(object):
                 self.mtubes_y_time.append(self.mtubes.mtubes_y * 1)
 
                 self.gjopen_time.append(self.gjopen*1)
-                self.time.append(t)
+
+                self.time.append(t * 1)
 
                 if p.molecules_enabled:
                     self.molecules.core.write_data(self, cells, p)
@@ -1638,9 +1639,7 @@ class Simulator(object):
                     self.grn.core.write_data(self, cells, p)
                     self.grn.core.report(self, p)
 
-                self.vm_ave_time.append(self.vm_ave)
-
-                self.time.append(t)
+                self.vm_ave_time.append(self.vm_ave*1)
 
                 # If animating this phase, display and/or save the next frame
                 # of this animation. For simplicity, pass "-1" implying the
@@ -1902,37 +1901,31 @@ class Simulator(object):
             fh.saveSim(self.savedSim, datadump)
             logs.log_info('Simulation saved to "%s".', p.sim_pickle_dirname)
 
-        # Report final output to the user.
-        for i in range(0, len(self.ionlabel)):
-            endconc = np.round(np.mean(self.cc_time[-1][i]),6)
-            logs.log_info(
-                'Final average cytoplasmic concentration of %s: %g mmol/L',
-                self.ionlabel[i], endconc)
-
-        for i in range(0,len(self.ionlabel)):
-            endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
-            logs.log_info(
-                'Final environmental concentration of %s: %g mmol/L',
-                self.ionlabel[i], endconc)
-
-        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),6)
+        final_vmean = 1000 * np.round(np.mean(self.vm_time[-1]), 6)
         logs.log_info(
             'Final average cell Vmem: %g mV', final_vmean)
 
-        if p.GHK_calc is True:
-            final_vmean_GHK = 1000*np.round(np.mean(self.vm_GHK_time[-1]),6)
-            logs.log_info(
-                'Final average cell Vmem calculated using GHK: %s mV',
-                final_vmean_GHK)
+        if p.is_fast_solver is False:
 
-        if p.ions_dict['H'] == 1:
-            final_pH = -np.log10(1.0e-3*np.mean((self.cc_time[-1][self.iH])))
-            logs.log_info(
-                'Final average cell pH: %g', np.round(final_pH, 2))
+            # Report final output to the user.
+            for i in range(0, len(self.ionlabel)):
+                endconc = np.round(np.mean(self.cc_time[-1][i]),6)
+                logs.log_info(
+                    'Final average cytoplasmic concentration of %s: %g mmol/L',
+                    self.ionlabel[i], endconc)
 
-            final_pH_env = -np.log10(np.mean(1.0e-3*(self.cc_env_time[-1][self.iH])))
-            logs.log_info(
-                'Final environmental pH: %g', np.round(final_pH_env, 2))
+            for i in range(0,len(self.ionlabel)):
+                endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
+                logs.log_info(
+                    'Final environmental concentration of %s: %g mmol/L',
+                    self.ionlabel[i], endconc)
+
+            if p.GHK_calc is True:
+                final_vmean_GHK = 1000*np.round(np.mean(self.vm_GHK_time[-1]),6)
+                logs.log_info(
+                    'Final average cell Vmem calculated using GHK: %s mV',
+                    final_vmean_GHK)
+
 
         if p.molecules_enabled:
             self.molecules.core.report(self, p)
@@ -1940,9 +1933,6 @@ class Simulator(object):
         if p.grn_enabled:
             self.grn.core.report(self, p)
 
-        if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-            ver_mean = np.round(1.0e3*self.endo_retic.Ver.mean(),3)
-            logs.log_info("Final Ver: %g mV", ver_mean)
 
     def sim_info_report(self,cells,p):
 
