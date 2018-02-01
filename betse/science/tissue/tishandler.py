@@ -1197,3 +1197,7 @@ class TissueHandler(object):
         # need to also re-do tissue profiles and GJ
         self.tissueProfiles(sim, cells, p)
         cells.redo_gj(self, p)  # redo gap junctions to isolate different tissue types
+
+        if p.is_fast_solver:
+            sim.fast_sim_init(cells, p)
+

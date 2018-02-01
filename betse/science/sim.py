@@ -1045,6 +1045,9 @@ class Simulator(object):
         # self.cgj = 1 / ((2 / self.cedl_cell) + (2 / p.cm))
         self.cgj = 1/(2/p.cm)
 
+        if p.is_fast_solver:
+            self.fast_sim_init(cells, p)
+
     @type_check
     def run_sim_core(self, phase: SimPhase) -> None:
         '''
@@ -1080,30 +1083,37 @@ class Simulator(object):
         # handling of this instability (e.g., by saving simulation results).
         exception_instability = None
 
-        self.fast_sim_init(phase.cells, phase.p)
-
         # Attempt to...
         try:
             # Perform the time loop for this simulation phase. For the duration
             # of doing so, temporarily enable non-blocking display of this
             # mid-simulation animation if any *OR* enter the empty context
             # doing nothing.
-            with anim_cells or noop_context():
-                self._run_sim_core_loop(
-                    phase=phase,
-                    time_steps=time_steps,
-                    time_steps_sampled=time_steps_sampled,
-                    anim_cells=anim_cells,
-                )
+
+            if phase.p.is_fast_solver is False:
+
+                logs.log_info("Solver: Full BETSE simulator in use.")
+
+                with anim_cells or noop_context():
+                    self._run_sim_core_loop(
+                        phase=phase,
+                        time_steps=time_steps,
+                        time_steps_sampled=time_steps_sampled,
+                        anim_cells=anim_cells,
+                    )
 
 
-            # with anim_cells or noop_context():
-            #     self._run_fast_sim_core_loop(
-            #         phase=phase,
-            #         time_steps=time_steps,
-            #         time_steps_sampled=time_steps_sampled,
-            #         anim_cells=anim_cells,
-            #     )
+            else:
+
+                logs.log_info("Solver: Fast (equivalent circuit) simulator in use.")
+
+                with anim_cells or noop_context():
+                    self._run_fast_sim_core_loop(
+                        phase=phase,
+                        time_steps=time_steps,
+                        time_steps_sampled=time_steps_sampled,
+                        anim_cells=anim_cells,
+                    )
         # If this phase becomes computationally unstable...
         except BetseSimInstabilityException as exception:
             # Log this instability *BEFORE* logging a report and reraising this
@@ -1629,6 +1639,8 @@ class Simulator(object):
                     self.grn.core.report(self, p)
 
                 self.vm_ave_time.append(self.vm_ave)
+
+                self.time.append(t)
 
                 # If animating this phase, display and/or save the next frame
                 # of this animation. For simplicity, pass "-1" implying the

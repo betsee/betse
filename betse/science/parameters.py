@@ -363,6 +363,14 @@ class Parameters(YamlFileABC):
         # Initialize paths specified by this configuration.
         self._init_paths()
 
+        # ------------------------------------------------------------------------------
+        # SIMULATION MODE
+        # ------------------------------------------------------------------------------
+
+        # FIXME! Sess, can you please show me how to do this in a backwards-compatible manner, without using 'get', thanks!
+        self.is_fast_solver = self._conf.get('fast solver', False)  # choice between full betse simulation (False) and
+                                                                    # 'fast' equivalent circuit mode.
+
         #---------------------------------------------------------------------------------------------------------------
         # GENERAL OPTIONS
         #---------------------------------------------------------------------------------------------------------------
