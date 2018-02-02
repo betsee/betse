@@ -1505,7 +1505,7 @@ class Simulator(object):
         self.G_Leak = (np.dot(cells.M_sum_mems, sum(sigma_mem)*cells.mem_sa)/cells.cell_sa)*self.geo_conv
 
         # get the average gap junction conductivity:
-        self.G_gj = sum(sigma_gj)*self.geo_conv
+        self.G_gj = sum(sigma_gj)*self.geo_conv*(cells.mem_sa.mean()/cells.cell_sa.mean())
 
 
     @type_check
