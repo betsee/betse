@@ -1117,17 +1117,17 @@ class TissueHandler(object):
         sim.conc_J_x = np.zeros(len(cells.xypts))
         sim.conc_J_y = np.zeros(len(cells.xypts))
 
-        if p.fluid_flow is True or p.deformation is True:
+        if p.fluid_flow or p.deformation:
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
 
             cells.deform_tools(p)
 
-            if p.deformation is True:  # if user desires deformation:
+            if p.deformation:  # if user desires deformation:
 
                 # create a copy of cells world, to apply deformations to for visualization purposes only:
                 sim.cellso = copy.deepcopy(cells)
 
-                if p.td_deform is True:
+                if p.td_deform:
                     # make a laplacian and solver for discrete transfers on closed, irregular cell network
                     logs.log_info('Creating cell network Poisson solver...')
                     cells.graphLaplacian(p)
@@ -1145,7 +1145,7 @@ class TissueHandler(object):
 
         self.targets_vgWound = mem_match_inds
 
-        if p.break_TJ is True: # we need to redo the TJ barrier at the wound site:
+        if p.break_TJ: # we need to redo the TJ barrier at the wound site:
 
             # first identify indices of exterior and interior extracellular grid sites corresponding to the wound TJ:
             cell_wound_inds = (sim.hurt_mask == 1.0).nonzero()
@@ -1198,6 +1198,5 @@ class TissueHandler(object):
         self.tissueProfiles(sim, cells, p)
         cells.redo_gj(self, p)  # redo gap junctions to isolate different tissue types
 
-        if p.is_fast_solver:
+        if p.is_solver_fast:
             sim.fast_sim_init(cells, p)
-

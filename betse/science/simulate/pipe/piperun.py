@@ -10,7 +10,7 @@ run by its parent pipeline) functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimPipeException
-from betse.science.simulate.pipe.piperunreq import SimPipeRunnerRequirement
+from betse.science.simulate.pipe.piperunreq import SimPhaseRequirement
 from betse.util.type.cls.decorators import MethodDecorator
 from betse.util.type.obj import objects
 from betse.util.type.text import strs
@@ -35,7 +35,7 @@ class SimPipeRunner(MethodDecorator):
     method_name : str
         Name of the method implementing this runner.
     requirements : SetType
-        Set of zero or more :class:`SimPipeRunnerRequirement` instances
+        Set of zero or more :class:`SimPhaseRequirement` instances
         specifying all simulation features required by this runner.
     description : str
         Human-readable description of this runner as a **single-line string**
@@ -65,7 +65,7 @@ class SimPipeRunner(MethodDecorator):
         categories : SequenceTypes
             Sequence of one or more human-readable category names.
         requirements: SetOrNoneTypes
-            Set of zero or more :class:`SimPipeRunnerRequirement` instances.
+            Set of zero or more :class:`SimPhaseRequirement` instances.
 
         Raises
         ----------
@@ -84,7 +84,7 @@ class SimPipeRunner(MethodDecorator):
         for requirement in requirements or ():
             # If this is *NOT* a requirement, raise an exception.
             objects.die_unless_instance(
-                obj=requirement, cls=SimPipeRunnerRequirement)
+                obj=requirement, cls=SimPhaseRequirement)
 
             # Add this requirement to this set.
             self.requirements.add(requirement)
@@ -180,7 +180,7 @@ def piperunner(
           increasingly fine-grained depth, again intended to be shared between
           multiple runners.
     requirements : optional[SetType]
-        Set of zero or more :class:`SimPipeRunnerRequirement` instances
+        Set of zero or more :class:`SimPhaseRequirement` instances
         specifying all simulation features required by this runner. This
         decorator then decorates this runner by performing the following logic
         immediately *before* calling this runner:

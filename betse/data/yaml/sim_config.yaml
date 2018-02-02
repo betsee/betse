@@ -31,13 +31,14 @@
 # ------------------------------------------------------------------------------
 # SIMULATION MODE
 # ------------------------------------------------------------------------------
-# Allows for choice of "Full" ion-focused simulation or "Fast" equivalent circuit solver
+# Allows for choice of "Full" ion-focused simulation or "Fast" equivalent circuit solver.
+#
+# The fast solver handles basic bioelectricity using the well-known analogy to electronic
+# circuits by calculating reversal potentials and conductivities from values in this config
+# file. The fast solver does not update concentrations of ions inside and out of cells.
 
-# The fast solver handles basic bioelectricity using the well-known analogy to
-# electronic circuits by calculating reversal potentials and conductivities from values in this
-# config file. The fast solver does not update concentrations of ions inside and out of cells.
-
-fast solver: False  # True choses equivalent circuit solver, False chooses full BETSE simulator
+fast solver: False  # Enable equivalent circuit solver? If "False", the complete BETSE
+                    # solver is enabled itself.
 
 # ------------------------------------------------------------------------------
 # FILE HANDLING

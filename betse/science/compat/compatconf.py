@@ -60,7 +60,7 @@ def upgrade_sim_conf(p: Parameters) -> None:
     _upgrade_sim_conf_to_0_5_0(p)
     _upgrade_sim_conf_to_0_5_2(p)
     _upgrade_sim_conf_to_0_6_0(p)
-    _upgrade_sim_conf_to_0_7_0(p)
+    _upgrade_sim_conf_to_0_7_1(p)
 
 # ....................{ UPGRADERS ~ 0.5.0                  }....................
 @type_check
@@ -364,12 +364,16 @@ def _upgrade_sim_conf_to_0_6_0(p: Parameters) -> None:
 
 
 @type_check
-def _upgrade_sim_conf_to_0_7_0(p: Parameters) -> None:
+def _upgrade_sim_conf_to_0_7_1(p: Parameters) -> None:
     '''
     Upgrade the in-memory contents of the passed simulation configuration to
-    reflect the newest structure of these contents expected by version 0.7.0
+    reflect the newest structure of these contents expected by version 0.7.1
     of this application.
     '''
 
     # Log this upgrade attempt.
-    logs.log_debug('Upgrading simulation configuration to 0.7.0 format...')
+    logs.log_debug('Upgrading simulation configuration to 0.7.1 format...')
+
+    # If the solver type is undefined, default to the complete BETSE solver.
+    if 'fast solver' not in p._conf:
+        p._conf['fast solver'] = False

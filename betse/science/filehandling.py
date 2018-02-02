@@ -14,7 +14,7 @@ simulation objects.
 
 # ....................{ IMPORTS                            }....................
 from betse.lib.pickle import pickles
-from betse.science.compatibility import compatsim
+from betse.science.compat import compatsim
 from betse.util.type.types import type_check
 from collections.abc import Sequence
 

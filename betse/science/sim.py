@@ -1045,8 +1045,9 @@ class Simulator(object):
         # self.cgj = 1 / ((2 / self.cedl_cell) + (2 / p.cm))
         self.cgj = 1/(2/p.cm)
 
-        if p.is_fast_solver:
+        if p.is_solver_fast:
             self.fast_sim_init(cells, p)
+
 
     @type_check
     def run_sim_core(self, phase: SimPhase) -> None:
@@ -1085,35 +1086,29 @@ class Simulator(object):
 
         # Attempt to...
         try:
+            # If this is the full BETSE solver, set appropriate locals.
+            if phase.p.is_solver_full:
+                solver_label = 'Full BETSE simulator'
+                solver_method = self._run_sim_core_loop
+            # Else, this is the fast BETSE solver. Set appropriate locals.
+            else:
+                solver_label = 'Fast (equivalent circuit) simulator'
+                solver_method = self._run_fast_sim_core_loop
+
+            # Log this solver type.
+            logs.log_info('Solver: %s in use.', solver_label)
+
             # Perform the time loop for this simulation phase. For the duration
             # of doing so, temporarily enable non-blocking display of this
             # mid-simulation animation if any *OR* enter the empty context
             # doing nothing.
-
-            if phase.p.is_fast_solver is False:
-
-                logs.log_info("Solver: Full BETSE simulator in use.")
-
-                with anim_cells or noop_context():
-                    self._run_sim_core_loop(
-                        phase=phase,
-                        time_steps=time_steps,
-                        time_steps_sampled=time_steps_sampled,
-                        anim_cells=anim_cells,
-                    )
-
-
-            else:
-
-                logs.log_info("Solver: Fast (equivalent circuit) simulator in use.")
-
-                with anim_cells or noop_context():
-                    self._run_fast_sim_core_loop(
-                        phase=phase,
-                        time_steps=time_steps,
-                        time_steps_sampled=time_steps_sampled,
-                        anim_cells=anim_cells,
-                    )
+            with anim_cells or noop_context():
+                solver_method(
+                    phase=phase,
+                    time_steps=time_steps,
+                    time_steps_sampled=time_steps_sampled,
+                    anim_cells=anim_cells,
+                )
         # If this phase becomes computationally unstable...
         except BetseSimInstabilityException as exception:
             # Log this instability *BEFORE* logging a report and reraising this
@@ -1902,11 +1897,9 @@ class Simulator(object):
             logs.log_info('Simulation saved to "%s".', p.sim_pickle_dirname)
 
         final_vmean = 1000 * np.round(np.mean(self.vm_time[-1]), 6)
-        logs.log_info(
-            'Final average cell Vmem: %g mV', final_vmean)
+        logs.log_info('Final average cell Vmem: %g mV', final_vmean)
 
-        if p.is_fast_solver is False:
-
+        if p.is_solver_full:
             # Report final output to the user.
             for i in range(0, len(self.ionlabel)):
                 endconc = np.round(np.mean(self.cc_time[-1][i]),6)

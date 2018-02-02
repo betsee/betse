@@ -30,6 +30,30 @@ class Parameters(YamlFileABC):
     encapsulating a low-level container of simulation configuration settings
     both loaded from and saved back to a YAML-formatted configuration file.
 
+    Attributes (Solver)
+    ----------
+    is_solver_fast : bool
+        Type of numerical technique with which to solve this simulation. Either:
+        * ``False``, in which case a (comparatively) slower solver based on the
+          well-known complete BETSE formalism is applied. Unlike the so-called
+          "fast" solver, this solver does *not* analogize complex biological
+          systems to simplified electronic circuits. This solver models *all*
+          bioelectrical phenomena exhibited by biological systems in exhaustive
+          detail and hence is arguably more appropriate for production of
+          publication-quality results and findings.
+        * ``True``, in which case a (comparatively) faster solver based on the
+          well-known equivalent circuit formalism is applied. This solver
+          analogizes complex biological systems to simplified electronic
+          circuits. While more time- and space-efficient than alternatives, this
+          solver models only a subset of the simulation features modelled by
+          more complete solvers. While this solver is integrated with BETSE's
+          gene regulatory network (GRN) framework, this solver *cannot* model
+          many core bioelectrical phenomena -- including:
+          * Bioelectric fields or currents.
+          * Extracellular voltage.
+          * Ion concentrations.
+          * Voltage polarity.
+
     Attributes (Path: Export)
     ----------
     init_export_dirname : str
@@ -254,22 +278,25 @@ class Parameters(YamlFileABC):
     # yaml_alias() data descriptor, integer values are both silently and safely
     # cast to floating point values.
 
-    # ..................{ ALIASES ~ export : dir             }..................
-    init_export_dirname_relative = yaml_alias(
-        "['results file saving']['init directory']", str)
-    sim_export_dirname_relative  = yaml_alias(
-        "['results file saving']['sim directory']", str)
+    # ..................{ ALIASES ~ solver                   }..................
+    is_solver_fast = yaml_alias("['fast solver']", bool)
 
-    # ..................{ ALIASES ~ pickle : dir             }..................
+    # ..................{ ALIASES ~ path : seed              }..................
+    seed_pickle_basename = yaml_alias("['init file saving']['worldfile']", str)
+
+    # ..................{ ALIASES ~ path : init              }..................
+    init_pickle_basename = yaml_alias("['init file saving']['file']", str)
     init_pickle_dirname_relative = yaml_alias(
         "['init file saving']['directory']", str)
+    init_export_dirname_relative = yaml_alias(
+        "['results file saving']['init directory']", str)
+
+    # ..................{ ALIASES ~ path : sim               }..................
+    sim_pickle_basename = yaml_alias("['sim file saving']['file']", str)
     sim_pickle_dirname_relative = yaml_alias(
         "['sim file saving']['directory']", str)
-
-    # ..................{ ALIASES ~ pickle : base            }..................
-    seed_pickle_basename = yaml_alias("['init file saving']['worldfile']", str)
-    init_pickle_basename = yaml_alias("['init file saving']['file']", str)
-    sim_pickle_basename  = yaml_alias("['sim file saving']['file']", str)
+    sim_export_dirname_relative  = yaml_alias(
+        "['results file saving']['sim directory']", str)
 
     # ..................{ ALIASES ~ space : cell             }..................
     cell_radius = yaml_alias("['world options']['cell radius']", float)
@@ -293,17 +320,15 @@ class Parameters(YamlFileABC):
     is_tissue_profiles = yaml_alias(
         "['tissue profile definition']['profiles enabled']", bool)
 
-    # ..................{ ALIASES ~ time : total             }..................
+    # ..................{ ALIASES ~ time : init              }..................
     init_time_total = yaml_alias("['init time settings']['total time']", float)
-    sim_time_total  = yaml_alias("['sim time settings']['total time']", float)
-
-    # ..................{ ALIASES ~ time : step              }..................
     init_time_step = yaml_alias("['init time settings']['time step']", float)
-    sim_time_step  = yaml_alias("['sim time settings']['time step']", float)
-
-    # ..................{ ALIASES ~ time : sampling          }..................
     init_time_sampling = yaml_alias(
         "['init time settings']['sampling rate']", float)
+
+    # ..................{ ALIASES ~ time : sim               }..................
+    sim_time_total  = yaml_alias("['sim time settings']['total time']", float)
+    sim_time_step  = yaml_alias("['sim time settings']['time step']", float)
     sim_time_sampling = yaml_alias(
         "['sim time settings']['sampling rate']", float)
 
@@ -343,6 +368,23 @@ class Parameters(YamlFileABC):
         # Classify unloaded GRN subconfigurations.
         self.grn = SimConfGrnFile()
 
+    # ..................{ PROPERTIES ~ read-only             }..................
+    # Read-only properties, preventing callers from resetting these attributes.
+
+    @property
+    def is_solver_full(self) -> bool:
+        '''
+        ``True`` only if this simulation is solved via the full-bodied BETSE
+        solver rather than the equivalent circuit solver.
+
+        See Also
+        ----------
+        :attr:`is_solver_fast`
+            Antonym of this boolean.
+        '''
+
+        return not self.is_solver_fast
+
     # ..................{ LOADERS                            }..................
     #FIXME: Convert all or most of the variables parsed by this method into
     #aliases of the above form. Brainy rainbows!
@@ -350,7 +392,7 @@ class Parameters(YamlFileABC):
     def load(self, *args, **kwargs) -> YamlFileABC:
 
         # Avoid circular import dependencies.
-        from betse.science.compatibility import compatconf
+        from betse.science.compat import compatconf
 
         # Defer to the superclass implementation.
         super().load(*args, **kwargs)
@@ -362,14 +404,6 @@ class Parameters(YamlFileABC):
 
         # Initialize paths specified by this configuration.
         self._init_paths()
-
-        # ------------------------------------------------------------------------------
-        # SIMULATION MODE
-        # ------------------------------------------------------------------------------
-
-        # FIXME! Sess, can you please show me how to do this in a backwards-compatible manner, without using 'get', thanks!
-        self.is_fast_solver = self._conf.get('fast solver', False)  # choice between full betse simulation (False) and
-                                                                    # 'fast' equivalent circuit mode.
 
         #---------------------------------------------------------------------------------------------------------------
         # GENERAL OPTIONS
