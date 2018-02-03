@@ -51,6 +51,7 @@ def upgrade_sim_imports() -> None:
     # upgrade is performed in strict chronological order.
     _upgrade_sim_imports_to_0_5_2()
     _upgrade_sim_imports_to_0_6_0()
+    _upgrade_sim_imports_to_0_7_1()
 
 # ....................{ UPGRADERS ~ 0.5.2                  }....................
 def _upgrade_sim_imports_to_0_5_2() -> None:
@@ -67,7 +68,7 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
     from betse.lib.yaml.abc import yamlabc, yamllistabc
     from betse.science import channels
     from betse.science.math import finitediff
-    from betse.science.simulate import simphase
+    from betse.science.phase import phasecls
     from betse.science.config.visual import confanim, confplot, confvisabc
     from betse.util.type.mapping import mapcls
 
@@ -92,7 +93,7 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
     confvisabc.SimConfVisualListable = confvisabc.SimConfVisualCellsListItem
     confvisabc.SimConfVisual         = confvisabc.SimConfVisualCellsListItem
     confvisabc.SimConfListableVisual = confvisabc.SimConfVisualCellsListItem
-    simphase.SimPhaseType = simphase.SimPhaseKind
+    phasecls.SimPhaseType = phasecls.SimPhaseKind
     sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
         confanim.SimConfAnimAll)
     sys.modules['betse.science.config.visual.confplot'].SimConfPlot = (
@@ -144,3 +145,20 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     tispickcls.TissuePickerRandom = TissuePickerPercent
     tispickimage.BitMapper = TissuePickerImageMask
     tisprofile.TissueCut = CutProfile
+
+# ....................{ UPGRADERS ~ 0.7.1                  }....................
+def _upgrade_sim_imports_to_0_7_1() -> None:
+    '''
+    Upgrade the in-memory module and class structure of the active Python
+    interpreter to reflect the newest structure of these modules and classes
+    expected by version 0.7.1 of this application.
+    '''
+
+    # Log this upgrade attempt.
+    logs.log_debug('Upgrading simulation imports to 0.7.1 format...')
+
+    # Import all modules whose fully-qualified names have been modified.
+    from betse.science import channels
+
+    # Alias obsolete module names to current module objects.
+    sys.modules['betse.science.channelo'] = channels

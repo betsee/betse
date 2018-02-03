@@ -10,12 +10,12 @@ run by its parent pipeline) functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimPipeException
-from betse.science.simulate.pipe.piperunreq import SimPhaseRequirement
+from betse.science.phase.phasereq import SimPhaseRequirement
 from betse.util.type.cls.decorators import MethodDecorator
 from betse.util.type.obj import objects
 from betse.util.type.text import strs
 from betse.util.type.types import (
-    type_check, CallableTypes, SequenceTypes, SetOrNoneTypes, )
+    type_check, CallableTypes, SequenceTypes, SetOrNoneTypes,)
 
 # ....................{ CLASSES                            }....................
 class SimPipeRunner(MethodDecorator):
@@ -116,7 +116,7 @@ class SimPipeRunner(MethodDecorator):
 
         # To avoid circular import dependencies, this is type-checked as a
         # fully-qualified class name resolved at runtime.
-        pipeline: 'betse.science.simulate.pipe.pipeabc.SimPipeABC',
+        pipeline: 'betse.science.phase.pipe.pipeabc.SimPipeABC',
         *args,
         **kwargs
     ) -> object:

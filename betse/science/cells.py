@@ -15,7 +15,7 @@ from betse.science import filehandling as fh
 from betse.science.config.confenum import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
-from betse.science.simulate.simphase import SimPhase, SimPhaseKind
+from betse.science.phase.phasecls import SimPhase, SimPhaseKind
 from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.util.type.call.memoizers import property_cached

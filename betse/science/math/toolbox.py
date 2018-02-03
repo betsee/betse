@@ -7,14 +7,14 @@ The toolbox module contains a number of functions that are used throughout the
 BETSE project.
 """
 
-
+# ....................{ IMPORTS                            }....................
 import math, copy
 import numpy as np
 import scipy.spatial as sps
 from betse.util.type.types import type_check, SequenceTypes
 from scipy import interpolate as interp
 
-
+# ....................{ UTILITIES                          }....................
 #FIXME: Consider shifting this general-purpose sequence method to
 #betse.util.type.sequences.flatten().
 @type_check

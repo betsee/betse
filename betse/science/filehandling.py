@@ -9,7 +9,7 @@ simulation objects.
 
 #FIXME: For clarity:
 #
-#* Shift this module into the "betse.science.simulate" subpackage.
+#* Shift this module into the "betse.science.phase" subpackage.
 #* Rename this module to "simpickler.py".
 
 # ....................{ IMPORTS                            }....................

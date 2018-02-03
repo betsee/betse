@@ -18,7 +18,7 @@ from betse.science.config import confio
 from betse.science.export import exppipe
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
-from betse.science.simulate.simphase import SimPhase, SimPhaseKind
+from betse.science.phase.phasecls import SimPhase, SimPhaseKind
 from betse.science.tissue.tishandler import TissueHandler
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs

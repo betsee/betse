@@ -6,7 +6,7 @@
 import csv, math
 import matplotlib.pyplot as plt
 import numpy as np
-from betse.exceptions import BetseSimConfigException, BetseSimInstabilityException
+from betse.exceptions import BetseSimConfigException, BetseSimUnstableException
 from betse.lib import libs
 from betse.science import sim_toolbox as stb
 from betse.science.channels import cation as vgcat
@@ -20,7 +20,7 @@ from betse.science.config.visual.confvisabc import SimConfVisualCellsNonYAML
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
-from betse.science.simulate.simphase import SimPhase, SimPhaseKind
+from betse.science.phase.phasecls import SimPhase, SimPhaseKind
 from betse.science.tissue.tishandler import TissueHandler
 from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.visual.plot import plotutil as viz
@@ -5641,7 +5641,7 @@ class Molecule(object):
         indsZ = (self.cc_at_mem < 0.0).nonzero()
 
         if len(indsZ[0]):
-            raise BetseSimInstabilityException(
+            raise BetseSimUnstableException(
                 "Network concentration " + self.name + " on membrane below zero! Your simulation has"
                                                        " become unstable.")
 

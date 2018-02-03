@@ -4,7 +4,12 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level Numpy array and matrix facilities.
+High-level Numpy array and matrix facilities.
+
+See Also
+----------
+:mod:`betse.lib.numpy.nptest`
+    Low-level Numpy-based array testing and validation facilities.
 '''
 
 #FIXME: Donate the write_csv() function back to Numpy as a new np.savecsv()
@@ -50,7 +55,8 @@ def from_iterable(iterable: IterableTypes) -> ndarray:
         >>> np.asarray(
         ...     'We are the Bug. '
         ...     'Your computational and technological distinctiveness '
-        ...     'will be added to our own. Resistance is futile.')
+        ...     'will be added to our own. Resistance is futile.'
+        ... )
         array('We are the Bug. Your computational and technological distinctiveness will be added to our own. Resistance is futile.',
         dtype='<U116')
 

@@ -31,7 +31,7 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 # until *AFTER* test collection, this submodule is intentionally segregated.
 from betse.science.config import confio
 from betse.science.config.confenum import IonProfileType
-from betse.science.simulate.pipe import piperunreq
+from betse.science.phase import phasereq
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
 from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
@@ -456,7 +456,7 @@ class SimConfigTestWrapper(object):
             # supported by this pipeline...
             for pipe_exporter_name, pipe_exporter in pipe_type.iter_runners():
                 # If this export needs extracellular spaces, ignore this export.
-                if piperunreq.ECM in pipe_exporter.requirements:
+                if phasereq.ECM in pipe_exporter.requirements:
                     continue
                 # Else, this export does *NOT* need extracellular space.
 

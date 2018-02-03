@@ -7,14 +7,15 @@
 flux through cells) functionality.
 """
 
+# ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.exceptions import BetseSimInstabilityException
+# from betse.exceptions import BetseSimUnstableException
 from betse.util.io.log import logs
 from betse.science.math import modulate as mods
 # from betse.science.math import finitediff as fd
-from scipy.ndimage.filters import gaussian_filter
+# from scipy.ndimage.filters import gaussian_filter
 
-
+# ....................{ CLASSES                            }....................
 class Mtubes(object):
     '''
     Object encapsulating all cellular microtubules for the cell cluster

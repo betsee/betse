@@ -2,17 +2,18 @@
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-
+# ....................{ IMPORTS                            }....................
 import numpy as np
 import numpy.ma as ma
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-from betse.science.math import toolbox as tb
-from betse.exceptions import BetseSimInstabilityException
+# from betse.science.math import toolbox as tb
+from betse.exceptions import BetseSimUnstableException
 from betse.science.math import finitediff as fd
 
-
-# Toolbox of functions used in the Simulator class to calculate key bioelectric properties.
+# ....................{ UTILITIES                          }....................
+# Toolbox of functions used in the Simulator class to calculate key bioelectric
+# properties.
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
     """
@@ -338,19 +339,19 @@ def cell_ave(cells,vm_at_mem):
 
     return v_cell
 
+#FIXME: For efficiency, all calls to this function should be replaced by calls
+#to the dramatically faster betse.lib.numpy.nptest.die_if_nan() function. Hola!
 def check_v(vm):
     """
     Does a quick check on Vmem values
     and displays error warning or exception if the value
     indicates the simulation is unstable.
-
     """
-
 
     isnans = np.isnan(vm)
 
     if isnans.any():  # if there's anything in the isubzeros matrix...
-        raise BetseSimInstabilityException(
+        raise BetseSimUnstableException(
             "Your simulation has become unstable. Please try a smaller time step,"
             "reduce gap junction radius, and/or reduce pump rate coefficients.")
 
@@ -488,22 +489,26 @@ def no_negs(data):
     This function screens an (concentration) array to
     ensure there are no NaNs and no negative values,
     crashing with an instability message if it finds any.
-
     """
 
-    # ensure no NaNs:
+    #FIXME: For efficiency, this NaN check should be replaced by a call to the
+    #dramatically faster betse.lib.numpy.nptest.die_if_nan() function. O arise!
+
+    # Ensure no NaNs.
     inds_nan = (np.isnan(data)).nonzero()
 
-    # ensure that data has no less than zero values:
+    # Ensure that data has no negative values.
     inds_neg = (data < 0.0).nonzero()
 
+    #FIXME: This seems to contradict the documentation. It also seems a bit
+    #unsafe. Shouldn't this raise an exception rather than silently replace all
+    #negative values with 0.0? Or maybe this is O.K.? Cloudy marshmallows!
     if len(inds_neg[0]) > 0:
-
         data[inds_neg] = 0.0 # add in a small bit to protect from crashing
 
     if len(inds_nan[0]) > 0:
 
-        raise BetseSimInstabilityException(
+        raise BetseSimUnstableException(
             "Your simulation has become unstable. Please try a smaller time step,"
             "reduce gap junction radius, and/or reduce rate coefficients.")
 
@@ -1008,13 +1013,13 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
     indsZm = (cX_mems < 0.0).nonzero()[0]
 
     if len(indsZm) > 0:
-        raise BetseSimInstabilityException(
+        raise BetseSimUnstableException(
             "Network concentration of " + name + " on membrane below zero! Your simulation has"
                                                    " become unstable.")
     indsZc = (cX_cells < 0.0).nonzero()[0]
 
     if len(indsZc) > 0:
-        raise BetseSimInstabilityException(
+        raise BetseSimUnstableException(
             "Network concentration of " + name + " in cells below zero! Your simulation has"
                                                    " become unstable.")
 
@@ -1022,7 +1027,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     if len(indsZe) > 0:
         print(name, c_bound)
-        raise BetseSimInstabilityException(
+        raise BetseSimUnstableException(
             "Network concentration of " + name + " in environment below zero! Your simulation has"
                                                    " become unstable.")
 
@@ -1030,7 +1035,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
     # lencheck = len(indsZm) + len(indsZc) + len(indsZe)
 
     # if lencheck > 0:
-    #     raise BetseSimInstabilityException(
+    #     raise BetseSimUnstableException(
     #         "Network concentration of " + name + " below zero! Your simulation has"
     #                                                " become unstable.")
 

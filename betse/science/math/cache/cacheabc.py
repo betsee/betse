@@ -10,7 +10,7 @@ constructed large-scale objects for a simulation phase) functionality.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta  # , abstractmethod
-from betse.science.simulate.simphase import SimPhase
+from betse.science.phase.phasecls import SimPhase
 from betse.util.py import pyref
 from betse.util.type.types import type_check
 

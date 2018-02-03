@@ -8,21 +8,12 @@ High-level **simulation pipeline requirement** (i.e., prerequisite
 simulation feature required by a runner) functionality.
 '''
 
-#FIXME: Generalize this submodule as follows:
-#
-#* Rename this submodule to "simphasereq".
-#* Shift this submodule into the "betse.science.simulate" subpackage.
-#* Rename the "SimPipeRunner" prefix of all class names below to simply
-#  "SimPhase" (e.g., "SimPhaseRequirement" to "SimPhaseRequirement").
-#FIXME: But that's just the beginning. Ultimately, we'd like to permit the
-#global requirements defined below to be more readily usable. Currently, they
-#require the current "phase" object be passed to their is_satisfied() methods,
-#which is cumbersome at best.
-#
-#To rectify this, first note that whether or not a given phase satisfies a given
-#requirement is a constant that should *NEVER* change during that phase. Ergo,
-#we can efficiently associate a given phase with all of the following
-#requirements as follows:
+#FIXME: Generalize the requirement globals defined below to be more globally
+#usable. Currently, they require the current "phase" object be passed to their
+#is_satisfied() methods, which is cumbersome at best. To rectify this, first
+#note that whether or not a given phase satisfies a given requirement is a
+#constant that should *NEVER* change during that phase. Ergo, we can efficiently
+#associate a given phase with all of the following requirements as follows:
 #
 #* Define a new "SimPhaseRequirements" class in this submodule.
 #* Define a SimPhaseRequirements.__init__() method:
@@ -48,7 +39,7 @@ simulation feature required by a runner) functionality.
 #so worthwhile or sane. (Yay!)
 
 # ....................{ IMPORTS                            }....................
-from betse.science.simulate.simphase import SimPhase
+from betse.science.phase.phasecls import SimPhase
 from betse.util.type.types import type_check, CallableTypes, SequenceTypes
 
 SimPhase   # ignore IDE warnings

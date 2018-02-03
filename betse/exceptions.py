@@ -418,7 +418,7 @@ class BetseYamlException(BetseException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ science               }....................
+# ....................{ EXCEPTIONS ~ sim                   }....................
 class BetseSimException(BetseException):
     '''
     General-purpose simulation exception.
@@ -430,15 +430,6 @@ class BetseSimException(BetseException):
 class BetseSimConfigException(BetseSimException):
     '''
     Simulation configuration-specific exception.
-    '''
-
-    pass
-
-
-class BetseSimInstabilityException(BetseSimException):
-    '''
-    Simulation-specific exception indicating the current simulation to have
-    unexpectedly failed due to computational instability.
     '''
 
     pass
@@ -463,6 +454,26 @@ class BetseSimTissueException(BetseSimException):
 class BetseSimVectorException(BetseSimException):
     '''
     Vector-specific exception.
+    '''
+
+    pass
+
+# ....................{ EXCEPTIONS ~ sim : unstable        }....................
+class BetseSimUnstableException(BetseSimException):
+    '''
+    Simulation-specific exception indicating the current simulation to have
+    unexpectedly failed due to computational instability.
+    '''
+
+    pass
+
+
+class BetseSimUnstableNaNException(BetseSimUnstableException):
+    '''
+    Simulation-specific exception indicating the current simulation to have
+    unexpectedly failed due to a **NaN-based computational instability** (i.e.,
+    an operation producing a Numpy array containing at least one NaN value,
+    typically due to division by zero or infinity).
     '''
 
     pass

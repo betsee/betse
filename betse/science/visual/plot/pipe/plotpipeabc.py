@@ -67,7 +67,7 @@ displaying and/or saving plots produced after initialization and simulation).
 import matplotlib
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
+from betse.science.phase.pipe.pipeabc import SimPipeExportABC
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from betse.util.type.call.memoizers import property_cached

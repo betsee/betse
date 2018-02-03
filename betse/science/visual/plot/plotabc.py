@@ -7,7 +7,7 @@ Abstract base classes of all post-simulation plot subclasses.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.simulate.simphase import SimPhase
+from betse.science.phase.phasecls import SimPhase
 from betse.science.visual.visabc import VisualCellsABC
 from betse.util.type.types import type_check
 

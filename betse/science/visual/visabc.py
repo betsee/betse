@@ -21,7 +21,7 @@ from betse.lib.matplotlib.mplzorder import ZORDER_PATCH, ZORDER_STREAM
 from betse.lib.numpy import nparray
 from betse.science.config.visual.confvisabc import SimConfVisualCellsABC
 from betse.science.export import expmath
-from betse.science.simulate.simphase import SimPhase
+from betse.science.phase.phasecls import SimPhase
 from betse.science.visual.layer.lyrabc import LayerCellsABC
 from betse.science.visual.layer.lyrtext import LayerCellsIndex
 from betse.util.io.log import logs

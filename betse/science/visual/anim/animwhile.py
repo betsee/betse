@@ -12,7 +12,7 @@ import matplotlib
 import numpy as np
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.export import expmath
-from betse.science.simulate.simphase import SimPhase
+from betse.science.phase.phasecls import SimPhase
 from betse.science.visual.anim.animabc import AnimCellsABC
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import pyplot

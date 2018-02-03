@@ -10,8 +10,8 @@ simulated data of all cells in the cell cluster).
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.config.visual.confvisabc import SimConfVisualCellsListItem
-from betse.science.simulate.pipe import piperunreq
-from betse.science.simulate.pipe.piperun import piperunner
+from betse.science.phase import phasereq
+from betse.science.phase.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
 from betse.science.visual.plot.pipe.plotpipeabc import PlotPipeABC
 from betse.util.type.types import IterableTypes
@@ -42,7 +42,7 @@ class PlotCellsPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ channel                }..................
     # @piperunner(
     #     categories=('Ion Channel', 'Density Factor',),
-    #     requirements={piperunreq.ELECTROOSMOSIS,},
+    #     requirements={phasereq.ELECTROOSMOSIS,},
     # )
     # def export_channel_density(self, conf: SimConfVisualCellsListItem) -> None:
     #     '''
@@ -69,7 +69,7 @@ class PlotCellsPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ current                }..................
     @piperunner(
         categories=('Current Density', 'Intracellular',),
-        # requirements={piperunreq.VOLTAGE_POLARITY,},
+        # requirements={phasereq.VOLTAGE_POLARITY,},
     )
     def export_currents_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -136,7 +136,7 @@ class PlotCellsPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ deform                 }..................
     @piperunner(
         categories=('Deformation', 'Total',),
-        requirements={piperunreq.DEFORM,},
+        requirements={phasereq.DEFORM,},
     )
     def export_deform_total(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -195,7 +195,7 @@ class PlotCellsPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Electric Field', 'Extracellular',),
-        requirements={piperunreq.ECM,},
+        requirements={phasereq.ECM,},
     )
     def export_electric_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -225,7 +225,7 @@ class PlotCellsPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ fluid                  }..................
     @piperunner(
         categories=('Fluid Flow', 'Intracellular',),
-        requirements={piperunreq.FLUID,},
+        requirements={phasereq.FLUID,},
     )
     def export_fluid_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -254,7 +254,7 @@ class PlotCellsPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Fluid Flow', 'Extracellular',),
-        requirements={piperunreq.FLUID, piperunreq.ECM,},
+        requirements={phasereq.FLUID, phasereq.ECM,},
     )
     def export_fluid_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -283,7 +283,7 @@ class PlotCellsPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ ion : calcium          }..................
     @piperunner(
         categories=('Ion Concentration', 'Calcium', 'Intracellular',),
-        requirements={piperunreq.ION_CALCIUM,},
+        requirements={phasereq.ION_CALCIUM,},
     )
     def export_ion_calcium_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -315,7 +315,7 @@ class PlotCellsPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Ion Concentration', 'Calcium', 'Extracellular',),
-        requirements={piperunreq.ION_CALCIUM, piperunreq.ECM,},
+        requirements={phasereq.ION_CALCIUM, phasereq.ECM,},
     )
     def export_ion_calcium_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -345,7 +345,7 @@ class PlotCellsPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ ion : hydrogen         }..................
     # @piperunner(
     #     categories=('Ion Concentration', 'Hydrogen', 'Intracellular',),
-    #     requirements={piperunreq.ION_HYDROGEN,},
+    #     requirements={phasereq.ION_HYDROGEN,},
     # )
     # def export_ion_hydrogen_intra(self, conf: SimConfVisualCellsListItem) -> None:
     #     '''
@@ -452,7 +452,7 @@ class PlotCellsPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ pump                   }..................
     # @piperunner(
     #     categories=('Ion Pump', 'Density Factor',),
-    #     requirements={piperunreq.ELECTROOSMOSIS,},
+    #     requirements={phasereq.ELECTROOSMOSIS,},
     # )
     # def export_pump_density(self, conf: SimConfVisualCellsListItem) -> None:
     #     '''
@@ -506,7 +506,7 @@ class PlotCellsPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ pressure               }..................
     @piperunner(
         categories=('Pressure', 'Total',),
-        requirements={piperunreq.PRESSURE_TOTAL,},
+        requirements={phasereq.PRESSURE_TOTAL,},
     )
     def export_pressure_total(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -540,7 +540,7 @@ class PlotCellsPipe(PlotPipeABC):
     #FIXME: Requires full solver.
     @piperunner(
         categories=('Voltage', 'Extracellular',),
-        requirements={piperunreq.ECM,},
+        requirements={phasereq.ECM,},
     )
     def export_voltage_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -569,7 +569,7 @@ class PlotCellsPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Voltage', 'Polarity',),
-        requirements={piperunreq.VOLTAGE_POLARITY,},
+        requirements={phasereq.VOLTAGE_POLARITY,},
     )
     def export_voltage_polarity(
         self, conf: SimConfVisualCellsListItem) -> None:
@@ -690,7 +690,7 @@ class PlotCellsPipe(PlotPipeABC):
     #FIXME: Requires full solver.
     @piperunner(
         categories=('Voltage', 'Transmembrane', 'GHK',),
-        requirements={piperunreq.VOLTAGE_MEMBRANE_GHK,},
+        requirements={phasereq.VOLTAGE_MEMBRANE_GHK,},
     )
     def export_voltage_membrane_ghk(
         self, conf: SimConfVisualCellsListItem) -> None:

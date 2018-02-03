@@ -13,8 +13,8 @@ from abc import ABCMeta, abstractproperty
 from betse.exceptions import (
     BetseSimPipeException, BetseSimPipeRunnerUnsatisfiedException)
 from betse.lib.yaml.abc.yamllistabc import YamlListItemTypedABC
-from betse.science.simulate.pipe.piperun import SimPipeRunner
-from betse.science.simulate.simphase import SimPhase
+from betse.science.phase.pipe.piperun import SimPipeRunner
+from betse.science.phase.phasecls import SimPhase
 from betse.util.io.log import logs
 from betse.util.type.obj import objects
 from betse.util.type.text import strs

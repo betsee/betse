@@ -9,7 +9,7 @@ plotting vectors onto the cell cluster.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.math.vector.veccls import VectorCellsCache
-from betse.science.simulate.simphase import SimPhase
+from betse.science.phase.phasecls import SimPhase
 from betse.science.visual.layer.lyrabc import LayerCellsColorfulABC
 from betse.util.type.types import type_check
 

@@ -5,7 +5,7 @@
 # ....................{ IMPORTS                            }....................
 import copy, time
 import numpy as np
-from betse.exceptions import BetseSimInstabilityException
+from betse.exceptions import BetseSimUnstableException
 from betse.science import filehandling as fh
 from betse.science import sim_toolbox as stb
 from betse.science.channels.gap_junction import Gap_Junction
@@ -18,7 +18,7 @@ from betse.science.physics.deform import (
 from betse.science.physics.flow import getFlow
 from betse.science.physics.ion_current import get_current
 from betse.science.physics.pressures import osmotic_P
-from betse.science.simulate.simphase import SimPhase, SimPhaseKind
+from betse.science.phase.phasecls import SimPhase, SimPhaseKind
 from betse.science.organelles.microtubules import Mtubes
 from betse.science.tissue.tishandler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
@@ -1073,12 +1073,13 @@ class Simulator(object):
         # to initialize values of voltages.
         self.update_V(phase.cells, phase.p)
 
-        # Display and/or save an animation during solving and calculate:
+        # Calculate the following simulation phase-specific locals:
         #
         # * "time_steps", the array of all time steps for this phase.
         # * "time_steps_sampled", this array resampled to reduce data storage.
-        # * "anim_cells", the mid-simulation animation providing cell voltages.
-        time_steps, time_steps_sampled, anim_cells = self._plot_loop(phase)
+        # * "solver_context", the context manager intended to contextualize the
+        #   core time loop for this phase.
+        time_steps, time_steps_sampled, solver_context = self._plot_loop(phase)
 
         # Exception raised if this simulation becomes unstable, enabling safe
         # handling of this instability (e.g., by saving simulation results).
@@ -1098,29 +1099,41 @@ class Simulator(object):
             # Log this solver type.
             logs.log_info('Solver: %s in use.', solver_label)
 
-            # Perform the time loop for this simulation phase. For the duration
-            # of doing so, temporarily enable non-blocking display of this
-            # mid-simulation animation if any *OR* enter the empty context
-            # doing nothing.
-            with anim_cells or noop_context():
+            # Perform the time loop for this simulation phase.
+            with solver_context:
                 solver_method(
                     phase=phase,
                     time_steps=time_steps,
                     time_steps_sampled=time_steps_sampled,
-                    anim_cells=anim_cells,
+
+                    #FIXME: Horrible hack. Ideally, we instead want to:
+                    #
+                    #* Define a "AnimCellsWhileSolvingNoop" subclass such that:
+                    #  * The plot_frame() method simply reduces to "pass".
+                    #  * Like the "AnimCellsWhileSolving" subclass, the
+                    #    "AnimCellsWhileSolvingNoop" subclass should also
+                    #    satisfy the context manager API (but by doing nothing).
+                    #* Restructure the "AnimCellsABC" class hierarchy to support
+                    #  this subclass.
+                    #* Refactor the _plot_loop() method to return an instance of
+                    #  the "AnimCellsWhileSolvingNoop" subclass rather than the
+                    #  noop() context manager.
+                    anim_cells=(
+                        solver_context if isinstance(
+                            solver_context, AnimCellsWhileSolving) else None),
                 )
         # If this phase becomes computationally unstable...
-        except BetseSimInstabilityException as exception:
+        except BetseSimUnstableException as exception:
             # Log this instability *BEFORE* logging a report and reraising this
             # exception, improving readability.
             logs.log_error(
-                'Simulation prematurely halted due to computational instability.')
+                'Simulation halted prematurely '
+                'due to computational instability.')
 
             # Preserve this exception *BEFORE* writing results to disk and
             # reraising this exception. This guarantees access to results even
             # in the case of computational instability, preventing data loss.
             exception_instability = exception
-
         # If any other type of exception is raised, an unexpected fatal error
         # has occurred. In this case, these results are likely to be in an
         # inconsistent, nonsensical state and hence safely discarded.
@@ -2229,7 +2242,7 @@ class Simulator(object):
         #
         # if len(indsZ[0]):
         #
-        #     raise BetseSimInstabilityException("Ion concentration value on membrane below zero! Your simulation has"
+        #     raise BetseSimUnstableException("Ion concentration value on membrane below zero! Your simulation has"
         #                                        " become unstable.")
         #
         # # update the main matrices:
@@ -2343,8 +2356,8 @@ class Simulator(object):
 
         Returns
         --------
-        (ndarray, set, (AnimCellsWhileSolving, NoneType))
-            3-tuple ``(time_steps, time_steps_sampled, anim_cells)`` where:
+        (ndarray, set, ContextManager)
+            3-tuple ``(time_steps, time_steps_sampled, solver_context)`` where:
             * ``time_steps`` is a one-dimensional Numpy array defining the
               time-steps vector for the current phase.
             * ``time_steps_sampled`` is the subset of the ``time_steps`` array
@@ -2352,10 +2365,12 @@ class Simulator(object):
               which to sample data, substantially reducing data storage). In
               particular, the length of this set governs the number of frames
               in each exported animation.
-            * ``anim_cells`` is either:
-              * If a mid-simulation animation of cell voltage as a function of
-                time is enabled by this configuration, this animation.
-              * Else, ``None``.
+            * ``solver_context`` is the context manager intended to wrap the
+              core time loop for this phase. Specifically, this is either:
+              * If the configuration for this phase enables non-blocking display
+                and/or saving of one or more in-phase exports (e.g., plots), the
+                context manager doing so.
+              * Else, the empty context manager doing nothing.
         '''
 
         #FIXME: Refactor these conditionally set local variables into
@@ -2396,7 +2411,7 @@ class Simulator(object):
 
         # Mid-simulation animation of cell voltage as a function of time if
         # enabled by this configuration or None otherwise.
-        anim_cells = None
+        solver_context = None
 
         # If this animation is enabled...
         if phase.p.anim.is_while_sim:
@@ -2412,7 +2427,7 @@ class Simulator(object):
                 kind=phase.kind, sim=phase.sim, cells=self.cellso, p=phase.p)
 
             # Create this animation.
-            anim_cells = AnimCellsWhileSolving(
+            solver_context = AnimCellsWhileSolving(
                 phase=phase_deformed,
                 conf=phase.p.anim.anim_while_sim,
 
@@ -2426,6 +2441,8 @@ class Simulator(object):
                 figure_title='Vmem while {}'.format(phase_verb),
                 colorbar_title='Voltage [mV]',
             )
+        else:
+             solver_context = noop_context()
 
         # Return the 3-tuple of these objects to the caller.
-        return time_steps, time_steps_sampled, anim_cells
+        return time_steps, time_steps_sampled, solver_context

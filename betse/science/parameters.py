@@ -14,7 +14,7 @@ from betse.science.config.confenum import (
 from betse.science.config.grn.confgrn import SimConfGrnFile
 from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
-from betse.science.simulate.simphase import SimPhaseKind
+from betse.science.phase.phasecls import SimPhaseKind
 from betse.science.tissue.event import tisevevolt
 from betse.science.config.visual.confanim import SimConfAnimAll
 from betse.science.config.visual.confplot import SimConfPlotAll

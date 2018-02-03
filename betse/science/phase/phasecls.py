@@ -74,7 +74,7 @@ class SimPhase(object):
         Current simulation configuration.
     sim : betse.science.sim.Simulator
         Current simulation.
-    cache : betse.science.simulate.cache.cacheabc.SimPhaseCaches
+    cache : betse.science.phase.cache.cacheabc.SimPhaseCaches
         Current simulation cache.
 
     Attributes (Path)
