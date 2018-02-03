@@ -1505,7 +1505,8 @@ class Simulator(object):
         self.G_Leak = (np.dot(cells.M_sum_mems, sum(sigma_mem)*cells.mem_sa)/cells.cell_sa)*self.geo_conv
 
         # get the average gap junction conductivity:
-        self.G_gj = sum(sigma_gj)*self.geo_conv*(cells.mem_sa.mean()/cells.cell_sa.mean())
+        # self.G_gj = sum(sigma_gj)*self.geo_conv*(cells.mem_sa.mean()/cells.cell_sa.mean())
+        self.G_gj = sum(sigma_gj) * self.geo_conv*(1/2)
 
 
     @type_check
@@ -1597,10 +1598,20 @@ class Simulator(object):
                 # update the main gene regulatory network:
                 self.grn.core.run_loop(t, self, cells, p)
 
-            # Update Vmem:
+            # Update gap junctions:
             self.vgj = self.vm_ave[cells.cell_nn_i[:, 1]] - self.vm_ave[cells.cell_nn_i[:, 0]]
 
+            if p.v_sensitive_gj is True:
+
+                # run the gap junction dynamics object to update gj open state of sim:
+                self.gj_funk.run(self, cells, p)
+
+            else:
+                self.gjopen = self.gj_block * np.ones(len(cells.mem_i))
+
             Jgj = self.G_gj*np.dot(cells.M_sum_mems, self.vgj)
+
+            # Update Vmem:
 
             Jmem = np.dot(cells.M_sum_mems, self.extra_J_mem*cells.mem_sa)/cells.cell_sa
 

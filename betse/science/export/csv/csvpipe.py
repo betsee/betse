@@ -49,6 +49,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
         raise BetseMethodUnimplementedException()
 
     # ..................{ EXPORTERS ~ cell                   }..................
+    #FIXME: Requires full solver.
     @piperunner(categories=('Single Cell', 'Raw Data'))
     def export_cell_raw(self) -> None:
         '''

@@ -420,6 +420,7 @@ class PlotCellsPipe(PlotPipeABC):
         self._export(basename='final_gjState')
 
     # ..................{ EXPORTERS ~ microtubule            }..................
+    #FIXME: Requires full solver.
     @piperunner(categories=('Microtubule', 'Coherence',))
     def export_microtubule(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -474,7 +475,7 @@ class PlotCellsPipe(PlotPipeABC):
     #     # Export this plot to disk and/or display.
     #     self._export(basename='final_pumps_2D')
 
-
+    #FIXME: Requires full solver.
     @piperunner(categories=('Ion Pump', 'Pump Rate', 'Na-K-ATPase',))
     def export_pump_nakatpase(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -536,6 +537,7 @@ class PlotCellsPipe(PlotPipeABC):
         self._export(basename='final_P_2D_gj')
 
     # ..................{ EXPORTERS ~ voltage                }..................
+    #FIXME: Requires full solver.
     @piperunner(
         categories=('Voltage', 'Extracellular',),
         requirements={piperunreq.ECM,},
@@ -685,7 +687,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_AverageVmem_2D')
 
-
+    #FIXME: Requires full solver.
     @piperunner(
         categories=('Voltage', 'Transmembrane', 'GHK',),
         requirements={piperunreq.VOLTAGE_MEMBRANE_GHK,},

@@ -330,6 +330,7 @@ class PlotCellPipe(PlotPipeABC):
         self._export(basename='P_time')
 
     # ..................{ EXPORTERS ~ cell : pump            }..................
+    #FIXME: Requires full solver.
     #FIXME: Actually plot the average of these rates. Currently, this method
     #only plots rates for a single arbitrarily selected membrane of this cell.
     @piperunner(categories=('Pump Rate', 'Na-K-ATPase',))

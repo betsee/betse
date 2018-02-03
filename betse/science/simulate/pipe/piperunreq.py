@@ -442,7 +442,7 @@ Requirement that a simulation phase enable electroosmotic flow (EOF).
 '''
 
 
-#FIXME: Does this require the full solver? We assume yes, but...
+#FIXME: Does this require the full solver? We assume yes, but... Yes!
 FLUID = SimPhaseRequirementBoolExpr(
     name='fluid flow', bool_expr='phase.p.fluid_flow')
 '''
@@ -485,7 +485,7 @@ Requirement that a simulation phase enable sodium ions (Na+).
 '''
 
 # ....................{ REQUIREMENTS ~ pressure            }....................
-#FIXME: Does this require the full solver? We assume yes, but...
+#FIXME: Does this require the full solver? We assume yes, but... Yes!
 PRESSURE_OSMOTIC = SimPhaseRequirementBoolExpr(
     name='osmotic pressure', bool_expr='phase.p.deform_osmo',)
 '''
@@ -493,7 +493,7 @@ Requirement that a simulation phase enable osmotic pressure.
 '''
 
 
-#FIXME: Does this require the full solver? We assume yes, but...
+#FIXME: Does this require the full solver? We assume yes, but... Yes!
 PRESSURE_TOTAL = SimPhaseRequirement(
     name='total pressure',
     is_satisfied=lambda phase:

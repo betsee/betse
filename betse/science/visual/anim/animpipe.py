@@ -353,6 +353,7 @@ class AnimCellsPipe(SimPipeExportABC):
         )
 
     # ..................{ EXPORTERS ~ microtubules           }..................
+    #FIXME: Requires full solver.
     @piperunner(categories=('Microtubules', 'Coherence',))
     def export_microtubule(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -437,6 +438,7 @@ class AnimCellsPipe(SimPipeExportABC):
     #     )
 
     # ..................{ EXPORTERS ~ voltage                }..................
+    #FIXME: Requires full solver.
     @piperunner(
         categories=('Voltage', 'Extracellular',),
         requirements={piperunreq.ECM,},
