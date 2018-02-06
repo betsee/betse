@@ -219,17 +219,22 @@ Why? Because *all* enumeration types are instances of this type rather than the
 adhere to standard Pythonic semantics. Notably, the following non-standard
 invariants hold across *all* enumerations:
 
-    >>> from betse.util.type.types import EnumType, EnumClassType, ClassType
+    >>> from betse.util.type.types import (
+    ...     EnumType, EnumClassType, EnumMemberType, ClassType)
     >>> enum_type = EnumClassType(
     ...     'Gyre', ('The', 'falcon', 'cannot', 'hear', 'the', 'falconer'))
-    >>> isinstance(enum_type, EnumClassType)
-    False
-    >>> issubclass(enum_type, EnumClassType)
-    True
     >>> isinstance(enum_type, EnumType)
     True
+    >>> isinstance(enum_type, EnumClassType)
+    False
     >>> isinstance(enum_type, ClassType)
     True
+    >>> isinstance(enum_type.falcon, EnumType)
+    False
+    >>> isinstance(enum_type.falcon, EnumMemberType)
+    True
+    >>> isinstance(enum_type.falcon, ClassType)
+    False
 '''
 
 

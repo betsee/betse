@@ -5,12 +5,13 @@
 # ....................{ IMPORTS                            }....................
 import copy, time
 import numpy as np
-from betse.exceptions import BetseSimUnstableException
+from betse.exceptions import BetseSimException, BetseSimUnstableException
 from betse.science import filehandling as fh
 from betse.science import sim_toolbox as stb
 from betse.science.channels.gap_junction import Gap_Junction
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.molecules import MasterOfMolecules
+from betse.science.config.confenum import SolverType
 from betse.science.math import finitediff as fd
 from betse.science.organelles.endo_retic import EndoRetic
 from betse.science.physics.deform import (
@@ -1045,7 +1046,8 @@ class Simulator(object):
         # self.cgj = 1 / ((2 / self.cedl_cell) + (2 / p.cm))
         self.cgj = 1/(2/p.cm)
 
-        if p.is_solver_fast:
+        # If this is the fast BETSE solver, initialize this solver.
+        if p.solver_type is SolverType.CIRCUIT:
             self.fast_sim_init(cells, p)
 
 
@@ -1088,13 +1090,18 @@ class Simulator(object):
         # Attempt to...
         try:
             # If this is the full BETSE solver, set appropriate locals.
-            if phase.p.is_solver_full:
+            if phase.p.solver_type is SolverType.FULL:
                 solver_label = 'Full BETSE simulator'
                 solver_method = self._run_sim_core_loop
-            # Else, this is the fast BETSE solver. Set appropriate locals.
-            else:
+            # Else if this is the fast BETSE solver, set appropriate locals.
+            elif phase.p.solver_type is SolverType.CIRCUIT:
                 solver_label = 'Fast (equivalent circuit) simulator'
                 solver_method = self._run_fast_sim_core_loop
+            # Else, this solver is unrecognized. Raise an exception.
+            else:
+                raise BetseSimException(
+                    'Solver type "{}" unrecognized.'.format(
+                        phase.p.solver_type))
 
             # Log this solver type.
             logs.log_info('Solver: %s in use.', solver_label)
@@ -1924,7 +1931,8 @@ class Simulator(object):
         final_vmean = 1000 * np.round(np.mean(self.vm_time[-1]), 6)
         logs.log_info('Final average cell Vmem: %g mV', final_vmean)
 
-        if p.is_solver_full:
+        # If this is the full BETSE solver...
+        if p.solver_type is SolverType.FULL:
             # Report final output to the user.
             for i in range(0, len(self.ionlabel)):
                 endconc = np.round(np.mean(self.cc_time[-1][i]),6)
@@ -1938,12 +1946,11 @@ class Simulator(object):
                     'Final environmental concentration of %s: %g mmol/L',
                     self.ionlabel[i], endconc)
 
-            if p.GHK_calc is True:
+            if p.GHK_calc:
                 final_vmean_GHK = 1000*np.round(np.mean(self.vm_GHK_time[-1]),6)
                 logs.log_info(
                     'Final average cell Vmem calculated using GHK: %s mV',
                     final_vmean_GHK)
-
 
         if p.molecules_enabled:
             self.molecules.core.report(self, p)
@@ -2448,7 +2455,7 @@ class Simulator(object):
                 colorbar_title='Voltage [mV]',
             )
         else:
-             solver_context = noop_context()
+            solver_context = noop_context()
 
         # Return the 3-tuple of these objects to the caller.
         return time_steps, time_steps_sampled, solver_context

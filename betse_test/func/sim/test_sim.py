@@ -4,9 +4,9 @@
 # See "LICENSE" for further details.
 
 '''
-CLI-specific functional tests exercising all simulation subcommands excluding
-those specific to biochemical reaction and gene regulatory networks (e.g.,
-``betse seed``, ``betse init``, ``betse sim``).
+CLI-specific functional tests exercising **solver-agnostic simulations** (i.e.,
+simulations arbitrarily supporting all simulation solvers, including both the
+complete BETSE solver *and* the "fast" equivalent circuit solver).
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -81,44 +81,6 @@ def test_cli_sim_compat(
     #     is_overwriting_config=False,)
 
 
-def test_cli_sim_noecm(betse_cli_sim: 'CLISimTester') -> None:
-    '''
-    Functional test exporting all available exports (e.g., CSVs, plots,
-    animations) with all simulation features required by these exports excluding
-    extracellular spaces enabled.
-
-    Parameters
-    ----------
-    betse_cli_sim : CLISimTester
-        Object running BETSE CLI simulation subcommands.
-    '''
-
-    # Enable all exports and features required by these exports, excluding ECM.
-    betse_cli_sim.sim_state.config.enable_exports_ecmless()
-
-    # Test all default simulation-specific subcommands with this configuration.
-    betse_cli_sim.run_subcommands_default()
-
-
-def test_cli_sim_ecm(betse_cli_sim: 'CLISimTester') -> None:
-    '''
-    Functional test exporting all available exports (e.g., CSVs, plots,
-    animations) with all simulation features required by these exports including
-    extracellular spaces enabled.
-
-    Parameters
-    ----------
-    betse_cli_sim : CLISimTester
-        Object running BETSE CLI simulation subcommands.
-    '''
-
-    # Enable all exports and features required by these exports, including ECM.
-    betse_cli_sim.sim_state.config.enable_exports_ecm()
-
-    # Test all default simulation-specific subcommands with this configuration.
-    betse_cli_sim.run_subcommands_default()
-
-
 def test_cli_sim_default(betse_cli_sim_default: 'CLISimTester') -> None:
     '''
     Functional test exercising the default simulation configuration on the first
@@ -143,26 +105,6 @@ def test_cli_sim_default(betse_cli_sim_default: 'CLISimTester') -> None:
     # Test only the first two simulation-specific subcommands with this
     # configuration, as documented above.
     betse_cli_sim_default.run_subcommands(('seed',), ('init',))
-
-
-def test_cli_sim_vg_ions(betse_cli_sim: 'CLISimTester') -> None:
-    '''
-    Functional test simulating all voltage-gated ion channels (e.g., sodium,
-    potassium) *and* simulation features required by these channels.
-
-    Parameters
-    ----------
-    betse_cli_sim : CLISimTester
-        Object running BETSE CLI simulation subcommands.
-    '''
-
-    # Enable all voltage-gated ion channels and features required by these
-    # channels.
-    betse_cli_sim.sim_state.config.enable_vg_ion_channels_all()
-
-    # Test all simulation-specific subcommands *EXCLUDING* plotting subcommands
-    # (which other tests already exercise) with this configuration.
-    betse_cli_sim.run_subcommands(('seed',), ('init',), ('sim',),)
 
 
 # Sadly, all existing higher-level parametrization decorators defined by the

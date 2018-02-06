@@ -83,3 +83,31 @@ CUSTOM : enum
     User-defined ion profile. See the
     :attr:`betse.science.parameters.Parameters.ions_custom` variable.
 '''
+
+# ....................{ ENUMS ~ solver                     }....................
+SolverType = make_enum(
+    class_name='SolverType',
+    member_names=('FULL', 'CIRCUIT',))
+'''
+Enumeration of all supported types of **simulation solvers** (i.e.,
+computational technique iteratively computing each time step of a simulation).
+
+Attributes
+----------
+FULL : enum
+    Accurate but space- and time-inefficient (i.e., slow) solver based on the
+    complete BETSE formalism. This solver produces publication-quality results,
+    comprehensively simulating all bioelectrical phenomena expected of
+    real-world biological systems.
+CIRCUIT : enum
+    Inaccurate but space- and time-efficient (i.e., fast) solver based on the
+    well-known equivalent circuit formalism. This solver produces draft-quality
+    results, analogizing real-world biological systems to electronic circuits.
+    While integrated with gene regulatory networks (GRNs), this solver *cannot*
+    by definition simulate the following phenomena simulated by the full solver:
+    * Bioelectric fields or currents.
+    * Extracellular voltages or voltage polarities.
+    * Ion concentrations.
+    If this solver is selected, these phenomena are silently ignored even if
+    otherwise enabled by the current simulation configuration.
+'''

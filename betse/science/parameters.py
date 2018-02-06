@@ -10,7 +10,7 @@ from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.config.confenum import (
-    CellLatticeType, IonProfileType)
+    CellLatticeType, IonProfileType, SolverType)
 from betse.science.config.grn.confgrn import SimConfGrnFile
 from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
@@ -32,27 +32,9 @@ class Parameters(YamlFileABC):
 
     Attributes (Solver)
     ----------
-    is_solver_fast : bool
-        Type of numerical technique with which to solve this simulation. Either:
-        * ``False``, in which case a (comparatively) slower solver based on the
-          well-known complete BETSE formalism is applied. Unlike the so-called
-          "fast" solver, this solver does *not* analogize complex biological
-          systems to simplified electronic circuits. This solver models *all*
-          bioelectrical phenomena exhibited by biological systems in exhaustive
-          detail and hence is arguably more appropriate for production of
-          publication-quality results and findings.
-        * ``True``, in which case a (comparatively) faster solver based on the
-          well-known equivalent circuit formalism is applied. This solver
-          analogizes complex biological systems to simplified electronic
-          circuits. While more time- and space-efficient than alternatives, this
-          solver models only a subset of the simulation features modelled by
-          more complete solvers. While this solver is integrated with BETSE's
-          gene regulatory network (GRN) framework, this solver *cannot* model
-          many core bioelectrical phenomena -- including:
-          * Bioelectric fields or currents.
-          * Extracellular voltage.
-          * Ion concentrations.
-          * Voltage polarity.
+    solver_type : SolverType
+        Type of **simulation solver** (i.e., numerical technique iteratively
+        computing simulation time steps) with which to solve this simulation.
 
     Attributes (Path: Export)
     ----------
@@ -279,7 +261,7 @@ class Parameters(YamlFileABC):
     # cast to floating point values.
 
     # ..................{ ALIASES ~ solver                   }..................
-    is_solver_fast = yaml_alias("['fast solver']", bool)
+    solver_type = yaml_enum_alias("['solver options']['type']", SolverType)
 
     # ..................{ ALIASES ~ path : seed              }..................
     seed_pickle_basename = yaml_alias("['init file saving']['worldfile']", str)
@@ -367,23 +349,6 @@ class Parameters(YamlFileABC):
 
         # Classify unloaded GRN subconfigurations.
         self.grn = SimConfGrnFile()
-
-    # ..................{ PROPERTIES ~ read-only             }..................
-    # Read-only properties, preventing callers from resetting these attributes.
-
-    @property
-    def is_solver_full(self) -> bool:
-        '''
-        ``True`` only if this simulation is solved via the full-bodied BETSE
-        solver rather than the equivalent circuit solver.
-
-        See Also
-        ----------
-        :attr:`is_solver_fast`
-            Antonym of this boolean.
-        '''
-
-        return not self.is_solver_fast
 
     # ..................{ LOADERS                            }..................
     #FIXME: Convert all or most of the variables parsed by this method into

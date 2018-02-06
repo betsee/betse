@@ -30,7 +30,7 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 # by a "conftest" plugin module. To defer the importation of this submodule
 # until *AFTER* test collection, this submodule is intentionally segregated.
 from betse.science.config import confio
-from betse.science.config.confenum import IonProfileType
+from betse.science.config.confenum import IonProfileType, SolverType
 from betse.science.phase import phasereq
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
@@ -547,6 +547,22 @@ class SimConfigTestWrapper(object):
         # Enable all optional settings supported by these exports.
         results['enumerate cells'] = True
         results['overlay currents'] = True
+
+    # ..................{ ENABLERS ~ solver                  }..................
+    def enable_solver_full(self) -> None:
+        '''
+        Enable the complete BETSE solver.
+        '''
+
+        self._p.solver_type = SolverType.FULL
+
+
+    def enable_solver_circuit(self) -> None:
+        '''
+        Enable the equivalent circuit-based BETSE solver.
+        '''
+
+        self._p.solver_type = SolverType.CIRCUIT
 
     # ..................{ PRIVOTE ~ iterators                }..................
     @property

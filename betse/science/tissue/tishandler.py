@@ -8,7 +8,7 @@
 import copy
 import numpy as np
 from betse.exceptions import BetseSimTissueException
-from betse.science.config.confenum import CellsPickerType
+from betse.science.config.confenum import CellsPickerType, SolverType
 from betse.science.math import modulate as mod
 from betse.science.math import toolbox as tb
 from betse.science.tissue.tisprofile import CutProfile, TissueProfile
@@ -1198,5 +1198,6 @@ class TissueHandler(object):
         self.tissueProfiles(sim, cells, p)
         cells.redo_gj(self, p)  # redo gap junctions to isolate different tissue types
 
-        if p.is_solver_fast:
+        # If this is the fast BETSE solver, re-initialize this solver.
+        if p.solver_type is SolverType.CIRCUIT:
             sim.fast_sim_init(cells, p)

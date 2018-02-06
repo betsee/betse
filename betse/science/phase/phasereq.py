@@ -8,6 +8,10 @@ High-level **simulation pipeline requirement** (i.e., prerequisite
 simulation feature required by a runner) functionality.
 '''
 
+#FIXME: This submodule is "getting long in the tooth." Shift all globals defined
+#below into a new submodule -- say, "betse.science.phasereqs". Then rename the
+#existing "betse.science.phasereq" submodule to "betse.science.phasereqcls".
+
 #FIXME: Generalize the requirement globals defined below to be more globally
 #usable. Currently, they require the current "phase" object be passed to their
 #is_satisfied() methods, which is cumbersome at best. To rectify this, first
@@ -39,10 +43,17 @@ simulation feature required by a runner) functionality.
 #so worthwhile or sane. (Yay!)
 
 # ....................{ IMPORTS                            }....................
+from betse.science.config.confenum import SolverType
 from betse.science.phase.phasecls import SimPhase
-from betse.util.type.types import type_check, CallableTypes, SequenceTypes
-
-SimPhase   # ignore IDE warnings
+from betse.util.io.log import logs
+from betse.util.type.mapping import mappings
+from betse.util.type.types import (
+    type_check,
+    CallableTypes,
+    EnumMemberType,
+    MappingOrNoneTypes,
+    SequenceTypes,
+)
 
 # ....................{ SUPERCLASSES                       }....................
 class SimPhaseRequirement(object):
@@ -111,8 +122,15 @@ class SimPhaseRequirementEmbodied(SimPhaseRequirement):
     @type_check
     def __init__(
         self,
+
+        # Mandatory parameters.
         is_satisfied_body: str,
         set_satisfied_body: str,
+
+        # Optional parameters.
+        body_attrs: MappingOrNoneTypes = None,
+
+        # Parental parameters.
         *args, **kwargs
     ) -> None:
         '''
@@ -131,10 +149,36 @@ class SimPhaseRequirementEmbodied(SimPhaseRequirement):
             the body of a dynamically defined function:
             * Passed only the current simulation phase.
             * Enabling this requirement in this phase.
+        body_attrs : MappingOrNoneTypes
+            Dictionary mapping from the name to value of each attribute globally
+            exposed to the bodies of these dynamically defined functions.
+            Defaults to ``None``, in which case these bodies may only reference:
+            * The ``phase`` attribute defining the current simulation phase.
+            * The ``SimPhase`` class.
+            * the ``type_check`` decorator.
 
         All remaining parameters are passed as is to the superclass
         :meth:`SimPhaseRequirement.__init__` method.
         '''
+
+        # In unpassed, default this parameter to the empty dictionary.
+        if body_attrs is None:
+            body_attrs = {}
+
+        # Dictionary mapping from the name to value of each attribute globally
+        # exposed to the declaration of these dynamically defined functions.
+        #
+        # Since the exec() statement called below adds key-value pairs providing
+        # these functions to this dictionary, this dictionary is copied from the
+        # passed dictionary to avoid mutating caller data.
+        func_globals = {
+            'type_check': type_check,
+            'SimPhase': SimPhase,
+        }
+        func_globals.update(body_attrs)
+
+        # Dictionary mapping from the name to value of each such function.
+        funcs = {}
 
         # Raw string defining the functions to be passed to our superclass.
         func_bodies = '''
@@ -150,28 +194,27 @@ def set_satisfied(phase: SimPhase) -> None:
     set_satisfied_body=set_satisfied_body,
 )
 
-        # Dictionary mapping from local attribute names to values. Since these
-        # functions require no such attributes, the empty dictionary suffices.
-        local_attrs = {}
-
         # Dynamically define these functions.
-        exec(func_bodies, globals(), local_attrs)
+        exec(func_bodies, func_globals, funcs)
+        # logs.log_debug('requirement: %s; funcs: %r; functions: %s',
+        #     kwargs['name'], funcs, func_bodies,)
 
         # Initialize our superclass with these functions.
         super().__init__(
             *args,
-            is_satisfied =local_attrs['is_satisfied'],
-            set_satisfied=local_attrs['set_satisfied'],
+            is_satisfied=funcs['is_satisfied'],
+            set_satisfied=funcs['set_satisfied'],
             **kwargs)
 
 # ....................{ SUBCLASSES                         }....................
 class SimPhaseRequirementBoolExpr(SimPhaseRequirementEmbodied):
     '''
-    Simulation pipeline requirement initialized by a high-level boolean
-    Python expression rather than low-level callables.
+    Simulation pipeline requirement initialized by a high-level **boolean
+    Python expression** (i.e., both gettable and settable as a boolean value)
+    rather than a pair of low-level callables.
 
     This requirement is a caller convenience simplifying initialization in the
-    common case of a requirement reducing to a simple Python expression.
+    common case of a requirement reducing to a single boolean.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -199,6 +242,63 @@ class SimPhaseRequirementBoolExpr(SimPhaseRequirementEmbodied):
             *args,
             is_satisfied_body='return ' + bool_expr,
             set_satisfied_body=bool_expr + ' = True',
+            **kwargs)
+
+
+class SimPhaseRequirementEnumExpr(SimPhaseRequirementEmbodied):
+    '''
+    Simulation pipeline requirement initialized by a high-level **enumeration
+    Python expression** (i.e., both gettable and settable as an enumeration
+    value) rather than a pair of low-level callables.
+
+    This requirement is a caller convenience simplifying initialization in the
+    common case of a requirement reducing to a single enumeration.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(
+        self,
+        enum_expr: str,
+        enum_member: EnumMemberType,
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this requirement.
+
+        Parameters
+        ----------
+        enum_expr : str
+            Arbitrarily complex Python expression relative to the current
+            simulation phase evaluating to a gettable and settable attribute
+            whose value is this requirement's enumeration state (e.g.,
+            ``phase.p.solver_type``). This expression may (and typically should)
+            refer to the ``phase`` variable, bound to the current simulation
+            phase.
+        enum_member : EnumMemberType
+            Member of this enumeration satisfying this requirement (e.g.,
+            ``SolverType.FULL``).
+
+        All remaining parameters are passed as is to the superclass
+        :meth:`SimPhaseRequirementEmbodied.__init__` method.
+        '''
+
+        # Bodies of the functions dynamically defined by our superclass.
+        is_satisfied_body = 'return {} is {}'.format(
+            enum_expr, enum_member.name)
+        set_satisfied_body = '{} = {}'.format(
+            enum_expr, enum_member.name)
+
+        # Dictionary mapping from the name to value of this enumeration
+        # member, locally exposing this member to the above bodies.
+        body_attrs = {enum_member.name: enum_member.value}
+
+        # Initialize our superclass with all passed parameters.
+        super().__init__(
+            *args,
+            is_satisfied_body=is_satisfied_body,
+            set_satisfied_body=set_satisfied_body,
+            body_attrs=body_attrs,
             **kwargs)
 
 # ....................{ SUBCLASSES ~ all                   }....................
@@ -401,8 +501,11 @@ class SimPhaseRequirementIon(SimPhaseRequirementSolverFullAnd):
 #  * "test_cli_sim_noecm" to "test_cli_sim_full_noecm".
 #  * "test_cli_sim_ecm" to "test_cli_sim_full_ecm".
 
-SOLVER_FULL = SimPhaseRequirementBoolExpr(
-    name='complete BETSE solver', bool_expr='phase.p.is_solver_full')
+SOLVER_FULL = SimPhaseRequirementEnumExpr(
+    name='full BETSE solver',
+    enum_expr='phase.p.solver_type',
+    enum_member=SolverType.FULL,
+)
 '''
 Requirement that a simulation phase enable the complete BETSE solver.
 '''

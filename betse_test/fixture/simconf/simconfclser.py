@@ -96,9 +96,10 @@ class SimConfTestABC(object, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASSES                         }....................
-#FIXME: Most use of the increasingly obsolete "SimConfTestInternal.config" wrapper
-#attribute (both here and everywhere else) should be replaced by use of the new
-#"SimConfTestInternal.p" property, which increasingly provides all test functionality.
+#FIXME: Most use of the increasingly obsolete "SimConfTestInternal.config"
+#wrapper attribute (both here and everywhere else) should be replaced by use of
+#the new "SimConfTestInternal.p" property, which increasingly provides all test
+#functionality.
 class SimConfTestInternal(SimConfTestABC):
     '''
     Simulation configuration context subclass encapsulating a temporary

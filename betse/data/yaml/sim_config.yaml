@@ -29,16 +29,23 @@
 # https://en.wikipedia.org/wiki/YAML.
 
 # ------------------------------------------------------------------------------
-# SIMULATION MODE
+# SOLVER SETTINGS
 # ------------------------------------------------------------------------------
-# Allows for choice of "Full" ion-focused simulation or "Fast" equivalent circuit solver.
-#
-# The fast solver handles basic bioelectricity using the well-known analogy to electronic
-# circuits by calculating reversal potentials and conductivities from values in this config
-# file. The fast solver does not update concentrations of ions inside and out of cells.
+# Settings specific to simulation solvers (i.e., numerical techniques internally employed by
+# BETSE to iteratively compute each time step of this simulation).
 
-fast solver: False  # Enable equivalent circuit solver? If "False", the complete BETSE
-                    # solver is enabled itself.
+solver options:
+  type: full # Type of solver to enable for this simulation, as any following string:
+             # * "full", a complete but slower solver producing publication-quality results
+             #   by comprehensively simulating all possible bioelectrical phenomena.
+             # * "circuit", an incomplete but faster solver producing draft-quality results
+             #   by the well-known equivalent circuit formalism analogizing biological
+             #   systems to electronic circuits. While integrated with gene regulatory
+             #   networks (GRNs), this solver *CANNOT* simulate:
+             #   * Bioelectric fields or currents.
+             #   * Extracellular voltages or voltage polarities.
+             #   * Ion concentrations.
+             #   These phenomena are silently ignored when this solver is enabled.
 
 # ------------------------------------------------------------------------------
 # FILE HANDLING
@@ -73,6 +80,9 @@ results file saving:          # Initialization and simulation exports to save.
 # ------------------------------------------------------------------------------
 # Settings specific to the initialization.
 
+automatically run initialization: True     # If init file is not found, do you wish to
+                                           # automatically run an init?
+
 init time settings:
   time step: 1.0e-2           # time step-size [s] (recommended at least 1.0e-2 or smaller)
   total time: 5.0             # end time [s]
@@ -81,9 +91,6 @@ init time settings:
 # ------------------------------------------------------------------------------
 # SIMULATION SETTINGS
 # ------------------------------------------------------------------------------
-
-automatically run initialization: True     # If init file is not found, do you wish to
-                                           # automatically run an init?
 
 sim time settings:
 
@@ -883,7 +890,7 @@ results options:
                               # "autoscale" is True.
             maximum:  10.0    # Maximum fixed colorbar value. Ignored if
                               # "autoscale" is True.
-        # Example final all-cells intracellular electric field plot.
+        # Example final cell cluster intracellular electric field plot.
         - type: electric_intra
           enabled: True
           colorbar:
