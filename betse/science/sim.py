@@ -1625,6 +1625,7 @@ class Simulator(object):
             Jgj = self.G_gj*np.dot(cells.M_sum_mems, self.vgj)
 
             # Update Vmem:
+            # FIXME: this could probably include a tally of currents, as well as cell self-polarization
 
             Jmem = np.dot(cells.M_sum_mems, self.extra_J_mem*cells.mem_sa)/cells.cell_sa
 
@@ -1997,7 +1998,6 @@ class Simulator(object):
         if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
             rho_surf = self.rho_cells * cells.diviterm
-
             self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells]
 
             # change in charge density at the membrane:
@@ -2022,8 +2022,14 @@ class Simulator(object):
             # convert volume charge density to surface charge density:
             rho_surf = self.rho_cells*cells.diviterm
 
-            self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
-            # self.vm += -(1/p.cm)*self.Jn*p.dt + (1/p.cm)*P_env + (1/p.cm)*P_cells
+            if p.is_ecm:
+
+                self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
+                # self.vm += -(1/p.cm)*self.Jn*p.dt + (1/p.cm)*P_env + (1/p.cm)*P_cells
+
+            else:
+
+                self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells] +  (1 / p.cm) * P_cells
 
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems

@@ -60,18 +60,6 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
     exp_alpha = np.exp(-alpha)
 
     deno = -np.expm1(-alpha)   # calculate the denominator for the electrodiffusion equation,..
-    #
-    # izero = (deno==0).nonzero()     # get the indices of the zero and non-zero elements of the denominator
-    # inotzero = (deno!=0).nonzero()
-    #
-    # # initialize data matrices to the same shape as input data
-    # flux = np.zeros(deno.shape)
-    #
-    # if len(deno[izero]):   # if there's anything in the izero array:
-    #      # calculate the flux for those elements as standard diffusion [mol/m2s]:
-    #     flux[izero] = -(Dc[izero]/d[izero])*(cB[izero] - cA[izero])
-    #
-    # if len(deno[inotzero]):   # if there's any indices in the inotzero array:
 
     # calculate the flux for those elements:
     flux = -((Dc*alpha)/d)*((cB -cA*exp_alpha)/deno)*rho
@@ -543,12 +531,12 @@ def ghk_calculator(sim, cells, p):
     """
 
 
-    # FIXME the Goldman calculator should be altered to account for network pumps and channels!
+    # FIXME the Goldman calculator must be altered to account for network pumps and channels!!
     # begin by initializing all summation arrays for the cell network:
-    sum_PmAnion_out = np.zeros(len(cells.cell_i))
-    sum_PmAnion_in = np.zeros(len(cells.cell_i))
-    sum_PmCation_out = np.zeros(len(cells.cell_i))
-    sum_PmCation_in = np.zeros(len(cells.cell_i))
+    sum_PmAnion_out = []
+    sum_PmAnion_in = []
+    sum_PmCation_out = []
+    sum_PmCation_in = []
 
     for i, z in enumerate(sim.zs):
 
@@ -569,14 +557,89 @@ def ghk_calculator(sim, cells, p):
 
         if ion_type == -1:
 
-            sum_PmAnion_in = sum_PmAnion_in + Dm * conc_cells * (1 / p.tm)
-            sum_PmAnion_out = sum_PmAnion_out + Dm * conc_env * (1 / p.tm)
+            sum_PmAnion_in.append(Dm * conc_cells * (1 / p.tm))
+            sum_PmAnion_out.append(Dm * conc_env * (1 / p.tm))
 
 
         if ion_type == 1:
 
-            sum_PmCation_in = sum_PmCation_in + Dm * conc_cells * (1 / p.tm)
-            sum_PmCation_out = sum_PmCation_out + Dm * conc_env * (1 / p.tm)
+            sum_PmCation_in.append(Dm * conc_cells * (1 / p.tm))
+            sum_PmCation_out.append( Dm * conc_env * (1 / p.tm))
+
+    if p.molecules_enabled:
+
+        for name in sim.molecules.core.channels:
+            obj = sim.molecules.core.channels[name]
+
+            for ii, relP in zip(obj.channel_core.ions, obj.channel_core.rel_perm):
+
+                ion_i = sim.get_ion(ii)
+                zi = sim.zs[ion_i]
+                conc_cells = sim.cc_cells[ion_i]
+
+                # tag as anion or cation
+                ion_type = np.sign(zi)
+
+                if p.is_ecm is True:
+                    # average entities from membranes to the cell centres:
+                    conc_env = np.dot(cells.M_sum_mems, sim.cc_env[ion_i][cells.map_mem2ecm]) / cells.num_mems
+
+                else:
+
+                    conc_env = np.dot(cells.M_sum_mems, sim.cc_env[ion_i]) / cells.num_mems
+
+                if obj.channel_core.DChan is not None:
+                    Dmo = obj.channel_core.DChan*relP
+                    Dm = np.dot(cells.M_sum_mems, Dmo) / cells.num_mems
+
+                else:
+                    Dm = 0.0
+
+                if ion_type == -1:
+                    sum_PmAnion_in.append(Dm * conc_cells * (1 / p.tm))
+                    sum_PmAnion_out.append(Dm * conc_env * (1 / p.tm))
+
+                if ion_type == 1:
+                    sum_PmCation_in.append( Dm * conc_cells * (1 / p.tm))
+                    sum_PmCation_out.append(Dm * conc_env * (1 / p.tm))
+
+    if p.grn_enabled:
+
+        for name in sim.grn.core.channels:
+            obj = sim.grn.core.channels[name]
+
+            for ii, relP in zip(obj.channel_core.ions, obj.channel_core.rel_perm):
+
+                ion_i = sim.get_ion(ii)
+                zi = sim.zs[ion_i]
+                conc_cells = sim.cc_cells[ion_i]
+
+                # tag as anion or cation
+                ion_type = np.sign(zi)
+
+                if p.is_ecm is True:
+                    # average entities from membranes to the cell centres:
+                    conc_env = np.dot(cells.M_sum_mems,
+                                      sim.cc_env[ion_i][cells.map_mem2ecm]) / cells.num_mems
+
+                else:
+
+                    conc_env = np.dot(cells.M_sum_mems, sim.cc_env[ion_i]) / cells.num_mems
+
+                if obj.channel_core.DChan is not None:
+                    Dmo = obj.channel_core.DChan * relP
+                    Dm = np.dot(cells.M_sum_mems, Dmo) / cells.num_mems
+
+                else:
+                    Dm = 0.0
+
+                if ion_type == -1:
+                    sum_PmAnion_in.append(Dm * conc_cells * (1 / p.tm))
+                    sum_PmAnion_out.append(Dm * conc_env * (1 / p.tm))
+
+                if ion_type == 1:
+                    sum_PmCation_in.append(Dm * conc_cells * (1 / p.tm))
+                    sum_PmCation_out.append(Dm * conc_env * (1 / p.tm))
 
 
     # NaKrate = (np.dot(cells.M_sum_mems, sim.rate_NaKATP)/cells.num_mems)
@@ -584,8 +647,13 @@ def ghk_calculator(sim, cells, p):
     # sum together contributions for Na and K flux across the membrane:
     # NaKflux = NaKrate - (2/3)*NaKrate
 
+    sum_PmAnion_in_i = np.sum(sum_PmAnion_in, axis = 0)
+    sum_PmAnion_out_i = np.sum(sum_PmAnion_out, axis=0)
+    sum_PmCation_in_i = np.sum(sum_PmCation_in, axis=0)
+    sum_PmCation_out_i = np.sum(sum_PmCation_out, axis=0)
+
     sim.vm_GHK = ((p.R * sim.T) / p.F) * np.log(
-        (sum_PmCation_out + sum_PmAnion_in) / (sum_PmCation_in + sum_PmAnion_out))
+        (sum_PmCation_out_i + sum_PmAnion_in_i) / (sum_PmCation_in_i + sum_PmAnion_out_i))
 
 def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell =False, alpha_max=1.0e-8, Km_X=1.0,
                  Km_ATP=1.0, met = None, n=1, ignoreECM = True, rho = 1.0):

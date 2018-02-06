@@ -3089,6 +3089,9 @@ class MasterOfNetworks(object):
                     # Store channel flux specific to the channel as well:
                     chan.channel_core.chan_flux = f_ED
 
+                    # Store the channel's diffusion constant:
+                    chan.channel_core.DChan = DChan
+
                 # print('---------')
 
     def run_fast_loop_channels(self, phase: SimPhase) -> None:
@@ -3154,8 +3157,6 @@ class MasterOfNetworks(object):
 
                     # Store channel flux specific to the channel as well:
                     chan.channel_core.chan_flux = J_ED/(zzz*p.F)
-
-
 
     def run_loop_modulators(self, sim, cells, p):
 
@@ -4040,6 +4041,12 @@ class MasterOfNetworks(object):
 
             obj.flux_time = []
 
+        for name in self.channels:
+
+            obj = self.channels[name]
+            obj.D_time = []
+            obj.flux_time = []
+
         for name in self.reactions:
             obj = self.reactions[name]
 
@@ -4061,22 +4068,31 @@ class MasterOfNetworks(object):
 
             obj = self.molecules[name]
 
-            obj.c_mems_time.append(obj.cc_at_mem)
-            obj.c_cells_time.append(obj.c_cells)
+            obj.c_mems_time.append(obj.cc_at_mem*1)
+            obj.c_cells_time.append(obj.c_cells*1)
 
-            cc_env = np.copy(obj.c_env)
+            cc_env = np.copy(obj.c_env*1)
 
-            obj.c_env_time.append(cc_env)
+            obj.c_env_time.append(cc_env*1)
 
             if self.mit_enabled:
-                obj.c_mit_time.append(obj.c_mit)
+                obj.c_mit_time.append(obj.c_mit*1)
 
         # save rates of transporters and reactions
         for name in self.transporters:
             obj = self.transporters[name]
 
             if obj.flux is not None:
-                obj.flux_time.append(obj.flux)
+                obj.flux_time.append(obj.flux*1)
+
+        for name in self.channels:
+            obj = self.channels[name]
+
+            if obj.channel_core.DChan is not None:
+                obj.D_time.append(obj.channel_core.DChan*1)
+
+            if obj.channel_core.chan_flux is not None:
+                obj.flux_time.append(obj.channel_core.chan_flux*1)
 
         for i, name in enumerate(self.reactions):
             obj = self.reactions[name]
@@ -6340,6 +6356,8 @@ class Channel(object):
 
         # Initialize channel flux storage array:
         self.channel_core.chan_flux = np.zeros(sim.mdl)
+
+        self.channel_core.DChan = None
 
     def plot_2D(self, sim, cells, p, saveImagePath):
 
