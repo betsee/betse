@@ -381,7 +381,7 @@ def _upgrade_sim_conf_to_0_7_1(p: Parameters) -> None:
     # If solver settings are undefined, synthesize them from settings elsewhere.
     if 'solver options' not in p._conf:
         p._conf['solver options'] = {
-            'type': 'full' if p._conf['fast solver'] else 'circuit'
+            'type': 'circuit' if p._conf['fast solver'] else 'full'
         }
 
     # Localize configuration subdictionaries for convenience.

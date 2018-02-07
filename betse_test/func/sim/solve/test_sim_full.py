@@ -21,8 +21,7 @@ def test_cli_sim_full_noecm(betse_cli_sim: 'CLISimTester') -> None:
     '''
 
     # Enable all exports and features required by these exports, excluding ECM.
-    betse_cli_sim.sim_state.config.enable_solver_full()
-    betse_cli_sim.sim_state.config.enable_exports_ecmless()
+    betse_cli_sim.sim_state.config.enable_solver_full_exports_noecm()
 
     # Test all default simulation-specific subcommands with this configuration.
     betse_cli_sim.run_subcommands_default()
@@ -41,8 +40,7 @@ def test_cli_sim_full_ecm(betse_cli_sim: 'CLISimTester') -> None:
     '''
 
     # Enable all exports and features required by these exports, including ECM.
-    betse_cli_sim.sim_state.config.enable_solver_full()
-    betse_cli_sim.sim_state.config.enable_exports_ecm()
+    betse_cli_sim.sim_state.config.enable_solver_full_exports_ecm()
 
     # Test all default simulation-specific subcommands with this configuration.
     betse_cli_sim.run_subcommands_default()
@@ -62,8 +60,7 @@ def test_cli_sim_full_vg_ions(betse_cli_sim: 'CLISimTester') -> None:
 
     # Enable all voltage-gated ion channels and features required by these
     # channels.
-    betse_cli_sim.sim_state.config.enable_solver_full()
-    betse_cli_sim.sim_state.config.enable_vg_ion_channels_all()
+    betse_cli_sim.sim_state.config.enable_solver_full_vg_ions()
 
     # Test all simulation-specific subcommands *EXCLUDING* plotting subcommands
     # (which other tests already exercise) with this configuration.

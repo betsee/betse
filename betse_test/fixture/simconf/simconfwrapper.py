@@ -31,7 +31,7 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 # until *AFTER* test collection, this submodule is intentionally segregated.
 from betse.science.config import confio
 from betse.science.config.confenum import IonProfileType, SolverType
-from betse.science.phase import phasereq
+from betse.science.phase.require import phasereqs
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
 from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
@@ -323,70 +323,6 @@ class SimConfigTestWrapper(object):
         self._p._conf['gene regulatory network settings'][
             'gene regulatory network simulated'] = True
 
-
-    def enable_vg_ion_channels_all(self) -> None:
-        '''
-        Enable all voltage-gated ion channels (e.g., sodium, potassium) _and_
-        all features required by these channels.
-
-        This method is intended to be called by non-interactive test suites
-        exercising these channels. Specifically, this method enables:
-
-        * The extracellular matrix (ECM).
-        * The mammalian ion profile (i.e., `animal`), enabling all ions.
-        * The intervention increasing the permeability of all cell membranes to
-          sodium (Na+).
-        * The voltage-gated sodium (Na+) channel `Nav1p2`, corresponding to the
-          adult human brain.
-        * The voltage-gated potassium (K+) channel `K_Slow`.
-        * Decreased time step and sampling rates, ensuring simulation stability.
-        * Increased duration and cell count, exposing simulation instabilities.
-
-        For efficiency, this method disables all visuals -- including both in-
-        and post-simulation animations and plots.
-        '''
-
-        # For efficiency, disable all visuals.
-        self.disable_visuals()
-
-        # Enable all features required by these channels.
-        self._p.is_ecm = True
-        self._p.ion_profile = IonProfileType.MAMMAL
-
-        # For stability, decrease both the time step and sampling rates.
-        self._p.sim_time_step     = 1e-4
-        self._p.sim_time_sampling = 1e-3
-
-        # For completeness, increase both the duration and cell count.
-        self._p.sim_time_total = 50e-3
-        self.environment_size = 250e-6
-
-        # Enable the intervention increasing sodium membrane permeability.
-        # Although the current default values for this intervention track those
-        # defined below fairly closely, the latter are nonetheless explicitly
-        # defined below to avoid issues when the former inevitably change.
-        sodium_membrane_permeability = self._p._conf['change Na mem']
-        sodium_membrane_permeability['event happens'] = True
-        sodium_membrane_permeability['change rate']   =  1.0e-3
-        sodium_membrane_permeability['change start']  =  5.0e-3
-        sodium_membrane_permeability['change finish'] = 30.0e-3
-        sodium_membrane_permeability['apply to'] = ['spot',]
-
-        #FIXME: Refactor this to use the new networks formalism.
-        # # Enable the voltage-gated sodium (Na+) channel Nav1p2.
-        # voltage_gated_sodium_channel = self._p._conf['voltage gated Na+']
-        # voltage_gated_sodium_channel['turn on'] = True
-        # voltage_gated_sodium_channel['channel type'] = ['Nav1p2',]
-        # # voltage_gated_sodium_channel['max value'] = 5.0e-6
-        # voltage_gated_sodium_channel['apply to'] = ['base',]
-        #
-        # # Enable the voltage-gated potassium (K+) channel K_Slow.
-        # voltage_gated_potassium_channel = self._p._conf['voltage gated K+']
-        # voltage_gated_potassium_channel['turn on'] = True
-        # voltage_gated_potassium_channel['channel type'] = ['K_Slow',]
-        # # voltage_gated_potassium_channel['max value'] = 5.0e-7
-        # voltage_gated_potassium_channel['apply to'] = ['base',]
-
     # ..................{ ENABLERS ~ export                  }..................
     @type_check
     def enable_anim_video(self, writer_name: str, filetype: str) -> None:
@@ -431,58 +367,99 @@ class SimConfigTestWrapper(object):
         self._p.anim.is_after_sim_save = True
         self._p.plot.is_after_sim_save = True
 
-    # ..................{ ENABLERS ~ export : ecm            }..................
-    def enable_exports_ecmless(self) -> None:
+    # ..................{ ENABLERS ~ solver                  }..................
+    def enable_solver_full(self) -> None:
         '''
-        Enable all available exports (e.g., CSVs, plots, animations) excluding
-        those requiring extracellular spaces, all features required by these
-        plots and animations, and any additional features trivially enabled
-        *without* substantially increasing time or space complexity.
+        Enable the complete BETSE solver.
+        '''
 
-        Specifically, this method enables all exports, features, and settings
-        enabled by the :meth:`_enable_visuals_common` method.
+        self._p.solver_type = SolverType.FULL
+
+
+    def enable_solver_circuit(self) -> None:
+        '''
+        Enable the equivalent circuit-based BETSE solver.
+        '''
+
+        self._p.solver_type = SolverType.CIRCUIT
+
+    # ..................{ ENABLERS ~ solver : full           }..................
+    def enable_solver_full_vg_ions(self) -> None:
+        '''
+        Enable all voltage-gated ion channels (e.g., sodium, potassium) *and*
+        all features required by these channels.
+
+        This method is intended to be called by non-interactive test suites
+        exercising these channels. Specifically, this method enables:
+
+        * The full BETSE solver.
+        * The extracellular matrix (ECM).
+        * The mammalian ion profile (i.e., `animal`), enabling all ions.
+        * The intervention increasing the permeability of all cell membranes to
+          sodium (Na+).
+        * The voltage-gated sodium (Na+) channel `Nav1p2`, corresponding to the
+          adult human brain.
+        * The voltage-gated potassium (K+) channel `K_Slow`.
+        * Decreased time step and sampling rates, ensuring simulation stability.
+        * Increased duration and cell count, exposing simulation instabilities.
+
+        For efficiency, this method disables all visuals -- including both in-
+        and post-simulation animations and plots.
+        '''
+
+        # For efficiency, disable all visuals.
+        self.disable_visuals()
+
+        # Enable all features required by these channels.
+        self.enable_solver_full()
+        self._p.is_ecm = True
+        self._p.ion_profile = IonProfileType.MAMMAL
+
+        # For stability, decrease both the time step and sampling rates.
+        self._p.sim_time_step     = 1e-4
+        self._p.sim_time_sampling = 1e-3
+
+        # For completeness, increase both the duration and cell count.
+        self._p.sim_time_total = 50e-3
+        self.environment_size = 250e-6
+
+        # Enable the intervention increasing sodium membrane permeability.
+        # Although the current default values for this intervention track those
+        # defined below fairly closely, the latter are nonetheless explicitly
+        # defined below to avoid issues when the former inevitably change.
+        sodium_membrane_permeability = self._p._conf['change Na mem']
+        sodium_membrane_permeability['event happens'] = True
+        sodium_membrane_permeability['change rate']   =  1.0e-3
+        sodium_membrane_permeability['change start']  =  5.0e-3
+        sodium_membrane_permeability['change finish'] = 30.0e-3
+        sodium_membrane_permeability['apply to'] = ['spot',]
+
+        #FIXME: Refactor this to use the new networks formalism.
+        # # Enable the voltage-gated sodium (Na+) channel Nav1p2.
+        # voltage_gated_sodium_channel = self._p._conf['voltage gated Na+']
+        # voltage_gated_sodium_channel['turn on'] = True
+        # voltage_gated_sodium_channel['channel type'] = ['Nav1p2',]
+        # # voltage_gated_sodium_channel['max value'] = 5.0e-6
+        # voltage_gated_sodium_channel['apply to'] = ['base',]
+        #
+        # # Enable the voltage-gated potassium (K+) channel K_Slow.
+        # voltage_gated_potassium_channel = self._p._conf['voltage gated K+']
+        # voltage_gated_potassium_channel['turn on'] = True
+        # voltage_gated_potassium_channel['channel type'] = ['K_Slow',]
+        # # voltage_gated_potassium_channel['max value'] = 5.0e-7
+        # voltage_gated_potassium_channel['apply to'] = ['base',]
+
+    # ..................{ ENABLERS ~ solver : full : exports }..................
+    def enable_solver_full_exports_ecm(self) -> None:
+        '''
+        Enable all available exports (e.g., CSVs, plots, animations) supported
+        by the full BETSE solver including those requiring extracellular spaces,
+        all features required by these exports, and any additional features
+        trivially enabled *without* increasing time or space complexity.
         '''
 
         # Enable all optional general settings supported by visual exports.
-        self._enable_visuals_common()
-
-        # Disable extracellular spaces.
-        self._p.is_ecm = False
-
-        # For each type of export pipeline to be exercised and list of all
-        # currently enabled exporters in this pipeline...
-        for pipe_type, pipe_list in self._pipes_type_list:
-            # For the name and metadata of each exporter (enabled or not)
-            # supported by this pipeline...
-            for pipe_exporter_name, pipe_exporter in pipe_type.iter_runners():
-                # If this export needs extracellular spaces, ignore this export.
-                if phasereq.ECM in pipe_exporter.requirements:
-                    continue
-                # Else, this export does *NOT* need extracellular space.
-
-                # New default export of this type appended to this pipeline.
-                pipe_exporter_conf = pipe_list.append_default()
-                pipe_exporter_conf.name = pipe_exporter_name
-
-
-    def enable_exports_ecm(self) -> None:
-        '''
-        Enable all available exports (e.g., CSVs, plots, animations) including
-        those requiring extracellular spaces, all features required by these
-        plots and animations, and any additional features trivially enabled
-        *without* substantially increasing time or space complexity.
-
-        Specifically, this method enables:
-
-        * All exports, features, and settings enabled by the
-          :meth:`_enable_visuals_common` method.
-        * The ``current_total``, ``electric_total``, ``fluid_total``, and
-          ``voltage_total`` plots and animations by enabling:
-          * The extracellular matrix (ECM).
-        '''
-
-        # Enable all optional general settings supported by visual exports.
-        self._enable_visuals_common()
+        self._enable_solver_full_exports()
 
         # Enable extracellular spaces.
         self._p.is_ecm = True
@@ -497,16 +474,47 @@ class SimConfigTestWrapper(object):
                 pipe_exporter_conf.name = pipe_exporter_name
 
 
-    def _enable_visuals_common(self) -> None:
+    def enable_solver_full_exports_noecm(self) -> None:
+        '''
+        Enable all available exports (e.g., CSVs, plots, animations) supported
+        by the full BETSE solver excluding those requiring extracellular spaces,
+        all features required by these exports, and any additional features
+        trivially enabled *without* increasing time or space complexity.
+        '''
+
+        # Enable all optional general settings supported by visual exports.
+        self._enable_solver_full_exports()
+
+        # Disable extracellular spaces.
+        self._p.is_ecm = False
+
+        # For each type of export pipeline to be exercised and list of all
+        # currently enabled exporters in this pipeline...
+        for pipe_type, pipe_list in self._pipes_type_list:
+            # For the name and metadata of each exporter (enabled or not)
+            # supported by this pipeline...
+            for pipe_exporter_name, pipe_exporter in pipe_type.iter_runners():
+                # If this export needs extracellular spaces, ignore this export.
+                if phasereqs.ECM in pipe_exporter.requirements:
+                    continue
+                # Else, this export does *NOT* need extracellular space.
+
+                # New default export of this type appended to this pipeline.
+                pipe_exporter_conf = pipe_list.append_default()
+                pipe_exporter_conf.name = pipe_exporter_name
+
+
+    def _enable_solver_full_exports(self) -> None:
         '''
         Enable all visual exports (e.g., in- and post-simulation plots and
-        animations) and simulation features required by these exports *without*
-        enabling extracellular spaces.
+        animations) supported by the full BETSE solver *and* all simulation
+        features required by these exports - excluding extracellular spaces.
 
         This method additionally enables optional settings improving test
         coverage but *not* explicitly required by these exports. Specifically,
         this method enables:
 
+        * The full BETSE solver.
         * Saving of all visual exports.
         * Cell enumeration, labelling each cell by its 0-based index.
         * Current overlays, displaying current density streamlines.
@@ -531,6 +539,9 @@ class SimConfigTestWrapper(object):
         # Enable saving of these exports.
         self.enable_visuals_save()
 
+        # Enable the full solver.
+        self.enable_solver_full()
+
         # Localize nested dictionaries for convenience.
         results = self._p._conf['results options']
         variable = self._p._conf['variable settings']
@@ -547,22 +558,6 @@ class SimConfigTestWrapper(object):
         # Enable all optional settings supported by these exports.
         results['enumerate cells'] = True
         results['overlay currents'] = True
-
-    # ..................{ ENABLERS ~ solver                  }..................
-    def enable_solver_full(self) -> None:
-        '''
-        Enable the complete BETSE solver.
-        '''
-
-        self._p.solver_type = SolverType.FULL
-
-
-    def enable_solver_circuit(self) -> None:
-        '''
-        Enable the equivalent circuit-based BETSE solver.
-        '''
-
-        self._p.solver_type = SolverType.CIRCUIT
 
     # ..................{ PRIVOTE ~ iterators                }..................
     @property

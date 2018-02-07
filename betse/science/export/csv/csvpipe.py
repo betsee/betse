@@ -15,10 +15,12 @@ import numpy as np
 from betse.exceptions import BetseMethodUnimplementedException
 from betse.lib.numpy import nparray
 from betse.science.export import expmath
+from betse.science.phase.phasecls import SimPhase, SimPhaseKind
 from betse.science.phase.pipe.pipeabc import SimPipeExportABC
 from betse.science.phase.pipe.piperun import piperunner
-from betse.science.phase.phasecls import SimPhase, SimPhaseKind
+from betse.science.phase.require import phasereqs
 from betse.science.visual.plot.plotutil import cell_ave
+from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
@@ -49,8 +51,13 @@ class SimPipelinerExportCSV(SimPipeExportABC):
         raise BetseMethodUnimplementedException()
 
     # ..................{ EXPORTERS ~ cell                   }..................
-    #FIXME: Requires full solver.
-    @piperunner(categories=('Single Cell', 'Raw Data'))
+    #FIXME: The requirements list should (arguably) be refined from the
+    #coarse-grained "SOLVER_FULL" requirement to the exact list of fine-grained
+    #requirements required by this exporter.
+    @piperunner(
+        categories=('Single Cell', 'Raw Data'),
+        requirements={phasereqs.SOLVER_FULL,},
+    )
     def export_cell_raw(self) -> None:
         '''
         Save a plaintext file in comma-separated value (CSV) format containing
@@ -111,7 +118,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             csv_column_name_values.extend((csv_column_name, cc_m))
 
         # ................{ MEMBRANE PERMEABILITIES          }..................
-        # create the header starting with membrane permeabilities
+        # Create the header starting with membrane permeabilities.
         for i in range(len(self._phase.sim.ionlabel)):
             if self._phase.p.is_ecm:
                 dd_m = [
@@ -320,6 +327,8 @@ class SimPipelinerExportCSV(SimPipeExportABC):
                 column_name_to_values=csv_column_name_to_values)
 
     # ..................{ PRIVATE ~ properties               }..................
+    #FIXME: This array should already be available from the "self._phase.cache"
+    #and hence need *NOT* be recomputed here.
     @property_cached
     def _cell_times_vmems(self) -> ndarray:
         '''
@@ -360,6 +369,10 @@ def pipeline(phase: SimPhase) -> None:
     # Post-simulation CSV pipeline producing all such CSVs.
     pipeliner = SimPipelinerExportCSV(phase)
 
+    #FIXME: This manual approach ignores exporter requirements and hence is
+    #horrible. Refactor this to leverage the pipelining approach taken by plots
+    #and animations. Presumably, doing so will require refactoring the
+    #configuration file to support CSV export pipelines. *shrug*
     if phase.p.exportData:
         pipeliner.export_cell_raw()
 

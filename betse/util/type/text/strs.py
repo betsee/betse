@@ -374,7 +374,8 @@ def join_as(
             texts_nonlast, delimiter_if_three_or_more_nonlast, texts_last)
 
 # ....................{ JOINERS ~ as : conjunction         }....................
-def join_as_conjunction(*texts) -> str:
+@type_check
+def join_as_conjunction(*texts: str) -> str:
     '''
     Conjunctively join all passed strings in a human-readable manner.
 
@@ -392,7 +393,8 @@ def join_as_conjunction(*texts) -> str:
     )
 
 
-def join_as_conjunction_double_quoted(*texts) -> str:
+@type_check
+def join_as_conjunction_double_quoted(*texts: str) -> str:
     '''
     Conjunctively double-quote and join all passed strings in a human-readable
     manner.
@@ -413,7 +415,8 @@ def join_as_conjunction_double_quoted(*texts) -> str:
     return join_as_conjunction(*texts_quoted)
 
 # ....................{ JOINERS ~ as : conjunction         }....................
-def join_as_disjunction(*texts) -> str:
+@type_check
+def join_as_disjunction(*texts: str) -> str:
     '''
     Disjunctively join all passed strings in a human-readable manner.
 
@@ -431,7 +434,8 @@ def join_as_disjunction(*texts) -> str:
     )
 
 
-def join_as_disconjunction_double_quoted(*texts) -> str:
+@type_check
+def join_as_disconjunction_double_quoted(*texts: str) -> str:
     '''
     Disjunctively double-quote and join all passed strings in a human-readable
     manner.

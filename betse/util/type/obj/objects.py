@@ -217,11 +217,35 @@ def is_c_based(obj: object) -> bool:
     return not is_pure_python(obj)
 
 # ....................{ GETTERS ~ metadata                 }....................
+def get_class_name(obj: object) -> str:
+    '''
+    Unqualified name of either the passed object if this object is itself a
+    class *or* the class of this object otherwise (i.e., if this object is *not*
+    a class).
+
+    Parameters
+    ----------
+    obj : object
+        Object to retrieve this class name for.
+
+    Returns
+    ----------
+    str
+        Unqualified name of this class.
+    '''
+
+    # This class if this object is a class *OR* this object's class otherwise.
+    cls = obj if isinstance(obj, ClassType) else obj.__class__
+
+    # Else, return this class' name.
+    return cls.__name__
+
+
 def get_class_module_name(obj: object) -> str:
     '''
-    Fully-qualified name of the module defining the passed object if this object
-    is itself a class *or* the class of this object otherwise (i.e., if this
-    object is *not* a class).
+    Fully-qualified name of the module defining either the passed object if this
+    object is itself a class *or* the class of this object otherwise (i.e., if
+    this object is *not* a class).
 
     Parameters
     ----------
@@ -240,8 +264,7 @@ def get_class_module_name(obj: object) -> str:
         *never* happen.
     '''
 
-    # This object's subclass if this object is not already a class *OR* this
-    # object as is otherwise.
+    # This class if this object is a class *OR* this object's class otherwise.
     cls = obj if isinstance(obj, ClassType) else obj.__class__
 
     # If this module does *NOT* provide the special "__file__" attribute, raise

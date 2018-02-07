@@ -11,8 +11,8 @@ simulated data of a single cell of the cell cluster).
 import numpy as np
 from betse.exceptions import BetseSimConfigException
 from betse.science.config.visual.confvisabc import SimConfVisualCellListItem
-from betse.science.phase import phasereq
 from betse.science.phase.pipe.piperun import piperunner
+from betse.science.phase.require import phasereqs
 from betse.science.visual.plot import plotutil
 from betse.science.visual.plot.pipe.plotpipeabc import PlotPipeABC
 from betse.util.type.types import IterableTypes
@@ -49,9 +49,10 @@ class PlotCellPipe(PlotPipeABC):
         return self._phase.p.plot.plots_cell_after_sim
 
     # ..................{ EXPORTERS ~ cell : current         }..................
-    #FIXME: Force every currently optional "conf" parameter to be mandatory.
-    #Specifically, excise "= None" everywhere below.
-    @piperunner(categories=('Current Density', 'Transmembrane',))
+    @piperunner(
+        categories=('Current Density', 'Transmembrane',),
+        requirements={phasereqs.ELECTRIC_CURRENT,},
+    )
     def export_currents_membrane(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all transmembrane current densities for the single cell indexed by
@@ -116,7 +117,7 @@ class PlotCellPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ cell : deform          }..................
     @piperunner(
         categories=('Deformation', 'Total',),
-        requirements={phasereq.DEFORM,},
+        requirements={phasereqs.DEFORM,},
     )
     def export_deform_total(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -153,7 +154,7 @@ class PlotCellPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ cell : ion             }..................
     @piperunner(
         categories=('Ion Concentration', 'Calcium'),
-        requirements={phasereq.ION_CALCIUM, },
+        requirements={phasereqs.ION_CALCIUM,},
     )
     def export_ion_calcium(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -183,7 +184,7 @@ class PlotCellPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Ion Concentration', 'M anion'),
-        requirements={phasereq.ION_M_ANION, },
+        requirements={phasereqs.ION_M_ANION,},
     )
     def export_ion_m_anion(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -212,7 +213,7 @@ class PlotCellPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Ion Concentration', 'Potassium'),
-        requirements={phasereq.ION_POTASSIUM, },
+        requirements={phasereqs.ION_POTASSIUM,},
     )
     def export_ion_potassium(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -242,7 +243,7 @@ class PlotCellPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Ion Concentration', 'Sodium'),
-        requirements={phasereq.ION_SODIUM, },
+        requirements={phasereqs.ION_SODIUM,},
     )
     def export_ion_sodium(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -273,7 +274,7 @@ class PlotCellPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ pressure               }..................
     @piperunner(
         categories=('Pressure', 'Osmotic',),
-        requirements={phasereq.PRESSURE_OSMOTIC,},
+        requirements={phasereqs.PRESSURE_OSMOTIC,},
     )
     def export_pressure_osmotic(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -302,7 +303,7 @@ class PlotCellPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Pressure', 'Total',),
-        requirements={phasereq.PRESSURE_TOTAL,},
+        requirements={phasereqs.PRESSURE_TOTAL,},
     )
     def export_pressure_total(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -330,10 +331,12 @@ class PlotCellPipe(PlotPipeABC):
         self._export(basename='P_time')
 
     # ..................{ EXPORTERS ~ cell : pump            }..................
-    #FIXME: Requires full solver.
     #FIXME: Actually plot the average of these rates. Currently, this method
     #only plots rates for a single arbitrarily selected membrane of this cell.
-    @piperunner(categories=('Pump Rate', 'Na-K-ATPase',))
+    @piperunner(
+        categories=('Pump Rate', 'Na-K-ATPase',),
+        requirements={phasereqs.PUMP_NAKATPASE,},
+    )
     def export_pump_nakatpase(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot the averages of the Na-K-ATPase membrane pump rates for the single

@@ -301,6 +301,55 @@ def get_converter_name_to_uppercase_enum_member(
 
 
 @type_check
+def get_enum_name_from_member(enum_member: EnumMemberType) -> str:
+    '''
+    Unqualified name of the enumeration class to which the passed enumeration
+    member belongs (e.g., ``SolverType`` given a member ``SolverType.FULL``).
+
+    Parameters
+    ----------
+    enum_member : EnumMemberType
+        Enumeration member to be inspected.
+
+    Returns
+    ----------
+    str
+        Unqualified name of this member's enumeration class.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj import objects
+
+    # Strange, but true. We don't ask questions. Neither should you.
+    return objects.get_class_name(enum_member)
+
+
+@type_check
+def get_member_name(enum_member: EnumMemberType) -> str:
+    '''
+    Partially-qualified name of the passed enumeration member (e.g.,
+    ``SolverType.FULL``), excluding the module defining this enumeration.
+
+    Note that the :attr:`enum_member.name` attribute already provides this
+    member's unqualified name (e.g., ``FULL``).
+
+    Parameters
+    ----------
+    enum_member : EnumMemberType
+        Enumeration member to be inspected.
+
+    Returns
+    ----------
+    str
+        Partially-qualified name of this enumeration member
+    '''
+
+    # Makes sense.
+    return str(enum_member)
+
+
+#FIXME: Rename to get_member_names_lowercase() for disambiguity.
+@type_check
 def get_names_lowercase(enum_type: EnumType) -> SequenceTypes:
     '''
     Sequence of the lowercased names of all members of the passed enumeration

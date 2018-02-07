@@ -10,9 +10,9 @@ run by its parent pipeline) functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimPipeException
-from betse.science.phase.phasereq import SimPhaseRequirement
+from betse.science.phase.require.phasereqcls import SimPhaseRequirement
+from betse.util.type import iterables
 from betse.util.type.cls.decorators import MethodDecorator
-from betse.util.type.obj import objects
 from betse.util.type.text import strs
 from betse.util.type.types import (
     type_check, CallableTypes, SequenceTypes, SetOrNoneTypes,)
@@ -24,7 +24,7 @@ class SimPipeRunner(MethodDecorator):
 
     All such runners decorated by the :func:`piperunner` decorator are
     guaranteed to be instances of this class, which provides all metadata passed
-    to this decorator as instance variables of the same name.
+    to that decorator as instance variables of the same name.
 
     Attributes
     ----------
@@ -65,7 +65,8 @@ class SimPipeRunner(MethodDecorator):
         categories : SequenceTypes
             Sequence of one or more human-readable category names.
         requirements: SetOrNoneTypes
-            Set of zero or more :class:`SimPhaseRequirement` instances.
+            Set of zero or more :class:`SimPhaseRequirement` instances *or*
+            ``None``, in which case this parameter defaults to the empty set.
 
         Raises
         ----------
@@ -76,18 +77,16 @@ class SimPipeRunner(MethodDecorator):
         # Initialize our superclass with the passed method.
         super().__init__(method)
 
-        # Set of all requirements, converted from the passed set of enumeration
-        # members to the values encapsulated by these members.
-        self.requirements = set()
+        # Default all unpassed parameters to sane defaults.
+        if requirements is None:
+            requirements = set()
 
-        # For each requirement in this set (defaulting to the empty tuple)...
-        for requirement in requirements or ():
-            # If this is *NOT* a requirement, raise an exception.
-            objects.die_unless_instance(
-                obj=requirement, cls=SimPhaseRequirement)
+        # If any item of this set is *NOT* a requirement, raise an exception.
+        iterables.die_unless_items_instance_of(
+            iterable=requirements, cls=SimPhaseRequirement)
 
-            # Add this requirement to this set.
-            self.requirements.add(requirement)
+        # Classify all passed parameters.
+        self.requirements = requirements
 
         # Classify all remaining passed parameters.
         self.categories = categories
@@ -123,8 +122,8 @@ class SimPipeRunner(MethodDecorator):
 
         # If this runner is unsatisfied, raise an exception.
         pipeline.die_unless_runner_satisfied(self)
-        # Else, this runner is satisfied. Since the prior call logged the
-        # attempt to run this runner, now do so.
+        # Else, this runner is satisfied. Since the prior call already logged
+        # the attempt to run this runner, avoid redoing so here.
 
         # Defer to the superclass implementation to run this runner.
         return super().__call__(pipeline, *args, **kwargs)

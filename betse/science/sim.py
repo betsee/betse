@@ -88,6 +88,9 @@ class Simulator(object):
 
     Attributes (Current Density: Extracellular)
     ----------
+    The following attributes are *always* computed when the full solver is
+    enabled, regardless of whether extracellular spaces are enabled.
+
     J_env_x : ndarray
         One-dimensional Numpy array of the X components of all extracellular
         current densities for the current time step, whose:

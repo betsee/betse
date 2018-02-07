@@ -8,10 +8,6 @@ High-level **simulation pipeline requirement** (i.e., prerequisite
 simulation feature required by a runner) functionality.
 '''
 
-#FIXME: This submodule is "getting long in the tooth." Shift all globals defined
-#below into a new submodule -- say, "betse.science.phasereqs". Then rename the
-#existing "betse.science.phasereq" submodule to "betse.science.phasereqcls".
-
 #FIXME: Generalize the requirement globals defined below to be more globally
 #usable. Currently, they require the current "phase" object be passed to their
 #is_satisfied() methods, which is cumbersome at best. To rectify this, first
@@ -43,16 +39,15 @@ simulation feature required by a runner) functionality.
 #so worthwhile or sane. (Yay!)
 
 # ....................{ IMPORTS                            }....................
-from betse.science.config.confenum import SolverType
 from betse.science.phase.phasecls import SimPhase
-from betse.util.io.log import logs
-from betse.util.type.mapping import mappings
+# from betse.util.io.log import logs
+from betse.util.type.text import strs
 from betse.util.type.types import (
     type_check,
     CallableTypes,
     EnumMemberType,
+    IterableTypes,
     MappingOrNoneTypes,
-    SequenceTypes,
 )
 
 # ....................{ SUPERCLASSES                       }....................
@@ -116,6 +111,14 @@ class SimPhaseRequirementEmbodied(SimPhaseRequirement):
 
     This requirement is a caller convenience simplifying initialization in the
     common case of a requirement reducing to two function bodies.
+
+    Attributes
+    ----------
+    _func_bodies : str
+        String of Python code with which the :attr:`is_satisfied` and
+        :attr:`set_satisfied` functions are defined. Technically, this string
+        need *not* be classified as an instance variable. Pragmatically, doing
+        so assists debugging elsewhere in the codebase.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -180,8 +183,9 @@ class SimPhaseRequirementEmbodied(SimPhaseRequirement):
         # Dictionary mapping from the name to value of each such function.
         funcs = {}
 
-        # Raw string defining the functions to be passed to our superclass.
-        func_bodies = '''
+        # Raw string defining the functions to be passed to our superclass,
+        # classified to assist debugging elsewhere in the codebase.
+        self._func_bodies = '''
 @type_check
 def is_satisfied(phase: SimPhase) -> bool:
     {is_satisfied_body}
@@ -195,7 +199,7 @@ def set_satisfied(phase: SimPhase) -> None:
 )
 
         # Dynamically define these functions.
-        exec(func_bodies, func_globals, funcs)
+        exec(self._func_bodies, func_globals, funcs)
         # logs.log_debug('requirement: %s; funcs: %r; functions: %s',
         #     kwargs['name'], funcs, func_bodies,)
 
@@ -291,7 +295,7 @@ class SimPhaseRequirementEnumExpr(SimPhaseRequirementEmbodied):
 
         # Dictionary mapping from the name to value of this enumeration
         # member, locally exposing this member to the above bodies.
-        body_attrs = {enum_member.name: enum_member.value}
+        body_attrs = {enum_member.name: enum_member}
 
         # Initialize our superclass with all passed parameters.
         super().__init__(
@@ -314,14 +318,14 @@ class SimPhaseRequirementAll(SimPhaseRequirement):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, requirements: SequenceTypes, *args, **kwargs) -> None:
+    def __init__(self, requirements: IterableTypes, *args, **kwargs) -> None:
         '''
         Initialize this requirement.
 
         Parameters
         ----------
-        requirements : SequenceTypes
-            Sequence of two or more child requirements to be conjuctively
+        requirements : IterableTypes
+            Iterable of two or more child requirements to be conjuctively
             composed into this parent requirement.
 
         All remaining parameters are passed as is to the superclass
@@ -377,34 +381,40 @@ class SimPhaseRequirementSolverFullAll(SimPhaseRequirementAll):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, requirements: SequenceTypes, *args, **kwargs) -> None:
+    def __init__(self, requirements: IterableTypes, *args, **kwargs) -> None:
         '''
         Initialize this requirement.
 
-        For convenience, the name of this requirement defaults to that of the
-        first passed requirement when the ``name`` parameter is *not* explicitly
-        passed.
+        If unpassed, the ``name`` parameter defaults to the human-readable
+        conjunction of the names of all passed requirements (e.g., "full solver,
+        fluid flow, and calcium ions (Ca2+)").
 
         Parameters
         ----------
-        requirements : SequenceTypes
-            Sequence of two or more child requirements to be conjuctively
+        requirements : IterableTypes
+            Iterable of two or more child requirements to be conjuctively
             composed into this parent requirement.
 
         All remaining parameters are passed as is to the superclass
         :meth:`SimPhaseRequirementAll.__init__` method.
         '''
 
-        # If no name was passed, default this requirement's name to that of the
-        # first passed requirement.
-        if 'name' not in kwargs:
-            kwargs['name'] = requirements[0].name
+        # Avoid circular import dependencies.
+        from betse.science.phase.require.phasereqs import SOLVER_FULL
 
-        # List of all passed requirements extended by a requirement for the
+        # If this requirement's name was *NOT* passed...
+        if 'name' not in kwargs:
+            # Generator yielding the name of each passed requirement.
+            requirement_names = (
+                requirement.name for requirement in requirements)
+
+            # Default this requirement's name to a concatenation of these names.
+            kwargs['name'] = strs.join_as_conjunction(*requirement_names)
+
+        # Set of all passed requirements extended by a requirement for the
         # complete BETSE solver. Since the passed sequence of requirements need
         # *NOT* be a list or tuple, the general-purpose extend() method is used.
-        requirements_full = [SOLVER_FULL]
-        requirements_full.extend(requirements)
+        requirements_full = {SOLVER_FULL,} | set(requirements)
 
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, requirements=requirements_full, **kwargs)
@@ -441,7 +451,7 @@ class SimPhaseRequirementSolverFullAnd(SimPhaseRequirementSolverFullAll):
         '''
 
         # Initialize our superclass with all passed parameters.
-        super().__init__(*args, requirements=(requirement,), **kwargs)
+        super().__init__(*args, requirements={requirement,}, **kwargs)
 
 
 class SimPhaseRequirementIon(SimPhaseRequirementSolverFullAnd):
@@ -484,143 +494,3 @@ class SimPhaseRequirementIon(SimPhaseRequirementSolverFullAnd):
 
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, requirement=ion_requirement, **kwargs)
-
-# ....................{ REQUIREMENTS                       }....................
-#FIXME: Add a new "FULL" requirement tracking which of the full or fast
-#variants of the simulator are enabled. Plots and animations assuming any of the
-#following simulation features should be skipped when this requirement is *NOT*
-#met: currents, fields, extracellular voltage, and voltage polarity.
-#
-#Additionally, we need to ensure that the following simulation features are
-#disabled when using the fast solver: fluid, deformation, osmosis, ion
-#concentrations, pressure.
-#FIXME: Exercise this functionality with tests as follows:
-#
-#* Define a new "test_cli_sim_fast" functional test enabling "p.is_solver_fast".
-#* Rename:
-#  * "test_cli_sim_noecm" to "test_cli_sim_full_noecm".
-#  * "test_cli_sim_ecm" to "test_cli_sim_full_ecm".
-
-SOLVER_FULL = SimPhaseRequirementEnumExpr(
-    name='full BETSE solver',
-    enum_expr='phase.p.solver_type',
-    enum_member=SolverType.FULL,
-)
-'''
-Requirement that a simulation phase enable the complete BETSE solver.
-'''
-
-# ....................{ REQUIREMENTS ~ feature             }....................
-DEFORM = SimPhaseRequirementSolverFullAnd(
-    requirement=SimPhaseRequirementBoolExpr(
-        name='cellular deformation', bool_expr='phase.p.deformation'))
-'''
-Requirement that a simulation phase enable cellular deformations.
-'''
-
-
-#FIXME: Does this require the full solver? We assume yes, but...
-ECM = SimPhaseRequirementBoolExpr(
-    name='extracellular spaces', bool_expr='phase.p.is_ecm')
-'''
-Requirement that a simulation phase enable the extracellular matrix (ECM), also
-referred to as "extracellular spaces."
-'''
-
-
-ELECTROOSMOSIS = SimPhaseRequirementSolverFullAnd(
-    requirement=SimPhaseRequirementBoolExpr(
-        name='electroosmotic flow', bool_expr='phase.p.sim_eosmosis'))
-'''
-Requirement that a simulation phase enable electroosmotic flow (EOF).
-'''
-
-
-#FIXME: Does this require the full solver? We assume yes, but... Yes!
-FLUID = SimPhaseRequirementBoolExpr(
-    name='fluid flow', bool_expr='phase.p.fluid_flow')
-'''
-Requirement that a simulation phase enable fluid flow.
-'''
-
-# ....................{ REQUIREMENTS ~ ion                 }....................
-ION_CALCIUM = SimPhaseRequirementIon(
-    name='calcium ions (Ca2+)', ion_name='Ca')
-'''
-Requirement that a simulation phase enable calcium ions (Ca2+).
-'''
-
-
-ION_CHLORIDE = SimPhaseRequirementIon(
-    name='chloride ions (Cl-)', ion_name='Cl')
-'''
-Requirement that a simulation phase enable chloride ions (Cl-).
-'''
-
-
-ION_POTASSIUM = SimPhaseRequirementIon(
-    name='potassium ions (K+)', ion_name='K')
-'''
-Requirement that a simulation phase enable potassium ions (K+).
-'''
-
-
-ION_M_ANION = SimPhaseRequirementIon(
-    name='M anions (M-)', ion_name='M')
-'''
-Requirement that a simulation phase enable M anions (M-).
-'''
-
-
-ION_SODIUM = SimPhaseRequirementIon(
-    name='sodium ions (Na+)', ion_name='Na')
-'''
-Requirement that a simulation phase enable sodium ions (Na+).
-'''
-
-# ....................{ REQUIREMENTS ~ pressure            }....................
-#FIXME: Does this require the full solver? We assume yes, but... Yes!
-PRESSURE_OSMOTIC = SimPhaseRequirementBoolExpr(
-    name='osmotic pressure', bool_expr='phase.p.deform_osmo',)
-'''
-Requirement that a simulation phase enable osmotic pressure.
-'''
-
-
-#FIXME: Does this require the full solver? We assume yes, but... Yes!
-PRESSURE_TOTAL = SimPhaseRequirement(
-    name='total pressure',
-    is_satisfied=lambda phase:
-        phase.p.deform_osmo or phase.p.scheduled_options['pressure'] != 0,
-
-    # For simplicity, define this requirement to be settable by enabling osmotic
-    # pressure. While the mechanical pressure event could also be enabled, doing
-    # so is less trivial than the former.
-    set_satisfied=lambda phase:
-        phase.p.__setattr__('deform_osmo', True),
-)
-'''
-Requirement that a simulation phase enable at least one pressure feature:
-namely, osmotic pressure or the mechanical pressure intervention.
-'''
-
-# ....................{ REQUIREMENTS ~ voltage             }....................
-VOLTAGE_MEMBRANE_GHK = SimPhaseRequirementSolverFullAnd(
-    requirement=SimPhaseRequirementBoolExpr(
-        name='Goldman-Hodgkin-Katz (GHK) calculation',
-        bool_expr='phase.p.GHK_calc'))
-'''
-Requirement that a simulation phase enable alternative calculation of
-transmembrane voltages (Vmem) given the Goldman-Hodgkin-Katz (GHK) equation.
-'''
-
-
-VOLTAGE_POLARITY = SimPhaseRequirementSolverFullAnd(
-    requirement=SimPhaseRequirement(
-        name='cellular voltage polarizability',
-        is_satisfied =lambda phase: phase.p.cell_polarizability > 0,
-        set_satisfied=lambda phase: phase.p.__setattr__(
-            'cell_polarizability', 1e-4)))
-'''
-Requirement that a simulation phase enable cellular voltage polarizability.
-'''
