@@ -51,7 +51,7 @@ class PlotCellPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ cell : current         }..................
     @piperunner(
         categories=('Current Density', 'Transmembrane',),
-        requirements={phasereqs.ELECTRIC_CURRENT,},
+        requirements=phasereqs.ELECTRIC_CURRENT,
     )
     def export_currents_membrane(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -117,7 +117,7 @@ class PlotCellPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ cell : deform          }..................
     @piperunner(
         categories=('Deformation', 'Total',),
-        requirements={phasereqs.DEFORM,},
+        requirements=phasereqs.DEFORM,
     )
     def export_deform_total(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -154,7 +154,7 @@ class PlotCellPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ cell : ion             }..................
     @piperunner(
         categories=('Ion Concentration', 'Calcium'),
-        requirements={phasereqs.ION_CALCIUM,},
+        requirements=phasereqs.ION_CALCIUM,
     )
     def export_ion_calcium(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -184,7 +184,7 @@ class PlotCellPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Ion Concentration', 'M anion'),
-        requirements={phasereqs.ION_M_ANION,},
+        requirements=phasereqs.ION_M_ANION,
     )
     def export_ion_m_anion(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -213,7 +213,7 @@ class PlotCellPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Ion Concentration', 'Potassium'),
-        requirements={phasereqs.ION_POTASSIUM,},
+        requirements=phasereqs.ION_POTASSIUM,
     )
     def export_ion_potassium(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -243,7 +243,7 @@ class PlotCellPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Ion Concentration', 'Sodium'),
-        requirements={phasereqs.ION_SODIUM,},
+        requirements=phasereqs.ION_SODIUM,
     )
     def export_ion_sodium(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -274,7 +274,7 @@ class PlotCellPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ pressure               }..................
     @piperunner(
         categories=('Pressure', 'Osmotic',),
-        requirements={phasereqs.PRESSURE_OSMOTIC,},
+        requirements=phasereqs.PRESSURE_OSMOTIC,
     )
     def export_pressure_osmotic(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -303,7 +303,7 @@ class PlotCellPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Pressure', 'Total',),
-        requirements={phasereqs.PRESSURE_TOTAL,},
+        requirements=phasereqs.PRESSURE_TOTAL,
     )
     def export_pressure_total(self, conf: SimConfVisualCellListItem) -> None:
         '''
@@ -335,7 +335,7 @@ class PlotCellPipe(PlotPipeABC):
     #only plots rates for a single arbitrarily selected membrane of this cell.
     @piperunner(
         categories=('Pump Rate', 'Na-K-ATPase',),
-        requirements={phasereqs.PUMP_NAKATPASE,},
+        requirements=phasereqs.PUMP_NAKATPASE,
     )
     def export_pump_nakatpase(self, conf: SimConfVisualCellListItem) -> None:
         '''

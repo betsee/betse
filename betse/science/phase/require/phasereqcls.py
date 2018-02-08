@@ -4,8 +4,9 @@
 # See "LICENSE" for further details.
 
 '''
-High-level **simulation pipeline requirement** (i.e., prerequisite
-simulation feature required by a runner) functionality.
+Class hierarchy designing **simulation phase requirements** (i.e., objects
+encapsulating the current state of a single simulation feature for a given
+simulation phase).
 '''
 
 #FIXME: Generalize the requirement globals defined below to be more globally
@@ -39,23 +40,94 @@ simulation feature required by a runner) functionality.
 #so worthwhile or sane. (Yay!)
 
 # ....................{ IMPORTS                            }....................
+from abc import ABCMeta, abstractproperty
 from betse.science.phase.phasecls import SimPhase
 # from betse.util.io.log import logs
+from betse.util.type import iterables
+from betse.util.type.call.memoizers import property_cached
 from betse.util.type.text import strs
 from betse.util.type.types import (
     type_check,
     CallableTypes,
     EnumMemberType,
     IterableTypes,
+    IterableOrNoneTypes,
     MappingOrNoneTypes,
+    NoneType,
 )
 
+# Despite the ambiguous class name "Set," this abstract mixin is indeed specific
+# to immutable rather than mutable sets, as evidenced by the existence of
+# "collections.abc.MutableSet".
+from collections.abc import Hashable
+from collections.abc import Set as ImmutableSet
+
 # ....................{ SUPERCLASSES                       }....................
-class SimPhaseRequirement(object):
+class SimPhaseRequirementABC(metaclass=ABCMeta):
     '''
-    **Simulation pipeline requirement** (i.e., object encapsulating the
-    current state of a single simulation feature, such as extracellular spaces,
-    required by one or more simulation pipeline runners).
+    Abstract base class of all **simulation phase requirement** (i.e., object
+    encapsulating the current state of a single simulation feature for a given
+    simulation phase) subclasses.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    # Empty initializer, defined merely to simplify subclass initialization.
+    @type_check
+    def __init__(self, *args, **kwargs) -> None:
+        '''
+        Initialize this requirement.
+        '''
+
+        pass
+
+    # ..................{ PROPERTIES                         }..................
+    # Subclasses are required to implement the following abstract properties.
+
+    @abstractproperty
+    def name(self) -> str:
+        '''
+        Human-readable name of this requirement (e.g., "extracellular spaces").
+
+        For usability, the first character of this name should typically be
+        lower- rather than uppercase.
+        '''
+
+        pass
+
+
+    @abstractproperty
+    def is_satisfied(self) -> CallableTypes:
+        '''
+        Callable (e.g., function, lambda) passed only the current simulation
+        phase, returning ``True`` only if this requirement is enabled in this
+        phase.
+        '''
+
+        pass
+
+
+    @abstractproperty
+    def set_satisfied(self) -> CallableTypes:
+        '''
+        Callable (e.g., function, lambda) passed only the current simulation
+        phase, enabling this requirement in this phase.
+        '''
+
+        pass
+
+# ....................{ SUBCLASSES ~ requirement           }....................
+class SimPhaseRequirement(SimPhaseRequirementABC):
+    '''
+    **Simulation phase requirement** (i.e., high-level object encapsulating the
+    current state of a single simulation feature, such as extracellular spaces).
+
+    Caveats
+    ----------
+    The higher-level :class:`SimPhaseRequirements` class, which permits multiple
+    instances of this lower-level class to be efficiently composed together via
+    an immutable set-like API, is strongly preferable for external usage.
+    Instances of this lower-level class should typically *only* be instantiated
+    by the companion :mod:`betse.science.phase.require.phasereqs` submodule.
 
     Attributes
     ----------
@@ -76,41 +148,56 @@ class SimPhaseRequirement(object):
     @type_check
     def __init__(
         self,
+        name: str,
         is_satisfied: CallableTypes,
         set_satisfied: CallableTypes,
-        name: str,
     ) -> None:
         '''
         Initialize this requirement.
 
         Parameters
         ----------
-        is_satisfied : CallableTypes
-            Callable (e.g., function, lambda) passed only the current
-            simulation phase, returning ``True`` only if this requirement is
-            enabled in this phase.
-        set_satisfied : CallableTypes
-            Callable (e.g., function, lambda) passed only the current
-            simulation phase, enabling this requirement in this phase.
-        name : str
+        _name : str
             Human-readable name of this requirement (e.g., ``extracellular
             spaces``). For simplicity, the first character of this name should
             typically be lower- rather than uppercase.
+        _is_satisfied : CallableTypes
+            Callable (e.g., function, lambda) passed only the current
+            simulation phase, returning ``True`` only if this requirement is
+            enabled in this phase.
+        _set_satisfied : CallableTypes
+            Callable (e.g., function, lambda) passed only the current
+            simulation phase, enabling this requirement in this phase.
         '''
 
         # Classify all passed parameters.
-        self.is_satisfied = is_satisfied
-        self.set_satisfied = set_satisfied
-        self.name = name
+        self._is_satisfied = is_satisfied
+        self._set_satisfied = set_satisfied
+        self._name = name
 
+    # ..................{ PROPERTIES                         }..................
+    # Subclasses are required to implement the following abstract properties.
 
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def is_satisfied(self) -> CallableTypes:
+        return self._is_satisfied
+
+    @property
+    def set_satisfied(self) -> CallableTypes:
+        return self._set_satisfied
+
+# ....................{ SUBCLASSES ~ requirement : body    }....................
 class SimPhaseRequirementEmbodied(SimPhaseRequirement):
     '''
-    Simulation pipeline requirement initialized by high-level Python
-    function bodies rather than low-level callables.
+    String-based simulation phase requirement, initialized by strings defining
+    this requirement's functions rather than actual functions.
 
     This requirement is a caller convenience simplifying initialization in the
-    common case of a requirement reducing to two function bodies.
+    common case of a requirement whose functions are definable as strings.
 
     Attributes
     ----------
@@ -142,13 +229,13 @@ class SimPhaseRequirementEmbodied(SimPhaseRequirement):
         Parameters
         ----------
         is_satisfied_body: str
-            String of one or more arbitrary complex Python statements comprising
+            String of zero or more arbitrary complex Python statements comprising
             the body of a dynamically defined function:
             * Passed only the current simulation phase.
             * Returning ``True`` only if this requirement is enabled in this
               phase.
         set_satisfied_body: str
-            String of one or more arbitrary complex Python statements comprising
+            String of zero or more arbitrary complex Python statements comprising
             the body of a dynamically defined function:
             * Passed only the current simulation phase.
             * Enabling this requirement in this phase.
@@ -210,12 +297,12 @@ def set_satisfied(phase: SimPhase) -> None:
             set_satisfied=funcs['set_satisfied'],
             **kwargs)
 
-# ....................{ SUBCLASSES                         }....................
+
 class SimPhaseRequirementBoolExpr(SimPhaseRequirementEmbodied):
     '''
-    Simulation pipeline requirement initialized by a high-level **boolean
-    Python expression** (i.e., both gettable and settable as a boolean value)
-    rather than a pair of low-level callables.
+    String-based boolean simulation phase requirement, initialized by a single
+    **boolean expression string** (i.e., string dynamically evaluating to a
+    single gettable and settable boolean value).
 
     This requirement is a caller convenience simplifying initialization in the
     common case of a requirement reducing to a single boolean.
@@ -251,12 +338,12 @@ class SimPhaseRequirementBoolExpr(SimPhaseRequirementEmbodied):
 
 class SimPhaseRequirementEnumExpr(SimPhaseRequirementEmbodied):
     '''
-    Simulation pipeline requirement initialized by a high-level **enumeration
-    Python expression** (i.e., both gettable and settable as an enumeration
-    value) rather than a pair of low-level callables.
+    String-based enumeration member simulation phase requirement, initialized by
+    a single **enumeration member expression string** (i.e., string dynamically
+    evaluating to a single gettable and settable enumeration member value).
 
     This requirement is a caller convenience simplifying initialization in the
-    common case of a requirement reducing to a single enumeration.
+    common case of a requirement reducing to a single enumeration member.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -305,192 +392,191 @@ class SimPhaseRequirementEnumExpr(SimPhaseRequirementEmbodied):
             body_attrs=body_attrs,
             **kwargs)
 
-# ....................{ SUBCLASSES ~ all                   }....................
-class SimPhaseRequirementAll(SimPhaseRequirement):
+# ....................{ SUBCLASSES ~ requirements          }....................
+class SimPhaseRequirements(Hashable, ImmutableSet, SimPhaseRequirementABC):
     '''
-    Parent simulation pipeline requirement requiring two or more child
-    requirements to be **conjunctively satisfied** (i.e., to *all* be
-    satisfied by a given simulation phase).
+    Immutable set of simulation phase requirements, requiring zero or more
+    arbitrary requirements to be satisfied.
 
-    This requirement permits multiple requirements to be composed together into
-    an implicit logical conjunction expressing the ``and`` operation.
+    This set strictly conforms to the :class:`frozenset` API and hence supports
+    the following set operators for combining multiple instances of this class:
+
+    * `|`, performing set union.
+    * `&`, performing set intersection.
+    * `-`, performing asymmetric set difference.
+    * `^`, performing symmetric set difference.
+
+    Design
+    ----------
+    This set satisfies the :class:`SimPhaseRequirementABC` API and is thus
+    itself a valid requirement. Indeed, this set permits instances of that
+    lower-level API to be efficiently composed together via an immutable
+    set-like API and is thus recommended over that API for external usage.
+
+    This set inherits the abstract :class:`collections.abc.Set` mixin rather
+    than the concrete :class:`frozenset` type, as the latter is *not* a mixin.
+    In all respects, however, this set is usable as a :class:`frozenset`.
+
+    Attributes
+    ----------
+    _requirements : frozenset
+        Immutable set of zero or more arbitrary requirements, collectively
+        defining this requirement.
     '''
+
+    # ..................{ INSANITY                           }..................
+    # Satisfy the "Hashable" mixin via the "ImmutableSet" mixin. While
+    # ostensibly crazy, this is the officially documented means of doing so.
+    # Failing to do so commonly results in the following exception on attempting
+    # to utilize instances of this class elsewhere:
+    #     TypeError: unhashable type: 'SimPhaseRequirements'
+    __hash__ = ImmutableSet._hash
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, requirements: IterableTypes, *args, **kwargs) -> None:
+    def __init__(self, iterable: IterableOrNoneTypes = None) -> None:
         '''
         Initialize this requirement.
+
+        Design
+        ----------
+        To satisfy the :class:`ImmutableSet` API, this method *must* accept only
+        a single iterable. To quote `official documentation`_:
+
+            Since some set operations create new sets, the default mixin methods
+            need a way to create new instances from an iterable. The class
+            constructor is assumed to have a signature in the form
+            ``ClassName(iterable)``. That assumption is factored-out to an
+            internal classmethod called :meth:`_from_iterable` which calls
+            ``cls(iterable)`` to produce a new set. If the :class:`Set` mixin is
+            being used in a class with a different constructor signature, you
+            will need to override :meth:`_from_iterable` with a classmethod that
+            can construct new instances from an iterable argument.
+
+        .. _official documentation:
+            https://docs.python.org/3/library/collections.abc.html#collections.abc.AsyncGenerator
 
         Parameters
         ----------
-        requirements : IterableTypes
-            Iterable of two or more child requirements to be conjuctively
-            composed into this parent requirement.
-
-        All remaining parameters are passed as is to the superclass
-        :meth:`SimPhaseRequirementEmbodied.__init__` method.
+        iterable : IterableOrNoneTypes
+            Iterable of zero or more arbitrary requirements, collectively
+            defining this requirement. Since this requirement is an immutable
+            set, this iterable is the *only* means of defining this requirement.
+            Defaults to ``None``, in which case this set is permanently empty.
         '''
 
-        @type_check
-        def is_satisfied(phase: SimPhase) -> bool:
-            '''
-            ``True`` only if all child requirements composed by this parent
-            requirement are satisfied by the passed simulation phase.
-            '''
+        # Initialize our superclasses.
+        super().__init__()
 
-            # This requirement is satisfied if and only if...
-            return all(
-                # This child requirement is satisfied by this phase.
-                requirement.is_satisfied(phase)
-                # For each child requirement of this parent requirement...
-                for requirement in requirements)
+        # If no iterable was passed, default this iterable to the empty tuple.
+        if iterable is None:
+            iterable = ()
+
+        # If any item of the passed iterable is *NOT* a requirement, raise an
+        # exception.
+        iterables.die_unless_items_instance_of(
+            iterable=iterable, cls=SimPhaseRequirementABC)
+
+        # Classify this iterable as a set for subsequent efficiency.
+        self._requirements = frozenset(iterable)
+
+    # ..................{ SUPERCLASS ~ set                   }..................
+    # Abstract methods required to be implemented by the "ImmutableSet" mixin.
+
+    def __iter__(self):
+        return iter(self._requirements)
+
+    def __contains__(self, value) -> bool:
+        return value in self._requirements
+
+    def __len__(self) -> int:
+        return len(self._requirements)
+
+    # ..................{ SUPERCLASS ~ set : compare         }..................
+    # Abstract methods recommended to be implemented by the "ImmutableSet"
+    # mixin. To quote official documentation: "To override the comparisons
+    # (presumably for speed, as the semantics are fixed), redefine __le__() and
+    # __ge__(), then the other operations will automatically follow suit."
+
+    def __le__(self, other) -> bool:
+
+        # If "other" is an instance of this class, defer to the corresponding
+        # comparison operator of the "frozenset" class; else, fail gracefully.
+        return (
+            self._requirements <= other._requirements
+            if isinstance(other, SimPhaseRequirements) else
+            NotImplemented)
 
 
-        @type_check
-        def set_satisfied(phase: SimPhase) -> None:
-            '''
-            Modify the passed simulation phase as needed to ensure that all
-            child requirements composed by this parent requirement are satisfied
-            by this phase.
-            '''
+    def __ge__(self, other) -> bool:
 
-            # For each child requirement of this parent requirement...
-            for requirement in requirements:
-                # Ensure this child requirement is satisfied by this phase.
-                requirement.set_satisfied(phase)
+        # If "other" is an instance of this class, defer to the corresponding
+        # comparison operator of the "frozenset" class; else, fail gracefully.
+        return (
+            self._requirements >= other._requirements
+            if isinstance(other, SimPhaseRequirements) else
+            NotImplemented)
 
+    # ..................{ SUPERCLASS ~ requirement           }..................
+    # Abstract properties required to be implemented by the
+    # "SimPhaseRequirementABC" superclass.
 
-        # Initialize our superclass with all passed parameters.
-        super().__init__(
-            *args,
-            is_satisfied=is_satisfied,
-            set_satisfied=set_satisfied,
-            **kwargs)
-
-# ....................{ SUBCLASSES ~ all : solver          }....................
-class SimPhaseRequirementSolverFullAll(SimPhaseRequirementAll):
-    '''
-    Parent simulation pipeline requirement requiring both the complete BETSE
-    solver *and* two or more passed child requirements to be **conjunctively
-    satisfied** (i.e., to *all* be satisfied by a given simulation phase).
-
-    This requirement is a caller convenience simplifying initialization in the
-    common case of multiple requirements requiring the complete BETSE solver.
-    '''
-
-    # ..................{ INITIALIZERS                       }..................
-    @type_check
-    def __init__(self, requirements: IterableTypes, *args, **kwargs) -> None:
+    @property_cached
+    def name(self) -> str:
         '''
-        Initialize this requirement.
-
-        If unpassed, the ``name`` parameter defaults to the human-readable
-        conjunction of the names of all passed requirements (e.g., "full solver,
+        Human-readable name of this requirement, defined as the conjunction of
+        the names of all requirements comprising this set (e.g., "full solver,
         fluid flow, and calcium ions (Ca2+)").
 
-        Parameters
-        ----------
-        requirements : IterableTypes
-            Iterable of two or more child requirements to be conjuctively
-            composed into this parent requirement.
-
-        All remaining parameters are passed as is to the superclass
-        :meth:`SimPhaseRequirementAll.__init__` method.
+        For usability, the first character of this name should typically be
+        lower- rather than uppercase.
         '''
 
-        # Avoid circular import dependencies.
-        from betse.science.phase.require.phasereqs import SOLVER_FULL
+        # If this set is empty, return a sane empty name.
+        if not self._requirements:
+            return 'no simulation features'
+        # Else, this set contains at least one requirement.
 
-        # If this requirement's name was *NOT* passed...
-        if 'name' not in kwargs:
-            # Generator yielding the name of each passed requirement.
-            requirement_names = (
-                requirement.name for requirement in requirements)
+        # Generator yielding the name of each requirement in this set.
+        requirement_names = (
+            requirement.name for requirement in self._requirements)
 
-            # Default this requirement's name to a concatenation of these names.
-            kwargs['name'] = strs.join_as_conjunction(*requirement_names)
-
-        # Set of all passed requirements extended by a requirement for the
-        # complete BETSE solver. Since the passed sequence of requirements need
-        # *NOT* be a list or tuple, the general-purpose extend() method is used.
-        requirements_full = {SOLVER_FULL,} | set(requirements)
-
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, requirements=requirements_full, **kwargs)
+        # Create, return, and cache this name to be a human-readable conjunction
+        # of these names.
+        return strs.join_as_conjunction(*requirement_names)
 
 
-class SimPhaseRequirementSolverFullAnd(SimPhaseRequirementSolverFullAll):
-    '''
-    Parent simulation pipeline requirement requiring both the complete BETSE
-    solver *and* a single passed child requirement to be **conjunctively
-    satisfied** (i.e., to *all* be satisfied by a given simulation phase).
-
-    This requirement is a caller convenience simplifying initialization in the
-    common case of a single requirement requiring the complete BETSE solver.
-    '''
-
-    # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(
-        self, requirement: SimPhaseRequirement, *args, **kwargs) -> None:
+    def is_satisfied(self, phase: SimPhase) -> bool:
         '''
-        Initialize this requirement.
-
-        For convenience, the name of this requirement defaults to that of the
-        passed requirement if the ``name`` parameter is *not* explicitly passed.
-
-        Parameters
-        ----------
-        requirement : SimPhaseRequirement
-            Child requirement to be conjuctively composed into this parent
-            requirement.
-
-        All remaining parameters are passed as is to the superclass
-        :meth:`SimPhaseRequirementSolverFullAll.__init__` method.
+        ``True`` only if all child requirements composed by this parent
+        requirement are satisfied by the passed simulation phase.
         '''
 
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, requirements={requirement,}, **kwargs)
+        # This requirement is satisfied if and only if...
+        return all(
+            # This child requirement is satisfied by this phase.
+            requirement.is_satisfied(phase)
+            # For each child requirement of this parent requirement...
+            for requirement in self._requirements)
 
 
-class SimPhaseRequirementIon(SimPhaseRequirementSolverFullAnd):
-    '''
-    Simulation pipeline requirement initialized by a high-level ion name
-    rather than low-level callables.
-
-    This requirement is a caller convenience simplifying initialization in the
-    common case of a requirement reducing to a single ion. Since simulation of
-    ion concentrations requires the complete BETSE solver, this requirement is
-    the conjunction of that requirement *and* a custom requirement specific to
-    this ion.
-    '''
-
-    # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, ion_name: str, *args, **kwargs) -> None:
+    def set_satisfied(self, phase: SimPhase) -> None:
         '''
-        Initialize this requirement.
-
-        Parameters
-        ----------
-        ion_name : str
-            Name of the required ion, equivalent to a key of the
-            :attr:`Parameters.ions_dict` dictionary (e.g., ``Ca``, requiring
-            calcium ions).
-
-        All remaining parameters are passed as is to the superclass
-        :meth:`SimPhaseRequirementAll.__init__` method.
+        Modify the passed simulation phase as needed to ensure that all
+        child requirements composed by this parent requirement are satisfied
+        by this phase.
         '''
 
-        # Requirement that the passed ion is satisfied by a given phase.
-        ion_requirement = SimPhaseRequirementEmbodied(
-            name='{} ions'.format(ion_name),
-            is_satisfied_body=(
-                'return phase.p.ions_dict[{!r}] == 1'.format(ion_name)),
-            set_satisfied_body=(
-                'phase.p.ions_dict[{!r}] == 1'.format(ion_name)),
-        )
+        # For each child requirement of this parent requirement...
+        for requirement in self._requirements:
+            # Ensure this child requirement is satisfied by this phase.
+            requirement.set_satisfied(phase)
 
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, requirement=ion_requirement, **kwargs)
+# ....................{ TYPES                              }....................
+SimPhaseRequirementsOrNoneTypes = (SimPhaseRequirements, NoneType)
+'''
+Tuple of both the immutable requirements set tupe *and* that of the singleton
+``None`` object.
+'''

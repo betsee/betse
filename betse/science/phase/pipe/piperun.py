@@ -10,12 +10,12 @@ run by its parent pipeline) functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimPipeException
-from betse.science.phase.require.phasereqcls import SimPhaseRequirement
-from betse.util.type import iterables
+from betse.science.phase.require.phasereqcls import (
+    SimPhaseRequirements, SimPhaseRequirementsOrNoneTypes)
 from betse.util.type.cls.decorators import MethodDecorator
 from betse.util.type.text import strs
 from betse.util.type.types import (
-    type_check, CallableTypes, SequenceTypes, SetOrNoneTypes,)
+    type_check, CallableTypes, SequenceTypes,)
 
 # ....................{ CLASSES                            }....................
 class SimPipeRunner(MethodDecorator):
@@ -34,8 +34,8 @@ class SimPipeRunner(MethodDecorator):
         of hierarchical taxonomy).
     method_name : str
         Name of the method implementing this runner.
-    requirements : SetType
-        Set of zero or more :class:`SimPhaseRequirement` instances
+    requirements : SimPhaseRequirements
+        Immutable set of zero or more :class:`SimPhaseRequirement` instances
         specifying all simulation features required by this runner.
     description : str
         Human-readable description of this runner as a **single-line string**
@@ -53,7 +53,7 @@ class SimPipeRunner(MethodDecorator):
         self,
         method: CallableTypes,
         categories: SequenceTypes,
-        requirements: SetOrNoneTypes,
+        requirements: SimPhaseRequirementsOrNoneTypes,
     ) -> None:
         '''
         Initialize this class decorator.
@@ -64,9 +64,10 @@ class SimPipeRunner(MethodDecorator):
             Unbound method (i.e., function) to be decorated.
         categories : SequenceTypes
             Sequence of one or more human-readable category names.
-        requirements: SetOrNoneTypes
-            Set of zero or more :class:`SimPhaseRequirement` instances *or*
-            ``None``, in which case this parameter defaults to the empty set.
+        requirements : SimPhaseRequirementsOrNoneTypes
+            Immutable set of zero or more :class:`SimPhaseRequirement` instances
+            *or* ``None``, in which case this parameter defaults to the empty
+            immutable set of such instances.
 
         Raises
         ----------
@@ -79,11 +80,7 @@ class SimPipeRunner(MethodDecorator):
 
         # Default all unpassed parameters to sane defaults.
         if requirements is None:
-            requirements = set()
-
-        # If any item of this set is *NOT* a requirement, raise an exception.
-        iterables.die_unless_items_instance_of(
-            iterable=requirements, cls=SimPhaseRequirement)
+            requirements = SimPhaseRequirements()
 
         # Classify all passed parameters.
         self.requirements = requirements
@@ -135,7 +132,7 @@ def piperunner(
     categories: SequenceTypes,
 
     # Optional metadata.
-    requirements: SetOrNoneTypes = None,
+    requirements: SimPhaseRequirementsOrNoneTypes = None,
 ) -> CallableTypes:
     '''
     Decorator annotating simulation pipeline **runners** (i.e., methods of
@@ -178,8 +175,8 @@ def piperunner(
         * All other strings in this sequence name arbitrary categories of
           increasingly fine-grained depth, again intended to be shared between
           multiple runners.
-    requirements : optional[SetType]
-        Set of zero or more :class:`SimPhaseRequirement` instances
+    requirements : SimPhaseRequirementsOrNoneTypes
+        Immutable set of zero or more :class:`SimPhaseRequirement` instances
         specifying all simulation features required by this runner. This
         decorator then decorates this runner by performing the following logic
         immediately *before* calling this runner:

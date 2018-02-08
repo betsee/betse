@@ -66,7 +66,7 @@ class AnimCellsPipe(SimPipeExportABC):
     # ..................{ EXPORTERS ~ current                }..................
     @piperunner(
         categories=('Current Density', 'Intracellular',),
-        requirements={phasereqs.ELECTRIC_CURRENT,},
+        requirements=phasereqs.ELECTRIC_CURRENT,
     )
     def export_currents_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -107,7 +107,7 @@ class AnimCellsPipe(SimPipeExportABC):
 
     @piperunner(
         categories=('Current Density', 'Extracellular',),
-        requirements={phasereqs.ELECTRIC_CURRENT,},
+        requirements=phasereqs.ELECTRIC_CURRENT,
 
         #FIXME: Remove this after the "Simulator.I_tot_x_time" and
         #"Simulator.I_tot_x_time" arrays are well-defined with ECM disabled.
@@ -152,7 +152,7 @@ class AnimCellsPipe(SimPipeExportABC):
     # ..................{ EXPORTERS ~ deform                 }..................
     @piperunner(
         categories=('Deformation', 'Total',),
-        requirements={phasereqs.DEFORM,},
+        requirements=phasereqs.DEFORM,
     )
     def export_deform_total(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -192,7 +192,7 @@ class AnimCellsPipe(SimPipeExportABC):
     # ..................{ EXPORTERS ~ electric               }..................
     @piperunner(
         categories=('Electric Field', 'Intracellular',),
-        requirements={phasereqs.ELECTRIC_FIELD,},
+        requirements=phasereqs.ELECTRIC_FIELD,
     )
     def export_electric_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -233,7 +233,7 @@ class AnimCellsPipe(SimPipeExportABC):
 
     @piperunner(
         categories=('Electric Field', 'Extracellular',),
-        requirements={phasereqs.ELECTRIC_FIELD, phasereqs.ECM,},
+        requirements=phasereqs.ELECTRIC_FIELD_EXTRA,
     )
     def export_electric_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -274,7 +274,7 @@ class AnimCellsPipe(SimPipeExportABC):
     # ..................{ EXPORTERS ~ fluid                  }..................
     @piperunner(
         categories=('Fluid Flow', 'Intracellular',),
-        requirements={phasereqs.FLUID,},
+        requirements=phasereqs.FLUID,
     )
     def export_fluid_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -294,7 +294,7 @@ class AnimCellsPipe(SimPipeExportABC):
 
     @piperunner(
         categories=('Fluid Flow', 'Extracellular',),
-        requirements={phasereqs.FLUID, phasereqs.ECM,},
+        requirements=phasereqs.FLUID_EXTRA,
     )
     def export_fluid_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -314,7 +314,7 @@ class AnimCellsPipe(SimPipeExportABC):
     # ..................{ EXPORTERS ~ ion                    }..................
     @piperunner(
         categories=('Ion Concentration', 'Calcium',),
-        requirements={phasereqs.ION_CALCIUM,},
+        requirements=phasereqs.ION_CALCIUM,
     )
     def export_ion_calcium_intra(
         self, conf: SimConfVisualCellsListItem) -> None:
@@ -361,7 +361,7 @@ class AnimCellsPipe(SimPipeExportABC):
     # ..................{ EXPORTERS ~ microtubules           }..................
     @piperunner(
         categories=('Microtubules', 'Coherence',),
-        requirements={phasereqs.MICROTUBULE,},
+        requirements=phasereqs.MICROTUBULE,
     )
     def export_microtubule(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -385,7 +385,7 @@ class AnimCellsPipe(SimPipeExportABC):
     # ..................{ EXPORTERS ~ pressure               }..................
     @piperunner(
         categories=('Pressure', 'Total',),
-        requirements={phasereqs.PRESSURE_TOTAL,},
+        requirements=phasereqs.PRESSURE_TOTAL,
     )
     def export_pressure_total(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -407,7 +407,7 @@ class AnimCellsPipe(SimPipeExportABC):
 
     @piperunner(
         categories=('Pressure', 'Osmotic',),
-        requirements={phasereqs.PRESSURE_OSMOTIC,},
+        requirements=phasereqs.PRESSURE_OSMOTIC,
     )
     def export_pressure_osmotic(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -448,7 +448,7 @@ class AnimCellsPipe(SimPipeExportABC):
     # ..................{ EXPORTERS ~ voltage                }..................
     @piperunner(
         categories=('Voltage', 'Extracellular',),
-        requirements={phasereqs.VOLTAGE_EXTRA, phasereqs.ECM,},
+        requirements=phasereqs.VOLTAGE_EXTRA,
     )
     def export_voltage_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -489,7 +489,7 @@ class AnimCellsPipe(SimPipeExportABC):
 
     @piperunner(
         categories=('Voltage', 'Polarity',),
-        requirements={phasereqs.VOLTAGE_POLARITY,},
+        requirements=phasereqs.VOLTAGE_POLARITY,
     )
     def export_voltage_polarity(
         self, conf: SimConfVisualCellsListItem) -> None:

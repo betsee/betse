@@ -20,7 +20,7 @@ from betse.science.phase.pipe.pipeabc import SimPipeExportABC
 from betse.science.phase.pipe.piperun import piperunner
 from betse.science.phase.require import phasereqs
 from betse.science.visual.plot.plotutil import cell_ave
-from betse.util.io.log import logs
+# from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
@@ -56,7 +56,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
     #requirements required by this exporter.
     @piperunner(
         categories=('Single Cell', 'Raw Data'),
-        requirements={phasereqs.SOLVER_FULL,},
+        requirements=phasereqs.SOLVER_FULL,
     )
     def export_cell_raw(self) -> None:
         '''
