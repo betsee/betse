@@ -9,12 +9,9 @@ solver.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse_test.util.mark.fail import xfail
+# from betse_test.util.mark.fail import xfail
 
 # ....................{ TESTS                              }....................
-#FIXME: Resolve this as quickly as feasible, please.
-@xfail(reason=(
-    'Exports requiring the full solver have yet to be decorated as such.'))
 def test_cli_sim_circuit(betse_cli_sim: 'CLISimTester') -> None:
     '''
     Functional test exporting all available exports (e.g., CSVs, plots,
@@ -28,12 +25,8 @@ def test_cli_sim_circuit(betse_cli_sim: 'CLISimTester') -> None:
         Object running BETSE CLI simulation subcommands.
     '''
 
-    #FIXME: Improve the enable_solver_circuit() to additionally disable all
-    #exports unsupported by this solver. Sadly, doing so will require us to
-    #significantly refactor our current requirements API to utilize sets.
-
-    # Enable all exports and features required by these exports, excluding ECM.
-    betse_cli_sim.sim_state.config.enable_solver_circuit()
+    # Enable all exports and features required by these exports.
+    betse_cli_sim.sim_state.config.enable_solver_circuit_exports()
 
     # Test all default simulation-specific subcommands with this configuration.
     betse_cli_sim.run_subcommands_default()

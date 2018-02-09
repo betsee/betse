@@ -32,10 +32,13 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 from betse.science.config import confio
 from betse.science.config.confenum import IonProfileType, SolverType
 from betse.science.phase.require import phasereqs
+from betse.science.phase.require.abc.phasereqset import (
+    SimPhaseRequirementsOrNoneTypes)
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
 from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
 from betse.util.io.log import logs
+from betse.util.type.cls import classes
 from betse.util.type.types import type_check
 
 # ....................{ SUPERCLASSES                       }....................
@@ -378,10 +381,37 @@ class SimConfigTestWrapper(object):
 
     def enable_solver_circuit(self) -> None:
         '''
-        Enable the equivalent circuit-based BETSE solver.
+        Enable the equivalent circuit-based BETSE solver *and* disable all
+        simulation features unsupported by this solver.
         '''
 
         self._p.solver_type = SolverType.CIRCUIT
+
+    # ..................{ ENABLERS ~ solver : circuit        }..................
+    def enable_solver_circuit_exports(self) -> None:
+        '''
+        Enable all possible exports (e.g., CSVs, plots, animations) supported
+        by the equivalent circuit-based BETSE solver excluding those requiring
+        extracellular spaces, all features required by these exports, and any
+        additional features trivially enabled *without* increasing time or space
+        complexity.
+        '''
+
+        # Enable all simulation features, including the full BETSE solver but
+        # excluding extracellular spaces.
+        self._enable_solver_circuit_features()
+
+        # Disable extracellular spaces.
+        self._p.is_ecm = False
+
+        # Enable all possible exports excluding those requiring the full solver.
+        self._enable_exports(requirements_omit=phasereqs.SOLVER_FULL)
+
+        #FIXME: Excise this hack *AFTER* refactoring CSV exports to leverage our
+        #pipeline API. This is non-trivial and hence deprioritized, for now.
+
+        # Disable the CSV export requiring the full solver.
+        self._p.exportData = False
 
     # ..................{ ENABLERS ~ solver : full           }..................
     def enable_solver_full_vg_ions(self) -> None:
@@ -452,63 +482,155 @@ class SimConfigTestWrapper(object):
     # ..................{ ENABLERS ~ solver : full : exports }..................
     def enable_solver_full_exports_ecm(self) -> None:
         '''
-        Enable all available exports (e.g., CSVs, plots, animations) supported
+        Enable all possible exports (e.g., CSVs, plots, animations) supported
         by the full BETSE solver including those requiring extracellular spaces,
         all features required by these exports, and any additional features
         trivially enabled *without* increasing time or space complexity.
         '''
 
-        # Enable all optional general settings supported by visual exports.
-        self._enable_solver_full_exports()
+        # Enable all simulation features, including the full BETSE solver but
+        # excluding extracellular spaces.
+        self._enable_solver_full_features()
 
         # Enable extracellular spaces.
         self._p.is_ecm = True
 
-        # For each type of export pipeline to be exercised and list of all
-        # currently enabled exporters in this pipeline...
-        for pipe_type, pipe_list in self._pipes_type_list:
-            # For the name of each exporter supported by this pipeline...
-            for pipe_exporter_name, _ in pipe_type.iter_runners():
-                # New default export of this type appended to this pipeline.
-                pipe_exporter_conf = pipe_list.append_default()
-                pipe_exporter_conf.name = pipe_exporter_name
+        # Enable all possible exports.
+        self._enable_exports()
 
 
     def enable_solver_full_exports_noecm(self) -> None:
         '''
-        Enable all available exports (e.g., CSVs, plots, animations) supported
+        Enable all possible exports (e.g., CSVs, plots, animations) supported
         by the full BETSE solver excluding those requiring extracellular spaces,
         all features required by these exports, and any additional features
         trivially enabled *without* increasing time or space complexity.
         '''
 
-        # Enable all optional general settings supported by visual exports.
-        self._enable_solver_full_exports()
+        # Enable all simulation features, including the full BETSE solver but
+        # excluding extracellular spaces.
+        self._enable_solver_full_features()
 
         # Disable extracellular spaces.
         self._p.is_ecm = False
 
-        # For each type of export pipeline to be exercised and list of all
-        # currently enabled exporters in this pipeline...
-        for pipe_type, pipe_list in self._pipes_type_list:
-            # For the name and metadata of each exporter (enabled or not)
-            # supported by this pipeline...
+        # Enable all possible exports excluding those requiring extracellular
+        # spaces.
+        self._enable_exports(requirements_omit=phasereqs.ECM)
+
+    # ..................{ PRIVATE ~ enablers                 }..................
+    @type_check
+    def _enable_exports(
+        self,
+
+        # Optional parameters.
+        requirements_omit: SimPhaseRequirementsOrNoneTypes = None,
+    ) -> None:
+        '''
+        Enable all possible exports (e.g., CSVs, plots, animations) excluding
+        those requiring one or more of the passed simulation phase requirements
+        (e.g., the full BETSE solver, extracellular spaces).
+
+        Exports already enabled by the current simulation configuration are
+        gracefully preserved as is rather than erroneously readded to their
+        respective pipelines.
+
+        Parameters
+        ----------
+        requirements_omit : SimPhaseRequirementsOrNoneTypes
+            Immutable set of all simulation phase requirements such that exports
+            requiring one or more requirements in this set are *not* enabled by
+            this method. Defaults to ``None``, in which case all possible
+            exports are unconditionally enabled.
+        '''
+
+        # If unpassed, default the set of requirements to omit to the empty set.
+        if requirements_omit is None:
+            requirements_omit = phasereqs.NONE
+
+        # For each type of export pipeline to be exercised *AND* a sequence of
+        # all exporters enabled by this pipeline...
+        for pipe_type, pipe_exporters_enabled in (
+            self._pipes_type_exporters_enabled):
+            # Name of this pipeline for logging purposes.
+            pipeline_name = classes.get_name(pipe_type)
+
+            # Set of the names of all such exporters, for subsequent lookup.
+            pipe_exporters_enabled_name = frozenset(
+                pipe_exporter_enabled.name
+                for pipe_exporter_enabled in pipe_exporters_enabled)
+            logs.log_debug(
+                'Pipeline "%s" exporters enabled: %r',
+                pipeline_name, pipe_exporters_enabled_name)
+
+            # For the name of each possible exporter supported by this pipeline,
+            # regardless of whether that exporter is currently enabled or not...
             for pipe_exporter_name, pipe_exporter in pipe_type.iter_runners():
-                # If this export needs extracellular spaces, ignore this export.
-                if phasereqs.ECM in pipe_exporter.requirements:
+                # logs.log_debug(
+                #     'Considering pipeline "%s" exporter "%s"...',
+                #     pipeline_name, pipe_exporter_name)
+
+                # If this exporter is already enabled by this pipeline...
+                if pipe_exporter_name in pipe_exporters_enabled_name:
+                    # Log this continuation.
+                    logs.log_debug(
+                        'Ignoring pipeline "%s" exporter "%s", due to '
+                        'already being enabled...',
+                        pipeline_name, pipe_exporter_name)
+
+                    # Continue to the next possible exporter.
                     continue
-                # Else, this export does *NOT* need extracellular space.
+                # Else if this exporter requires one or more simulation features
+                # explicitly excluded by the caller...
+                elif pipe_exporter.requirements.isintersection(
+                    requirements_omit):
+                    # Log this exclusion.
+                    logs.log_debug(
+                        'Excluding pipeline "%s" exporter "%s", due to '
+                        'failing to satisfy test requirements...',
+                        pipeline_name, pipe_exporter_name)
+
+                    # Continue to the next possible exporter.
+                    continue
+                # Else, this exporter is *NOT* already enabled by this pipeline
+                # and does *NOT* require omitted simulation features.
+
+                # Log this inclusion.
+                logs.log_debug(
+                    'Including pipeline "%s" exporter "%s"...',
+                    pipeline_name, pipe_exporter_name)
 
                 # New default export of this type appended to this pipeline.
-                pipe_exporter_conf = pipe_list.append_default()
+                pipe_exporter_conf = pipe_exporters_enabled.append_default()
                 pipe_exporter_conf.name = pipe_exporter_name
 
-
-    def _enable_solver_full_exports(self) -> None:
+    # ..................{ PRIVATE ~ enablers : solver        }..................
+    def _enable_solver_circuit_features(self) -> None:
         '''
-        Enable all visual exports (e.g., in- and post-simulation plots and
-        animations) supported by the full BETSE solver *and* all simulation
-        features required by these exports - excluding extracellular spaces.
+        Enable all simulation features required by all exports (e.g., CSVs,
+        plots, animations) supported by the equivalent circuit-based BETSE
+        solver, excluding extracellular spaces.
+
+        This method additionally enables optional settings improving test
+        coverage but *not* explicitly required by these exports. Specifically,
+        this method enables:
+
+        * The full BETSE solver.
+        * Saving of all visual exports.
+        '''
+
+        # Enable the equivalent circuit-based solver.
+        self.enable_solver_circuit()
+
+        # Enable saving of these exports.
+        self.enable_visuals_save()
+
+
+    def _enable_solver_full_features(self) -> None:
+        '''
+        Enable all simulation features required by all exports (e.g., CSVs,
+        plots, animations) -- including the full BETSE solver but excluding
+        extracellular spaces.
 
         This method additionally enables optional settings improving test
         coverage but *not* explicitly required by these exports. Specifically,
@@ -536,11 +658,11 @@ class SimConfigTestWrapper(object):
         * All other plots and animations *not* requiring extracellular spaces.
         '''
 
-        # Enable saving of these exports.
-        self.enable_visuals_save()
-
         # Enable the full solver.
         self.enable_solver_full()
+
+        # Enable saving of these exports.
+        self.enable_visuals_save()
 
         # Localize nested dictionaries for convenience.
         results = self._p._conf['results options']
@@ -560,15 +682,17 @@ class SimConfigTestWrapper(object):
         results['overlay currents'] = True
 
     # ..................{ PRIVOTE ~ iterators                }..................
+    #FIXME: Add the CSV export pipeline, once completed, to this tuple.
     @property
-    def _pipes_type_list(self) -> tuple:
+    def _pipes_type_exporters_enabled(self) -> tuple:
         '''
-        Tuple of 2-tuples ``(pipe_type, pipe_list)``, describing each export
-        pipeline to be exercised, where:
+        Tuple of 2-tuples ``(pipe_type, pipe_exporters_enabled)``, describing
+        each export pipeline to be exercised, where:
 
-        * ``pipe_type`` is an instance of :class:`SimPipeABC`.
-        * ``pipe_list`` is an instance of :class:`YamlList` listing all
-          currently enabled exporters in this pipeline.
+        * ``pipe_type`` is the subclass of the :class:`SimPipeABC` superclass
+          implementing this pipeline in the codebase.
+        * ``pipe_exporters_enabled`` is an instance of the :class:`YamlList`
+          class listing all currently enabled exporters in this pipeline.
         '''
 
         return (

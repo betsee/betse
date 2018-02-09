@@ -10,7 +10,7 @@ run by its parent pipeline) functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimPipeException
-from betse.science.phase.require.phasereqcls import (
+from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirements, SimPhaseRequirementsOrNoneTypes)
 from betse.util.type.cls.decorators import MethodDecorator
 from betse.util.type.text import strs

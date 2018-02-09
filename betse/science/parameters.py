@@ -314,6 +314,11 @@ class Parameters(YamlFileABC):
     sim_time_sampling = yaml_alias(
         "['sim time settings']['sampling rate']", float)
 
+    # ..................{ ALIASES ~ export : csv             }..................
+    #FIXME: Replace these booleans with a properly pipeline CSV exporter.
+    exportData = yaml_alias("['results options']['save']['data']['all']['enabled']", bool)  # export all stored data for the plot_cell to a csv text file
+    exportData2D = yaml_alias("['results options']['save']['data']['vmem']['enabled']", bool)
+
     # ..................{ ALIASES ~ ion                      }..................
     #FIXME: Consider shifting all ion-centric functionality into a dedicated
     #"ion" instance variable, instantiated to be an instance of a newly defined
@@ -805,10 +810,6 @@ class Parameters(YamlFileABC):
         # Load all animation and plot subconfigurations.
         self.anim.load(conf=self._conf)
         self.plot.load(conf=self._conf)
-
-        # CSV subconfiguration.
-        self.exportData = ro['save']['data']['all']['enabled']     # export all stored data for the plot_cell to a csv text file
-        self.exportData2D = ro['save']['data']['vmem']['enabled']
 
         # use the GHK equation to calculate alt Vmem from params?
         self.GHK_calc = self._conf['variable settings']['use Goldman calculator']
