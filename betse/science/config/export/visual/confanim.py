@@ -4,22 +4,23 @@
 # See "LICENSE" for further details.
 
 '''
-YAML-backed simulation animation subconfigurations.
+YAML-backed simulation subconfigurations for exporting animations.
 '''
 
 # ....................{ IMPORTS                            }....................
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_alias_int_positive
 from betse.lib.yaml.abc.yamlabc import YamlABC
-from betse.science.config.visual.confvisabc import (
+from betse.science.config.export.visual.confvisabc import (
     SimConfVisualCellsListItem, SimConfVisualCellsEmbedded)
 from betse.util.type.types import type_check, MappingType, SequenceTypes
 
 # ....................{ SUBCLASSES                         }....................
+#FIXME: Rename to "SimConfAnims" for readability.
 class SimConfAnimAll(YamlABC):
     '''
-    YAML-backed simulation animations subconfiguration, encapsulating the
-    configuration of all animations (both in- and post-simulation) parsed from
-    the current YAML-formatted simulation configuration file.
+    YAML-backed subconfiguration for exporting *all* animations (both
+    in- and post-simulation) enabled by the current YAML-formatted simulation
+    configuration file.
 
     Attributes (General)
     ----------
@@ -37,8 +38,8 @@ class SimConfAnimAll(YamlABC):
     is_while_sim_show : bool
         ``True`` only if this configuration displays in-simulation animations.
     anim_while_sim : SimConfVisualCellsEmbedded
-        Generic configuration applicable to all in-simulation animations. Ignored if
-        :attr:``is_while_sim`` is ``False``.
+        Generic configuration applicable to all in-simulation animations.
+        Ignored if :attr:``is_while_sim`` is ``False``.
 
     Attributes (After Solving)
     ----------
@@ -71,7 +72,7 @@ class SimConfAnimAll(YamlABC):
     video_bitrate : int
         Bitrate in bits per second of all video files saved by this
         configuration. Ignored if :attr:`is_video_save` is `False`.
-    video_codec_names : Sequence
+    video_codec_names : SequenceTypes
         List of the names of all encoder-specific codecs with which to encode
         animations (in descending order of preference), automatically:
         * Selecting the first codec supported by the selected writer.
@@ -98,7 +99,7 @@ class SimConfAnimAll(YamlABC):
     video_framerate : int
         Framerate in frames per second of all video files saved by this
         configuration. Ignored if :attr:`is_video_save` is `False`.
-    video_metadata : dict
+    video_metadata : MappingType
         Dictionary mapping from the alphabetic lowercase name of video metadata
         supported by the active video encoder to that metadata's human-readable
         string to be embedded in all video files saved by this configuration.
@@ -106,7 +107,7 @@ class SimConfAnimAll(YamlABC):
         `copyright`, `srcform`, and `comment`. If this dictionary does *not*
         contain a `copyright` key, such a key will be automatically synthesized
         from the current year. Ignored if :attr:`is_video_save` is `False`.
-    video_writer_names : Sequence
+    video_writer_names : SequenceTypes
         List of the names of all matplotlib animation writers with which to
         encode animations (in order of descending preference), automatically
         selecting the first writer installed on the current system. Supported

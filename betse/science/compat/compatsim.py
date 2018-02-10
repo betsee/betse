@@ -69,12 +69,12 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
     from betse.science import channels
     from betse.science.math import finitediff
     from betse.science.phase import phasecls
-    from betse.science.config.visual import confanim, confplot, confvisabc
+    from betse.science.config.export.visual import confanim, confplot, confvisabc
     from betse.util.type.mapping import mapcls
 
     # Alias obsolete module names to current module objects.
     sys.modules['betse.science.config.confabc'] = yamlabc
-    sys.modules['betse.science.config.visual.confvisualabc'] = confvisabc
+    sys.modules['betse.science.config.export.visual.confvisualabc'] = confvisabc
     sys.modules['betse.science.finitediff'] = finitediff
     sys.modules['betse.science.tissue.channels'] = channels
     sys.modules['betse.science.plot.plotconfig'] = confplot
@@ -94,9 +94,9 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
     confvisabc.SimConfVisual         = confvisabc.SimConfVisualCellsListItem
     confvisabc.SimConfListableVisual = confvisabc.SimConfVisualCellsListItem
     phasecls.SimPhaseType = phasecls.SimPhaseKind
-    sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
+    sys.modules['betse.science.config.export.visual.confanim'].SimConfAnim = (
         confanim.SimConfAnimAll)
-    sys.modules['betse.science.config.visual.confplot'].SimConfPlot = (
+    sys.modules['betse.science.config.export.visual.confplot'].SimConfPlot = (
         confplot.SimConfPlotAll)
     sys.modules['betse.science.visual.anim.animconfig'].AnimConfig = (
         confanim.SimConfAnimAll)
@@ -117,7 +117,7 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     # Import all modules whose fully-qualified names have been modified.
     from betse.lib.yaml.abc import yamlabc  #, yamllistabc
     from betse.science.config.model import conftis
-    from betse.science.config.visual import confanim, confplot, confvisabc
+    from betse.science.config.export.visual import confanim, confplot, confvisabc
     from betse.science.tissue import tisprofile, tishandler
     from betse.science.tissue.event import tisevecut, tisevevolt
     from betse.science.tissue.picker import tispickcls, tispickimage
@@ -159,6 +159,8 @@ def _upgrade_sim_imports_to_0_7_1() -> None:
 
     # Import all modules whose fully-qualified names have been modified.
     from betse.science import channels
+    from betse.science.config.export import visual
 
     # Alias obsolete module names to current module objects.
     sys.modules['betse.science.channelo'] = channels
+    sys.modules['betse.science.config.visual'] = visual

@@ -196,14 +196,13 @@ class SimPhaseRequirements(SimPhaseRequirementABC, frozenset):
     #  union of two instances of this class correctly returned a new instance of
     #  the expected type. For unknown reasons, that union was *ALWAYS* empty.
     #
-    #Ultimately, the current approach is the lesser of two evils. Since this is
-    #demonstrably awful, however, we should consider submitting a minimal-length
-    #example (MLE) as a StackOverflow question. In theory, that should resolve
-    #exactly what is going on here.
+    #Ultimately, the current approach is the lesser of two evils. Since this
+    #isn't really the best, however, we should consider submitting a
+    #minimal-length example (MLE) as a StackOverflow question. In theory, that
+    #should resolve exactly what is going on here.
     #FIXME: *ALL OTHER SET OPERATORS RETURNING NEW SETS MUST ALSO BE OVERLOADED
-    #IN THE SAME EXACT MANNER.* Until then, they remain similarly broken. I'm
-    #sufficiently discouraged by this, at the moment, that I can't be bothered.
-    #Nonetheless, for the record, these methods are:
+    #IN THE SAME EXACT MANNER.* Until then, they remain similarly broken. For
+    #the record, these methods are:
     #
     #    __and__, __rand__, __ror__, __rsub__, __rxor__, __sub__, __xor__,
     #    add, copy, difference, intersection, symmetric_difference, union

@@ -374,15 +374,36 @@ def _upgrade_sim_conf_to_0_7_1(p: Parameters) -> None:
     # Log this upgrade attempt.
     logs.log_debug('Upgrading simulation configuration to 0.7.1 format...')
 
+    # Localize configuration subdictionaries for convenience.
+    results_dict = p._conf['results options']
+
     # If the solver type is undefined, default to the complete BETSE solver.
     if 'fast solver' not in p._conf:
         p._conf['fast solver'] = False
 
-    # If solver settings are undefined, synthesize them from settings elsewhere.
+    # If solver settings are undefined, synthesize from existing settings.
     if 'solver options' not in p._conf:
         p._conf['solver options'] = {
-            'type': 'circuit' if p._conf['fast solver'] else 'full'
+            'type': 'fast' if p._conf['fast solver'] else 'full'
         }
 
-    # Localize configuration subdictionaries for convenience.
-    # solver_dict = p._conf['solver options']
+    # If the CSV file pipeline is undefined, synthesize from existing settings.
+    if 'csvs' not in results_dict['after solving']:
+        results_dict['after solving']['csvs'] = {
+            'save': True,
+            'pipeline': [],
+        }
+
+        # If the single-cell time series CSV file is enabled, preserve.
+        if results_dict['save']['data']['all']['enabled']:
+            results_dict['after solving']['csvs']['pipeline'].append({
+                'type': 'cell_series', 'enabled': True,})
+
+        # If the all-cells Vmem time series CSV files are enabled, preserve.
+        if results_dict['save']['data']['vmem']['enabled']:
+            results_dict['after solving']['csvs']['pipeline'].append({
+                'type': 'cells_vmem', 'enabled': True,})
+
+    # If CSV save settings are undefined, synthesize from existing settings.
+    if 'csvs' not in results_dict['save']:
+        results_dict['save']['csvs'] = {'filetype': 'csv',}

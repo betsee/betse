@@ -809,36 +809,57 @@ results options:
         maximum:  20.0    # Maximum fixed colorbar value. Ignored if "autoscale" is True.
 
   after solving:          # Results exported after simulation computation.
-    plots:                # Plots exported after simulation computation.
-      show: False         # Display plots after simulation computation?
-      save: True          # Save plots after simulation computation with
-                          # plot saving options defined below?
+    csvs:                 # Comma-separated value (CSV) files exported after simulating.
+      save: True          # Save CSV files after simulating with save options defined below?
+
+      pipeline:           # List of all CSV files. Ignored if "save" is False.
+        # Example single-cell time series CSV file.
+        - type: cell_series  # CSV file type, including any following string:
+          # * "cell_series" for single-cell time series (Vmem, ion concentrations,
+          #   voltage-gated ion channel pump rates) for "plot cell index" cell.
+          #   Ignored if full solver disabled.
+          # * "cell_vmem_fft" for single-cell finite Fourier transform (FFT) time series of
+          #   transmembrane voltages (Vmem) for "plot cell index" cell.
+          #   Ignored if extracellular spaces disabled.
+          # * "cells_vmem" for all-cells transmembrane voltage (Vmem) time series, producing
+          #   one CSV file containing all Vmem voltages for each time step.
+          enabled: True      # Enable this CSV file?
+        # Example all-cells transmembrane voltage (Vmem) time series CSV files.
+        - type: cells_vmem
+          enabled: True
+
+    plots:                # Plots exported after simulating.
+      show: False         # Display plots after simulating?
+      save: True          # Save plots after simulating with save options defined below?
 
       # FIXME allow these to plot multiple trendlines
       # FIXME add in I-V current plots
-      single cell pipeline:   # List of all single-cell plots for the cell
-                              # selected by "plot cell index" for all time
-                              # steps. Ignored if "show" and "save" are False.
+      single cell pipeline:   # List of all single-cell plots for the cell selected by
+                              # "plot cell index" for all time steps. Ignored if
+                              # "show" and "save" are False.
         # Example single-cell average transmembrane voltage (Vmem) plot.
         - type: voltage_membrane   # Plot type, as any following string:
           # * "currents_membrane" for single-cell transmembrane current density.
           # * "deform_total" for total cellular deformation = osmotic + galvanotropic.
-          #   Ignored if deformation disabled.
-          # * "ion_calcium" for single-cell calcium ion concentration.
-          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
-          # * "ion_m_anion" for single-cell M anion concentration.
-          #   Ignored if M anion ions (M-) disabled by ion profile.
-          # * "ion_potassium" for single-cell potassium ion concentration.
-          #   Ignored if potassium ions (K+) disabled by ion profile.
-          # * "ion_sodium" for single-cell sodium ion concentration.
-          #   Ignored if sodium ions (Na+) disabled by ion profile.
+          #   Ignored if either full solver or deformation disabled.
+          # * "ion_calcium" for single-cell calcium ion (Ca2+) concentration.
+          #   Ignored if either full solver disabled or calcium ions disabled by ion profile.
+          # * "ion_m_anion" for single-cell M anion (M-) concentration.
+          #   Ignored if either full solver disabled or M anions disabled by ion profile.
+          # * "ion_potassium" for single-cell potassium ion (K+) concentration.
+          #   Ignored if either full solver disabled or potassium ions disabled by ion profile.
+          # * "ion_sodium" for single-cell sodium ion (Na+) concentration.
+          #   Ignored if either full solver disabled or sodium ions disabled by ion profile.
           # * "pressure_osmotic" for single-cell osmotic pressure.
-          #   Ignored if osmotic pressure disabled.
+          #   Ignored if either full solver or osmotic pressure disabled.
           # * "pressure_total" for single-cell total pressure = osmotic + mechanical.
-          #   Ignored if osmotic pressure or mechanical pressure event disabled.
+          #   Ignored if either full solver, osmotic pressure, or mechanical pressure event
+          #   disabled.
           # * "pump_nakatpase" for single-cell Na-K-ATPase pump rate.
+          #   Ignored if full solver disabled.
           # * "voltage_membrane" for single-cell transmembrane voltage (Vmem) average.
-          # * "voltage_membrane_fft" for single-cell transmembrane voltage (Vmem) Fourier transform (FFT).
+          # * "voltage_membrane_fft" for single-cell transmembrane voltage (Vmem) finite Fourier
+          #   transform (FFT).
           enabled: True   # Enable this plot?
         # Example single-cell transmembrane current density plot.
         - type: currents_membrane
@@ -850,38 +871,43 @@ results options:
         # Example final cell cluster transmembrane voltage (Vmem) plot.
         - type: voltage_membrane   # Plot type, as any following string:
           # * "currents_intra" for final all-cells intracellular current density.
+          #   Ignored if full solver disabled.
           # * "currents_extra" for final all-cells extracellular current density.
-          #   Ignored if extracellular spaces disabled.
-          # * "deform_total" for final all-cells total cellular deformation = osmotic + galvanotropic.
-          #   Ignored if deformation disabled.
+          #   Ignored if full solver disabled.
+          # * "deform_total" for final all-cells total cellular deformation = osmotic +
+          #   galvanotropic. Ignored if either full solver or deformation disabled.
           # * "electric_intra" for final all-cells intracellular electric field.
+          #   Ignored if full solver disabled.
           # * "electric_extra" for final all-cells extracellular electric field.
-          #   Ignored if extracellular spaces disabled.
+          #   Ignored if either full solver or extracellular spaces disabled.
           # * "fluid_intra" for final all-cells intracellular fluid flow.
-          #   Ignored if fluid flow disabled.
+          #   Ignored if either full solver or fluid flow disabled.
           # * "fluid_extra" for final all-cells extracellular fluid flow.
-          #   Ignored if fluid flow or extracellular spaces disabled.
-          # * "ion_calcium_intra" for final all-cells intracellular calcium ion concentration.
-          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
-          # * "ion_calcium_extra" for final all-cells extracellular calcium ion concentration.
-          #   Ignored if calcium ions (Ca2+) disabled by ion profile or extracellular spaces
-          #   disabled.
+          #   Ignored if either full solver, fluid flow, or extracellular spaces disabled.
+          # * "ion_calcium_intra" for final all-cells intracellular calcium ion (Ca2+)
+          #   concentration. Ignored if either full solver disabled or calcium ions disabled
+          #   by ion profile.
+          # * "ion_calcium_extra" for final all-cells extracellular calcium ion (Ca2+)
+          #   concentration. Ignored if either full solver or extracellular spaces disabled or
+          #   calcium ions disabled by ion profile.
           # * "junction_state" for final all-cells gap junction connectivity state.
           # * "microtubule" for final all-cells microtubule orientation.
+          #   Ignored if full solver disabled.
           # * "pressure_total" for final all-cells total pressure = osmotic + mechanical.
-          #   Ignored if osmotic pressure or mechanical pressure event disabled.
-          # * "pump_nakatpase" for final all-cells cell membrane Na-K-ATPase
-          #   pump rate.
+          #   Ignored if either full solver, osmotic pressure, or mechanical pressure event
+          #   disabled.
+          # * "pump_nakatpase" for final all-cells cell membrane Na-K-ATPase pump rate.
+          #   Ignored if full solver disabled.
           # * "voltage_membrane" for final all-cells transmembrane voltage (Vmem).
           # * "voltage_membrane_average" for final all-cells transmembrane
           #   voltage (Vmem) average.
           # * "voltage_membrane_ghk" for final all-cells transmembrane voltage
           #   (Vmem) calculated by Goldman-Hodgkin-Katz (GHK) equation.
-          #   Ignored if GHK calculation disabled.
+          #   Ignored if either full solver or GHK calculation disabled.
           # * "voltage_extra" for final all-cells extracellular voltage.
-          #   Ignored if extracellular spaces disabled.
+          #   Ignored if either full solver or extracellular spaces disabled.
           # * "voltage_polarity" for final all-cells cellular voltage polarization.
-          #   Ignored if cell polarizability disabled.
+          #   Ignored if either full solver or cell polarizability disabled.
           enabled: True       # Enable this plot?
           colorbar:           # Plot colorbar settings.
             autoscale: True   # Automatically scale colorbar to minimum and
@@ -898,39 +924,42 @@ results options:
             minimum: -70.0
             maximum:  10.0
 
-    animations:      # Animations exported after simulation computation.
-      show: False    # Display animations after simulation computation?
-      save: False    # Save animations after simulation computation with
-                     # animation saving options defined below?
+    animations:      # Animations exported after simulating.
+      show: False    # Display animations after simulating?
+      save: False    # Save animations after simulating with save options defined below?
 
       pipeline:      # List of all animations. Ignored if "show" and "save" are False.
         # Example transmembrane voltage (Vmem) animation.
         - type: voltage_membrane  # Animation type, including any following string:
           # * "currents_intra" for intracellular current density.
+          #   Ignored if full solver disabled.
           # * "currents_extra" for extracellular current density.
-          #   Ignored if extracellular spaces disabled.
+          #   Ignored if either full solver or extracellular spaces disabled.
           # * "deform_total" for total cellular deformation = osmotic + galvanotropic.
-          #   Ignored if deformation disabled.
+          #   Ignored if either full solver or deformation disabled.
           # * "electric_intra" for intracellular electric field.
+          #   Ignored if full solver disabled.
           # * "electric_extra" for extracellular electric field.
-          #   Ignored if extracellular spaces disabled.
+          #   Ignored if either full solver or extracellular spaces disabled.
           # * "fluid_intra" for intracellular fluid flow.
-          #   Ignored if fluid flow disabled.
+          #   Ignored if either full solver or fluid flow disabled.
           # * "fluid_extra" for extracellular fluid flow.
-          #   Ignored if fluid flow or extracellular spaces disabled.
-          # * "ion_calcium_intra" for intracellular calcium ion concentration.
-          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
+          #   Ignored if either full solver, fluid flow, or extracellular spaces disabled.
+          # * "ion_calcium_intra" for intracellular calcium ion (Ca2+) concentration.
+          #   Ignored if either full solver disabled or calcium ions disabled by ion profile.
           # * "junction_state" for gap junction connectivity state.
           # * "microtubule" for microtubule orientation.
+          #   Ignored if full solver disabled.
           # * "pressure_osmotic" for cellular osmotic pressure.
-          #   Ignored if osmotic pressure disabled.
+          #   Ignored if either full solver or osmotic pressure disabled.
           # * "pressure_total" for cellular total pressure = osmotic + mechanical.
-          #   Ignored if osmotic pressure or mechanical pressure event disabled.
+          #   Ignored if either full solver, osmotic pressure, or mechanical pressure event
+          #   disabled.
           # * "voltage_membrane" for transmembrane voltage (Vmem).
           # * "voltage_extra" for extracellular voltage.
-          #   Ignored if extracellular spaces disabled.
+          #   Ignored if either full solver or extracellular spaces disabled.
           # * "voltage_polarity" for cellular voltage polarization.
-          #   Ignored if cell polarizability disabled.
+          #   Ignored if either full solver or cell polarizability disabled.
           enabled: True       # Enable this animation?
           colorbar:           # Animation colorbar settings.
             autoscale: True   # Automatically scale colorbar to minimum and
@@ -947,7 +976,11 @@ results options:
             minimum: -70.0
             maximum:  10.0
 
-  save:                 # Saving options for result types enabled above.
+  save:                 # Saving options for export types enabled above.
+    csvs:               # Saving options for CSV files enabled above.
+                        # Ignored if CSV file saving is disabled above.
+      filetype: csv     # CSV filetype.
+
     plots:              # Saving options for plots enabled above.
                         # Ignored if plot saving is disabled above.
       filetype: png     # Image filetype.
@@ -987,20 +1020,6 @@ results options:
         # "auto" implies the best codec provided by the current video encoder.
         codecs: ['auto']
         #codecs: ['libvpx', 'libtheora', 'libx264', 'libxvid', 'mpeg4', 'h263', 'mpeg2video', 'hevc', 'auto']  # example listing all preferred codecs before defaulting to "auto"
-
-    # Change this to "data export"
-    data:              # Saving options for spreadsheet-compatible data.
-      all:             # All data points for all cells for all time steps.
-        enabled: True  # Save this data to disk?
-        filetype: csv  # Data filetype. Supported filetypes include:
-                       # "csv" (comma-separated values).
-
-      vmem:            # All Vmem data points for all cells for all time steps
-                       # as a 3-tuple "(x, y, Vmem)".
-        enabled: True  # Save this data to disk?
-        filetype: csv  # Data filetype. Supported filetypes include:
-                       # "csv" (comma-separated values).
-
 
   # World-related plotting options------------------------------------------------------------------------------------
 

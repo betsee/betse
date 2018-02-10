@@ -4,8 +4,8 @@
 # See "LICENSE" for further details.
 
 '''
-YAML-backed simulation subconfiguration classes for **visuals** (e.g., plots and
-animations to be exported).
+YAML-backed simulation subconfiguration classes for exporting visuals (e.g.,
+plots, animations).
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -113,10 +113,9 @@ class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
 # ....................{ SUBCLASSES                         }....................
 class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
     '''
-    YAML-backed cell cluster visual subconfiguration, encapsulating the
-    configuration of a single visual applicable to all cells parsed from a
-    dictionary configuring at least this visual in the current
-    YAML-formatted simulation configuration file.
+    YAML-backed cell cluster visual subconfiguration, configuring a single
+    visual applicable to all cells parsed from a dictionary specifying at least
+    this visual in the current YAML-formatted simulation configuration file.
 
     This is the *only* visual configured by this dictionary. Hence, this
     dictionary contains no distinguishing ``type`` entry and this
@@ -125,18 +124,16 @@ class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
 
     pass
 
-# ....................{ SUBCLASSES : list item             }....................
+# ....................{ SUBCLASSES : item                  }....................
 class SimConfVisualCellsListItem(
     SimConfVisualCellsYAMLMixin, YamlListItemTypedABC):
-    # SimConfVisualListItemABC):
     '''
-    YAML-backed cell cluster visual subconfiguration list item, encapsulating
-    the configuration of a single visual applicable to all cells parsed from a
-    list of these visuals in the current YAML-formatted simulation configuration
-    file.
+    YAML-backed cell cluster visual subconfiguration list item, configuring a
+    single visual applicable to all cells parsed from a list of these visuals in
+    the current YAML-formatted simulation configuration file.
     '''
 
-    # ..................{ CLASS                              }..................
+    # ..................{ MAKERS                             }..................
     @classmethod
     @type_check
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
@@ -184,13 +181,13 @@ class SimConfVisualCellsListItem(
 
 class SimConfVisualCellListItem(YamlListItemTypedABC):
     '''
-    YAML-backed single-cell visual subconfiguration list item, encapsulating the
-    configuration of a single visual (either in- or post-simulation
-    plot or animation) specific to a single cell parsed from the list of all
-    such visuals in the current YAML-formatted simulation configuration file.
+    YAML-backed single-cell visual subconfiguration list item, configuring a
+    single visual (either in- or post-simulation plot or animation) specific to
+    a single cell parsed from the list of all such visuals in the current
+    YAML-formatted simulation configuration file.
     '''
 
-    # ..................{ CLASS                              }..................
+    # ..................{ MAKERS                             }..................
     @classmethod
     @type_check
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:

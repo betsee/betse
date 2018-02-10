@@ -95,14 +95,14 @@ class Simulator(object):
         One-dimensional Numpy array of the X components of all extracellular
         current densities for the current time step, whose:
         * Only dimension indexes each square environmental grid space (in
-          either dimension) such that each element is the X component of the
+          either dimension) such that each item is the X component of the
           extracellular current density vector spatially situated at the centre
           of that space for this time step.
     J_env_y : ndarray
         One-dimensional Numpy array of the Y components of all extracellular
         current densities for the current time step, whose:
         * Only dimension indexes each square environmental grid space (in
-          either dimension) such that each element is the Y component of the
+          either dimension) such that each item is the Y component of the
           extracellular current density vector spatially situated at the centre
           of that space for this time step.
     I_tot_x_time : list
@@ -130,14 +130,14 @@ class Simulator(object):
         Two-dimensional list of the X components of all intracellular current
         densities, whose:
         * First dimension indexes each sampled time step.
-        * Second dimension indexes each cell such that each element is the X
+        * Second dimension indexes each cell such that each item is the X
           component of the intracellular current density vector spatially
           situated at the center of that cell for this time step.
     I_cell_y_time : list
         Two-dimensional list of the Y components of all intracellular current
         densities, whose:
         * First dimension indexes each sampled time step.
-        * Second dimension indexes each cell such that each element is the Y
+        * Second dimension indexes each cell such that each item is the Y
           component of the intracellular current density vector spatially
           situated at the center of that cell for this time step.
 
@@ -150,28 +150,28 @@ class Simulator(object):
     cell_verts_time : ndarray
         Four-dimensional list whose:
         * First dimension indexes each sampled time step.
-        * Second dimension indexes each cell such that each element is the
+        * Second dimension indexes each cell such that each item is the
           matplotlib-compatible polygon patch for that cell defined as for the
           :attr:`betse.science.cells.Cells.cell_verts` array.
         Equivalently, this list is the concatenation of all
         :attr:`betse.science.cells.Cells.cell_verts` arrays for all sampled time
         steps.
     d_cells_x : ndarray
-        One-dimensional Numpy array indexing each cell such that each element is
+        One-dimensional Numpy array indexing each cell such that each item is
         the X component of the **total cellular displacement** (i.e., summation
         of all cellular deformations due to galvanotropic and osmotic pressure
         body forces) spatially situated at the centre of the cell indexed by
-        that element for the current time step.
+        that item for the current time step.
     d_cells_y : ndarray
-        One-dimensional Numpy array indexing each cell such that each element is
+        One-dimensional Numpy array indexing each cell such that each item is
         the Y component of the total cellular displacement spatially situated at
-        the centre of the cell indexed by that element for the current time
+        the centre of the cell indexed by that item for the current time
         step.
     dx_cell_time : list
         Two-dimensional list of the X components of all cellular deformations,
         for all sampled time steps, whose:
         * First dimension indexes each sampled time step.
-        * Second dimension indexes each cell such that each element is the X
+        * Second dimension indexes each cell such that each item is the X
           component of the total deformation for that cell defined as for the
           :attr:`d_cells_x` array.
         Equivalently, this list is the concatenation of all :attr:`d_cells_x`
@@ -180,7 +180,7 @@ class Simulator(object):
         Two-dimensional list of the Y components of all cellular deformations
         for all sampled time steps, whose:
         * First dimension indexes each sampled time step.
-        * Second dimension indexes each cell such that each element is the Y
+        * Second dimension indexes each cell such that each item is the Y
           component of the total deformation for that cell defined as for the
           :attr:`d_cells_y` array.
         Equivalently, this list is the concatenation of all :attr:`d_cells_y`
@@ -197,7 +197,7 @@ class Simulator(object):
         electric field for the current time step, whose:
         * First dimension indexes each row of the extracellular spaces grid.
         * Second dimension indexes each column of the extracellular spaces grid
-          such that each element is the X component of the extracellular
+          such that each item is the X component of the extracellular
           electric field spatially situated at the centre of the extracellular
           grid space corresponding to the current row and column.
     E_env_y : ndarray
@@ -205,7 +205,7 @@ class Simulator(object):
         electric field for the current time step, whose:
         * First dimension indexes each row of the extracellular spaces grid.
         * Second dimension indexes each column of the extracellular spaces grid
-          such that each element is the Y component of the extracellular
+          such that each item is the Y component of the extracellular
           electric field spatially situated at the centre of the extracellular
           grid space corresponding to the current row and column.
     efield_ecm_x_time : list
@@ -231,23 +231,23 @@ class Simulator(object):
     ----------
     E_gj_x : ndarray
         One-dimensional Numpy array indexing each cell membrane such that each
-        element is the X component of the intracellular electric field vector
+        item is the X component of the intracellular electric field vector
         for the current time step spatially situated across the gap junction to
-        which the membrane indexed by that element connects: specifically, the
+        which the membrane indexed by that item connects: specifically, the
         difference of the X component of the voltage situated at this membrane
         with that of the voltage situated at the gap junction-connected membrane
         adjacent to this membrane, divided by the length in meters of this gap
         junction.
     E_gj_y : ndarray
         One-dimensional Numpy array indexing each cell membrane such that each
-        element is the Y component of the intracellular electric field vector
+        item is the Y component of the intracellular electric field vector
         for the current time step defined as for the corresponding
         :attr:`E_gj_X` array.
     efield_gj_x_time : list
         Two-dimensional list of the X components of the intracellular electric
         fields for all time steps, whose:
         * First dimension indexes each sampled time step.
-        * Second dimension indexes each cell membrane such that each element is
+        * Second dimension indexes each cell membrane such that each item is
           the X component of the intracellular electric field vector defined as
           for the :attr:`E_gj_x` array.
         Equivalently, this list is the concatenation of all :attr:`E_gj_x`
@@ -256,7 +256,7 @@ class Simulator(object):
         Two-dimensional list of the Y components of the intracellular electric
         fields for all time steps, whose:
         * First dimension indexes each sampled time step.
-        * Second dimension indexes each cell membrane such that each element is
+        * Second dimension indexes each cell membrane such that each item is
           the Y component of the intracellular electric field vector defined as
           for the :attr:`E_gj_y` array.
         Equivalently, this list is the concatenation of all :attr:`E_gj_y`
@@ -268,13 +268,13 @@ class Simulator(object):
         Two-dimensional Numpy array of all cellular ion concentrations for the
         current time step, whose:
         #. First dimension indexes each ion enabled by the current ion profile.
-        #. Second dimension indexes each cell such that each element is the
+        #. Second dimension indexes each cell such that each item is the
            concentration of that ion in that cell.
     cc_time : list
         Three-dimensional list of all cellular ion concentrations for all time
         steps, whose:
         #. First dimension indexes each sampled time step.
-        #. Second dimension indexes each ion such that each element is the array
+        #. Second dimension indexes each ion such that each item is the array
            of all cellular concentrations of that ion for this time step,
            defined as for the :attr:`cc_cells` array.
         Equivalently, this list is the concatenation of all :attr:`cc_cells`
@@ -314,29 +314,29 @@ class Simulator(object):
     mtubes_x_time : list
         Two-dimensional list whose:
         * First dimension indexes each sampled time step.
-        * Second dimension indexes each cell membrane such that each element is
+        * Second dimension indexes each cell membrane such that each item is
           the X component of the microtubule unit vector spatially situated at
           the midpoint of that membrane for this time step.
     mtubes_y_time : list
         Two-dimensional list whose:
         * First dimension indexes each sampled time step.
-        * Second dimension indexes each cell membrane such that each element is
+        * Second dimension indexes each cell membrane such that each item is
           the Y component of the microtubule unit vector spatially situated at
           the midpoint of that membrane for this time step.
 
     Attributes (Pressure)
     ----------
     P_cells : ndarray
-        One-dimensional Numpy array indexing each cell such that each element is
+        One-dimensional Numpy array indexing each cell such that each item is
         the **total cellular pressure** (i.e., summation of the mechanical and
         osmotic cellular pressure) spatially situated at the centre of the cell
-        indexed by that element for the current time step.
+        indexed by that item for the current time step.
     P_cells_time : list
         Two-dimensional list of all **total cellular pressures** (i.e.,
         summation of all mechanical and osmotic cellular pressures) for all time
         steps, whose:
         * First dimension indexes each sampled time step.
-        * Second dimension indexes each cell such that each element is the
+        * Second dimension indexes each cell such that each item is the
           total pressure for that cell defined as for the :attr:`P_cells` array.
         Equivalently, this list is the concatenation of all :attr:`P_cells`
         arrays for all sampled time steps.
@@ -346,7 +346,7 @@ class Simulator(object):
     v_env : ndarray
         One-dimensional Numpy array of all **extracellular voltages** (i.e.,
         voltages at the outer membrane surfaces of all cells) at the current
-        time step, indexing each environmental grid space such that each element
+        time step, indexing each environmental grid space such that each item
         is the extracellular voltage spatially situated at the centre of that
         grid space.
     venv_time : list
@@ -354,7 +354,7 @@ class Simulator(object):
         whose:
         #. First dimension indexes each sampled time step.
         #. Second dimension indexes each environmental grid space such that each
-           element is the extracellular voltage for that grid space at this time
+           item is the extracellular voltage for that grid space at this time
            step, defined as for the :attr:`v_env` array.
         Equivalently, this array is the concatenation of all :attr:`v_env`
         arrays over all time steps.
@@ -370,28 +370,28 @@ class Simulator(object):
     vm : ndarray
         One-dimensional Numpy array of all transmembrane voltages across all
         cell membranes at the current time step, indexing each cell membrane
-        such that each element is the transmembrane voltage spatially situated
+        such that each item is the transmembrane voltage spatially situated
         across that cell membrane.
     vm_time : list
         Two-dimensional list of all transmembrane voltages across all cell
         membranes over all sampled time steps, whose:
         #. First dimension indexes each sampled time step.
-        #. Second dimension indexes each cell membrane such that each element is
+        #. Second dimension indexes each cell membrane such that each item is
            the transmembrane voltage for that cell at this time step, defined as
            for the :attr:`vm` array.
         Equivalently, this array is the concatenation of all :attr:`vm` arrays
         over all sampled time steps.
     vm_ave : ndarray
-        One-dimensional Numpy array indexing each cell such that each element is
+        One-dimensional Numpy array indexing each cell such that each item is
         the transmembrane voltage spatially situated at the centre of the cell
-        indexed by that element for the current sampled time step.
+        indexed by that item for the current sampled time step.
     vm_ave_time : list
-        Two-dimensional list of all transmembrane voltages averaged over all
-        cell membranes onto cell centres, whose:
+        Two-dimensional list of all transmembrane voltages averaged from all
+        cell membranes onto cell centres over all sampled time steps, whose:
         . First dimension indexes each sampled time step.
-        . Second dimension indexes each cell such that each element is the
+        . Second dimension indexes each cell such that each item is the
           transmembrane voltage spatially situated at the centre of the cell
-          indexed by that element for this time step.
+          indexed by that item for this time step.
         Equivalently, this array is the concatenation of all :attr:`vm_ave`
         arrays over all time steps.
     '''

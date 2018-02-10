@@ -131,6 +131,11 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
         # Mandatory parameters.
         phase: SimPhase,
+
+        #FIXME: For maintainability, refactor all of the following
+        #"label_"-prefixed properties into concrete properties. The
+        #"label_singular" property should default to returning simply "export";
+        #the remaining properties should default to the expected strings.
         label_singular: str,
 
         # Optional parameters.

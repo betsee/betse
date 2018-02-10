@@ -34,6 +34,7 @@ from betse.science.config.confenum import IonProfileType, SolverType
 from betse.science.phase.require import phasereqs
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirementsOrNoneTypes)
+from betse.science.export.csv.csvpipe import SimPipeExportCSVs
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
 from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
@@ -407,12 +408,6 @@ class SimConfigTestWrapper(object):
         # Enable all possible exports excluding those requiring the full solver.
         self._enable_exports(requirements_omit=phasereqs.SOLVER_FULL)
 
-        #FIXME: Excise this hack *AFTER* refactoring CSV exports to leverage our
-        #pipeline API. This is non-trivial and hence deprioritized, for now.
-
-        # Disable the CSV export requiring the full solver.
-        self._p.exportData = False
-
     # ..................{ ENABLERS ~ solver : full           }..................
     def enable_solver_full_vg_ions(self) -> None:
         '''
@@ -559,9 +554,9 @@ class SimConfigTestWrapper(object):
             pipe_exporters_enabled_name = frozenset(
                 pipe_exporter_enabled.name
                 for pipe_exporter_enabled in pipe_exporters_enabled)
-            logs.log_debug(
-                'Pipeline "%s" exporters enabled: %r',
-                pipeline_name, pipe_exporters_enabled_name)
+            # logs.log_debug(
+            #     'Pipeline "%s" exporters enabled: %r',
+            #     pipeline_name, pipe_exporters_enabled_name)
 
             # For the name of each possible exporter supported by this pipeline,
             # regardless of whether that exporter is currently enabled or not...
@@ -570,12 +565,16 @@ class SimConfigTestWrapper(object):
                 #     'Considering pipeline "%s" exporter "%s"...',
                 #     pipeline_name, pipe_exporter_name)
 
+                #FIXME: Insufficient. If this exporter is already enabled *BUT*
+                #unsatisfied, this exporter *MUST* be manually removed from this
+                #pipeline. Trivial, but we need to actually do it.
+
                 # If this exporter is already enabled by this pipeline...
                 if pipe_exporter_name in pipe_exporters_enabled_name:
                     # Log this continuation.
                     logs.log_debug(
-                        'Ignoring pipeline "%s" exporter "%s", due to '
-                        'already being enabled...',
+                        'Ignoring pipeline "%s" exporter "%s", '
+                        'as already enabled...',
                         pipeline_name, pipe_exporter_name)
 
                     # Continue to the next possible exporter.
@@ -586,8 +585,8 @@ class SimConfigTestWrapper(object):
                     requirements_omit):
                     # Log this exclusion.
                     logs.log_debug(
-                        'Excluding pipeline "%s" exporter "%s", due to '
-                        'failing to satisfy test requirements...',
+                        'Excluding pipeline "%s" exporter "%s", '
+                        'as test requirements unsatsified...',
                         pipeline_name, pipe_exporter_name)
 
                     # Continue to the next possible exporter.
@@ -696,6 +695,7 @@ class SimConfigTestWrapper(object):
         '''
 
         return (
+            (SimPipeExportCSVs, self._p.csv.csvs_after_sim),
             (PlotCellPipe,  self._p.plot.plots_cell_after_sim),
             (PlotCellsPipe, self._p.plot.plots_cells_after_sim),
             (AnimCellsPipe, self._p.anim.anims_after_sim),

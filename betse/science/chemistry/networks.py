@@ -16,7 +16,7 @@ from betse.science.channels import vg_funny as vgfun
 from betse.science.channels import vg_k as vgk
 from betse.science.channels import vg_na as vgna
 from betse.science.chemistry.netplot import set_net_opts
-from betse.science.config.visual.confvisabc import SimConfVisualCellsNonYAML
+from betse.science.config.export.visual.confvisabc import SimConfVisualCellsNonYAML
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito

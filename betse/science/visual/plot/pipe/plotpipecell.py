@@ -10,7 +10,8 @@ simulated data of a single cell of the cell cluster).
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimConfigException
-from betse.science.config.visual.confvisabc import SimConfVisualCellListItem
+from betse.science.config.export.visual.confvisabc import (
+    SimConfVisualCellListItem)
 from betse.science.phase.pipe.piperun import piperunner
 from betse.science.phase.require import phasereqs
 from betse.science.visual.plot import plotutil
@@ -19,6 +20,7 @@ from betse.util.type.types import IterableTypes
 from matplotlib import pyplot as pyplot
 
 # ....................{ SUBCLASSES                         }....................
+#FIXME: Rename to "SimPipeExportPlotsCell" for disambiguity.
 class PlotCellPipe(PlotPipeABC):
     '''
     **Post-simulation single-cell plot pipeline** (i.e., object iteratively

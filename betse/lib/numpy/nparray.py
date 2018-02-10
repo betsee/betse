@@ -18,6 +18,7 @@ See Also
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSequenceException, BetseStrException
+from betse.util.io.log import logs
 from betse.util.path import dirs
 from betse.util.type import sequences, types
 from betse.util.type.text import strs
@@ -168,6 +169,9 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
         * Double quotes, reserved for use as the CSV quoting character.
         * Newlines, reserved for use as the CSV row delimiting character.
     '''
+
+    # Log this serialization.
+    logs.log_debug('Writing CSV file: %s', filename)
 
     # Validate the contents of this dictionary. While the np.column_stack()
     # function called below also does, the exceptions raised by the latter are

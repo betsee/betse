@@ -11,13 +11,14 @@ from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.config.confenum import (
     CellLatticeType, IonProfileType, SolverType)
+from betse.science.config.export.confcsv import SimConfExportCSVs
+from betse.science.config.export.visual.confanim import SimConfAnimAll
+from betse.science.config.export.visual.confplot import SimConfPlotAll
 from betse.science.config.grn.confgrn import SimConfGrnFile
 from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
 from betse.science.phase.phasecls import SimPhaseKind
 from betse.science.tissue.event import tisevevolt
-from betse.science.config.visual.confanim import SimConfAnimAll
-from betse.science.config.visual.confplot import SimConfPlotAll
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 # from betse.util.type.call.memoizers import property_cached
@@ -243,9 +244,11 @@ class Parameters(YamlFileABC):
     Attributes (Exports)
     ----------
     anim : SimConfAnimAll
-        Subconfiguration encapsulating exported simulation animations.
+        Subconfiguration configuring exported animations.
+    csv : SimConfExportCSVs
+        Subconfiguration configuring exported comma-separated value (CSV) files.
     plot : SimConfPlotAll
-        Subconfiguration encapsulating exported simulation plots.
+        Subconfiguration configuring exported plots.
     plot_cell : int
         0-based index of the cell to isolate all single-cell time plots to.
         Defaults to 0, the index assigned to the first cell guaranteed to exist.
@@ -314,11 +317,6 @@ class Parameters(YamlFileABC):
     sim_time_sampling = yaml_alias(
         "['sim time settings']['sampling rate']", float)
 
-    # ..................{ ALIASES ~ export : csv             }..................
-    #FIXME: Replace these booleans with a properly pipeline CSV exporter.
-    exportData = yaml_alias("['results options']['save']['data']['all']['enabled']", bool)  # export all stored data for the plot_cell to a csv text file
-    exportData2D = yaml_alias("['results options']['save']['data']['vmem']['enabled']", bool)
-
     # ..................{ ALIASES ~ ion                      }..................
     #FIXME: Consider shifting all ion-centric functionality into a dedicated
     #"ion" instance variable, instantiated to be an instance of a newly defined
@@ -328,7 +326,7 @@ class Parameters(YamlFileABC):
         "['general options']['ion profile']", IonProfileType)
 
     # ..................{ ALIASES ~ ion ~ custom             }..................
-    #FIXME: Actually use below.
+    #FIXME: Actually use this.
     ion_profile_custom_conc_env_na = yaml_alias(
         "['general options']['customized ion profile']"
         "['extracellular Na+ concentration']", float)
@@ -348,8 +346,9 @@ class Parameters(YamlFileABC):
         self.tissue_default = SimConfTissueDefault()
         self.tissue_profiles = SimConfTissueListItem.make_list()
 
-        # Classify unloaded plot and animation subconfigurations.
+        # Classify unloaded export subconfigurations.
         self.anim = SimConfAnimAll()
+        self.csv = SimConfExportCSVs()
         self.plot = SimConfPlotAll()
 
         # Classify unloaded GRN subconfigurations.
@@ -375,12 +374,24 @@ class Parameters(YamlFileABC):
         # Initialize paths specified by this configuration.
         self._init_paths()
 
+        # Load all currently unloaded tissue subconfigurations.
+        self.cut_profiles.load(
+            conf=self._conf['tissue profile definition']['cut profiles'])
+        self.tissue_default.load(
+            conf=self._conf['tissue profile definition']['tissue']['default'])
+        self.tissue_profiles.load(
+            conf=self._conf['tissue profile definition']['tissue']['profiles'])
+
+        # Load all currently unloaded export subconfigurations.
+        self.anim.load(conf=self._conf)
+        self.csv.load(conf=self._conf)
+        self.plot.load(conf=self._conf)
+
         #---------------------------------------------------------------------------------------------------------------
         # GENERAL OPTIONS
         #---------------------------------------------------------------------------------------------------------------
 
         self.autoInit = self._conf['automatically run initialization']
-
         self.plot_grid_size = 50
 
         #---------------------------------------------------------------------------------------------------------------
@@ -396,18 +407,6 @@ class Parameters(YamlFileABC):
         volmult = float(self._conf['internal parameters']['environment volume multiplier'])
 
         self.vol_env = volmult*self.wsx*self.wsy*self.cell_height  # environmental volume for "no ECM" simulation
-
-        #---------------------------------------------------------------------------------------------------------------
-        # TISSUE PROFILES
-        #---------------------------------------------------------------------------------------------------------------
-
-        # Load all tissue and cut profiles.
-        self.cut_profiles.load(
-            self._conf['tissue profile definition']['cut profiles'])
-        self.tissue_default.load(
-            self._conf['tissue profile definition']['tissue']['default'])
-        self.tissue_profiles.load(
-            self._conf['tissue profile definition']['tissue']['profiles'])
 
         #---------------------------------------------------------------------------------------------------------------
         # TARGETED INTERVENTIONS
@@ -656,6 +655,9 @@ class Parameters(YamlFileABC):
 
         self.T = float(self._conf['variable settings']['temperature'])  # system temperature
 
+        # use the GHK equation to calculate alt Vmem from params?
+        self.GHK_calc = self._conf['variable settings']['use Goldman calculator']
+
         # electroosmotic fluid flow-----------------------------------------------------
         self.fluid_flow = self._conf['variable settings']['fluid flow']['include fluid flow']
         self.mu_water = float(self._conf['variable settings']['fluid flow']['water viscocity']) # visc water [Pa.s]
@@ -805,14 +807,6 @@ class Parameters(YamlFileABC):
 
         # ................{ EXPORTS                            }................
         ro = self._conf['results options']
-
-        # ................{ EXPORTS ~ anim                     }................
-        # Load all animation and plot subconfigurations.
-        self.anim.load(conf=self._conf)
-        self.plot.load(conf=self._conf)
-
-        # use the GHK equation to calculate alt Vmem from params?
-        self.GHK_calc = self._conf['variable settings']['use Goldman calculator']
 
         # ................{ EXPORTS ~ plot                     }................
         #FIXME: Replace all instances of "p.turn_all_plots_off" in the codebase
@@ -1231,13 +1225,18 @@ class Parameters(YamlFileABC):
         # Unload our superclass.
         super().unload()
 
-        # Unload all previously loaded subconfigurations for safety.
+        # Unload all previously loaded network subconfigurations.
+        self.grn.unload()
+
+        # Unload all previously loaded tissue subconfigurations.
         self.cut_profiles.unload()
         self.tissue_default.unload()
         self.tissue_profiles.unload()
+
+        # Unload all previously loaded export subconfigurations.
         self.anim.unload()
+        self.csv.unload()
         self.plot.unload()
-        self.grn.unload()
 
     # ..................{ EXCEPTIONS                         }..................
     def die_unless_ecm(self) -> None:

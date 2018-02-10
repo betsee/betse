@@ -71,12 +71,6 @@ class YamlListItemABC(YamlABC):
         pass
 
 
-#FIXME: Consider removing. The two aliases supplied by this subclass are *NOT*
-#sufficiently general-purpose to warrant a high-level ABC. Instead, simply:
-#
-#* Shift these aliases directly into whatever subclasses require them.
-#* Remove this ABC.
-
 class YamlListItemTypedABC(YamlListItemABC):
     '''
     Abstract base class of all low-level YAML-backed typed list item subclasses,

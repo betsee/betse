@@ -9,7 +9,8 @@ simulated data of all cells in the cell cluster).
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.science.config.visual.confvisabc import SimConfVisualCellsListItem
+from betse.science.config.export.visual.confvisabc import (
+    SimConfVisualCellsListItem)
 from betse.science.phase.pipe.piperun import piperunner
 from betse.science.phase.require import phasereqs
 from betse.science.visual.plot import plotutil
@@ -17,9 +18,10 @@ from betse.science.visual.plot.pipe.plotpipeabc import PlotPipeABC
 from betse.util.type.types import IterableTypes
 from matplotlib import pyplot as pyplot
 from matplotlib.collections import LineCollection
-from scipy.ndimage.filters import gaussian_filter
+# from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ SUBCLASSES                         }....................
+#FIXME: Rename to "SimPipeExportPlotsCells" for disambiguity.
 class PlotCellsPipe(PlotPipeABC):
     '''
     **Post-simulation cell cluster plot pipeline** (i.e., object iteratively

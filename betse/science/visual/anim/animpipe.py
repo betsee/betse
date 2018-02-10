@@ -12,7 +12,8 @@ exporting) post-simulation animations.
 #the generation of each animation to its own Python process. Verdant shimmers!
 
 # ....................{ IMPORTS                            }....................
-from betse.science.config.visual.confvisabc import SimConfVisualCellsListItem
+from betse.science.config.export.visual.confvisabc import (
+    SimConfVisualCellsListItem)
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.phase.pipe.pipeabc import SimPipeExportABC
 from betse.science.phase.pipe.piperun import piperunner
@@ -40,6 +41,7 @@ from betse.science.visual.layer.vectorfield.lyrvecfldstream import (
 from betse.util.type.types import type_check, IterableTypes
 
 # ....................{ SUBCLASSES                         }....................
+#FIXME: Rename to "SimPipeExportAnimsCells" for disambiguity.
 class AnimCellsPipe(SimPipeExportABC):
     '''
     **Post-simulation animation pipeline** (i.e., class iteratively creating all

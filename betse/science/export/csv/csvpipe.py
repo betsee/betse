@@ -8,14 +8,12 @@ post-simulation files containing raw simulation data, typically as plaintext
 spreadsheets in comma-separated value (CSV) format.
 '''
 
-#FIXME: Log each attempt to create a CSV file in this submodule.
-
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.exceptions import BetseMethodUnimplementedException
 from betse.lib.numpy import nparray
+from betse.science.config.export.confcsv import SimConfExportCSV
 from betse.science.export import expmath
-from betse.science.phase.phasecls import SimPhase, SimPhaseKind
+from betse.science.phase.phasecls import SimPhaseKind
 from betse.science.phase.pipe.pipeabc import SimPipeExportABC
 from betse.science.phase.pipe.piperun import piperunner
 from betse.science.phase.require import phasereqs
@@ -24,11 +22,12 @@ from betse.science.visual.plot.plotutil import cell_ave
 from betse.util.path import dirs, pathnames
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
-from betse.util.type.types import type_check, IterableTypes, SequenceTypes
+from betse.util.type.types import (
+    type_check, IterableTypes, SequenceTypes, StrOrNoneTypes,)
 from numpy import ndarray
 
 # ....................{ SUBCLASSES                         }....................
-class SimPipelinerExportCSV(SimPipeExportABC):
+class SimPipeExportCSVs(SimPipeExportABC):
     '''
     **Post-simulation CSV export pipeline** (i.e., class iteratively creating
     all post-simulation plaintext spreadsheets in comma-separated value (CSV)
@@ -40,31 +39,31 @@ class SimPipelinerExportCSV(SimPipeExportABC):
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass with all passed parameters.
-        super().__init__(*args, label_singular='CSV', **kwargs)
+        super().__init__(*args, label_singular='CSV file', **kwargs)
 
     # ..................{ SUPERCLASS                         }..................
-    #FIXME: Implement this property *AFTER* generalizing the configuration file
-    #format to support CSV pipelines.
+    @property
+    def is_enabled(self) -> bool:
+        return self._phase.p.csv.is_after_sim_save
+
     @property
     def _runners_conf(self) -> IterableTypes:
-
-        raise BetseMethodUnimplementedException()
+        return self._phase.p.csv.csvs_after_sim
 
     # ..................{ EXPORTERS ~ cell                   }..................
     #FIXME: The requirements list should (arguably) be refined from the
     #coarse-grained "SOLVER_FULL" requirement to the exact list of fine-grained
     #requirements required by this exporter.
     @piperunner(
-        categories=('Single Cell', 'Raw Data'),
+        categories=('Single Cell', 'Time Series'),
         requirements=phasereqs.SOLVER_FULL,
     )
-    def export_cell_raw(self) -> None:
+    def export_cell_series(self, conf: SimConfExportCSV) -> None:
         '''
         Save a plaintext file in comma-separated value (CSV) format containing
         several cell-specific time series (e.g., ion concentrations, membrane
         voltages, voltage-gated ion channel pump rates) for the single cell
-        whose index indexed by the ``plot cell index`` entry for the current
-        simulation configuration.
+        indexed ``plot cell index`` in the current simulation configuration.
         '''
 
         # 0-based index of the cell to serialize time data for.
@@ -177,13 +176,9 @@ class SimPipelinerExportCSV(SimPipeExportABC):
         # Ordered dictionary mapping from CSV column names to data arrays.
         csv_column_name_to_values = OrderedArgsDict(*csv_column_name_values)
 
-        # Absolute path of the CSV file to export.
-        csv_filename = pathnames.join(
-            self._phase.save_dirname, 'ExportedData.csv')
-
         # Export this data to this CSV file.
         nparray.write_csv(
-            filename=csv_filename,
+            filename=self._get_csv_filename('ExportedData'),
             column_name_to_values=csv_column_name_to_values)
 
     # ..................{ EXPORTERS ~ cell : vmem            }..................
@@ -193,18 +188,19 @@ class SimPipelinerExportCSV(SimPipeExportABC):
     #    BetseSequenceException: Column "FFT_Vmem" length 9 differs from length
     #    5 of prior columns.
 
-    @piperunner(categories=('Single Cell', 'Vmem FFT'))
-    def export_cell_vmem_fft(self) -> None:
+    @piperunner(
+        categories=('Single Cell', 'Vmem FFT'),
+
+        #FIXME: Eliminate this requirement after resolving the above issue.
+        requirements=phasereqs.VOLTAGE_EXTRA,
+    )
+    def export_cell_vmem_fft(self, conf: SimConfExportCSV) -> None:
         '''
         Save a plaintext file in comma-separated value (CSV) format containing
         the finite Fourier transform (FFT) of all transmembrane voltages for all
-        sampled time steps spatially situated at the centre of the cell indexed
-        by the ``plot cell index`` entry for the current simulation
-        configuration.
+        sampled time steps spatially situated at the centre of the single cell
+        indexed ``plot cell index`` in the current simulation configuration.
         '''
-
-        #FIXME: Remove this after correcting this exporter.
-        raise BetseMethodUnimplementedException()
 
         # Number of sampled time steps.
         sample_size = len(self._phase.sim.time)
@@ -233,35 +229,81 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             'FFT_Vmem', fft_data,
         )
 
-        # Absolute path of the CSV file to export.
-        csv_filename = pathnames.join(
-            self._phase.save_dirname, 'ExportedData_FFT.csv')
-
         # Export this data to this CSV file.
         nparray.write_csv(
-            filename=csv_filename,
+            filename=self._get_csv_filename('ExportedData_FFT'),
             column_name_to_values=csv_column_name_to_values)
 
     # ..................{ EXPORTERS ~ cells : vmem           }..................
     @piperunner(categories=('Cell Cluster', 'Transmembrane Voltages'))
-    def export_cells_vmems(self) -> None:
+    def export_cells_vmem(self, conf: SimConfExportCSV) -> None:
         '''
-        Save one plaintext file in comma-separated value (CSV) format for each
-        sequence of transmembrane voltages spatially situated at cell centres
-        for each sampled time step of the current simulation phase.
+        Save one plaintext file in comma-separated value (CSV) format containing
+        all transmembrane voltages (Vmem) upscaled and averaged from all cell
+        membranes onto cell centres for each sampled time step of the current
+        simulation phase.
         '''
 
-        # One-dimensional Numpy array of all upscaled cell voltages.
+        # Two-dimensional Numpy array of all transmembrane voltages.
         cells_times_vmems = expmath.upscale_units_milli(
             self._phase.sim.vm_ave_time)
 
-        # Save all membrane voltages for this time step to a unique CSV file.
+        # Export this data to this CSV file.
         self._export_cells_times_data(
             cells_times_data=cells_times_vmems,
             csv_column_name='Vmem [mV]',
             csv_dir_basename='Vmem2D_TextExport',
             csv_basename_prefix='Vmem2D_',
         )
+
+    # ..................{ PRIVATE ~ getters                  }..................
+    @type_check
+    def _get_csv_filename(
+        self,
+
+        # Mandatory parameters.
+        basename_sans_filetype: str,
+
+        # Optional parameters.
+        dirname: StrOrNoneTypes = None,
+    ) -> str:
+        '''
+        Absolute filename of a CSV file to be exported with the passed basename
+        excluding suffixing ``.``-prefixed filetype (which this method appends
+        to this basename as configured by the current simulation configuration)
+        residing in the directory with the passed dirname.
+
+        Parameters
+        ----------
+        basename_sans_filetype : str
+            Basename (excluding suffixing ``.``-prefixed filetype) of this file.
+        dirname : StrOrNoneTypes
+            Absolute pathname of the directory containing this file. If this
+            directory does *not* already exist, this method creates this
+            directory. Defaults to ``None``, in which case this pathname
+            defaults to the top-level directory containing all CSV files
+            exported for the current simulation phase.
+
+        Returns
+        ----------
+        str
+            Absolute filename of a CSV file to be exported with this basename.
+        '''
+
+        # If unpassed, default this directory to the top-level directory
+        # containing all CSV files exported for this simulation phase.
+        if dirname is None:
+            dirname = self._phase.save_dirname
+
+        # Create this directory if needed.
+        dirs.make_unless_dir(dirname)
+
+        # Basename of this file.
+        basename = '{}.{}'.format(
+            basename_sans_filetype, self._phase.p.csv.filetype)
+
+        # Create and return the absolute filename of this file.
+        return pathnames.join(dirname, basename)
 
     # ..................{ PRIVATE ~ exporters                }..................
     @type_check
@@ -273,13 +315,12 @@ class SimPipelinerExportCSV(SimPipeExportABC):
         csv_basename_prefix: str,
     ) -> None:
         '''
-        Save a plaintext file in comma-separated value (CSV) format containing
-        the passed two-dimensional Numpy array of arbitrary simulation data
-        spatially situated at cell centres for all sampled time steps of the
-        current simulation phase.
+        Save one plaintext file in comma-separated value (CSV) format containing
+        arbitrary simulation data spatially situated at cell centres for each
+        sampled time step of the current simulation phase.
 
         Parameters
-        ----------------------------
+        ----------
         cells_times_data : ndarray
             Two-dimensional Numpy array of arbitrary simulation data spatially
             situated at the centres of all cells for all sampled time steps.
@@ -294,10 +335,9 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             exported by this method.
         '''
 
-        # Absolute path of the directory containing all CSV-formatted files
-        # exported by this method and creating this directory if needed.
+        # Absolute pathname of the directory containing all CSV files
+        # specifically exported by this method.
         csv_dirname = pathnames.join(self._phase.save_dirname, csv_dir_basename)
-        dirs.make_unless_dir(csv_dirname)
 
         # One-dimensional Numpy arrays of the X and Y coordinates (respectively)
         # of the centres of all cells.
@@ -308,11 +348,15 @@ class SimPipelinerExportCSV(SimPipeExportABC):
 
         # For the 0-based index of each sampled time step...
         for time_step in range(len(self._phase.sim.time)):
-            # Basename of the CSV-formatted file exported for this time step.
-            csv_basename = '{}{}.csv'.format(csv_basename_prefix, time_step)
+            # Basename of the CSV-formatted file exported for this time step,
+            # excluding suffixing "."-prefixed filetype.
+            csv_basename_sans_filetype = '{}{}'.format(
+                csv_basename_prefix, time_step)
 
-            # Absolute path of this file.
-            csv_filename = pathnames.join(csv_dirname, csv_basename)
+            # Absolute filename of this CSV file.
+            csv_filename = self._get_csv_filename(
+                basename_sans_filetype=csv_basename_sans_filetype,
+                dirname=csv_dirname)
 
             # Ordered dictionary mapping from CSV column names to data arrays.
             csv_column_name_to_values = OrderedArgsDict(
@@ -352,32 +396,3 @@ class SimPipelinerExportCSV(SimPipeExportABC):
                 self._phase.sim.vm_time)
 
         return nparray.from_iterable(cell_times_vmems)
-
-# ....................{ PIPELINES                          }....................
-@type_check
-def pipeline(phase: SimPhase) -> None:
-    '''
-    Save all currently enabled data exports (e.g., spreadsheets in
-    comma-separated value form) for the passed simulation phase.
-
-    Parameters
-    ----------------------------
-    phase: SimPhase
-        Current simulation phase.
-    '''
-
-    # Post-simulation CSV pipeline producing all such CSVs.
-    pipeliner = SimPipelinerExportCSV(phase)
-
-    #FIXME: This manual approach ignores exporter requirements and hence is
-    #horrible. Refactor this to leverage the pipelining approach taken by plots
-    #and animations. Presumably, doing so will require refactoring the
-    #configuration file to support CSV export pipelines. *shrug*
-    if phase.p.exportData:
-        pipeliner.export_cell_raw()
-
-        #FIXME: Reenable after correcting for non-ECM usage.
-        # pipeliner.export_cell_vmem_fft()
-
-    if phase.p.exportData2D:
-        pipeliner.export_cells_vmems()

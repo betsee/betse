@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-YAML-backed simulation plot subconfigurations.
+YAML-backed simulation subconfigurations for exporting plots.
 '''
 
 #FIXME: Define saving-ordiented methods.
@@ -12,16 +12,17 @@ YAML-backed simulation plot subconfigurations.
 # ....................{ IMPORTS                            }....................
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_alias_int_positive
 from betse.lib.yaml.abc.yamlabc import YamlABC
-from betse.science.config.visual.confvisabc import (
+from betse.science.config.export.visual.confvisabc import (
     SimConfVisualCellsListItem, SimConfVisualCellListItem)
 from betse.util.type.types import type_check
 
 # ....................{ SUBCLASSES                         }....................
+#FIXME: Rename to "SimConfPlots" for readability.
 class SimConfPlotAll(YamlABC):
     '''
-    YAML-backed simulation plot subconfiguration, encapsulating the
-    configuration of all plots (both in- and post-simulation) parsed from the
-    current YAML-formatted simulation configuration file.
+    YAML-backed subconfiguration for exporting *all* plots (both in- and
+    post-simulation) enabled by the current YAML-formatted simulation
+    configuration file.
 
     This subconfiguration saves (i.e., writes, serializes) in-memory plots to
     on-disk cache, image, and/or video files configured by this configuration.

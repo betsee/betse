@@ -19,7 +19,7 @@ from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_PATCH, ZORDER_STREAM
 from betse.lib.numpy import nparray
-from betse.science.config.visual.confvisabc import SimConfVisualCellsABC
+from betse.science.config.export.visual.confvisabc import SimConfVisualCellsABC
 from betse.science.export import expmath
 from betse.science.phase.phasecls import SimPhase
 from betse.science.visual.layer.lyrabc import LayerCellsABC

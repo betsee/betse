@@ -11,6 +11,7 @@ spreadsheets.
 # ....................{ IMPORTS                            }....................
 from betse.science.export.csv import csvpipe
 from betse.science.phase.phasecls import SimPhase, SimPhaseKind
+from betse.science.export.csv.csvpipe import SimPipeExportCSVs
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
 from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
@@ -21,8 +22,9 @@ from betse.util.type.types import type_check
 @type_check
 def pipeline(phase: SimPhase) -> None:
     '''
-    Display and/or save all currently enabled simulation exports (e.g., plots,
-    animations, spreadsheets) for the passed simulation phase.
+    Display and/or save all exports (e.g., comma-separated value (CSV) files,
+    plots, animations) enabled in a pipelined fashion for the passed simulation
+    phase by the current simulation configuration.
 
     Parameters
     ----------------------------
@@ -47,7 +49,6 @@ def pipeline(phase: SimPhase) -> None:
     elif phase.kind is SimPhaseKind.SIM:
         phase.p.plot_type = 'sim'
 
-
     # Display and/or save all exports enabled by this configuration in
     # increasing order of expected duration (i.e., from fastest to slowest),
     # trivially improving aesthetic responsiveness for end users:
@@ -56,7 +57,7 @@ def pipeline(phase: SimPhase) -> None:
     # * Single-cell plots, typically exported faster than cell cluster plots.
     # * Cell cluster plots, typically exported faster than animations.
     # * Animations.
-    csvpipe.pipeline(phase)
+    SimPipeExportCSVs(phase).run()
     PlotCellPipe(phase).run()
     PlotCellsPipe(phase).run()
     AnimCellsPipe(phase).run()
