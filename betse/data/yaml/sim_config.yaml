@@ -38,7 +38,7 @@ solver options:
   type: full # Type of solver to enable for this simulation, as any following string:
              # * "full", a complete but slower solver producing publication-quality results
              #   by comprehensively simulating all possible bioelectrical phenomena.
-             # * "circuit", an incomplete but faster solver producing draft-quality results
+             # * "fast", an incomplete but faster solver producing draft-quality results
              #   by the well-known equivalent circuit formalism analogizing biological
              #   systems to electronic circuits. While integrated with gene regulatory
              #   networks (GRNs), this solver *CANNOT* simulate:

@@ -1050,7 +1050,7 @@ class Simulator(object):
         self.cgj = 1/(2/p.cm)
 
         # If this is the fast BETSE solver, initialize this solver.
-        if p.solver_type is SolverType.CIRCUIT:
+        if p.solver_type is SolverType.FAST:
             self.fast_sim_init(cells, p)
 
 
@@ -1097,7 +1097,7 @@ class Simulator(object):
                 solver_label = 'Full BETSE simulator'
                 solver_method = self._run_sim_core_loop
             # Else if this is the fast BETSE solver, set appropriate locals.
-            elif phase.p.solver_type is SolverType.CIRCUIT:
+            elif phase.p.solver_type is SolverType.FAST:
                 solver_label = 'Fast (equivalent circuit) simulator'
                 solver_method = self._run_fast_sim_core_loop
             # Else, this solver is unrecognized. Raise an exception.
@@ -1467,7 +1467,7 @@ class Simulator(object):
                     time_estimate)
 
 
-    #--------------FAST SIM LOOP (EQUIVALENT CIRCUIT)-------------------------------------------
+    #--------------FAST SIM LOOP (EQUIVALENT CIRCUIT METHOD)-------------------------------------------
     def fast_sim_init(self, cells, p):
         """
         Special initialization required for fast (equivalent circuit) sims.

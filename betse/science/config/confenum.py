@@ -87,7 +87,7 @@ CUSTOM : enum
 # ....................{ ENUMS ~ solver                     }....................
 SolverType = make_enum(
     class_name='SolverType',
-    member_names=('FULL', 'CIRCUIT',))
+    member_names=('FULL', 'FAST',))
 '''
 Enumeration of all supported types of **simulation solvers** (i.e.,
 computational technique iteratively computing each time step of a simulation).
@@ -99,7 +99,7 @@ FULL : enum
     complete BETSE formalism. This solver produces publication-quality results,
     comprehensively simulating all bioelectrical phenomena expected of
     real-world biological systems.
-CIRCUIT : enum
+FAST : enum
     Inaccurate but space- and time-efficient (i.e., fast) solver based on the
     well-known equivalent circuit formalism. This solver produces draft-quality
     results, analogizing real-world biological systems to electronic circuits.

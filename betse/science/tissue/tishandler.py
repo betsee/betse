@@ -1199,5 +1199,5 @@ class TissueHandler(object):
         cells.redo_gj(self, p)  # redo gap junctions to isolate different tissue types
 
         # If this is the fast BETSE solver, re-initialize this solver.
-        if p.solver_type is SolverType.CIRCUIT:
+        if p.solver_type is SolverType.FAST:
             sim.fast_sim_init(cells, p)

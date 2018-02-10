@@ -385,7 +385,7 @@ class SimConfigTestWrapper(object):
         simulation features unsupported by this solver.
         '''
 
-        self._p.solver_type = SolverType.CIRCUIT
+        self._p.solver_type = SolverType.FAST
 
     # ..................{ ENABLERS ~ solver : circuit        }..................
     def enable_solver_circuit_exports(self) -> None:
