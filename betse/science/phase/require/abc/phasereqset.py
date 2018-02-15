@@ -12,7 +12,7 @@ simulation phase).
 # ....................{ IMPORTS                            }....................
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require.abc.phasereqabc import SimPhaseRequirementABC
-from betse.util.io.log import logs
+# from betse.util.io.log import logs
 from betse.util.type import iterables
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.text import strs
@@ -206,6 +206,46 @@ class SimPhaseRequirements(SimPhaseRequirementABC, frozenset):
     #
     #    __and__, __rand__, __ror__, __rsub__, __rxor__, __sub__, __xor__,
     #    add, copy, difference, intersection, symmetric_difference, union
+    #FIXME: O.K.; what we need to do is the following:
+    #
+    #* Define a new "betse.util.type.set" subpackage.
+    #* Define a new "setcls" submodule in that subpackage.
+    #* Define a new "FrozenSetSubclassable" subclass of the "frozenset" type in
+    #  that submodule, ideally resembling the following:
+    #
+    #    class FrozenSetSubclassable(frozenset):
+    #        '''
+    #        See Also
+    #        ----------
+    #        https://stackoverflow.com/users/39856/matthew-marshall
+    #            StackOverflow answer strongly inspiring this class.
+    #        '''
+    #
+    #        def __new__(cls, *args):
+    #            return super(FrozenSetSubclassable, cls).__new__(cls, *args)
+    #
+    #        @classmethod
+    #        def _wrap_methods(cls, names):
+    #            def wrap_method_closure(name):
+    #                def inner(self, *args):
+    #                    result = getattr(super(cls, self), name)(*args)
+    #                    if isinstance(result, frozenset):
+    #                        result = cls(result)
+    #                    return result
+    #                inner.fn_name = name
+    #                setattr(cls, name, inner)
+    #            for name in names:
+    #                wrap_method_closure(name)
+    #
+    #    FrozenSetSubclassable._wrap_methods(['__ror__', '__isub__',
+    #        'symmetric_difference', '__rsub__', '__and__', '__rand__', 'intersection',
+    #        'difference', '__iand__', 'union', '__ixor__',
+    #        '__or__', 'copy', '__rxor__',
+    #        '__xor__', '__ior__', '__sub__',
+    #    ])
+    #
+    #* Subclass this class from "FrozenSetSubclassable" rather than "frozenset".
+    #* Remove the __or__() reimplementation below.
 
     def __or__(self, other):
 
