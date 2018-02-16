@@ -106,6 +106,27 @@ Tuple of the type of all image mode enumeration members *and* of the singleton
 '''
 
 # ....................{ CONVERTERS                         }....................
+#FIXME: Add a new optional "dtype" parameter defaulting to "np.float64". By
+#default, returned arrays are in the native datatype of the input image --
+#typically, "np.uint8". While that's a sane general-purpose default, we pretty
+#much *ALWAYS* want floating point pixel values -- even if doing so incurs a
+#slight loss of precision due to rounding and floating point representation
+#issues. Why? Because Ally just hit an issue resembling:
+#
+#    AAo = pilnumpy.load_image(filename=fbm, mode=ImageModeType.COLOR_RGB)
+#    AAi = (AAo[:, :, 0] -  AAo[:, :, 2])/255
+#
+#In the above example, an integer array whose values range [0, 255] is being
+#normalized by integer division. Unfortunately, this silently fails, as numpy
+#refuses to produce a floating point array whose values range [0.0, 1.0]
+#*UNLESS* the "255" is explicitly altered to "255.0" above. That's a problem,
+#however, as Python itself doesn't behave in that manner. To bring this function
+#in line with expected Python behaviour, we'll need to explicitly return
+#floating point arrays by default here. In theory, appending a simple call to
+#"np.asarray(image, dtype=np.float64)" should suffice.
+#
+#For further details, see:
+#    https://github.com/python-pillow/Pillow/issues/1659
 @type_check
 def load_image(
     # Mandatory parameters.

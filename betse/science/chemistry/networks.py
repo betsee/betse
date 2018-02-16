@@ -5452,6 +5452,9 @@ class Molecule(object):
         #"TissueHandler" object possibly be created by "MasterOfNetworks" (or a
         #similar high-level object) and then passed to each call of this method?
         #If not, no worries. Restive forests and tidal forces unite!
+        #FIXME: Please just remove "dummy_dyna", which is no longer required.
+        #Dancing sun monkeys cavort in the snow castle!
+
         self.dummy_dyna = TissueHandler(sim, cells, p)
         self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
 
