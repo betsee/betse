@@ -12,14 +12,15 @@ simulation phase).
 # ....................{ IMPORTS                            }....................
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require.abc.phasereqabc import SimPhaseRequirementABC
-# from betse.util.io.log import logs
+from betse.util.io.log import logs
 from betse.util.type import iterables
 from betse.util.type.call.memoizers import property_cached
+from betse.util.type.set.setcls import FrozenSetSubclassable
 from betse.util.type.text import strs
 from betse.util.type.types import type_check, IterableOrNoneTypes, NoneType
 
 # ....................{ SUBCLASSES ~ requirements          }....................
-class SimPhaseRequirements(SimPhaseRequirementABC, frozenset):
+class SimPhaseRequirements(SimPhaseRequirementABC, FrozenSetSubclassable):
     '''
     Immutable set of simulation phase requirements, requiring zero or more
     arbitrary requirements to be satisfied.
@@ -173,88 +174,6 @@ class SimPhaseRequirements(SimPhaseRequirementABC, frozenset):
         '''
 
         return not self.isdisjoint(other)
-
-    # ..................{ OPERATORS                          }..................
-    #FIXME: Something appears to be critically broken here. The
-    #frozenset.__or__() method refuses to invoke our
-    #SimPhaseRequirements.__new__() method returning an instance of
-    #"SimPhaseRequirements" and instead invokes its own frozenset.__new__()
-    #method returning an instance of "frozenset". This is a well-known issue
-    #with the Python 2.x line purportedly resolved in Python 3.0 over a decade
-    #ago: issue #1721812.
-    #
-    #Unfortunately, this issue still seems to be unresolved -- at least, for us.
-    #The only alternative would be to completely refactor this subclass to
-    #inherit from the "Hashable" and "Set" APIs of the "collections.abc" module
-    #instead. We actually attempted that initially. Unfortunately, that approach
-    #suffered several gotchas:
-    #
-    #* It was considerably more heavyweight than this approach, requiring in
-    #  upwards of 400 more lines of code.
-    #* It didn't actually work, either. The issue was disturbingly similar to
-    #  this issue, albeit different. Under that approach, attempting to take the
-    #  union of two instances of this class correctly returned a new instance of
-    #  the expected type. For unknown reasons, that union was *ALWAYS* empty.
-    #
-    #Ultimately, the current approach is the lesser of two evils. Since this
-    #isn't really the best, however, we should consider submitting a
-    #minimal-length example (MLE) as a StackOverflow question. In theory, that
-    #should resolve exactly what is going on here.
-    #FIXME: *ALL OTHER SET OPERATORS RETURNING NEW SETS MUST ALSO BE OVERLOADED
-    #IN THE SAME EXACT MANNER.* Until then, they remain similarly broken. For
-    #the record, these methods are:
-    #
-    #    __and__, __rand__, __ror__, __rsub__, __rxor__, __sub__, __xor__,
-    #    add, copy, difference, intersection, symmetric_difference, union
-    #FIXME: O.K.; what we need to do is the following:
-    #
-    #* Define a new "betse.util.type.set" subpackage.
-    #* Define a new "setcls" submodule in that subpackage.
-    #* Define a new "FrozenSetSubclassable" subclass of the "frozenset" type in
-    #  that submodule, ideally resembling the following:
-    #
-    #    class FrozenSetSubclassable(frozenset):
-    #        '''
-    #        See Also
-    #        ----------
-    #        https://stackoverflow.com/users/39856/matthew-marshall
-    #            StackOverflow answer strongly inspiring this class.
-    #        '''
-    #
-    #        def __new__(cls, *args):
-    #            return super(FrozenSetSubclassable, cls).__new__(cls, *args)
-    #
-    #        @classmethod
-    #        def _wrap_methods(cls, names):
-    #            def wrap_method_closure(name):
-    #                def inner(self, *args):
-    #                    result = getattr(super(cls, self), name)(*args)
-    #                    if isinstance(result, frozenset):
-    #                        result = cls(result)
-    #                    return result
-    #                inner.fn_name = name
-    #                setattr(cls, name, inner)
-    #            for name in names:
-    #                wrap_method_closure(name)
-    #
-    #    FrozenSetSubclassable._wrap_methods(['__ror__', '__isub__',
-    #        'symmetric_difference', '__rsub__', '__and__', '__rand__', 'intersection',
-    #        'difference', '__iand__', 'union', '__ixor__',
-    #        '__or__', 'copy', '__rxor__',
-    #        '__xor__', '__ior__', '__sub__',
-    #    ])
-    #
-    #* Subclass this class from "FrozenSetSubclassable" rather than "frozenset".
-    #* Remove the __or__() reimplementation below.
-
-    def __or__(self, other):
-
-        # If "other" is an instance of this class, defer to the corresponding
-        # comparison operator of the "frozenset" class; else, fail gracefully.
-        return (
-            type(self)(frozenset(self) | frozenset(other))
-            if isinstance(other, SimPhaseRequirements) else
-            NotImplemented)
 
 # ....................{ TYPES                              }....................
 SimPhaseRequirementsOrNoneTypes = (SimPhaseRequirements, NoneType)

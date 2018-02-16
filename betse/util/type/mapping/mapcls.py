@@ -5,7 +5,8 @@
 
 '''
 Low-level **mapping classes** (i.e., classes implementing dictionary-like
-functionality, typically by subclassing :class:`dict` or an analogue thereof).
+functionality, typically by subclassing the builtin :class:`dict` container type
+or an analogue thereof).
 '''
 
 # ....................{ IMPORTS                            }....................

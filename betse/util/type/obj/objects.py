@@ -374,9 +374,9 @@ def get_method(obj: object, method_name: str) -> CallableTypes:
     from betse.util.type.obj.sentinels import SENTINEL
 
     # Attribute with this name in this object if any or the sentinel otherwise.
-    # To raise human-readable exceptions, this attribute is *NOT* retrieved the
-    # higher-level get_method_or_none() method; doing so would obscure whether
-    # this attribute does not exist or does but is not a method.
+    # To raise human-readable exceptions, this attribute is *NOT* retrieved via
+    # the higher-level get_method_or_none() method; doing so would obscure
+    # whether this attribute does not exist or does but is not a method.
     method = get_attr_or_sentinel(obj, method_name)
 
     # If no such attribute exists, raise an exception.

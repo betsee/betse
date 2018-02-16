@@ -87,6 +87,43 @@ def get_module_name(cls: ClassType) -> str:
     # Defer to this existing function, which suffices.
     return objects.get_class_module_name(cls)
 
+# ....................{ GETTERS ~ method                   }....................
+@type_check
+def get_method(cls: ClassType, method_name: str) -> CallableTypes:
+    '''
+    Possibly unbound method with the passed name defined by the passed class if
+    any *or* raise an exception otherwise.
+
+    If this method is:
+
+    * A classmethod, this method is bound to this class.
+    * A normal method, this method is unbound.
+    * A static method, this method is unbound.
+
+    Parameters
+    ----------
+    cls : ClassType
+        Class to retrieve this method for.
+    method_name : str
+        Name of the method to be obtained.
+
+    Returns
+    ----------
+    CallableTypes
+        Possibly unbound method with this name.
+
+    Raises
+    ----------
+    BetseMethodException
+        If no such method is defined by this class.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj import objects
+
+    # It's so simple, my eyes bleed.
+    return objects.get_method(obj=cls, method_name=method_name)
+
 # ....................{ ITERATORS                          }....................
 @type_check
 def iter_methods(cls: ClassType) -> GeneratorType:

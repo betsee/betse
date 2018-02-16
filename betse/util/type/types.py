@@ -21,8 +21,15 @@ and :func:`instanceof`\ -friendly tuples of such types *and* the pivotal
 import inspect, re
 from argparse import ArgumentParser, _SubParsersAction
 from collections.abc import (
-    Container, Hashable, Iterable, Iterator, Mapping, MutableMapping, Sequence,
-    Set, Sized,
+    Container,
+    Hashable,
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+    Sequence,
+    Set,
+    Sized,
 )
 from enum import Enum, EnumMeta
 from functools import partial, wraps
@@ -52,7 +59,9 @@ from types import (
 )
 
 # Silence IDE warnings concerning locally unused attributes. Move along, folks.
-if False: (wraps, GeneratorType, ModuleType,)
+wraps
+GeneratorType
+ModuleType
 
 # ....................{ TYPES                              }....................
 ClassType = type
@@ -118,10 +127,36 @@ function-like :class:`partial` class).
 '''
 
 
+# Since Python appears to expose no explicit method descriptor type via any
+# standard module (e.g., "types", "collections.abc"), the type of an arbitrary
+# method descriptor guaranteed to *ALWAYS* exist is obtained instead.
+MethodDescriptorType = type(str.upper)
+'''
+Type of all **method descriptors** (i.e., unbound methods accessed as class
+rather than instance attributes).
+
+Note that, despite being unbound, method descriptors remain callable (e.g., by
+explicitly passing the intended ``self`` object as the first parameter).
+'''
+
+
 PropertyType = property
 '''
 Type of all **property methods** (i.e., methods decorated by the builtin
 :class:`property` class decorator).
+'''
+
+
+# Since Python appears to expose no explicit slot wrapper type via any standard
+# module (e.g., "types", "collections.abc"), the type of an arbitrary slot
+# wrapper guaranteed to *ALWAYS* exist is obtained instead.
+SlotWrapperType = type(str.__len__)
+'''
+Type of all **slot wrappers** (i.e., C-based unbound methods accessed as class
+rather than instance attributes).
+
+Note that, despite being unbound, slot wrappers remain callable (e.g., by
+explicitly passing the intended ``self`` object as the first parameter).
 '''
 
 # ....................{ TYPES ~ container                  }....................
@@ -283,11 +318,13 @@ CallableTypes = (
     BuiltinMethodType,
     FunctionType,
     MethodType,
+    MethodDescriptorType,
+    SlotWrapperType,
 )
 '''
 Tuple of all **callable classes** (i.e., classes whose instances are callable
-objects, including both built-in and user-defined functions, lambdas, and
-methods).
+objects, including both built-in and user-defined functions, lambdas, methods,
+and method descriptors).
 '''
 
 
