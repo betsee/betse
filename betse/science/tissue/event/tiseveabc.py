@@ -8,7 +8,7 @@ Abstract base classes of all timed event classes.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta  #, abstractmethod
-from betse.util.type.types import type_check, NumericTypes
+from betse.util.type.types import type_check, NumericSimpleTypes
 
 # ....................{ BASE                               }....................
 class SimEventABC(object, metaclass=ABCMeta):
@@ -67,19 +67,19 @@ class SimEventSpikeABC(SimEventABC):
 
     Attributes
     ----------
-    _time_step : NumericTypes
+    _time_step : NumericSimpleTypes
         Time step in seconds (s) at which to trigger this action.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, time_step: NumericTypes) -> None:
+    def __init__(self, time_step: NumericSimpleTypes) -> None:
         '''
         Initialize this event.
 
         Parameters
         ----------
-        time_step : NumericTypes
+        time_step : NumericSimpleTypes
             Time step in seconds (s) at which to trigger this action.
         '''
 
@@ -97,11 +97,11 @@ class SimEventPulseABC(SimEventABC):
 
     Attributes
     ----------
-    start_time : NumericTypes
+    start_time : NumericSimpleTypes
         Time step (s) at which to begin triggering this event.
-    stop_time : NumericTypes
+    stop_time : NumericSimpleTypes
         Time step (s) at which to cease triggering this event.
-    step_rate : NumericTypes
+    step_rate : NumericSimpleTypes
         Slope of the pair of step functions guaranteeing smooth continuity
         between the background function and this event. Each step function is
         the mirror image of the other reflected across the Y axis. These are:
@@ -120,9 +120,9 @@ class SimEventPulseABC(SimEventABC):
     @type_check
     def __init__(
         self,
-        start_time: NumericTypes,
-        stop_time: NumericTypes,
-        step_rate: NumericTypes,
+        start_time: NumericSimpleTypes,
+        stop_time: NumericSimpleTypes,
+        step_rate: NumericSimpleTypes,
     ) -> None:
 
         # Initialize our superclass.

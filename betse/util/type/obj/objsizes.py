@@ -13,11 +13,11 @@ memory profiling of Python applications.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type import types
-from betse.util.type.types import type_check, NumericTypes
+from betse.util.type.types import type_check, NumericSimpleTypes
 
 # ....................{ GETTERS                            }....................
 @type_check
-def get_size(obj: object, size_divisor: NumericTypes = 1) -> NumericTypes:
+def get_size(obj: object, size_divisor: NumericSimpleTypes = 1) -> NumericSimpleTypes:
     '''
     Recursive in-memory size of the passed object, calculated with the external
     :mod:`pympler` package if importable _or_ raising an exception otherwise.
@@ -71,7 +71,7 @@ def get_size(obj: object, size_divisor: NumericTypes = 1) -> NumericTypes:
     ----------
     obj : object
         Object to iterate the variable sizes of.
-    size_divisor: optional[NumericTypes]
+    size_divisor: optional[NumericSimpleTypes]
         Number (i.e., integer, float) by which to divide the size in bytes of
         each variable of this object, hence converting from sizes in bytes to
         sizes in a larger denomination (e.g., :data:`betse.util.type.ints.KiB`,

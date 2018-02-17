@@ -82,7 +82,7 @@ convenience to callers preferring to avoid importing that class.
 
 NoneType = type(None)
 '''
-Type of the singleton ``None`` object.
+Type of the ``None`` singleton.
 
 Curiously, although the type of the ``None`` object is a class object whose
 ``__name__`` attribute is ``NoneType``, there exists no globally accessible
@@ -313,6 +313,29 @@ enumeration's type and should be directly referenced as such: e.g.,
 '''
 
 # ....................{ TUPLES                             }....................
+ModuleOrStrTypes = (str, ModuleType)
+'''
+Tuple of both the module *and* string type.
+'''
+
+
+TestableTypes = (ClassType, tuple)
+'''
+Tuple of all **testable types** (i.e., types suitable for use as the second
+parameter passed to the :func:`isinstance` and :func:`issubclass` builtins).
+'''
+
+
+WeakRefProxyTypes = (CallableProxyType, ProxyType)
+'''
+Tuple of all **weak reference proxy classes** (i.e., classes whose instances
+are weak references to other instances masquerading as those instances).
+
+This tuple contains classes matching both callable and uncallable weak
+reference proxies.
+'''
+
+# ....................{ TUPLES ~ callable                  }....................
 CallableTypes = (
     BuiltinFunctionType,
     BuiltinMethodType,
@@ -347,20 +370,17 @@ Tuple of all **method classes** (i.e., classes whose instances are either
 built-in or user-defined methods).
 '''
 
-
-ModuleOrStrTypes = (str, ModuleType)
+# ....................{ TUPLES ~ scalar                    }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# CAUTION: Order is significant here. See commentary in the docstring below.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+NumericSimpleTypes = (float, int,)
 '''
-Tuple of both the module *and* string type.
-'''
+Tuple of all **builtin simple numeric types** (i.e., classes whose instances are
+trivial scalar numbers), comprising both integer and real number types.
 
-
-NumericTypes = (float, int)
-'''
-Tuple of all **numeric classes** (i.e., classes whose instances are single
-scalar numbers excluding complex numbers, which typically require
-special-purpose handling).
-
-This tuple contains classes matching both integer and real number types.
+This tuple intentionally excludes complex number types, whose non-trivial
+encapsulation of two scalar numbers often requires special-purpose handling.
 
 Caveats
 ----------
@@ -372,33 +392,45 @@ this tuple would adversely strip the decimal portion from real number strings.)
 '''
 
 
-TestableTypes = (ClassType, tuple)
+NumericTypes = (complex,) + NumericSimpleTypes
 '''
-Tuple of all **testable types** (i.e., types suitable for use as the second
-parameter passed to the :func:`isinstance` and :func:`issubclass` builtins).
-'''
-
-
-WeakRefProxyTypes = (CallableProxyType, ProxyType)
-'''
-Tuple of all **weak reference proxy classes** (i.e., classes whose instances
-are weak references to other instances masquerading as those instances).
-
-This tuple contains classes matching both callable and uncallable weak
-reference proxies.
+Tuple of all **builtin numeric types** (i.e., classes whose instances are
+scalar numbers), comprising integer, real number, and complex number types.
 '''
 
-# ....................{ TUPLES : init                      }....................
-# These tuples are declared here for documentation purposes but defined below.
 
-NumpyArrayType = None
+NumericlikeTypes = (bool,) + NumericTypes
 '''
-Type of Numpy arrays if :class:`numpy` is importable *or* ``None`` otherwise.
+Tuple of all **builtin numeric-like types** (i.e., classes whose instances are
+either scalar numbers or types trivially convertable into scalar numbers),
+comprising boolean, integer, real number, and complex number types.
 
-This class is a synonym of the :class:`numpy.ndarray` class, permitting callers
-to avoid importing that class.
+Booleans are trivially convertible into integers. While details differ by
+implementation, the "standard" implementation trivially converts:
+
+* ``False`` to ``0``.
+* ``True`` to ``1``.
 '''
 
+
+ScalarTypes = (str,) + NumericlikeTypes
+'''
+Tuple of all **builtin scalar classes** (i.e., classes whose instances are
+single scalar numbers), comprising all boolean, numeric, and textual types.
+
+Caveats
+----------
+For obscure reasons, this tuple intentionally lists the :class:`float` class
+*BEFORE* the :class:`int` class. (Downstream BETSEE requirements coerce
+GUI-based numeric string values into numbers by casting these strings into
+instances of the first item of this tuple. Reversing the order of these items in
+this tuple would adversely strip the decimal portion from real number strings.)
+'''
+
+# ....................{ TUPLES : lib                       }....................
+# Types conditionally dependent upon the importability of third-party
+# dependencies. For safety, all such types default to ``None`` here and are
+# subsequently redefined by the try-except block below.
 
 IterableTypes = None
 '''
@@ -436,7 +468,29 @@ subclass :class:`collections.abc.Sequence` despite implementing the entirety of
 that that API.
 '''
 
+# ....................{ TUPLES : lib ~ numpy               }....................
+NumpyArrayType = None
+'''
+Type of Numpy arrays if :mod:`numpy` is importable *or* ``None`` otherwise.
 
+This class is a synonym of the :class:`numpy.ndarray` class, permitting callers
+to avoid importing that class.
+'''
+
+
+NumpyDataTypes = None
+'''
+Tuple of the **Numpy data type** (i.e., Numpy-specific numeric scalar type
+homogenously constraining all elements of all Numpy arrays) and all scalar
+Python types transparently supported by Numpy as implicit data types (i.e.,
+:class:`bool`, :class:`complex`, :class:`float`, and :class:`int`) if
+:mod:`numpy` is importable *or* ``None`` otherwise.
+
+This class is a synonym of the :class:`numpy.dtype` class, permitting callers
+to avoid importing that class.
+'''
+
+# ....................{ TUPLES : init ~ numpy              }....................
 # Conditionally add sequence types to previously declared tuples.
 #
 # If Numpy is available, add both core APIs and the Numpy array type (which
@@ -447,14 +501,14 @@ that that API.
 # is guaranteed to raise human-readable exceptions for missing dependencies,
 # this error is silently ignored here.
 try:
-    from numpy import ndarray
+    from numpy import dtype, ndarray
 
     NumpyArrayType = ndarray
+    NumpyDataTypes = (dtype,) + NumericlikeTypes
     IterableTypes = (Iterable, NumpyArrayType)
     SequenceTypes = (Sequence, NumpyArrayType)
-# Else, Numpy is unavailable. Add only core APIs.
+# Else, Numpy is unavailable. Define these tuples to contain only stock types.
 except:
-    NumpyArrayType = None
     IterableTypes = (Iterable,)
     SequenceTypes = (Sequence,)
 
@@ -468,14 +522,14 @@ subclassing) the canonical :class:`Mapping` *or* :class:`Sequence` APIs.
 '''
 
 
-NumericOrIterableTypes = NumericTypes + IterableTypes
+NumericOrIterableTypes = NumericSimpleTypes + IterableTypes
 '''
 Tuple of all numeric types *and* all container base classes conforming to (but
 *not* necessarily subclassing) the canonical :class:`Iterable` API.
 '''
 
 
-NumericOrSequenceTypes = NumericTypes + SequenceTypes
+NumericOrSequenceTypes = NumericSimpleTypes + SequenceTypes
 '''
 Tuple of all numeric types *and* all container base classes conforming to (but
 *not* necessarily subclassing) the canonical :class:`Sequence` API.
@@ -486,7 +540,7 @@ Tuple of all numeric types *and* all container base classes conforming to (but
 
 NoneTypes = (NoneType,)
 '''
-Tuple of only the type of the singleton ``None`` object.
+Tuple of only the type of the ``None`` singleton.
 
 This tuple is principally intended for use in efficiently constructing other
 tuples of types containing this type.
@@ -495,25 +549,25 @@ tuples of types containing this type.
 
 BoolOrNoneTypes = (bool, NoneType)
 '''
-Tuple of both the boolean type *and* that of the singleton ``None`` object.
+Tuple of both the boolean type *and* that of the ``None`` singleton.
 '''
 
 
 CallableOrNoneTypes = CallableTypes + NoneTypes
 '''
-Tuple of all callable classes *and* the type of the singleton ``None`` object.
+Tuple of all callable classes *and* the type of the ``None`` singleton.
 '''
 
 
 ClassOrNoneTypes = (ClassType, NoneType)
 '''
-Tuple of the type of all types *and* that of the singleton ``None`` object.
+Tuple of the type of all types *and* that of the ``None`` singleton.
 '''
 
 
 IntOrNoneTypes = (int, NoneType)
 '''
-Tuple of both the integer type *and* that of the singleton ``None`` object.
+Tuple of both the integer type *and* that of the ``None`` singleton.
 '''
 
 
@@ -521,7 +575,7 @@ IterableOrNoneTypes = IterableTypes + NoneTypes
 '''
 Tuple of all container base classes conforming to (but _not_ necessarily
 subclassing) the canonical :class:`Iterable` API as well as the type of the
-singleton ``None`` object.
+``None`` singleton.
 '''
 
 
@@ -529,7 +583,7 @@ MappingOrNoneTypes = (MappingType,) + NoneTypes
 '''
 Tuple of all container base classes conforming to (but *not* necessarily
 subclassing) the canonical :class:`Mapping` API as well as the type of the
-singleton ``None`` object.
+``None`` singleton.
 '''
 
 
@@ -537,7 +591,7 @@ MappingOrSequenceOrNoneTypes = MappingOrSequenceTypes + NoneTypes
 '''
 Tuple of all container base classes conforming to (but *not* necessarily
 subclassing) the canonical :class:`Mapping` *or* :class:`Sequence` APIs as well
-as the type of the singleton ``None`` object.
+as the type of the ``None`` singleton.
 '''
 
 
@@ -549,21 +603,27 @@ necessarily subclassing) the canonical :class:`int`, :class:`float`, *or*
 '''
 
 
+NumpyDataOrNoneTypes = NumpyDataTypes + NoneTypes
+'''
+Tuple of all Numpy data types *and* the type of the ``None`` singleton.
+'''
+
+
 SequenceOrNoneTypes = SequenceTypes + NoneTypes
 '''
 Tuple of all container base classes conforming to (but *not* necessarily
 subclassing) the canonical :class:`Sequence` API as well as the type of the
-singleton ``None`` object.
+``None`` singleton.
 '''
 
 
 SetOrNoneTypes = (SetType, NoneType)
 '''
-Tuple of both the set type *and* the type of the singleton ``None`` object.
+Tuple of both the set type *and* the type of the ``None`` singleton.
 '''
 
 
-NumericOrNoneTypes = NumericTypes + NoneTypes
+NumericOrNoneTypes = NumericSimpleTypes + NoneTypes
 '''
 Tuple of all numeric types *and* the type of the singleton `None` object.
 '''
@@ -571,13 +631,13 @@ Tuple of all numeric types *and* the type of the singleton `None` object.
 
 StrOrNoneTypes = (str, NoneType)
 '''
-Tuple of both the string type *and* the type of the singleton ``None`` object.
+Tuple of both the string type *and* the type of the ``None`` singleton.
 '''
 
 
 TestableOrNoneTypes = TestableTypes + NoneTypes
 '''
-Tuple of all testable types *and* the type of the singleton ``None`` object.
+Tuple of all testable types *and* the type of the ``None`` singleton.
 '''
 
 # ....................{ TUPLES ~ regex                     }....................
@@ -615,7 +675,7 @@ by functions in the :mod:`betse.util.type.regexes` submodule).
 RegexMatchOrNoneTypes = (RegexMatchType, NoneType)
 '''
 Tuple of both the regular expression match object type *and* the type of the
-singleton ``None`` object.
+``None`` singleton.
 '''
 
 # ....................{ SETS : private                     }....................

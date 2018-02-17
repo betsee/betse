@@ -12,7 +12,7 @@ and non-directory files.
 import os, shutil
 from betse.exceptions import BetsePathException
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, IterableTypes, NumericTypes
+from betse.util.type.types import type_check, IterableTypes, NumericSimpleTypes
 from os import path as os_path
 
 # ....................{ EXCEPTIONS                         }....................
@@ -223,7 +223,7 @@ def get_type_label(pathname: str) -> str:
 
 # ....................{ GETTERS ~ mtime : non-recursive    }....................
 @type_check
-def get_mtime_nonrecursive(pathname: str) -> NumericTypes:
+def get_mtime_nonrecursive(pathname: str) -> NumericSimpleTypes:
     '''
     **Non-recursive mtime** (i.e., non-recursively retrieved modification time) in
     in seconds of the passed path.
@@ -250,7 +250,7 @@ def get_mtime_nonrecursive(pathname: str) -> NumericTypes:
 
     Returns
     -----------
-    NumericTypes
+    NumericSimpleTypes
         Mtime in seconds of this path as either an integer or float, depending
         on the boolean returned by the platform-specific
         :func:`os.stat_float_times` function.
@@ -260,7 +260,7 @@ def get_mtime_nonrecursive(pathname: str) -> NumericTypes:
 
 # ....................{ GETTERS ~ mtime : recursive        }....................
 @type_check
-def get_mtime_recursive(pathname: str) -> NumericTypes:
+def get_mtime_recursive(pathname: str) -> NumericSimpleTypes:
     '''
     **Recursive mtime** (i.e., recursively calculated modification time) in
     seconds of the passed path.
@@ -283,7 +283,7 @@ def get_mtime_recursive(pathname: str) -> NumericTypes:
 
     Returns
     -----------
-    NumericTypes
+    NumericSimpleTypes
         Mtime in seconds of the most recent path as either an integer or float,
         depending on the boolean returned by the platform-specific
         :func:`os.stat_float_times` function.
@@ -302,7 +302,7 @@ def get_mtime_recursive(pathname: str) -> NumericTypes:
 
 
 @type_check
-def get_mtime_recursive_newest(pathnames: IterableTypes) -> NumericTypes:
+def get_mtime_recursive_newest(pathnames: IterableTypes) -> NumericSimpleTypes:
     '''
     **Recursive mtime** (i.e., recursively calculated modification time) in
     seconds of the most recent passed path.
@@ -314,7 +314,7 @@ def get_mtime_recursive_newest(pathnames: IterableTypes) -> NumericTypes:
 
     Returns
     -----------
-    NumericTypes
+    NumericSimpleTypes
         Mtime in seconds of the most recent path as either an integer or float,
         depending on the boolean returned by the platform-specific
         :func:`os.stat_float_times` function.

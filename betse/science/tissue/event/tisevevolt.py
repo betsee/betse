@@ -11,7 +11,7 @@ from betse.exceptions import BetseSimConfigException
 from betse.science.tissue.event.tiseveabc import SimEventPulseABC
 from betse.science.math import toolbox
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, NoneType, NumericTypes
+from betse.util.type.types import type_check, NoneType, NumericSimpleTypes
 
 # ....................{ SUBCLASSES                         }....................
 class SimEventPulseVoltage(SimEventPulseABC):
@@ -24,7 +24,7 @@ class SimEventPulseVoltage(SimEventPulseABC):
 
     Attributes
     ----------------------------
-    peak_voltage : NumericTypes
+    peak_voltage : NumericSimpleTypes
         Maximum voltage (V) to be applied.
     positive_voltage_boundary : str
         Character identifying the boundary edge to apply this positive voltage
@@ -42,10 +42,10 @@ class SimEventPulseVoltage(SimEventPulseABC):
     @type_check
     def __init__(
         self,
-        start_time: NumericTypes,
-        stop_time: NumericTypes,
-        step_rate: NumericTypes,
-        peak_voltage: NumericTypes,
+        start_time: NumericSimpleTypes,
+        stop_time: NumericSimpleTypes,
+        step_rate: NumericSimpleTypes,
+        peak_voltage: NumericSimpleTypes,
         positive_voltage_boundary: str,
         negative_voltage_boundary: str,
     ) -> None:
@@ -64,7 +64,7 @@ class SimEventPulseVoltage(SimEventPulseABC):
 
 
     @type_check
-    def fire(self, sim: 'betse.science.sim.Simulator', t: NumericTypes) -> None:
+    def fire(self, sim: 'betse.science.sim.Simulator', t: NumericSimpleTypes) -> None:
 
         effector = toolbox.pulse(
             t, self.start_time, self.stop_time, self.step_rate)

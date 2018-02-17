@@ -215,9 +215,9 @@ class LayerCellsColorfulABC(LayerCellsABC):
     _color_mappables : IterableTypes
         Iterable of all mappables internally cached and returned by the
         :meth:`color_mappables` property.
-    _color_max : NumericTypes
+    _color_max : NumericSimpleTypes
         Maximum color value to be displayed by the parent visual's colorbar.
-    _color_min : NumericTypes
+    _color_min : NumericSimpleTypes
         Minimum color value to be displayed by the parent visual's colorbar.
         Ignored if :attr:`_visual.conf.is_color_autoscaled` is ``True``.
         Minimum color value to be displayed by the colorbar. Ignored if

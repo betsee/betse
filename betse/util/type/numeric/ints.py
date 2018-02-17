@@ -27,11 +27,11 @@ Maximum value of unsigned bytes.
 
 INT_VALUE_MAX_32_BIT = 1 << 32
 '''
-Maximum value for integer variables of internal type `Py_ssize_t` on 32-bit
+Maximum value for integer variables of internal type ``Py_ssize_t`` on 32-bit
 Python interpreters.
 
-This value is suitable for comparison with `sys.maxsize`, the maximum value of
-these variables on the current system.
+This value is suitable for comparison with :attr:`sys.maxsize`, the maximum
+value of these variables on the current system.
 '''
 
 # ....................{ CONSTANTS ~ units ~ size           }....................
@@ -39,31 +39,31 @@ these variables on the current system.
 
 KiB = 1 << 10
 '''
-Number of bytes in one kibibyte (i.e., `2**10`).
+Number of bytes in one kibibyte (i.e., ``2**10``).
 '''
 
 
 MiB = 1 << 20
 '''
-Number of bytes in one mebibyte (i.e., `2**20`).
+Number of bytes in one mebibyte (i.e., ``2**20``).
 '''
 
 
 GiB = 1 << 30
 '''
-Number of bytes in one gibibyte (i.e., `2**30`).
+Number of bytes in one gibibyte (i.e., ``2**30``).
 '''
 
 
 TiB = 1 << 40
 '''
-Number of bytes in one tebibyte (i.e., `2**40`).
+Number of bytes in one tebibyte (i.e., ``2**40``).
 '''
 
 # ....................{ CONSTANTS ~ units ~ inverse        }....................
 INVERSE_CENTI = 1e2
 '''
-Inverse of the centi- unit prefix (i.e., `10**−2`), typically used as a
+Inverse of the centi- unit prefix (i.e., ``10**−2``), typically used as a
 multiplicative factor for upscaling quantities from centi-prefixed units to
 unprefixed units.
 '''
@@ -71,7 +71,7 @@ unprefixed units.
 
 INVERSE_MILLI = 1e3
 '''
-Inverse of the milli- unit prefix (i.e., `10**−3`), typically used as a
+Inverse of the milli- unit prefix (i.e., ``10**−3``), typically used as a
 multiplicative factor for upscaling quantities from milli-prefixed units to
 unprefixed units.
 '''
@@ -79,7 +79,7 @@ unprefixed units.
 
 INVERSE_MICRO = 1e6
 '''
-Inverse of the micro- unit prefix (i.e., `10**−6`), typically used as a
+Inverse of the micro- unit prefix (i.e., ``10**−6``), typically used as a
 multiplicative factor for upscaling quantities from micro-prefixed units to
 unprefixed units.
 '''

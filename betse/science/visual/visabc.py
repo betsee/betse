@@ -109,9 +109,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         this iterable is associated with this colorbar.
     _colorbar_title: StrOrNoneTypes
         Text displayed above the figure colorbar if any *or* ``None`` otherwise.
-    _color_max : NumericTypes
+    _color_max : NumericSimpleTypes
         Maximum color value to be displayed by the colorbar.
-    _color_min : NumericTypes
+    _color_min : NumericSimpleTypes
         Minimum color value to be displayed by the colorbar.
     _colormap : Colormap
         Matplotlib colormap with which to create this animation's colorbar.
@@ -1132,7 +1132,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         grid_y : SequenceTypes or NoneType
             Optional scaled Y components of the cell cluster grid. Defaults to
             `None`, in which case the default `self.cells.Y` array is used.
-        magnitude_max: NumericTypes or NoneType
+        magnitude_max: NumericSimpleTypes or NoneType
             Optional maximum magnitude in the passed `magnitude` array.
             Defaults to `None`, in which case this array is implicitly searched
             for this value.

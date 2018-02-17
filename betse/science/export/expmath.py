@@ -15,7 +15,7 @@ from betse.lib.numpy import nparray
 from betse.util.type import types
 from betse.util.type.numeric import ints
 from betse.util.type.types import (
-    type_check, NumericTypes, NumericOrIterableTypes,)
+    type_check, NumericSimpleTypes, NumericOrIterableTypes,)
 
 # ....................{ CONSTANTS                          }....................
 UPSCALER_COORDINATES = ints.INVERSE_MICRO
@@ -148,7 +148,7 @@ def upscale_coordinates_tuple(
 # ....................{ UPSCALERS ~ private                }....................
 @type_check
 def _upscale_data_in_units(
-    data: NumericOrIterableTypes, factor: NumericTypes) -> (
+    data: NumericOrIterableTypes, factor: NumericSimpleTypes) -> (
     NumericOrIterableTypes):
     '''
     Upscale the contents of the passed object by the passed multiplier,
@@ -159,7 +159,7 @@ def _upscale_data_in_units(
     ----------
     data : NumericOrIterableTypes
         Number or sequence to be upscaled.
-    factor : NumericTypes
+    factor : NumericSimpleTypes
         Reciprocal of the units this object is denominated in.
 
     Returns

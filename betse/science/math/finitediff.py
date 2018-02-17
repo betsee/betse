@@ -20,7 +20,7 @@ class FiniteDiffSolver(object):
 
     Attributes (Grid)
     ------------------------
-    delta : NumericTypes
+    delta : NumericSimpleTypes
         Distance in meters between each grid point *and* between each grid
         space, uniformally applied in both the X and Y dimensions.
 
@@ -51,13 +51,13 @@ class FiniteDiffSolver(object):
         2-tuple ``(height, width)`` of this grid, where:
         * ``height`` is the number of rows in this grid.
         * ``width`` is the number of columns in this grid.
-    xmin : NumericTypes
+    xmin : NumericSimpleTypes
         X coordinate in meters of the leftmost grid point(s).
-    xmax : NumericTypes
+    xmax : NumericSimpleTypes
         X coordinate in meters of the rightmost grid point(s).
-    ymin : NumericTypes
+    ymin : NumericSimpleTypes
         Y coordinate in meters of the bottom-most grid point(s).
-    ymax : NumericTypes
+    ymax : NumericSimpleTypes
         Y coordinate in meters of the topmost grid point(s).
     xy_verts : ndarray
         Two dimensional Numpy array of the Cartesian coordinates of all grid

@@ -4,31 +4,40 @@
 # See "LICENSE" for further details.
 
 '''
-High-level Numpy array and matrix facilities.
-
-See Also
-----------
-:mod:`betse.lib.numpy.nptest`
-    Low-level Numpy-based array testing and validation facilities.
+Low-level **Numpy type conversion** (i.e., functions converting Numpy arrays to
+and from various types) facilities.
 '''
-
-#FIXME: Donate the write_csv() function back to Numpy as a new np.savecsv()
-#function paralleling the existing np.savetxt() function.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.exceptions import BetseSequenceException, BetseStrException
-from betse.util.io.log import logs
-from betse.util.path import dirs
-from betse.util.type import sequences, types
-from betse.util.type.text import strs
-from betse.util.type.types import type_check, ClassType, IterableTypes
-from collections import OrderedDict
+# from betse.util.io.log import logs
+from betse.util.type import sequences
+from betse.util.type.types import (
+    type_check, ClassType, IterableTypes, NumpyArrayType,)
 from numpy import ndarray
 
-# ....................{ CONVERTERS                         }....................
+# ....................{ GLOBALS                            }....................
+DTYPE_UNSIGNED_TO_SIGNED = {
+     np.uint0:  np.int8,
+     np.uint8: np.int16,
+    np.uint16: np.int32,
+    np.uint32: np.int64,
+}
+'''
+Dictionary mapping from all unsigned Numpy data types to the next largest
+signed Numpy data types, guaranteed to preserve the contents of arrays whose
+data types are these unsigned types in the most space- and time-efficient
+manner.
+
+See Also
+----------
+:func:`to_signed`
+    Further discussion.
+'''
+
+# ....................{ CONVERTERS ~ iterable              }....................
 @type_check
-def from_iterable(iterable: IterableTypes) -> ndarray:
+def from_iterable(iterable: IterableTypes) -> NumpyArrayType:
     '''
     Convert the passed iterable into a Numpy array.
 
@@ -68,7 +77,7 @@ def from_iterable(iterable: IterableTypes) -> ndarray:
 
     Returns
     ----------
-    ndarray
+    NumpyArrayType
         Numpy array converted from this iterable.
     '''
 
@@ -83,7 +92,7 @@ def from_iterable(iterable: IterableTypes) -> ndarray:
 
 
 @type_check
-def to_iterable(array: ndarray, cls: ClassType) -> IterableTypes:
+def to_iterable(array: NumpyArrayType, cls: ClassType) -> IterableTypes:
     '''
     Convert the passed Numpy array into an iterable of the passed type.
 
@@ -97,7 +106,7 @@ def to_iterable(array: ndarray, cls: ClassType) -> IterableTypes:
 
     Parameters
     ----------
-    array : ndarray
+    array : NumpyArrayType
         Numpy array to be converted.
     cls : ClassType
         Type of the iterable to convert this array into.
@@ -122,139 +131,56 @@ def to_iterable(array: ndarray, cls: ClassType) -> IterableTypes:
     # Else, return an iterable converted from this list.
     return cls(array_list)
 
-# ....................{ WRITERS                            }....................
+# ....................{ CONVERTERS ~ signed                }....................
 @type_check
-def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
+def to_signed(array: NumpyArrayType) -> NumpyArrayType:
     '''
-    Serialize each key-value pair of the passed ordered dictionary into a new
-    column in comma-separated value (CSV) format to the plaintext file with the
-    passed filename.
+    Convert the passed possibly unsigned Numpy array into a signed Numpy array
+    exactly containing the same elements.
 
-    Caveats
-    ----------
-    To ensure that all columns of this file have the same number of rows, all
-    values of this dictionary *must* be one-dimensional sequences of:
+    If this array's data type is:
 
-    * The same length. If this is not the case, an exception is raised.
-    * Any type satisfying the :class:`SequenceTypes` API, including:
-      * Numpy arrays.
-      * Lists.
-      * Tuples.
+    * Already signed (e.g., :attr:`np.int32`, :attr:`np.float64`), this array is
+      returned unmodified.
+    * Unsigned (e.g., :attr:`np.uint8`), a new signed array preserving the
+      contents of this array is returned.
 
-    Typically, each such value is a one-dimensional Numpy array of floats.
+    In the latter case, this array's contents are preserved across this data
+    type conversion by doubling the precision of this array. Since signed and
+    unsigned data types of the same bit width cover different integer ranges,
+    creating a signed array of same bit width does *not* suffice to preserve
+    this array's contents in the general case.
+
+    For example, consider the following data types:
+
+    * :attr:`np.uint16`, covering the integer range ``[0, 65535]``.
+    * :attr:`np.int16`, covering the integer range ``[−32768, 32767]``.
+    * :attr:`np.int32`, covering the integer range
+      ``[−2147483648, 2147483647]``.
+
+    If the data type of the passed array is :attr:`np.uint16`, this implies that
+    only a data type of :attr:`np.int32` or wider (e.g., :attr:`np.int64`)
+    suffices to preserve the contents of this array. Coercing these contents
+    into an array of data type :attr:`np.int16` would destroy (e.g, truncate,
+    wrap) *all* array elements in the integer range ``[32768, 65535]``.
 
     Parameters
     ----------
-    filename : str
-        Absolute or relative path of the plaintext file to be written. If this
-        file already exists, this file is silently overwritten.
-    column_name_to_values: OrderedDict
-        Ordered dictionary of all columns to be serialized such that:
-        * Each key of this dictionary is a **column name** (i.e., terse string
-          describing the type of data contained in this column).
-        * Each value of this dictionary is **column data** (i.e.,
-          one-dimensional sequence of all arbitrary data comprising this
-          column).
+    array: NumpyArrayType
+        Possibly unsigned Numpy array to be converted into a signed array.
 
-    Raises
+    Returns
     ----------
-    BetseSequenceException
-        If one or more values of this dictionary are either:
-        * *Not* sequences.
-        * Sequences whose length differs from that of any preceding value
-          sequences of this dictionary.
-    BetseStrException
-        If this column name contains one or more characters reserved for use by
-        the CSV non-standard, including:
-        * Double quotes, reserved for use as the CSV quoting character.
-        * Newlines, reserved for use as the CSV row delimiting character.
+    NumpyArrayType
+        Signed Numpy array converted from this possibly unsigned array.
     '''
 
-    # Log this serialization.
-    logs.log_debug('Writing CSV file: %s', filename)
+    # Next largest signed data type guaranteed to preserve array contents if
+    # this array is unsigned *OR* "None" otherwise.
+    dtype_signed = DTYPE_UNSIGNED_TO_SIGNED.get(array.dtype, None)
 
-    # Validate the contents of this dictionary. While the np.column_stack()
-    # function called below also does, the exceptions raised by the latter are
-    # both ambiguous and non-human-readable and hence effectively useless.
+    # Return either:
     #
-    # Length of all prior columns or None if no columns have yet to be iterated.
-    columns_prior_len = None
-
-    # List of all column names sanitized such that each name containing one or
-    # more comma characters is double-quoted.
-    column_names = []
-
-    # For each passed column...
-    for column_name, column_values in column_name_to_values.items():
-        # If this column is *NOT* a sequence, raise a human-readable exception.
-        if not types.is_sequence_nonstr(column_values):
-            raise BetseSequenceException(
-                'Column "{}" type {!r} not a sequence.'.format(
-                    column_name, type(column_values)))
-
-        # Length of this column.
-        column_len = len(column_values)
-
-        # If this is the first column to be iterated, require all subsequent
-        # columns be of the same length.
-        if columns_prior_len is None:
-            columns_prior_len = column_len
-        # Else if this column's length differs from that of all prior columns,
-        # raise a human-readable exception.
-        elif column_len != columns_prior_len:
-            raise BetseSequenceException(
-                'Column "{}" length {} differs from '
-                'length {} of prior columns.'.format(
-                    column_name, column_len, columns_prior_len))
-
-        # If this column name contains one or more reserved characters, raise an
-        # exception. This includes:
-        #
-        # * Double quotes, reserved for use as the CSV quoting character.
-        # * Newlines, reserved for use as the CSV row delimiting character.
-        if '"' in column_name:
-            raise BetseStrException(
-                'Column name {} contains '
-                "one or more reserved '\"' characters.".format(column_name))
-        if '\n' in column_name:
-            raise BetseStrException(
-                'Column name {} contains '
-                'one or more newline characters.'.format(column_name))
-
-        # If this column name contains one or more commas (reserved for use as
-        # the CSV delimiter), double-quote this name. Since the prior logic
-        # guarantees this name to *NOT* contain double quotes, no further logic
-        # is required
-        if ',' in column_name:
-            column_name = '"{}"'.format(column_name)
-
-        # Append this sanitized column name to this list of such names.
-        column_names.append(column_name)
-
-    # Comma-separated string listing all column names.
-    columns_name = strs.join_on(column_names, delimiter=',')
-
-    # Two-dimensional Numpy array of all row data converted from this column
-    # data, whose:
-    #
-    # * First dimension indexes each sampled time step such that each element is
-    #   a one-dimensional Numpy array of length the number of columns (i.e., the
-    #   number of key-value pairs in the passed dictionary).
-    # * Second dimension indexes each column data point for this time step
-    columns_values = np.column_stack(column_name_to_values.values())
-
-    # Create the directory containing this file if needed.
-    dirs.make_parent_unless_dir(filename)
-
-    # Serialize these sequences to this file in CSV format.
-    np.savetxt(
-        fname=filename,
-        X=columns_values,
-        header=columns_name,
-        delimiter=',',
-
-        # Prevent Numpy from prefixing the above header by "# ". Most popular
-        # software importing CSV files implicitly supports a comma-delimited
-        # first line listing all column names.
-        comments='',
-    )
+    # * If this array is already signed, this array unmodified.
+    # * If this array is unsigned, this array cast to this signed data type.
+    return array if dtype_signed is None else dtype_signed(array)

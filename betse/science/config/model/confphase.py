@@ -9,7 +9,7 @@ YAML-backed simulation phase subconfigurations.
 # ....................{ IMPORTS                            }....................
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
-# from betse.util.type.types import type_check, NumericTypes
+# from betse.util.type.types import type_check, NumericSimpleTypes
 
 # ....................{ SUBCLASSES                         }....................
 #FIXME: Implement us up.

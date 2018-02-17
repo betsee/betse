@@ -17,7 +17,7 @@ from betse.util.type.types import (
     CallableTypes,
     GeneratorType,
     IterableOrNoneTypes,
-    NumericTypes,
+    NumericSimpleTypes,
     SequenceTypes,
 )
 from distutils import dir_util
@@ -193,7 +193,7 @@ def get_parent_dir_last(pathname: str) -> str:
 # optimize this recursion by leveraging these handles.
 if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
     @type_check
-    def get_mtime_recursive_newest(dirname: str) -> NumericTypes:
+    def get_mtime_recursive_newest(dirname: str) -> NumericSimpleTypes:
 
         # Log this recursion.
         logs.log_debug(
@@ -236,7 +236,7 @@ if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
 # Else, fallback to unoptimized recursion leveraging dirnames.
 else:
     @type_check
-    def get_mtime_recursive_newest(dirname: str) -> NumericTypes:
+    def get_mtime_recursive_newest(dirname: str) -> NumericSimpleTypes:
 
         # Log this recursion.
         logs.log_debug(
@@ -295,7 +295,7 @@ get_mtime_recursive_newest.__doc__ = '''
 
     Returns
     -----------
-    NumericTypes
+    NumericSimpleTypes
         Most recent mtime in seconds of this directory calculated recursively as
         either an integer or float, depending on the boolean returned by the
         platform-specific :func:`os.stat_float_times` function.

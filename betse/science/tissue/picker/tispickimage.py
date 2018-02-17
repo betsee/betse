@@ -14,7 +14,7 @@ from betse.lib.pil import pilnumpy
 from betse.lib.pil.pilnumpy import ImageModeType
 from betse.science.tissue.picker.tispickcls import TissuePickerABC
 from betse.util.path import files, pathnames
-from betse.util.type.types import type_check, NumericTypes, SequenceTypes
+from betse.util.type.types import type_check, NumericSimpleTypes, SequenceTypes
 from numpy import ndarray
 from scipy import interpolate
 from scipy.spatial import ConvexHull
@@ -63,10 +63,10 @@ class TissuePickerImageMask(object):
     def __init__(
         self,
         filename: str,
-        x_min: NumericTypes,
-        x_max: NumericTypes,
-        y_min: NumericTypes,
-        y_max: NumericTypes,
+        x_min: NumericSimpleTypes,
+        x_max: NumericSimpleTypes,
+        y_min: NumericSimpleTypes,
+        y_max: NumericSimpleTypes,
     ) -> None:
         '''
         Load, initialize, and create a threshholded interpolation matrix from
@@ -92,13 +92,13 @@ class TissuePickerImageMask(object):
         ----------
         filename : str
             Absolute or relative filename of this image.
-        x_min : NumericTypes
+        x_min : NumericSimpleTypes
             Minimum X coordinate accepted by these interpolation functions.
-        x_max : NumericTypes
+        x_max : NumericSimpleTypes
             Maximum X coordinate accepted by these interpolation functions.
-        y_min : NumericTypes
+        y_min : NumericSimpleTypes
             Minimum Y coordinate accepted by these interpolation functions.
-        y_max : NumericTypes
+        y_max : NumericSimpleTypes
             Maximum Y coordinate accepted by these interpolation functions.
 
         Raises

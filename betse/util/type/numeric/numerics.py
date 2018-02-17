@@ -12,11 +12,11 @@ applicable to both integers and floats) facilities.
 from betse.exceptions import BetseNumericException
 from betse.util.type.call.memoizers import callable_cached
 from betse.util.type.types import (
-    type_check, IterableTypes, NumericTypes, RegexCompiledType)
+    type_check, IterableTypes, NumericSimpleTypes, RegexCompiledType)
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
-def die_unless_positive(*numbers: NumericTypes, label: str = 'Number') -> None:
+def die_unless_positive(*numbers: NumericSimpleTypes, label: str = 'Number') -> None:
     '''
     Raise an exception prefixed by the passed label unless all passed objects
     are positive integers or floats.
@@ -46,7 +46,7 @@ def die_unless_positive(*numbers: NumericTypes, label: str = 'Number') -> None:
 # ....................{ SUMMERS                            }....................
 @type_check
 def sum_by_index(iterable: IterableTypes, subiterable_index: object) -> (
-    NumericTypes):
+    NumericSimpleTypes):
     '''
     Summation of each **number** (i.e., integer or float) at the passed key or
     index of each subiterable of the passed iterable.
@@ -78,7 +78,7 @@ def sum_by_index(iterable: IterableTypes, subiterable_index: object) -> (
 
     Returns
     ----------
-    NumericTypes
+    NumericSimpleTypes
         Summation of each number at this key or index of each subiterable of
         this iterable.
     '''

@@ -237,7 +237,7 @@ class Parameters(YamlFileABC):
 
     Attributes (General: Scalars)
     ----------
-    cell_polarizability : NumericTypes
+    cell_polarizability : NumericSimpleTypes
         Constant defining the rate of cell polarizability change in electric
         fields, typically ranging ``[0.0, 1.0e-3]``.
 
@@ -258,7 +258,7 @@ class Parameters(YamlFileABC):
 
     # ..................{ ALIASES                            }..................
     # To sanitize computation throughout the codebase, *ALL* real numbers are
-    # required to be floating point rather the more general "NumericTypes" type
+    # required to be floating point rather the more general "NumericSimpleTypes" type
     # (i.e., either floating point or integer). Due to magic internal to the
     # yaml_alias() data descriptor, integer values are both silently and safely
     # cast to floating point values.

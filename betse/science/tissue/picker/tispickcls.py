@@ -13,7 +13,7 @@ from betse.exceptions import BetseSimConfigException
 from betse.lib.numpy import nparray
 from betse.science.math import toolbox
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, NumericTypes, SequenceTypes
+from betse.util.type.types import type_check, NumericSimpleTypes, SequenceTypes
 import numpy as np
 
 # ....................{ SUPERCLASS                         }....................
@@ -174,20 +174,20 @@ class TissuePickerPercent(TissuePickerABC):
 
     Attributes
     ----------
-    cells_percent : NumericTypes
+    cells_percent : NumericSimpleTypes
         **Percentage** (i.e., number in the range ``[0.0, 100.0]``) of the total
         cell population to randomly match.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, cells_percent: NumericTypes) -> None:
+    def __init__(self, cells_percent: NumericSimpleTypes) -> None:
         '''
         Initialize this tissue picker.
 
         Parameters
         ----------
-        cells_percent : NumericTypes
+        cells_percent : NumericSimpleTypes
             **Percentage** (i.e., number in the range ``[0.0, 100.0]``) of the
             total cell population to randomly match.
         '''

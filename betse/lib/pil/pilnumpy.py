@@ -41,9 +41,11 @@ Pillow. Callers should *not* assume this to be the case, however.
 
 # ....................{ IMPORTS                            }....................
 from PIL import Image
+from betse.lib.numpy import nparray
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
-from betse.util.type.types import type_check, NoneType, NumpyArrayType
+from betse.util.type.types import (
+    type_check, NoneType, NumpyArrayType, NumpyDataOrNoneTypes)
 from enum import Enum
 from numpy import array
 
@@ -106,33 +108,13 @@ Tuple of the type of all image mode enumeration members *and* of the singleton
 '''
 
 # ....................{ CONVERTERS                         }....................
-#FIXME: Add a new optional "dtype" parameter defaulting to "np.float64". By
-#default, returned arrays are in the native datatype of the input image --
-#typically, "np.uint8". While that's a sane general-purpose default, we pretty
-#much *ALWAYS* want floating point pixel values -- even if doing so incurs a
-#slight loss of precision due to rounding and floating point representation
-#issues. Why? Because Ally just hit an issue resembling:
-#
-#    AAo = pilnumpy.load_image(filename=fbm, mode=ImageModeType.COLOR_RGB)
-#    AAi = (AAo[:, :, 0] -  AAo[:, :, 2])/255
-#
-#In the above example, an integer array whose values range [0, 255] is being
-#normalized by integer division. Unfortunately, this silently fails, as numpy
-#refuses to produce a floating point array whose values range [0.0, 1.0]
-#*UNLESS* the "255" is explicitly altered to "255.0" above. That's a problem,
-#however, as Python itself doesn't behave in that manner. To bring this function
-#in line with expected Python behaviour, we'll need to explicitly return
-#floating point arrays by default here. In theory, appending a simple call to
-#"np.asarray(image, dtype=np.float64)" should suffice.
-#
-#For further details, see:
-#    https://github.com/python-pillow/Pillow/issues/1659
 @type_check
 def load_image(
     # Mandatory parameters.
     filename: str,
 
     # Optional parameters.
+    is_signed: bool = True,
     mode: ImageModeOrNoneTypes = None,
 ) -> NumpyArrayType:
     '''
@@ -153,15 +135,79 @@ def load_image(
         ``(R, G, B, A)`` indexing each color component of the current pixel.
       * The fourth dimension indexes the value of the current color component.
 
+    Caveats
+    ----------
+    When attempting to load user-defined images of arbitrary filetype, callers
+    should pass the following parameters:
+
+    * ``mode``.
+    * ``is_signed`` to ``True``. Since this (and *always* will) be the default,
+      *not* passing this parameter satisfies this suggestion.
+
+    Failure to do so invites subtle issues in computations falsely assuming the
+    data type and shape of a returned array to be sane, which is *not* the case
+    in common edge cases. Thanks to the heterogeneity of image file formats,
+    returned arrays may exhibit anomalous features if any of these paremeters
+    are *not* passed as suggested. In particular, the ``is_signed`` parameter
+    should typically either *not* be passed or be passed as ``True``.
+
+    Failure to do so instructs Pillow to produce an array with data type
+    automatically corresponds to that of the input image. Since most (but *not*
+    necessarily all) images reside in the :attr:`ImageModeType.COLOR_RGB` and
+    :attr:`ImageModeType.COLOR_RGBA` colour spaces whose three- and four-channel
+    pixel data is homogenously constrained onto unsigned bytes, most arrays
+    returned by this function when explicitly passed an ``is_signed`` parameter
+    of ``False`` will be **unsigned byte arrays** (i.e., arrays whose data types
+    are :attr:`np.uint8`).
+
+    Is that a subtle problem? **It is.**
+
+    Python silently coerces scalar types as needed to preserve precision across
+    operations that change precision. The canonical example is integer division.
+    In Python, dividing two integers that are *not* simple integer multiples of
+    one another implicitly expands precision by producing a real number rather
+    than integer (e.g., ``1 / 2 == 0.5`` rather than ``1 / 2 == 0``).
+
+    On the other hand:
+
+    * For all **signed Numpy arrays** (i.e., arrays whose data types are
+      implicitly signed rather than explicitly unsigned), Numpy silently coerces
+      the data types of these arrays as needed to preserve precision across
+      precision-modifying operations.
+    * For all **unsigned Numpy arrays** (i.e., arrays whose data types are
+      explicitly unsigned rather than implicitly signed), Numpy silently
+      preserves the unsigned facet of these arrays as needed by wrapping all
+      numerical results to the integer range of these unsigned data types, thus
+      discarding precision across precision-modifying operations.
+
+    The canonical example is integer addition and substraction applied to
+    unsigned byte arrays. Since unsigned bytes are confined to the integer range
+    ``[0, 255]``, attempting to perform even seemingly trivial computation with
+    unsigned byte arrays silently wraps results exceeding this range onto this
+    range. The resulting arrays typically contain so-called "garbage data." As
+    the following example shows, applying integer subtraction to signed but
+    *not* unsigned Numpy arrays produces expected results:
+
+        >>> import numpy as np
+        >>> unsigned_garbage = np.array(((1,2), (3,4)), dtype=np.uint8)
+        >>> unsigned_garbage[:,0] - unsigned_garbage[:,1]
+        ... array([255, 255], dtype=uint8)
+        >>> signed_nongarbage = np.array(((1,2), (3,4)))
+        >>> signed_nongarbage[:,0] - signed_nongarbage[:,1]
+        ... array([-1, -1])
+
     Design
     ----------
     This utility function is a thin wrapper around a similar function provided
     by some unspecified third-party dependency. This function currently wraps
-    the :func:`imageio.imread` function but previously wrapped the
-    :func:`scipy.misc.imread` function, which SciPy 1.0.0 formally deprecated
-    and SciPy 1.2.0 permanently killed. Thus, SciPy 1.2.0 broke backward
-    compatibility with downstream applications (notably, *this* application)
-    requiring that API.
+    the :meth:`PIL.Image.open` method but previously wrapped the:
+
+    * :func:`imageio.imread` function, which failed to expose support for
+      colourspace conversion provided by Pillow.
+    * :func:`scipy.misc.imread` function, which SciPy 1.0.0 formally deprecated
+      and SciPy 1.2.0 permanently killed. Thus, SciPy 1.2.0 broke backward
+      compatibility with downstream applications (notably, *this* application)
+      requiring that API.
 
     This utility function principally exists to mitigate the costs associated
     with similar upstream API changes in the future. (We are ready this time.)
@@ -170,11 +216,17 @@ def load_image(
     ----------
     filename : str
         Absolute or relative filename of this image.
+    is_signed : optional[bool]
+        ``True`` only if converting the possibly unsigned array loaded from this
+        image into a signed array. Defaults to ``True`` for the reasons detailed
+        above. Since explicitly setting this to ``False`` invites errors in
+        computations employing the returned array, callers should do so *ONLY*
+        where these issues are acknowledged and handled appropriately.
     mode : ImageModeOrNoneTypes
-        Type and depth of all pixels in the output array loaded from this image,
+        Type and depth of all pixels in the array loaded from this image,
         converted from this image's pixel data according to industry-standard
-        image processing transforms implemented by :mod:`PIL`. Note that this
-        is *not* the type and depth of all pixels in the input image, which
+        image processing transforms implemented by :mod:`PIL`. Note that this is
+        *not* the type and depth of all pixels in the input image, which
         :mod:`PIL` implicitly detects and hence requires no explicit
         designation. Defaults to ``None``, in which case no such conversion is
         performed (i.e., this image's pixel data is returned as is).
@@ -199,5 +251,12 @@ def load_image(
     if mode is not None and mode != image.mode:
         image = image.convert(mode.value)
 
-    # Convert this image into a Numpy array and return this array.
-    return array(image)
+    # Numpy array converted from this image to be returned.
+    image_array = array(image)
+
+    # If converting unsigned to signed arrays, do so.
+    if is_signed:
+        image_array = nparray.to_signed(image_array)
+
+    # Return this array.
+    return image_array

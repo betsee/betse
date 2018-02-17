@@ -10,7 +10,7 @@ spreadsheets in comma-separated value (CSV) format.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.lib.numpy import nparray
+from betse.lib.numpy import nparray, npcsv
 from betse.science.config.export.confcsv import SimConfExportCSV
 from betse.science.export import expmath
 from betse.science.phase.phasecls import SimPhaseKind
@@ -177,7 +177,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
         csv_column_name_to_values = OrderedArgsDict(*csv_column_name_values)
 
         # Export this data to this CSV file.
-        nparray.write_csv(
+        npcsv.write_csv(
             filename=self._get_csv_filename('ExportedData'),
             column_name_to_values=csv_column_name_to_values)
 
@@ -230,7 +230,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
         )
 
         # Export this data to this CSV file.
-        nparray.write_csv(
+        npcsv.write_csv(
             filename=self._get_csv_filename('ExportedData_FFT'),
             column_name_to_values=csv_column_name_to_values)
 
@@ -366,7 +366,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
             )
 
             # Export this data to this CSV file.
-            nparray.write_csv(
+            npcsv.write_csv(
                 filename=csv_filename,
                 column_name_to_values=csv_column_name_to_values)
 

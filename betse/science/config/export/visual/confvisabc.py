@@ -15,7 +15,7 @@ from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import (
     YamlList, YamlListItemABC, YamlListItemTypedABC)
 # from betse.util.io.log import logs
-from betse.util.type.types import type_check, NumericTypes
+from betse.util.type.types import type_check, NumericSimpleTypes
 
 # ....................{ SUPERCLASSES                       }....................
 #FIXME: Non-ideal. Ideally, all networks subconfigurations should be refactored
@@ -27,10 +27,10 @@ class SimConfVisualCellsABC(object, metaclass=ABCMeta):
 
     Attributes (Colorbar)
     ----------
-    color_max : NumericTypes
+    color_max : NumericSimpleTypes
         Maximum color value to be displayed by this visual's colorbar.
         Ignored if :attr:`is_color_autoscaled` is ``True``.
-    color_min : NumericTypes
+    color_min : NumericSimpleTypes
         Minimum color value to be displayed by this visual's colorbar.
         Ignored if :attr:`is_color_autoscaled` is ``True``.
     is_color_autoscaled : bool
@@ -46,11 +46,11 @@ class SimConfVisualCellsABC(object, metaclass=ABCMeta):
         pass
 
     @abstractproperty
-    def color_min(self) -> NumericTypes:
+    def color_min(self) -> NumericSimpleTypes:
         pass
 
     @abstractproperty
-    def color_max(self) -> NumericTypes:
+    def color_max(self) -> NumericSimpleTypes:
         pass
 
 
@@ -67,8 +67,8 @@ class SimConfVisualCellsYAMLMixin(SimConfVisualCellsABC):
 
     # ..................{ ALIASES ~ colorbar                 }..................
     is_color_autoscaled = yaml_alias("['colorbar']['autoscale']", bool)
-    color_min = yaml_alias("['colorbar']['minimum']", NumericTypes)
-    color_max = yaml_alias("['colorbar']['maximum']", NumericTypes)
+    color_min = yaml_alias("['colorbar']['minimum']", NumericSimpleTypes)
+    color_max = yaml_alias("['colorbar']['maximum']", NumericSimpleTypes)
 
 # ....................{ SUBCLASSES                         }....................
 #FIXME: Eliminate this subclass. For serializability, all configuration classes
@@ -89,8 +89,8 @@ class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
     def __init__(
         self,
         is_color_autoscaled: bool,
-        color_min: NumericTypes,
-        color_max: NumericTypes,
+        color_min: NumericSimpleTypes,
+        color_max: NumericSimpleTypes,
     ) -> None:
 
         self._is_color_autoscaled = is_color_autoscaled
@@ -103,11 +103,11 @@ class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
         return self._is_color_autoscaled
 
     @property
-    def color_min(self) -> NumericTypes:
+    def color_min(self) -> NumericSimpleTypes:
         return self._color_min
 
     @property
-    def color_max(self) -> NumericTypes:
+    def color_max(self) -> NumericSimpleTypes:
         return self._color_max
 
 # ....................{ SUBCLASSES                         }....................

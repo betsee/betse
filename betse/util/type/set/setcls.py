@@ -12,7 +12,8 @@ container types or analogues thereof).
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
 from betse.util.type.obj import objects
-from betse.util.type.types import type_check, ClassType
+from betse.util.type.types import (
+    type_check, ClassType, IterableTypes, MappingType,)
 from functools import wraps
 
 # ....................{ GLOBALS                            }....................
@@ -22,37 +23,66 @@ Metaclass of the builtin "frozenset" container type.
 '''
 
 # ....................{ METACLASSES                        }....................
-#FIXME: Document us up. In particular, document why:
-#* "ABCMeta" is inherited from. Notably, to avoid the following classical
-#  metaclass diamond inheritence exception on attempting to define subclasses
-#  inheriting from both "ABCMeta" and "FrozenSetSubclassableMeta".
-#* Metaclasses are required at all. Namely, because we have no other means of
-#  modifying the definition of the concrete subclass inheriting from the
-#  "FrozenSetSubclassable" class in a general-purpose manner.
 class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
     '''
+    Metaclass of the abstract :class:`FrozenSetSubclassable` base class and all
+    concrete subclasses thereof.
+
+    This metaclass dynamically redefines *all* container-creating methods of the
+    :class:`frozenset` superclass of the :class:`FrozenSetSubclassable` class
+    (e.g., :meth:`frozenset.__or__`) within the currently declared concrete
+    subclass of that class. Specifically, this metaclass redefines each such
+    method to return an instance of the currently declared concrete subclass of
+    :class:`FrozenSetSubclassable` rather than of the :class:`frozenset`
+    superclass, preserving sane semantics and caller expectations.
+
+    Design
+    ----------
+    The :class:`FrozenSetSubclassable` class is merely a placeholder subclass of
+    the :class:`frozenset` type whose metaclass is this metaclass. Ideally, the
+    work performed by this metaclass would directly reside in the
+    :class:`FrozenSetSubclassable` class instead, in which case this metaclass
+    would have *no* demonstrable reason to exist. However, this work requires
+    access to the concrete subclass of the :class:`FrozenSetSubclassable` class
+    being currently declared. Since each such subclass is accessible *only* from
+    within the metaclass of the :class:`FrozenSetSubclassable` class rather than
+    within that class itself, this work necessarily resides in this metaclass.
+
+    For general-purpose usability, this metaclass subclasses both:
+
+    * The metaclass of the :class:`frozenset` type (typically, the root
+      metaclass :class:`type`), avoiding conflicts between this metaclass and
+      the :class:`FrozenSetSubclassable` class subclassing the
+      :class:`frozenset` type.
+    * The :class:`ABCMeta` metaclass, avoiding conflicts between this metaclass
+      and concrete subclasses of the :class:`FrozenSetSubclassable` class which
+      additionally subclass one or more other abstract base classes which
+      themselves leverage the :class:`ABCMeta` metaclass. (Subtle dragons.)
+
+    For these and similar reasons, metaclass usage in Python should typically be
+    kept to a minimum. The :class:`FrozenSetSubclassable` class violates this
+    maxim because it absolutely must; in all other cases, alternate solutions
+    *not* leveraging metaclasses should be implemented instead.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/804973/2809027
+        StackOverflow answer mildly inspiring this class.
     '''
 
     # ..................{ CONSTRUCTORS                       }..................
-    #FIXME: Revise both this comment and the docstring below.
-    # To ensure this method operates upon the concrete type of the
-    # caller-defined subclass inheriting from the "FrozenSetSubclassable" class,
-    # this method is defined as a classmethod passed this type.
     def __new__(
         metacls,
-        class_name,
-        class_base_classes,
-        class_attrs,
+        class_name: str,
+        class_base_classes: IterableTypes,
+        class_attrs: MappingType,
         **kwargs
     ) -> ClassType:
         '''
-        Redefine all container-creating methods of the
-        :class:`frozenset` superclass (e.g., :meth:`frozenset.__or__`) in a
-        cleverly automated manner circumventing all superclass issues.
-
-        This private classmethod is intended to be called only once for the
-        lifetime of this class, typically at module scope following the
-        declaration of this class.
+        Redefine all container-creating methods of the :class:`frozenset`
+        superclass of the :class:`FrozenSetSubclassable` class (e.g.,
+        :meth:`frozenset.__or__`) within the currently declared concrete
+        subclass of that class identified by the passed parameters.
         '''
 
         # Tuple of the unqualified names of all container-creating methods defined
@@ -104,7 +134,8 @@ class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
         This method is intentionally implemented as a discrete callable rather
         than inlined directly into the body of the :meth:`__new__` method, as
         the closure internally defined by this method expects the local
-        ``frozenset_method`` variable captured by this closure to be constant.
+        ``frozenset_method`` variable captured by this closure to remain
+        constant for the lifetime of that closure.
 
         Parameters
         ----------
@@ -155,6 +186,15 @@ class FrozenSetSubclassable(
     Neither the builtin :class:`frozenset` container type nor the abstract
     :class:`collections.abc.Set` and :class:`collections.abc.Hashable` base
     classes should be inherited from.
+
+    Subclasses should avoid declaring a metaclass or inheriting from another
+    base class that declares a metaclass - excluding the standard
+    :class:`ABCMeta` metaclass, which is compatible with this class by design.
+    All other metaclasses should be considered incompatible. Violating this
+    constraint typically raises the following runtime exception:
+
+        TypeError: metaclass conflict: the metaclass of a derived class must be
+        a (non-strict) subclass of the metaclasses of all its bases
 
     Subclasses must redefine the static ``__new__()`` method and *not* attempt
     to define the ``__init__()`` method. Immutable types are necessarily
@@ -250,14 +290,9 @@ class FrozenSetSubclassable(
     directly subclassing that class is simpler than indirectly encapsulating
     that class in :class:`collections.abc.Set` subclasses, this class elects to
     directly subclass the :class:`frozenset` type instead.
-
-    See Also
-    ----------
-    https://stackoverflow.com/a/804973/2809027
-        StackOverflow answer strongly inspiring this class.
     '''
 
     # ..................{ CONSTRUCTORS                       }..................
-    # See comentary above.
+    # The entirety of the logic for this class resides in our metaclass..
     def __new__(cls, *args):
         return super().__new__(cls, *args)

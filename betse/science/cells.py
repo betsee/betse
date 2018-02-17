@@ -264,7 +264,7 @@ class Cells(object):
     called, implying the current simulation to enable extracellular spaces. If
     that method has *not* yet been called, these attributes remain undefined.
 
-    delta : NumericTypes
+    delta : NumericSimpleTypes
         Distance in meters between between each extracellular grid point *and*
         between each extracellular grid space, uniformally applied in both the
         X and Y dimensions.
