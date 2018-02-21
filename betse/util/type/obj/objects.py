@@ -235,7 +235,7 @@ def get_class_name(obj: object) -> str:
     '''
 
     # This class if this object is a class *OR* this object's class otherwise.
-    cls = obj if isinstance(obj, ClassType) else obj.__class__
+    cls = obj if isinstance(obj, ClassType) else type(obj)
 
     # Else, return this class' name.
     return cls.__name__

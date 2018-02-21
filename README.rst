@@ -423,6 +423,11 @@ License
 BETSE is open-source software `released <license_>`__ under the permissive `BSD
 2-clause license`_.
 
+The logo prominently displayed on this `project page <project_>`__ is a flat
+`Noun Project`_ icon entitled `"Cow," <Cows collection_>`__ `kindly released <Noun Project license_>`__
+under the permissive `BSD-compatible <license compatibility_>`__ `CC BY
+3.0 license`_ by `Maxim Kulikov`_.
+
 Reference
 =========
 
@@ -490,6 +495,8 @@ For prospective contributors:
    doc/md/INSTALL.md
 .. _license:
    LICENSE
+.. _project:
+   https://gitlab.com/betse/betse
 .. _testing:
    https://gitlab.com/betse/betse/pipelines
 .. _tarballs:
@@ -707,8 +714,6 @@ For prospective contributors:
    https://www.anaconda.com/download
 .. _Appveyor:
    https://ci.appveyor.com/project/betse/betse/branch/master
-.. _BSD 2-clause license:
-   https://opensource.org/licenses/BSD-2-Clause
 .. _dill:
    https://pypi.python.org/pypi/dill
 .. _FFmpeg:
@@ -751,3 +756,21 @@ For prospective contributors:
    https://www.qt.io
 .. _Qt 5.6:
    https://wiki.qt.io/Qt_5.6_Release
+
+.. # ------------------( LINKS ~ software : icons           )------------------
+.. _Cows collection:
+   https://thenounproject.com/maxim221/collection/cows
+.. _Maxim Kulikov:
+   https://thenounproject.com/maxim221
+.. _Noun Project:
+   https://thenounproject.com
+.. _Noun Project license:
+   https://thenounproject.com/legal
+
+.. # ------------------( LINKS ~ software : licenses        )------------------
+.. _license compatibility:
+   https://en.wikipedia.org/wiki/License_compatibility#Compatibility_of_FOSS_licenses
+.. _BSD 2-clause license:
+   https://opensource.org/licenses/BSD-2-Clause
+.. _CC BY 3.0 license:
+   https://creativecommons.org/licenses/by/3.0
