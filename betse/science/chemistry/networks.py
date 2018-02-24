@@ -115,7 +115,9 @@ class MasterOfNetworks(object):
 
         logs.log_info("Reading additional substance data...")
 
-        # Initialize dictionaries that will eventually hold dynamic values for cell, env and mit concentrations:
+        #FIXME: All off the following unordered dictionaries should probably be redeclared to be ordered, instead.
+
+        # Ordered dictionaries that will eventually hold dynamic values for cell, env and mit concentrations.
         cell_concs_mapping = {}
         mem_concs_mapping = {}
         env_concs_mapping = {}
@@ -5834,7 +5836,7 @@ class Molecule(object):
             # if len(self.growth_mod_function_cells) == 0:
             #     self.growth_mod_function_cells = 1
 
-        # self.dummy_dyna.tissueProfiles(sim, cells, p)  # re-initialize all tissue profiles
+        sim.dyna.tissueProfiles(sim, cells, p)  # re-initialize all tissue profiles
         self.init_growth(sim, cells, p)
 
         if p.is_ecm is False:

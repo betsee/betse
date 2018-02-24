@@ -163,7 +163,7 @@ class DynamicValueDict(MappingMutableType):
 
     Attributes
     ----------
-    _key_to_dynamic_value : dict
+    _key_to_dynamic_value : MappingType
         Dictionary such that each:
         * Key is a key of the outer dictionary.
         * Value is the `DynamicValue` instance permitting that key's underlying
@@ -172,18 +172,23 @@ class DynamicValueDict(MappingMutableType):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, key_to_dynamic_value: dict) -> None:
+    def __init__(self, key_to_dynamic_value: MappingType) -> None:
         '''
         Initialize this dictionary.
 
         Parameters
         ----------
-        key_to_dynamic_value : dict
+        key_to_dynamic_value : MappingType
             Dictionary such that each:
             * Key is a key of the outer dictionary.
             * Value is the `DynamicValue` instance permitting that key's
               underlying variable to be dynamically get and set.
         '''
+
+        #FIXME: Premature optimization. Reduce this to the following, please:
+        #    from betse.util.type import iterables
+        #    iterables.die_unless_items_instance_of(
+        #        iterable=key_to_dynamic_value.values(), cls=DynamicValue)
 
         # If optimization is disabled, validate all values of the passed
         # dictionary to be instances of the "DynamicValue" class.
