@@ -118,15 +118,15 @@ class MasterOfNetworks(object):
         #FIXME: All off the following unordered dictionaries should probably be redeclared to be ordered, instead.
 
         # Ordered dictionaries that will eventually hold dynamic values for cell, env and mit concentrations.
-        cell_concs_mapping = {}
-        mem_concs_mapping = {}
-        env_concs_mapping = {}
-        bound_concs_mapping = {}
+        cell_concs_mapping = OrderedDict({})
+        mem_concs_mapping = OrderedDict({})
+        env_concs_mapping = OrderedDict({})
+        bound_concs_mapping = OrderedDict({})
 
         # place to store charge values and membrane diffusivity for all substances AND sim ions:
-        self.zmol = {}
-        self.Dmem = {}
-        self.ED_eval_strings ={}
+        self.zmol = OrderedDict({})
+        self.Dmem = OrderedDict({})
+        self.ED_eval_strings =OrderedDict({})
 
 
         # if mitochondria are enabled:
@@ -595,17 +595,17 @@ class MasterOfNetworks(object):
     def build_indices(self, sim, cells, p):
 
         # build indices-----------------------------------------------------------------------------------------
-        self.molecule_index = {}
+        self.molecule_index = OrderedDict({})
 
         for i, (mol_name, val) in enumerate(self.cell_concs.items()):
             self.molecule_index[mol_name] = i
 
-        self.reaction_index = {}
+        self.reaction_index = OrderedDict({})
 
         for i, rea_name in enumerate(self.reactions):
             self.reaction_index[rea_name] = i
 
-        self.transporter_index = {}
+        self.transporter_index = OrderedDict({})
 
         for i, trans_name in enumerate(self.transporters):
             self.transporter_index[trans_name] = i
@@ -674,12 +674,12 @@ class MasterOfNetworks(object):
 
             self.react_handler[chan_name] = "self.channels['{}'].channel_core.chan_flux".format(chan_name) + div_string
 
-        self.react_handler_index = {}
+        self.react_handler_index = OrderedDict({})
 
         for i, rea_name in enumerate(self.react_handler):
             self.react_handler_index[rea_name] = i
 
-        self.conc_handler_index = {}
+        self.conc_handler_index = OrderedDict({})
 
         for i, conc_name in enumerate(self.conc_handler):
             self.conc_handler_index[conc_name] = i
