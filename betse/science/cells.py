@@ -932,7 +932,7 @@ class Cells(object):
 
                         area_check = (tb.area(verts_clip) / ave_area)
 
-                        if area_check > 0.5:
+                        if area_check > phase.p.bound_cell_clip_ratio:
                             self.ecm_verts.append(verts_clip)   # this makes a more solid boundary of cells
 
                     # self.ecm_verts.append(cell_polya)

@@ -382,7 +382,7 @@ def vertData(data, cells, p):
 
     return dat_grid
 
-def nernst_planck_flux(c, gcx, gcy, gvx, gvy,ux,uy,D,z,T,p):
+def nernst_planck_flux(c, gcx, gcy, gvx, gvy,ux,uy,D,z,T,p, mu = 0.0):
     """
      Calculate the flux component of the Nernst-Planck equation
 
@@ -407,8 +407,8 @@ def nernst_planck_flux(c, gcx, gcy, gvx, gvy,ux,uy,D,z,T,p):
     """
 
     alpha = (D*z*p.q)/(p.kb*T)
-    fx =  -D*gcx - alpha*gvx*c + ux*c
-    fy =  -D*gcy - alpha*gvy*c + uy*c
+    fx =  -D*gcx - alpha*gvx*c + ux*c - mu*c*gvx
+    fy =  -D*gcy - alpha*gvy*c + uy*c - mu*c*gvy
 
     return fx, fy
 
@@ -908,7 +908,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
 def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, Dgj=1.0e-12, Ftj = 1.0, c_bound=0.0,
                    ignoreECM = True, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, cmems = None,
-                   time_dilation_factor = 1.0, update_intra = False, name = "Unknown"):
+                   time_dilation_factor = 1.0, update_intra = False, name = "Unknown", transmem = False, mu_mem = 0.0):
 
     """
     Transports a generic molecule across the membrane,
@@ -951,7 +951,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     Dm_vect = np.ones(len(cX_mems))*Dm
 
-    # Transmembrane: electrodiffuse molecule X between cell and extracellular space------------------------------
+    # Transmembrane electrodiffusion of molecule X between cell and extracellular space------------------------------
 
     if Dm != 0.0:  # if there is some finite membrane diffusivity, exchange between cells and env space:
 
@@ -971,7 +971,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         fgj_X = electroflux(cX_mems[cells.mem_i],
                        cX_mems[cells.nn_i],
-                       Dgj*sim.gj_block*sim.gjopen,
+                       Dgj*p.gj_surface*sim.gj_block*sim.gjopen,
                        cells.gj_len*np.ones(sim.mdl),
                        z*np.ones(sim.mdl),
                        sim.vgj,
@@ -1001,14 +1001,46 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
     else:
         fgj_X = np.zeros(sim.mdl)
 
+    #------------------------------------------------------------------------------------------------------------
+    # if transmem is True: # if user specifies 'transmembrane" then let the cellular concentration be moved by env fields
+    #
+    #     if p.fluid_flow is True:
+    #         # normal component of fluid flow at membranes from *extra*cellular flow:
+    #         _, _, uflow = map_to_cells(sim.u_env_x, sim.u_env_y, cells, p, smoothing=0.0)
+    #
+    #     else:
+    #
+    #         uflow = 0.0
+    #
+    #
+    #     # _, _, En = map_to_cells(sim.E_env_x, sim.E_env_y, cells, p, smoothing=1.0)
+    #     En = (sim.vm_ave[cells.cell_nn_i[:, 1]] - sim.vm_ave[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+    #
+    #     cg = (cX_cells[cells.cell_nn_i[:, 1]] - cX_cells[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+    #
+    #     cp = (cX_cells[cells.cell_nn_i[:, 1]] + cX_cells[cells.cell_nn_i[:, 0]])/2
+    #
+    #     c_diffusion = (-Do * cg)
+    #     c_ephoresis_A = ((Do * p.q * z) / (p.kb * sim.T)) * cp * En
+    #     c_ephoresis_B = (mu_mem) * cp * En
+    #     c_eosmo = (uflow * cp)
+    #
+    #     # diffuse in concentration gradient, via extracellular field and via extracellular flow:
+    #     f_tm_flux = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_eosmo)
+    #
+    #     # f_tm_flux[cells.bflags_mems] = 0.0 # set boundary flux equal to zero
+    #
+    #     delta_cce = np.dot(cells.M_sum_mems, -f_tm_flux * cells.mem_sa) / cells.cell_vol
+    #
+    #     cX_cells = cX_cells + p.dt * delta_cce * time_dilation_factor
+    #     cX_mems = cX_cells[cells.mem_to_cells]
+
+
     # update concentrations due to electrodiffusion, updated at the end to do as many updates in one piece as possible:
     cX_cells, cX_mems, cX_env_o = update_Co(sim, cX_cells, cX_mems, cX_env_o, f_X_ED, cells, p, ignoreECM=ignoreECM)
 
 
-    #------------------------------------------------------------------------------------------------------------
-
     # Transport through environment, if p.is_ecm is True-----------------------------------------------------
-
     if p.is_ecm is True:
 
         env_check = len((cX_env_o != 0.0).nonzero()[0])
@@ -1048,8 +1080,10 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
                 ux = 0.0
                 uy = 0.0
 
+            # print(name, mu_mem)
+
             fx, fy = nernst_planck_flux(cenv, gcx, gcy, -sim.E_env_x, -sim.E_env_y, ux, uy,
-                                            denv_multiplier*Do, z, sim.T, p)
+                                            denv_multiplier*Do, z, sim.T, p, mu = mu_mem)
 
             div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
 
@@ -1059,9 +1093,9 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
             cenv = cenv + div_fa * p.dt*time_dilation_factor
 
 
-            # if p.sharpness < 1.0:
-            #
-            #     cenv = fd.integrator(cenv, sharp = p.sharpness)
+            if p.sharpness < 1.0:
+
+                cenv = fd.integrator(cenv, sharp = p.sharpness)
 
             cX_env_o = cenv.ravel()
 
@@ -1099,13 +1133,6 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
             "Network concentration of " + name + " in environment below zero! Your simulation has"
                                                    " become unstable.")
 
-    # variable summing all sub-zero array checks
-    # lencheck = len(indsZm) + len(indsZc) + len(indsZe)
-
-    # if lencheck > 0:
-    #     raise BetseSimUnstableException(
-    #         "Network concentration of " + name + " below zero! Your simulation has"
-    #                                                " become unstable.")
 
 
     return cX_env_o, cX_cells, cX_mems, f_X_ED, fgj_X, fenvx, fenvy

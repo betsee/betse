@@ -384,7 +384,7 @@ class MasterOfNetworks(object):
                         mol.growth_activators_list,
                         mol.growth_inhibitors_list)
 
-                    mol.init_growth(cells, p)
+                    mol.init_growth(sim, cells, p)
 
                     # the modulator function, if requested, makes gad occur modulated by a function.
                     # Make this happen, if it's requested:
@@ -893,7 +893,7 @@ class MasterOfNetworks(object):
             obj.ignore_ECM_transporter = trans_dic['ignore ECM']
 
             obj.transporter_profiles_list = trans_dic['apply to']
-            obj.init_reaction(cells, p)
+            obj.init_reaction(sim, cells, p)
 
             if obj.delta_Go == 'None':
                 obj.delta_Go = None  # make the field a proper None variable
@@ -2709,6 +2709,8 @@ class MasterOfNetworks(object):
             # calculate concentrations at membranes:
             obj = self.molecules[mol]
 
+            # print(obj.use_time_dilation)
+
             obj.update_intra(sim, cells, p)
 
             # calculate rates of growth/decay:
@@ -3809,7 +3811,7 @@ class MasterOfNetworks(object):
 
                 self.cell_concs['K'] = sim.cc_cells[sim.iK] - np.abs(Q)
 
-            elif Q < 0 and np.abs(Q) > sim.cc_mems[sim.iP].mean():  # if net charge is anionic
+            elif Q < 0 and np.abs(Q) > sim.cc_at_mem[sim.iP].mean():  # if net charge is anionic
                 raise BetseSimConfigException("You've defined way more anionic charge in "
                                                "the extra substances (cell region) than we can "
                                                "compensate for. Either turn 'substances "
@@ -4156,8 +4158,25 @@ class MasterOfNetworks(object):
 
             ph = -np.log10(1.0e-6*obj.c_cells.mean())
 
+            phe = -np.log10(1.0e-6 * obj.c_env.mean())
+
             logs.log_info('Average pH in the cell: ' +
                           str(np.round(ph, 2)))
+
+            # logs.log_info('Average pH in the env: ' +
+            #               str(np.round(phe, 2)))
+
+        # logs.log_info('Average Na '  + ' in the cell: ' +
+        #               str(np.round(sim.cc_cells[sim.iNa].mean(), 4)) + ' mmol/L')
+        #
+        # logs.log_info('Average K '  + ' in the cell: ' +
+        #               str(np.round(sim.cc_cells[sim.iK].mean(), 4)) + ' mmol/L')
+        #
+        # logs.log_info('Average Cl '  + ' in the cell: ' +
+        #               str(np.round(sim.cc_cells[sim.iCl].mean(), 4)) + ' mmol/L')
+        #
+        # logs.log_info('Average Ca '  + ' in the cell: ' +
+        #               str(np.round(1.0e6*sim.cc_cells[sim.iCa].mean(), 4)) + ' nmol/L')
 
 
 
@@ -5447,17 +5466,6 @@ class Molecule(object):
 
     def __init__(self, sim, cells, p):
 
-        #FIXME: This... is unfortunate. Shouldn't the global "TissueHandler" be
-        #accessible at this point in the simulation? If not, can a single
-        #"TissueHandler" object possibly be created by "MasterOfNetworks" (or a
-        #similar high-level object) and then passed to each call of this method?
-        #If not, no worries. Restive forests and tidal forces unite!
-        #FIXME: Please just remove "dummy_dyna", which is no longer required.
-        #Dancing sun monkeys cavort in the snow castle!
-
-        self.dummy_dyna = TissueHandler(sim, cells, p)
-        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
-
         # Set all fields to None -- these will be dynamically set by MasterOfMolecules
         self.c_cello = None
         self.c_memo = None
@@ -5540,6 +5548,8 @@ class Molecule(object):
             time_dilation_factor=self.modify_time_factor,
             update_intra = self.update_intra_conc,
             name = self.name,
+            transmem = self.transmem,
+            mu_mem = self.Mu_mem,
         )
 
     def updateC(self, flux, sim, cells, p):
@@ -5636,7 +5646,6 @@ class Molecule(object):
             c_ephoresis_B = (self.Mu_mem*cp*En)
             c_eosmo = (uflow*cp)
 
-
             # diffuse in concentration gradient, via extracellular field and via extracellular flow:
             cfluxo = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_eosmo + c_motor)
 
@@ -5653,6 +5662,7 @@ class Molecule(object):
             # smooth the concentration:
             self.cc_at_mem = self.smooth_weight_mem*self.cc_at_mem + self.smooth_weight_o*cav
 
+            self.c_cells = np.dot(cells.M_sum_mems, self.cc_at_mem*cells.mem_sa)/cells.cell_sa
             # update the main matrices:
             self.flux_intra = cflux*1
 
@@ -5759,7 +5769,7 @@ class Molecule(object):
                                                                       sim.cc_env[ion_tag], chan_flx, cells, p,
                                                                       ignoreECM=False)
 
-    def init_growth(self,cells, p):
+    def init_growth(self, sim, cells, p):
 
         if self.growth_profiles_list is not None and self.growth_profiles_list != 'all':
 
@@ -5767,10 +5777,10 @@ class Molecule(object):
             self.growth_targets_mem = []
 
             for profile in self.growth_profiles_list:
-                targets_cell = self.dummy_dyna.cell_target_inds[profile]
+                targets_cell = sim.dyna.cell_target_inds[profile]
                 self.growth_targets_cell.extend(targets_cell)
 
-                targets_mem = self.dummy_dyna.tissue_target_inds[profile]
+                targets_mem = sim.dyna.tissue_target_inds[profile]
                 self.growth_targets_mem.extend(targets_mem)
 
 
@@ -5824,8 +5834,8 @@ class Molecule(object):
             # if len(self.growth_mod_function_cells) == 0:
             #     self.growth_mod_function_cells = 1
 
-        self.dummy_dyna.tissueProfiles(sim, cells, p)  # re-initialize all tissue profiles
-        self.init_growth(cells, p)
+        # self.dummy_dyna.tissueProfiles(sim, cells, p)  # re-initialize all tissue profiles
+        self.init_growth(sim, cells, p)
 
         if p.is_ecm is False:
 
@@ -6121,8 +6131,6 @@ class Reaction(object):
 
     def __init__(self, sim, cells, p):
 
-        self.dummy_dyna = TissueHandler(sim, cells, p)
-        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
 
         # pre-populate the object with fields that will be assigned by MasterOfMolecules
 
@@ -6179,9 +6187,6 @@ class Transporter(object):
 
     def __init__(self, sim, cells, p):
 
-        self.dummy_dyna = TissueHandler(sim, cells, p)
-        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
-
         # pre-populate the object with fields that will be assigned by MasterOfMolecules
 
         self.name = None
@@ -6221,7 +6226,7 @@ class Transporter(object):
 
         self.flux = None
 
-    def init_reaction(self,cells, p):
+    def init_reaction(self, sim, cells, p):
 
         if self.transporter_profiles_list is not None and self.transporter_profiles_list != 'all':
 
@@ -6231,13 +6236,13 @@ class Transporter(object):
 
             for profile in self.transporter_profiles_list:
 
-                targets_cell = self.dummy_dyna.cell_target_inds[profile]
+                targets_cell = sim.dyna.cell_target_inds[profile]
                 self.transporter_targets_cell.extend(targets_cell)
 
-                targets_mem = self.dummy_dyna.tissue_target_inds[profile]
+                targets_mem = sim.dyna.tissue_target_inds[profile]
                 self.transporter_targets_mem.extend(targets_mem)
 
-                targets_env = self.dummy_dyna.env_target_inds[profile]
+                targets_env = sim.dyna.env_target_inds[profile]
                 self.transporter_targets_env.extend(targets_env)
 
         elif self.transporter_profiles_list is None or self.transporter_profiles_list == 'all':
@@ -6293,8 +6298,8 @@ class Transporter(object):
 
     def update_transporter(self, sim, cells, p):
 
-        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
-        self.init_reaction(cells, p)
+        # sim.dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
+        self.init_reaction(sim, cells, p)
 
 class Channel(object):
 

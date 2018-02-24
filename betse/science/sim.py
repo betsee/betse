@@ -805,8 +805,7 @@ class Simulator(object):
         for key, val in p.ions_dict.items():
             # If this ion is enabled...
             if val == 1:
-                # If this is *NOT* the H+ ion...
-                # if key != 'H':
+
                 ion_i = self.get_ion(key)
                 # print("resetting c_env from ", self.c_env_bound[ion_i], 'to ', p.cbnd[key], "for ", key)
 
@@ -1025,16 +1024,19 @@ class Simulator(object):
         self.cedl = p.er*p.eo*self.ko_env  # electrical double layer capacitance
 
         # calculate a basic system conductivity:
-        self.sigma = np.asarray([((z**2)*p.q*p.F*cc*D)/(p.kb*p.T) for
-                                 (z, cc, D) in zip(self.zs, self.cc_cells, self.D_free)]).mean()
+        # self.sigma = np.asarray([((z**2)*p.q*p.F*cc*D)/(p.kb*p.T) for
+        #                          (z, cc, D) in zip(self.zs, self.cc_cells, self.D_free)]).mean()
+
+        self.sigma = (np.asarray([((z**2)*p.q*p.F*cc*D)/(p.kb*p.T) for
+                                 (z, cc, D) in zip(self.zs, self.cc_cells, self.D_free)]).sum(axis = 0)).mean()
 
         # calculate specific maps of conductivity in cells and environment
         # conductivity of cells is assumed to be 0.1x lower than that of free environment:
         self.sigma_cell = np.asarray([((z ** 2) * p.q * p.F * cc * D * 0.1) / (p.kb * p.T) for (z, cc, D) in
-                                 zip(self.zs, self.cc_cells, self.D_free)]).mean(axis=0)
+                                 zip(self.zs, self.cc_cells, self.D_free)]).sum(axis=0)
         # conductivity map for environment:
         self.sigma_env = np.asarray(
-            [((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in zip(self.zs, self.cc_env, self.D_env)]).mean(
+            [((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in zip(self.zs, self.cc_env, self.D_env)]).sum(
             axis=0)
 
         if p.is_ecm:
@@ -1645,6 +1647,29 @@ class Simulator(object):
 
             # check for NaNs in voltage and stop simulation if found:
             stb.check_v(self.vm_ave)
+
+            # # Calculate an environmental voltage and field:
+            # # Using the linearized Grahame equation for voltage in terms of surface charge:
+            # # vc = ((p.cm*self.vm) / ((self.ko_cell) * p.eo * p.er))
+            #
+            # Phi = np.zeros(self.edl)
+            # Phi[cells.map_mem2ecm] = self.vm/2
+            #
+            # # Smooth it:
+            # Phi = fd.integrator(Phi.reshape(cells.X.shape), 0.5)
+            #
+            # # Calculate the gradient:
+            # gVex, gVey = fd.gradient(Phi.reshape(cells.X.shape), cells.delta)
+            #
+            # # Smooth it:
+            # gVex, gVey = stb.smooth_flux(gVex.reshape(cells.X.shape), gVey.reshape(cells.X.shape), cells)
+            #
+            # # Assign electric field:
+            # self.E_env_x = -gVex
+            # self.E_env_y = -gVey
+            #
+            # # Assign environmental voltage
+            # self.v_env = Phi*1
 
 
             # ---------time sampling and data storage---------------------------------------------------

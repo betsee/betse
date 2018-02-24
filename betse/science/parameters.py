@@ -858,6 +858,8 @@ class Parameters(YamlFileABC):
 
         self.interp_type = 'nearest'
 
+        self.bound_cell_clip_ratio = iu.get('boundary cell size cutoff', 0.5)
+
         self.substances_affect_charge = iu['substances affect Vmem']  # Do Network substances function bioelectrically?
 
          # default free diffusion constants (cytoplasmic)

@@ -1048,6 +1048,9 @@ internal parameters:
   Do_M:  1.0e-9         # free diffusion constant mystery anchor ion [m2/s]
   Do_P:  5.0e-10        # free diffusion constant protein [m2/s]
 
+  # Cell grid creation:
+  boundary cell size cutoff: 0.50
+
   # pump parameters
 
   alpha_NaK:  1.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
