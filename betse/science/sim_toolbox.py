@@ -1214,7 +1214,7 @@ def div_env(flux, cells, p):
 
     return delta_env
 
-def HH_Decomp(JJx, JJy, cells, bounds = None):
+def HH_Decomp(JJx, JJy, cells, bounds = None, sigma = 1.0):
 
     if bounds is not None:
 
@@ -1252,7 +1252,7 @@ def HH_Decomp(JJx, JJy, cells, bounds = None):
 
     # ----curl free component------------------------------------------
 
-    divJd = fd.divergence(JJx.reshape(cells.X.shape), JJy.reshape(cells.X.shape), cells.delta, cells.delta)
+    divJd = fd.divergence(JJx.reshape(cells.X.shape)/sigma, JJy.reshape(cells.X.shape)/sigma, cells.delta, cells.delta)
 
     # set boundary conditions for normal component
     # enforce applied voltage condition at the boundary:

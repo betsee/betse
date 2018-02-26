@@ -1648,30 +1648,6 @@ class Simulator(object):
             # check for NaNs in voltage and stop simulation if found:
             stb.check_v(self.vm_ave)
 
-            # # Calculate an environmental voltage and field:
-            # # Using the linearized Grahame equation for voltage in terms of surface charge:
-            # # vc = ((p.cm*self.vm) / ((self.ko_cell) * p.eo * p.er))
-            #
-            # Phi = np.zeros(self.edl)
-            # Phi[cells.map_mem2ecm] = self.vm/2
-            #
-            # # Smooth it:
-            # Phi = fd.integrator(Phi.reshape(cells.X.shape), 0.5)
-            #
-            # # Calculate the gradient:
-            # gVex, gVey = fd.gradient(Phi.reshape(cells.X.shape), cells.delta)
-            #
-            # # Smooth it:
-            # gVex, gVey = stb.smooth_flux(gVex.reshape(cells.X.shape), gVey.reshape(cells.X.shape), cells)
-            #
-            # # Assign electric field:
-            # self.E_env_x = -gVex
-            # self.E_env_y = -gVey
-            #
-            # # Assign environmental voltage
-            # self.v_env = Phi*1
-
-
             # ---------time sampling and data storage---------------------------------------------------
             # If this time step is sampled...
             if t in time_steps_sampled:

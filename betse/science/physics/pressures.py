@@ -17,17 +17,18 @@ def osmotic_P(sim, cells, p):
 
         op_env = np.dot(cells.M_sum_mems, sim.osmo_P_env)/cells.num_mems
 
-        sim.osmo_P_delta = sim.osmo_P_cell - op_env
+        sim.osmo_P_delta = op_env - sim.osmo_P_cell
 
     else:
 
-        sim.osmo_P_delta = sim.osmo_P_cell - sim.osmo_P_env[cells.map_cell2ecm]
+        sim.osmo_P_delta = sim.osmo_P_env[cells.map_cell2ecm] - sim.osmo_P_cell
 
 
     # Calculate the transmembrane flow of water due to osmotic pressure.
     # High, positive osmotic pressure leads to water flow into the cell. Existing pressure in the cell
     # resists the degree of osmotic influx. The effect also depends on aquaporin fraction in membrane:
-    sim.u_osmo = (sim.osmo_P_delta - sim.P_cells) * (p.aquaporins / p.mu_water)*cells.cell_sa
+    # sim.u_osmo = (sim.osmo_P_delta - sim.P_cells) * (p.aquaporins / p.mu_water)*cells.cell_sa
+    sim.u_osmo = (sim.osmo_P_delta - sim.P_cells)*(p.aquaporins/p.mu_water)*(3e-10**2)*(1/p.tm)
 
     # obtain the divergence of the flow -- this is a strain rate:
     sim.div_u_osmo = sim.u_osmo*(cells.cell_sa/cells.cell_vol)
@@ -37,15 +38,15 @@ def osmotic_P(sim, cells, p):
 
     # ------------------------------------------------------------------------------------------------------------
     # actual volume change is amount of flow over the cell surface area per unit time:
-    sim.delta_vol = p.dt*sim.u_osmo*cells.cell_sa*(0.1)
+    sim.delta_vol = p.dt*sim.u_osmo*cells.cell_sa
 
-    vol_ratio = cells.cell_vol / (cells.cell_vol + sim.delta_vol)
+    vol_ratio = cells.cell_vol / (cells.cell_vol - sim.delta_vol)
 
     # new concentrations in cells from C1*V1 = C2*V2 expression:
     sim.cc_cells = sim.cc_cells * vol_ratio
 
     # reassign cell volume:
-    cells.cell_vol = cells.cell_vol + sim.delta_vol
+    cells.cell_vol = cells.cell_vol - sim.delta_vol
 
     # reassign mem volume:
     cells.mem_vol = cells.mem_vol/vol_ratio[cells.mem_to_cells]
