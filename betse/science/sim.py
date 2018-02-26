@@ -2032,8 +2032,8 @@ class Simulator(object):
 
         if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
-            rho_surf = self.rho_cells * cells.diviterm
-            self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells]
+            # rho_surf = self.rho_cells * cells.diviterm
+            # self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells]
 
             # change in charge density at the membrane:
             # Jm = np.dot(cells.M_sum_mems, self.Jn*cells.mem_sa)/cells.cell_sa
@@ -2042,29 +2042,60 @@ class Simulator(object):
             # without averaging J:
             # self.vm += -(1/p.cm)*self.Jn*p.dt
 
+            # In terms of intra and extracellular charge:
+            rho_surf = self.rho_cells * cells.diviterm
+
+            if p.is_ecm:
+
+                self.v_cell = (1 /(2*p.cm)) * rho_surf[cells.mem_to_cells]
+                self.vm = self.v_cell - self.v_env[cells.map_mem2ecm]
+
+            else:
+
+                self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
+
 
         else:
 
 
-            # Electrical polarization charge component created by extracellular electric field:
-            # P_env = p.cell_polarizability*self.Jme*(1/self.sigma_env.ravel()[cells.map_mem2ecm])
-            P_env = p.cell_polarizability*p.eo*self.Eme
-
-            # Electrical polarization charge component created by intracellular electric field:
-            P_cells = p.cell_polarizability*p.eo*self.Emc
-
-            # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
-            # convert volume charge density to surface charge density:
-            rho_surf = self.rho_cells*cells.diviterm
-
             if p.is_ecm:
 
-                self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
-                # self.vm += -(1/p.cm)*self.Jn*p.dt + (1/p.cm)*P_env + (1/p.cm)*P_cells
+                # Electrical polarization charge component created by extracellular electric field:
+                P_env = p.cell_polarizability*p.eo*self.Eme
+
+                # Electrical polarization charge component created by intracellular electric field:
+                P_cells = p.cell_polarizability*p.eo*self.Emc
+
+                # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
+                # convert volume charge density to surface charge density:
+                rho_surf = self.rho_cells*cells.diviterm
+
+                # In terms of intra and extracellular charge:
+                self.v_cell = (1 /(2*p.cm)) * rho_surf[cells.mem_to_cells]
+                self.vm = self.v_cell - self.v_env[cells.map_mem2ecm] + (1/p.cm)*P_env + (1/p.cm)*P_cells
 
             else:
+                # Electrical polarization charge component created by extracellular electric field:
+                P_env = p.cell_polarizability * p.eo * self.Eme
 
-                self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells] +  (1 / p.cm) * P_cells
+                # Electrical polarization charge component created by intracellular electric field:
+                P_cells = p.cell_polarizability * p.eo * self.Emc
+
+                # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
+                # convert volume charge density to surface charge density:
+                rho_surf = self.rho_cells * cells.diviterm
+
+                # In terms of intracellular charge:
+                self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
+
+            # if p.is_ecm:
+            #
+            #     self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
+            #     # self.vm += -(1/p.cm)*self.Jn*p.dt + (1/p.cm)*P_env + (1/p.cm)*P_cells
+            #
+            # else:
+            #
+            #     self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells] +  (1 / p.cm) * P_cells
 
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
