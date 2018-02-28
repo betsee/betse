@@ -48,7 +48,6 @@ def get_current(sim, cells, p):
     sim.Emc = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
                sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
 
-
     # Current in the environment --------------------------------------------------------------------------------------
     if p.is_ecm is True:
 
@@ -77,77 +76,95 @@ def get_current(sim, cells, p):
         sim.rho_env = np.dot(sim.zs * p.F, sim.cc_env) + sim.extra_rho_env
         # sim.rho_env = fd.integrator(sim.rho_env.reshape(cells.X.shape), sharp = 0.5).ravel() # FIXME! Make this optional
 
-        # Method 6-------------------------------------------------------------------------------------------------
+        # Method 7-------------------------------------------------------------------------------------------------
         # Calculate voltage from charge in environment; this electric field is divergence-free assuming Laplace Eqn holds
         # This is the voltage measured with electrodes:
         v_env = np.zeros(sim.edl)
 
-        v_env[cells.map_mem2ecm] = (1/(2*p.cm))*(sim.rho_env[cells.map_mem2ecm]*cells.delta**2*p.cell_height
-                                                 )/(cells.memSa_per_envSquare[cells.map_mem2ecm].mean())
+        v_env[cells.map_mem2ecm] = -(sim.vm)/2
 
         v_env = v_env.reshape(cells.X.shape)
 
-        v_env = fd.integrator(v_env, 0.5)  # FIXME! Make this optional
-
-        # assign to environmental voltage array:
-        sim.v_env = 1*v_env.ravel()
-
         # Now calculate the voltage that results from time-dependent charge transfers
         # these induce movements of charges and other factors.
-        Phi_env = ((sim.rho_env) / ((sim.ko_env ** 2) * p.eo * p.er))
+        Phi_env = ((sim.rho_env) / ((sim.ko_env ** 2) * p.eo * p.eedl)).reshape(cells.X.shape)
 
-        Phi_env = fd.integrator(Phi_env.reshape(cells.X.shape), 0.5) # FIXME! Make this optional
+        # assign to environmental voltage array:
+        v_env = (v_env + Phi_env)
+
+        # v_env = fd.integrator(v_env, 0.5)  # FIXME! Make this optional -- both in terms of smoothing type and level
+        v_env = gaussian_filter(v_env, 1, mode = 'constant', cval = 0.0)
+
+        # add in extra boundary conditions for the case of an externally-applied voltage event:
+        v_env[:, -1] = sim.bound_V['R']
+        v_env[:, 0] = sim.bound_V['L']
+        v_env[-1, :] = sim.bound_V['T']
+        v_env[0, :] = sim.bound_V['B']
+
+        sim.v_env = 1*v_env.ravel()
 
         # gradient of the polarization voltage yields the electric field:
-        gVex, gVey = fd.gradient(Phi_env.reshape(cells.X.shape), cells.delta)
+        gVex, gVey = fd.gradient(sim.v_env.reshape(cells.X.shape), cells.delta)
 
         # use Hodgkin-Huxley decomposition and recomposition to "smooth" the electric field:
-        gVex, gVey = stb.smooth_flux(gVex.reshape(cells.X.shape), gVey.reshape(cells.X.shape), cells) # FIXME! Make this optional
+        # gVex, gVey = stb.smooth_flux(gVex.reshape(cells.X.shape), gVey.reshape(cells.X.shape), cells) # FIXME! Make this optional
 
-        # assign to electric field of the system:
+        # # assign to electric field of the system:
         sim.E_env_x = -gVex
         sim.E_env_y = -gVey
 
         sim.Eme = (sim.E_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
                sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
-        sim.Phi_env = Phi_env*1
-
     else:
+
+        # divergence of current across membranes:
+        # divJm = -np.dot(cells.M_sum_mems, sim.Jn * cells.mem_sa) / cells.cell_vol
 
         vc = sim.vm/2
 
         vce = np.zeros(len(cells.xypts))
+        # vce[cells.map_mem2ecm] = vc[cells.mem_to_cells] + divJm[cells.mem_to_cells]
         vce[cells.map_mem2ecm] = vc[cells.mem_to_cells]
 
+
         # Local field potential:
-        Phi = -vce
+        Phi = -vce.reshape(cells.X.shape)
 
         # Smooth it:
-        Phi = fd.integrator(Phi.reshape(cells.X.shape), 0.5) # FIXME: Make this optional
+        # Phi = fd.integrator(Phi.reshape(cells.X.shape), 0.5) # FIXME: Make this optional
+        Phi = gaussian_filter(Phi, 1)
 
         # Calculate the gradient in free space (which is why this is multiplied by 'cells.delta):
         gVex, gVey = fd.gradient(cells.delta*Phi.reshape(cells.X.shape), cells.delta)
 
         # Smooth it:
-        gVex, gVey = stb.smooth_flux(gVex.reshape(cells.X.shape), gVey.reshape(cells.X.shape), cells)
+        gVex, gVey = stb.smooth_flux(gVex.reshape(cells.X.shape), gVey.reshape(cells.X.shape), cells) # FIXME: Make this optional
 
         # Assign electric field:
         sim.E_env_x = -gVex
         sim.E_env_y = -gVey
 
         # Environmental current:
-        Jxo = sim.sigma * sim.E_env_x
-        Jyo = sim.sigma * sim.E_env_y
+        Jxo = sim.sigma * sim.E_env_x * sim.D_env_weight
+        Jyo = sim.sigma * sim.E_env_y * sim.D_env_weight
 
-        _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(Jxo, Jyo, cells)
+
+        BB, sim.J_env_x, sim.J_env_y, _, Ja, Jb = stb.HH_Decomp(Jxo, Jyo, cells)
+
+        # since it was incidentally calculated, store the B-component of magnetic field:
+        sim.B_field = BB * p.mu
+
+        # total free current density at each membrane:
+        sim.Jtx = sim.J_env_x + Ja
+        sim.Jty = sim.J_env_y + Jb
 
         # map current from extracellular space to membrane normal
         sim.Eme = (sim.E_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
                sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
         # assign environmental voltage:
-        sim.v_env = Phi.ravel()*1
+        sim.v_env =  (Phi).ravel()
 
 
 # WASTELANDS (Options)--------------------------------------------------------------------------------------------------
@@ -338,43 +355,32 @@ def get_current(sim, cells, p):
     #        sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
     # Method 6-------------------------------------------------------------------------------------------------
-    # # Calculate voltage from divergence of individual current components:
+    # Calculate voltage from charge in environment; this electric field is divergence-free assuming Laplace Eqn holds
+    # This is the voltage measured with electrodes:
+    # v_env = np.zeros(sim.edl)
     #
-    # # from transmembrane flux:
-    # divJ_tm = np.dot(cells.M_sum_mems, sim.Jmem * cells.mem_sa) / cells.cell_vol
-    #
-    # # from lateral field:
-    # Jc = np.sqrt(sim.J_cell_x ** 2 + sim.J_cell_y ** 2)
-    #
-    # # divergence of lateral current flow in cells:
-    # divJ_lat = np.dot(cells.M_sum_mems, Jc[cells.mem_to_cells] * cells.mem_sa) / cells.cell_vol
-    #
-    # # total divergence from cell current flow:
-    # divJ = divJ_tm + divJ_lat
-    #
-    # Phi_cells = np.dot(cells.lapGJ_P_inv, -divJ / sim.sigma)
-    #
-    # Phi_envo = np.zeros(sim.edl)
-    # Phi_envo[cells.map_mem2ecm] = -Phi_cells[cells.mem_to_cells]
-    #
-    # # sum of all contributions:
-    # v_env = Phi_envo + ((sim.rho_env) / ((sim.ko_env ** 2) * p.eo * p.er))
-    #
-    # # v_env = Phi_envo
+    # v_env[cells.map_mem2ecm] = (1 / (2 * p.cm)) * (sim.rho_env[cells.map_mem2ecm] * cells.delta ** 2 * p.cell_height
+    #                                                ) / (cells.memSa_per_envSquare[cells.map_mem2ecm].mean())
     #
     # v_env = v_env.reshape(cells.X.shape)
     #
-    # v_env = fd.integrator(v_env, 0.5)
+    # v_env = fd.integrator(v_env, 0.5)  # FIXME! Make this optional
     #
     # # assign to environmental voltage array:
     # sim.v_env = 1 * v_env.ravel()
     #
+    # # Now calculate the voltage that results from time-dependent charge transfers
+    # # these induce movements of charges and other factors.
+    # Phi_env = ((sim.rho_env) / ((sim.ko_env ** 2) * p.eo * p.er))
+    #
+    # Phi_env = fd.integrator(Phi_env.reshape(cells.X.shape), 0.5)  # FIXME! Make this optional
+    #
     # # gradient of the polarization voltage yields the electric field:
-    # gVex, gVey = fd.gradient(v_env.reshape(cells.X.shape), cells.delta)
+    # gVex, gVey = fd.gradient(Phi_env.reshape(cells.X.shape), cells.delta)
     #
     # # use Hodgkin-Huxley decomposition and recomposition to "smooth" the electric field:
-    # gVex, gVey = stb.smooth_flux(gVex.reshape(cells.X.shape), gVey.reshape(cells.X.shape), cells)
-    # # sim.v_env, gVex, gVey, _, _, _ = stb.HH_Decomp(gVex, gVey, cells)
+    # gVex, gVey = stb.smooth_flux(gVex.reshape(cells.X.shape), gVey.reshape(cells.X.shape),
+    #                              cells)  # FIXME! Make this optional
     #
     # # assign to electric field of the system:
     # sim.E_env_x = -gVex
@@ -382,6 +388,8 @@ def get_current(sim, cells, p):
     #
     # sim.Eme = (sim.E_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
     #            sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+    #
+    # sim.Phi_env = Phi_env * 1
 
 
 

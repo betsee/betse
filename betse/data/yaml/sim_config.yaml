@@ -95,7 +95,7 @@ init time settings:
 sim time settings:
 
   time step: 1.0e-4       # time step-size [s] (recommended 1.0e-2 or smaller)
-  total time: 0.025         # time to end sim run [s]
+  total time: 0.035         # time to end sim run [s]
   sampling rate: 1.0e-3      # period to sample data [s] (at least time step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -212,7 +212,7 @@ tissue profile definition:
       image: geo/circle/circle_base.png # Absolute or relative filename of the image whose
                                         # pure-black pixels define the cell cluster shape.
       diffusion constants: # Membrane diffusion constants applied to all unprofiled cells.
-        Dm_Na: 1.0e-18     # Na+ membrane diffusion constant [m2/s]
+        Dm_Na: 2.0e-18     # Na+ membrane diffusion constant [m2/s]
         Dm_K: 1.0e-18     # K+ membrane diffusion constant [m2/s]
         Dm_Cl: 1.0e-18     # Cl- membrane diffusion constant [m2/s]
         Dm_Ca: 1.0e-18     # Ca2+ membrane diffusion constant [m2/s]
@@ -225,7 +225,7 @@ tissue profile definition:
       - name: spot
         insular: False
         diffusion constants:
-          Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
+          Dm_Na: 2.0e-18   # Na+ membrane diffusion constant [m2/s]
           Dm_K: 1.0e-18    # K+ membrane diffusion constant [m2/s]
           Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
           Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
@@ -577,7 +577,7 @@ general network:
     - name: K
       channel class: K        #class of the channels: Na, K, Ca, Cl, Fun, and Cat
       channel type: KLeak    #identify the channel as one of the available voltage gated types in each class
-      max conductivity: 0.5e-17  #        maximum membrane diffusion constant to ion when channel fully open
+      max conductivity: 0.6e-17  #        maximum membrane diffusion constant to ion when channel fully open
       apply to: all                #    list of profiles to apply channel to or 'all' for all cells
       init active: True            # Is the channel active during the initialization?
       channel inhibitors: ['X']    # additional defined substances or ions decreasing activity of transporter
@@ -803,7 +803,7 @@ results options:
       colorbar:           # Animation colorbar settings.
         colormap: None    # Matplotlib-specific name of colormap displayed by this colorbar or
                           # "None" to default to "default colormap". See above for details.
-        autoscale: False   # Automatically scale colorbar to minimum and maximum values of
+        autoscale: True   # Automatically scale colorbar to minimum and maximum values of
                           # underlying data series?
         minimum: -70.0    # Minimum fixed colorbar value. Ignored if "autoscale" is True.
         maximum:  20.0    # Maximum fixed colorbar value. Ignored if "autoscale" is True.
@@ -1064,6 +1064,8 @@ internal parameters:
   membrane capacitance: 0.05 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
 
   cell polarizability: 0.0  # cell relative dielectric constant (static, low frequency) (0.0 to 5.0e7)
+
+  dielectric constant: 25.0  # dielectric constant of electrical double layer
 
   fast update ecm: False  # use a coarse (fast) or fine (slow) method to update between env and cell grids?
 

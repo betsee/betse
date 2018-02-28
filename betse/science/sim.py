@@ -1531,7 +1531,7 @@ class Simulator(object):
 
         # get the average gap junction conductivity:
         # self.G_gj = sum(sigma_gj)*self.geo_conv*(cells.mem_sa.mean()/cells.cell_sa.mean())
-        self.G_gj = sum(sigma_gj) * self.geo_conv*(1/2)
+        self.G_gj = sum(sigma_gj) * self.geo_conv*(1/cells.num_mems)
 
 
     @type_check
@@ -1648,6 +1648,12 @@ class Simulator(object):
             # check for NaNs in voltage and stop simulation if found:
             stb.check_v(self.vm_ave)
 
+            # # Extra details
+            # self.Jmem = Jmem + self.G_Leak*(self.vm_ave - self.E_Leak)
+            # self.Jgj = -Jgj
+            # self.Jn = -Jgj + Jmem + self.G_Leak*(self.vm_ave - self.E_Leak)
+
+
             # ---------time sampling and data storage---------------------------------------------------
             # If this time step is sampled...
             if t in time_steps_sampled:
@@ -1758,6 +1764,8 @@ class Simulator(object):
 
         self.vm_ave_time = []
 
+        self.venv_time = []
+
         # microtubules:
         self.mtubes_x_time = []
         self.mtubes_y_time = []
@@ -1796,8 +1804,6 @@ class Simulator(object):
             self.endo_retic.clear_cache()
 
         if p.is_ecm is True:
-
-            self.venv_time = []
 
             self.charge_env_time = []
 
@@ -1850,6 +1856,8 @@ class Simulator(object):
         self.rate_NaKATP_time.append(self.rate_NaKATP*1)
         self.P_cells_time.append(self.P_cells)
 
+        self.venv_time.append(self.v_env * 1)
+
         if p.deform_osmo:
             self.osmo_P_delta_time.append(self.osmo_P_delta)
 
@@ -1892,8 +1900,6 @@ class Simulator(object):
         if p.is_ecm:
             self.efield_ecm_x_time.append(self.E_env_x*1)
             self.efield_ecm_y_time.append(self.E_env_y*1)
-
-            self.venv_time.append(self.v_env*1)
 
             if p.fluid_flow:
                 self.u_env_x_time.append(self.u_env_x*1)
@@ -2008,9 +2014,6 @@ class Simulator(object):
 
         if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
-            # rho_surf = self.rho_cells * cells.diviterm
-            # self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells]
-
             # change in charge density at the membrane:
             # Jm = np.dot(cells.M_sum_mems, self.Jn*cells.mem_sa)/cells.cell_sa
             # self.vm += -(1/p.cm)*Jm[cells.mem_to_cells]*p.dt
@@ -2020,49 +2023,58 @@ class Simulator(object):
 
             # In terms of intra and extracellular charge:
             rho_surf = self.rho_cells * cells.diviterm
+            self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
 
-            if p.is_ecm:
-
-                self.v_cell = (1 /(2*p.cm)) * rho_surf[cells.mem_to_cells]
-                self.vm = self.v_cell - self.v_env[cells.map_mem2ecm]
-
-            else:
-
-                self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
+            # if p.is_ecm:
+            #
+            #     self.vm += -self.Phi_env[cells.map_mem2ecm]
 
 
         else:
 
+            # Electrical polarization charge component created by extracellular electric field:
+            P_env = p.cell_polarizability * p.eo * self.Eme
 
-            if p.is_ecm:
+            # Electrical polarization charge component created by intracellular electric field:
+            P_cells = p.cell_polarizability * p.eo * self.Emc
 
-                # Electrical polarization charge component created by extracellular electric field:
-                P_env = p.cell_polarizability*p.eo*self.Eme
+            # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
+            # convert volume charge density to surface charge density:
+            rho_surf = self.rho_cells * cells.diviterm
 
-                # Electrical polarization charge component created by intracellular electric field:
-                P_cells = p.cell_polarizability*p.eo*self.Emc
+            # In terms of intracellular charge:
+            self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells] + (1 / p.cm) * P_env + (1 / p.cm) * P_cells
 
-                # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
-                # convert volume charge density to surface charge density:
-                rho_surf = self.rho_cells*cells.diviterm
 
-                # In terms of intra and extracellular charge:
-                self.v_cell = (1 /(2*p.cm)) * rho_surf[cells.mem_to_cells]
-                self.vm = self.v_cell - self.v_env[cells.map_mem2ecm] + (1/p.cm)*P_env + (1/p.cm)*P_cells
-
-            else:
-                # Electrical polarization charge component created by extracellular electric field:
-                P_env = p.cell_polarizability * p.eo * self.Eme
-
-                # Electrical polarization charge component created by intracellular electric field:
-                P_cells = p.cell_polarizability * p.eo * self.Emc
-
-                # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
-                # convert volume charge density to surface charge density:
-                rho_surf = self.rho_cells * cells.diviterm
-
-                # In terms of intracellular charge:
-                self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
+            # if p.is_ecm:
+            #
+            #     # Electrical polarization charge component created by extracellular electric field:
+            #     P_env = p.cell_polarizability*p.eo*self.Eme
+            #
+            #     # Electrical polarization charge component created by intracellular electric field:
+            #     P_cells = p.cell_polarizability*p.eo*self.Emc
+            #
+            #     # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
+            #     # convert volume charge density to surface charge density:
+            #     rho_surf = self.rho_cells*cells.diviterm
+            #
+            #     # In terms of intra and extracellular charge:
+            #     self.v_cell = (1 /(2*p.cm)) * rho_surf[cells.mem_to_cells]
+            #     self.vm = self.v_cell - self.v_env[cells.map_mem2ecm] + (1/p.cm)*P_env + (1/p.cm)*P_cells
+            #
+            # else:
+            #     # Electrical polarization charge component created by extracellular electric field:
+            #     P_env = p.cell_polarizability * p.eo * self.Eme
+            #
+            #     # Electrical polarization charge component created by intracellular electric field:
+            #     P_cells = p.cell_polarizability * p.eo * self.Emc
+            #
+            #     # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
+            #     # convert volume charge density to surface charge density:
+            #     rho_surf = self.rho_cells * cells.diviterm
+            #
+            #     # In terms of intracellular charge:
+            #     self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
 
             # if p.is_ecm:
             #

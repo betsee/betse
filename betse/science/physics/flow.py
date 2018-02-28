@@ -19,19 +19,17 @@ def getFlow(sim, cells, p):
 
     if p.is_ecm is True:
 
-        # scale_F = (cells.delta)/(sim.ko_env) # condense volume charge to double layer surface -- units are [m2]
+        # Use Helmholtz-Smoluchowski equation:
 
-        rho_env = sim.rho_env.reshape(cells.X.shape)
 
-        muFx = (1 / p.mu_water)*sim.E_env_x*rho_env*sim.D_env_weight*cells.delta**2
-        muFy = (1 / p.mu_water)*sim.E_env_y*rho_env*sim.D_env_weight*cells.delta**2
+        muFx = -p.eo*p.er*(1 / p.mu_water) * sim.E_env_x * sim.v_env.reshape(cells.X.shape) * sim.D_env_weight
+        muFy = -p.eo*p.er*(1 / p.mu_water) * sim.E_env_y * sim.v_env.reshape(cells.X.shape) * sim.D_env_weight
 
-        _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(muFx, muFy, cells)
+        uxo = np.dot(cells.lapENVinv, -muFx.ravel())
+        uyo = np.dot(cells.lapENVinv, -muFy.ravel())
 
-        # uxo = np.dot(cells.lapENVinv, -muFx.ravel())
-        # uyo = np.dot(cells.lapENVinv, -muFy.ravel())
+        _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(uxo, uyo, cells)
 
-        # _, sim.u_env_x, sim.u_env_y, _, _, _ = stb.HH_Decomp(uxo, uyo, cells)
 
     # -------Next do flow through gap junction connected cells-------------------------------------------------------
 

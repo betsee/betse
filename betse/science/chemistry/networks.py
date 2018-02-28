@@ -3154,6 +3154,7 @@ class MasterOfNetworks(object):
 
                     # G_Chan = np.dot(cells.M_sum_mems, G_Chano)/cells.num_mems
 
+                    # J_ED = G_Chan * (sim.vm - sim.rev_E_dic[ion]) * (1 / cells.num_mems[cells.mem_to_cells])
                     J_ED = G_Chan*(sim.vm - sim.rev_E_dic[ion])
 
                     # Add channel flux to the membrane fluxes data array:

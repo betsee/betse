@@ -152,7 +152,7 @@ spaces (e.g., the full BETSE solver).
 '''
 
 
-VOLTAGE_EXTRA = SOLVER_FULL_ECM
+VOLTAGE_EXTRA = SOLVER_FULL
 '''
 Requirements that a simulation phase enable extracellular voltages and hence
 both extracellular spaces *and* a solver capable of fully simulating these
