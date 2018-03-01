@@ -207,14 +207,6 @@ class Mtubes(object):
 
         q_tube = self.charge_mtube
 
-        # if p.fluid_flow:
-        #
-        #     # force from any fluid flow mapped to membranes:
-        #     Fdux = sim.u_cells_x[cells.mem_to_cells]*self.C_perp*self.L*p.cytoplasm_viscocity
-        #     Fduy = sim.u_cells_y[cells.mem_to_cells]*self.C_perp*self.L*p.cytoplasm_viscocity
-        #
-        # else:
-
         Fdux = np.zeros(sim.mdl)
         Fduy = np.zeros(sim.mdl)
 
