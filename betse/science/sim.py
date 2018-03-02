@@ -2023,11 +2023,13 @@ class Simulator(object):
 
             # In terms of intra and extracellular charge:
             rho_surf = self.rho_cells * cells.diviterm
-            self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
 
-            # if p.is_ecm:
-            #
-            #     self.vm += -self.Phi_env[cells.map_mem2ecm]
+            self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
+            # self.vm = (2*rho_surf[cells.mem_to_cells]) / (self.ko_cell*p.eedl * p.eo)
+
+            if p.is_ecm:
+
+                self.vm += -self.v_env[cells.map_mem2ecm]
 
 
         else:
@@ -2044,6 +2046,10 @@ class Simulator(object):
 
             # In terms of intracellular charge:
             self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells] + (1 / p.cm) * P_env + (1 / p.cm) * P_cells
+
+            if p.is_ecm:
+
+                self.vm += -self.v_env[cells.map_mem2ecm]
 
 
             # if p.is_ecm:
@@ -2239,6 +2245,7 @@ class Simulator(object):
         # this equation assumes environmental transport is electrodiffusive--------------------------------------------:
         fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, ux, uy,
                                           denv, self.zs[i], self.T, p)
+
 
         self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fy.ravel()  # store ecm junction flux for this ion

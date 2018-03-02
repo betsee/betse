@@ -1065,11 +1065,11 @@ internal parameters:
 
   cell polarizability: 0.0  # cell relative dielectric constant (static, low frequency) (0.0 to 5.0e7)
 
-  dielectric constant: 25.0  # dielectric constant of electrical double layer
+  dielectric constant: 6.0  # dielectric constant of electrical double layer
 
   fast update ecm: False  # use a coarse (fast) or fine (slow) method to update between env and cell grids?
 
-  sharpness: 0.90  # Factor smoothing environmental concentrations, 0.0 max smoothing, 1.0 no smoothing
+  sharpness: 1.0  # Factor smoothing environmental concentrations, 0.0 max smoothing, 1.0 no smoothing
 
 
 # Configuration file version that this file conforms to. For reliable

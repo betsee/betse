@@ -80,17 +80,12 @@ def get_current(sim, cells, p):
         # Calculate voltage from charge in environment; this electric field is divergence-free assuming Laplace Eqn holds
         # This is the voltage measured with electrodes:
         v_env = np.zeros(sim.edl)
+        # v_env[cells.map_mem2ecm] = -(sim.vm)/2
 
-        v_env[cells.map_mem2ecm] = -(sim.vm)/2
+        v_env[cells.map_mem2ecm] = (sim.rho_env[cells.map_mem2ecm]*cells.delta**2*p.cell_height)/(
+                                    sim.ko_env*p.eedl*p.eo*cells.memSa_per_envSquare[cells.map_mem2ecm].mean())
 
         v_env = v_env.reshape(cells.X.shape)
-
-        # Now calculate the voltage that results from time-dependent charge transfers
-        # these induce movements of charges and other factors.
-        Phi_env = ((sim.rho_env) / ((sim.ko_env ** 2) * p.eo * p.eedl)).reshape(cells.X.shape)
-
-        # assign to environmental voltage array:
-        v_env = (v_env + Phi_env)
 
         # v_env = fd.integrator(v_env, 0.5)  # FIXME! Make this optional -- both in terms of smoothing type and level
         v_env = gaussian_filter(v_env, 1, mode = 'constant', cval = 0.0)
@@ -101,10 +96,14 @@ def get_current(sim, cells, p):
         v_env[-1, :] = sim.bound_V['T']
         v_env[0, :] = sim.bound_V['B']
 
-        sim.v_env = 1*v_env.ravel()
+        sim.v_env = v_env.ravel()
+
+        # screening constant (this integrates the surface potential to the whole env square using Poisson-Boltzmann):
+        screen = (1 / (sim.ko_env * cells.delta))*(
+            (cells.delta*p.cell_height)/cells.memSa_per_envSquare[cells.map_mem2ecm].mean())
 
         # gradient of the polarization voltage yields the electric field:
-        gVex, gVey = fd.gradient(sim.v_env.reshape(cells.X.shape), cells.delta)
+        gVex, gVey = fd.gradient(screen*sim.v_env.reshape(cells.X.shape), cells.delta)
 
         # use Hodgkin-Huxley decomposition and recomposition to "smooth" the electric field:
         # gVex, gVey = stb.smooth_flux(gVex.reshape(cells.X.shape), gVey.reshape(cells.X.shape), cells) # FIXME! Make this optional

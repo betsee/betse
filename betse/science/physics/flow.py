@@ -20,8 +20,6 @@ def getFlow(sim, cells, p):
     if p.is_ecm is True:
 
         # Use Helmholtz-Smoluchowski equation:
-
-
         muFx = -p.eo*p.er*(1 / p.mu_water) * sim.E_env_x * sim.v_env.reshape(cells.X.shape) * sim.D_env_weight
         muFy = -p.eo*p.er*(1 / p.mu_water) * sim.E_env_y * sim.v_env.reshape(cells.X.shape) * sim.D_env_weight
 
