@@ -39,11 +39,6 @@ class TissueHandler(object):
     * Scheduled interventions, even those *not* pertaining to tissue profiles
       (e.g., global scheduled interventions).
 
-    Attributes
-    ----------
-    data_length : int
-        Total number of cell membranes across all cells in the current cluster.
-
     Attributes (Profile: Tissue)
     ----------
     cell_target_inds : dict
@@ -86,19 +81,17 @@ class TissueHandler(object):
     '''
 
     # ..................{ INITIALIZERS                       }..................
+    # Avoid circular import dependencies.
     @type_check
-    def __init__(
-        self,
-        sim:   'betse.science.sim.Simulator',
-        cells: 'betse.science.cells.Cells',
-        p:     'betse.science.parameters.Parameters',
-    ) -> None:
+    def __init__(self, p: 'betse.science.parameters.Parameters') -> None:
         '''
         Initialize this tissue handler.
-        '''
 
-        # Total number of cell membranes across all cells in this cluster.
-        self.data_length = len(cells.mem_i)
+        Parameters
+        ----------
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
+        '''
 
         # Initialize tissue and cut profiles.
         self._init_tissues(p)
@@ -303,7 +296,8 @@ class TissueHandler(object):
                     'Ignoring cutting event, as cut profiles are disabled.')
 
 
-    #FIXME: Rename to map_tissue_profiles_to_cells().
+    #FIXME: Rename to _map_tissue_profiles_to_cells(). See the
+    #SimPhase.__init__() method for further discussion.
     @type_check
     def tissueProfiles(
         self,
@@ -319,6 +313,9 @@ class TissueHandler(object):
         Specifically, this method defines the :attr:`cell_target_inds`,
         :attr:`env_target_inds`, and :attr:`tissue_target_inds` dictionaries.
         '''
+
+        # Log this initialization.
+        logs.log_debug('Mapping tissue profiles to cells...')
 
         #FIXME: These three dictionaries are all indexed by tissue profile names
         #and hence should simply be folded into the "TissueProfile" class as

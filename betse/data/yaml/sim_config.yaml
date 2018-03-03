@@ -898,6 +898,7 @@ results options:
           #   disabled.
           # * "pump_nakatpase" for final all-cells cell membrane Na-K-ATPase pump rate.
           #   Ignored if full solver disabled.
+          # * "tissue" for initial all-cells tissue profile tessellation.
           # * "voltage_membrane" for final all-cells transmembrane voltage (Vmem).
           # * "voltage_membrane_average" for final all-cells transmembrane
           #   voltage (Vmem) average.
@@ -1022,8 +1023,6 @@ results options:
         #codecs: ['libvpx', 'libtheora', 'libx264', 'libxvid', 'mpeg4', 'h263', 'mpeg2video', 'hevc', 'auto']  # example listing all preferred codecs before defaulting to "auto"
 
   # World-related plotting options------------------------------------------------------------------------------------
-
-  plot cell cluster: True     # 'plot seed' creates a plot showing tissue and cut profiles
 
   plot cell connectivity diagram: True  # 'plot seed' creates a plot showing gap junction connections
 

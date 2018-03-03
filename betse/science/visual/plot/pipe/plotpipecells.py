@@ -41,6 +41,35 @@ class PlotCellsPipe(PlotPipeABC):
     def _runners_conf(self) -> IterableTypes:
         return self._phase.p.plot.plots_cells_after_sim
 
+    # ..................{ EXPORTERS                          }..................
+    @piperunner(
+        categories=('Cell Cluster', 'Tissue Profiles',),
+        requirements=phasereqs.ELECTRIC_CURRENT,
+    )
+    def export_tissue(self, conf: SimConfVisualCellsListItem) -> None:
+        '''
+        Plot a **tissue tessellation** (i.e., tiled mosaic of all cells
+        subdivided into tissue regions such that all cells in the same tissue
+        share the same arbitrary color) for the cell cluster.
+
+        This plot is irrespective of time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        #FIXME: Shift the entirety of the clusterPlot() function into this
+        #method. This function is *ONLY* called once in the codebase: here.
+        fig_tiss, ax_tiss, cb_tiss = plotutil.clusterPlot(
+            self._phase.p,
+            self._phase.dyna,
+            self._phase.cells,
+            clrmap=self._phase.p.background_cm,
+        )
+
+        # Export this plot to disk and/or display.
+        self._export(basename='cluster_mosaic')
+
     # ..................{ EXPORTERS ~ channel                }..................
     # @piperunner(
     #     categories=('Ion Channel', 'Density Factor',),

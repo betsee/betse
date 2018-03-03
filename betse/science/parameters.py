@@ -845,8 +845,8 @@ class Parameters(YamlFileABC):
         self.IecmPlot = ro['plot total current']    # True = plot extracellular currents, false plot gj
         self.plotMask = ro['plot masked geometry']
 
+        #FIXME: Remove all of the following after globally removing "plot seed".
         # Plot seed options.
-        self.plot_cell_cluster = ro.get('plot cell cluster', True)
         self.plot_cell_connectivity = ro.get('plot cell connectivity diagram', True)
         self.plot_cluster_mask = ro.get('plot cluster mask', True)
 

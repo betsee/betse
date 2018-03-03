@@ -70,6 +70,8 @@ class SimPhase(object):
     ----------
     cells : betse.science.cells.Cells
         Current cell cluster.
+    dyna : betse.science.tissue.tishandler.TissueHandler
+        Current tissue handler.
     p : betse.science.parameters.Parameters
         Current simulation configuration.
     sim : betse.science.sim.Simulator
@@ -93,36 +95,60 @@ class SimPhase(object):
         kind: SimPhaseKind,
 
         # Avoid circular import dependencies.
-        sim:   'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',
         p:     'betse.science.parameters.Parameters',
+        sim:   'betse.science.sim.Simulator',
     ) -> None:
         '''
-        Initialize this simulation phase instance.
+        Initialize this simulation phase.
 
         Parameters
         ----------
         kind : SimPhaseKind
             Current simulation phase type.
-        sim : betse.science.sim.Simulation
-            Current simulation.
         cells : betse.science.cells.Cells
             Current cell cluster.
         p : betse.science.parameters.Parameters
             Current simulation configuration.
+        sim : betse.science.sim.Simulation
+            Current simulation.
         '''
 
         # Avoid circular import dependencies.
         from betse.science.math.cache.cacheabc import SimPhaseCaches
+        from betse.science.tissue.tishandler import TissueHandler
 
         # Classify all passed parameters.
         self.kind = kind
-        self.sim = sim
         self.cells = cells
         self.p = p
+        self.sim = sim
 
-        # Classify the cache for this phase.
+        #FIXME: To ensure the "dyna" object is fully initialized, refactor the
+        #"TissueHandler" class as follows:
+        #
+        #* The TissueHandler.tissueProfiles() method should be refactored into a
+        #  private TissueHandler._map_tissue_profiles_to_cells() method having
+        #  the following signature:
+        #      @type_check
+        #      def _map_tissue_profiles_to_cells(self, phase: SimPhase) -> None:
+        #* The TissueHandler.__init__() method should be refactered to:
+        #  * As the very first logic in that method, validate that the passed
+        #    "cells" and "sim" objects have been *FULLY* initialized.
+        #  * As the very last logic in that method, call the newly refactored
+        #    self._map_tissue_profiles_to_cells() method.
+        #* The old TissueHandler.tissueProfiles() method should *NOT* be called
+        #  any other class. In practice, we probably will need to break
+        #  encapsulation and call the newly private
+        #  TissueHandler._map_tissue_profiles_to_cells() method elsewhere. When
+        #  we do so, add a FIXME comment suggesting this to be bad.
+        #
+        #Alternately, if the _map_tissue_profiles_to_cells() method truly *DOES*
+        #need to be called elsewhere, simply make it public. *sigh*
+
+        # Classify all remaining high-level objects for this phase.
         self.cache = SimPhaseCaches(self)
+        self.dyna = TissueHandler(p)
 
         #FIXME: Rename the "save_dirname" variable to "export_dirname".
         #FIXME: Isolate exports produced by the "seed" phase to their own

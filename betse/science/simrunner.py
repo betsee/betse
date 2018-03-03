@@ -13,8 +13,6 @@ from betse.exceptions import (
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.chemistry.gene import MasterOfGenes
-# from betse.science.math import toolbox as tb
-from betse.science.config import confio
 from betse.science.export import exppipe
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
@@ -73,14 +71,13 @@ class SimRunner(object):
         # Log this attempt.
         logs.log_info('Seeding simulation...')
 
-        # Simulation configuration, simulator, and cell cluster.
+        # High-level simulation objects.
         p = Parameters().load(self._config_filename)
-        sim = Simulator(p)
         cells = Cells(p)
+        sim = Simulator(p)
 
         # Simulation phase.
-        phase = SimPhase(
-            kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
+        phase = SimPhase(kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
 
         logs.log_info('Creating cell cluster...')
         cells.make_world(phase)  # call function to create the world
@@ -88,22 +85,20 @@ class SimRunner(object):
         # define the tissue and boundary profiles for plotting:
         logs.log_info('Defining tissue and boundary profiles...')
         sim.baseInit_all(cells, p)
-        dyna = TissueHandler(sim, cells, p)
-        dyna.tissueProfiles(sim, cells, p)
-        cells.redo_gj(dyna, p)  # redo gap junctions to isolate different tissue types
+        phase.dyna.tissueProfiles(sim, cells, p)
+        cells.redo_gj(phase.dyna, p)  # redo gap junctions to isolate different tissue types
 
         # make a laplacian and solver for discrete transfers on closed, irregular cell network
         logs.log_info('Creating cell network Poisson solver...')
         cells.graphLaplacian(p)
 
-        if p.td_deform is False:  # if time-dependent deformation is not required
+        if not p.td_deform:  # if time-dependent deformation is not required
             cells.lapGJ = None
             cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
 
         # make accessory matrices depending on user requirements:
-        if p.fluid_flow is True or p.deformation is True:
-            if p.deformation is True:
-                cells.deform_tools(p)
+        if p.deformation:
+            cells.deform_tools(p)
 
         # if p.sim_eosmosis is True:
         #     cells.eosmo_tools(p)
@@ -141,6 +136,11 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
 
+        # High-level simulation objects.
+        p = Parameters().load(self._config_filename)
+        cells = Cells(p)  # create an instance of world
+        sim = Simulator(p)
+
         #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
         #profile type be passed. The current approach leaves critical attributes
         #undefined in the event that the optional Parameters.set_time_profile()
@@ -148,21 +148,14 @@ class SimRunner(object):
         #FIXME: Actually, no. All logic performed by the set_time_profile()
         #method should be shifted into the SimPhase.__init__() method. See a
         #FIXME comment preceding the set_time_profile() method for details.
-
-        # Simulation configuration.
-        p = Parameters().load(self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False # let the simulator know we're just running an initialization
-
-        # Simulation cell cluster.
-        # cells, _ = fh.loadSim(cells.savedWorld)
-        cells = Cells(p)  # create an instance of world
+        sim.run_sim = False
 
         #FIXME: This if conditional is repeated verbatim twice below. Generalize
         #into a new _load_cells() method containing this if conditional and
         #returning the loaded "Cells" instance; then, call this method both here
         #and everywhere this repeated logic appears below. Starbust dragons!
-
         if files.is_file(cells.savedWorld):
             cells,p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
             logs.log_info('Cell cluster loaded.')
@@ -186,13 +179,8 @@ class SimRunner(object):
                     "Run terminated due to missing seed.\n"
                     "Please run 'betse seed' to try again.")
 
-        # Simulation simulator.
-        sim = Simulator(p=p)
-
         # Simulation phase, created *AFTER* unpickling these objects above.
         phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
-
-        sim.run_sim = False
 
         # Initialize simulation data structures, run, and save simulation phase
         sim.baseInit_all(cells, p)
@@ -230,13 +218,13 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.SIM
 
-        # Simulation configuration.
+        # High-level simulation objects.
         p = Parameters().load(self._config_filename)
+        sim = Simulator(p=p)
+
+        #FIXME: See above for pertinent commentary. Mists of time, unpart!
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
-
-        # Simulation simulator.
-        sim = Simulator(p=p)
 
         if files.is_file(sim.savedInit):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
@@ -302,22 +290,23 @@ class SimRunner(object):
 
         # Simulation configuration.
         p = Parameters().load(self._config_filename)
+        cells = Cells(p)
+        sim = Simulator(p)
+
+        # Log this simulation.
+        logs.log_info(
+            'Running gene regulatory network "%s" '
+            'defined in config file "%s"...',
+            pathnames.get_basename(p.grn_config_filename),
+            self._config_basename)
+
+        #FIXME: See above for pertinent commentary. Tendrils of wisdom, uncoil!
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False
 
-        logs.log_info(
-            ('Running gene regulatory network {} defined in config file {}.').format(p.grn_config_filename, self._config_basename))
-
-        # cells object:
-        cells = Cells(p)
-
-        # Simulation simulator.
-        sim = Simulator(p=p)
-
         if p.grn_piggyback == 'seed':
-
             if files.is_file(cells.savedWorld):
-                cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+                cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
                 logs.log_info('Running gene regulatory network on betse seed...')
 
                 # Initialize simulation data structures
@@ -384,35 +373,42 @@ class SimRunner(object):
                     'Simulation terminated due to missing core simulation. '
                     'Please run a betse simulation and try again.')
 
-        # # Simulation simulator.
-        # sim = Simulator(p=p)
-
         # Simulation phase.
         phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
 
         # If loading from a previously pickled "sim-grn" file...
         if p.loadMoG is not None and files.is_file(p.loadMoG):
+            # Log this load.
+            logs.log_info(
+                'Reinitializing the gene regulatory network from "{}"...',
+                pathnames.get_basename(p.loadMoG))
+
             # load previously run instance of master of genes:
             MoG, _, _ = pickles.load(p.loadMoG)
 
-            logs.log_info(("Reinitializing the gene regulatory network from {}...").format(p.loadMoG))
-
+            #FIXME: Replace with "phase.dyna.event_cut.is_fired" *AFTER*
+            #removing the "Simulator.dyna" variable. (See FIXME in that class.)
             is_cut_done = sim.dyna.event_cut.is_fired
 
             # if running on a sim with a cut event, must remove cells:
             if sim.dyna.event_cut is not None and is_cut_done:
-                simu = Simulator(p=p)
+                simu = Simulator(p)
 
                 logs.log_info(
-                    'A cutting event has been run, so the GRN object needs to be modified...')
+                    'A cutting event has been run, '
+                    'so the GRN object needs to be modified...')
 
                 if files.is_file(simu.savedInit):
                     logs.log_info(
-                        'Loading betse init from cache for reference to original cells...')
+                        'Loading betse init from cache '
+                        'for reference to original cells...')
 
                     init, cellso, p_old = fh.loadSim(simu.savedInit)  # load the initialization from cache
 
-                    dyna = TissueHandler(init, cellso, p)  # create the tissue dynamics object on original cells
+                    #FIXME: This tissue handler object should ideally be pickled
+                    #to and from the "simu.savedInit" file loaded above, in
+                    #which case this local variable would be safely removable.
+                    dyna = TissueHandler(p)  # create the tissue dynamics object on original cells
                     dyna.tissueProfiles(init, cellso, p)  # initialize all tissue profiles on original cells
 
                     for cut_profile_name in dyna.event_cut.profile_names:
@@ -476,6 +472,8 @@ class SimRunner(object):
         return phase
 
     # ..................{ PLOTTERS                           }..................
+    #FIXME: Comment out this method entirely, after doing so for the
+    #higher-level "betse plot seed" CLI subcommand as well.
     #FIXME: Shift the low-level matplotlib plotting performed by this method
     #into a new "betse.science.visual.seedpipe" submodule.
 
@@ -496,10 +494,10 @@ class SimRunner(object):
             'Plotting cell cluster with configuration file "%s".',
             self._config_basename)
 
-        # Simulation configuration, simulator, and cell cluster.
+        # High-level simulation objects.
         p = Parameters().load(self._config_filename)
-        sim = Simulator(p)
         cells = Cells(p)
+        sim = Simulator(p)
 
         if files.is_file(cells.savedWorld):
             cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
@@ -509,28 +507,15 @@ class SimRunner(object):
                 "Ooops! No such cell cluster file found to load!")
 
         # Simulation phase, created *AFTER* unpickling these objects above
-        phase = SimPhase(
-            kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
+        phase = SimPhase(kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
 
         sim.baseInit_all(cells,p)
-        dyna = TissueHandler(sim,cells,p)
-        dyna.tissueProfiles(sim,cells,p)
+        phase.dyna.tissueProfiles(sim, cells, p)
 
         #FIXME: Shift everything below into a new seed-specific pipeline -- say,
         #betse.science.export.exppipe.pipeline_seed().
         if p.autosave:
             savedImg = pathnames.join(p.init_export_dirname, 'fig_')
-
-        if p.plot_cell_cluster:
-            fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(
-                p, dyna, cells, clrmap=p.background_cm)
-
-            if p.autosave:
-                savename10 = savedImg + 'cluster_mosaic' + '.png'
-                plt.savefig(savename10,format='png',transparent=True)
-
-            if p.plot.is_after_sim_show:
-                plt.show(block = False)
 
         if p.is_ecm and p.plot_cluster_mask:
             plt.figure()
@@ -637,19 +622,20 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
 
-        # Simulation configuration.
+        # High-level simulation objects.
         p = Parameters().load(self._config_filename)
-        p.set_time_profile(phase_kind)  # force the time profile to be initialize
-
-        # Simulation simulator.
         sim = Simulator(p=p)
+
+        #FIXME: See above for pertinent commentary. Mists of time, unpart!
+        p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         #FIXME: Bizarre logic. We create a "Simulator" instance above only to
         #test whether a single file exists and, if so, replace that instance
         #with a pickled "Simulator" instance unpickled from that file. Let's cut
         #out the API middleman, as it were, by obtaining the pathname for this
         #file from the "Parameters" instance instead and then removing the above
-        #instantiation of "sim = Simulator(p)".
+        #instantiation of "sim = Simulator(p)". Note when doing so that similar
+        #behaviour has been duplicated across this submodule. Cheerful cherries!
 
         if files.is_file(sim.savedInit):
             sim, cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
@@ -659,6 +645,12 @@ class SimRunner(object):
 
         # Simulation phase, created *AFTER* unpickling these objects above
         phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
+
+        #FIXME: This... isn't the best. Ideally, the phase.dyna.tissueProfiles()
+        #method would *ALWAYS* be implicitly called by the SimPhase.__init__()
+        #method. Unfortunately, the non-trivial complexity of cell cluster
+        #initialization requires we do so manually for now. Sad sandlion frowns!
+        phase.dyna.tissueProfiles(sim, cells, p)
 
         # Display and/or save all initialization exports (e.g., animations).
         exppipe.pipeline(phase)
@@ -729,12 +721,12 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.SIM
 
-        # Simulation configuration.
+        # High-level simulation objects.
         p = Parameters().load(self._config_filename)
-        p.set_time_profile(phase_kind)  # force the time profile to be simulation
-
-        # Simulation simulator.
         sim = Simulator(p=p)
+
+        #FIXME: See above for pertinent commentary. Mists of time, unpart!
+        p.set_time_profile(phase_kind)  # force the time profile to be simulation
 
         # If this simulation has yet to be run, fail.
         if not files.is_file(sim.savedSim):
@@ -748,6 +740,12 @@ class SimRunner(object):
 
         # Simulation phase, created *AFTER* unpickling these objects above
         phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
+
+        #FIXME: This... isn't the best. Ideally, the phase.dyna.tissueProfiles()
+        #method would *ALWAYS* be implicitly called by the SimPhase.__init__()
+        #method. Unfortunately, the non-trivial complexity of cell cluster
+        #initialization requires we do so manually for now. Sad sandlion frowns!
+        phase.dyna.tissueProfiles(sim, cells, p)
 
         # Display and/or save all simulation exports (e.g., animations).
         exppipe.pipeline(phase)
@@ -806,15 +804,15 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
 
-        # Simulation configuration.
+        # High-level simulation objects.
         p = Parameters().load(self._config_filename)
+        sim = Simulator(p)
+
+        #FIXME: See above for pertinent commentary. Mists of time, unpart!
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         # MoG = MasterOfGenes(p)
         MoG, cells, _ = fh.loadSim(p.savedMoG)
-
-        # Simulation simulator.
-        sim = Simulator(p)
 
         # Simulation phase.
         phase = SimPhase(kind=phase_kind, cells=cells, p=p, sim=sim)
@@ -867,7 +865,7 @@ class SimRunner(object):
     # The following methods have been deprecated for compliance with PEP 8.
 
     #FIXME: Remove all deprecated methods defined below *AFTER* a sufficient
-    #amount of time -- say, mid to late 2017.
+    #amount of time -- say, mid to late 2018.
 
     @deprecated
     def makeWorld(self) -> None:
@@ -891,4 +889,4 @@ class SimRunner(object):
 
     @deprecated
     def plotSim(self) -> None:
-       return self.plot_sim()
+        return self.plot_sim()

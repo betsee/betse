@@ -396,10 +396,11 @@ class Simulator(object):
         arrays over all time steps.
     '''
 
+    # Avoid circular import dependencies.
     @type_check
     def __init__(self, p: 'betse.science.parameters.Parameters') -> None:
         '''
-        Create this simulation.
+        Initialize this simulation.
 
         Parameters
         ----------
@@ -408,6 +409,9 @@ class Simulator(object):
         '''
 
         #FIXME: Define all other instance attributes as well.
+        #FIXME: Do we still need the "ignore_ecm" flag? It's never set
+        #elsewhere, which is a bit... awkward. Clarion winds of change, unveil!
+
         # Default all remaining attributes.
         self.ignore_ecm = True
 
@@ -815,8 +819,16 @@ class Simulator(object):
                 # elif p.ion_profile is not IonProfileType.CUSTOM:
                 #     self.c_env_bound[self.iH] = p.env_concs['H']
 
+        #FIXME: Consider removing this duplicate tissue handler. All "SimPhase"
+        #objects now provide the exact same "dyna" object. Ergo:
+        #
+        #* Refactor this method to accept a "SimPhase" parameter named "phase".
+        #* Refactor every call to this method to pass only a "SimPhase" object.
+        #* Replace "self.dyna" everywhere below with "phase.dyna".
+        #
+        #Dark forest ignites the night with festive glee!
 
-        self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
+        self.dyna = TissueHandler(p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles
 
         if p.is_ecm:
@@ -1006,7 +1018,6 @@ class Simulator(object):
         # FIXME: eventually remove these entirely
         self.rho_pump = 1
         self.rho_channel = 1
-
 
         # Initialize core user-specified interventions:
         self.dyna.runAllInit(self,cells,p)

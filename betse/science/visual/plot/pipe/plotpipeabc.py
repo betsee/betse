@@ -168,7 +168,9 @@ class PlotPipeABC(SimPipeExportABC):
         Parameters
         -----------
         basename : str
-            Basename excluding filetype of the plot to be exported.
+            Basename excluding filetype of the plot to be exported. For
+            convenience, this method internally prepends this basename by the
+            identifying prefix ``fig_`` *before* writing this file.
         '''
 
         #FIXME: DRY. This functionality perfectly duplicates the

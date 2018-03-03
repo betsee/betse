@@ -167,29 +167,29 @@ class Cells(object):
     index_to_mem_verts : ndarray
         Two-dimensional Numpy array of the indices of the vertices of all cell
         membranes in the :attr:`mem_verts` array, whose:
-        . First dimension indexes each cell membrane.
-        . Second dimension indexes the index of each vertex defining the
-          current membrane, whose length is unconditionally guaranteed to be 2
-          _and_ whose:
-          . First item is the index of the first vertex defining this
-            membrane in the :attr:`mem_verts` subarray, guaranteed to be
-            counterclockwise from the second vertex defining this membrane.
-          . Second item is the index of the second vertex defining this
-            membrane in the :attr:`mem_verts` subarray, guaranteed to be
-            clockwise from the first vertex defining this membrane.
+        #. First dimension indexes each cell membrane.
+        #. Second dimension indexes the index of each vertex defining the
+           current membrane, whose length is unconditionally guaranteed to be 2
+           *and* whose:
+          #. First item is the index of the first vertex defining this
+             membrane in the :attr:`mem_verts` subarray, guaranteed to be
+             counterclockwise from the second vertex defining this membrane.
+          #. Second item is the index of the second vertex defining this
+             membrane in the :attr:`mem_verts` subarray, guaranteed to be
+             clockwise from the first vertex defining this membrane.
     mem_verts : ndarray
         Two-dimensional Numpy array of the coordinates of the vertices of all
         cell membranes, whose:
-        . First dimension indexes cell membrane vertices, whose length is the
-          number of cell membrane vertices in this cluster. This length is
-          strictly greater than the number of cell membranes in this cluster.
-          Since this array contains _no_ duplicate vertices, this length is
-          strictly less than twice the number of cell membranes.
-        . Second dimension indexes the coordinates of the current membrane
-          vertex, whose length is unconditionally guaranteed to be 2 _and_
-          whose:
-          . First item is the X coordinate of the current membrane vertex.
-          . Second item is the Y coordinate of the current membrane vertex.
+        #. First dimension indexes cell membrane vertices, whose length is the
+           number of cell membrane vertices in this cluster. This length is
+           strictly greater than the number of cell membranes in this cluster.
+           Since this array contains _no_ duplicate vertices, this length is
+           strictly less than twice the number of cell membranes.
+        #. Second dimension indexes the coordinates of the current membrane
+           vertex, whose length is unconditionally guaranteed to be 2 _and_
+           whose:
+           #. First item is the X coordinate of the current membrane vertex.
+           #. Second item is the Y coordinate of the current membrane vertex.
 
     Attributes (Cell Gap Junctions)
     ----------
@@ -197,15 +197,15 @@ class Cells(object):
         Two-dimensional Numpy array of the indices of the pairs of adjacent
         cells comprising all gap junctions connecting one cell to another in
         this cluster, whose:
-        . First dimension indexes cell membranes, whose length is the number of
-          cell membranes in this cluster.
-        . Second dimension indexes the indices of the pair of cells defining
-          the gap junction connecting the current membrane to another membrane,
-          whose length is unconditionally guaranteed to be 2 _and_ whose:
-          . First item is the index of the cell containing the current
-            membrane.
-          . Second item is the index of an adjacent cell containing the
-            adjacent membrane to which the current membrane is connected.
+        #. First dimension indexes cell membranes, whose length is the number of
+           cell membranes in this cluster.
+        #. Second dimension indexes the indices of the pair of cells defining
+           the gap junction connecting the current membrane to another membrane,
+           whose length is unconditionally guaranteed to be 2 _and_ whose:
+           #. First item is the index of the cell containing the current
+              membrane.
+           #. Second item is the index of an adjacent cell containing the
+              adjacent membrane to which the current membrane is connected.
     gj_len : float
         Uniform length (in meters) of each gap junction, equivalent to the
         uniform distance between each pair of neighbouring cells.
@@ -213,25 +213,25 @@ class Cells(object):
         Two-dimensional Numpy array of the indices of the pairs of adjacent
         cell membranes comprising all gap junctions connecting one membrane to
         another in this cluster, whose:
-        . First dimension indexes cell membranes, whose length is the number of
-          cell membranes in this cluster.
-        . Second dimension indexes the indices of the pair of cell membranes
-          defining the gap junction connecting the current membrane to another
-          membrane, whose length is unconditionally guaranteed to be 2 _and_
-          whose:
-          . First item is the index of the current membrane.
-          . Second item is:
-            * If the current membrane is adjacent to no other membrane (e.g.,
-              due to being situated at either the periphery of this cluster
-              _or_ a discontiguous hole in this cluster), the index of the
-              current membrane again. A solitary membrane thus connects to
-              itself with a self-referential gap junction "loop."
-            * If the current membrane is adjacent to exactly one other membrane
-              (which is the common case), the index of that membrane.
-            * If the current membrane is adjacent to two or more other
-              membranes, the index of the membrane to which the current
-              membrane is most adjacent (excluding itself).
-        Hence, _all_ membranes are guaranteed to participate in exactly one
+        #. First dimension indexes cell membranes, whose length is the number of
+           cell membranes in this cluster.
+        #. Second dimension indexes the indices of the pair of cell membranes
+           defining the gap junction connecting the current membrane to another
+           membrane, whose length is unconditionally guaranteed to be 2 _and_
+           whose:
+           #. First item is the index of the current membrane.
+           #. Second item is:
+              * If the current membrane is adjacent to no other membrane (e.g.,
+                due to being situated at either the periphery of this cluster
+                *or* a discontiguous hole in this cluster), the index of the
+                current membrane again. A solitary membrane thus connects to
+                itself with a self-referential gap junction "loop."
+              * If the current membrane is adjacent to exactly one other
+                membrane (which is the common case), the index of that membrane.
+              * If the current membrane is adjacent to two or more other
+                membranes, the index of the membrane to which the current
+                membrane is most adjacent (excluding itself).
+        Hence, *all* membranes are guaranteed to participate in exactly one
         gap junction connection.
     nn_i : ndarray
         One-dimensional Numpy array of length the number of cell membranes such
@@ -352,7 +352,8 @@ class Cells(object):
         #* Rename "self.savedWorld" to "p.seed_pickle_filename".
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedWorld = pathnames.join(p.init_pickle_dirname, p.seed_pickle_basename)
+        self.savedWorld = pathnames.join(
+            p.init_pickle_dirname, p.seed_pickle_basename)
 
 
     # Avoid circular import dependencies.
