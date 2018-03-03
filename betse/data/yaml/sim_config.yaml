@@ -126,15 +126,15 @@ general options:
 
     extracellular Na+ concentration: 145.0          # extracellular sodium [mmol/L]
     extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
-    extracellular Cl- concentration: 105.0          # extracellular chloride [mmol/L]
-    extracellular Ca2+ concentration: 1.0           # extracellular calcium [mmol/L]
+    extracellular Cl- concentration: 115.0          # extracellular chloride [mmol/L]
+    extracellular Ca2+ concentration: 2.0           # extracellular calcium [mmol/L]
     extracellular protein- concentration: 10.0       # extracellular protein [mmol/L]
 
-    cytosolic Na+ concentration: 8.0                # intracellular sodium [mmol/L]
-    cytosolic K+ concentration: 125.00              # intracellular potassium [mmol/L]
-    cytosolic Cl- concentration: 20.0                # intracellular chloride [mmol/L]
-    cytosolic Ca2+ concentration: 1.0e-4            # intracellular calcium [mmol/L]
-    cytosolic protein- concentration: 100.0         # intracellular protein [mmol/L]
+    cytosolic Na+ concentration: 12.0                # intracellular sodium [mmol/L]
+    cytosolic K+ concentration: 139.00              # intracellular potassium [mmol/L]
+    cytosolic Cl- concentration: 4.0                # intracellular chloride [mmol/L]
+    cytosolic Ca2+ concentration: 2.0e-5            # intracellular calcium [mmol/L]
+    cytosolic protein- concentration: 135.0         # intracellular protein [mmol/L]
 
     endoplasmic reticulum Ca2+: 0.1             # starting level of Ca2+ in the ER store [mmol/L]
 
@@ -649,11 +649,11 @@ variable settings:
                                  # uncomment the fields below to set new env boundaries, otherwise feature ignored!
 
 #    Na: 145.0    # Na+ concentration at bound [mM]
-#    K: 5.0      # K+ concentration at bound [mM]
-#    Cl: 105.0    # Cl- concentration at bound [mM]
-#    Ca: 1.0     # Ca2+ concentration at bound [mM]
-#    P: 10.0      # Protein- concentration at bound [mM]
-#    M: 37.0     # Anion (bicarbonate) concentration at bound [mM]
+#    K: 4.0      # K+ concentration at bound [mM]
+#    Cl: 115.0    # Cl- concentration at bound [mM]
+#    Ca: 2.0     # Ca2+ concentration at bound [mM]
+#    P: 9.0      # Protein- concentration at bound [mM]
+#    M: 29.0     # Anion (bicarbonate) concentration at bound [mM]
 
   temperature: 310            # system temperature [K]
 
@@ -1044,9 +1044,8 @@ internal parameters:
   Do_K:  1.96e-9        # free diffusion constant potassium [m2/s]
   Do_Cl:  2.03e-9       # free diffusion constant chloride [m2/s]
   Do_Ca:  1.0e-10        # free diffusion constant calcium [m2/s]
-  Do_H:  2.5e-9         # free diffusion constant hydrogen [m2/s]
   Do_M:  1.0e-9         # free diffusion constant mystery anchor ion [m2/s]
-  Do_P:  5.0e-10        # free diffusion constant protein [m2/s]
+  Do_P:  0.0        # free diffusion constant protein [m2/s]
 
   # Cell grid creation:
   boundary cell size cutoff: 0.50

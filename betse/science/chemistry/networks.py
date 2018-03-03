@@ -3806,15 +3806,15 @@ class MasterOfNetworks(object):
 
         if tag == 'cell':
 
-            if Q < 0 and np.abs(Q) <= sim.cc_cells[sim.iP].mean():  # if net charge is anionic
+            if Q < 0 and np.abs(Q) <= sim.cc_cells[sim.iM].mean():  # if net charge is anionic
 
-                self.cell_concs['P'] = sim.cc_cells[sim.iP] - np.abs(Q)
+                self.cell_concs['M'] = sim.cc_cells[sim.iM] - np.abs(Q)
 
             elif Q > 0 and np.abs(Q) <= sim.cc_cells[sim.iK].mean():
 
                 self.cell_concs['K'] = sim.cc_cells[sim.iK] - np.abs(Q)
 
-            elif Q < 0 and np.abs(Q) > sim.cc_at_mem[sim.iP].mean():  # if net charge is anionic
+            elif Q < 0 and np.abs(Q) > sim.cc_at_mem[sim.iM].mean():  # if net charge is anionic
                 raise BetseSimConfigException("You've defined way more anionic charge in "
                                                "the extra substances (cell region) than we can "
                                                "compensate for. Either turn 'substances "
@@ -3829,21 +3829,21 @@ class MasterOfNetworks(object):
 
         elif tag == 'env':
 
-            if Q < 0 and np.abs(Q) <= sim.cc_env[sim.iP].mean():  # if net charge is anionic
+            if Q < 0 and np.abs(Q) <= sim.cc_env[sim.iM].mean():  # if net charge is anionic
 
-                self.env_concs['P'] = sim.cc_env[sim.iP] - np.abs(Q)
-                self.bound_concs['P'] = sim.c_env_bound[sim.iP] - np.abs(Q)
+                self.env_concs['M'] = sim.cc_env[sim.iM] - np.abs(Q)
+                self.bound_concs['M'] = sim.c_env_bound[sim.iM] - np.abs(Q)
 
-            elif Q > 0 and np.abs(Q) <= sim.cc_env[sim.iK].mean():
-                self.env_concs['K'] = sim.cc_env[sim.iK] - np.abs(Q)
-                self.bound_concs['K'] = sim.c_env_bound[sim.iK] - np.abs(Q)
+            elif Q > 0 and np.abs(Q) <= sim.cc_env[sim.iNa].mean():
+                self.env_concs['Na'] = sim.cc_env[sim.iNa] - np.abs(Q)
+                self.bound_concs['Na'] = sim.c_env_bound[sim.iNa] - np.abs(Q)
 
-            elif Q < 0 and np.abs(Q) > sim.cc_env[sim.iP].mean():  # if net charge is anionic
+            elif Q < 0 and np.abs(Q) > sim.cc_env[sim.iM].mean():  # if net charge is anionic
                 raise BetseSimConfigException("You've defined way more anionic charge in "
                                                "the extra substances (env region) than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
-            elif Q > 0 and np.abs(Q) > sim.cc_env[sim.iK].mean():
+            elif Q > 0 and np.abs(Q) > sim.cc_env[sim.iNa].mean():
                 raise BetseSimConfigException("You've defined way more cationic charge in "
                                                "the extra substances (env region) than we can "
                                                "compensate for. Either turn 'substances "

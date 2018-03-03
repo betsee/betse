@@ -867,7 +867,6 @@ class Parameters(YamlFileABC):
         self.Do_K = float(iu['Do_K'])      # free diffusion constant potassium [m2/s]
         self.Do_Cl = float(iu['Do_Cl'])     # free diffusion constant chloride [m2/s]
         self.Do_Ca = float(iu['Do_Ca'])     # free diffusion constant calcium [m2/s]
-        self.Do_H = float(iu['Do_H'])      # free diffusion constant hydrogen [m2/s]
         self.Do_M = float(iu['Do_M'])     # free diffusion constant mystery anchor ion [m2/s]
         self.Do_P = float(iu['Do_P'])      # free diffusion constant protein [m2/s]
 
@@ -1010,9 +1009,9 @@ class Parameters(YamlFileABC):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 8.0
-            self.cK_cell = 125.0
-            self.cP_cell = 100.0
+            self.cNa_cell = 12.0
+            self.cK_cell = 139.0
+            self.cP_cell = 135.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
 
@@ -1033,7 +1032,7 @@ class Parameters(YamlFileABC):
         elif self.ion_profile is IonProfileType.BASIC_CA:
             self.cNa_env = 145.0
             self.cK_env = 5.0
-            self.cCa_env = 1.0
+            self.cCa_env = 2.0
             self.cP_env = 10.0
 
             zs = [self.z_Na, self.z_K, self.z_Ca, self.z_P]
@@ -1043,10 +1042,10 @@ class Parameters(YamlFileABC):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 8.0
-            self.cK_cell = 125.0
+            self.cNa_cell = 12.0
+            self.cK_cell = 139.0
             self.cCa_cell = 1.0e-4
-            self.cP_cell = 100.0
+            self.cP_cell = 135.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCa_cell, self.cP_cell]
 
@@ -1072,8 +1071,8 @@ class Parameters(YamlFileABC):
             # initialize proton concentrations to "None" placeholders
             self.cNa_env = 145.0
             self.cK_env = 5.0
-            self.cCl_env = 105.0
-            self.cCa_env = 1.0
+            self.cCl_env = 115.0
+            self.cCa_env = 2.0
             self.cP_env = 10.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]
@@ -1083,11 +1082,11 @@ class Parameters(YamlFileABC):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 8.0
-            self.cK_cell = 125.0
-            self.cCl_cell = 20.0
+            self.cNa_cell = 12.0
+            self.cK_cell = 139.0
+            self.cCl_cell = 4.0
             self.cCa_cell = 1.0e-4
-            self.cP_cell = 100.0
+            self.cP_cell = 135.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)

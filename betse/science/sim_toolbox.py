@@ -1256,10 +1256,10 @@ def HH_Decomp(JJx, JJy, cells, bounds = None, sigma = 1.0):
 
     # set boundary conditions for normal component
     # enforce applied voltage condition at the boundary:
-    divJd[:, 0] = Lb * (1 / cells.delta ** 2)
-    divJd[:, -1] = Rb * (1 / cells.delta ** 2)
-    divJd[0, :] = Bb * (1 / cells.delta ** 2)
-    divJd[-1, :] = Tb * (1 / cells.delta ** 2)
+    divJd[:, 0] = -Lb * (1 / cells.delta ** 2)
+    divJd[:, -1] = -Rb * (1 / cells.delta ** 2)
+    divJd[0, :] = -Bb * (1 / cells.delta ** 2)
+    divJd[-1, :] = -Tb * (1 / cells.delta ** 2)
 
 
     BB = np.dot(cells.lapENVinv, divJd.ravel())

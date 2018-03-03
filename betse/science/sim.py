@@ -2027,9 +2027,9 @@ class Simulator(object):
             self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
             # self.vm = (2*rho_surf[cells.mem_to_cells]) / (self.ko_cell*p.eedl * p.eo)
 
-            if p.is_ecm:
-
-                self.vm += -self.v_env[cells.map_mem2ecm]
+            # if p.is_ecm:
+            #
+            #     self.vm += -self.v_env[cells.map_mem2ecm]
 
 
         else:
@@ -2047,9 +2047,9 @@ class Simulator(object):
             # In terms of intracellular charge:
             self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells] + (1 / p.cm) * P_env + (1 / p.cm) * P_cells
 
-            if p.is_ecm:
-
-                self.vm += -self.v_env[cells.map_mem2ecm]
+            # if p.is_ecm:
+            #
+            #     self.vm += -self.v_env[cells.map_mem2ecm]
 
 
             # if p.is_ecm:
@@ -2374,7 +2374,7 @@ class Simulator(object):
                 self.D_env[i] = Denv_o*1.0
 
             # create a matrix that weights the relative transport efficiency in the world space:
-            D_env_weight = self.D_env[self.iP]/self.D_env[self.iP].max()
+            D_env_weight = self.D_env[self.iNa]/self.D_env[self.iNa].max()
             self.D_env_weight = D_env_weight.reshape(cells.X.shape)
             self.D_env_weight_base = np.copy(self.D_env_weight)
 
