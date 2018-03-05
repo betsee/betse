@@ -540,7 +540,6 @@ class Simulator(object):
         if p.is_ecm:  # special items specific to simulation of extracellular spaces only:
 
             # vectors storing separate cell and env voltages
-            # self.phi_env = np.zeros(self.mdl) # voltage at the external membrane (at the outer edl)
             self.v_env = np.zeros(self.edl)   # voltage in the full environment
             self.rho_env = np.zeros(self.edl)  # charge in the full environment
             self.z_array_env = []  # ion valence array matched to env points
@@ -566,9 +565,6 @@ class Simulator(object):
         for name in ion_names:
             # If this ion is enabled...
             if p.ions_dict[name] == 1:
-                # Do H+ separately below as it's complicated by the bicarbonate
-                # buffer.
-                # if name != 'H':
 
                 i = i+1 # update the dynamic index
 
@@ -668,65 +664,6 @@ class Simulator(object):
                     self.z_er.append(p.z_M)
                     self.z_array_er.append(self.zM_er)
 
-        # # Do H+ separately as it's complicated by the bicarbonate buffer.
-        # if p.ions_dict['H'] == 1 and p.ion_profile is not IonProfileType.CUSTOM:
-        #     i = i + 1
-        #     self.iH = i
-        #     self.ionlabel[self.iH] = 'protons'
-        #     # self.movingIons.append(self.iH)
-        #
-        #     # create concentration arrays of dissolved carbon dioxide (carbonic acid, non-dissociated):
-        #     self.cHM_cells = np.zeros(self.cdl)
-        #     self.cHM_cells[:] = 0.03 * p.CO2
-        #
-        #     self.cHM_env = np.zeros(self.edl)
-        #     self.cHM_env[:] = 0.03 * p.CO2
-        #
-        #     self.cH_cells, self.pH_cell = stb.bicarbonate_buffer(self.cHM_cells, self.cc_cells[self.iM])
-        #     self.cH_env, self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
-        #
-        #     # initialize diffusion constants
-        #     DmH = np.zeros(self.mdl)
-        #     DmH[:] = p.tissue_default.Dm_H
-        #
-        #     self.zH = np.zeros(self.cdl)
-        #     self.zH[:] = p.z_H
-        #
-        #     # gap junction diffusion constant for H+
-        #     DgjH = np.zeros(len(cells.nn_i))
-        #     DgjH[:] = p.free_diff['H']
-        #
-        #     if p.is_ecm:
-        #         self.zH2 = np.zeros(len(cells.xypts))
-        #         self.zH2[:] = p.z_H
-        #
-        #         # environmental diffusion for H+
-        #         DenvH = np.zeros(len(cells.xypts))
-        #         DenvH[:] = p.free_diff['H']
-        #
-        #         # add fixed boundary concentration of H+
-        #         p.env_concs['H'] = self.cH_env.mean()
-        #         self.c_env_bound.append(p.env_concs['H'])
-        #
-        #     # append items to main data vectors:
-        #     self.cc_cells.append(self.cH_cells)
-        #     self.cc_env.append(self.cH_env)
-        #
-        #     self.zs.append(p.z_H)
-        #     self.molar_mass.append(p.M_H)
-        #     self.z_array.append(self.zH)
-        #
-        #     self.Dm_cells.append(DmH)
-        #     self.D_gj.append(DgjH)
-        #     self.D_free.append(p.Do_H)
-        #
-        #     self.fluxes_mem.append(self.flx_mem_i)
-        #
-        #     if p.is_ecm is True:
-        #         self.z_array_env.append(self.zH2)
-        #         self.D_env.append(DenvH)
-        #         self.Dtj_rel.append(p.Dtj_rel['H'])
-
         # -------------------------------------------------------------------------------------------------------
 
         # convert all data structures to Numpy arrays:
@@ -751,6 +688,21 @@ class Simulator(object):
             self.bound_V['B'] = 0
             self.bound_V['L'] = 0
             self.bound_V['R'] = 0
+
+            # redo environmental protein handling so that it's only present in the cell cluster:
+            # self.c_env_bound[self.iM] += 1*self.c_env_bound[self.iP]
+            # self.c_env_bound[self.iP] = 0.0
+            #
+            # new_P = np.zeros(self.edl)
+            # new_P[cells.map_mem2ecm] = self.cc_env[self.iP][cells.map_mem2ecm]
+            # new_P = fd.integrator(new_P.reshape(cells.X.shape), 0.5).ravel()
+            #
+            # change_M = np.ones(self.edl)*self.cc_env[self.iP]
+            # change_M[cells.map_mem2ecm] = 0.0
+            # change_M = fd.integrator(change_M.reshape(cells.X.shape), 0.5).ravel()
+            #
+            # self.cc_env[self.iP] = new_P
+            # self.cc_env[self.iM] += change_M
 
             # initialize the environmental diffusion matrix:
             self.initDenv(cells, p)
@@ -815,9 +767,6 @@ class Simulator(object):
 
                 if p.cbnd is not None:
                     self.c_env_bound[ion_i] = p.cbnd[key]
-                # # Else if this is the H+ ion *NOT* under a custom profile...
-                # elif p.ion_profile is not IonProfileType.CUSTOM:
-                #     self.c_env_bound[self.iH] = p.env_concs['H']
 
         #FIXME: Consider removing this duplicate tissue handler. All "SimPhase"
         #objects now provide the exact same "dyna" object. Ergo:
@@ -841,16 +790,6 @@ class Simulator(object):
 
             self.fluxes_env_x = np.zeros((len(self.zs), self.edl))
             self.fluxes_env_y = np.zeros((len(self.zs), self.edl))
-
-            # self.conc_J_x = np.zeros(self.edl)
-            # self.conc_J_y = np.zeros(self.edl)
-
-            # self.extra_conc_J_x = np.zeros(self.edl)
-            # self.extra_conc_J_y = np.zeros(self.edl)
-
-            # self.Phi_vect = np.zeros((len(self.zs), self.edl))
-
-            # self.J_TJ = np.zeros(self.mdl)  # tight junction current density
 
         # # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
         Dm_cellsA = np.asarray(self.Dm_cells)
@@ -2029,18 +1968,14 @@ class Simulator(object):
             # Jm = np.dot(cells.M_sum_mems, self.Jn*cells.mem_sa)/cells.cell_sa
             # self.vm += -(1/p.cm)*Jm[cells.mem_to_cells]*p.dt
 
-            # without averaging J:
-            # self.vm += -(1/p.cm)*self.Jn*p.dt
-
             # In terms of intra and extracellular charge:
             rho_surf = self.rho_cells * cells.diviterm
 
             self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
-            # self.vm = (2*rho_surf[cells.mem_to_cells]) / (self.ko_cell*p.eedl * p.eo)
 
-            # if p.is_ecm:
-            #
-            #     self.vm += -self.v_env[cells.map_mem2ecm]
+            if p.is_ecm:
+
+                self.vm += -self.v_env[cells.map_mem2ecm]
 
 
         else:
@@ -2058,49 +1993,10 @@ class Simulator(object):
             # In terms of intracellular charge:
             self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells] + (1 / p.cm) * P_env + (1 / p.cm) * P_cells
 
-            # if p.is_ecm:
-            #
-            #     self.vm += -self.v_env[cells.map_mem2ecm]
+            if p.is_ecm:
 
+                self.vm += -self.v_env[cells.map_mem2ecm]
 
-            # if p.is_ecm:
-            #
-            #     # Electrical polarization charge component created by extracellular electric field:
-            #     P_env = p.cell_polarizability*p.eo*self.Eme
-            #
-            #     # Electrical polarization charge component created by intracellular electric field:
-            #     P_cells = p.cell_polarizability*p.eo*self.Emc
-            #
-            #     # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
-            #     # convert volume charge density to surface charge density:
-            #     rho_surf = self.rho_cells*cells.diviterm
-            #
-            #     # In terms of intra and extracellular charge:
-            #     self.v_cell = (1 /(2*p.cm)) * rho_surf[cells.mem_to_cells]
-            #     self.vm = self.v_cell - self.v_env[cells.map_mem2ecm] + (1/p.cm)*P_env + (1/p.cm)*P_cells
-            #
-            # else:
-            #     # Electrical polarization charge component created by extracellular electric field:
-            #     P_env = p.cell_polarizability * p.eo * self.Eme
-            #
-            #     # Electrical polarization charge component created by intracellular electric field:
-            #     P_cells = p.cell_polarizability * p.eo * self.Emc
-            #
-            #     # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
-            #     # convert volume charge density to surface charge density:
-            #     rho_surf = self.rho_cells * cells.diviterm
-            #
-            #     # In terms of intracellular charge:
-            #     self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
-
-            # if p.is_ecm:
-            #
-            #     self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] + (1/p.cm)*P_env + (1/p.cm)*P_cells
-            #     # self.vm += -(1/p.cm)*self.Jn*p.dt + (1/p.cm)*P_env + (1/p.cm)*P_cells
-            #
-            # else:
-            #
-            #     self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells] +  (1 / p.cm) * P_cells
 
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
@@ -2175,14 +2071,6 @@ class Simulator(object):
 
             # store the transmembrane flux for this ion
             self.fluxes_mem[self.iCa] += self.rho_pump*(f_CaATP)
-
-
-            # update calcium concentrations in cell and ecm:
-            #
-            # self.cc_cells[self.iCa], self.cc_at_mem[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self,
-            #                                                     self.cc_cells[self.iCa], self.cc_at_mem[self.iCa],
-            #                                                     self.cc_env[self.iCa], f_CaATP,
-            #                                                     cells, p, ignoreECM = True)
 
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling

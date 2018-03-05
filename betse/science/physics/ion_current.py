@@ -72,55 +72,39 @@ def get_current(sim, cells, p):
         sim.Jtx = sim.J_env_x + Ja
         sim.Jty = sim.J_env_y + Jb
 
-        # sim.Jtx = J_env_x_o
-        # sim.Jty = J_env_y_o
 
         # calculate the net charge in the environment:
         sim.rho_env = np.dot(sim.zs * p.F, sim.cc_env) + sim.extra_rho_env
-        # sim.rho_env = gaussian_filter(sim.rho_env.reshape(cells.X.shape), 1, mode='constant', cval=0.0).ravel()
-        # sim.rho_env = fd.integrator(sim.rho_env.reshape(cells.X.shape), sharp = 0.5).ravel() # FIXME! Make this optional
 
         # Method 7-------------------------------------------------------------------------------------------------
         # Calculate voltage from charge in environment; this electric field is divergence-free assuming Laplace Eqn holds
         # This is the voltage measured with electrodes:
-        v_env = np.zeros(sim.edl)
 
-        # rho_env = (sim.rho_env[cells.map_mem2ecm] * cells.delta ** 2 * p.cell_height) / (
-        #             cells.memSa_per_envSquare[cells.map_mem2ecm].mean())
-
-        # v_env[cells.map_mem2ecm] = rho_env*(1/p.cm)
-
-        v_env[cells.map_mem2ecm] = -sim.vm/2
-
-        # v_env[cells.map_mem2ecm] = (sim.rho_env[cells.map_mem2ecm]*cells.delta**2*p.cell_height)/(
-        #                             sim.ko_env*p.eedl*p.eo*cells.memSa_per_envSquare[cells.map_mem2ecm].mean())
-
-        v_env = v_env.reshape(cells.X.shape)
-
-        # v_env = fd.integrator(v_env, 0.5)  # FIXME! Make this optional -- both in terms of smoothing type and level
-        v_env = gaussian_filter(v_env, 1, mode = 'constant', cval = 0.0)
+        # Boundary value problem:
+        div_Jb = np.zeros(cells.X.shape)
 
         # add in extra boundary conditions for the case of an externally-applied voltage event:
-        fenv = np.zeros(cells.X.shape)
-        fenv[:, -1] = sim.bound_V['R']/cells.delta**2
-        fenv[:, 0] = sim.bound_V['L']/cells.delta**2
-        fenv[-1, :] = sim.bound_V['T']/cells.delta**2
-        fenv[0, :] = sim.bound_V['B']/cells.delta**2
+        div_Jb[:, -1] = -sim.bound_V['R'] / cells.delta ** 2
+        div_Jb[:, 0] = -sim.bound_V['L'] / cells.delta ** 2
+        div_Jb[-1, :] = -sim.bound_V['T'] / cells.delta ** 2
+        div_Jb[0, :] = -sim.bound_V['B'] / cells.delta ** 2
 
-        Phi_bound = np.dot(cells.lapENVinv, fenv.ravel()).reshape(cells.X.shape)
+        Phi_b = np.dot(cells.lapENVinv, -div_Jb.ravel())
 
-        sim.v_env = v_env.ravel()
+        # Voltage in the environment is related to extra surface surface charge:
+        sim.rho_env_surf = np.zeros(sim.edl)
+        sim.rho_env_surf[cells.map_mem2ecm] = sim.rho_env[cells.map_mem2ecm]*(p.cell_height*cells.delta**2)/(
+            cells.memSa_per_envSquare[cells.map_mem2ecm].mean())
 
-        # screening constant (this integrates the surface potential to the whole env square using Poisson-Boltzmann):
-        screen = (1 / (sim.ko_env * cells.delta))*(
-            (cells.delta*p.cell_height)/cells.memSa_per_envSquare[cells.map_mem2ecm].mean())
+        sim.v_env = (sim.rho_env_surf / (sim.ko_env*p.eo*p.er))
+        # sim.v_env = (sim.rho_env_surf / (p.cm))
+        # sim.v_env = (sim.rho_env / (sim.ko_env**2 * p.eo * p.er))
 
-        # gradient of the polarization voltage yields the electric field:
-        gVex, gVey = fd.gradient(screen*sim.v_env.reshape(cells.X.shape) + Phi_bound, cells.delta)
+        screen = 2/(sim.ko_env*cells.delta)
 
-        # use Hodgkin-Huxley decomposition and recomposition to "smooth" the electric field:
-        # gVex, gVey = stb.smooth_flux(gVex.reshape(cells.X.shape), gVey.reshape(cells.X.shape), cells) # FIXME! Make this optional
-        # _, sim.E_env_x, sim.E_env_y, _, _, _ = stb.HH_Decomp(-gVex, -gVey, cells, bounds=sim.bound_V)
+        sim.v_env = gaussian_filter(sim.v_env.reshape(cells.X.shape), 1, mode='constant', cval=0.0).ravel() + Phi_b
+
+        gVex, gVey = fd.gradient(screen*sim.v_env.reshape(cells.X.shape), cells.delta)
 
         sim.E_env_x = -gVex
         sim.E_env_y = -gVey

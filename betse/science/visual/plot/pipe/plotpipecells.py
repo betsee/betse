@@ -147,8 +147,8 @@ class PlotCellsPipe(PlotPipeABC):
         self._export_prep()
 
         figI2, axI2, cbI2 = plotutil.plotStreamField(
-            100*self._phase.sim.Jtx,
-            100*self._phase.sim.Jty,
+            100*self._phase.sim.J_env_x,
+            100*self._phase.sim.J_env_y,
             self._phase.cells,
             self._phase.p,
             plot_ecm=True,
