@@ -926,7 +926,8 @@ def invert_iterable_unique(iterable: IterableTypes) -> MappingType:
 def iter_items(*iterables: IterableTypes) -> GeneratorType:
     '''
     Generator yielding each item of each of the passed iterables (in both the
-    internal order of each iterable and the passed order of iterables).
+    internal order of each iterable and the passed order of iterables),
+    effectively "chaining" these iterables together.
 
     This function is preferable for pure iteration over multiple iterables, in
     which case a composite iterable of the same type is *not* required.

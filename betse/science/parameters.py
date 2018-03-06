@@ -847,7 +847,6 @@ class Parameters(YamlFileABC):
 
         #FIXME: Remove all of the following after globally removing "plot seed".
         # Plot seed options.
-        self.plot_cell_connectivity = ro.get('plot cell connectivity diagram', True)
         self.plot_cluster_mask = ro.get('plot cluster mask', True)
 
         #--------------------------------------------------------------------------------------------------------------

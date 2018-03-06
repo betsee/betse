@@ -342,8 +342,8 @@ class AnimCellsPipe(SimPipeExportABC):
 
     # ..................{ EXPORTERS ~ junction               }..................
     # This exporter is solver- and feature-agnostic.
-    @piperunner(categories=('Gap Junction', 'Connectivity State',))
-    def export_junction_state(self, conf: SimConfVisualCellsListItem) -> None:
+    @piperunner(categories=('Gap Junction', 'Relative Permeability',))
+    def export_gj_permeability(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Animate all **gap junction connectivity states** (i.e., relative
         permeabilities of the gap junctions connecting all cell membranes) for

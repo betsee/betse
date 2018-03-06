@@ -187,19 +187,13 @@ world options:
 # profiles apply to the same cell, options defined by later profiles override options
 # defined by earlier profiles.
 #
-# A profile's functionality is defined by the value of its "type" key:
-#
-# -> "type: tissue" associates profiled cells with the same parameters and events.
-# -> "type: cut" permanently removes all cells at the begining of a sim run.
-#    Cut profiles are ignored unless the cutting event defined below is also enabled.
-#
-# No File synch issues: Tissue profiles can be altered after the time of the 'betse seed' command.
-#
-# Image masks must have pure-black pixels (red, green, and blue color values all
-# 0) defining the exterior shape of the entire cell cluster or tissue profile.
-# Image masks *MUST*:
+# Image masks defining tissue and cut profiles *MUST*:
 # * Be square (i.e., have equal width and height).
 # * Contain no alpha transparency layer.
+# * Contain pure-black pixels (i.e., pixels whose RGB color components are all 0) defining
+#   the interior shape of that profile. All other pixels are ignored.
+#
+# No File synch issues: Tissue profiles can be altered after the time of the 'betse seed' command.
 
 tissue profile definition:
 
@@ -248,7 +242,7 @@ tissue profile definition:
 
   cut profiles: # List of all cut profiles (i.e., cell cluster regions to be permanently
                 # removed by a cutting event triggered during the simulation phase).
-                # Ignored if "profiles enabled" is False.
+                # Ignored if "profiles enabled" is False or cutting event is disabled.
     # Example cut profile removing a depolarized wedge of cells from a cell cluster boundary.
     - name: surgery # Arbitrary unique profile name.
       image: geo/circle/wedge.png # Absolute or relative filename of the image whose pure-black
@@ -870,12 +864,15 @@ results options:
                                # "save" are False.
         # Example final cell cluster transmembrane voltage (Vmem) plot.
         - type: voltage_membrane   # Plot type, as any following string:
+          # * "cluster_mask" for the all-cells image mask defining the cell cluster shape.
           # * "currents_intra" for final all-cells intracellular current density.
           #   Ignored if full solver disabled.
           # * "currents_extra" for final all-cells extracellular current density.
           #   Ignored if full solver disabled.
           # * "deform_total" for final all-cells total cellular deformation = osmotic +
           #   galvanotropic. Ignored if either full solver or deformation disabled.
+          # * "diffusion_extra" for final all-cells extracellular diffusion weights
+          #   (logarithm-scaled). Ignored if extracellular spaces disabled.
           # * "electric_intra" for final all-cells intracellular electric field.
           #   Ignored if full solver disabled.
           # * "electric_extra" for final all-cells extracellular electric field.
@@ -884,13 +881,14 @@ results options:
           #   Ignored if either full solver or fluid flow disabled.
           # * "fluid_extra" for final all-cells extracellular fluid flow.
           #   Ignored if either full solver, fluid flow, or extracellular spaces disabled.
+          # * "gj_connectivity" for the all-cells gap junction connectivity network.
+          # * "gj_permeability" for final all-cells gap junction relative permeabilities.
           # * "ion_calcium_intra" for final all-cells intracellular calcium ion (Ca2+)
           #   concentration. Ignored if either full solver disabled or calcium ions disabled
           #   by ion profile.
           # * "ion_calcium_extra" for final all-cells extracellular calcium ion (Ca2+)
           #   concentration. Ignored if either full solver or extracellular spaces disabled or
           #   calcium ions disabled by ion profile.
-          # * "junction_state" for final all-cells gap junction connectivity state.
           # * "microtubule" for final all-cells microtubule orientation.
           #   Ignored if full solver disabled.
           # * "pressure_total" for final all-cells total pressure = osmotic + mechanical.
@@ -898,7 +896,7 @@ results options:
           #   disabled.
           # * "pump_nakatpase" for final all-cells cell membrane Na-K-ATPase pump rate.
           #   Ignored if full solver disabled.
-          # * "tissue" for initial all-cells tissue profile tessellation.
+          # * "tissue_cuts" for all-cells tissue and cut profiles.
           # * "voltage_membrane" for final all-cells transmembrane voltage (Vmem).
           # * "voltage_membrane_average" for final all-cells transmembrane
           #   voltage (Vmem) average.
@@ -946,9 +944,9 @@ results options:
           #   Ignored if either full solver or fluid flow disabled.
           # * "fluid_extra" for extracellular fluid flow.
           #   Ignored if either full solver, fluid flow, or extracellular spaces disabled.
+          # * "gj_permeability" for gap junction connectivity state.
           # * "ion_calcium_intra" for intracellular calcium ion (Ca2+) concentration.
           #   Ignored if either full solver disabled or calcium ions disabled by ion profile.
-          # * "junction_state" for gap junction connectivity state.
           # * "microtubule" for microtubule orientation.
           #   Ignored if full solver disabled.
           # * "pressure_osmotic" for cellular osmotic pressure.
@@ -1023,8 +1021,6 @@ results options:
         #codecs: ['libvpx', 'libtheora', 'libx264', 'libxvid', 'mpeg4', 'h263', 'mpeg2video', 'hevc', 'auto']  # example listing all preferred codecs before defaulting to "auto"
 
   # World-related plotting options------------------------------------------------------------------------------------
-
-  plot cell connectivity diagram: True  # 'plot seed' creates a plot showing gap junction connections
 
   plot cluster mask: True  # 'plot seed' creates a plot showing the logarithm of environmental diffusion
 

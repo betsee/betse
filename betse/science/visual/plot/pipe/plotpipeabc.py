@@ -98,40 +98,6 @@ class PlotPipeABC(SimPipeExportABC):
     def is_enabled(self) -> bool:
         return self._phase.p.plot.is_after_sim
 
-    # ..................{ PRIVATE ~ properties               }..................
-    #FIXME: Fairly confident we calculate this elsewhere as well. Centralize all
-    #such locations to a central property in the "Cells" class.
-    #FIXME: Ah hah! We've found the following instances of code duplicating this
-    #property's logic:
-    #
-    #* The LayerCellsFieldSurface._layer_first_color_mappables() method
-    #  calculates the exact same tuple into a local variable "cells_extent".
-    #* The VisualCellsABC._init_figure_axes() method calculates the exact same
-    #  tuple into an instance variable "_axes_bounds".
-    #
-    #Contemplate a more general home for this. Since this property pertains
-    #*ONLY* to visualizations, it fails to generalize to the "Cells" class
-    #itself. We have no idea what other class might be an appropriate home.
-
-    @property_cached
-    def _cells_extent(self) -> tuple:
-        '''
-        Boundary coordinates for the current cell cluster environment as the
-        4-tuple ``(xmin, xmax, ymin, ymax)`` where:
-
-        * ``xmin`` is the leftmost X coordinate defining this environment.
-        * ``xmax`` is the rightmost X coordinate defining this environment.
-        * ``ymin`` is the bottommost Y coordinate defining this environment.
-        * ``ymax`` is the topmost Y coordinate defining this environment.
-        '''
-
-        return (
-            self._phase.p.um*self._phase.cells.xmin,
-            self._phase.p.um*self._phase.cells.xmax,
-            self._phase.p.um*self._phase.cells.ymin,
-            self._phase.p.um*self._phase.cells.ymax,
-        )
-
     # ..................{ PRIVATE ~ preparers                }..................
     def _export_prep(self) -> None:
         '''

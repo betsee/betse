@@ -512,94 +512,9 @@ class SimRunner(object):
         sim.baseInit_all(cells,p)
         phase.dyna.tissueProfiles(sim, cells, p)
 
-        #FIXME: Shift everything below into a new seed-specific pipeline -- say,
-        #betse.science.export.exppipe.pipeline_seed().
-        if p.autosave:
-            savedImg = pathnames.join(p.init_export_dirname, 'fig_')
-
-        if p.is_ecm and p.plot_cluster_mask:
-            plt.figure()
-            ax99 = plt.subplot(111)
-            plt.imshow(
-                np.log10(sim.D_env_weight.reshape(cells.X.shape)),
-                origin='lower',
-                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
-                cmap=p.background_cm,
-            )
-            plt.colorbar()
-
-            cell_edges_flat = p.um*cells.mem_edges_flat
-            coll = LineCollection(cell_edges_flat,colors='k')
-            coll.set_alpha(1.0)
-            ax99.add_collection(coll)
-
-            plt.title('Logarithm of Environmental Diffusion Weight Matrix')
-
-            if p.autosave:
-                savename10 = savedImg + 'env_diffusion_weights' + '.png'
-                plt.savefig(savename10,format='png',transparent=True)
-
-            if p.plot.is_after_sim_show:
-                plt.show(block = False)
-
-            plt.figure()
-            plt.imshow(
-                cells.maskM,
-                origin='lower',
-                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
-                cmap=p.background_cm,
-            )
-            plt.colorbar()
-            plt.title('Cluster Masking Matrix')
-
-            if p.autosave:
-                savename = savedImg + 'cluster_mask' + '.png'
-                plt.savefig(savename,format='png',transparent=True)
-
-            if p.plot.is_after_sim_show:
-                plt.show(block = False)
-
-        # Plot gap junctions.
-        if p.plot_cell_connectivity:
-            plt.figure()
-            ax_x = plt.subplot(111)
-
-            if p.showCells:
-                base_points = np.multiply(cells.cell_verts, p.um)
-                col_cells = PolyCollection(base_points, facecolors='k', edgecolors='none')
-                col_cells.set_alpha(0.3)
-                ax_x.add_collection(col_cells)
-
-            con_segs = cells.nn_edges
-            connects = p.um*np.asarray(con_segs)
-            collection = LineCollection(connects,linewidths=1.0,color='b')
-            ax_x.add_collection(collection)
-            plt.axis('equal')
-            plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
-
-            ax_x.set_xlabel('Spatial x [um]')
-            ax_x.set_ylabel('Spatial y [um')
-            ax_x.set_title('Cell Connectivity Network')
-
-            if p.autosave is True:
-                savename10 = savedImg + 'gj_connectivity_network' + '.png'
-                plt.savefig(savename10,format='png',transparent=True)
-
-            if p.turn_all_plots_off is False:
-                plt.show(block=False)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
-            plt.show()
-
-        else:
-            logs.log_info(
-                'Plots exported to init results folder '
-                'defined in configuration file "%s".',
-                self._config_basename)
-
         # Return this phase.
         return phase
+
 
     def plot_init(self) -> SimPhase:
         '''

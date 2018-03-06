@@ -149,35 +149,6 @@ class SimConfVisualCellsListItem(
             },
         })
 
-    # ..................{ LOADERS                            }..................
-    def load(self, *args, **kwargs) -> YamlListItemABC:
-
-        # Load our superclass with all passed parameters.
-        super().load(*args, **kwargs)
-
-        # Upgrade this configuration to each successive format. For safety, each
-        # upgrade is performed in strict chronological order.
-        self._upgrade_sim_conf_to_0_5_0()
-
-        # Return this configuration for convenience.
-        return self
-
-
-    def _upgrade_sim_conf_to_0_5_0(self) -> None:
-        '''
-        Upgrade the in-memory contents of the simulation subconfiguration
-        associated with this list item to reflect the newest structure of these
-        contents expected by version 0.5.0 of this application.
-        '''
-
-        # Add the "enabled" boolean.
-        if 'enabled' not in self._conf:
-            self._conf['enabled'] = True
-
-        # For disambiguity, rename "polarization" to "voltage_polarity".
-        if self.name == 'polarization':
-            self.name = 'voltage_polarity'
-
 
 class SimConfVisualCellListItem(YamlListItemTypedABC):
     '''

@@ -11,6 +11,7 @@ simulation configurations.
 # ....................{ IMPORTS                            }....................
 from betse.science.parameters import Parameters
 from betse.util.io.log import logs
+from betse.util.type import iterables
 from betse.util.type.types import type_check, MappingType
 
 # ....................{ UPGRADERS                          }....................
@@ -236,6 +237,24 @@ def _upgrade_sim_conf_to_0_5_0(p: Parameters) -> None:
         # Default the value for this dictionary key to the empty list.
         results_dict['plot networks single cell'] = results_dict[
             'plot single cell graphs']
+
+    # For each pipelined animation and cell cluster plot...
+    for anim_conf in iterables.iter_items(
+        results_dict['after solving']['animations']['pipeline'],
+        results_dict['after solving']['plots']['cell cluster pipeline'],
+    ):
+        # Add the "enabled" boolean.
+        if 'enabled' not in anim_conf:
+            anim_conf['enabled'] = True
+
+        # For disambiguity, rename:
+        #
+        # * "polarization" to "voltage_polarity".
+        # * "junction_state" to "gj_permeability".
+        if anim_conf['type'] == 'polarization':
+            anim_conf['type'] = 'voltage_polarity'
+        elif anim_conf['type'] == 'junction_state':
+            anim_conf['type'] = 'gj_permeability'
 
 # ....................{ UPGRADERS ~ 0.5.2                  }....................
 @type_check

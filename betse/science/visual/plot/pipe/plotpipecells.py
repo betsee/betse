@@ -11,13 +11,17 @@ simulated data of all cells in the cell cluster).
 import numpy as np
 from betse.science.config.export.visual.confvisabc import (
     SimConfVisualCellsListItem)
+from betse.science.export import expmath
 from betse.science.phase.pipe.piperun import piperunner
 from betse.science.phase.require import phasereqs
 from betse.science.visual.plot import plotutil
 from betse.science.visual.plot.pipe.plotpipeabc import PlotPipeABC
+from betse.util.io.log import logs
+from betse.util.type import iterables
 from betse.util.type.types import IterableTypes
+from collections import OrderedDict
 from matplotlib import pyplot as pyplot
-from matplotlib.collections import LineCollection
+from matplotlib.collections import LineCollection, PolyCollection
 # from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ SUBCLASSES                         }....................
@@ -40,35 +44,6 @@ class PlotCellsPipe(PlotPipeABC):
     @property
     def _runners_conf(self) -> IterableTypes:
         return self._phase.p.plot.plots_cells_after_sim
-
-    # ..................{ EXPORTERS                          }..................
-    @piperunner(
-        categories=('Cell Cluster', 'Tissue Profiles',),
-        requirements=phasereqs.ELECTRIC_CURRENT,
-    )
-    def export_tissue(self, conf: SimConfVisualCellsListItem) -> None:
-        '''
-        Plot a **tissue tessellation** (i.e., tiled mosaic of all cells
-        subdivided into tissue regions such that all cells in the same tissue
-        share the same arbitrary color) for the cell cluster.
-
-        This plot is irrespective of time step.
-        '''
-
-        # Prepare to export the current plot.
-        self._export_prep()
-
-        #FIXME: Shift the entirety of the clusterPlot() function into this
-        #method. This function is *ONLY* called once in the codebase: here.
-        fig_tiss, ax_tiss, cb_tiss = plotutil.clusterPlot(
-            self._phase.p,
-            self._phase.dyna,
-            self._phase.cells,
-            clrmap=self._phase.p.background_cm,
-        )
-
-        # Export this plot to disk and/or display.
-        self._export(basename='cluster_mosaic')
 
     # ..................{ EXPORTERS ~ channel                }..................
     # @piperunner(
@@ -96,6 +71,186 @@ class PlotCellsPipe(PlotPipeABC):
     #
     #     # Export this plot to disk and/or display.
     #     self._export(basename='final_channels_2D')
+
+    # ..................{ EXPORTERS ~ cluster                }..................
+    # This exporter is solver- and feature-agnostic.
+
+    @piperunner(categories=('Cell Cluster', 'Mask',))
+    def export_cluster_mask(self, conf: SimConfVisualCellsListItem) -> None:
+        '''
+        Plot the **cell cluster image mask** (i.e., user-defined image whose
+        pure-black pixels exactly correspond to the shape of the cell cluster).
+
+        This plot is irrespective of time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        fig = pyplot.figure()
+        pyplot.imshow(
+            self._phase.cells.maskM,
+            origin='lower',
+            extent=self._phase.cache.upscaled.extent,
+            cmap=self._phase.p.background_cm,
+        )
+        pyplot.colorbar()
+        pyplot.title('Cluster Masking Matrix')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='cluster_mask')
+
+    # ..................{ EXPORTERS ~ cluster : tissue       }..................
+    # This exporter is solver- and feature-agnostic.
+    @piperunner(categories=('Cell Cluster', 'Tissue and Cut Profiles',))
+    def export_tissue_cuts(self, conf: SimConfVisualCellsListItem) -> None:
+        '''
+        Plot a **tissue and cut profile tessellation** (i.e., tiled mosaic of
+        all cells spatially subdivided into tissue and cut profile regions such
+        that all cells in the same region share the same arbitrary color) for
+        the cell cluster.
+
+        This plot is irrespective of time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        # Localize frequently accessed fields for convenience.
+        p = self._phase.p
+        dyna = self._phase.dyna
+        cells = self._phase.cells
+        colormap = self._phase.p.background_cm
+
+        col_dic = {}
+        cb_ticks = []
+        cb_tick_labels = []
+
+        # Ordered dictionary mapping from the name of each tissue and cut
+        # profile to a one-dimensional Numpy array of the 0-based indices of all
+        # cells owned by this profile.
+        #
+        # Note that order is absolutely significant. The first tissue profile is
+        # a pseudo-tissue defining the cell cluster itself. If order were *NOT*
+        # preserved here, this tissue would be assigned an arbitrary z-order, in
+        # which case all tissues assigned smaller z-orders would be entirely
+        # obscured by that pseudo-tissue covering the cell cluster.
+        profile_name_to_cells_index = OrderedDict()
+
+        fig = pyplot.figure()
+        ax = pyplot.subplot(111)
+
+        # For the name and object encapsulating each tissue profile...
+        for tissue_name, _ in dyna.tissue_name_to_profile.items():
+            # One-dimensional Numpy array of the indices of all tissue cells.
+            tissue_cells_index = dyna.cell_target_inds[tissue_name]
+
+            # If this tissue contains no cells, skip to the next tissue.
+            if not len(tissue_cells_index):
+                logs.log_warning('Tissue "%s" contains no cells.', tissue_name)
+                continue
+
+            # Else, tissue contains one or more cells. Map this tissue to these
+            # indices (for subsequent lookup).
+            profile_name_to_cells_index[tissue_name] = tissue_cells_index
+
+        #FIXME: The "p.plot_cutlines" boolean is only ever leveraged here and
+        #thus is arguably extraneous. Consider refactoring as follows:
+        #
+        #* Remove the "p.plot_cutlines" boolean and corresponding YAML-formetted
+        #  default configuration option.
+        #* Split the existing "tissue_cuts" plot type in the "cell cluster
+        #  pipeline" into the following two types:
+        #  * "tissue", unconditionally plotting *ONLY* tissue profiles.
+        #  * "tissue_cuts", unconditionally plotting both tissue and cut
+        #    profiles.
+        #* Define a new private _export_profiles() method as follows:
+        #      @type_check
+        #      _export_profiles(
+        #          self,
+        #          conf: SimConfVisualCellsListItem,
+        #          is_tissue: bool,
+        #          is_cuts: bool
+        #       ) -> None:
+        #* Implement export_tissue() to call _export_profiles() as:
+        #    self._export_profiles(
+        #        self,
+        #        conf=conf,
+        #        is_tissue=True,
+        #        is_cuts=False,
+        #    )
+        #* Implement export_tissue_cuts() similarly.
+
+        # If plotting cut profiles as well *AND* the cutting event is enabled...
+        if p.plot_cutlines and dyna.event_cut is not None:
+            # For the name and object encapsulating each cut profile...
+            for cut_name, cut_profile in dyna.cut_name_to_profile.items():
+                # Map this cut to the indices of all cells cut by this profile.
+                profile_name_to_cells_index[cut_name] = (
+                    cut_profile.picker.pick_cells(cells=cells, p=p))
+
+        # Minimum and maximum 0-based integers uniquely identifying the first
+        # and last tissue and cut profile (respoctively), localized for ordering
+        # purposes in the colorbar legend.
+        profile_zorder = 0
+        profile_zorder_max = len(profile_name_to_cells_index)
+
+        # For the name and one-dimensional Numpy array of the 0-based indices of
+        # all cells in each tissue and/or cut profile...
+        for profile_name, profile_cells_index in (
+            profile_name_to_cells_index.items()):
+            # logs.log_debug('Plotting tissue "%s"...', profile_name)
+            profile_zorder += 1
+
+            profile_points = expmath.upscale_coordinates(
+                cells.cell_verts[profile_cells_index])
+
+            z = np.zeros(len(profile_points))
+            z[:] = profile_zorder
+
+            col_dic[profile_name] = PolyCollection(
+                profile_points, array=z, cmap=colormap, edgecolors='none')
+            col_dic[profile_name].set_clim(0, profile_zorder_max)
+
+            # col_dic[profile_name].set_alpha(0.8)
+            col_dic[profile_name].set_zorder(profile_zorder)
+            ax.add_collection(col_dic[profile_name])
+
+            # Add this profile name to the colour legend.
+            cb_ticks.append(profile_zorder)
+            cb_tick_labels.append(profile_name)
+
+        # logs.log_debug('Plotting colorbar ticks: %r', cb_ticks)
+        # logs.log_debug('Plotting colorbar tick labels: %r', cb_tick_labels)
+
+        ax_cb = None
+        if dyna.tissue_name_to_profile:
+            # Name of the first tissue profile.
+            tissue_first_name = iterables.get_item_first(
+                dyna.tissue_name_to_profile.keys())
+
+            # Color mappable associated with this tissue profile, guaranteed in
+            # this case to be a "PolyCollection" instance.
+            tissue_first_mappable = col_dic[tissue_first_name]
+
+            ax_cb = fig.colorbar(tissue_first_mappable, ax=ax, ticks=cb_ticks)
+            ax_cb.ax.set_yticklabels(cb_tick_labels)
+
+        if p.enumerate_cells:
+            for i, cll in enumerate(cells.cell_centres):
+                ax.text(
+                    p.um*cll[0], p.um*cll[1], i,
+                    ha='center', va='center', zorder=20)
+
+        ax.set_xlabel('Spatial Distance [um]')
+        ax.set_ylabel('Spatial Distance [um]')
+        ax.set_title('Cell Cluster')
+
+        ax.axis('equal')
+        ax.axis(self._phase.cache.upscaled.extent)
+
+        # Export this plot to disk and/or display.
+        self._export(basename='cluster_mosaic')
 
     # ..................{ EXPORTERS ~ current                }..................
     @piperunner(
@@ -139,8 +294,8 @@ class PlotCellsPipe(PlotPipeABC):
     )
     def export_currents_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Plot all extracellular current densities for the cell cluster
-        environment at the last time step.
+        Plot all extracellular current densities for the environment at the last
+        time step.
         '''
 
         # Prepare to export the current plot.
@@ -198,6 +353,42 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_displacement_2D')
 
+    # ..................{ EXPORTERS ~ diffusion              }..................
+    @piperunner(
+        categories=('Diffusion Weights', 'Extracellular',),
+        requirements=phasereqs.ECM,
+    )
+    def export_diffusion_extra(self, conf: SimConfVisualCellsListItem) -> None:
+        '''
+        Plot all logarithm-scaled extracellular diffusion weights for the
+        environment at the last time step.
+        '''
+
+        # Prepare to export the electric plot.
+        self._export_prep()
+
+        fig = pyplot.figure()
+        ax99 = pyplot.subplot(111)
+        pyplot.imshow(
+            np.log10(self._phase.sim.D_env_weight.reshape(
+                self._phase.cells.X.shape)),
+            origin='lower',
+            extent=self._phase.cache.upscaled.extent,
+            cmap=self._phase.p.background_cm,
+        )
+        pyplot.colorbar()
+
+        cell_edges_flat = expmath.upscale_coordinates(
+            self._phase.cells.mem_edges_flat)
+        coll = LineCollection(cell_edges_flat, colors='k')
+        coll.set_alpha(1.0)
+        ax99.add_collection(coll)
+
+        pyplot.title('Logarithm of Environmental Diffusion Weight Matrix')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='env_diffusion_weights')
+
     # ..................{ EXPORTERS ~ electric               }..................
     @piperunner(
         categories=('Electric Field', 'Intracellular',),
@@ -235,8 +426,8 @@ class PlotCellsPipe(PlotPipeABC):
     )
     def export_electric_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Plot all extracellular electric field lines for the cell cluster
-        environment at the last time step.
+        Plot all extracellular electric field lines for the environment at the
+        last time step.
         '''
 
         # Prepare to export the electric plot.
@@ -294,8 +485,8 @@ class PlotCellsPipe(PlotPipeABC):
     )
     def export_fluid_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Plot all extracellular fluid flow field lines for the cell cluster
-        environment at the last time step.
+        Plot all extracellular fluid flow field lines for the environment at the
+        last time step.
         '''
 
         # Prepare to export the current plot.
@@ -356,20 +547,20 @@ class PlotCellsPipe(PlotPipeABC):
     def export_ion_calcium_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular calcium (i.e., Ca2+) ion concentrations for the
-        cell cluster environment at the last time step.
+        environment at the last time step.
         '''
 
         # Prepare to export the current plot.
         self._export_prep()
 
         cc_Ca = self._phase.sim.cc_env[self._phase.sim.iCa].reshape(
-                self._phase.cells.X.shape)
+            self._phase.cells.X.shape)
 
         pyplot.figure()
         pyplot.imshow(
             cc_Ca,
             origin='lower',
-            extent=self._cells_extent,
+            extent=self._phase.cache.upscaled.extent,
             cmap=self._phase.p.default_cm,
         )
         pyplot.colorbar()
@@ -378,14 +569,52 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='Final_environmental_calcium')
 
-    # ..................{ EXPORTERS ~ junction               }..................
-    # This exporter is solver- and feature-agnostic.
-    @piperunner(categories=('Gap Junction', 'Connectivity State',))
-    def export_junction_state(self, conf: SimConfVisualCellsListItem) -> None:
+    # ..................{ EXPORTERS ~ gap junction           }..................
+    # These exporters are solver- and feature-agnostic.
+
+    @piperunner(categories=('Gap Junction', 'Connectivity Network',))
+    def export_gj_connectivity(self, conf: SimConfVisualCellsListItem) -> None:
+        '''
+        Plot the **gap junction connectivity network** (i.e., graph of all gap
+        junctions connecting cell membranes) for the cell cluster.
+
+        This plot is irrespective of time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        fig = pyplot.figure()
+        ax_x = pyplot.subplot(111)
+
+        if self._phase.p.showCells:
+            base_points = expmath.upscale_coordinates(
+                self._phase.cells.cell_verts)
+            col_cells = PolyCollection(
+                base_points, facecolors='k', edgecolors='none')
+            col_cells.set_alpha(0.3)
+            ax_x.add_collection(col_cells)
+
+        connects = expmath.upscale_coordinates(self._phase.cells.nn_edges)
+        collection = LineCollection(connects, linewidths=1.0, color='b')
+        ax_x.add_collection(collection)
+        pyplot.axis('equal')
+        pyplot.axis(self._phase.cache.upscaled.extent)
+
+        ax_x.set_xlabel('Spatial x [um]')
+        ax_x.set_ylabel('Spatial y [um')
+        ax_x.set_title('Cell Connectivity Network')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='gj_connectivity_network')
+
+
+    @piperunner(categories=('Gap Junction', 'Relative Permeability',))
+    def export_gj_permeability(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all **gap junction connectivity states** (i.e., relative
-        permeabilities of the gap junctions connecting all cell membranes) for
-        the cell cluster at the last time step.
+        permeabilities of all gap junctions connecting cell membranes) for the
+        cell cluster at the last time step.
         '''
 
         # Prepare to export the current plot.
@@ -407,7 +636,7 @@ class PlotCellsPipe(PlotPipeABC):
         ax_x.add_collection(collection)
         cb = fig_x.colorbar(collection)
         pyplot.axis('equal')
-        pyplot.axis(self._cells_extent)
+        pyplot.axis(self._phase.cache.upscaled.extent)
 
         cb.set_label('Relative Permeability')
         ax_x.set_xlabel('Spatial x [um]')
@@ -545,8 +774,8 @@ class PlotCellsPipe(PlotPipeABC):
     )
     def export_voltage_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Plot all extracellular voltages for the cell cluster environment at the
-        last time step.
+        Plot all extracellular voltages for the environment at the last time
+        step.
         '''
 
         # Prepare to export the current plot.
@@ -558,7 +787,7 @@ class PlotCellsPipe(PlotPipeABC):
         pyplot.imshow(
             1e3*vv,
             origin='lower',
-            extent=self._cells_extent,
+            extent=self._phase.cache.upscaled.extent,
             cmap=self._phase.p.default_cm,
         )
         pyplot.colorbar()

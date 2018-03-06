@@ -10,10 +10,9 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
+# from betse.util.io.log import logs
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
-from betse.util.io.log import logs
-from betse.util.type import iterables
 
 
 def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
@@ -923,115 +922,6 @@ def streamingCurrent(
             ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
     return fig,ax,ax_cb
-
-def clusterPlot(p, dyna: 'TissueHandler', cells, clrmap=cm.jet):
-
-    fig = plt.figure()
-    ax = plt.subplot(111)
-
-    col_dic = {}
-    cb_ticks = []
-    cb_tick_labels = []
-
-    profile_zorder = 0
-    profile_zorder_max = len(dyna.tissue_name_to_profile)
-
-    if p.plot_cutlines and dyna.event_cut is not None:
-        profile_zorder_max += len(dyna.cut_name_to_profile)
-
-    #FIXME: Reduce code duplication between this and the next if conditional.
-    if dyna.tissue_name_to_profile:
-        for tissue_name, tissue_profile in dyna.tissue_name_to_profile.items():
-            # logs.log_debug('Plotting tissue "%s"...', tissue_name)
-            profile_zorder += 1
-
-            # One-dimensional Numpy array of the indices of all cells in the
-            # cluster belonging to this tissue.
-            cell_inds = dyna.cell_target_inds[tissue_name]
-
-            # If this tissue contains no cells, skip to the next tissue.
-            if not len(cell_inds):
-                logs.log_warning('Tissue "%s" contains no cells.', tissue_name)
-                continue
-
-            points = np.multiply(cells.cell_verts[cell_inds], p.um)
-
-            z = np.zeros(len(points))
-            z[:] = profile_zorder
-
-            col_dic[tissue_name] = PolyCollection(
-                points, array=z, cmap=clrmap, edgecolors='none')
-            col_dic[tissue_name].set_clim(0, profile_zorder_max)
-
-            # col_dic[tissue_name].set_alpha(0.8)
-            col_dic[tissue_name].set_zorder(profile_zorder)
-            ax.add_collection(col_dic[tissue_name])
-
-            # Add this profile name to the colour legend.
-            cb_ticks.append(profile_zorder)
-            cb_tick_labels.append(tissue_name)
-
-    if p.plot_cutlines and dyna.event_cut is not None:
-        # For each profile cutting a subset of the cell population...
-        for cut_profile_name, cut_profile in dyna.cut_name_to_profile.items():
-            # logs.log_debug('Plotting cut "%s"...', cut_profile_name)
-            profile_zorder += 1
-
-            # Indices of all cells cut by this profile.
-            cut_cell_indices = cut_profile.picker.pick_cells(cells=cells, p=p)
-            points = np.multiply(cells.cell_verts[cut_cell_indices], p.um)
-
-            z = np.zeros(len(points))
-            z[:] = profile_zorder
-
-            col_dic[cut_profile_name] = PolyCollection(
-                points, array=z, cmap=clrmap, edgecolors='none')
-            col_dic[cut_profile_name].set_clim(0, profile_zorder_max)
-            # col_dic[cut_profile_name].set_alpha(0.8)
-
-            col_dic[cut_profile_name].set_zorder(profile_zorder)
-            ax.add_collection(col_dic[cut_profile_name])
-
-            # Add this profile name to the colour legend.
-            cb_ticks.append(profile_zorder)
-            cb_tick_labels.append(cut_profile_name)
-
-    # logs.log_debug('Plotting colorbar ticks: %r', cb_ticks)
-    # logs.log_debug('Plotting colorbar tick labels: %r', cb_tick_labels)
-
-    ax_cb = None
-    if dyna.tissue_name_to_profile:
-        # Name of the first tissue profile.
-        tissue_first_name = iterables.get_item_first(
-            dyna.tissue_name_to_profile.keys())
-
-        # Color mappable associated with this tissue profile, guaranteed in this
-        # case to be a "PolyCollection" instance.
-        tissue_first_mappable = col_dic[tissue_first_name]
-
-        ax_cb = fig.colorbar(tissue_first_mappable, ax=ax, ticks=cb_ticks)
-        ax_cb.ax.set_yticklabels(cb_tick_labels)
-
-    if p.enumerate_cells:
-        for i, cll in enumerate(cells.cell_centres):
-            ax.text(
-                p.um*cll[0], p.um*cll[1], i,
-                ha='center', va='center', zorder=20)
-
-    ax.set_xlabel('Spatial Distance [um]')
-    ax.set_ylabel('Spatial Distance [um]')
-    ax.set_title('Cell Cluster')
-
-    ax.axis('equal')
-
-    xmin = cells.xmin*p.um
-    xmax = cells.xmax*p.um
-    ymin = cells.ymin*p.um
-    ymax = cells.ymax*p.um
-
-    ax.axis([xmin,xmax,ymin,ymax])
-
-    return fig, ax, ax_cb
 
 
 def I_overlay(sim,cells,p,ax,plotIecm = False):
