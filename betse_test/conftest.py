@@ -23,7 +23,7 @@ from betse_test.fixture.tempdirer import betse_temp_dir
 from betse_test.fixture.simconf.simconfer import (
     betse_sim_conf,
     betse_sim_conf_default,
-    betse_sim_conf_backward_compatibility,
+    betse_sim_conf_compat,
 )
 
 # ....................{ HOOKS ~ plugin                     }....................

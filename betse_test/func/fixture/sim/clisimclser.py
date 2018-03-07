@@ -39,20 +39,39 @@ class CLISimTester(object):
     '''
 
     # ..................{ CONSTANTS                          }..................
-    _SUBCOMMANDS_ARGS_DEFAULT = (
+    # The following tuples of argument tuples are intentionally declared as
+    # class rather than global constants, dramatically simplifying usage by
+    # fixtures and tests already passed an instance of this class.
+
+    SUBCOMMANDS_SIM = (
         ('seed',),
         ('init',),
         ('sim',),
-        ('plot', 'seed'),
+    )
+    '''
+    Tuple of all **simulation subcommand argument tuples** (i.e., tuple of one
+    or more shell words which, when passed as command-line arguments to the
+    ``betse`` command, perform a simulation-specific subcommand), excluding
+    plotting.
+    '''
+
+
+    SUBCOMMANDS_PLOT = (
         ('plot', 'init'),
         ('plot', 'sim'),
     )
     '''
-    Tuple of the argument lists comprising all default simulation-specific BETSE
-    CLI subcommands.
+    Tuple of all **plotting subcommand argument tuples** (i.e., tuple of one or
+    more shell words which, when passed as command-line arguments to the
+    ``betse`` command, perform a plotting-specific subcommand).
+    '''
 
-    This tuple is a convenience simplifying common-case tests exercising *only*
-    these subcommands.
+
+    SUBCOMMANDS_TRY = SUBCOMMANDS_SIM + SUBCOMMANDS_PLOT
+    '''
+    Tuple of all **``try`` subcommand argument tuples** (i.e., tuple of one or
+    more shell words which, when passed as command-line arguments to the
+    ``betse`` command, perform the equivalent of the ``try`` subcommand).
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -77,67 +96,6 @@ class CLISimTester(object):
         self.sim_state = sim_state
 
     # ..................{ RUNNERS                            }..................
-    def run_subcommands_default(self) -> None:
-        '''
-        Run all default simulation-specific BETSE CLI subcommands in the active
-        Python process.
-
-        See Also
-        ----------
-        :attr:`_SUBCOMMANDS_ARGS_DEFAULT`
-            Constant listing the argument lists comprising these subcommands.
-        '''
-
-        self.run_subcommands(*self._SUBCOMMANDS_ARGS_DEFAULT)
-
-
-    @type_check
-    def run_subcommands(
-        self,
-        *subcommands_args: SequenceTypes,
-        is_config_overwrite: bool = True
-    ) -> None:
-        '''
-        Run all simulation-specific BETSE CLI subcommands signified by the
-        passed argument lists in the active Python process (in the passed
-        order).
-
-        **Order is significant.** subcommands producing output required by
-        subsequent subcommands as input should be passed first.
-
-        To guarantee that each such subcommand efficiently reuses the same
-        underlying simulation, this method implicitly:
-
-        * Appends each such argument list with the absolute path of the
-          simulation configuration file with which this test runner was
-          initialized.
-        * Temporarily changes the current working directory (CWD) to the
-          directory containing this file.
-
-        Parameters
-        ----------
-        subcommands_args : tuple
-            Tuple of sequences of **subcommand arguments** (i.e., one or more
-            shell words comprising the BETSE CLI subcommand to be tested).
-        is_config_overwrite : optional[bool]
-            If ``True``, all in-memory changes to the current simulation
-            configuration are persisted back to disk. Defaults to ``True``.
-        '''
-
-        # If persisting all in-memory configuration changes back to disk, do so
-        # *BEFORE* running the passed.subcommands requiring these changes.
-        if is_config_overwrite:
-            self._overwrite_config()
-
-        # For each such subcommand...
-        for subcommand_args in subcommands_args:
-            # Run this subcommand, preventing the configuration file from being
-            # re-overwritten. While technically safe, doing so would impose
-            # unnecessary I/O inefficiencies.
-            self.run_subcommand(
-                *subcommand_args, is_config_overwrite=False)
-
-
     @type_check
     def run_subcommand(
         self, *subcommand_args: str, is_config_overwrite: bool = True
@@ -196,6 +154,85 @@ class CLISimTester(object):
 
             # Run this subcommand.
             self.cli_tester.run(*subcommand_args)
+
+
+    @type_check
+    def run_subcommands(
+        self,
+        *subcommands_args: SequenceTypes,
+        is_config_overwrite: bool = True
+    ) -> None:
+        '''
+        Perform all BETSE CLI subcommands signified by the passed argument lists
+        in the active Python process (in the passed order).
+
+        To guarantee that each such subcommand efficiently reuses the same
+        underlying simulation, this method implicitly:
+
+        * Appends each such argument list with the absolute path of the
+          simulation configuration file with which this test runner was
+          initialized.
+        * Temporarily changes the current working directory (CWD) to the
+          directory containing this file.
+
+        Caveats
+        ----------
+        **Order is significant.** Subcommands producing output required by
+        subsequent subcommands as input should be passed first.
+
+        Parameters
+        ----------
+        subcommands_args : tuple
+            Tuple of sequences of **subcommand arguments** (i.e., one or more
+            shell words comprising the BETSE CLI subcommand to be tested).
+        is_config_overwrite : optional[bool]
+            If ``True``, all in-memory changes to the current simulation
+            configuration are persisted back to disk. Defaults to ``True``.
+        '''
+
+        # If persisting all in-memory configuration changes back to disk, do so
+        # *BEFORE* running the passed.subcommands requiring these changes.
+        if is_config_overwrite:
+            self._overwrite_config()
+
+        # For each such subcommand...
+        for subcommand_args in subcommands_args:
+            # Run this subcommand, preventing the configuration file from being
+            # re-overwritten. While technically safe, doing so would impose
+            # unnecessary I/O inefficiencies.
+            self.run_subcommand(
+                *subcommand_args, is_config_overwrite=False)
+
+    # ..................{ RUNNERS ~ predefined               }..................
+    def run_subcommands_sim(self) -> None:
+        '''
+        Perform all simulation-specific BETSE CLI subcommands excluding those
+        pertaining to plotting.
+
+        See Also
+        ----------
+        :attr:`SUBCOMMANDS_SIM`
+            Tuple of all argument tuples comprising these subcommands.
+        '''
+
+        self.run_subcommands(*self.SUBCOMMANDS_SIM)
+
+
+    def run_subcommands_try(self) -> None:
+        '''
+        Perform the equivalent of the BETSE CLI ``try`` subcommand in the active
+        Python process.
+
+        Specifically, this method performs all BETSE CLI subcommands performed
+        by the ``try`` subcommand (in the same order).
+
+        See Also
+        ----------
+        :attr:`SUBCOMMANDS_TRY`
+            Tuple of all argument tuples comprising these subcommands.
+        '''
+
+        self.run_subcommands(*self.SUBCOMMANDS_TRY)
 
     # ..................{ PRIVATE                            }..................
     def _overwrite_config(self) -> None:

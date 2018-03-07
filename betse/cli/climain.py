@@ -53,10 +53,10 @@ subcommand help:
 
 For help with a specific subcommand, pass the "-h" or "--help" option to that
 subcommand. For example, for help with the "plot" subcommand and that
-subcommand's "seed" subsubcommand, run:
+subcommand's "init" subsubcommand, run:
 
 ;    {script_basename} plot --help
-;    {script_basename} plot seed --help
+;    {script_basename} plot init --help
 '''
 
 
@@ -153,7 +153,8 @@ defined by this configuration.
                 CLISubcommandParent(
                     name='plot',
                     help_synopsis=(
-                        'plot a seeded, initialized, or simulated simulation'),
+                        'plot an initialized or simulated simulation'),
+                        # 'plot a seeded, initialized, or simulated simulation'),
                     help_description='''
 Run the passed plotting subcommand. For example, to plot the previous
 simulation defined by a configuration file "my_sim.yaml" in the current
@@ -208,18 +209,20 @@ including:
                         'create, init, simulate, and plot a sample simulation'),
                     help_description='''
 Run a sample tissue simulation. This subcommand (A) creates a default YAML
-configuration file, (B) creates the cell cluster defined by that file, and
-(C) initializes, (D) simulates, and (E) plots the tissue simulation defined by
-that file given that cluster. All files and directories created by these
-operations will be preserved (rather than deleted on subcommand completion).
+configuration file, (B) creates the cell cluster defined by that file, (C)
+initializes that cell cluster, (D) plots that initialization, (E) simulates that
+initialization, and (F) plots that simulation. All files and directories created
+by these operations will be preserved (rather than deleted on subcommand
+completion).
 
 Equivalently, this subcommand is shorthand for the following:
 
-;    betse config   sample_sim/sample_sim.yaml
-;    betse seed     sample_sim/sample_sim.yaml
-;    betse init     sample_sim/sample_sim.yaml
-;    betse sim      sample_sim/sample_sim.yaml
-;    betse plot sim sample_sim/sample_sim.yaml
+;    betse config    sample_sim/sample_sim.yaml
+;    betse seed      sample_sim/sample_sim.yaml
+;    betse init      sample_sim/sample_sim.yaml
+;    betse sim       sample_sim/sample_sim.yaml
+;    betse plot init sample_sim/sample_sim.yaml
+;    betse plot sim  sample_sim/sample_sim.yaml
 ''',),
 
             ))
@@ -236,16 +239,17 @@ Equivalently, this subcommand is shorthand for the following:
             subcommand_var_name='subcommand_name_plot',
             help_title='plot subcommands',
             subcommands=(
-                CLISubcommandYAMLOnly(
-                    name='seed',
-                    help_synopsis=(
-                        'plot a seeded cell cluster for a config file'),
-                    help_description='''
-Plot the previously seeded cell cluster defined by the passed configuration
-file. Plot results will be saved to output files defined by this configuration,
-while the previously seeded cell cluster will be loaded from input files
-defined by this configuration.
-''',),
+#FIXME: "plot seed" subcommand implementation preserved for posterity.
+#                 CLISubcommandYAMLOnly(
+#                     name='seed',
+#                     help_synopsis=(
+#                         'plot a seeded cell cluster for a config file'),
+#                     help_description='''
+# Plot the previously seeded cell cluster defined by the passed configuration
+# file. Plot results will be saved to output files defined by this configuration,
+# while the previously seeded cell cluster will be loaded from input files
+# defined by this configuration.
+# ''',),
 
 
                 CLISubcommandYAMLOnly(
@@ -332,7 +336,7 @@ from input files defined by this configuration.
         self._do_seed()
         self._do_init()
         self._do_sim()
-        self._do_plot_seed()
+        # self._do_plot_seed()
         self._do_plot_init()
 
         # Return the value returned by the last such phase, permitting this
@@ -386,13 +390,14 @@ from input files defined by this configuration.
         return self._sim_runner.sim_grn()
 
 
-    def _do_plot_seed(self) -> object:
-        '''
-        Run the ``plot`` subcommand's ``seed`` subcommand and return the result
-        of doing so.
-        '''
-
-        return self._sim_runner.plot_seed()
+    #FIXME: "plot seed" subcommand implementation preserved for posterity.
+    # def _do_plot_seed(self) -> object:
+    #     '''
+    #     Run the ``plot`` subcommand's ``seed`` subcommand and return the result
+    #     of doing so.
+    #     '''
+    #
+    #     return self._sim_runner.plot_seed()
 
 
     def _do_plot_init(self) -> object:

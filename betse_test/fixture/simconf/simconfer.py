@@ -125,7 +125,7 @@ def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
 
 
 @fixture
-def betse_sim_conf_backward_compatibility(
+def betse_sim_conf_compat(
     betse_temp_dir: LocalPath) -> SimConfTestExternal:
     '''
     Per-test fixture creating and returning an object encapsulating a temporary

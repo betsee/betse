@@ -472,48 +472,44 @@ class SimRunner(object):
         return phase
 
     # ..................{ PLOTTERS                           }..................
-    #FIXME: Comment out this method entirely, after doing so for the
-    #higher-level "betse plot seed" CLI subcommand as well.
-    #FIXME: Shift the low-level matplotlib plotting performed by this method
-    #into a new "betse.science.visual.seedpipe" submodule.
-
-    def plot_seed(self) -> SimPhase:
-        '''
-        Visualize the cell cluster seed by a prior call to the :meth:`seed`
-        method and export the resulting plots and animations to various output
-        files, specified by the current configuration file.
-
-        Returns
-        ----------
-        SimPhase
-            High-level simulation phase instance encapsulating all objects
-            internally created by this method to run this phase.
-        '''
-
-        logs.log_info(
-            'Plotting cell cluster with configuration file "%s".',
-            self._config_basename)
-
-        # High-level simulation objects.
-        p = Parameters().load(self._config_filename)
-        cells = Cells(p)
-        sim = Simulator(p)
-
-        if files.is_file(cells.savedWorld):
-            cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-            logs.log_info('Cell cluster loaded.')
-        else:
-            raise BetseSimException(
-                "Ooops! No such cell cluster file found to load!")
-
-        # Simulation phase, created *AFTER* unpickling these objects above
-        phase = SimPhase(kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
-
-        sim.baseInit_all(cells,p)
-        phase.dyna.tissueProfiles(sim, cells, p)
-
-        # Return this phase.
-        return phase
+    #FIXME: "plot seed" subcommand implementation preserved for posterity.
+    # def plot_seed(self) -> SimPhase:
+    #     '''
+    #     Visualize the cell cluster seed by a prior call to the :meth:`seed`
+    #     method and export the resulting plots and animations to various output
+    #     files, specified by the current configuration file.
+    #
+    #     Returns
+    #     ----------
+    #     SimPhase
+    #         High-level simulation phase instance encapsulating all objects
+    #         internally created by this method to run this phase.
+    #     '''
+    #
+    #     logs.log_info(
+    #         'Plotting cell cluster with configuration file "%s".',
+    #         self._config_basename)
+    #
+    #     # High-level simulation objects.
+    #     p = Parameters().load(self._config_filename)
+    #     cells = Cells(p)
+    #     sim = Simulator(p)
+    #
+    #     if files.is_file(cells.savedWorld):
+    #         cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+    #         logs.log_info('Cell cluster loaded.')
+    #     else:
+    #         raise BetseSimException(
+    #             "Ooops! No such cell cluster file found to load!")
+    #
+    #     # Simulation phase, created *AFTER* unpickling these objects above
+    #     phase = SimPhase(kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
+    #
+    #     sim.baseInit_all(cells,p)
+    #     phase.dyna.tissueProfiles(sim, cells, p)
+    #
+    #     # Return this phase.
+    #     return phase
 
 
     def plot_init(self) -> SimPhase:
@@ -793,10 +789,6 @@ class SimRunner(object):
     @deprecated
     def simulate(self) -> None:
         return self.sim()
-
-    @deprecated
-    def plotWorld(self) -> None:
-        return self.plot_seed()
 
     @deprecated
     def plotInit(self) -> None:

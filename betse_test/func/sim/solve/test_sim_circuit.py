@@ -29,4 +29,4 @@ def test_cli_sim_circuit(betse_cli_sim: 'CLISimTester') -> None:
     betse_cli_sim.sim_state.config.enable_solver_circuit_exports()
 
     # Test all default simulation-specific subcommands with this configuration.
-    betse_cli_sim.run_subcommands_default()
+    betse_cli_sim.run_subcommands_try()

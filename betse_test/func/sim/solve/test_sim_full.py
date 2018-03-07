@@ -24,7 +24,7 @@ def test_cli_sim_full_noecm(betse_cli_sim: 'CLISimTester') -> None:
     betse_cli_sim.sim_state.config.enable_solver_full_exports_noecm()
 
     # Test all default simulation-specific subcommands with this configuration.
-    betse_cli_sim.run_subcommands_default()
+    betse_cli_sim.run_subcommands_try()
 
 
 def test_cli_sim_full_ecm(betse_cli_sim: 'CLISimTester') -> None:
@@ -43,7 +43,7 @@ def test_cli_sim_full_ecm(betse_cli_sim: 'CLISimTester') -> None:
     betse_cli_sim.sim_state.config.enable_solver_full_exports_ecm()
 
     # Test all default simulation-specific subcommands with this configuration.
-    betse_cli_sim.run_subcommands_default()
+    betse_cli_sim.run_subcommands_try()
 
 
 def test_cli_sim_full_vg_ions(betse_cli_sim: 'CLISimTester') -> None:
@@ -64,4 +64,4 @@ def test_cli_sim_full_vg_ions(betse_cli_sim: 'CLISimTester') -> None:
 
     # Test all simulation-specific subcommands *EXCLUDING* plotting subcommands
     # (which other tests already exercise) with this configuration.
-    betse_cli_sim.run_subcommands(('seed',), ('init',), ('sim',),)
+    betse_cli_sim.run_subcommands_sim()

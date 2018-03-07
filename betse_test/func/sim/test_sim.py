@@ -27,7 +27,7 @@ from betse_test.util.mark.skip import (
 #* Remove this decoration here.
 @skip_unless_requirement('setuptools < 38.0.0')
 def test_cli_sim_compat(
-    betse_cli_sim_backward_compatibility: 'CLISimTester') -> None:
+    betse_cli_sim_compat: 'CLISimTester') -> None:
     '''
     Functional test exercising all simulation subcommands required to validate
     backward compatibility with a temporary simulation configuration file
@@ -60,23 +60,23 @@ def test_cli_sim_compat(
 
     Parameters
     ----------
-    betse_cli_sim_backward_compatibility : CLISimTester
+    betse_cli_sim_compat : CLISimTester
         Object running BETSE CLI simulation subcommands against a temporary
         simulation configuration produced by this older application version.
     '''
 
     # Test all simulation-specific plotting subcommands with this configuration.
-    betse_cli_sim_backward_compatibility.run_subcommands(
-        ('plot', 'seed',), ('plot', 'init',), ('plot', 'sim',),
+    betse_cli_sim_compat.run_subcommands(
+        *betse_cli_sim_compat.SUBCOMMANDS_PLOT,
 
         # Avoid overwriting the previously exported simulation configuration.
-        is_config_overwrite=False,)
+        is_config_overwrite=False)
 
     #FIXME: We unavoidably break backward compatibility with respect to pickled
     #objects and hence currently only test backward compatibility with respect
     #to the simulation configuration. This is non-ideal, but sufficient for the
     #moment. Ideally, this should be reverted on releasing a new version.
-    # betse_cli_sim_backward_compatibility.run_subcommands(
+    # betse_cli_sim_compat.run_subcommands(
     #     ('seed',),
     #     is_overwriting_config=False,)
 

@@ -98,7 +98,7 @@ def test_cli_sim_export(
 
     # Test all subcommands exporting pickled objects. Note that plotting
     # subcommands export no such objects and hence are intentionally omitted.
-    betse_cli_sim.run_subcommands(('seed',), ('init',), ('sim',))
+    betse_cli_sim.run_subcommands_sim()
 
     # Export (i.e., recursively copy) this source to target directory.
     dirs.copy(

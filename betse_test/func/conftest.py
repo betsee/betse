@@ -18,5 +18,5 @@ from betse_test.func.fixture.clier import betse_cli
 from betse_test.func.fixture.sim.clisimer import (
     betse_cli_sim,
     betse_cli_sim_default,
-    betse_cli_sim_backward_compatibility,
+    betse_cli_sim_compat,
 )

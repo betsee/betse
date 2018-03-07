@@ -56,8 +56,15 @@ def betse_cli_sim_default(
     '''
     Per-test fixture returning an object suitable for running one or more BETSE
     CLI simulation subcommands (e.g., ``betse seed``, ``betse sim``) with the
-    temporary non-minified simulation configuration isolated to the current
-    fixture or test.
+    temporary default simulation configuration isolated to the current fixture
+    or test.
+
+    Caveats
+    ----------
+    **This fixture is intended only for tests exercising the default simulation
+    configuration.** This configuration has *not* been modified for testing
+    purposes and hence is *not* minified. Most tests prefer the minified
+    configuration produced by the :func:`betse_cli_sim` fixture instead.
 
     Parameters
     ----------
@@ -81,9 +88,9 @@ def betse_cli_sim_default(
 
 # Test-scope fixture creating and returning a new object for each discrete test.
 @fixture
-def betse_cli_sim_backward_compatibility(
+def betse_cli_sim_compat(
     betse_cli: CLITester,
-    betse_sim_conf_backward_compatibility: SimConfTestExternal,
+    betse_sim_conf_compat: SimConfTestExternal,
 ) -> CLISimTester:
     '''
     Per-test fixture returning an object suitable for running one or more BETSE
@@ -97,7 +104,7 @@ def betse_cli_sim_backward_compatibility(
     ----------
     betse_cli : CLITester
         Object running a single simulation-specific BETSE CLI subcommand.
-    betse_sim_conf_backward_compatibility : SimConfTestExternal
+    betse_sim_conf_compat : SimConfTestExternal
         Object encapsulating a temporary simulation configuration produced by
         this oldest version of this application.
 
@@ -109,5 +116,5 @@ def betse_cli_sim_backward_compatibility(
 
     return CLISimTester(
         cli_tester=betse_cli,
-        sim_state=betse_sim_conf_backward_compatibility,
+        sim_state=betse_sim_conf_compat,
     )
