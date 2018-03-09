@@ -725,8 +725,9 @@ variable settings:
     tubulin polarizability: 50.0    # tubulin polarizability x10-40 [C m2/ V]
     tethered tubule: True          # microtubule tethered to centrosome or free-floating?
     time dilation factor: 1.0             # Alter the simulation timestep for microtubules, to slow or speed up movement
-    microtubule initial x asymmetry: None # initial asymmetry of microtubules 'x' component
-    microtubule initial y asymmetry: None # initial asymmetry of microtubules 'y' component
+    microtubule density: None # bitmap specifying density of microtubules in space (None defaults to homogeneous density)
+    microtubule orienting field: None # bitmap allowing forced alignment in field as initial state
+                                       # (None defaults to initial randomization)
 
   # FIXME: add network substances to Goldman calculator, also add in pumps
   use Goldman calculator: False   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK)

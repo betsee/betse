@@ -21,7 +21,6 @@ from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
 from betse.science.phase.phasecls import SimPhase, SimPhaseKind
-from betse.science.tissue.tishandler import TissueHandler
 from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs

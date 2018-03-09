@@ -719,10 +719,20 @@ class Parameters(YamlFileABC):
 
         self.dilate_mtube_dt = float(mtb.get('time dilation factor', 1.0))
 
-        self.init_mtx = mtb.get('microtubule initial x asymmetry', None)
-        self.init_mty = mtb.get('microtubule initial y asymmetry', None)
+        self.mt_orienting_field = mtb.get('microtubule orienting field', None)
+
+        if self.mt_orienting_field == 'None':
+
+            self.mt_orienting_field = None
+
+        self.mt_space_density = mtb.get('microtubule density', None)
+
+        if self.mt_space_density == 'None':
+
+            self.mt_space_density = None
 
         self.microtubules_orient_parallel = mtb.get('microtubules orient parallel', True)
+
 
         #...............................................................................................................
 

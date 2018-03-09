@@ -9,6 +9,7 @@ from betse.lib.pil import pilnumpy
 from betse.lib.pil.pilnumpy import ImageModeType
 from betse.util.path import pathnames
 from scipy.ndimage.filters import gaussian_filter
+from betse.science.math import finitediff as fd
 
 # ....................{ IMPORTS                            }....................
 def periodic(pc,cells,p):
@@ -205,7 +206,7 @@ def gradient_r(pc, cells,p):
 
     return r, dynamics
 
-def gradient_bitmap(pc, cells, p):
+def gradient_bitmap(pc, cells, p, bitmap_filename = None):
 
     """
     This modulator reads in a bitmap supplied by the user from the
@@ -223,6 +224,14 @@ def gradient_bitmap(pc, cells, p):
 
     """
 
+    if bitmap_filename is None:  # default this to loading the 'gradient bitmap function' from params
+        bitmap_filename = p.grad_bm_fn
+        grad_bm_offset = np.max((p.grad_bm_offset, 0.0))
+
+    else:
+        grad_bm_offset = 0.0
+
+
     if len(pc) == len(cells.mem_i):
         xmap = cells.map_mem2ecm
 
@@ -234,13 +243,10 @@ def gradient_bitmap(pc, cells, p):
     xma = cells.xmax + 4*p.cell_radius
     yma = cells.ymax + 4*p.cell_radius
 
-    # xx = np.linspace(xmi, xma, cells.X.shape[1])
-    # yy = np.linspace(ymi, yma, cells.X.shape[0])
-
     xx = np.linspace(cells.xmin, cells.xmax, cells.X.shape[1])
     yy = np.linspace(cells.ymin, cells.ymax, cells.X.shape[0])
 
-    fn1 = pathnames.join(p.conf_dirname, p.grad_bm_fn)
+    fn1 = pathnames.join(p.conf_dirname, bitmap_filename)
 
     # Three-dimensional Numpy array of the RGB-ordered integer components of all
     # pixels loaded from this image.
@@ -249,8 +255,6 @@ def gradient_bitmap(pc, cells, p):
     a1_F = (a1[:, :, 0] -  a1[:, :, 2]) / 255
 
     a1_F = np.flipud(a1_F)
-
-    # a1_F = fd.interp(a1_F, 2)
 
     xa = np.linspace(xmi, xma, a1_F.shape[1])
     ya = np.linspace(ymi, yma, a1_F.shape[0])
@@ -261,15 +265,11 @@ def gradient_bitmap(pc, cells, p):
     indz = (fe < 0.0).nonzero()
     fe[indz] = 0.0
 
-    # fe = gaussian_filter(fe, 2)
+    fe = fd.integrator(fe, sharp=0.5) # smooth a little to avoid bizarre visual effects
 
     f = fe.ravel()[xmap]
 
-    p.grad_bm_offset = np.max((p.grad_bm_offset, 0.0))
-
-    f = (f/f.max()) + p.grad_bm_offset
-
-
+    f = (f/f.max()) + grad_bm_offset
 
     dynamics = lambda t:1
 
