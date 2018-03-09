@@ -4169,17 +4169,21 @@ class MasterOfNetworks(object):
             # logs.log_info('Average pH in the env: ' +
             #               str(np.round(phe, 2)))
 
-        # logs.log_info('Average Na '  + ' in the cell: ' +
-        #               str(np.round(sim.cc_cells[sim.iNa].mean(), 4)) + ' mmol/L')
-        #
-        # logs.log_info('Average K '  + ' in the cell: ' +
-        #               str(np.round(sim.cc_cells[sim.iK].mean(), 4)) + ' mmol/L')
-        #
-        # logs.log_info('Average Cl '  + ' in the cell: ' +
-        #               str(np.round(sim.cc_cells[sim.iCl].mean(), 4)) + ' mmol/L')
-        #
-        # logs.log_info('Average Ca '  + ' in the cell: ' +
-        #               str(np.round(1.0e6*sim.cc_cells[sim.iCa].mean(), 4)) + ' nmol/L')
+        logs.log_info('Average Na '  + ' in the cell: ' +
+                      str(np.round(sim.cc_cells[sim.iNa].mean(), 4)) + ' mmol/L')
+
+        logs.log_info('Average K '  + ' in the cell: ' +
+                      str(np.round(sim.cc_cells[sim.iK].mean(), 4)) + ' mmol/L')
+
+        if p.ions_dict['Cl'] == 1:
+
+            logs.log_info('Average Cl '  + ' in the cell: ' +
+                          str(np.round(sim.cc_cells[sim.iCl].mean(), 4)) + ' mmol/L')
+
+        if p.ions_dict['Ca'] == 1:
+
+            logs.log_info('Average Ca '  + ' in the cell: ' +
+                          str(np.round(1.0e6*sim.cc_cells[sim.iCa].mean(), 4)) + ' nmol/L')
 
 
 

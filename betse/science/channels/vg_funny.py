@@ -155,7 +155,7 @@ class HCN2(VgFunABC):
 
         logs.log_info('You are using the funny current channel: HCN2')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.v_corr = 0
 
@@ -215,7 +215,7 @@ class HCN4(VgFunABC):
 
         logs.log_info('You are using the funny current channel: HCN4')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.v_corr = 0
 
@@ -265,7 +265,7 @@ class HCN1(VgFunABC):
 
         logs.log_info('You are using the funny current channel: HCN1')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
         self.m = 1.0000 / (1 + np.exp((V - -94) / 8.1))
@@ -368,7 +368,7 @@ class HCN2_cAMP(VgFunABC):
 
         logs.log_info('You are using the funny current channel: HCN2 with cAMP activation.')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.v_corr = 0
 
@@ -429,7 +429,7 @@ class HCN4_cAMP(VgFunABC):
 
         logs.log_info('You are using the funny current channel: HCN4 with cAMP activation.')
 
-        self.time_unit = 1.0
+        self.time_unit = 1.0e3
 
         self.v_corr = 0
 
@@ -457,7 +457,7 @@ class HCN4_cAMP(VgFunABC):
 
         self.vrev = -45  # reversal voltage used in model [mV]
 
-        V = V - 20
+        V = V - 24
 
         self._mInf = 1.0000 / (1 + np.exp((V + 100) / 9.6))
         self._mTau = 461.0000

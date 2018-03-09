@@ -511,7 +511,7 @@ class Cav3p1(VgCaABC):
 
         self._mInf = 1 / (1 + np.exp((V - (-42.921064)) / -5.163208))
 
-        inds_lt10 = (V < -10e-3).nonzero()
+        # inds_lt10 = (V < -10e-3).nonzero()
         inds_gt10 = (V >= -10e-3).nonzero()
 
         self._mTau = -0.855809 + (1.493527 * np.exp(-V / 27.414182))
