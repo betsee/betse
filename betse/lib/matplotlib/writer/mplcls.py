@@ -13,7 +13,6 @@ Matplotlib-specific classes writing animations as frames.
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
-from matplotlib import verbose
 from matplotlib.animation import writers, MovieWriter
 
 # ....................{ CLASSES                            }....................
@@ -203,12 +202,12 @@ class ImageMovieWriter(NoopMovieWriter):
         # Filename of the current frame to be written.
         frame_filename = self.outfile.format(self._frame_number)
 
-        # Log this attempt via Matplotlib's logging API.
-        verbose.report(
-            'ImageMovieWriter.grab_frame: saving frame %d to fname=%s' % (
-                self._frame_number, frame_filename),
-            level='debug')
-        # logs.log_debug('Saving frame %d with options: %s', self._frame_number, str(kwargs))
+        # Log this attempt. Actually, forget it. Far too verbose for now.
+        # logs.log_debug(
+        #     'ImageMovieWriter.grab_frame: saving frame %d to fname=%s',
+        #     self._frame_number, frame_filename)
+        # logs.log_debug(
+        #     'Saving frame %d with options: %s', self._frame_number, str(kwargs))
 
         # Increment the number of the next frame to be written *AFTER* logging.
         self._frame_number += 1

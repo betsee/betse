@@ -420,7 +420,7 @@ class AnimCellsABC(VisualCellsABC):
             # by this call to the MovieWriter.setup() method *UNLESS* the
             # current matplotlib-specific verbosity level is "debug".
             # Temporarily ensure this for the duration of this call.
-            with mpl_config.verbosity_debug_if_helpful():
+            with mpl_config.reducing_log_level_to_debug_if_info():
                 self._writer_video.setup(
                     fig=self._figure,
                     outfile=writer_video_filename,
@@ -741,7 +741,7 @@ class AnimCellsABC(VisualCellsABC):
         if self._writer_video is not None:
             # Finalize doing so. For debuggability, temporarily escalate the
             # matplotlib-specific verbosity level.
-            with mpl_config.verbosity_debug_if_helpful():
+            with mpl_config.reducing_log_level_to_debug_if_info():
                 self._writer_video.finish()
 
             # Prevent this writer from being reused and break hard cycles.

@@ -6070,9 +6070,9 @@ class Molecule(object):
                 plt.show(block=False)
 
         else:
-
-            logmess = "Skipping environmental plot of {} due to 100% null values!".format(self.name)
-            logs.log_info(logmess)
+            logs.log_warning(
+                'Skipping environmental plot of %s '
+                'due to 100%% null values!', self.name)
 
     #FIXME: Ideally, this method should be refactored to comply with the
     #new pipeline API.
@@ -6131,7 +6131,8 @@ class Molecule(object):
         else:
             logs.log_warning(
                 'Skipping environmental animation of %s '
-                'due to 100% null values!', self.name)
+                'due to 100%% null values!', self.name)
+
 
 class Reaction(object):
 

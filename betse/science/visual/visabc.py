@@ -1015,7 +1015,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         if self._writer_video is not None:
             # For debuggability, temporarily escalate the
             # matplotlib-specific verbosity level.
-            with mpl_config.verbosity_debug_if_helpful():
+            with mpl_config.reducing_log_level_to_debug_if_info():
                 self._writer_video.grab_frame(
                     **self._writer_savefig_kwargs)
 

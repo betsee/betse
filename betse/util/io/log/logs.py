@@ -51,24 +51,32 @@ logger to be unconfigured, messages will be logged _only_ by the root logger.
 import logging, sys, traceback
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type import types
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, StrOrNoneTypes
 
 # ....................{ GETTERS                            }....................
-def get(logger_name: str = None) -> logging.Logger:
+@type_check
+def get(logger_name: StrOrNoneTypes = None) -> logging.Logger:
     '''
-    Get the logger with the passed `.`-delimited name, defaulting to the
-    basename of the current process (e.g., `betse`) implying the **global
-    logger** (i.e., the default application-wide logger).
+    Logger with the passed ``.``-delimited name, defaulting to the basename of
+    the current process (e.g., ``betse``) implying the **global logger** (i.e.,
+    the default application-wide logger).
 
     This function expects the :class:`LogConfig` class to have been previously
     instantiated, which globally configures logging.
 
-    Logger Name
+    Parameters
     ----------
-    By convention, logger names are typically that of the calling module (e.g.,
-    `__name__`). However, since the default logger configuration already
-    dynamically embeds the name of such module but *not* such logger into log
-    records, there currently remains no reason to pass a logger name.
+    logger_name : StrOrNoneTypes
+        ``.``-delimited name of the logger to retrieve. By convention, logger
+        names are typically that of the calling module (e.g., ``__name__``).
+        However, since our default logger configuration already dynamically
+        embeds the name of the calling module but *not* this logger into log
+        records, an explicit logger name need *not* be passed in most cases.
+        The exception to this heuristic is third-party dependencies whose
+        package-specific loggers require configuration (e.g., to reduce the
+        verbosity of messages logged by those loggers), in which case those
+        loggers' names should be explicitly passed. Defaults to ``None``, in
+        which case the global logger is retrieved.
     '''
 
     # Default the name of this logger to the name of the root logger.
@@ -77,7 +85,7 @@ def get(logger_name: str = None) -> logging.Logger:
 
     # If this name is the empty string, this function would get the root logger.
     # Since this name being empty typically constitutes an implicit error rather
-    # than an attempt to get the root logger, prevent this.
+    # than an attempt to get the root logger, prevent this via an assertion.
     assert types.is_str_nonempty(logger_name), (
         types.assert_not_str_nonempty(logger_name, 'Logger name'))
 

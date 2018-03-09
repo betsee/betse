@@ -3,44 +3,6 @@
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-#FIXME: Redirect Matplotlib output through our logging interface. Currently, we
-#configure Matplotlib via the "RC_PARAMS" global constant to simply output all
-#non-debug messages to stdout, thereby preventing these messages from being
-#logged. While Matplotlib can be reconfigured to redirect output to a file
-#instead, doing so then prevents that output from also being redirected to
-#stdout. (See the matplotlib.Verbose.set_fileo() method for details.)
-#
-#Ultimately, this is what needs to happen. Either:
-#
-#* Monkey-patch the matplotlib.verbose.report() method to leverage the
-#  standard "logging" framework rather than simply printing to the currently
-#  configured "fileo" object. Note that "matplotlib.verbose" is an instance of
-#  the "matplotlib.Verbose" class. Sensible, that.
-#* The non-monkey-patch approach:
-#  1. Define a new BETSE-specific "LoggingVerbose" subclass of the
-#     "matplotlib.Verbose" class. This subclass should leverage the standard
-#     "logging" framework (e.g., by redefining the Verbose.report() method).
-#  2. Assign "matplotlib.verbose = LoggingVerbose()".
-#
-#Actually, I'd be quite satisfied by the latter approach. Let's do this right.
-#That should allow us to ignore all "verbose.*" rc parameters (e.g.,
-#"verbose.level"), simplifying logic below. We probably still want the same
-#"RC_PARAMS" global dictionary for use with future rc parameters -- but at least
-#we'd be able to eliminate this bit of "verbose.level" hackiness.
-
-#FIXME: Refactor backend_names() to discover backend names via the standard
-#module "pkg_utils" rather than by manually delving through the filesystem,
-#which fails under frozen executables.
-
-#FIXME: It'd be great to raise human-readable exceptions on the specified
-#backends *NOT* being available. This is certainly feasible, as the
-#following stackoverflow answer demonstrates -- if somewhat involved:
-#    https://stackoverflow.com/questions/5091993/list-of-all-available-matplotlib-backends
-#That said, we really want to do this *ANYWAY* to print this list when running
-#"betse info". So, let's just get this done, please.
-
-#FIXME: Consider contributing most or all of this submodule back to matplotlib.
-
 '''
 High-level support facilities for matplotlib, a mandatory runtime dependency.
 
@@ -79,6 +41,51 @@ Footnote descriptions are as follows:
    otherwise working (e.g., to display static plots).
 '''
 
+#FIXME: Redirect Matplotlib output through our logging interface. Currently, we
+#configure Matplotlib via the "RC_PARAMS" global constant to simply output all
+#non-debug messages to stdout, thereby preventing these messages from being
+#logged. While Matplotlib can be reconfigured to redirect output to a file
+#instead, doing so then prevents that output from also being redirected to
+#stdout. (See the matplotlib.Verbose.set_fileo() method for details.)
+#
+#Ultimately, this is what needs to happen. Either:
+#
+#* Monkey-patch the matplotlib.verbose.report() method to leverage the
+#  standard "logging" framework rather than simply printing to the currently
+#  configured "fileo" object. Note that "matplotlib.verbose" is an instance of
+#  the "matplotlib.Verbose" class. Sensible, that.
+#* The non-monkey-patch approach:
+#  1. Define a new BETSE-specific "LoggingVerbose" subclass of the
+#     "matplotlib.Verbose" class. This subclass should leverage the standard
+#     "logging" framework (e.g., by redefining the Verbose.report() method).
+#  2. Assign "matplotlib.verbose = LoggingVerbose()".
+#
+#Actually, I'd be quite satisfied by the latter approach. Let's do this right.
+#That should allow us to ignore all "verbose.*" rc parameters (e.g.,
+#"verbose.level"), simplifying logic below. We probably still want the same
+#"RC_PARAMS" global dictionary for use with future rc parameters -- but at least
+#we'd be able to eliminate this bit of "verbose.level" hackiness.
+#FIXME: While factually accurate for older versions of matplotlib, newer
+#versions appear to support logging to the standard Python "logging" API. If
+#this is indeed the case, we should probably proceed as follows:
+#
+#* Bump our matplotlib requirements to the first new version of matplotlib
+#  supporting the standard Python "logging" API.
+#* Unconditionally enable such logging from matplotlib.
+
+#FIXME: Refactor backend_names() to discover backend names via the standard
+#module "pkg_utils" rather than by manually delving through the filesystem,
+#which fails under frozen executables.
+
+#FIXME: It'd be great to raise human-readable exceptions on the specified
+#backends *NOT* being available. This is certainly feasible, as the
+#following stackoverflow answer demonstrates -- if somewhat involved:
+#    https://stackoverflow.com/questions/5091993/list-of-all-available-matplotlib-backends
+#That said, we really want to do this *ANYWAY* to print this list when running
+#"betse info". So, let's just get this done, please.
+
+#FIXME: Consider contributing most or all of this submodule back to matplotlib.
+
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To permit matplotlib's default verbosity and backend to be replaced
@@ -104,8 +111,33 @@ from betse.util.type.types import (
     type_check, MappingType, SequenceTypes, SetType, StrOrNoneTypes,)
 from contextlib import contextmanager
 
-# ....................{ CONSTANTS                          }....................
-RC_PARAMS = {
+# ....................{ GLOBALS ~ str                      }....................
+_BACKEND_NAME_HEADLESS = 'Agg'
+'''
+Name of the non-GUI-based matplotlib backend to fallback to in the event that
+*NO* GUI-based matplotlib backend is usable on this system. For portability,
+this backend is guaranteed to be usable on all platforms and systems regardless
+of matplotlib version.
+'''
+
+# ....................{ GLOBALS ~ dict                     }....................
+_LOG_LEVEL_TO_VERBOSITY_LEVEL_NAME = {
+    LogLevel.NONE:     'silent',
+    LogLevel.CRITICAL: 'silent',
+    LogLevel.ERROR:    'silent',
+    LogLevel.WARNING:  'silent',
+    LogLevel.INFO:     'helpful',
+    LogLevel.DEBUG:    'debug',
+    LogLevel.ALL:      'debug-annoying',
+}
+'''
+Dictionary mapping from each standard logging level expected by newer matplotlib
+versions (i.e., matplotlib >= 2.2.0) to the corresponding non-standard verbosity
+level name expected by older matplotlib versions (i.e., matplotlib < 2.2.0).
+'''
+
+
+_RC_PARAMS = {
     #FIXME: This doesn't appear to do anything anymore. Excise, please. *sigh*
 
     # Unconditionally print terse messages. By default, matplotlib prints *NO*
@@ -122,15 +154,6 @@ the :attr:`matplotlib.rcParams` dictionary of default ``matplotlibrc`` options
 deserialized from the current ``matplotlibrc`` file with this dictionary. Ergo,
 the custom options specified by this dictionary override the default options
 defined by that file.
-'''
-
-# ....................{ CONSTANTS ~ private                }....................
-_BACKEND_NAME_HEADLESS = 'Agg'
-'''
-Name of the non-GUI-based matplotlib backend to fallback to in the event that
-*NO* GUI-based matplotlib backend is usable on this system. For portability,
-this backend is guaranteed to be usable on all platforms and systems regardless
-of matplotlib version.
 '''
 
 # ....................{ CLASSES                            }....................
@@ -176,18 +199,18 @@ class MplConfig(object):
         # Initialize matplotlib in a safe manner.
         self._init_matplotlib()
 
-        # Define the default matplotlib backend *AFTER* initializing matplotlib.
+        # Establish the matplotlib backend *AFTER* initializing matplotlib.
         self._init_backend(backend_name=backend_name)
 
         # Register all custom colormaps *AFTER* initializing matplotlib.
         mplcolormap.init()
 
-        # Import all animation writer classes *AFTER* establishing the backend,
-        # thus implicitly registering these classes with matplotlib. This, in
-        # turn, permits other portions of the codebase to conveniently refer to
-        # these classes by name without having to manually instantiate them.
-        # (While it may or may not be necessary to import these classes after
-        # establishing the backend, it only seems prudent to do so.)
+        # Import all animation writer classes *AFTER* establishing the
+        # matplotlib backend, thus implicitly registering these classes with
+        # matplotlib. This permits other code in the codebase to conveniently
+        # refer to these classes by name without having to manually instantiate
+        # these classes. (While it may or may not be necessary to import these
+        # classes after establishing the backend, it is only prudent to do so.)
         from betse.lib.matplotlib.writer import mplcls
         if False: mplcls    # silence contemptible IDE warning messages
 
@@ -239,57 +262,116 @@ class MplConfig(object):
             # Logging configuration singleton.
             log_config = logconfig.get()
 
-            # Logging level of the stdout handler, representing the default
-            # logging level for the active Python process.
-            log_level = log_config.handler_stdout.level
+            # Logging level of the application-wide standard output handler,
+            # representing the default logging level for this Python process.
+            betse_log_level = log_config.handler_stdout.level
 
-            # Convert this numeric level to the corresponding name of the
-            # matplotlib-specific verbosity level. Since there exist fewer of
-            # the latter than the former, this conversion is necessarily lossy.
-            # A hearty thanks for failing to conform to well-established Python
-            # standards yet again, matplotlib.
-            verbosity_level_name = None
+            # Logging level of matplotlib itself, applicable *ONLY* to
+            # matplotlib >= 2.2.0. See comments below for contemptible details.
+            matplotlib_log_level = None
+
+            # Name of the matplotlib-specific verbosity level corresponding to
+            # this numeric level to the corresponding, applicable *ONLY* to
+            # matplotlib < 2.2.0.
+            #
+            # Since there exist fewer matplotlib-specific verbosity levels than
+            # standard logging lovels, this conversion is necessarily lossy. A
+            # hearty thanks for failing to conform to well-established Python
+            # standards yet again, matplotlib!
+            #
+            # Note that matplotlib-specific verbosity levels have been
+            # obsoleted as of matplotlib 2.2.0 by the standard "logging" API.
+            # Ergo, all of the logic below pertaining to this variable is
+            # required *ONLY* to ensure backward compatibility with older
+            # matplotlib versions (i.e., matplotlib < 2.2.0).
+            #
+            # Ideally, this logic would be conditionally performed *ONLY* if the
+            # current version of matplotlib is sufficiently old. Unfortunately,
+            # attempting to do so raises chicken-and-egg issues; notably, the
+            # current version of matplotlib can only be determined by importing
+            # the top-level "matplotlib" module, but doing so requires *ALL*
+            # matplotlib-specific CLI options (including those setting
+            # verbosity) to have already been injected into the "sys.argv" list.
+            # Since these two constraints are mutually exclusive *AND* since
+            # squelching verbosity in older versions of matplotlib takes
+            # precedence over doing so more intelligently, we do so
+            # unintelligently (i.e., unconditionally) -- regardless of whether
+            # the current version of matplotlib even supports these options.
+            matplotlib_log_level_name = None
 
             # If BETSE-specific debugging is enabled, enable the mildest form
             # of matplotlib-specific logging. While matplotlib also supports
             # the "debug" and "debug-annoying" verbosity levels, both produce
-            # far more effluvia than is helpful.
-            if log_level <= LogLevel.DEBUG:
-                verbosity_level_name = 'helpful'
+            # far more effluvia than is generally useful.
+            if betse_log_level <= LogLevel.DEBUG:
+                matplotlib_log_level = LogLevel.INFO
+                matplotlib_log_level_name = 'helpful'
             # Else, squelch all matplotlib-specific logging. Since matplotlib
             # supports no fine-grained verbosity levels between "helpful" and
             # "silent", reduce all non-debugging levels to merely "silent".
             else:
-                verbosity_level_name = 'silent'
+                matplotlib_log_level = LogLevel.WARNING
+                matplotlib_log_level_name = 'silent'
 
             # Convert this name into a matplotlib-specific CLI option.
-            # print('matplotlib verbosity: ' + verbosity_level_name)
-            # verbosity_level_name='debug'
-            sys.argv.append('--verbose-' + verbosity_level_name)
+            # print('matplotlib verbosity: ' + matplotlib_log_level_name)
+            # matplotlib_log_level_name='debug'
+            sys.argv.append('--verbose-' + matplotlib_log_level_name)
 
             #FIXME: We should additionally set the "ffmpeg"-specific CLI option
-            #"-loglevel" based on the above "log_level" as well -- perhaps by
+            #"-loglevel" based on the above "betse_log_level" as well -- perhaps by
             #setting "rcParams['animation.ffmpeg_args'] = '-report'" or some
             #such *AFTER* importing matplotlib below.
 
             # Log this initialization.
             logs.log_debug('Initializing matplotlib with options: %s', sys.argv)
 
-            # Import matplotlib submodules *AFTER* setting all matplotlib CLI
-            # options above, which this importation parses.
-            from matplotlib import rcParams, verbose  # , font_manager
+            # Set matplotlib's logging level *BEFORE* importing from matplotlib.
+            # Since matplotlib now defaults to the sane WARNING level, this
+            # could technically also be performed *AFTER* importing from
+            # matplotlib; doing so would, however, ignore all messages logged
+            # during this importation with a lower level. (That would be bad.)
+            #
+            # Note that this logic effectively reduces to a noop under older
+            # matplotlib versions (i.e., matplotlib < 2.2.0). Although
+            # non-ideal, this appears to have *NO* harmful side effects.
+            #
+            # Ideally, the following two lines would reduce to this one-liner:
+            #
+            #     self.log_level = matplotlib_log_level
+            #
+            # Unfortunately, the property setter implicitly invoked by such an
+            # assignment assumes matplotlib to already have been initialized --
+            # which, of course, it hasn't. (Chicken-and-egg issues, people.)
+            matplotlib_logger = logs.get('matplotlib')
+            matplotlib_logger.setLevel(matplotlib_log_level)
 
-            # Prevent the verbose.set_level() method from reducing to a noop,
-            # as occurs when this private attribute is *NOT* nullified. waat?
-            verbose._commandLineVerbose = None     # yes, this is horrible
+            # Import matplotlib submodules *AFTER* setting all matplotlib CLI
+            # options, which this importation internally parses in older
+            # versions of matplotlib as a non-idempotent side effect.
+            import matplotlib      # this is horrible
+            from matplotlib import rcParams  # , font_manager
+
+            # If the "matplotlib.verbose" object exists in this version,
+            # monkeypatch this object to prevent the
+            # matplotlib.verbose.set_level() method from reducing to a noop, as
+            # occurs when this private attribute is *NOT* nullified. waat?
+            #
+            # For reasons, matplotlib 2.2.0 critically broke backward
+            # compatibility in an apocalyptic manner by removing this object.
+            # For discussion, see the following matplotlib issue:
+            #
+            #     https://github.com/matplotlib/matplotlib/issues/10716
+            if hasattr(matplotlib, 'verbose'):  # this is horrible, too!
+                matplotlib.verbose._commandLineVerbose = None
         # Guarantee the prior argument list to be restored from this temporary
         # list even in the event of exceptions.
         finally:
             sys.argv = _sys_argv_old
             del(_sys_argv_old)
 
-        # Unconditionally enable settings defined by the "RC_PARAMS" global.
-        rcParams.update(RC_PARAMS)
+        # Unconditionally enable all settings defined by this global.
+        rcParams.update(_RC_PARAMS)
 
         #FIXME: Sadly, the "font_manager.USE_FONTCONFIG" global is currently
         #only modifiable by physically modifying the contents of the
@@ -458,8 +540,8 @@ class MplConfig(object):
         # * If this version exhibits formatting discrepancies introduced in
         #   recent matplotlib versions violating Python conventions for version
         #   specifiers (e.g., the non-compliant version "2.1.0-python3_4" rather
-        #   than the compliant version ""2.1.0"), sequence whose single item is
-        #   this version stripped of these discrepencies.
+        #   than the compliant version ""2.1.0"), a sequence whose single item
+        #   is this version stripped of these discrepencies.
         # * Else, "None".
         #
         # Note that this regular expression need *NOT* be compiled for
@@ -477,6 +559,92 @@ class MplConfig(object):
 
         # Return this possibly munged version.
         return version_return
+
+    # ..................{ PROPERTIES ~ log level             }..................
+    @property
+    def log_level(self) -> LogLevel:
+        '''
+        Matplotlib-specific logging level.
+
+        If this is a sufficiently old version of matplotlib *not* supporting the
+        :mod:`logging` API (i.e., matplotlib < 2.2.0), this method attempts to
+        internally convert from a matplotlib-specific verbosity level name to a
+        :mod:`logging` level. If this name is:
+
+        * ``silent``, hiding all Matplotlib output *except* non-fatal warnings,
+          :attr:`LogLevel.WARNING` is returned. Not exactly silent, is it?
+        * ``helpful``, emitting terse Matplotlib debugging output,
+          :attr:`LogLevel.INFO` is returned.
+        * `debug`, emitting verbose Matplotlib debugging output,
+          :attr:`LogLevel.DEBUG` is returned.
+        * `debug-annoying`, emitting *very* verbose Matplotlib debugging output.
+          :attr:`LogLevel.ALL` is returned. You *never* want this. Trust us.
+        '''
+
+        # Matplotlib-specific logger.
+        #
+        # Since this object unconditionally sets this logger's level regardless
+        # of whether the current matplotlib version actually logs to this
+        # logger, this logging level is returned as is. Ergo, the docstring
+        # above is an innocent lie. (Ignore it, please.)
+        matplotlib_logger = logs.get('matplotlib')
+
+        # Return this logger's level.
+        return matplotlib_logger.level
+
+
+    @log_level.setter
+    @type_check
+    def log_level(self, log_level: LogLevel) -> None:
+        '''
+        Set the current matplotlib-specific logging level to the passed level.
+
+        Parameters
+        -----------
+        log_level: LogLevel
+            Matplotlib-specific logging level to be set.
+        '''
+
+        # Matplotlib-specific logger.
+        #
+        # Note that this logic effectively reduces to a noop under older
+        # matplotlib versions (i.e., matplotlib < 2.2.0). Although
+        # non-ideal, this appears to have *NO* harmful side effects.
+        matplotlib_logger = logs.get('matplotlib')
+
+        # Set this logger's level to the passed level.
+        matplotlib_logger.setLevel(log_level)
+
+        # Delay importation of the "matplotlib.__init__" module. To ensure
+        # messages logged by this importation are logged with the passed level,
+        # we do so *AFTER* setting this level.
+        import matplotlib
+
+        # If the "matplotlib.verbose" object exists in this version, internally
+        # convert the passed level to an obsolete verbosity level name required
+        # by this obsolete version of matplotlib. *SIGH*
+        matplotlib_verbose = getattr(matplotlib, 'verbose', None)
+        if matplotlib_verbose is not None:  # this is horrible
+            # Non-standard verbosity level name corresponding to the passed
+            # level expected by older matplotlib versions (i.e., matplotlib <
+            # 2.2.0) *OR* "None" if no such name corresponds.
+            verbosity_level_name = _LOG_LEVEL_TO_VERBOSITY_LEVEL_NAME.get(
+                log_level, None)
+
+            # If this name is unrecognized, raise an exception. For unknown
+            # reasons, the Verbose.set_level() method called below unsafely
+            # emits non-fatal warnings rather than raising fatal exceptions on
+            # receiving an unrecognized level name.
+            if (
+                verbosity_level_name is None or
+                verbosity_level_name not in matplotlib_verbose.levels
+            ):
+                raise BetseMatplotlibException(
+                    'Matplotlib verbosity level "{}" unrecognized.'.format(
+                        verbosity_level_name))
+
+            # Set this verbosity level.
+            matplotlib_verbose.set_level(verbosity_level_name)
 
     # ..................{ PROPERTIES ~ path                  }..................
     @property
@@ -505,65 +673,6 @@ class MplConfig(object):
 
         # Return this path.
         return matplotlib.matplotlib_fname()
-
-    # ..................{ PROPERTIES ~ verbosity             }..................
-    @property
-    def verbosity_level_name(self) -> str:
-        '''
-        Name of the current matplotlib-specific verbosity level.
-
-        This name is guaranteed to be one of the following human-readable
-        lowercase alphabetic words (in order of increasing verbosity):
-
-        * `silent`, hiding all Matplotlib output _except_ non-fatal warnings.
-        * `helpful`, emitting terse Matplotlib debugging output.
-        * `debug`, emitting verbose Matplotlib debugging output.
-        * `debug-annoying`, emitting _very_ verbose Matplotlib debugging output.
-          (You never want this.)
-        '''
-
-        # Delay importation of the "matplotlib.__init__" module.
-        from matplotlib import verbose
-
-        # Return this name.
-        return verbose.level
-
-
-    @verbosity_level_name.setter
-    @type_check
-    def verbosity_level_name(self, verbosity_level_name: str) -> None:
-        '''
-        Set the current matplotlib-specific verbosity level to the level with
-        the passed name.
-
-        If this name is _not_ a recognized level name, an exception is raised.
-
-        Parameters
-        -----------
-        verbosity_level_name : str
-            Name of this level.
-
-        See Also
-        -----------
-        verbosity_level_name
-            This property's corresponding getter documents the set of all
-            recognized level names.
-        '''
-
-        # Delay importation of the "matplotlib.__init__" module.
-        from matplotlib import verbose
-
-        # If this name is unrecognized, raise an exception. For unknown
-        # reasons, the Verbose.set_level() method called below unsafely emits
-        # non-fatal warnings rather than raising fatal exceptions on receiving
-        # an unrecognized level name.
-        if verbosity_level_name not in verbose.levels:
-            raise BetseMatplotlibException(
-                'Matplotlib verbosity level "{}" unrecognized.'.format(
-                    verbosity_level_name))
-
-        # Set this verbosity level.
-        verbose.set_level(verbosity_level_name)
 
     # ..................{ PROPERTIES ~ backend               }..................
     @property
@@ -1105,27 +1214,29 @@ class MplConfig(object):
         return metadata
 
     # ..................{ CONTEXTS                           }..................
-    #FIXME: For orthogonality, rename to enabling_verbosity_debug_if_helpful().
     @contextmanager
-    def verbosity_debug_if_helpful(self):
+    def reducing_log_level_to_debug_if_info(self):
         '''
         Context manager setting the matplotlib-specific verbosity level to
-        ``debug`` if currently ``helpful`` for the duration of this context.
+        :attr:`LogLevel.DEBUG` if currently :attr:`LogLevel.INFO` for the
+        duration of this context.
 
         This context manager temporarily increases this level by one level.
-        Although the ``helpful`` and ``debug`` levels *both* produce debug
-        output, only the latter produces debug output for external commands
-        invoked by matplotlib (e.g., for encoding video via ``ffmpeg``); the
-        former produces *no* such output. Since the latter is overly verbose for
-        general use and hence useful only for specific cases, consider instead:
+        Although the :attr:`LogLevel.INFO` and :attr:`LogLevel.DEBUG` levels
+        *both* produce debug output, only the latter produces debug output for
+        external commands invoked by matplotlib (e.g., for encoding video via
+        ``ffmpeg``); the former produces *no* such output. Since the latter is
+        overly verbose for general use and hence useful only for specific cases,
+        consider instead:
 
-        * Defaulting to the ``helpful`` level.
-        * Escalating to the ``debug`` level by explicitly entering this context
-          manager for the duration of special-case work requiring verbosity.
+        * Defaulting to the :attr:`LogLevel.INFO` level.
+        * Escalating to the :attr:`LogLevel.DEBUG` level by explicitly entering
+          this context manager for the duration of special-case work requiring
+          verbosity.
 
         This context manager guaranteeably reverts this level to the prior
         level even when fatal exceptions are raised. If this level is *not*
-        currently ``helpful``, this context manager is a noop.
+        currently :attr:`LogLevel.INFO`, this context manager is a noop.
 
         Returns
         -----------
@@ -1140,16 +1251,16 @@ class MplConfig(object):
         '''
 
         # If the current level is "helpful"...
-        if self.verbosity_level_name == 'helpful':
+        if self.log_level is LogLevel.INFO:
             # Escalate to the "debug" level temporarily.
-            self.verbosity_level_name = 'debug'
+            self.log_level = LogLevel.DEBUG
 
             # Yield control to the body of the caller's "with" block.
             try:
                 yield
             # Revert to the prior level even if that block raised an exception.
             finally:
-                self.verbosity_level_name = 'helpful'
+                self.log_level = LogLevel.INFO
         # Else, the current level is *NOT* "helpful". Reduce to a noop.
         else:
             yield
