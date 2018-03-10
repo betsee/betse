@@ -109,11 +109,7 @@ class AnimCellsPipe(SimPipeExportABC):
 
     @piperunner(
         categories=('Current Density', 'Extracellular',),
-        requirements=phasereqs.ELECTRIC_CURRENT,
-
-        #FIXME: Remove this after the "Simulator.I_tot_x_time" and
-        #"Simulator.I_tot_x_time" arrays are well-defined with ECM disabled.
-        # requirements={phasereqs.ECM,},
+        requirements=phasereqs.ELECTRIC_CURRENT_EXTRA,
     )
     def export_currents_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''

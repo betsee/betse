@@ -727,11 +727,6 @@ class Simulator(object):
         # load in the microtubules object:
         self.mtubes = Mtubes(self, cells, p)
 
-        # smoothing weights for membrane and central values:
-        nfrac = 100
-        self.smooth_weight_mem = ((nfrac*cells.num_mems[cells.mem_to_cells] -1)/(nfrac*cells.num_mems[cells.mem_to_cells]))
-        self.smooth_weight_o = 1/(nfrac*cells.num_mems[cells.mem_to_cells])
-
         self.u_cells_x = 0.0
         self.u_cells_y = 0.0
 
@@ -747,6 +742,11 @@ class Simulator(object):
 
         This method is called at the start of all simulations.
         '''
+
+        # smoothing weights for membrane and central values:
+        nfrac = p.smooth_cells
+        self.smooth_weight_mem = ((nfrac*cells.num_mems[cells.mem_to_cells] -1)/(nfrac*cells.num_mems[cells.mem_to_cells]))
+        self.smooth_weight_o = 1/(nfrac*cells.num_mems[cells.mem_to_cells])
 
         # # load in the gap junction dynamics object:
         if p.v_sensitive_gj:
@@ -1513,7 +1513,7 @@ class Simulator(object):
             enabled by this configuration *or* ``None`` otherwise.
         '''
 
-        # Localize frequently accessed variables for efficiency when iterating.
+        # Localize frequently-accessed variables for efficiency when iterating.
         p = phase.p
         cells = phase.cells
 
@@ -1586,22 +1586,28 @@ class Simulator(object):
 
             Jgj = self.G_gj*np.dot(cells.M_sum_mems, self.vgj)
 
-            # Update Vmem:
-            # FIXME: this could probably include a tally of currents, as well as cell self-polarization
-
             Jmem = np.dot(cells.M_sum_mems, self.extra_J_mem*cells.mem_sa)/cells.cell_sa
 
             self.vm_ave += p.dt*(1/p.cm)*(Jgj - Jmem - self.G_Leak*(self.vm_ave - self.E_Leak))
 
             self.vm = self.vm_ave[cells.mem_to_cells]
 
+            # Currents:
+            Jtot = -self.vgj*self.G_gj[cells.mem_to_cells] + self.extra_J_mem
+
+            Jcx = Jtot * cells.mem_vects_flat[:, 2]
+            Jcy = Jtot * cells.mem_vects_flat[:, 3]
+
+            # average intracellular current to cell centres
+            self.J_cell_x = np.dot(cells.M_sum_mems, Jcx * cells.mem_sa) / cells.cell_sa
+            self.J_cell_y = np.dot(cells.M_sum_mems, Jcy * cells.mem_sa) / cells.cell_sa
+
+            # intracellular electric field:
+            self.E_cell_x = self.J_cell_x / (0.1 * self.sigma_cell)
+            self.E_cell_y = self.J_cell_y / (0.1 * self.sigma_cell)
+
             # check for NaNs in voltage and stop simulation if found:
             stb.check_v(self.vm_ave)
-
-            # # Extra details
-            # self.Jmem = Jmem + self.G_Leak*(self.vm_ave - self.E_Leak)
-            # self.Jgj = -Jgj
-            # self.Jn = -Jgj + Jmem + self.G_Leak*(self.vm_ave - self.E_Leak)
 
 
             # ---------time sampling and data storage---------------------------------------------------
@@ -1613,6 +1619,12 @@ class Simulator(object):
                 # microtubules:
                 self.mtubes_x_time.append(self.mtubes.mtubes_x * 1)
                 self.mtubes_y_time.append(self.mtubes.mtubes_y * 1)
+
+                self.I_cell_x_time.append(self.J_cell_x * 1)
+                self.I_cell_y_time.append(self.J_cell_y * 1)
+
+                self.efield_gj_x_time.append(self.E_cell_x[cells.mem_to_cells] * 1)
+                self.efield_gj_y_time.append(self.E_cell_y[cells.mem_to_cells] * 1)
 
                 self.gjopen_time.append(self.gjopen*1)
 
@@ -1999,10 +2011,21 @@ class Simulator(object):
 
 
         # average vm:
-        self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
+        self.vm_ave = np.dot(cells.M_sum_mems, self.vm*cells.mem_sa)/cells.cell_sa
+
+        # self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
+
 
         # smooth voltages at the membrane:
-        # self.vm = self.smooth_weight_mem * self.vm + self.vm_ave[cells.mem_to_cells] * self.smooth_weight_o
+        self.vm = self.smooth_weight_mem * self.vm + self.vm_ave[cells.mem_to_cells] * self.smooth_weight_o
+
+        # # average intracellular electric field at cell centres:
+        # gE = (self.vm_ave[cells.cell_nn_i[:, 1]] - self.vm_ave[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+        # gEx = -gE * cells.mem_vects_flat[:, 2]
+        # gEy = -gE * cells.mem_vects_flat[:, 3]
+
+        # self.E_cell_x = np.dot(cells.M_sum_mems, gEx*cells.mem_sa) / cells.cell_sa
+        # self.E_cell_y = np.dot(cells.M_sum_mems, gEy*cells.mem_sa) / cells.cell_sa
 
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt
@@ -2083,6 +2106,11 @@ class Simulator(object):
 
         self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
 
+        # smooth the vgj:
+        vgj_ave = np.dot(cells.M_sum_mems, self.vgj * cells.mem_sa) / cells.cell_sa
+        self.vgj = self.smooth_weight_mem * self.vgj + vgj_ave[cells.mem_to_cells] * self.smooth_weight_o
+
+        # store transjunctional electric field:
         self.Egj = -self.vgj/cells.gj_len
 
         self.E_gj_x = self.Egj*cells.mem_vects_flat[:,2]

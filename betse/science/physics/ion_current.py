@@ -22,6 +22,11 @@ def get_current(sim, cells, p):
     # add the free current sources together into a single transmembrane current:
     sim.Jn = sim.Jmem + sim.Jgj
 
+    # average the transmembrane current to the cell centre (for smoothing):
+    Jn_ave = np.dot(cells.M_sum_mems, sim.Jn*cells.mem_sa) / cells.cell_sa
+    # Smooth the free current at the membrane:
+    sim.Jn = sim.smooth_weight_mem * sim.Jn + Jn_ave[cells.mem_to_cells] * sim.smooth_weight_o
+
     # multiply final result by membrane surface area to obtain current (direction into cell is +)
     sim.I_mem = -sim.Jn*cells.mem_sa
 
@@ -40,9 +45,8 @@ def get_current(sim, cells, p):
     sim.sigma_cell = np.asarray([((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
                                  zip(sim.zs, sim.cc_cells, sim.D_free)]).mean(axis=0)
 
-    # average intracellular electric field at cell centres:
-    sim.E_cell_x = sim.J_cell_x/sim.sigma_cell
-    sim.E_cell_y = sim.J_cell_y/sim.sigma_cell
+    sim.E_cell_x = sim.J_cell_x/(0.1*sim.sigma_cell)
+    sim.E_cell_y = sim.J_cell_y/(0.1*sim.sigma_cell)
 
     # calculate electric field in cells using net intracellular current and cytosol conductivity:
     sim.Emc = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +

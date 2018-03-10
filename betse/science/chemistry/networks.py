@@ -31,6 +31,7 @@ from collections import OrderedDict
 from matplotlib import cm
 from matplotlib import colors
 from scipy.optimize import basinhopping
+from betse.science.math import finitediff as fd
 
 # ....................{ CLASSES                            }....................
 # FIXME: if moving to have unpacked membrane concs, update transporters...
@@ -5556,6 +5557,7 @@ class Molecule(object):
             name = self.name,
             transmem = self.transmem,
             mu_mem = self.Mu_mem,
+            umt = self.u_mt,
         )
 
     def updateC(self, flux, sim, cells, p):
@@ -5589,13 +5591,8 @@ class Molecule(object):
             # first determine if the substance is transported by motor proteins:
             if self.u_mt != 0.0:
 
-                # calculate normal component of microtubules at membrane:
-                umx, umy = sim.mtubes.mtubes_to_cell(cells, p)
-
-                umtn = (umx[cells.mem_to_cells]*cells.mem_vects_flat[:,2] +
-                        umy[cells.mem_to_cells]*cells.mem_vects_flat[:,3])
-
-                c_motor = (umtn*self.u_mt*cp)
+                # motor protein transport on microtubules:
+                c_motor = (sim.mtubes.umtn*self.u_mt*cp)
 
             else:
                 c_motor = 0.0
@@ -5635,17 +5632,15 @@ class Molecule(object):
 
                 if z != 0.0 or self.Mu_mem != 0.0:
 
-                    # normal component of electric field at membranes from intracellular current/field:
-                    En = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
-                          sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+                    # En = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+                    #       sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+                    En = sim.Eme
 
                 else:
 
                     En = 0.0
 
-
                 uflow = 0.0
-
 
             c_diffusion = (-Do*cg)
             c_ephoresis_A = ((Do*p.q*z)/(p.kb*sim.T))*cp*En
@@ -5658,9 +5653,11 @@ class Molecule(object):
             # as no net mass must leave this intracellular movement, make the flux divergence-free:
             if self.transmem is False:
                 cflux = stb.single_cell_div_free(cfluxo, cells)
+                div_flux = 0.0
 
             else: # Transmem can have intercellular movements; ignore div-free constraint for this option
                 cflux = cfluxo
+                div_flux = np.dot(cells.M_sum_mems, cflux*cells.mem_sa)/cells.cell_vol
 
             # calculate the actual concentration at membranes by unpacking to concentration vectors:
             self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt*self.modify_time_factor
@@ -5668,7 +5665,9 @@ class Molecule(object):
             # smooth the concentration:
             self.cc_at_mem = self.smooth_weight_mem*self.cc_at_mem + self.smooth_weight_o*cav
 
-            self.c_cells = np.dot(cells.M_sum_mems, self.cc_at_mem*cells.mem_sa)/cells.cell_sa
+            # update cell centroids for cases of transmembrane movements:
+            self.c_cells += div_flux*p.dt*self.modify_time_factor
+
             # update the main matrices:
             self.flux_intra = cflux*1
 

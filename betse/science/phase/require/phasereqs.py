@@ -55,6 +55,34 @@ NONE = SimPhaseRequirements()
 simulation phases regardless of which simulation features those phases enable).
 '''
 
+
+ELECTRIC_CURRENT = NONE
+'''
+Requirements that a simulation phase enable electrical currents and hence at
+least intracellular electrical currents.
+
+Simulation phases satisfying this requirement do *not* necessarily enable
+extracellular electrical currents, which additionally require the full solver
+to be enabled.
+'''
+
+
+ELECTRIC_FIELD = NONE
+'''
+Requirements that a simulation phase enable electrical fields and hence at
+least intracellular electrical fields.
+
+Simulation phases satisfying this requirement do *not* necessarily enable
+extracellular electrical fields, which additionally require the full solver to
+be enabled.
+'''
+
+
+MICROTUBULE = NONE
+'''
+Requirements that a simulation phase enable microtubules.
+'''
+
 # ....................{ REQUIREMENTS ~ bool                }....................
 # Requirements satisfied by enabling a requirement-specific boolean.
 
@@ -101,30 +129,24 @@ Requirements that a simulation phase enable the full BETSE solver.
 # simulation configuration file permitting these currently unconditional
 # simulation features to be selectively disabled.
 
-ELECTRIC_CURRENT = SOLVER_FULL
+
+ELECTRIC_CURRENT_EXTRA = SOLVER_FULL
 '''
-Requirements that a simulation phase enable electrical currents.
+Requirements that a simulation phase enable extracellular electrical currents.
 
-Simulation phases satisfying this requirement necessarily enable both
-intra- and extracellular electrical fields, the latter of which does *not*
-require extracellular spaces to be enabled.
-'''
-
-
-ELECTRIC_FIELD = SOLVER_FULL
-'''
-Requirements that a simulation phase enable electrical fields and hence at least
-intracellular electrical fields.
-
-Simulation phases satisfying this requirement do *not* necessarily enable
-extracellular electrical fields, which additionally require extracellular spaces
-to be enabled.
+Simulation phases satisfying this requirement necessarily enable the full solver
+but *not* extracellular spaces, which are *not* required to simulate
+extracellular electrical currents.
 '''
 
 
-MICROTUBULE = SOLVER_FULL
+ELECTRIC_CURRENT_MEMBRANE = SOLVER_FULL
 '''
-Requirements that a simulation phase enable microtubules.
+Requirements that a simulation phase enable transmembrane electrical currents.
+
+Simulation phases satisfying this requirement necessarily enable the full solver
+but *not* extracellular spaces, which are *not* required to simulate
+transmembrane electrical currents.
 '''
 
 

@@ -1064,7 +1064,9 @@ internal parameters:
 
   fast update ecm: False  # use a coarse (fast) or fine (slow) method to update between env and cell grids?
 
-  sharpness: 1.0  # Factor smoothing environmental concentrations, 0.0 max smoothing, 1.0 no smoothing
+  sharpness env: 1.0  # Factor smoothing environmental concentrations, 0.0 max smoothing, 1.0 no smoothing
+
+  sharpness cell: 0.5 # Factor smoothing cellular fields, 0.0 maximum smoothing, 1.0 no smoothing.
 
 
 # Configuration file version that this file conforms to. For reliable

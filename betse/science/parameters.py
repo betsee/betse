@@ -959,7 +959,9 @@ class Parameters(YamlFileABC):
 
         self.fast_update_ecm = iu.get('fast update ecm', False)  # quick or slow update to cell<--> ecm grid exchange?
 
-        self.sharpness = float(iu.get('sharpness', 0.999))
+        self.sharpness = float(iu.get('sharpness env', 0.999))
+
+        self.smooth_cells = 1/float(iu.get('sharpness cell', 0.5))
 
         self.fluid_cap = float(iu.get('fluid flow ceiling', 99999))
 

@@ -290,7 +290,7 @@ class PlotCellsPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Current Density', 'Extracellular',),
-        requirements=phasereqs.ELECTRIC_CURRENT,
+        requirements=phasereqs.ELECTRIC_CURRENT_EXTRA,
     )
     def export_currents_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -660,20 +660,40 @@ class PlotCellsPipe(PlotPipeABC):
         # Prepare to export the microtubules plot.
         self._export_prep()
 
+        umtx, umty = self._phase.sim.mtubes.mtubes_to_cell(self._phase.cells, self._phase.p)
+
         pyplot.figure()
         ax = pyplot.subplot(111)
 
-        plotutil.mem_quiver(
-            self._phase.sim.mtubes.mtubes_x,
-            self._phase.sim.mtubes.mtubes_y,
-            ax,
+        plotutil.plotVectField(
+            umtx,
+            umty,
             self._phase.cells,
             self._phase.p,
+            plot_ecm=False,
+            title='Final Microtubule Alignment Field',
+            cb_title='Aligned MT Fraction',
+            colorAutoscale=conf.is_color_autoscaled,
+            minColor=conf.color_min,
+            maxColor=conf.color_max,
         )
+
+        # pyplot.figure()
+        # ax = pyplot.subplot(111)
+        # umtx, umty = self._phase.sim.mtubes.mtubes_to_cell(self._phase.cells, self._phase.p)
+        # plotutil.cell_quiver(umtx, umty, ax, self._phase.cells, self._phase.p)
+
+        # plotutil.mem_quiver(
+        #     self._phase.sim.mtubes.mtubes_x,
+        #     self._phase.sim.mtubes.mtubes_y,
+        #     ax,
+        #     self._phase.cells,
+        #     self._phase.p,
+        # )
 
         ax.set_xlabel('X-Distance [um]')
         ax.set_ylabel('Y-Distance [um]')
-        ax.set_title('Microtubule arrangement in cells')
+        ax.set_title('Net microtubule alignment in cells')
 
         # Export this plot to disk and/or display.
         self._export(basename='Final_Microtubules')

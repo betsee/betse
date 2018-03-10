@@ -53,7 +53,7 @@ class PlotCellPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ cell : current         }..................
     @piperunner(
         categories=('Current Density', 'Transmembrane',),
-        requirements=phasereqs.ELECTRIC_CURRENT,
+        requirements=phasereqs.ELECTRIC_CURRENT_MEMBRANE,
     )
     def export_currents_membrane(self, conf: SimConfVisualCellListItem) -> None:
         '''
