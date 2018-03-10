@@ -423,7 +423,7 @@ class CLIOptionArgEnum(CLIOptionArgABC):
         # Validate and convert this option's string argument.
         self._add_argument_kwargs.update({
             # Set of the lowercased names of all members of this enumeration.
-            'choices': enums.get_names_lowercase(enum_type),
+            'choices': enums.get_member_names_lowercase(enum_type),
         })
 
 

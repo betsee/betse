@@ -113,11 +113,11 @@ def get_version() -> str:
 
     return platform.python_version()
 
-# ....................{ GETTERS ~ path                     }....................
+# ....................{ GETTERS ~ filename                 }....................
 def get_command_line_prefix() -> list:
     '''
     List of one or more shell words unambiguously running the executable binary
-    specific to the active Python interpreter and machine architecture.
+    for the active Python interpreter and machine architecture.
 
     Since the absolute path of the executable binary for the active Python
     interpreter is insufficient to unambiguously run this binary under the
@@ -163,21 +163,40 @@ def get_command_line_prefix() -> list:
 
 def get_filename() -> str:
     '''
-    Absolute path of the executable binary for the active Python interpreter.
+    Absolute filename of the executable binary for the active Python process.
     '''
 
-    # Absolute path of the executable binary for the active Python interpreter
-    # if this path is retrievable by Python *OR* either "None" or the empty
-    # string otherwise.
+    # Absolute filename of this executable if this path is retrievable by Python
+    # *OR* either "None" or the empty string otherwise.
     py_filename = sys.executable
 
-    # If this path is retrievable by Python, raise an exception.
+    # If this filename is *NOT* retrievable, raise an exception.
     if not py_filename:
         raise BetsePyException(
-            'Absolute path of Python interpreter not retrievable.')
+            'Absolute filename of Python interpreter not retrievable.')
 
-    # Return this path.
+    # Return this filename.
     return py_filename
+
+
+def get_shebang() -> str:
+    '''
+    POSIX-compliant **shebang** (i.e., machine-readable ``#!``-prefixed first
+    line of interpretable scripts) unambiguously running the executable binary
+    for the active Python interpreter and machine architecture.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text import strs
+
+    # List of one or more shell words unambiguously running this binary.
+    py_command_args = get_command_line_prefix()
+
+    # Space-delimited string listing these words.
+    py_command = strs.join_on_space(py_command_args)
+
+    # Return this string prefixed by the shebang identifier.
+    return '#!' + py_command
 
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadata() -> 'OrderedArgsDict':

@@ -244,7 +244,7 @@ def is_member_name(enum_type: EnumType, enum_member_name: str) -> bool:
     # method for testing enumeration member existence by name. Thanks, Guido.)
     return enum_member_name in enum_type.__members__
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS ~ enum                     }....................
 @type_check
 def get_converter_name_to_uppercase_enum_member(
     enum_type: EnumType) -> CallableTypes:
@@ -301,6 +301,27 @@ def get_converter_name_to_uppercase_enum_member(
 
 
 @type_check
+def get_member_names_lowercase(enum_type: EnumType) -> SequenceTypes:
+    '''
+    Sequence of the unqualified lowercased names of all members of the passed
+    enumeration type in **declaration order** (i.e., the order in which these
+    members were originally declared).
+
+    Parameters
+    ----------
+    enum_type : EnumType
+        Enumeration type to be inspected.
+
+    Returns
+    ----------
+    SequenceTypes
+        Sequence of the lowercased names of all members of this enumeration.
+    '''
+
+    return tuple(iter_names_lowercase(enum_type))
+
+# ....................{ GETTERS ~ member                   }....................
+@type_check
 def get_enum_name_from_member(enum_member: EnumMemberType) -> str:
     '''
     Unqualified name of the enumeration class to which the passed enumeration
@@ -325,13 +346,10 @@ def get_enum_name_from_member(enum_member: EnumMemberType) -> str:
 
 
 @type_check
-def get_member_name(enum_member: EnumMemberType) -> str:
+def get_class_member_name(enum_member: EnumMemberType) -> str:
     '''
     Partially-qualified name of the passed enumeration member (e.g.,
     ``SolverType.FULL``), excluding the module defining this enumeration.
-
-    Note that the :attr:`enum_member.name` attribute already provides this
-    member's unqualified name (e.g., ``FULL``).
 
     Parameters
     ----------
@@ -341,33 +359,66 @@ def get_member_name(enum_member: EnumMemberType) -> str:
     Returns
     ----------
     str
-        Partially-qualified name of this enumeration member
+        Partially-qualified name of this member.
+
+    See Also
+    ----------
+    :func:`get_member_name`
+        Unqualified name of this member.
     '''
 
     # Makes sense.
     return str(enum_member)
 
 
-#FIXME: Rename to get_member_names_lowercase() for disambiguity.
 @type_check
-def get_names_lowercase(enum_type: EnumType) -> SequenceTypes:
+def get_member_name(enum_member: EnumMemberType) -> str:
     '''
-    Sequence of the lowercased names of all members of the passed enumeration
-    type in **declaration order** (i.e., the order in which these members were
-    originally declared).
+    Unqualified name of the passed enumeration member (e.g., ``FULL`` given a
+    member ``SolverType.FULL``).
+
+    Since the :attr:`enum_member.name` attribute already provides this name,
+    this function principally exists for orthogonality with other getters.
 
     Parameters
     ----------
-    enum_type : EnumType
-        Enumeration type to be inspected.
+    enum_member : EnumMemberType
+        Enumeration member to be inspected.
 
     Returns
     ----------
-    SequenceTypes
-        Sequence of the lowercased names of all members of this enumeration.
+    str
+        Unqualified name of this member.
+
+    See Also
+    ----------
+    :func:`get_class_member_name`
+        Partially-qualified name of this member.
     '''
 
-    return tuple(iter_names_lowercase(enum_type))
+    # Believe it.
+    return enum_member.name
+
+
+@type_check
+def get_member_name_lowercase(enum_member: EnumMemberType) -> str:
+    '''
+    Unqualified lowercase name of the passed enumeration member (e.g., ``full``
+    given a member ``SolverType.FULL``).
+
+    Parameters
+    ----------
+    enum_member : EnumMemberType
+        Enumeration member to be inspected.
+
+    Returns
+    ----------
+    str
+        Unqualified lowercase name of this member.
+    '''
+
+    # It cannot be, yet it is.
+    return enum_member.name.tolower()
 
 # ....................{ ITERATORS                          }....................
 @type_check
