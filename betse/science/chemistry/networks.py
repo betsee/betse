@@ -5586,8 +5586,6 @@ class Molecule(object):
 
         elif self.update_intra_conc is True:
 
-            # carry out the operation as usual
-
             # first determine if the substance is transported by motor proteins:
             if self.u_mt != 0.0:
 
@@ -5603,7 +5601,10 @@ class Molecule(object):
 
                 if z != 0.0 or self.Mu_mem != 0.0:
 
-                    _, _, En = stb.map_to_cells(sim.E_env_x, sim.E_env_y, cells, p, smoothing=0.0)
+                    # get gradient of raw environmental voltage -- this is the electric field at the membrane:
+                    vex, vey = fd.gradient(sim.v_env, cells.delta, cells.delta)
+
+                    _, _, En = stb.map_to_cells(-vex, -vey, cells, p, smoothing=0.0)
 
                 else:
 
@@ -5632,8 +5633,6 @@ class Molecule(object):
 
                 if z != 0.0 or self.Mu_mem != 0.0:
 
-                    # En = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
-                    #       sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
                     En = sim.Eme
 
                 else:
@@ -6132,7 +6131,6 @@ class Molecule(object):
                 'Skipping environmental animation of %s '
                 'due to 100%% null values!', self.name)
 
-
 class Reaction(object):
 
     def __init__(self, sim, cells, p):
@@ -6521,3 +6519,43 @@ def tex_val(v):
         v_str = "%.2f" % (v)
 
     return v_str
+
+
+#-------Wastelands-----------------------------------------------------------------------------------------------------
+
+# # ----Steady-state solver method---------------------------------------------------------------------------
+#
+# if self.transmem is True:
+#
+#         # get gradient of raw environmental voltage -- this is the electric field at the membrane:
+#         vex, vey = fd.gradient(sim.v_env, cells.delta, cells.delta)
+#
+#         _, _, En = stb.map_to_cells(-vex, -vey, cells, p, smoothing=0.0)
+#
+# else:
+#
+#     En = sim.Eme
+#
+#
+# if p.fluid_flow is True and self.transmem is True:
+#
+#     # normal component of fluid flow at membranes from *extra*cellular flow:
+#     _, _, uflow = stb.map_to_cells(sim.u_env_x, sim.u_env_y, cells, p, smoothing = 0.0)
+#
+#
+# else:
+#
+#     uflow = 0.0
+#
+#
+# # Total force field inside the cell:
+# FF = sim.mtubes.umtn*self.u_mt + ((Do*p.q*z)/(p.kb*sim.T))*En + self.Mu_mem*En + uflow
+#
+# # Use a steady state approximation with the cell centre values:
+# # self.cc_at_mem = cav*np.exp((sim.mtubes.umtn*self.u_mt*cells.R_rads)/Do)
+#
+# self.cc_at_mem += cav * np.exp((FF * cells.R_rads) / Do)
+#
+# # self.cc_at_mem += cav * (1 + ((FF * cells.R_rads) / Do))
+
+# --------------------------------------------------------------------------------------------------------

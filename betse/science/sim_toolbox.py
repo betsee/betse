@@ -986,21 +986,34 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
                        rho=1
                        )
 
+        # if update_intra is False and umt != 0.0:
+        #     ugj = umt*sim.mtubes.umtn
+        #
+        # else:
+        #     ugj = 0.0
+
+        # gv = (sim.vm[cells.nn_i] - sim.vm[cells.mem_i]) / (cells.nn_len)
+        # gc = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i])/(cells.nn_len)
+        # cp = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i])/2
+        #
+        # fgj_X = nernst_planck_vector(cp, gc, gv, 0.0, Dgj*sim.gj_block*sim.gjopen, z, sim.T, p)
+
 
         # enforce zero flux at outer boundary:
         fgj_X[cells.bflags_mems] = 0.0
 
-        # divergence calculation for individual cells (finite volume expression)
-        delta_cco = np.dot(cells.M_sum_mems, -fgj_X*cells.mem_sa) / cells.cell_vol
+        delta_cco = np.dot(cells.M_sum_mems, -fgj_X * cells.mem_sa) / cells.cell_vol
 
         # Calculate the final concentration change (the acceleration effectively speeds up time):
         if update_intra is False: # do the GJ transfer assuming instant mixing in the cell:
+            # divergence calculation for individual cells (finite volume expression)
             cX_cells = cX_cells + p.dt*delta_cco*time_dilation_factor
             cX_mems = cX_cells[cells.mem_to_cells]
 
-        else: # only do the GJ transfer to the cell centres and leave cX_mems:
+        else: # only update the membranes; calculate cell centre as the average:
             cX_cells = cX_cells + p.dt * delta_cco * time_dilation_factor
-
+            # cX_mems += -fgj_X*(cells.mem_sa/cells.mem_vol)*(1/cells.num_mems[cells.mem_to_cells])*p.dt*time_dilation_factor
+            cX_mems += -fgj_X*(cells.mem_sa/cells.mem_vol)*p.dt*time_dilation_factor
 
     else:
         fgj_X = np.zeros(sim.mdl)
@@ -1126,8 +1139,11 @@ def update_Co(sim, cX_cell, cX_mem, cX_env, flux, cells, p, ignoreECM = True, up
         cX_cell = cX_cell + delta_cells * p.dt
         cX_mem = cX_cell[cells.mem_to_cells]
 
-    else: # update only the centre as the membranes are handled separately
+    else: # update only the membranes, treat cell centre as the average:
+        # cX_mem += flux*(cells.mem_sa/cells.mem_vol)*(1/cells.num_mems[cells.mem_to_cells])*p.dt
+        cX_mem += flux * (cells.mem_sa / cells.mem_vol)*p.dt
         cX_cell = cX_cell + delta_cells * p.dt
+
 
     if p.is_ecm is True:
 

@@ -41,17 +41,6 @@ def get_current(sim, cells, p):
     # normal component of J_cell at the membranes:
     sim.Jc = sim.J_cell_x[cells.mem_to_cells]*cells.mem_vects_flat[:,2] + sim.J_cell_y[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
 
-    # conductivity of cells:
-    sim.sigma_cell = np.asarray([((z ** 2) * p.q * p.F * cc * D) / (p.kb * p.T) for (z, cc, D) in
-                                 zip(sim.zs, sim.cc_cells, sim.D_free)]).mean(axis=0)
-
-    sim.E_cell_x = sim.J_cell_x/(0.1*sim.sigma_cell)
-    sim.E_cell_y = sim.J_cell_y/(0.1*sim.sigma_cell)
-
-    # calculate electric field in cells using net intracellular current and cytosol conductivity:
-    sim.Emc = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
-               sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
-
     # Current in the environment --------------------------------------------------------------------------------------
     if p.is_ecm is True:
 

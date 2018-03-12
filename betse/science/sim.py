@@ -524,7 +524,8 @@ class Simulator(object):
         self.P_cells = np.zeros(self.cdl)  # initialize pressure in cells
 
         self.v_cell = np.zeros(self.cdl)  # initialize intracellular (long range) voltage
-        self.vm = np.zeros(self.mdl)     # initialize vmem
+        self.vm = np.zeros(self.mdl)     # initialize Vmem at membranes
+        self.vm_ave = np.zeros(self.cdl)  # initialize average Vmem at cell centres
         self.rho_cells = np.zeros(self.cdl)
 
         self.E_gj_x = np.zeros(self.mdl)   # electric field components across gap junctions (micro-field)
@@ -1974,6 +1975,11 @@ class Simulator(object):
         # get the currents and in-cell and environmental voltages:
         get_current(self, cells, p)
 
+        # conductivity of cells:
+        self.sigma_cell = np.asarray([((z ** 2) * (p.F**2) * cc * D * 0.1) / (p.R * p.T) for (z, cc, D) in
+                                     zip(self.zs, self.cc_cells, self.D_free)]).mean(axis=0)
+
+
         if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
             # change in charge density at the membrane:
@@ -1989,43 +1995,68 @@ class Simulator(object):
 
                 self.vm += -self.v_env[cells.map_mem2ecm]
 
+            # average vm:
+            # self.vm_ave = np.dot(cells.M_sum_mems, self.vm*cells.mem_sa)/cells.cell_sa
+            self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
+
+            self.E_cell_x = self.J_cell_x/(self.sigma_cell)
+            self.E_cell_y = self.J_cell_y/(self.sigma_cell)
+
+            # calculate electric field in cells using net intracellular current and cytosol conductivity:
+            self.Emc = (self.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+                       self.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+
 
         else:
 
-            # Electrical polarization charge component created by extracellular electric field:
-            P_env = p.cell_polarizability * p.eo * self.Eme
+            # Calculate the central voltage value in the cell from total change in cell charge:
+            # Jtot = np.dot(cells.M_sum_mems, self.Jn*cells.mem_sa)/cells.cell_sa
+            # self.vm_ave += -(1/p.cm)*Jtot*p.dt
 
-            # Electrical polarization charge component created by intracellular electric field:
-            P_cells = p.cell_polarizability * p.eo * self.Emc
-
-            # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
-            # convert volume charge density to surface charge density:
             rho_surf = self.rho_cells * cells.diviterm
+            # vm_o = (1/p.cm)*rho_surf[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]
+            vm_o = (1/p.cm)*rho_surf[cells.mem_to_cells]
 
-            # In terms of intracellular charge:
-            self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells] + (1 / p.cm) * P_env + (1 / p.cm) * P_cells
+            self.vm = (self.vm - (p.dt/p.cm)*self.Jn +
+                       ((p.dt*self.sigma_cell[cells.mem_to_cells]*vm_o)/(p.cm*cells.R_rads)))/(1 +
+                       ((p.dt*self.sigma_cell[cells.mem_to_cells])/(p.cm*cells.R_rads)))
 
-            if p.is_ecm:
+            # average vm:
+            # self.vm_ave = np.dot(cells.M_sum_mems, self.vm*cells.mem_sa)/cells.cell_sa
+            self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
 
-                self.vm += -self.v_env[cells.map_mem2ecm]
+            # average intracellular electric field at cell centres:
+            gE = (self.vm - self.vm_ave[cells.mem_to_cells]) / cells.R_rads  # concentration gradients
+            gEx = -gE * cells.mem_vects_flat[:, 2]
+            gEy = -gE * cells.mem_vects_flat[:, 3]
+
+            self.E_cell_x = np.dot(cells.M_sum_mems, gEx * cells.mem_sa) / cells.cell_sa
+            self.E_cell_y = np.dot(cells.M_sum_mems, gEy * cells.mem_sa) / cells.cell_sa
+
+            # calculate electric field in cells using net intracellular current and cytosol conductivity:
+            self.Emc = (self.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+                       self.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
 
 
-        # average vm:
-        self.vm_ave = np.dot(cells.M_sum_mems, self.vm*cells.mem_sa)/cells.cell_sa
-
-        # self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
-
+            # # Electrical polarization charge component created by extracellular electric field:
+            # P_env = p.cell_polarizability * p.eo * self.Eme
+            #
+            # # Electrical polarization charge component created by intracellular electric field:
+            # P_cells = p.cell_polarizability * p.eo * self.Emc
+            #
+            # # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
+            # # convert volume charge density to surface charge density:
+            # rho_surf = self.rho_cells * cells.diviterm
+            #
+            # # In terms of intracellular charge:
+            # self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells] + (1 / p.cm) * P_env + (1 / p.cm) * P_cells
+            #
+            # if p.is_ecm:
+            #
+            #     self.vm += -self.v_env[cells.map_mem2ecm]
 
         # smooth voltages at the membrane:
-        self.vm = self.smooth_weight_mem * self.vm + self.vm_ave[cells.mem_to_cells] * self.smooth_weight_o
-
-        # # average intracellular electric field at cell centres:
-        # gE = (self.vm_ave[cells.cell_nn_i[:, 1]] - self.vm_ave[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
-        # gEx = -gE * cells.mem_vects_flat[:, 2]
-        # gEy = -gE * cells.mem_vects_flat[:, 3]
-
-        # self.E_cell_x = np.dot(cells.M_sum_mems, gEx*cells.mem_sa) / cells.cell_sa
-        # self.E_cell_y = np.dot(cells.M_sum_mems, gEy*cells.mem_sa) / cells.cell_sa
+        # self.vm = self.smooth_weight_mem * self.vm + self.vm_ave[cells.mem_to_cells] * self.smooth_weight_o
 
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt

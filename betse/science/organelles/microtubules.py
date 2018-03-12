@@ -323,6 +323,8 @@ class Mtubes(object):
         nx = cells.mem_vects_flat[:, 2]*1
         ny = cells.mem_vects_flat[:, 3]*1
 
+        # self.FF = FF # save the orienting field
+
         # gradient of the alignment field:
         gF = (FF[cells.cell_nn_i[:, 1]] - FF[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 
