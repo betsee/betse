@@ -418,7 +418,7 @@ def get_member_name_lowercase(enum_member: EnumMemberType) -> str:
     '''
 
     # It cannot be, yet it is.
-    return enum_member.name.tolower()
+    return enum_member.name.lower()
 
 # ....................{ ITERATORS                          }....................
 @type_check

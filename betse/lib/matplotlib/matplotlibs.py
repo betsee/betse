@@ -41,38 +41,6 @@ Footnote descriptions are as follows:
    otherwise working (e.g., to display static plots).
 '''
 
-#FIXME: Redirect Matplotlib output through our logging interface. Currently, we
-#configure Matplotlib via the "RC_PARAMS" global constant to simply output all
-#non-debug messages to stdout, thereby preventing these messages from being
-#logged. While Matplotlib can be reconfigured to redirect output to a file
-#instead, doing so then prevents that output from also being redirected to
-#stdout. (See the matplotlib.Verbose.set_fileo() method for details.)
-#
-#Ultimately, this is what needs to happen. Either:
-#
-#* Monkey-patch the matplotlib.verbose.report() method to leverage the
-#  standard "logging" framework rather than simply printing to the currently
-#  configured "fileo" object. Note that "matplotlib.verbose" is an instance of
-#  the "matplotlib.Verbose" class. Sensible, that.
-#* The non-monkey-patch approach:
-#  1. Define a new BETSE-specific "LoggingVerbose" subclass of the
-#     "matplotlib.Verbose" class. This subclass should leverage the standard
-#     "logging" framework (e.g., by redefining the Verbose.report() method).
-#  2. Assign "matplotlib.verbose = LoggingVerbose()".
-#
-#Actually, I'd be quite satisfied by the latter approach. Let's do this right.
-#That should allow us to ignore all "verbose.*" rc parameters (e.g.,
-#"verbose.level"), simplifying logic below. We probably still want the same
-#"RC_PARAMS" global dictionary for use with future rc parameters -- but at least
-#we'd be able to eliminate this bit of "verbose.level" hackiness.
-#FIXME: While factually accurate for older versions of matplotlib, newer
-#versions appear to support logging to the standard Python "logging" API. If
-#this is indeed the case, we should probably proceed as follows:
-#
-#* Bump our matplotlib requirements to the first new version of matplotlib
-#  supporting the standard Python "logging" API.
-#* Unconditionally enable such logging from matplotlib.
-
 #FIXME: Refactor backend_names() to discover backend names via the standard
 #module "pkg_utils" rather than by manually delving through the filesystem,
 #which fails under frozen executables.
