@@ -52,7 +52,7 @@ def init() -> None:
 def is_testing() -> bool:
     '''
     ``True`` only if the active Python interpreter is running a test session
-    (e.g., with the `py.test` test harness).
+    (e.g., with the :mod:`pytest` test harness).
     '''
 
     return metadata._IS_TESTING

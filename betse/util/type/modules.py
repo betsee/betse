@@ -77,9 +77,18 @@ def die_unless_module(
     synthesized from the passed module name) if the module with the passed name
     is *not* importable by the active Python interpreter.
 
-    If this module is a **submodule** (i.e., if this module's name contains one
-    or more `.` characters), all transitive parent packages of this module will
-    be iteratively imported as an unavoidable side effect of this function call.
+    Raises
+    ----------
+    ImportError
+        If this module is unimportable. To permit callers to transparently
+        handle importation errors in the standard way, this standard exception
+        rather than an application-specific exception (e.g.,
+        :class:`betse.exceptions.BetseModuleException`) is raised.
+
+    See Also
+    ----------
+    :func:`is_module`
+        Further details.
     '''
 
     # If this module is unimportable, raise an exception.
@@ -88,10 +97,7 @@ def die_unless_module(
         if not exception_message:
             exception_message = 'Module "{}" not found.'.format(module_name)
 
-        # Raise this exception. To permit callers to transparently handle
-        # importation errors in the conventional way, raise the conventional
-        # exception rather than a BETSE-specific exception (e.g.,
-        # "BetseModuleException").
+        # Raise this exception. (See the docstring for further details.)
         raise ImportError(exception_message)
 
 # ....................{ TESTERS                            }....................
@@ -104,7 +110,7 @@ def is_module(module_name: str) -> bool:
     If this module is a **submodule** (i.e., contains a ``.`` character), all
     parent modules of this module will be imported as a side effect of this
     function call. Likewise, if this module is *not* importable via standard
-    mechanisms (e.g., the OS X-specific :mod:`PyObjCTools` package), the module
+    mechanisms (e.g., the OS X-specific :mod:`PyObjCTools` package), this module
     itself may also be imported as a side effect.
     '''
 
