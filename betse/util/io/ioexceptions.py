@@ -178,7 +178,7 @@ def get_metadata(exception: Exception) -> tuple:
         # message (e.g., from "FileNotFoundError" to "File not found error.").
         # Well, try... at least!
         else:
-            exc_message = strs.uppercase_first_char(
+            exc_message = strs.uppercase_char_first(
                 pyident.convert_camelcase_to_whitespaced_lowercase(
                     exc_class_name))
         assert types.is_str_nonempty(exc_message), (

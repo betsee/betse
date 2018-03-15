@@ -671,9 +671,17 @@ def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
         raise
 
 # ....................{ CASERS                             }....................
-#FIXME: For orthogonality, rename to uppercase_char_first().
 @type_check
-def uppercase_first_char(text: str) -> str:
+def lowercase_char_first(text: str) -> str:
+    '''
+    Lowercase the first character of the passed string.
+    '''
+
+    return text[0].lower() + text[1:] if text else ''
+
+
+@type_check
+def uppercase_char_first(text: str) -> str:
     '''
     Uppercase the first character of the passed string.
 
@@ -683,10 +691,7 @@ def uppercase_first_char(text: str) -> str:
     remain unmodified.
     '''
 
-    return (
-        text[0].upper() + (text[1:] if len(text) > 2 else '')
-        if len(text) else ''
-    )
+    return text[0].upper() + text[1:] if text else ''
 
 # ....................{ WRAPPERS                           }....................
 def wrap_lines(lines: IterableTypes, **kwargs) -> str:

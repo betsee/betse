@@ -65,7 +65,7 @@ def deprecated(func: CallableTypes) -> CallableTypes:
             func.__is_deprecation_logged = True
 
             # Capitalized human-readable string describing this callable.
-            func_name = strs.uppercase_first_char(to_str(func))
+            func_name = strs.uppercase_char_first(to_str(func))
 
             # Log this warning.
             logs.log_warning('%s deprecated.', func_name)

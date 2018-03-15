@@ -175,7 +175,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
         self._label_verb = label_verb
 
         # Human-readable capitalized singular noun.
-        self._label_singular_uppercase = strs.uppercase_first_char(
+        self._label_singular_uppercase = strs.uppercase_char_first(
             self._label_singular_lowercase)
 
     # ..................{ PROPERTIES                         }..................
