@@ -15,6 +15,7 @@ from betse.science.channels import vg_cl as vgcl
 from betse.science.channels import vg_funny as vgfun
 from betse.science.channels import vg_k as vgk
 from betse.science.channels import vg_na as vgna
+from betse.science.channels import vg_morrislecar as vgml
 from betse.science.chemistry.netplot import set_net_opts
 from betse.science.config.export.visual.confvisabc import SimConfVisualCellsNonYAML
 from betse.science.math import modulate as mods
@@ -5061,7 +5062,8 @@ class MasterOfNetworks(object):
                 # get the charge value for the substance:
                 if in_mem_tag is True and vs_request is True:
 
-                    za = self.molecules[name].z
+                    # za = self.molecules[name].z
+                    za = self.zmol[name]
 
                     if za != 0.0:
 
@@ -5265,7 +5267,8 @@ class MasterOfNetworks(object):
 
                 if in_mem_tag is True and vs_request is True:
 
-                    zi = self.molecules[name].z
+                    # zi = self.molecules[name].z
+                    zi = self.zmol[name]
 
                     msg = "Vmem-sensitive gating used for inhibitor: " + name
 
@@ -6354,6 +6357,10 @@ class Channel(object):
         elif ion_string == 'Cat':
 
             class_string = vgcat
+
+        elif ion_string == 'ML':
+
+            class_string = vgml
 
         else:
 

@@ -587,6 +587,7 @@ general network:
     #                        Cl: ClLeak
     #                        Fun: HCN1, HCN2, HCN4
     #                        Cat: CatLeak
+    #                        ML: Kv_ML1, Kv_ML2, Nav_ML, Cav_L_ML, Cav_N_ML, Cav_T_ML, Kir_ML, HCN2_ML, HCN4_ML
 
   #-----------------------------------------------------------------------------------------------------------------------
   # CUSTOM MODULATORS

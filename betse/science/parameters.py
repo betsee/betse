@@ -895,7 +895,7 @@ class Parameters(YamlFileABC):
         self.alpha_Ca = float(iu['alpha_Ca']) # pump rate for calcium ATPase in membrane [1/mol*s] 2.0e-15
 
         # FIXME add these as options to the config:
-        self.KmCa_Ca = 3.0e-3   # CaATPase enzyme Ca half-max sat value (1.7 - 2.8 for vascular, 0.25 for platlets)
+        self.KmCa_Ca = 1.0e-3   # CaATPase enzyme Ca half-max sat value (1.7 - 2.8 for vascular, 0.25 for platlets)
         self.KmCa_ATP = 0.5    # CaATPase enzyme ATP half-max sat value
 
         # partial pressure dissolved CO2

@@ -39,7 +39,8 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
     def update_mh(self, p, time_unit = 1e3):
         """
-        Updates the 'm' and 'h' gating functions of the channel model.
+        Updates the 'm' and 'h' gating functions of the channel model for
+        standard Hodgkin-Huxley formalism channel models.
 
         """
 
@@ -55,3 +56,16 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         self.m = (self._mTau*self.m + dt*self._mInf)/(self._mTau + dt)
         self.h = (self._hTau*self.h + dt*self._hInf)/(self._hTau + dt)
+
+    def update_ml(self, p, time_unit = 1e3):
+        """
+        An iterative time-step updating method for the
+        time-dependent Morris-Lecar formalism of voltage-gated
+        ion channels (a variant of Hodgkin-Huxley)
+        :param p: Parameters
+        :param time_unit:
+        :return:
+        """
+
+        dt = p.dt * self.time_unit
+        self.m = (self.m + (dt * self.Phi * self._mInf / self._mTau)) / (1 + ((dt * self.Phi) / self._mTau))
