@@ -357,6 +357,22 @@ Tuple of all callable classes *and* the string type.
 '''
 
 
+DecoratorTypes = CallableTypes + (ClassType,)
+'''
+Tuple of all **decorator types** (i.e., both callable classes *and* the type of
+those classes).
+
+Motivation
+----------
+Since classes themselves may be callable (e.g., by defining the special
+``__call__`` method), this tuple is the set of all possible callable types. In
+particular, this tuple describes all types permissible for use as decorators.
+
+Since most classes are *not* callable, however, this tuple may yield false
+positives when used to validate types. Caveat emptor.
+'''
+
+
 FunctionTypes = (BuiltinFunctionType, FunctionType,)
 '''
 Tuple of all **function classes** (i.e., classes whose instances are either

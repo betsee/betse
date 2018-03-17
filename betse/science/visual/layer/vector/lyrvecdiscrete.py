@@ -8,9 +8,9 @@ discrete (i.e., individual, disseparate, discontiguous) surface.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import abstractproperty
 from betse.science.visual.layer.vector.lyrvecabc import (
     LayerCellsVectorColorfulABC)
+from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import type_check, IterableTypes, SequenceOrNoneTypes
 from matplotlib.collections import TriMesh
 from numpy import ndarray

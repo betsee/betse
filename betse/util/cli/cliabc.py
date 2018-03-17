@@ -16,7 +16,7 @@ Top-level abstract base class of all command line interface (CLI) subclasses.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from betse import metadata as betse_metadata
 from betse import pathtree
 from betse.lib import libs
@@ -27,6 +27,7 @@ from betse.util.path.command import cmds
 from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.pyprofile import profile_callable, ProfileType
 from betse.util.type import types
+from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.text import strs
 from betse.util.type.types import (
     type_check,

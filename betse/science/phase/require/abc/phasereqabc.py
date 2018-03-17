@@ -10,9 +10,10 @@ simulation phase).
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractproperty
+from abc import ABCMeta
 from betse.science.phase.phasecls import SimPhase
 # from betse.util.io.log import logs
+from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import (
     type_check,
     CallableTypes,

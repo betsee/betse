@@ -8,10 +8,10 @@ cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import abstractproperty
 from betse.science.export import expmath
 from betse.science.visual.layer.vectorfield.lyrvecfldabc import (
     LayerCellsFieldColorlessABC)
+from betse.util.type.decorator.deccls import abstractproperty
 # from betse.util.type.types import type_check
 from numpy import ndarray
 

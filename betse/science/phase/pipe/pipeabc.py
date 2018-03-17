@@ -9,13 +9,14 @@ activities to be iteratively run) functionality.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractproperty
+from abc import ABCMeta
 from betse.exceptions import (
     BetseSimPipeException, BetseSimPipeRunnerUnsatisfiedException)
 from betse.lib.yaml.abc.yamllistabc import YamlListItemTypedABC
 from betse.science.phase.pipe.piperun import SimPipeRunner
 from betse.science.phase.phasecls import SimPhase
 from betse.util.io.log import logs
+from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.obj import objects
 from betse.util.type.text import strs
 from betse.util.type.types import type_check, GeneratorType, IterableTypes

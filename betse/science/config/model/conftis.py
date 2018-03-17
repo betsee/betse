@@ -8,7 +8,7 @@ YAML-backed simulation subconfiguration classes for tissue and cut profiles.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta  #, abstractproperty
+from abc import ABCMeta
 from betse.lib.yaml.yamlalias import (
     yaml_alias,
     yaml_alias_float_nonnegative,

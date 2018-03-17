@@ -94,11 +94,11 @@ def skip_unless_command(pathname: str):
 
     # Defer heavyweight imports.
     from betse.util.path.command import cmds
-    from betse.util.type.decorators import identity_decorator
+    from betse.util.type.decorator.decorators import decorator_identity
 
     # If this command exists, reduce this decoration to a noop.
     if cmds.is_command(pathname):
-        return identity_decorator
+        return decorator_identity
     # Else, skip this test with a human-readable justification.
     else:
         return skip('Command "{}" not found.'.format(pathname))
@@ -126,11 +126,11 @@ def skip_unless_matplotlib_anim_writer(writer_name: str):
 
     # Defer heavyweight imports.
     from betse.lib.matplotlib.writer import mplvideo
-    from betse.util.type.decorators import identity_decorator
+    from betse.util.type.decorator.decorators import decorator_identity
 
     # If this command exists, reduce this decoration to a noop.
     if mplvideo.is_writer(writer_name):
-        return identity_decorator
+        return decorator_identity
     # Else, skip this test with a human-readable justification.
     else:
         return skip(
@@ -317,7 +317,7 @@ def _skip_if_callable_raises_exception(
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type.decorators import identity_decorator
+    from betse.util.type.decorator.decorators import decorator_identity
 
     # Default all unpassed arguments to sane values.
     if args is None:
@@ -344,4 +344,4 @@ def _skip_if_callable_raises_exception(
         # return skip(str(exception))
     # Else, this callable raised no exception. Reduce this decoration to a noop.
     else:
-        return identity_decorator
+        return decorator_identity

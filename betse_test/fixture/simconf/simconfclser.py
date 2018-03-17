@@ -8,7 +8,8 @@ Fixture classes encapsulating test-related simulation configurations.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractproperty
+from abc import ABCMeta
+from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import type_check
 from py._path.local import LocalPath
 

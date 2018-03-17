@@ -12,13 +12,13 @@ run by its parent pipeline) functionality.
 from betse.exceptions import BetseSimPipeException
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirements, SimPhaseRequirementsOrNoneTypes)
-from betse.util.type.cls.decorators import MethodDecorator
+from betse.util.type.decorator.deccls import MethodDecoratorABC
 from betse.util.type.text import strs
 from betse.util.type.types import (
     type_check, CallableTypes, SequenceTypes,)
 
 # ....................{ CLASSES                            }....................
-class SimPipeRunner(MethodDecorator):
+class SimPipeRunner(MethodDecoratorABC):
     '''
     Class decorator annotating simulation pipeline runners with custom metadata.
 

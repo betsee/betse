@@ -4,19 +4,18 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level **decorator** (i.e., classes and callables dynamically wrapping other
-classes and callables at runtime) facilities.
+Low-level **class decorator** (i.e., class dynamically wrapping other classes
+and callables at runtime) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta  #, abstractmethod
+from abc import ABCMeta, abstractmethod
 from betse.util.type.types import (
     type_check, CallableTypes, ClassType, MethodType)
+from betse.util.type.decorator.decorators import decorator_chain
 
-# ....................{ DECORATORS                         }....................
-#FIXME: Rename this class to "MethodDecoratorABC".
-#FIXME: Rename the "_method" attribute to "_method_unbound".
-class MethodDecorator(object, metaclass=ABCMeta):
+# ....................{ DECORATORS ~ method                }....................
+class MethodDecoratorABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **method decorators** (i.e., decorators *only*
     decorating methods bound to class instances), implemented as a class
@@ -27,7 +26,7 @@ class MethodDecorator(object, metaclass=ABCMeta):
 
     Attributes
     ----------
-    _method: CallableTypes
+    _method_unbound: CallableTypes
         Unbound method (i.e., function) to be decorated.
     _obj_id_to_method_bound : dict
         Dictionary mapping from the unique identifier associated with each
@@ -50,7 +49,7 @@ class MethodDecorator(object, metaclass=ABCMeta):
         '''
 
         # Classify all passed parameters.
-        self._method = method
+        self._method_unbound = method
 
         # Initialize all remaining instance variables.
         self._obj_id_to_method_bound = {}
@@ -111,4 +110,27 @@ class MethodDecorator(object, metaclass=ABCMeta):
         wrapping the decorated method with additional functionality.
         '''
 
-        return self._method(obj, *args, **kwargs)
+        return self._method_unbound(obj, *args, **kwargs)
+
+# ....................{ DECORATORS ~ property              }....................
+abstractproperty = decorator_chain(property, abstractmethod)
+'''
+Decorator decorating the passed superclass method as an **abstract property**
+(i.e., method implicitly called by Python on attempts to access instance
+variables of the same, required to be defined by subclasses).
+
+Motivation
+----------
+Technically, there already exist two standard means of decorating methods as
+abstract properties:
+
+* The deprecated :func:`abc.abstractproperty` decorator, which this decorator is
+  intended to act as a drop-in replacement of. Since Python 3.3 unwisely
+  deprecated that decorator, that decorator is *not* safely usable in
+  perpetuity.
+* Manually chaining the :class:`property` and :func:`abc.abstractmethod`
+  decorators, which this decorator is intended to automate and hence replace.
+  For unknown reasons, the Python community now treats this cumbersome decorator
+  chain as a sensible replacement for the deprecated
+  :func:`abc.abstractproperty` decorator. We disagree. Ergo, this decorator.
+'''

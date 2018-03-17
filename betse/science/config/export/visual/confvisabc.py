@@ -9,12 +9,13 @@ plots, animations).
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractproperty
+from abc import ABCMeta
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import (
     YamlList, YamlListItemABC, YamlListItemTypedABC)
 # from betse.util.io.log import logs
+from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import type_check, NumericSimpleTypes
 
 # ....................{ SUPERCLASSES                       }....................
