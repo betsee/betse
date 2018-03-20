@@ -13,7 +13,7 @@ import numpy as np
 from betse.lib.numpy import nparray, npcsv
 from betse.science.config.export.confcsv import SimConfExportCSV
 from betse.science.export import expmath
-from betse.science.phase.phasecls import SimPhaseKind
+from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.phase.pipe.pipeabc import SimPipeExportABC
 from betse.science.phase.pipe.piperun import piperunner
 from betse.science.phase.require import phasereqs

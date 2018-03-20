@@ -9,8 +9,8 @@ spreadsheets.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.export.csv import csvpipe
-from betse.science.phase.phasecls import SimPhase, SimPhaseKind
+from betse.science.phase.phasecls import SimPhase
+from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.export.csv.csvpipe import SimPipeExportCSVs
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe

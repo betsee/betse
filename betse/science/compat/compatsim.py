@@ -115,7 +115,7 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     logs.log_debug('Upgrading simulation imports to 0.6.0 format...')
 
     # Import all modules whose fully-qualified names have been modified.
-    from betse.lib.yaml.abc import yamlabc  #, yamllistabc
+    from betse.lib.yaml.abc import yamlabc
     from betse.science.config.model import conftis
     from betse.science.config.export.visual import confanim, confplot, confvisabc
     from betse.science.tissue import tisprofile, tishandler
@@ -160,7 +160,12 @@ def _upgrade_sim_imports_to_0_7_1() -> None:
     # Import all modules whose fully-qualified names have been modified.
     from betse.science import channels
     from betse.science.config.export import visual
+    # from betse.science.phase import phasecls
+    # from betse.science.phase.phaseenum import SimPhaseKind
 
     # Alias obsolete module names to current module objects.
     sys.modules['betse.science.channelo'] = channels
     sys.modules['betse.science.config.visual'] = visual
+
+    # Alias obsolete to current class names.
+    # phasecls.SimPhaseKind = SimPhaseKind

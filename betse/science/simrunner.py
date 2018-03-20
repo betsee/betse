@@ -16,7 +16,8 @@ from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.export import exppipe
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
-from betse.science.phase.phasecls import SimPhase, SimPhaseKind
+from betse.science.phase.phasecls import SimPhase
+from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.tissue.tishandler import TissueHandler
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
@@ -43,9 +44,8 @@ class SimRunner(object):
         Basename of the YAML file configuring this simulation.
     '''
 
+    # ..................{ INITIALIZERS                       }..................
     def __init__(self, conf_filename: str) -> None:
-
-        super().__init__()
 
         # Validate and localize this filename.
         files.die_unless_file(conf_filename)
