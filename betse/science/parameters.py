@@ -1096,7 +1096,7 @@ class Parameters(YamlFileABC):
             self.cNa_cell = 12.0
             self.cK_cell = 139.0
             self.cCl_cell = 4.0
-            self.cCa_cell = 1.0e-4
+            self.cCa_cell = 5.0e-5
             self.cP_cell = 135.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cP_cell]

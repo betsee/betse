@@ -267,6 +267,45 @@ class Kv1p5_ML(VgKABC):
         self._mInf = 0.5*(1 + np.tanh((V + 6)/15))
         self._mTau = 1/(np.cosh((V + 6)/(2*15)))
 
+class Kv1p5S_ML(VgKABC):
+    '''
+    Slow version of delayed-rectifier voltage gated K+ channel model paralleling the Kv1.5 channel of  et al, but using
+    simplified Morris-Lecar formalism, with extended time constant for large time-step simulations.
+
+    '''
+    def _init_state(self, V):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the KV channel: Kv_1.5, Morris-Lecar ')
+
+        self.time_unit = 1.0e3
+
+        self.vrev = -65     # reversal voltage used in model [mV]
+
+        self.ions = ['K']
+        self.rel_perm = [1]
+        self.kinetic_gate = True
+        self.Phi = 0.00066*2
+        # self.Phi = 0.00066
+
+        # initialize values of the m gate of the channel based on m_inf:
+        self.m = 0.5*(1 + np.tanh((V + 6.0)/15.0))
+
+    def _calculate_state(self, V):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self._mInf = 0.5*(1 + np.tanh((V + 6)/15))
+        self._mTau = 1/(np.cosh((V + 6)/(2*15)))
+
 class Nav_ML(VgKABC):
     '''
     Persistent (i.e. inactivating) NaV channel current based on NaV1.6.

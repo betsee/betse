@@ -165,6 +165,8 @@ class Mtubes(object):
 
             self.Phi_orient = None
 
+        self.uxmt, self.uymt = self.mtubes_to_cell(cells, p)
+
     def update_mtubes(self, cells, sim, p):
 
         # microtubule radial vectors:
