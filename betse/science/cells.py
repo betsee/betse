@@ -22,8 +22,8 @@ from betse.util.path import pathnames
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import (
     type_check, NumericOrSequenceTypes, SequenceTypes)
-from betse.science.math.geometry.polygon.geopolyconvex import (
-    clip_counterclockwise)
+from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockwise
+from betse.science.math.geometry.polygon.geopoly import orient_counterclockwise
 
 # ....................{ CLASSES                            }....................
 # FIXME create a new option for seed points: Fibonacci radial-spiral array
@@ -379,14 +379,27 @@ class Cells(object):
         # subsequent data structures.
         self._make_cell_lattice(phase.p)
 
-        # Create the Voronoi diagram *AFTER* the cell lattice.
-        self._make_voronoi(phase)
+        # Define the initial seed point collection:
+        seed_points_o = np.vstack((self.clust_xy, self.bbox))
+
+        # Create the initial Voronoi diagram after making the initial seed points of the cell lattice.
+        # Log this creation.
+        logs.log_info('Creating Voronoi geometry... ')
+        self._make_voronoi(seed_points_o, phase)
 
         # Clean the Voronoi diagram of empty data structures.
         self._clean_voronoi(phase.p)
 
-        logs.log_info('Defining cell-specific geometric properties... ')
+        # Calculate the centroids of the Voronoi Cells:
         self.cell_index(phase.p)  # Calculate the correct centre and index for each cell
+
+        # Optionally, refine the Voronoi mesh, as per user specifications
+        if phase.p.refine_mesh:
+
+            self._refine_voronoi(phase)
+
+        logs.log_info('Defining cell-specific geometric properties... ')
+        # self.cell_index(phase.p)  # Calculate the correct centre and index for each cell
         self.cellVerts(phase.p)  # create individual cell polygon vertices
 
         logs.log_info('Creating computational matrices for cell-cell transfers... ')
@@ -779,7 +792,7 @@ class Cells(object):
         self.ymax = self.ymax + p.cell_radius
 
     @type_check
-    def _make_voronoi(self, phase: SimPhase) -> None:
+    def _make_voronoi(self, seed_points, phase: SimPhase) -> None:
         '''
         Calculate, close, and clip the Voronoi diagram from the cell lattice
         previously created by the :func:`_make_cell_lattice` method.
@@ -805,9 +818,6 @@ class Cells(object):
         self.cluster_mask           Matrix of booleans defining masked shape of cell cluster
         self.msize                  Size of bitmap (side pixel number)
         '''
-
-        # Log this creation.
-        logs.log_info('Creating Voronoi geometry... ')
 
         #FIXME: Non-ideal. The cell cluster image mask should ideally be
         #instantiated via the existing "TissueHandler.tissue_default.picker"
@@ -841,7 +851,7 @@ class Cells(object):
 
         # add the bitmasker clipping curve to the points:
         # seed_points = np.vstack((self.clust_xy, image_mask.clipcurve))
-        seed_points = self.clust_xy
+        # seed_points = self.clust_xy
 
         # define the Voronoi diagram from the seed points:
         # vor = sps.Voronoi(self.clust_xy)
@@ -908,36 +918,76 @@ class Cells(object):
 
         self.voronoi_verts = []  # track all voronoi cells, even those not in cluster (used as grid for masking)
 
-        ave_area = np.pi*phase.p.cell_radius**2
 
-        for poly_ind in vor.regions: # step through the regions of the voronoi diagram
+        for poly_ind in vor.regions:  # step through the regions of the voronoi diagram
 
-            if len(poly_ind) >= phase.p.cell_sides:
+            if len(poly_ind) >= 3:
                 cell_poly = vor.vertices[poly_ind]
+                cell_polya = cell_poly.tolist()
                 point_check = np.zeros(len(cell_poly))
 
                 for i, pnt in enumerate(cell_poly):
-                    point_val = image_mask.clipping_function(pnt[0],pnt[1])
+
+                    point_val = image_mask.clipping_function(pnt[0], pnt[1])
 
                     if point_val != 0.0:
                         point_check[i] = 1.0
 
-                cell_polya = cell_poly.tolist()
-                self.voronoi_verts.append(cell_polya)
+                if point_check.sum() <= 1.0e-15:  # if all points are outside of the clipping zone
 
-                if point_check.any() == 1.0: # if any of the region's points are in the clipping func range
+                    self.voronoi_verts.append(cell_polya)  # Append the phole cell poly to the list
 
-                    verts_clip = clip_counterclockwise(
-                        cell_polya, image_mask.clipcurve)
+                elif point_check.sum() == len(cell_poly):  # if all points are all inside the clipping zone
 
-                    if len(verts_clip):
+                    self.ecm_verts.append(np.array(cell_polya))
+                    self.voronoi_verts.append(cell_polya)
 
-                        area_check = (tb.area(verts_clip) / ave_area)
+                elif point_check.sum() > 0.0 and point_check.sum() < len(
+                        cell_poly):  # the region's points are in the clipping func range
 
-                        if area_check > phase.p.bound_cell_clip_ratio:
-                            self.ecm_verts.append(verts_clip)   # this makes a more solid boundary of cells
+                    clip_poly = clip_counterclockwise(
+                        cell_poly, image_mask.clipcurve)
 
-                    # self.ecm_verts.append(cell_polya)
+                    if len(clip_poly):
+
+                        # For inside voronoi cell: augment old_poly_pts with keeper_pts
+                        old_poly_pts, new_poly_pts = self.search_point_cloud(clip_poly, cell_poly)
+
+                        throw_away_pts, keeper_pts = self.search_point_cloud(new_poly_pts, image_mask.clipcurve)
+
+                        # For outside voronoi cell: augment outside_cell_b with keeper_pts
+                        outside_cell_a, outside_cell_b = self.search_point_cloud(cell_poly, clip_poly)
+
+                        #                     print(len(old_poly_pts), len(keeper_pts), len(outside_cell_b))
+                        #                     print('----')
+
+                        if len(keeper_pts) == 0:
+
+                            out_stack = []
+                            in_stack = old_poly_pts * 1
+
+                        else:
+
+                            out_stack = np.vstack((outside_cell_b, keeper_pts))
+                            in_stack = np.vstack((old_poly_pts, keeper_pts))
+
+                        if len(out_stack) >= 3:
+                            out_vor_cell = orient_counterclockwise(out_stack)
+                            self.voronoi_verts.append(out_vor_cell)
+
+                        if len(in_stack) >= 3:
+                            in_vor_cell = orient_counterclockwise(in_stack)
+                            self.ecm_verts.append(in_vor_cell)
+                            self.voronoi_verts.append(in_vor_cell)
+
+                    else:  # else if the clip_poly is empty:
+
+                        self.voronoi_verts.append(cell_polya)  # Append the phole cell poly to the list
+
+
+                else:
+
+                    self.voronoi_verts.append(cell_polya)  # Append the phole cell poly to the list
 
         self.cluster_mask = image_mask.clipping_matrix  # keep track of cluster mask and its size
         self.msize = image_mask.msize
@@ -952,13 +1002,50 @@ class Cells(object):
             pty = vert[1]
             ecm_verts_set.add((ptx,pty))
 
-        #FIXME: The following three lines should safely reduce to a one-liner:
-        #
-        #    # Action, Jackson!
-        #    self.ecm_verts_unique = np.asarray(list(ecm_verts_set))
         self.ecm_verts_unique = [
             list(ecm_verts) for ecm_verts in list(ecm_verts_set)]
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
+
+    def search_point_cloud(self, pts, pt_cloud):
+
+        if len(pts) == 0:
+
+            matched_pts = []
+            unmatched_pts = []
+
+        elif len(pt_cloud) == 0:
+
+            matched_pts = []
+            unmatched_pts = []
+
+        else:
+
+            search_M = 99 * np.ones((len(pts), len(pt_cloud)))
+
+            pts_inds = np.asarray([i for i, cc in enumerate(pts)])
+
+            for i, pt in enumerate(pts):
+
+                for j, ptc in enumerate(pt_cloud):
+
+                    dist = np.sqrt((pt[0] - ptc[0]) ** 2 + (pt[1] - ptc[1]) ** 2)
+
+                    if dist < 1.0e-15:
+
+                        search_M[i, j] = 1.0
+
+                    else:
+
+                        search_M[i, j] = 0.0
+
+            matched_inds, matched_inds_cloud = (search_M == 1).nonzero()
+
+            unmatched_inds = np.setdiff1d(pts_inds, matched_inds)
+
+            matched_pts = pts[matched_inds]
+            unmatched_pts = pts[unmatched_inds]
+
+        return matched_pts, unmatched_pts
 
     def _clean_voronoi(self, p) -> None:
         """
@@ -967,14 +1054,11 @@ class Cells(object):
         """
 
         # Log this attempt.
-        logs.log_info('Cleaning Voronoi geometry... ')
+        # logs.log_info('Cleaning Voronoi geometry... ')
 
         # first need to go through and make sure each patch has unique vertex points
 
         #-----clipping out redundant points--------------------------------------------------------
-
-        # perm_cut = 2 * math.pi * p.cell_radius * p.merge_cut_off  # the threshhold edge length
-        #
         ecm_verts_2 = []
         #
         for poly in self.ecm_verts:  # step through each closed and clipped region of the Voronoi
@@ -991,8 +1075,6 @@ class Cells(object):
 
                 if length > 0.0:
                     hold_verts.append(poly[i - 1])
-
-                # hold_verts = np.asarray(hold_verts)
 
             ecm_verts_2.append(hold_verts)
 
@@ -1013,6 +1095,42 @@ class Cells(object):
         self.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
 
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
+
+    def _refine_voronoi(self, phase):
+
+        p = phase.p
+
+        logs.log_info("Initializing Voronoi mesh optimization...")
+
+        # optimization vector:
+        opti_steps = np.arange(p.maximum_voronoi_steps)
+        seed_points2 = np.vstack((self.cell_centres, self.bbox))
+        convergence = np.ones(len(seed_points2))
+
+        for i in opti_steps:
+
+            if convergence.mean() > p.voronoi_convergence:
+                self._make_voronoi(seed_points2, phase)
+                self._clean_voronoi(p)
+                self.cell_index(p)
+                seed_points_o = seed_points2 * 1
+                seed_points2 = np.vstack((self.cell_centres, self.bbox))
+
+                if len(seed_points_o) == len(seed_points2):
+                    convergence = np.sqrt(
+                        (seed_points_o[:, 0] - seed_points2[:, 0]) ** 2 + (seed_points_o[:, 1] - seed_points2[:, 1]) ** 2)
+
+                    conv_mess = "Step {}: optimization convergence {}".format(i, convergence.mean())
+                    logs.log_info(conv_mess)
+
+                else:
+
+                    conv_mess = "Step {}: optimization cell number changed (suggests concave shape!)...".format(i)
+                    logs.log_info(conv_mess)
+
+            else:
+                logs.log_info("Convergence condition met for Voronoi mesh optimization.")
+                break
 
     def refineMesh(self, p):
 

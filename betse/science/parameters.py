@@ -408,6 +408,23 @@ class Parameters(YamlFileABC):
 
         self.vol_env = volmult*self.wsx*self.wsy*self.cell_height  # environmental volume for "no ECM" simulation
 
+        # Parameters for Lloyd's Voronoi mesh optimization settings durring seed:
+        mesh_refine = self._conf['world options'].get('mesh refinement', None)
+
+        if mesh_refine is not None:
+            self.refine_mesh = mesh_refine['refine mesh']
+            self.maximum_voronoi_steps = int(mesh_refine['maximum steps'])
+            self.voronoi_convergence = float(mesh_refine['convergence threshold'])
+
+        else:
+            self.refine_mesh = False
+            self.maximum_voronoi_steps = 20
+            self.voronoi_convergence = 1.0e-9
+
+
+
+
+
         #---------------------------------------------------------------------------------------------------------------
         # TARGETED INTERVENTIONS
         #---------------------------------------------------------------------------------------------------------------
@@ -867,7 +884,7 @@ class Parameters(YamlFileABC):
 
         self.interp_type = 'nearest'
 
-        self.bound_cell_clip_ratio = iu.get('boundary cell size cutoff', 0.5)
+        # self.bound_cell_clip_ratio = iu.get('boundary cell size cutoff', 0.5)
 
         self.substances_affect_charge = iu['substances affect Vmem']  # Do Network substances function bioelectrically?
 

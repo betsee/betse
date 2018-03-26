@@ -472,44 +472,135 @@ class SimRunner(object):
         return phase
 
     # ..................{ PLOTTERS                           }..................
-    #FIXME: "plot seed" subcommand implementation preserved for posterity.
-    # def plot_seed(self) -> SimPhase:
-    #     '''
-    #     Visualize the cell cluster seed by a prior call to the :meth:`seed`
-    #     method and export the resulting plots and animations to various output
-    #     files, specified by the current configuration file.
-    #
-    #     Returns
-    #     ----------
-    #     SimPhase
-    #         High-level simulation phase instance encapsulating all objects
-    #         internally created by this method to run this phase.
-    #     '''
-    #
-    #     logs.log_info(
-    #         'Plotting cell cluster with configuration file "%s".',
-    #         self._config_basename)
-    #
-    #     # High-level simulation objects.
-    #     p = Parameters().load(self._config_filename)
-    #     cells = Cells(p)
-    #     sim = Simulator(p)
-    #
-    #     if files.is_file(cells.savedWorld):
-    #         cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-    #         logs.log_info('Cell cluster loaded.')
-    #     else:
-    #         raise BetseSimException(
-    #             "Ooops! No such cell cluster file found to load!")
-    #
-    #     # Simulation phase, created *AFTER* unpickling these objects above
-    #     phase = SimPhase(kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
-    #
-    #     sim.baseInit_all(cells,p)
-    #     phase.dyna.tissueProfiles(sim, cells, p)
-    #
-    #     # Return this phase.
-    #     return phase
+    def plot_seed(self) -> SimPhase:
+        '''
+        Visualize the cell cluster seed by a prior call to the :meth:`seed`
+        method and export the resulting plots and animations to various output
+        files, specified by the current configuration file.
+
+        Returns
+        ----------
+        SimPhase
+            High-level simulation phase instance encapsulating all objects
+            internally created by this method to run this phase.
+        '''
+
+        logs.log_info(
+            'Plotting cell cluster with configuration file "%s".',
+            self._config_basename)
+
+        # High-level simulation objects.
+        p = Parameters().load(self._config_filename)
+        cells = Cells(p)
+        sim = Simulator(p)
+
+        if files.is_file(cells.savedWorld):
+            cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+            logs.log_info('Cell cluster loaded.')
+        else:
+            raise BetseSimException(
+                "Ooops! No such cell cluster file found to load!")
+
+        # Simulation phase, created *AFTER* unpickling these objects above
+        phase = SimPhase(kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
+
+        sim.baseInit_all(cells,p)
+        phase.dyna.tissueProfiles(sim, cells, p)
+
+        #FIXME: Refactor into a seed-specific plot pipeline. Dreaming androids!
+        if p.autosave:
+            savedImg = pathnames.join(p.init_export_dirname, 'fig_')
+
+        # if p.plot_cell_cluster:
+        # fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(
+        #     p, phase.dyna, cells, clrmap=p.background_cm)
+
+        if p.autosave:
+            savename10 = savedImg + 'cluster_mosaic' + '.png'
+            plt.savefig(savename10, format='png', transparent=True)
+
+        if p.plot.is_after_sim_show:
+            plt.show(block=False)
+
+        if p.is_ecm:  # and p.plot_cluster_mask:
+            plt.figure()
+            ax99 = plt.subplot(111)
+            plt.imshow(
+                np.log10(sim.D_env_weight.reshape(cells.X.shape)),
+                origin='lower',
+                extent=[p.um * cells.xmin, p.um * cells.xmax, p.um * cells.ymin, p.um * cells.ymax],
+                cmap=p.background_cm,
+            )
+            plt.colorbar()
+
+            cell_edges_flat = p.um * cells.mem_edges_flat
+            coll = LineCollection(cell_edges_flat, colors='k')
+            coll.set_alpha(1.0)
+            ax99.add_collection(coll)
+
+            plt.title('Logarithm of Environmental Diffusion Weight Matrix')
+
+            if p.autosave:
+                savename10 = savedImg + 'env_diffusion_weights' + '.png'
+                plt.savefig(savename10, format='png', transparent=True)
+
+            if p.plot.is_after_sim_show:
+                plt.show(block=False)
+
+            plt.figure()
+            plt.imshow(
+                cells.maskM,
+                origin='lower',
+                extent=[p.um * cells.xmin, p.um * cells.xmax, p.um * cells.ymin, p.um * cells.ymax],
+                cmap=p.background_cm,
+            )
+            plt.colorbar()
+            plt.title('Cluster Masking Matrix')
+
+            if p.autosave:
+                savename = savedImg + 'cluster_mask' + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.plot.is_after_sim_show:
+                plt.show(block=False)
+
+        # Plot gap junctions.
+        # if p.plot_cell_connectivity:
+        plt.figure()
+        ax_x = plt.subplot(111)
+
+        if p.showCells:
+            base_points = np.multiply(cells.cell_verts, p.um)
+            col_cells = PolyCollection(base_points, facecolors='k', edgecolors='none')
+            col_cells.set_alpha(0.3)
+            ax_x.add_collection(col_cells)
+
+        con_segs = cells.nn_edges
+        connects = p.um * np.asarray(con_segs)
+        collection = LineCollection(connects, linewidths=1.0, color='b')
+        ax_x.add_collection(collection)
+        plt.axis('equal')
+        plt.axis([cells.xmin * p.um, cells.xmax * p.um, cells.ymin * p.um, cells.ymax * p.um])
+
+        ax_x.set_xlabel('Spatial x [um]')
+        ax_x.set_ylabel('Spatial y [um')
+        ax_x.set_title('Cell Connectivity Network')
+
+        if p.autosave is True:
+            savename10 = savedImg + 'gj_connectivity_network' + '.png'
+            plt.savefig(savename10, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+        else:
+            logs.log_info(
+                'Plots exported to init results folder '
+                'defined in configuration file "%s".',
+                self._config_basename)
+
+        # Return this phase.
+        return phase
 
 
     def plot_init(self) -> SimPhase:

@@ -176,6 +176,11 @@ world options:
                               # hexagonal base grid. If equal to 0, a perfect
                               # hexagonal or rectangular grid is created.
 
+  mesh refinement:                  # Use Llyod's algorith to optimize the Voronoi mesh
+    refine mesh: True              # Turn optimization on? (Only works for Convex model shapes)
+    maximum steps: 25              # Maximum number of itterations (models typically converge in <30 steps)
+    convergence threshold: 1.0e-9   # Threshhold below which optimization is considered complete (1.0e-9).
+
 #-----------------------------------------------------------------------------------------------------------------------
 # TISSUE PROFILE DESIGNATION
 #-----------------------------------------------------------------------------------------------------------------------
@@ -1043,9 +1048,6 @@ internal parameters:
   Do_Ca:  1.0e-10        # free diffusion constant calcium [m2/s]
   Do_M:  1.0e-9         # free diffusion constant mystery anchor ion [m2/s]
   Do_P:  0.0        # free diffusion constant protein [m2/s]
-
-  # Cell grid creation:
-  boundary cell size cutoff: 0.50
 
   # pump parameters
 

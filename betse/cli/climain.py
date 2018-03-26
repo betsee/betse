@@ -239,17 +239,16 @@ Equivalently, this subcommand is shorthand for the following:
             subcommand_var_name='subcommand_name_plot',
             help_title='plot subcommands',
             subcommands=(
-#FIXME: "plot seed" subcommand implementation preserved for posterity.
-#                 CLISubcommandYAMLOnly(
-#                     name='seed',
-#                     help_synopsis=(
-#                         'plot a seeded cell cluster for a config file'),
-#                     help_description='''
-# Plot the previously seeded cell cluster defined by the passed configuration
-# file. Plot results will be saved to output files defined by this configuration,
-# while the previously seeded cell cluster will be loaded from input files
-# defined by this configuration.
-# ''',),
+                CLISubcommandYAMLOnly(
+                    name='seed',
+                    help_synopsis=(
+                        'plot a seeded cell cluster for a config file'),
+                    help_description='''
+Plot the previously seeded cell cluster defined by the passed configuration
+file. Plot results will be saved to output files defined by this configuration,
+while the previously seeded cell cluster will be loaded from input files
+defined by this configuration.
+''',),
 
 
                 CLISubcommandYAMLOnly(
@@ -336,7 +335,7 @@ from input files defined by this configuration.
         self._do_seed()
         self._do_init()
         self._do_sim()
-        # self._do_plot_seed()
+        self._do_plot_seed()
         self._do_plot_init()
 
         # Return the value returned by the last such phase, permitting this
@@ -390,14 +389,13 @@ from input files defined by this configuration.
         return self._sim_runner.sim_grn()
 
 
-    #FIXME: "plot seed" subcommand implementation preserved for posterity.
-    # def _do_plot_seed(self) -> object:
-    #     '''
-    #     Run the ``plot`` subcommand's ``seed`` subcommand and return the result
-    #     of doing so.
-    #     '''
-    #
-    #     return self._sim_runner.plot_seed()
+    def _do_plot_seed(self) -> object:
+        '''
+        Run the ``plot`` subcommand's ``seed`` subcommand and return the result
+        of doing so.
+        '''
+
+        return self._sim_runner.plot_seed()
 
 
     def _do_plot_init(self) -> object:

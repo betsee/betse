@@ -8,6 +8,17 @@ polygon such that all line segments between any two points on the polygon
 boundary remain strictly inside the polygon) functionality.
 '''
 
+#FIXME: Implement clipping algorithms that support concave clip polygons, which
+#the Sutherland-Hodgman algorithm implemented below explicitly does *NOT*.
+#Possible candidate replacements include:
+#
+#    https://en.wikipedia.org/wiki/Vatti_clipping_algorithm
+#    https://en.wikipedia.org/wiki/Greiner%E2%80%93Hormann_clipping_algorithm
+#    https://en.wikipedia.org/wiki/Weiler%E2%80%93Atherton_clipping_algorithm
+#
+#Vatti appears to be the most general-purpose solution and hence should
+#possibly be our first avenue of inquiry.
+
 # ....................{ IMPORTS                            }....................
 from betse.science.math.geometry import geopoint
 from betse.science.math.geometry.polygon import geopoly
