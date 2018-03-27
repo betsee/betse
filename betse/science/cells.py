@@ -1047,6 +1047,24 @@ class Cells(object):
 
         return matched_pts, unmatched_pts
 
+    def mesh_quality_calc(self):
+
+        edge_lengths = []
+
+        for verto in self.ecm_verts:
+            verto = np.asarray(verto)
+            verti = np.roll(verto, 1, axis=0)
+            e_len = np.sqrt((verti[:, 0] - verto[:, 0]) ** 2 + (verti[:, 1] - verto[:, 1]) ** 2)
+            edge_lengths.extend(e_len)
+
+        edge_lengths = np.asarray(edge_lengths)
+        mean_edge = edge_lengths.mean()
+
+        edge_qual = (edge_lengths / mean_edge) * 100
+        mesh_qual_metric = edge_qual.min()
+
+        return mesh_qual_metric
+
     def _clean_voronoi(self, p) -> None:
         """
         Removes empty data structures from the Voronoi object
@@ -1105,31 +1123,40 @@ class Cells(object):
         # optimization vector:
         opti_steps = np.arange(p.maximum_voronoi_steps)
         seed_points2 = np.vstack((self.cell_centres, self.bbox))
-        convergence = np.ones(len(seed_points2))
+        # convergence = np.ones(len(seed_points2))
+
+        mesh_qual_metric = self.mesh_quality_calc()
 
         for i in opti_steps:
 
-            if convergence.mean() > p.voronoi_convergence:
+            if mesh_qual_metric < p.voronoi_convergence:
                 self._make_voronoi(seed_points2, phase)
                 self._clean_voronoi(p)
                 self.cell_index(p)
-                seed_points_o = seed_points2 * 1
+                # seed_points_o = seed_points2 * 1
                 seed_points2 = np.vstack((self.cell_centres, self.bbox))
 
-                if len(seed_points_o) == len(seed_points2):
-                    convergence = np.sqrt(
-                        (seed_points_o[:, 0] - seed_points2[:, 0]) ** 2 + (seed_points_o[:, 1] - seed_points2[:, 1]) ** 2)
+                # if len(seed_points_o) == len(seed_points2):
+                #     convergence = np.sqrt(
+                #         (seed_points_o[:, 0] - seed_points2[:, 0]) ** 2 + (seed_points_o[:, 1] - seed_points2[:, 1]) ** 2)
+                #
+                #     conv_mess = "Step {}: optimization convergence {}".format(i, convergence.mean())
+                #     logs.log_info(conv_mess)
+                #
+                # else:
+                #
+                #     conv_mess = "Step {}: optimization cell number changed (suggests concave shape!)...".format(i)
+                #     logs.log_info(conv_mess)
 
-                    conv_mess = "Step {}: optimization convergence {}".format(i, convergence.mean())
-                    logs.log_info(conv_mess)
+                mesh_qual_metric = self.mesh_quality_calc()
 
-                else:
-
-                    conv_mess = "Step {}: optimization cell number changed (suggests concave shape!)...".format(i)
-                    logs.log_info(conv_mess)
+                conv_mess = "Step {}: mesh quality {}".format(i, mesh_qual_metric)
+                logs.log_info(conv_mess)
 
             else:
                 logs.log_info("Convergence condition met for Voronoi mesh optimization.")
+                final_mess = "Final mesh quality {}".format(mesh_qual_metric)
+                logs.log_info(final_mess)
                 break
 
     def refineMesh(self, p):
@@ -2485,6 +2512,129 @@ class Cells(object):
             self.M_int_mems[inds_o, inds_p1] = (1/12)
             self.M_int_mems[inds_o, inds_n1] = (1/12)
 
+    def deform_tools(self,p):
+
+        # Data structures specific for deformation option------------------------------
+
+        logs.log_info('Creating computational tools for mechanical deformation... ')
+
+        # create a data structure that will allow us to repackage ecm_verts and re-build the
+        # cells world after deforming ecm_verts_unique:
+
+        # first get the search-points tree:
+        ecmTree = sps.KDTree(self.ecm_verts_unique)
+
+        self.inds2ecmVerts = []
+
+        for verts in self.ecm_verts:
+
+            sublist = []
+
+            for v in verts:
+                _, ind = ecmTree.query(v)
+                sublist.append(ind)
+            self.inds2ecmVerts.append(sublist)
+
+        self.inds2ecmVerts = np.asarray(self.inds2ecmVerts)
+
+    def eosmo_tools(self,p):
+
+        # if studying lateral movement of pumps and channels in membrane,
+        # create a matrix that will take a continuous gradient for a value on a cell membrane:
+        # returns gradient tangent to cell membrane
+
+        self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
+
+        #FIXME: "i" appears to be unused here. In optimistic theory, this
+        #implies that this loop should be reducible to:
+        #    for inds in self.cell_to_mems:
+        #Maybe? Unshroud the penultimate technique, Dagalfor!
+        for i, inds in enumerate(self.cell_to_mems):
+
+            inds = np.asarray(inds)
+
+            inds_p1 = np.roll(inds,1)
+            inds_o = np.roll(inds,0)
+
+            dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_o]
+            len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
+
+            self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
+            self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
+
+    #-----Utility functions--------------------------------------------------------------------------------------------
+    def gradient(self, SS):
+        """
+        Calculates the gradient based on differences of a property SS between cell centres.
+        The gradient is defined at each membrane.
+        """
+        gSS = (SS[self.cell_nn_i[:, 1]] - SS[self.cell_nn_i[:, 0]]) / (self.nn_len)
+
+        gSx = gSS * self.mem_vects_flat[:, 2]
+        gSy = gSS * self.mem_vects_flat[:, 3]
+
+        return gSS, gSx, gSy
+
+    def meanval(self, SS):
+        """
+        Calculates the mean value based on average of property SS between nearest-neighbour cell centres.
+        """
+        mSS = (SS[self.cell_nn_i[:, 1]] + SS[self.cell_nn_i[:, 0]]) / 2
+
+        return mSS
+
+    def average_vector(self, Smx, Smy):
+        """
+        Takes vector quantity (Smx, Smy) defined at membranes and calculates the averaged
+        single vector at the cell centre.
+        """
+        Scx = np.dot(self.M_sum_mems, Smx * self.mem_sa) / self.cell_sa
+        Scy = np.dot(self.M_sum_mems, Smy * self.mem_sa) / self.cell_sa
+
+        return Scx, Scy
+
+    def mag(self, Sx, Sy):
+        """
+        Returns the magnitude of vector (Sx, Sy) defined on any system.
+        """
+
+        So = np.sqrt(Sx ** 2 + Sy ** 2)
+
+        return So
+
+    def mem_normal_component(self, Sx, Sy):
+        """
+        Returns the normal component of a vector (Sx, Sy) at each membrane.
+        """
+
+        if Sx.shape[0] == len(self.cell_i):
+
+            Sxm = Sx[self.mem_to_cells]
+            Sym = Sy[self.mem_to_cells]
+
+        elif Sx.shape[0] == len(self.mem_i):
+
+            Sxm = Sx
+            Sym = Sx
+
+        else:
+            logs.log_error("Shape of input is wrong!")
+
+        Sn = Sxm * self.mem_vects_flat[:, 2] + Sym * self.mem_vects_flat[:, 3]
+
+        return Sn
+
+    def div(self, gSx, gSy):
+        """
+        Calculates the divergence of a vector (gSx, gSy) defined on membranes.
+        """
+
+        gSn = gSx * self.mem_vects_flat[:, 2] + gSy * self.mem_vects_flat[:, 3]
+
+        divS = np.dot(self.M_sum_mems, gSn * self.mem_sa) / self.cell_vol
+
+        return divS
+
     def interp_to_mem(self,f, interp_method = 'linear'):
         """
         Interpolates a parameter defined on cell centres to the membrane
@@ -2714,55 +2864,6 @@ class Cells(object):
 
         return AA, Ax, Ay, BB, Bx, By
 
-    def deform_tools(self,p):
-
-        # Data structures specific for deformation option------------------------------
-
-        logs.log_info('Creating computational tools for mechanical deformation... ')
-
-        # create a data structure that will allow us to repackage ecm_verts and re-build the
-        # cells world after deforming ecm_verts_unique:
-
-        # first get the search-points tree:
-        ecmTree = sps.KDTree(self.ecm_verts_unique)
-
-        self.inds2ecmVerts = []
-
-        for verts in self.ecm_verts:
-
-            sublist = []
-
-            for v in verts:
-                _, ind = ecmTree.query(v)
-                sublist.append(ind)
-            self.inds2ecmVerts.append(sublist)
-
-        self.inds2ecmVerts = np.asarray(self.inds2ecmVerts)
-
-    def eosmo_tools(self,p):
-
-        # if studying lateral movement of pumps and channels in membrane,
-        # create a matrix that will take a continuous gradient for a value on a cell membrane:
-        # returns gradient tangent to cell membrane
-
-        self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
-
-        #FIXME: "i" appears to be unused here. In optimistic theory, this
-        #implies that this loop should be reducible to:
-        #    for inds in self.cell_to_mems:
-        #Maybe? Unshroud the penultimate technique, Dagalfor!
-        for i, inds in enumerate(self.cell_to_mems):
-
-            inds = np.asarray(inds)
-
-            inds_p1 = np.roll(inds,1)
-            inds_o = np.roll(inds,0)
-
-            dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_o]
-            len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
-
-            self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
-            self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
 
     # ..........{ PROPERTIES ~ membrane                   }.....................
     @property_cached

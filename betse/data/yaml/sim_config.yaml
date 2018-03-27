@@ -179,7 +179,7 @@ world options:
   mesh refinement:                  # Use Llyod's algorith to optimize the Voronoi mesh
     refine mesh: True              # Turn optimization on? (Only works for Convex model shapes)
     maximum steps: 25              # Maximum number of itterations (models typically converge in <30 steps)
-    convergence threshold: 1.0e-9   # Threshhold below which optimization is considered complete (1.0e-9).
+    convergence threshold: 10.0   # Threshhold above which optimization is considered complete (minimum of 5.0).
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TISSUE PROFILE DESIGNATION

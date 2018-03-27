@@ -986,19 +986,6 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
                        rho=1
                        )
 
-        # if update_intra is False and umt != 0.0:
-        #     ugj = umt*sim.mtubes.umtn
-        #
-        # else:
-        #     ugj = 0.0
-
-        # gv = (sim.vm[cells.nn_i] - sim.vm[cells.mem_i]) / (cells.nn_len)
-        # gc = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i])/(cells.nn_len)
-        # cp = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i])/2
-        #
-        # fgj_X = nernst_planck_vector(cp, gc, gv, 0.0, Dgj*sim.gj_block*sim.gjopen, z, sim.T, p)
-
-
         # enforce zero flux at outer boundary:
         fgj_X[cells.bflags_mems] = 0.0
 
@@ -1017,6 +1004,34 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     else:
         fgj_X = np.zeros(sim.mdl)
+
+    #----Motor protein transport-----------------------------------------------------------------------------
+    if update_intra is False and umt != 0.0:
+        umtx = umt*sim.mtubes.mtubes_x
+        umty = umt*sim.mtubes.mtubes_y
+
+        # concentration gradient at cell centres:
+        gcc, gccmx, gccmy = cells.gradient(cX_cells)
+
+        # mean value of concentration between two cells:
+        mcc = cells.meanval(cX_cells)
+
+        # Flux, treating microtubules field akin to convection:
+        flux_mtx = -Do * gccmx + umtx * mcc
+        flux_mty = -Do * gccmy + umty * mcc
+
+        # zero flux at the boundary:
+        flux_mtx[cells.bflags_mems] = 0.0
+        flux_mty[cells.bflags_mems] = 0.0
+
+        # divergence of the flux, finite volume style:
+        div_ccmt = -cells.div(flux_mtx, flux_mty)
+
+        # update cell concentration:
+        cX_cells += div_ccmt * p.dt * time_dilation_factor
+
+        # print(time_dilation_factor)
+
 
 
     # Transport through environment, if p.is_ecm is True-----------------------------------------------------

@@ -2138,12 +2138,14 @@ class Simulator(object):
 
         self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
 
-        # smooth the vgj:
-        vgj_ave = np.dot(cells.M_sum_mems, self.vgj * cells.mem_sa) / cells.cell_sa
-        self.vgj = self.smooth_weight_mem * self.vgj + vgj_ave[cells.mem_to_cells] * self.smooth_weight_o
+        ## smooth the vgj:
+        # vgj_ave = np.dot(cells.M_sum_mems, self.vgj * cells.mem_sa) / cells.cell_sa
+        # self.vgj = self.smooth_weight_mem * self.vgj + vgj_ave[cells.mem_to_cells] * self.smooth_weight_o
 
         # store transjunctional electric field:
         self.Egj = -self.vgj/cells.gj_len
+
+        # self.Egj = -self.vgj/cells.nn_len
 
         self.E_gj_x = self.Egj*cells.mem_vects_flat[:,2]
         self.E_gj_y = self.Egj*cells.mem_vects_flat[:,3]

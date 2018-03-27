@@ -235,8 +235,9 @@ class Mtubes(object):
         self.mt_theta = self.mt_theta + flux_theta*p.dt*p.dilate_mtube_dt*self.modulator
 
         # update the microtubule coordinates with the new angle:
-        self.mtubes_x = np.cos(self.mt_theta)*self.mt_density
-        self.mtubes_y = np.sin(self.mt_theta)*self.mt_density
+        if p.dilate_mtube_dt > 0.0:
+            self.mtubes_x = np.cos(self.mt_theta)*self.mt_density
+            self.mtubes_y = np.sin(self.mt_theta)*self.mt_density
 
         self.uxmt, self.uymt = self.mtubes_to_cell(cells, p)
 
@@ -318,9 +319,9 @@ class Mtubes(object):
         logs.log_info("-------------------------------")
 
         # smoothing weights
-        nfrac = p.smooth_cells
-        smooth_weight_mem = ((nfrac*cells.num_mems[cells.mem_to_cells] -1)/(nfrac*cells.num_mems[cells.mem_to_cells]))
-        smooth_weight_o = 1/(nfrac*cells.num_mems[cells.mem_to_cells])
+        # nfrac = p.smooth_cells
+        # smooth_weight_mem = ((nfrac*cells.num_mems[cells.mem_to_cells] -1)/(nfrac*cells.num_mems[cells.mem_to_cells]))
+        # smooth_weight_o = 1/(nfrac*cells.num_mems[cells.mem_to_cells])
 
         nx = cells.mem_vects_flat[:, 2]*1
         ny = cells.mem_vects_flat[:, 3]*1
@@ -330,27 +331,31 @@ class Mtubes(object):
         # gradient of the alignment field:
         gF = (FF[cells.cell_nn_i[:, 1]] - FF[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 
-        gF_ave = np.dot(cells.M_sum_mems, gF*cells.mem_sa)/cells.cell_sa
+        # gF_ave = np.dot(cells.M_sum_mems, gF*cells.mem_sa)/cells.cell_sa
 
         # Smooth the field:
-        gF = smooth_weight_mem * gF + gF_ave[cells.mem_to_cells] * smooth_weight_o
+        # gF = smooth_weight_mem * gF + gF_ave[cells.mem_to_cells] * smooth_weight_o
 
-        gFxo = gF * nx
-        gFyo = gF * ny
+        gFx = gF * nx
+        gFy = gF * ny
 
-        gFx = np.dot(cells.M_sum_mems, gFxo*cells.mem_sa) / cells.cell_sa
-        gFy = np.dot(cells.M_sum_mems, gFyo*cells.mem_sa) / cells.cell_sa
+        # gFx = np.dot(cells.M_sum_mems, gFxo*cells.mem_sa) / cells.cell_sa
+        # gFy = np.dot(cells.M_sum_mems, gFyo*cells.mem_sa) / cells.cell_sa
 
         # magnitude of the field, plus small constant to ensure non-zero division:
-        FFm = np.sqrt(gFx**2 + gFy**2) + 1.0e-10
+        # FFm = np.sqrt(gFx**2 + gFy**2) + 1.0e-10
 
-        # normalize the field to unit length of 1.0:
-        gFxn = gFx[cells.mem_to_cells]/FFm[cells.mem_to_cells]
-        gFyn = gFy[cells.mem_to_cells]/FFm[cells.mem_to_cells]
+        # # normalize the field to unit length of 1.0:
+        # gFxn = gFx[cells.mem_to_cells]/FFm[cells.mem_to_cells]
+        # gFyn = gFy[cells.mem_to_cells]/FFm[cells.mem_to_cells]
+
+        # magnitude of the orienting field:
+        magF = (np.sqrt(gFx ** 2 + gFy ** 2)).max() + 1.0e-15
+
 
         # set the microtubule vectors with the field values:
-        self.mtubes_x = -gFxn * self.mt_density
-        self.mtubes_y = -gFyn * self.mt_density
+        self.mtubes_x = -(gFx/magF) * self.mt_density
+        self.mtubes_y = -(gFy/magF) * self.mt_density
 
         # initial angle of microtubules:
         self.mt_theta = np.arctan2(self.mtubes_y, self.mtubes_x)
