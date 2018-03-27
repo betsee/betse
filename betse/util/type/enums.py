@@ -116,13 +116,31 @@ class EnumOrdered(EnumClassType):
 @type_check
 def make_enum(class_name: str, member_names: SequenceTypes) -> EnumType:
     '''
-    **Enumeration type** (i.e., :class:`EnumType` instance or, equivalently,
-    :class:`EnumClassType` subclass) dynamically synthesized to have the passed
-    class name and contain exactly the members with the passed names.
+    **Integer-based enumeration type** (i.e., instance of the standard
+    :class:`EnumClassType` type whose members are uniquely mapped to 1-based
+    integers) dynamically synthesized to have the passed class name and contain
+    exactly the members with the passed names.
 
     This factory function is a convenience wrapper for the
     :class:`EnumClassType` subclass, whose non-standard semantics are arguably
-    more obfuscatory than helpful.
+    more obfuscatory than useful.
+
+    Attributes
+    ----------
+    Each attribute of the returned enumeration type is an enumeration member
+    whose:
+
+    * Type is the same as that of this enumeration.
+    * Value is an object uniquely identifying this member in this enumeration,
+      defining the following public attributes:
+
+      * ``name``, the Python identifier uniquely identifying this member --
+        guaranteed to be the same string as that passed to this function.
+      * ``value``, the 1-based integer uniquely identifying this member. The
+        ``value`` of this enumeration's:
+        * First member is guaranteed to be 1.
+        * Last member is guaranteed to be the number of members (i.e., the
+          length of this enumeration).
 
     Parameters
     ----------
@@ -138,6 +156,17 @@ def make_enum(class_name: str, member_names: SequenceTypes) -> EnumType:
     ----------
     EnumType
         Enumeration type dynamically synthesized as defined as above.
+
+    Examples
+    ----------
+    >>> from betse.util.type.enums import make_enum
+    >>> CthulhicState = make_enum(
+    ...     class_name='CthulhicState',
+    ...     member_names=('MERCIFUL', 'INNABILITY', 'CORRELATE', 'CONTENTS',))
+    >>> CthulhicState.CORRELATE.name
+    'CORRELATE'
+    >>> CthulhicState.CORRELATE.value
+    3
     '''
 
     # Avoid circular import dependencies.
