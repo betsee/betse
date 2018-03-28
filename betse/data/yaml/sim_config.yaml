@@ -343,6 +343,7 @@ cutting event:
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
     break TJ: True           # break tight junctions? (otherwise assumes instant barrier healing)
     wound TJ: 1.0e-1         # how leaky are the tight junctions at the wound (max 1.0)
+    cut time: 10.0e-3   # time at which cutting occurs durring simulation.
 
 #-----------------------------------------------------------------------------------------------------------------------
 # MODULATOR FUNCTION PROPERTIES
@@ -628,6 +629,7 @@ gene regulatory network settings:
   sim-grn settings: # Sim-grn allows you to calculate GRN on last time frame of bioelectricity simulation
 
     run network on: init    # (for sim-grn command, run the network on a pre-made betse seed, init, or sim ?)
+    run as sim: False           # run the network as an init (False) or a sim (True)?
     save to directory: RESULTS/GRN
     save to file: GRN_1.betse.gz # where to save the resulting sim-grn file
     load from: None                # load a previously-run sim-grn file to start with? (None initializes to defaults)

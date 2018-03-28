@@ -2579,7 +2579,12 @@ class Cells(object):
         """
         Calculates the mean value based on average of property SS between nearest-neighbour cell centres.
         """
-        mSS = (SS[self.cell_nn_i[:, 1]] + SS[self.cell_nn_i[:, 0]]) / 2
+        if SS.shape[0] == len(self.cell_i): # if parameter defined on cell centres:
+            mSS = (SS[self.cell_nn_i[:, 1]] + SS[self.cell_nn_i[:, 0]]) / 2
+
+        elif SS.shape[0] == len(self.mem_i): # if parameter defined on membrane mids:
+
+            mSS = (SS[self.nn_i] + SS[self.mem_i])/2
 
         return mSS
 

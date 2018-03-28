@@ -1015,6 +1015,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         # mean value of concentration between two cells:
         mcc = cells.meanval(cX_cells)
+        # mcc = cX_cells[cells.mem_to_cells]
 
         # Flux, treating microtubules field akin to convection:
         flux_mtx = -Do * gccmx + umtx * mcc
@@ -1029,8 +1030,6 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         # update cell concentration:
         cX_cells += div_ccmt * p.dt * time_dilation_factor
-
-        # print(time_dilation_factor)
 
 
 

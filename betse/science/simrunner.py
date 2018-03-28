@@ -311,6 +311,7 @@ class SimRunner(object):
 
                 # Initialize simulation data structures
                 sim.baseInit_all(cells, p)
+                sim.init_tissue(cells, p)
 
                 # Initialize other aspects required for piggyback of GRN on the sim object:
                 sim.time = []

@@ -531,6 +531,8 @@ class Parameters(YamlFileABC):
         # Parameterize the cutting event if enabled.
         self.break_TJ = self._conf['cutting event'].get('break TJ', True)
         self.wound_TJ = float(self._conf['cutting event'].get('wound TJ', 0.1))
+        self.cut_time = float(self._conf['cutting event'].get('cut time', 0.0))
+
 
         #---------------------------------------------------------------------------------------------------------------
         # GLOBAL INTERVENTIONS
@@ -656,6 +658,7 @@ class Parameters(YamlFileABC):
             self.grn_dt = float(simgrndic.get('time step', 1.0e-2))
             self.grn_total_time = float(simgrndic.get('total time', 10.0))
             self.grn_tsample = float(simgrndic.get('sampling rate', 1.0))
+            self.grn_runmodesim = simgrndic.get('run as sim', False)
 
         else:
 

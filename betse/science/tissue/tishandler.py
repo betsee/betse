@@ -754,7 +754,7 @@ class TissueHandler(object):
                 sim.D_env_weight_base = sim.D_env_weight_base.reshape(cells.X.shape)
 
         # If the cutting event is enabled but has yet to be performed, do so.
-        if self.event_cut is not None and not self.event_cut.is_fired:
+        if self.event_cut is not None and not self.event_cut.is_fired and t > p.cut_time:
             for cut_profile_name in self.event_cut.profile_names:
                 logs.log_info(
                     'Cutting cell cluster via cut profile "%s"...',
@@ -1107,6 +1107,10 @@ class TissueHandler(object):
         if p.grn_enabled and sim.grn is not None:
 
             sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+
+        # Save target inds so they can be used outside of the core simulator (i.e. dynamically in sim-grn)
+        sim.target_inds_cell_o = target_inds_cell
+        sim.target_inds_mem_o = target_inds_mem
 
         # if hole_tag is False: # if we're not defining a hole at the beginning, reassign to new bflags
         sim.initDenv(cells,p)

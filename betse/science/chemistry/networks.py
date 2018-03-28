@@ -1135,7 +1135,7 @@ class MasterOfNetworks(object):
                 # initialize an empty list that will hold strings defining fixed parameter values as LaTeX math string
                 gad_tex_var_list = []
 
-                cc = "((self.molecules['{}'].c_cells)/self.molecules['{}'].gad_scale_factor)".format(mol_name, mol_name)
+                cc = "(self.molecules['{}'].c_cells/self.molecules['{}'].gad_scale_factor)".format(mol_name, mol_name)
 
                 cc_tex = r"[%s]" % (mol_name)
 

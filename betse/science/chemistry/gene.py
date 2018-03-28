@@ -223,6 +223,11 @@ class MasterOfGenes(object):
         self.core.clear_cache()
         self.time = []
 
+        self.mod_after_cut = False # set this to false
+
+        # if p.grn_runmodesim:
+        self.reinitialize(sim, cells, p)
+
         if self.recalc_fluid:  # If user requests the GRN recalculate/calculate fluid:
 
             logs.log_info("Calculating fluid in terms of endogenous currents...")
@@ -257,6 +262,23 @@ class MasterOfGenes(object):
 
             if p.use_microtubules: # update the microtubules:
                 sim.mtubes.update_mtubes(cells, sim, p)
+
+            if p.grn_runmodesim is True and t > p.cut_time and self.mod_after_cut is False:
+
+                sim.dyna.runAllDynamics(sim, cells, p, t)
+
+                if sim.dyna.event_cut.is_fired and self.mod_after_cut is False: # if a cutting event has just been run:
+
+                    self.core.mod_after_cut_event(sim.target_inds_cell_o, sim.target_inds_mem_o, sim, cells, p)
+                    logs.log_info(
+                        "Redefining dynamic dictionaries to point to the new sim...")
+                    self.core.redefine_dynamic_dics(sim, cells, p)
+
+                    logs.log_info(
+                        "Reinitializing the gene regulatory network for simulation...")
+                    self.reinitialize(sim, cells, p)
+
+                    self.mod_after_cut = True  # set the boolean to avoid repeat action
 
 
             if t in tsamples:
