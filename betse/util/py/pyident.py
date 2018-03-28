@@ -128,6 +128,7 @@ def is_var_name(text: str) -> bool:
         text=text, regex=_IDENTIFIER_UNQUALIFIED_REGEX_COMPILED)
 
 # ....................{ CONVERTERS ~ camel                 }....................
+@type_check
 def convert_camelcase_to_snakecase(identifier: str) -> str:
     '''
     Convert the passed CamelCase-formatted Python identifier to snake_case
@@ -145,6 +146,7 @@ def convert_camelcase_to_snakecase(identifier: str) -> str:
     ).lower()
 
 
+@type_check
 def convert_camelcase_to_whitespaced_lowercase(identifier: str) -> str:
     '''
     Convert the passed CamelCase-formatted Python identifier to whitespaced
@@ -166,7 +168,7 @@ def convert_camelcase_to_whitespaced_lowercase(identifier: str) -> str:
 def sanitize_camelcase(identifier: str) -> str:
     '''
     Sanitize the passed string into a valid Python identifier in CamelCase
-    format derived from this string (e.g., from ``sim-gnr`` to ``SimGnr``).
+    format derived from this string (e.g., from ``sim-grn`` to ``SimGrn``).
 
     Specifically, this function replaces each substring of one or more
     alphanumeric ASCII characters with:

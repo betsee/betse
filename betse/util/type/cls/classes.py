@@ -38,27 +38,7 @@ def die_unless_subclass(subclass: ClassType, superclass: ClassType) -> None:
             'Class {!r} not a subclass of class {!r}'.format(
                 subclass, superclass))
 
-# ....................{ GETTERS ~ metadata                 }....................
-@type_check
-def get_name(cls: ClassType) -> str:
-    '''
-    Unqualified name of the passed class.
-
-    Parameters
-    ----------
-    cls : ClassType
-        Class to retrieve this unqualified name for.
-
-    Returns
-    ----------
-    str
-        Unqualified name of this class.
-    '''
-
-    # Elegant simplicity diminishes aggressive tendencies.
-    return cls.__name__
-
-
+# ....................{ GETTERS                            }....................
 @type_check
 def get_module_name(cls: ClassType) -> str:
     '''
@@ -86,6 +66,53 @@ def get_module_name(cls: ClassType) -> str:
 
     # Defer to this existing function, which suffices.
     return objects.get_class_module_name(cls)
+
+# ....................{ GETTERS ~ name                     }....................
+@type_check
+def get_name(cls: ClassType) -> str:
+    '''
+    Unqualified name of the passed class.
+
+    Parameters
+    ----------
+    cls : ClassType
+        Class to retrieve this unqualified name for.
+
+    Returns
+    ----------
+    str
+        Unqualified name of this class.
+    '''
+
+    # Elegant simplicity diminishes aggressive tendencies.
+    return cls.__name__
+
+
+@type_check
+def get_name_snakecase(cls: ClassType) -> str:
+    '''
+    Unqualified name of the passed class converted from CamelCase to snake_case
+    (e.g., from ``MyClassName`` to ``my_class_name``).
+
+    Parameters
+    ----------
+    cls : ClassType
+        Class to retrieve this unqualified snake_case name for.
+
+    Returns
+    ----------
+    str
+        Unqualified snake_case name of this class.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.py import pyident
+
+    # Unqualified CamelCase name of this class.
+    name_camelcase = get_name(cls)
+
+    # Can it be? But it can.
+    return pyident.convert_camelcase_to_snakecase(name_camelcase)
 
 # ....................{ GETTERS ~ method                   }....................
 @type_check
