@@ -653,6 +653,10 @@ class Parameters(YamlFileABC):
             else:
                 self.loadMoG = None
 
+            self.grn_dt = float(simgrndic.get('time step', 1.0e-2))
+            self.grn_total_time = float(simgrndic.get('total time', 10.0))
+            self.grn_tsample = float(simgrndic.get('sampling rate', 1.0))
+
         else:
 
             self.grn_piggyback = 'seed'
@@ -662,6 +666,10 @@ class Parameters(YamlFileABC):
             self.grn_loadfrom = None
 
             self.loadMoG = None
+
+            self.grn_dt = 1.0e-2
+            self.grn_total_time = 10.0
+            self.grn_tsample = 1.0
 
         # Define data paths for saving an initialization and simulation run:
         self.savedMoG = pathnames.join(self.grn_savedir, self.grn_savefile)

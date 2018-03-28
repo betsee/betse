@@ -124,18 +124,6 @@ class MasterOfGenes(object):
             self.core.optimizer(sim, cells, p)
             self.reinitialize(sim, cells, p)
 
-
-
-
-
-        # if self.core.opti_run is True:
-        #
-        #     self.run_from_init(self, sim, cells, p)
-
-    #FIXME: Oh, boy. Most of this method appears to have been copy-and-pasted
-    #from the read_gene_config() method above. That's... not the best. Let's
-    #extract the code shared in common between these two methods into a new
-    #_init_genes() method internally called by these two methods.
     def reinitialize(self, sim, cells, p):
 
         # Previously loaded GRN-specific configuration file as a dictionary.
@@ -204,6 +192,19 @@ class MasterOfGenes(object):
 
         # set molecules to not affect charge for sim-grn test-drives:
         p.substances_affect_charge = False
+
+        # Set sim-grn specific time step and sampling:
+        p.dt = p.grn_dt
+        p.init_time_total = p.grn_total_time
+        p.init_time_sampling = p.grn_tsample
+
+        p.init_tsteps = int(p.init_time_total / p.dt)
+        p.resample = p.init_time_sampling
+        p.total_time = p.init_time_total
+
+        # Number of time steps (including sampled and unsampled) between each
+        # unsampled time step, including that unsampled time step itself.
+        p.t_resample = p.resample / p.dt
 
         # specify a time vector
         loop_time_step_max = p.init_tsteps

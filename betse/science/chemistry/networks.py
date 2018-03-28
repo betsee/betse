@@ -364,10 +364,14 @@ class MasterOfNetworks(object):
 
                     mol.r_production = gad['production rate']
                     mol.r_decay = gad['decay rate']
+
+                    mol.gad_scale_factor = float(gad.get('scale factor', 1.0))
                     # mol.Kgd = gad['Km']
                     # mol.n_decay = gad['n']
 
                     mol.growth_profiles_list = gad['apply to']
+
+                    # growth term activators and inhibitors:
 
                     modulator_function_name = gad.get('modulator function', None)
 
@@ -388,6 +392,29 @@ class MasterOfNetworks(object):
                         mol.growth_activators_list,
                         mol.growth_inhibitors_list)
 
+                    # decay-term activators and inhibitors
+                    mol.decay_max = gad.get('decay max', 0.0)
+
+                    mol.decay_activators_list = gad.get('decay activators', None)
+                    mol.decay_activators_zone = gad.get('zone decay activators', None)
+                    mol.decay_activators_Km = gad.get('Km decay activators', None)
+                    mol.decay_activators_n = gad.get('n decay activators', None)
+
+                    mol.decay_inhibitors_list = gad.get('decay inhibitors', None)
+                    mol.decay_inhibitors_zone = gad.get('zone decay inhibitors', None)
+                    mol.decay_inhibitors_Km = gad.get('Km decay inhibitors', None)
+                    mol.decay_inhibitors_n = gad.get('n decay inhibitors', None)
+
+                    # Fill in the blanks if zones aren't supplied:
+                    mol.decay_activators_zone, mol.decay_inhibitors_zone = self.default_zones(
+                        mol.decay_activators_zone,
+                        mol.decay_inhibitors_zone,
+                        mol.decay_activators_list,
+                        mol.decay_inhibitors_list)
+
+
+
+
                     mol.init_growth(sim, cells, p)
 
                     # the modulator function, if requested, makes gad occur modulated by a function.
@@ -406,6 +433,7 @@ class MasterOfNetworks(object):
                 else:
                     mol.simple_growth = False
                     mol.growth_profiles_list = None
+                    mol.gad_scale_factor = 1.0
 
                 # assign ion channel gating properties
                 icg = mol_dic.get('ion channel gating', None)
@@ -1107,25 +1135,9 @@ class MasterOfNetworks(object):
                 # initialize an empty list that will hold strings defining fixed parameter values as LaTeX math string
                 gad_tex_var_list = []
 
-
-                cc = "(self.molecules['{}'].c_cells)".format(mol_name)
+                cc = "((self.molecules['{}'].c_cells)/self.molecules['{}'].gad_scale_factor)".format(mol_name, mol_name)
 
                 cc_tex = r"[%s]" % (mol_name)
-
-                # Kgd = self.molecules[mol_name].Kgd
-                # n_d = self.molecules[mol_name].n_decay
-
-                # write fixed parameter values to LaTeX:
-                # kval = tex_val(Kgd)
-                # Kgd_tex = "K_{%s}^{decay} & =" % (mol_name)
-                # Kgd_tex += kval
-
-                # nval = tex_val(n_d)
-                # n_d_tex = "n_{%s}^{decay} & =" % (mol_name)
-                # n_d_tex += nval
-
-                # gad_tex_var_list.append(Kgd_tex)
-                # gad_tex_var_list.append(n_d_tex)
 
                 # get activators and inhibitors and associated data:
                 a_list = self.molecules[mol_name].growth_activators_list
@@ -1143,16 +1155,39 @@ class MasterOfNetworks(object):
                              i_list, Km_i_list, n_i_list, tex_list = gad_tex_var_list,reaction_zone='cell',
                              zone_tags_a=zone_a, zone_tags_i=zone_i, in_mem_tag=False)
 
+                # decay activators and inhibitors:
+                # initialize an empty list that will hold strings defining fixed parameter values as LaTeX math string
+                dec_gad_tex_var_list = []
+
+                dec_a_list = self.molecules[mol_name].decay_activators_list
+                dec_Km_a_list = self.molecules[mol_name].decay_activators_Km
+                dec_n_a_list = self.molecules[mol_name].decay_activators_n
+                dec_zone_a = self.molecules[mol_name].decay_activators_zone
+
+                dec_i_list = self.molecules[mol_name].decay_inhibitors_list
+                dec_Km_i_list = self.molecules[mol_name].decay_inhibitors_Km
+                dec_n_i_list = self.molecules[mol_name].decay_inhibitors_n
+                dec_zone_i = self.molecules[mol_name].decay_inhibitors_zone
+
+
+
+                dec_all_alpha, dec_alpha_tex, dec_gad_tex_var_list = \
+                             self.get_influencers(dec_a_list, dec_Km_a_list, dec_n_a_list,
+                             dec_i_list, dec_Km_i_list, dec_n_i_list, tex_list = dec_gad_tex_var_list,reaction_zone='cell',
+                             zone_tags_a=dec_zone_a, zone_tags_i=dec_zone_i, in_mem_tag=False)
+
                 # define remaining portion of substance's growth and decay expression:
 
                 mod_funk = "(self.molecules['{}'].growth_mod_function_cells)".format(mol_name)
                 r_prod =  "(self.molecules['{}'].r_production*(self.molecules['{}'].modify_time_factor))".format(mol_name, mol_name)
                 r_decay = "(self.molecules['{}'].r_decay*(self.molecules['{}'].modify_time_factor))".format(mol_name, mol_name)
+                dec_max = "(self.molecules['{}'].decay_max*(self.molecules['{}'].modify_time_factor))".format(mol_name, mol_name)
 
                 gad_eval_string = mod_funk + "*" + r_prod + "*" + all_alpha + "-" + \
-                                  r_decay + "*" + cc
+                                  r_decay + "*" + cc + "-" + dec_max + "*" + dec_all_alpha + "*" + cc
 
                 # Formatting for LaTeX equation export ---------------------------------------
+                # FIXME add in new decay term to the list
 
                 r_prod_tex = r"r_{%s}^{max}\," % mol_name
                 r_dec_tex = r" - \delta_{%s}\," % mol_name

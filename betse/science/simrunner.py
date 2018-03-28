@@ -380,7 +380,7 @@ class SimRunner(object):
         if p.loadMoG is not None and files.is_file(p.loadMoG):
             # Log this load.
             logs.log_info(
-                'Reinitializing the gene regulatory network from "{}"...',
+                'Reinitializing the gene regulatory network from "%s"...',
                 pathnames.get_basename(p.loadMoG))
 
             # load previously run instance of master of genes:

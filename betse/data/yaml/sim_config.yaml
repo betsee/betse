@@ -628,13 +628,12 @@ gene regulatory network settings:
   sim-grn settings: # Sim-grn allows you to calculate GRN on last time frame of bioelectricity simulation
 
     run network on: init    # (for sim-grn command, run the network on a pre-made betse seed, init, or sim ?)
-    save to directory: GRN
-    save to file: GRN_1H_1.betse.gz # where to save the resulting sim-grn file
+    save to directory: RESULTS/GRN
+    save to file: GRN_1.betse.gz # where to save the resulting sim-grn file
     load from: None                # load a previously-run sim-grn file to start with? (None initializes to defaults)
-    # FIXME: Implement these!
-    time step: 1.0       # time step-size [s] (recommended 1.0 or smaller)
+    time step: 1.0       # time step-size [s]
     total time: 1.8e3         # time to end sim run [s]
-    sampling rate: 10.0      # period to sample data [s] (at least time step or larger)
+    sampling rate: 1.8e2      # period to sample data [s] (at least time step or larger)
 
 
 #-----------------------------------------------------------------------------------------------------------------------

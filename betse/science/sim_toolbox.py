@@ -1104,15 +1104,17 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
     # check for sub-zero concentrations:
     indsZm = (cX_mems < 0.0).nonzero()[0]
 
-    if len(indsZm) > 0:
-        raise BetseSimUnstableException(
-            "Network concentration of " + name + " on membrane below zero! Your simulation has"
-                                                   " become unstable.")
+
     indsZc = (cX_cells < 0.0).nonzero()[0]
 
     if len(indsZc) > 0:
         raise BetseSimUnstableException(
             "Network concentration of " + name + " in cells below zero! Your simulation has"
+                                                   " become unstable.")
+
+    if len(indsZm) > 0:
+        raise BetseSimUnstableException(
+            "Network concentration of " + name + " on membrane below zero! Your simulation has"
                                                    " become unstable.")
 
     indsZe = (cX_env_o < 0.0).nonzero()[0]
