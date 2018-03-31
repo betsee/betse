@@ -313,10 +313,9 @@ class SimConfigTestWrapper(object):
         (e.g., tests, scripts) expecting simulations to behave silently.
         '''
 
-        results = self._p._conf['results options']
-        results['while solving']['animations']['show'] = False
-        results['after solving']['plots']['show'] = False
-        results['after solving']['animations']['show'] = False
+        self._p.anim.is_after_sim_show = False
+        self._p.anim.is_while_sim_show = False
+        self._p.plot.is_after_sim_show = False
 
     # ..................{ ENABLERS                           }..................
     def enable_networks(self) -> None:

@@ -322,8 +322,6 @@ def _upgrade_sim_conf_to_0_6_0(p: Parameters) -> None:
             else:
                 tissue_dict['tissue profiles'].append(profile)
 
-            del profile['type']
-
     # Shift the tissue profiles list into a nested dictionary key.
     if 'tissue profiles' in tissue_dict:
         tissue_dict['tissue'] = {
