@@ -93,7 +93,8 @@ def get_current(sim, cells, p):
         # sim.v_env = (sim.rho_env_surf / (p.cm))
         # sim.v_env = (sim.rho_env / (sim.ko_env**2 * p.eo * p.er))
 
-        screen = 2/(sim.ko_env*cells.delta)
+        screen = (2/(sim.ko_env*cells.delta))*(p.cell_radius/p.true_cell_size)
+        # screen = (2/(sim.ko_env*cells.delta))
 
         sim.v_env = gaussian_filter(sim.v_env.reshape(cells.X.shape), 1, mode='constant', cval=0.0).ravel() + Phi_b
 

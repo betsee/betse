@@ -1007,7 +1007,6 @@ class Simulator(object):
         if p.solver_type is SolverType.FAST:
             self.fast_sim_init(cells, p)
 
-
     @type_check
     def run_sim_core(self, phase: SimPhase) -> None:
         '''
@@ -1112,7 +1111,6 @@ class Simulator(object):
         # simulation data has been saved to disk.
         if exception_instability is not None:
             raise exception_instability
-
 
     @type_check
     def _run_sim_core_loop(
@@ -2011,23 +2009,27 @@ class Simulator(object):
         else:
 
             # Calculate the central voltage value in the cell from total change in cell charge:
-            # Jtot = np.dot(cells.M_sum_mems, self.Jn*cells.mem_sa)/cells.cell_sa
-            # self.vm_ave += -(1/p.cm)*Jtot*p.dt
-
             rho_surf = self.rho_cells * cells.diviterm
-            # vm_o = (1/p.cm)*rho_surf[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]
-            vm_o = (1/p.cm)*rho_surf[cells.mem_to_cells]
+
+            if p.is_ecm:
+                vm_o = (1/p.cm)*rho_surf[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]
+
+            else:
+                vm_o = (1/p.cm)*rho_surf[cells.mem_to_cells]
 
             self.vm = (self.vm - (p.dt/p.cm)*self.Jn +
                        ((p.dt*self.sigma_cell[cells.mem_to_cells]*vm_o)/(p.cm*cells.R_rads)))/(1 +
                        ((p.dt*self.sigma_cell[cells.mem_to_cells])/(p.cm*cells.R_rads)))
 
             # average vm:
-            # self.vm_ave = np.dot(cells.M_sum_mems, self.vm*cells.mem_sa)/cells.cell_sa
             self.vm_ave = np.dot(cells.M_sum_mems, self.vm) / cells.num_mems
 
-            # average intracellular electric field at cell centres:
-            gE = (self.vm - self.vm_ave[cells.mem_to_cells]) / cells.R_rads  # concentration gradients
+            # True cell radii:
+            Rcells = cells.R_rads*(p.true_cell_size/p.cell_radius)
+            # Rcells = cells.R_rads
+
+            # # average intracellular electric field at cell centres:
+            gE = (self.vm - self.vm_ave[cells.mem_to_cells]) /Rcells  # concentration gradients
             gEx = -gE * cells.mem_vects_flat[:, 2]
             gEy = -gE * cells.mem_vects_flat[:, 3]
 
@@ -2037,27 +2039,6 @@ class Simulator(object):
             # calculate electric field in cells using net intracellular current and cytosol conductivity:
             self.Emc = (self.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
                        self.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
-
-
-            # # Electrical polarization charge component created by extracellular electric field:
-            # P_env = p.cell_polarizability * p.eo * self.Eme
-            #
-            # # Electrical polarization charge component created by intracellular electric field:
-            # P_cells = p.cell_polarizability * p.eo * self.Emc
-            #
-            # # voltage across the membrane depends on surface charge inside cells, plus polarization in E-fields:
-            # # convert volume charge density to surface charge density:
-            # rho_surf = self.rho_cells * cells.diviterm
-            #
-            # # In terms of intracellular charge:
-            # self.vm = (1 / p.cm) * rho_surf[cells.mem_to_cells] + (1 / p.cm) * P_env + (1 / p.cm) * P_cells
-            #
-            # if p.is_ecm:
-            #
-            #     self.vm += -self.v_env[cells.map_mem2ecm]
-
-        # smooth voltages at the membrane:
-        # self.vm = self.smooth_weight_mem * self.vm + self.vm_ave[cells.mem_to_cells] * self.smooth_weight_o
 
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt

@@ -152,18 +152,27 @@ class Mtubes(object):
 
             self.mt_density = 1.0
 
-        if p.mt_orienting_field is not None:
+        if p.mtube_init_x is not None:
 
             # Initialize microtubules with mini-simulation to define initial state, which may include
-            self.Phi_orient, _ = mods.gradient_bitmap(cells.cell_i, cells, p, bitmap_filename=p.mt_orienting_field)
-
-            if type(self.Phi_orient) is np.ndarray:
-                # if there's a user-requested gradient for initial condition alignment, then perform the pre-simulation:
-                self.presim(self.Phi_orient, cells, p)
+            self.Phi_orient_x, _ = mods.gradient_bitmap(cells.mem_i, cells, p, bitmap_filename=p.mtube_init_x)
 
         else:
+            # self.Phi_orient_x = np.zeros(len(cells.mem_i))
+            self.Phi_orient_x = cells.mem_vects_flat[:, 2]
 
-            self.Phi_orient = None
+        if p.mtube_init_y is not None:
+
+            self.Phi_orient_y, _ = mods.gradient_bitmap(cells.mem_i, cells, p, bitmap_filename=p.mtube_init_y)
+
+        else:
+            self.Phi_orient_y = cells.mem_vects_flat[:, 3]
+            # self.Phi_orient_y = np.zeros(len(cells.mem_i))
+        # if self.Phi_orient_x != cells.mem_vects_flat[:, 2] or self.Phi_orient_y != cells.mem_vects_flat[:,3]:
+
+        # if there's a user-requested gradient for initial condition alignment, then perform the pre-simulation:
+        self.presim(self.Phi_orient_x, self.Phi_orient_y, cells, p)
+
 
         self.uxmt, self.uymt = self.mtubes_to_cell(cells, p)
 
@@ -236,8 +245,10 @@ class Mtubes(object):
 
         # update the microtubule coordinates with the new angle:
         if p.dilate_mtube_dt > 0.0:
-            self.mtubes_x = np.cos(self.mt_theta)*self.mt_density
-            self.mtubes_y = np.sin(self.mt_theta)*self.mt_density
+            mtubes_xo = np.cos(self.mt_theta)*self.mt_density
+            mtubes_yo = np.sin(self.mt_theta)*self.mt_density
+
+            self.mtubes_x, self.mtubes_y = cells.single_cell_div_free(mtubes_xo, mtubes_yo)
 
         self.uxmt, self.uymt = self.mtubes_to_cell(cells, p)
 
@@ -249,6 +260,9 @@ class Mtubes(object):
 
         uxmt = (np.dot(cells.M_sum_mems, uxmto*cells.mem_sa)/cells.cell_sa)
         uymt = (np.dot(cells.M_sum_mems, uymto*cells.mem_sa)/cells.cell_sa)
+
+        # uxmt = uxmto
+        # uymt = uymto
 
         # Store the normal component of microtubule alignment field mapped to membranes:
         self.umtn = (uxmt[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
@@ -305,7 +319,7 @@ class Mtubes(object):
         # mtuu2 = np.delete(self.umtn, target_inds_cell)
         # self.umtn = mtuu2*1
 
-    def presim(self, FF, cells, p):
+    def presim(self, gFxo, gFyo, cells, p):
 
         """
         Initialize microtubule orientation using gradient of a vector field
@@ -313,52 +327,30 @@ class Mtubes(object):
         :param cells:
         :return:
         """
-        mssg = ("Preinitializing microtubule alignment with gradient of {}").format(p.mt_orienting_field)
+        mssg = ("Preinitializing microtubule x- and y- coorinates with {} and {}").format(p.mtube_init_x, p.mtube_init_y)
         logs.log_info("-------------------------------")
         logs.log_info(mssg)
         logs.log_info("-------------------------------")
 
-        # smoothing weights
-        # nfrac = p.smooth_cells
-        # smooth_weight_mem = ((nfrac*cells.num_mems[cells.mem_to_cells] -1)/(nfrac*cells.num_mems[cells.mem_to_cells]))
-        # smooth_weight_o = 1/(nfrac*cells.num_mems[cells.mem_to_cells])
+        # rotate the axis of the model:
+        rotangle = (p.mtube_init_rotangle*np.pi)/180.0
 
-        nx = cells.mem_vects_flat[:, 2]*1
-        ny = cells.mem_vects_flat[:, 3]*1
-
-        # self.FF = FF # save the orienting field
-
-        # gradient of the alignment field:
-        gF = (FF[cells.cell_nn_i[:, 1]] - FF[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
-
-        # gF_ave = np.dot(cells.M_sum_mems, gF*cells.mem_sa)/cells.cell_sa
-
-        # Smooth the field:
-        # gF = smooth_weight_mem * gF + gF_ave[cells.mem_to_cells] * smooth_weight_o
-
-        gFx = gF * nx
-        gFy = gF * ny
-
-        # gFx = np.dot(cells.M_sum_mems, gFxo*cells.mem_sa) / cells.cell_sa
-        # gFy = np.dot(cells.M_sum_mems, gFyo*cells.mem_sa) / cells.cell_sa
-
-        # magnitude of the field, plus small constant to ensure non-zero division:
-        # FFm = np.sqrt(gFx**2 + gFy**2) + 1.0e-10
-
-        # # normalize the field to unit length of 1.0:
-        # gFxn = gFx[cells.mem_to_cells]/FFm[cells.mem_to_cells]
-        # gFyn = gFy[cells.mem_to_cells]/FFm[cells.mem_to_cells]
+        gFx = gFxo*np.cos(rotangle) - gFyo*np.sin(rotangle)
+        gFy = gFxo*np.sin(rotangle) + gFyo*np.cos(rotangle)
 
         # magnitude of the orienting field:
         magF = (np.sqrt(gFx ** 2 + gFy ** 2)).max() + 1.0e-15
 
-
         # set the microtubule vectors with the field values:
-        self.mtubes_x = -(gFx/magF) * self.mt_density
-        self.mtubes_y = -(gFy/magF) * self.mt_density
+        mtubes_xo = -(gFx/magF) * self.mt_density
+        mtubes_yo = -(gFy/magF) * self.mt_density
+
+        self.mtubes_x, self.mtubes_y = cells.single_cell_div_free(mtubes_xo, mtubes_yo)
 
         # initial angle of microtubules:
         self.mt_theta = np.arctan2(self.mtubes_y, self.mtubes_x)
+
+        self.uxmt, self.uymt = self.mtubes_to_cell(cells, p)
 
 
 

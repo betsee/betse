@@ -220,13 +220,13 @@ class MasterOfGenes(object):
             # logs.log_debug('Time sample i: {!r}'.format(i))
             tsamples.add(tt[i])
 
+        # if p.grn_runmodesim:
+        self.reinitialize(sim, cells, p)
+
         self.core.clear_cache()
         self.time = []
 
         self.mod_after_cut = False # set this to false
-
-        # if p.grn_runmodesim:
-        self.reinitialize(sim, cells, p)
 
         if self.recalc_fluid:  # If user requests the GRN recalculate/calculate fluid:
 
@@ -277,6 +277,8 @@ class MasterOfGenes(object):
                     logs.log_info(
                         "Reinitializing the gene regulatory network for simulation...")
                     self.reinitialize(sim, cells, p)
+                    # self.core.clear_cache()
+                    sim.uxmt, self.uymt = sim.mtubes.mtubes_to_cell(cells, p)
 
                     self.mod_after_cut = True  # set the boolean to avoid repeat action
 

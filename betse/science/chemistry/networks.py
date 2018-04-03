@@ -334,11 +334,11 @@ class MasterOfNetworks(object):
                 # is substance a transmembrane protein?
                 mol.transmem = mol_dic.get('transmem', False)
 
-                # smoothing fraction for substance:
-                mol.sharp = float(mol_dic.get('sharpness', 2.0))
-                mol.smooth_weight_mem = (
-                (mol.sharp * cells.num_mems[cells.mem_to_cells] - 1) / (mol.sharp * cells.num_mems[cells.mem_to_cells]))
-                mol.smooth_weight_o = 1 / (mol.sharp * cells.num_mems[cells.mem_to_cells])
+                # # smoothing fraction for substance:
+                # mol.sharp = float(mol_dic.get('sharpness', 2.0))
+                # mol.smooth_weight_mem = (
+                # (mol.sharp * cells.num_mems[cells.mem_to_cells] - 1) / (mol.sharp * cells.num_mems[cells.mem_to_cells]))
+                # mol.smooth_weight_o = 1 / (mol.sharp * cells.num_mems[cells.mem_to_cells])
 
                 self.zmol[name] = mol.z
                 self.Dmem[name] = mol.Dm
@@ -5625,54 +5625,20 @@ class Molecule(object):
 
         elif self.update_intra_conc is True:
 
-            # first determine if the substance is transported by motor proteins:
+
             if self.u_mt != 0.0:
 
                 # motor protein transport on microtubules:
-                c_motor = (sim.mtubes.umtn*self.u_mt*cp)
-
+                # this is scaled to the "biological" cell size to allow for correct biological scaling
+                alpha_motor = (sim.mtubes.umtn*self.u_mt*(p.true_cell_size/p.cell_radius))
             else:
-                c_motor = 0.0
+                alpha_motor = 0.0
 
-            # The "transmem" key indicates the item sits in the membrane, where it's pulled by extracellular fields
-            # and flows, as well as motor protein transport:
-            if self.transmem is True:
+            if self.transmem is False:
 
                 if z != 0.0 or self.Mu_mem != 0.0:
 
-                    # get gradient of raw environmental voltage -- this is the electric field at the membrane:
-                    vex, vey = fd.gradient(sim.v_env, cells.delta, cells.delta)
-
-                    _, _, En = stb.map_to_cells(-vex, -vey, cells, p, smoothing=0.0)
-
-                else:
-
-                    En = 0.0
-
-
-                if p.fluid_flow is True:
-
-                    # normal component of fluid flow at membranes from *extra*cellular flow:
-                    _, _, uflow = stb.map_to_cells(sim.u_env_x, sim.u_env_y, cells, p, smoothing = 0.0)
-
-                    if p.fluid_cap != 99999:
-
-                        uflow[uflow > p.fluid_cap] = p.fluid_cap
-                        uflow[uflow < -p.fluid_cap] = -p.fluid_cap
-
-                    uflow[cells.bflags_mems] = 0.0
-
-
-                else:
-
-                    uflow = 0.0
-
-
-            else: # else if "transmem" is false, include only the intracellular field
-
-                if z != 0.0 or self.Mu_mem != 0.0:
-
-                    En = sim.Eme
+                    En = sim.Eme*(p.true_cell_size/p.cell_radius)
 
                 else:
 
@@ -5680,31 +5646,47 @@ class Molecule(object):
 
                 uflow = 0.0
 
-            c_diffusion = (-Do*cg)
-            c_ephoresis_A = ((Do*p.q*z)/(p.kb*sim.T))*cp*En
-            c_ephoresis_B = (self.Mu_mem*cp*En)
-            c_eosmo = (uflow*cp)
+            else:
 
-            # diffuse in concentration gradient, via extracellular field and via extracellular flow:
-            cfluxo = (c_diffusion + c_ephoresis_A + c_ephoresis_B + c_eosmo + c_motor)
+                if z != 0.0 or self.Mu_mem != 0.0:
 
-            # as no net mass must leave this intracellular movement, make the flux divergence-free:
-            if self.transmem is False:
-                cflux = stb.single_cell_div_free(cfluxo, cells)
-                div_flux = 0.0
+                    # get gradient of raw environmental voltage -- this is the electric field at the membrane:
+                    vex, vey = fd.gradient(sim.v_env.reshape(cells.X.shape), cells.delta, cells.delta)
 
-            else: # Transmem can have intercellular movements; ignore div-free constraint for this option
-                cflux = cfluxo
-                div_flux = np.dot(cells.M_sum_mems, cflux*cells.mem_sa)/cells.cell_vol
+                    _, _, En = stb.map_to_cells(-vex, -vey, cells, p, smoothing=1.0)
 
-            # calculate the actual concentration at membranes by unpacking to concentration vectors:
-            self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt*self.modify_time_factor
+                else:
 
-            # smooth the concentration:
-            self.cc_at_mem = self.smooth_weight_mem*self.cc_at_mem + self.smooth_weight_o*cav
+                    En = 0.0
 
-            # update cell centroids for cases of transmembrane movements:
-            self.c_cells += div_flux*p.dt*self.modify_time_factor
+                if p.fluid_flow is True:
+
+                    # normal component of fluid flow at membranes from *extra*cellular flow:
+                    _, _, uflow = stb.map_to_cells(sim.u_env_x, sim.u_env_y, cells, p, smoothing=1.0)
+
+                    uflow[cells.bflags_mems] = 0.0
+
+                else:
+
+                    uflow = 0.0
+
+            gamma = (cells.mem_sa /((3/4)*cells.mem_vol))
+
+            alpha_En_A = ((Do*p.q*z)/(p.kb*sim.T))*En
+
+            alpha_En_B = self.Mu_mem*En
+
+            alpha_flow = uflow
+
+            alpha_tot = alpha_motor + alpha_En_A + alpha_En_B + alpha_flow
+
+            # Update using Implicit Euler technique:
+            self.cc_at_mem = ((((gamma*Do*p.dt*cav)/cells.R_rads) +
+                              ((gamma*alpha_tot*cav*p.dt)/2) +
+                              self.cc_at_mem)/(1 +
+                              ((gamma*Do*p.dt)/cells.R_rads) - ((gamma*alpha_tot*p.dt)/2)))
+
+            cflux = (-Do*cg + alpha_tot*cp)
 
             # update the main matrices:
             self.flux_intra = cflux*1
@@ -5854,15 +5836,15 @@ class Molecule(object):
         # reassign the new data vector to the object:
         self.cc_grad_x = cgx2[:]
 
-        # remove cells from the smoothing list:
-        swm2 = np.delete(self.smooth_weight_mem, target_inds_mem)
-        # reassign the new data vector to the object:
-        self.smooth_weight_mem = swm2[:]
+        # # remove cells from the smoothing list:
+        # swm2 = np.delete(self.smooth_weight_mem, target_inds_mem)
+        # # reassign the new data vector to the object:
+        # self.smooth_weight_mem = swm2[:]
 
-        # remove cells from the smoothing list:
-        swo2 = np.delete(self.smooth_weight_o, target_inds_mem)
-        # reassign the new data vector to the object:
-        self.smooth_weight_o = swo2[:]
+        # # remove cells from the smoothing list:
+        # swo2 = np.delete(self.smooth_weight_o, target_inds_mem)
+        # # reassign the new data vector to the object:
+        # self.smooth_weight_o = swo2[:]
 
         # # remove cells from the mems concentration list:
         # cmems2 = np.delete(self.c_mems, target_inds_mem)
@@ -6348,7 +6330,7 @@ class Channel(object):
 
     def __init__(self, sim, cells, p):
 
-        pass
+        self.flux_time = []
 
     def init_channel(self, ion_string, type_string, max_val, sim, cells, p):
 

@@ -265,7 +265,6 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-
     def sim_grn(self) -> SimPhase:
         '''
         Initialize and simulate a pure gene regulatory network (GRN) _without_
@@ -450,16 +449,21 @@ class SimRunner(object):
         # Else, a previously pickled "sim-grn" file is *NOT* being loaded from.
         # In this case, create a new GRN from scratch.
         else:
-            # If GRN support is disabled, raise an exception.
-            if not p.grn_enabled:
-                raise BetseSimException('GRN support disabled.')
 
-            # create an instance of master of metabolism
-            MoG = MasterOfGenes(p)
+            if p.loadMoG is not None and not files.is_file(p.loadMoG):
 
-            # initialize it:
-            logs.log_info("Initializing the gene regulatory network...")
-            MoG.read_gene_config(sim, cells, p)
+                # if user requests to load from a previously run sim-grn but file not found, raise an exception:
+                ermess = "Load from sim-grn requested, but file {} not found.".format(p.loadMoG)
+                logs.log_error(ermess)
+
+            else:
+
+                # create an instance of master of metabolism
+                MoG = MasterOfGenes(p)
+
+                # initialize it:
+                logs.log_info("Initializing the gene regulatory network...")
+                MoG.read_gene_config(sim, cells, p)
 
         logs.log_info("Running gene regulatory network test simulation...")
 

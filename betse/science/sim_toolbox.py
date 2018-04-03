@@ -952,8 +952,6 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     Dm_vect = np.ones(len(cX_mems))*Dm
 
-    # Transmembrane electrodiffusion of molecule X between cell and extracellular space------------------------------
-
     if Dm != 0.0:  # if there is some finite membrane diffusivity, exchange between cells and env space:
 
         IdM = np.ones(sim.mdl)
@@ -999,37 +997,30 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         else: # only update the membranes; calculate cell centre as the average:
             cX_cells = cX_cells + p.dt * delta_cco * time_dilation_factor
-            # cX_mems += -fgj_X*(cells.mem_sa/cells.mem_vol)*(1/cells.num_mems[cells.mem_to_cells])*p.dt*time_dilation_factor
-            cX_mems += -fgj_X*(cells.mem_sa/cells.mem_vol)*p.dt*time_dilation_factor
+            # the 3/4 is the volume of the pie-shaped wedge half-triangle alloted to specific membrane volume:
+            cX_mems += -fgj_X*(cells.mem_sa/((3/4)*cells.mem_vol))*time_dilation_factor*p.dt
 
     else:
         fgj_X = np.zeros(sim.mdl)
 
     #----Motor protein transport-----------------------------------------------------------------------------
     if update_intra is False and umt != 0.0:
-        umtx = umt*sim.mtubes.mtubes_x
-        umty = umt*sim.mtubes.mtubes_y
 
         # concentration gradient at cell centres:
         gcc, gccmx, gccmy = cells.gradient(cX_cells)
 
         # mean value of concentration between two cells:
-        mcc = cells.meanval(cX_cells)
-        # mcc = cX_cells[cells.mem_to_cells]
+        mcc = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i])/2
 
         # Flux, treating microtubules field akin to convection:
-        flux_mtx = -Do * gccmx + umtx * mcc
-        flux_mty = -Do * gccmy + umty * mcc
-
-        # zero flux at the boundary:
-        flux_mtx[cells.bflags_mems] = 0.0
-        flux_mty[cells.bflags_mems] = 0.0
+        flux_mtx = -Do*gccmx + sim.mtubes.uxmt[cells.mem_to_cells]*mcc*umt
+        flux_mty = -Do*gccmy + sim.mtubes.uymt[cells.mem_to_cells]*mcc*umt
 
         # divergence of the flux, finite volume style:
-        div_ccmt = -cells.div(flux_mtx, flux_mty)
+        div_ccmt = -cells.div(flux_mtx, flux_mty, cbound = True)
 
         # update cell concentration:
-        cX_cells += div_ccmt * p.dt * time_dilation_factor
+        cX_cells += div_ccmt*p.dt*time_dilation_factor
 
 
 
@@ -1156,8 +1147,7 @@ def update_Co(sim, cX_cell, cX_mem, cX_env, flux, cells, p, ignoreECM = True, up
         cX_mem = cX_cell[cells.mem_to_cells]
 
     else: # update only the membranes, treat cell centre as the average:
-        # cX_mem += flux*(cells.mem_sa/cells.mem_vol)*(1/cells.num_mems[cells.mem_to_cells])*p.dt
-        cX_mem += flux * (cells.mem_sa / cells.mem_vol)*p.dt
+        cX_mem += flux*(cells.mem_sa/((3/4)*cells.mem_vol))*p.dt # the 3/4 is the volume of the pi wedge half-triangle
         cX_cell = cX_cell + delta_cells * p.dt
 
 
@@ -1290,29 +1280,6 @@ def div_free(Fxo, Fyo, cells):
 
     return Fx, Fy, Phi
 
-def single_cell_div_free(cfluxo, cells):
-    """
-    Averages a membrane-specific vector field to the cell centre
-    in order to provide a divergence-free field wrt to a single cell.
-
-    Parameters
-    ------------
-    cfluxo:            Component of non-divergence free field wrt membranes
-    cells:             Cells object
-
-    Returns
-    -------
-    cflux               Divergence-free field normal component to membrane
-    """
-
-    # as no flux is leaving the cell, cflux must be a divergence-free field:
-    cfxo = np.dot(cells.M_sum_mems, cfluxo * cells.mem_vects_flat[:, 2] * cells.mem_sa) / cells.cell_sa
-    cfyo = np.dot(cells.M_sum_mems, cfluxo * cells.mem_vects_flat[:, 3] * cells.mem_sa) / cells.cell_sa
-
-    cflux = cfxo[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + cfyo[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
-
-    return cflux
-
 def smooth_flux(Fxo, Fyo, cells):
 
     """
@@ -1368,6 +1335,19 @@ def get_conductivity(D, z, c, d, p):
     # (D * (z ** 2) * p.F * c) / (d * p.R * p.T)
 
     return (D * p.q *(z**2) * p.F * c) / (d * p.kb * p.T)
+
+def rotate_field(gFxo, gFyo, angle):
+    """
+    Rotates a vector field gFxo, gFyo by a specified angle (in degrees)
+
+    """
+    # rotate the axis of the model:
+    rotangle = (angle * np.pi) / 180.0
+
+    gFx = gFxo * np.cos(rotangle) - gFyo * np.sin(rotangle)
+    gFy = gFxo * np.sin(rotangle) + gFyo * np.cos(rotangle)
+
+    return gFx, gFy
 
 
 

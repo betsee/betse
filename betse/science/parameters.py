@@ -747,11 +747,18 @@ class Parameters(YamlFileABC):
 
         self.dilate_mtube_dt = float(mtb.get('time dilation factor', 1.0))
 
-        self.mt_orienting_field = mtb.get('microtubule orienting field', None)
+        self.mtube_init_x = mtb.get('initial x-coorinate', None)   # bitmap forcing alignment as initial state
+        self.mtube_init_y = mtb.get('initial y-coorinate', None)  # bitmap forcing alignment as initial state
+        self.mtube_init_rotangle = float(mtb.get('rotate initialization axis', 0.0))  # angle (in degrees) rotating axis
 
-        if self.mt_orienting_field == 'None':
+        if self.mtube_init_x == 'None':
+            self.mtube_init_x = None
 
-            self.mt_orienting_field = None
+        if self.mtube_init_y == 'None':
+            self.mtube_init_y = None
+
+        if self.mtube_init_rotangle == 'None':
+            self.mtube_init_rotangle = 0.0
 
         self.mt_space_density = mtb.get('microtubule density', None)
 
@@ -991,7 +998,7 @@ class Parameters(YamlFileABC):
 
         self.smooth_cells = 1/float(iu.get('sharpness cell', 0.5))
 
-        self.fluid_cap = float(iu.get('fluid flow ceiling', 99999))
+        self.true_cell_size = float(iu.get('true cell size', 1.0e-5))
 
         #FIXME: Can this initialization be safely moved earlier -- say, directly
         #*AFTER* tissue profile initialization required by this initialization?

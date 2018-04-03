@@ -1544,7 +1544,7 @@ class Cells(object):
 
             self.num_mems.append(n)
 
-        # self.cellDivM(p)
+        self.M_sum_mems_inv = np.linalg.pinv(self.M_sum_mems)  # matrix inverse of M_sum_mems for div-free cell calcs
 
         self.num_mems = np.asarray(self.num_mems)  # number of membranes per cell
 
@@ -2629,12 +2629,15 @@ class Cells(object):
 
         return Sn
 
-    def div(self, gSx, gSy):
+    def div(self, gSx, gSy, cbound = False):
         """
         Calculates the divergence of a vector (gSx, gSy) defined on membranes.
         """
 
         gSn = gSx * self.mem_vects_flat[:, 2] + gSy * self.mem_vects_flat[:, 3]
+
+        if cbound is True: # close the boundary (zero-flux boundary condition
+            gSn[self.bflags_mems] = 0.0
 
         divS = np.dot(self.M_sum_mems, gSn * self.mem_sa) / self.cell_vol
 
@@ -2868,6 +2871,17 @@ class Cells(object):
             By = 0
 
         return AA, Ax, Ay, BB, Bx, By
+
+    def single_cell_div_free(self, uxo, uyo):
+        # now, make the transport field divergence-free wrt individual cells (divergence-free is the way to be!
+        divU = self.div(uxo, uyo, cbound=False)  # divergence of the field at each membrane
+        Pi = np.dot(self.M_sum_mems_inv, divU) * (
+            self.cell_vol[self.mem_to_cells] / self.mem_sa)  # 'pressure" field to create div-free case
+
+        ux = uxo - Pi * self.mem_vects_flat[:, 2]  # corrected vector at the membrane
+        uy = uyo - Pi * self.mem_vects_flat[:, 3]  # corrected vector at the membrane
+
+        return ux, uy
 
 
     # ..........{ PROPERTIES ~ membrane                   }.....................

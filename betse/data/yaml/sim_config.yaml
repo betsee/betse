@@ -628,14 +628,14 @@ gene regulatory network settings:
 
   sim-grn settings: # Sim-grn allows you to calculate GRN on last time frame of bioelectricity simulation
 
-    run network on: init    # (for sim-grn command, run the network on a pre-made betse seed, init, or sim ?)
+    run network on: seed    # (for sim-grn command, run the network on a pre-made betse seed, init, or sim ?)
     run as sim: False           # run the network as an init (False) or a sim (True)?
     save to directory: RESULTS/GRN
     save to file: GRN_1.betse.gz # where to save the resulting sim-grn file
     load from: None                # load a previously-run sim-grn file to start with? (None initializes to defaults)
-    time step: 1.0       # time step-size [s]
-    total time: 1.8e3         # time to end sim run [s]
-    sampling rate: 1.8e2      # period to sample data [s] (at least time step or larger)
+    time step: 0.1       # time step-size [s]
+    total time: 1.8e2         # time to end sim run [s]
+    sampling rate: 1.8e1      # period to sample data [s] (at least time step or larger)
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -733,8 +733,9 @@ variable settings:
     tethered tubule: True          # microtubule tethered to centrosome or free-floating?
     time dilation factor: 1.0             # Alter the simulation timestep for microtubules, to slow or speed up movement
     microtubule density: None # bitmap specifying density of microtubules in space (None defaults to homogeneous density)
-    microtubule orienting field: None # bitmap allowing forced alignment in field as initial state
-                                       # (None defaults to initial randomization)
+    initial x-coorinate: None # bitmap allowing forced alignment as initial state (None defaults to randomization)
+    initial y-coorinate: None # bitmap allowing forced alignment as initial state (None defaults to randomization)
+    rotate initialization axis: 0.0 # angle (in degrees) rotating the x-y axis of the initialization coords
 
   # FIXME: add network substances to Goldman calculator, also add in pumps
   use Goldman calculator: False   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK)
@@ -1071,6 +1072,8 @@ internal parameters:
   sharpness env: 1.0  # Factor smoothing environmental concentrations, 0.0 max smoothing, 1.0 no smoothing
 
   sharpness cell: 0.5 # Factor smoothing cellular fields, 0.0 maximum smoothing, 1.0 no smoothing.
+
+  true cell size: 1.0e-5  # True cell size (important for scaling larger grid patches) 1.0e-5 to 2.5e-6 m.
 
 
 # Configuration file version that this file conforms to. For reliable
