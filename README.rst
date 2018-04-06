@@ -469,10 +469,8 @@ either:
 
 To report a software issue (e.g., bug, crash, or other unexpected behaviour)
 *or* request a new feature in BETSE, consider `submitting a new issue <issue
-submission_>`__ to our `issue tracker`_.
-
-And thanks in advance. It's only through generous user contributions that the
-BETSE user experience will continue to improve.
+submission_>`__ to our `issue tracker`_. Thanks in advance; it's only through
+generous user contributions that your user experience can continue to improve.
 
 .. [#e-mail]
    To protect Dr. Pietak's e-mail address against `automated harvesting <e-mail
@@ -577,9 +575,9 @@ under the permissive `BSD-compatible <license compatibility_>`__ `CC BY
 .. _Dr. Pietak:
    https://www.researchgate.net/profile/Alexis_Pietak
 .. _Organic Mechanics:
-   http://www.omecha.org
+   https://www.omecha.org
 .. _Organic Mechanics Contact:
-   http://www.omecha.org
+   https://www.omecha.org/contact
 
 .. # ------------------( LINKS ~ paper : 2016               )------------------
 .. _2016 article:
