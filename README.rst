@@ -417,37 +417,30 @@ for such well-known cases as:
 
 For details, see our recently published `introductory paper <Reference_>`__.
 
-License
-=======
-
-BETSE is open-source software `released <license_>`__ under the permissive `BSD
-2-clause license`_.
-
-The logo prominently displayed on this `project page <project_>`__ is a flat
-`Noun Project`_ icon entitled `"Cow," <Cows collection_>`__ `kindly released <Noun Project license_>`__
-under the permissive `BSD-compatible <license compatibility_>`__ `CC BY
-3.0 license`_ by `Maxim Kulikov`_.
-
 Reference
 =========
 
 BETSE is formally described in our `introductory paper <2016 article_>`__.
-Third-party papers, theses, and other texts leveraging BETSE should (ideally)
+Third-party papers, theses, and other texts leveraging BETSE should ideally
 cite the following:
 
-    `Pietak, Alexis`_ and `Levin, Michael`_, 2016. |2016 article name|_
+    `Alexis Pietak`_ and `Michael Levin`_, 2016. |2016 article name|_
     |2016 article supplement|_ [#supplement]_ |2016 journal name|_ *4*\ (55).
-    :sup:`DOI: 10.3389/fbioe.2016.00055`
+    :sup:`doi:10.3389/fbioe.2016.00055`
 
 Subsequent papers expanding the BETSE architecture with additional theory,
 experimental results, and comparative metrics include:
 
-    `Pietak, Alexis`_ and `Levin, Michael`_, 2017. |2017 article name|_
-    |2017 article supplement|_ [#supplement]_ |2017 journal name|_ *14*\ (134),
-    p.20170425.  :sup:`DOI: 10.1098/rsif.2017.0425`
+    * `Alexis Pietak`_ and `Michael Levin`_, 2017. |2017 article name|_
+      |2017 article supplement|_ [#supplement]_ |2017 journal name|_ *14*\ (134),
+      p.20170425. :sup:`doi:10.1098/rsif.2017.0425`
+    * Vaibhav P. Pai, `Alexis Pietak`_, Valerie Willocq, Bin Ye, Nian-Qing Shi,
+      and `Michael Levin`_, 2018. |2018 hcn2 article name|_ |2018 hcn2 article
+      supplement|_ [#supplement]_ |2018 hcn2 journal name|_ *9*\ (1), p.998.
+      :sup:`doi:10.1038/s41467-018-03334-5`
 
-.. # FIXME: Add an image thumbnail above displaying the cover image selected by
-.. # the prior journal for that edition's cover article.
+.. # FIXME: Add an image thumbnail for the first article above displaying the
+.. # cover image selected by the prior journal for that edition's cover article.
 
 .. # Note that, for unknown reasons, this footnote *MUST* be refenced above and
 .. # defined here rather than in the supplement replacements defined below.
@@ -457,6 +450,40 @@ experimental results, and comparative metrics include:
    article with a rigorous treatment of the mathematics, formalisms, and
    abstractions required to fully reproduce this work. If theoretical questions
    remain after completing the main article, please consult this supplement.
+
+Contact
+=======
+
+To contact `Dr. Pietak`_, the principal developer of the BETSE codebase and
+first or second author of all above papers, cordially direct correspondence to
+either:
+
+* The `anonymous contact form <Organic Mechanics Contact_>`__ at `Organic
+  Mechanics`_, the personal archives of all material published to date by
+  `Dr. Pietak`_ – including papers, presentations, textbooks, and additional
+  theoretical work.
+* The personal e-mail account of `Dr. Pietak`_: [#e-mail]_
+
+  * *Username:* **alexis** ``{dot}`` **pietak**
+  * *Hostname:* **gmail** ``{dot}`` **com**
+
+To report a software issue (e.g., bug, crash, or other unexpected behaviour)
+*or* request a new feature in BETSE, consider `submitting a new issue <issue
+submission_>`__ to our `issue tracker`_.
+
+And thanks in advance. It's only through generous user contributions that the
+BETSE user experience will continue to improve.
+
+.. [#e-mail]
+   To protect Dr. Pietak's e-mail address against `automated harvesting <e-mail
+   harvesting_>`__, this address has been intentionally obfuscated. Reconstruct
+   the original address by:
+   
+   * Replacing the ``{dot}`` substring with the ``.`` charecter.
+   * Concatenating the username and hostname strings with the ``@`` character.
+     
+   For this reason, consider directing correspondence to the `anonymous contact
+   form <Organic Mechanics Contact_>`__ at `Organic Mechanics`_ instead.
 
 Authors
 =======
@@ -484,6 +511,17 @@ For prospective contributors:
 -  `Freezing <doc/md/FREEZE.md>`__, detailing conversion of the BETSE codebase
    into redistributable platform-specific executable binaries.
 
+License
+=======
+
+BETSE is open-source software `released <license_>`__ under the permissive `BSD
+2-clause license`_.
+
+The logo prominently displayed on this `project page <project_>`__ is a flat
+`Noun Project`_ icon entitled `"Cow," <Cows collection_>`__ `kindly released <Noun Project license_>`__
+under the permissive `BSD-compatible <license compatibility_>`__ `CC BY
+3.0 license`_ by `Maxim Kulikov`_.
+
 .. # ------------------( LINKS ~ betse                      )------------------
 .. _author list:
    doc/md/AUTHORS.md
@@ -493,6 +531,10 @@ For prospective contributors:
    https://gitlab.com/betse/betse/graphs/master
 .. _dependencies:
    doc/md/INSTALL.md
+.. _issue submission:
+   https://gitlab.com/betse/betse/issues/new?issue%5Bassignee_id%5D=&issue%5Bmilestone_id%5D=
+.. _issue tracker:
+   https://gitlab.com/betse/betse/issues
 .. _license:
    LICENSE
 .. _project:
@@ -515,8 +557,7 @@ For prospective contributors:
    https://gitlab.com/betse/betsee/tree/master
 
 .. # ------------------( LINKS ~ academia                   )------------------
-.. _Pietak, Alexis:
-   https://www.researchgate.net/profile/Alexis_Pietak
+.. _Michael Levin:
 .. _Levin, Michael:
    https://ase.tufts.edu/biology/labs/levin
 .. _Channelpedia:
@@ -530,7 +571,17 @@ For prospective contributors:
 .. _Tufts University:
    https://www.tufts.edu
 
-.. # ------------------( LINKS ~ paper ~ 2016               )------------------
+.. # ------------------( LINKS ~ academia : ally            )------------------
+.. _Alexis Pietak:
+.. _Pietak, Alexis:
+.. _Dr. Pietak:
+   https://www.researchgate.net/profile/Alexis_Pietak
+.. _Organic Mechanics:
+   http://www.omecha.org
+.. _Organic Mechanics Contact:
+   http://www.omecha.org
+
+.. # ------------------( LINKS ~ paper : 2016               )------------------
 .. _2016 article:
    http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract
 
@@ -541,7 +592,7 @@ For prospective contributors:
    http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract
 
 .. |2016 article supplement| replace::
-   **(**\ *Supplement*\ **).**
+   **(**\ Supplement\ **).**
 .. _2016 article supplement:
    https://www.frontiersin.org/articles/file/downloadfile/203679_supplementary-materials_datasheets_1_pdf/octet-stream/Data%20Sheet%201.PDF/1/203679
 
@@ -557,7 +608,7 @@ For prospective contributors:
    http://rsif.royalsocietypublishing.org/content/14/134/20170425
 
 .. |2017 article supplement| replace::
-   **(**\ *Supplement*\ **).**
+   **(**\ Supplement\ **).**
 .. _2017 article supplement:
    https://figshare.com/collections/Supplementary_material_from_Bioelectric_gene_and_reaction_networks_computational_modelling_of_genetic_biochemical_and_bioelectrical_dynamics_in_pattern_regulation_/3878404
 
@@ -565,6 +616,22 @@ For prospective contributors:
    *Journal of The Royal Society Interface,*
 .. _2017 journal name:
    http://rsif.royalsocietypublishing.org
+
+.. # ------------------( LINKS ~ paper ~ 2018 : hcn2        )------------------
+.. |2018 hcn2 article name| replace::
+   **HCN2 rescues brain defects by enforcing endogenous voltage pre-patterns.**
+.. _2018 hcn2 article name:
+   https://www.nature.com/articles/s41467-018-03334-5
+
+.. |2018 hcn2 article supplement| replace::
+   **(**\ Supplement\ **).**
+.. _2018 hcn2 article supplement:
+   https://static-content.springer.com/esm/art%3A10.1038%2Fs41467-018-03334-5/MediaObjects/41467_2018_3334_MOESM1_ESM.pdf
+
+.. |2018 hcn2 journal name| replace::
+   *Nature Communications.*
+.. _2018 hcn2 journal name:
+   https://www.nature.com
 
 .. # ------------------( LINKS ~ science                    )------------------
 .. _bioelectricity:
@@ -683,6 +750,8 @@ For prospective contributors:
    https://en.wikipedia.org/wiki/Continuous_integration
 .. _directed graphs:
    https://en.wikipedia.org/wiki/Directed_graph
+.. _e-mail harvesting:
+   https://en.wikipedia.org/wiki/Email_address_harvesting
 .. _genenic algorithms:
    https://en.wikipedia.org/wiki/Genetic_algorithm
 .. _knowledge-based systems:
