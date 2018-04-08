@@ -258,15 +258,19 @@ class Mtubes(object):
         uxmto = self.mtubes_x
         uymto = self.mtubes_y
 
+        # averages of mtube field at the cell centres:
         uxmt = (np.dot(cells.M_sum_mems, uxmto*cells.mem_sa)/cells.cell_sa)
         uymt = (np.dot(cells.M_sum_mems, uymto*cells.mem_sa)/cells.cell_sa)
 
-        # uxmt = uxmto
-        # uymt = uymto
+        # average the mtube field to the centre of pie-shaped midpoints of each individual cell:
+        uxmti = (uxmt[cells.mem_to_cells] + uxmto)/2
+        uymti = (uymt[cells.mem_to_cells] + uymto)/2
 
         # Store the normal component of microtubule alignment field mapped to membranes:
-        self.umtn = (uxmt[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
-                uymt[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+        # self.umtn = (uxmt[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+        #         uymt[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+
+        self.umtn = (uxmti * cells.mem_vects_flat[:, 2] + uymti * cells.mem_vects_flat[:, 3])
 
 
         return uxmt, uymt
@@ -331,6 +335,10 @@ class Mtubes(object):
         logs.log_info("-------------------------------")
         logs.log_info(mssg)
         logs.log_info("-------------------------------")
+
+        if len(gFxo) == len(cells.cell_i):
+            gFxo = gFxo[cells.mem_to_cells]
+            gFyo = gFyo[cells.mem_to_cells]
 
         # rotate the axis of the model:
         rotangle = (p.mtube_init_rotangle*np.pi)/180.0

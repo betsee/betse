@@ -238,10 +238,15 @@ def gradient_bitmap(pc, cells, p, bitmap_filename = None):
     elif len(pc) == len(cells.cell_i):
         xmap = cells.map_cell2ecm
 
-    xmi = cells.xmin - 4*p.cell_radius
-    ymi = cells.ymin - 4*p.cell_radius
-    xma = cells.xmax + 4*p.cell_radius
-    yma = cells.ymax + 4*p.cell_radius
+    # xmi = cells.xmin - 4*p.cell_radius
+    # ymi = cells.ymin - 4*p.cell_radius
+    # xma = cells.xmax + 4*p.cell_radius
+    # yma = cells.ymax + 4*p.cell_radius
+
+    xmi = cells.xmin
+    ymi = cells.ymin
+    xma = cells.xmax
+    yma = cells.ymax
 
     xx = np.linspace(cells.xmin, cells.xmax, cells.X.shape[1])
     yy = np.linspace(cells.ymin, cells.ymax, cells.X.shape[0])
@@ -250,7 +255,9 @@ def gradient_bitmap(pc, cells, p, bitmap_filename = None):
 
     # Three-dimensional Numpy array of the RGB-ordered integer components of all
     # pixels loaded from this image.
-    a1 = pilnumpy.load_image(filename=fn1, mode=ImageModeType.COLOR_RGB)
+    a1o = pilnumpy.load_image(filename=fn1, mode=ImageModeType.COLOR_RGB)
+
+    a1 = np.asarray(a1o, dtype=np.float64)
 
     a1_F = (a1[:, :, 0] -  a1[:, :, 2]) / 255
 
@@ -265,10 +272,11 @@ def gradient_bitmap(pc, cells, p, bitmap_filename = None):
 
     f = fe.ravel()[xmap]
 
-    f = (f/f.max()) + grad_bm_offset
+    # f = (f/f.max()) + grad_bm_offset
+    f = f + grad_bm_offset
 
-    indz = (f < 0.0).nonzero()
-    f[indz] = 0.0
+    # indz = (f < 0.0).nonzero()
+    # f[indz] = 0.0
 
     dynamics = lambda t:1
 

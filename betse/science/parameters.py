@@ -408,7 +408,7 @@ class Parameters(YamlFileABC):
 
         self.vol_env = volmult*self.wsx*self.wsy*self.cell_height  # environmental volume for "no ECM" simulation
 
-        # Parameters for Lloyd's Voronoi mesh optimization settings durring seed:
+        # Parameters for Lloyd's Voronoi mesh optimization settings during seed:
         mesh_refine = self._conf['world options'].get('mesh refinement', None)
 
         if mesh_refine is not None:
