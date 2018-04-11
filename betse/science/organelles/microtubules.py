@@ -182,8 +182,8 @@ class Mtubes(object):
         ui = self.mtubes_x*self.L
         vi = self.mtubes_y*self.L
 
-        ui_hat = self.mtubes_x
-        vi_hat = self.mtubes_y
+        nx = cells.mem_vects_flat[:,2]
+        ny = cells.mem_vects_flat[:,3]
 
         Ex = sim.E_cell_x[cells.mem_to_cells]
         Ey = sim.E_cell_y[cells.mem_to_cells]
@@ -200,8 +200,6 @@ class Mtubes(object):
 
         q_tube = self.charge_mtube
 
-        Fdux = np.zeros(sim.mdl)
-        Fduy = np.zeros(sim.mdl)
 
         if p.tethered_tubule is False:
 
@@ -212,16 +210,13 @@ class Mtubes(object):
                                q_tube * (vi) * (gExx.ravel() * ui + gExy.ravel() * vi))
 
             # fiber will also align such that ends are at the same voltage:
-            torque_monopole = (q_tube*(ui)*Ex.ravel() + q_tube*(vi)*Ey.ravel()) + (ui*Fduy.ravel() + vi*Fdux.ravel())
-
-            # # fiber will also align via its dipole in the electric field:
-            # torque_dipole = -(self.p_ind * ui_hat * Ey.ravel() - self.p_ind * vi_hat * Ex.ravel())
+            torque_monopole = (q_tube*(ui)*Ex.ravel() + q_tube*(vi)*Ey.ravel())
 
 
         # if fiber is tethered, any perpendicular force will represent a torque:
         else:
 
-            torque_tether = (q_tube * ui * Ey.ravel() - q_tube * vi * Ex.ravel()) + (ui*Fduy.ravel() - vi*Fdux.ravel())
+            torque_tether = (q_tube * ui * Ey.ravel() - q_tube * vi * Ex.ravel())
 
             # gradient of the field will torque the monopole by applying different forces at ends:
             torque_gradient = np.zeros(sim.mdl)
@@ -234,14 +229,19 @@ class Mtubes(object):
 
         flux_theta = (
             + (torque_tether / self.drag_r)
-            # + (torque_dipole / self.drag_r)
             + (torque_monopole / self.drag_r)
             + (torque_gradient / self.drag_r)
-            + ((p.kb * p.T) / self.drag_r) * (0.5 - np.random.rand(len(self.mt_theta)))
+            # + ((p.kb * p.T) / self.drag_r) * (0.5 - np.random.rand(len(self.mt_theta)))
         )
 
+        lenmt = np.sqrt(self.uxmt[cells.mem_to_cells]**2 + self.uymt[cells.mem_to_cells]**2)
+
+        stdev = np.sqrt(2*p.dt*p.dilate_mtube_dt*((p.kb * p.T) / self.drag_r)*lenmt)
+
+        noise = np.random.normal(loc=0.0, scale=stdev,size=sim.mdl)
+
         # update the microtubule angle:
-        self.mt_theta = self.mt_theta + flux_theta*p.dt*p.dilate_mtube_dt*self.modulator
+        self.mt_theta = self.mt_theta + flux_theta*p.dt*p.dilate_mtube_dt*self.modulator + noise
 
         # update the microtubule coordinates with the new angle:
         if p.dilate_mtube_dt > 0.0:
@@ -249,6 +249,8 @@ class Mtubes(object):
             mtubes_yo = np.sin(self.mt_theta)*self.mt_density
 
             self.mtubes_x, self.mtubes_y = cells.single_cell_div_free(mtubes_xo, mtubes_yo)
+            # self.mtubes_x = mtubes_xo
+            # self.mtubes_y = mtubes_yo
 
         self.uxmt, self.uymt = self.mtubes_to_cell(cells, p)
 
@@ -262,9 +264,16 @@ class Mtubes(object):
         uxmt = (np.dot(cells.M_sum_mems, uxmto*cells.mem_sa)/cells.cell_sa)
         uymt = (np.dot(cells.M_sum_mems, uymto*cells.mem_sa)/cells.cell_sa)
 
+        # uxmt = (np.dot(cells.M_sum_mems, uxmto)/cells.num_mems)
+        # uymt = (np.dot(cells.M_sum_mems, uymto)/cells.num_mems)
+
         # average the mtube field to the centre of pie-shaped midpoints of each individual cell:
-        uxmti = (uxmt[cells.mem_to_cells] + uxmto)/2
-        uymti = (uymt[cells.mem_to_cells] + uymto)/2
+        # uxmti = (uxmt[cells.mem_to_cells] + uxmto)/2
+        # uymti = (uymt[cells.mem_to_cells] + uymto)/2
+
+        uxmti = uxmt[cells.mem_to_cells]
+        uymti = uymt[cells.mem_to_cells]
+
 
         # Store the normal component of microtubule alignment field mapped to membranes:
         # self.umtn = (uxmt[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +

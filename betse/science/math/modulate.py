@@ -262,13 +262,15 @@ def gradient_bitmap(pc, cells, p, bitmap_filename = None):
     a1_F = (a1[:, :, 0] -  a1[:, :, 2]) / 255
 
     a1_F = np.flipud(a1_F)
-    a1_F = fd.integrator(a1_F, sharp=0.5) # smooth a little to avoid bizarre visual effects
+    # a1_F = fd.integrator(a1_F, sharp=0.5) # smooth a little to avoid bizarre visual effects
 
     xa = np.linspace(xmi, xma, a1_F.shape[1])
     ya = np.linspace(ymi, yma, a1_F.shape[0])
 
     spline_F = interpolate.interp2d(xa, ya, a1_F, kind='linear', fill_value=0.0)
     fe = spline_F(xx, yy)
+
+    fe = fd.integrator(fe, sharp=0.5) # smooth a little to avoid bizarre visual effects
 
     f = fe.ravel()[xmap]
 
@@ -277,7 +279,6 @@ def gradient_bitmap(pc, cells, p, bitmap_filename = None):
 
     # indz = (f < 0.0).nonzero()
     # f[indz] = 0.0
-
     dynamics = lambda t:1
 
     return f, dynamics

@@ -1595,8 +1595,16 @@ class Simulator(object):
             # Currents:
             Jtot = -self.vgj*self.G_gj[cells.mem_to_cells] + self.extra_J_mem
 
-            Jcx = Jtot * cells.mem_vects_flat[:, 2]
-            Jcy = Jtot * cells.mem_vects_flat[:, 3]
+            self.Jn = Jtot
+
+            # average the transmembrane current to the cell centre (for smoothing):
+            Jn_ave = np.dot(cells.M_sum_mems, self.Jn * cells.mem_sa) / cells.cell_sa
+
+            # Smooth the free current at the membrane:
+            self.Jn = self.smooth_weight_mem * self.Jn + Jn_ave[cells.mem_to_cells] * self.smooth_weight_o
+
+            Jcx = self.Jn * cells.mem_vects_flat[:, 2]
+            Jcy = self.Jn * cells.mem_vects_flat[:, 3]
 
             # average intracellular current to cell centres
             self.J_cell_x = np.dot(cells.M_sum_mems, Jcx * cells.mem_sa) / cells.cell_sa
@@ -2011,11 +2019,11 @@ class Simulator(object):
             # Calculate the central voltage value in the cell from total change in cell charge:
             rho_surf = self.rho_cells * cells.diviterm
 
-            if p.is_ecm:
-                vm_o = (1/p.cm)*rho_surf[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]
-
-            else:
-                vm_o = (1/p.cm)*rho_surf[cells.mem_to_cells]
+            # if p.is_ecm:
+            #     vm_o = (1/p.cm)*rho_surf[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]
+            #
+            # else:
+            vm_o = (1/p.cm)*rho_surf[cells.mem_to_cells]
 
             self.vm = (self.vm - (p.dt/p.cm)*self.Jn +
                        ((p.dt*self.sigma_cell[cells.mem_to_cells]*vm_o)/(p.cm*cells.R_rads)))/(1 +

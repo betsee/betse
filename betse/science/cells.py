@@ -1555,19 +1555,27 @@ class Cells(object):
         # matrix for calculating gradients around the cell circumference:
         self.gradTheta = np.zeros((len(self.mem_i), len(self.mem_i)))
 
-        #FIXME: "cell_i" appears to be unused here. In optimistic theory, this
-        #implies that this loop should be reducible to:
-        #    for mem_i in self.cell_to_mems:
-        #Maybe? Praise be to Grand Master Dragon Sword!
+        # matrix for averaging points from mem-mids to companion polygon midpoints:
+        # self.aveTheta = np.zeros((len(self.mem_i), len(self.mem_i)))
+
+        # matrix storing the radial length:
+        self.radial_len = np.zeros(len(self.mem_i))
+
         for cell_i, mem_i in enumerate(self.cell_to_mems):
 
             mem_io = np.roll(mem_i, 1)
-            li = self.mem_mids_flat[mem_i] - self.mem_mids_flat[mem_io]
 
+            # distance between points:
+            li = self.mem_mids_flat[mem_i] - self.mem_mids_flat[mem_io]
             lm = np.sqrt(li[:, 0] ** 2 + li[:, 1] ** 2)
+
+            self.radial_len[mem_i] = np.abs(lm)
 
             self.gradTheta[mem_i, mem_i] = 1 / lm
             self.gradTheta[mem_i, mem_io] = -1 / lm
+            #
+            # self.aveTheta[mem_i, mem_i] = 1/2
+            # self.aveTheta[mem_i, mem_io] = 1/2
 
     def memLaplacian(self):
 
@@ -1632,7 +1640,7 @@ class Cells(object):
 
         #-- find nearest neighbour cell-cell junctions via adjacent membranes-------------------------------------------
 
-        sc = (p.cell_radius/2.4)*(p.scale_cell)  # threshhold for searching nearest-neighbour membranes
+        sc = 2.2*(1-p.scale_cell)*p.cell_radius
         memTree = sps.KDTree(self.mem_mids_flat)
 
         mem_nn_o = memTree.query_ball_point(self.mem_mids_flat,sc)
@@ -1806,6 +1814,8 @@ class Cells(object):
 
             if ind not in self.bflags_cells:
                 self.nn_bound.append(ind)
+
+        # Perfect bflags mems:
 
     def makeECM(self,p):
 

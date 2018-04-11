@@ -735,7 +735,7 @@ class Parameters(YamlFileABC):
 
         self.length_charge = float(mtb.get('charge per micrometer', -360.0))
         self.mt_radius = float(mtb.get('radius', 15.0e-9))
-        self.mt_length = float(mtb.get('length', 5.0e-6))
+        self.mt_length = float(mtb.get('length', 1.0e-5))
         self.tubulin_dipole = float(mtb.get('tubulin unit dipole', 1750))
         self.tubulin_polar = float(mtb.get('tubulin polarizability', 50.0))
 
@@ -969,7 +969,7 @@ class Parameters(YamlFileABC):
         self.deltaGATP = -37000    # free energy released in ATP hydrolysis under standard phys conditions [J/mol]
 
         self.ac = 1.0e-6  # cell-cell separation for drawing
-        self.scale_cell = 0.90          # the amount to scale cell membranes in from ecm edges (only affects drawing)
+        self.scale_cell = 0.99          # the amount to scale cell membranes in from ecm edges (only affects drawing)
         self.cm = float(iu['membrane capacitance'])           # patch capacitance of cell membrane 0.022 [F/m2]
 
         self.tm = 7.5e-9           # thickness of cell membrane [m]
