@@ -277,6 +277,9 @@ class MasterOfNetworks(object):
                 else:
                     mol.mit_enabled = False
 
+                # finally, we need to store membrane concentrations at the outer boundary for Robin bc:
+                mol.c_bound_mem = np.zeros(len(cells.bflags_mems))
+
         self.cell_concs = DynamicValueDict(cell_concs_mapping)
         self.mem_concs = DynamicValueDict(mem_concs_mapping)
         self.env_concs = DynamicValueDict(env_concs_mapping)
@@ -5638,7 +5641,8 @@ class Molecule(object):
 
                 if z != 0.0 or self.Mu_mem != 0.0:
 
-                    En = sim.Eme*(p.true_cell_size/p.cell_radius)
+                    En = (sim.E_cell_x[cells.mem_to_cells]*cells.mem_vects_flat[:,2] +
+                          sim.E_cell_y[cells.mem_to_cells]*cells.mem_vects_flat[:,3])
 
                 else:
 
@@ -5680,11 +5684,13 @@ class Molecule(object):
 
             alpha_tot = alpha_motor + alpha_En_A + alpha_En_B + alpha_flow
 
+            dt = p.dt*self.modify_time_factor
+
             # Update using Implicit Euler technique:
-            self.cc_at_mem = ((((gamma*Do*p.dt*cav)/cells.R_rads) +
-                              ((gamma*alpha_tot*cav*p.dt)/2) +
+            self.cc_at_mem = ((((gamma*Do*dt*cav)/cells.R_rads) +
+                              ((gamma*alpha_tot*cav*dt)/2) +
                               self.cc_at_mem)/(1 +
-                              ((gamma*Do*p.dt)/cells.R_rads) - ((gamma*alpha_tot*p.dt)/2)))
+                              ((gamma*Do*dt)/cells.R_rads) - ((gamma*alpha_tot*dt)/2)))
 
             cflux = (-Do*cg + alpha_tot*cp)
 

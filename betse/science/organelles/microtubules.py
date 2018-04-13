@@ -138,6 +138,14 @@ class Mtubes(object):
         # radial drag force on the microtubule from Stokes-Einstein relation "Rotational Diffusion" theory:
         self.drag_r = self.C_rad*p.cytoplasm_viscocity*(self.L**3)
 
+        # smoothing weights for membrane and central values:
+        nfrac = p.smooth_cells
+        self.smooth_weight_mem = ((nfrac*cells.num_mems[cells.mem_to_cells] -1)/(nfrac*cells.num_mems[cells.mem_to_cells]))
+        self.smooth_weight_o = 1/(nfrac*cells.num_mems[cells.mem_to_cells])
+
+        # amt = self.L/(2*self.rmt)
+        # self.drag_r = (np.pi*p.cytoplasm_viscocity*(self.L**3))/(np.log(amt - 0.662 + (0.917/amt) - (0.05/amt**2)))
+
         # microtubule rotational diffusion constant:
         self.Dr = ((p.kb*p.T)/self.drag_r)
 
@@ -179,11 +187,11 @@ class Mtubes(object):
     def update_mtubes(self, cells, sim, p):
 
         # microtubule radial vectors:
-        ui = self.mtubes_x*self.L
-        vi = self.mtubes_y*self.L
+        ui = np.cos(self.mt_theta)*self.L
+        vi = np.sin(self.mt_theta)*self.L
 
-        nx = cells.mem_vects_flat[:,2]
-        ny = cells.mem_vects_flat[:,3]
+        # nx = cells.mem_vects_flat[:,2]
+        # ny = cells.mem_vects_flat[:,3]
 
         Ex = sim.E_cell_x[cells.mem_to_cells]
         Ey = sim.E_cell_y[cells.mem_to_cells]
@@ -234,23 +242,22 @@ class Mtubes(object):
             # + ((p.kb * p.T) / self.drag_r) * (0.5 - np.random.rand(len(self.mt_theta)))
         )
 
-        lenmt = np.sqrt(self.uxmt[cells.mem_to_cells]**2 + self.uymt[cells.mem_to_cells]**2)
-
-        stdev = np.sqrt(2*p.dt*p.dilate_mtube_dt*((p.kb * p.T) / self.drag_r)*lenmt)
-
-        noise = np.random.normal(loc=0.0, scale=stdev,size=sim.mdl)
-
-        # update the microtubule angle:
-        self.mt_theta = self.mt_theta + flux_theta*p.dt*p.dilate_mtube_dt*self.modulator + noise
-
         # update the microtubule coordinates with the new angle:
         if p.dilate_mtube_dt > 0.0:
+            # normalized correlation length of the microtubules
+            lenmt = np.sqrt(self.uxmt[cells.mem_to_cells] ** 2 + self.uymt[cells.mem_to_cells] ** 2) + p.kb * sim.T
+
+            stdev = np.sqrt(2 * p.dt * p.dilate_mtube_dt * ((p.kb * p.T) / self.drag_r) * lenmt * self.L ** 2)
+
+            noise = np.random.normal(loc=0.0, scale=stdev, size=sim.mdl)
+
+            # update the microtubule angle:
+            self.mt_theta = self.mt_theta + flux_theta * p.dt * p.dilate_mtube_dt * self.modulator + noise
+
             mtubes_xo = np.cos(self.mt_theta)*self.mt_density
             mtubes_yo = np.sin(self.mt_theta)*self.mt_density
 
             self.mtubes_x, self.mtubes_y = cells.single_cell_div_free(mtubes_xo, mtubes_yo)
-            # self.mtubes_x = mtubes_xo
-            # self.mtubes_y = mtubes_yo
 
         self.uxmt, self.uymt = self.mtubes_to_cell(cells, p)
 
@@ -261,11 +268,11 @@ class Mtubes(object):
         uymto = self.mtubes_y
 
         # averages of mtube field at the cell centres:
-        uxmt = (np.dot(cells.M_sum_mems, uxmto*cells.mem_sa)/cells.cell_sa)
-        uymt = (np.dot(cells.M_sum_mems, uymto*cells.mem_sa)/cells.cell_sa)
+        # uxmt = (np.dot(cells.M_sum_mems, uxmto*cells.mem_sa)/cells.cell_sa)
+        # uymt = (np.dot(cells.M_sum_mems, uymto*cells.mem_sa)/cells.cell_sa)
 
-        # uxmt = (np.dot(cells.M_sum_mems, uxmto)/cells.num_mems)
-        # uymt = (np.dot(cells.M_sum_mems, uymto)/cells.num_mems)
+        uxmt = (np.dot(cells.M_sum_mems, uxmto)/cells.num_mems)
+        uymt = (np.dot(cells.M_sum_mems, uymto)/cells.num_mems)
 
         # average the mtube field to the centre of pie-shaped midpoints of each individual cell:
         # uxmti = (uxmt[cells.mem_to_cells] + uxmto)/2
@@ -274,11 +281,9 @@ class Mtubes(object):
         uxmti = uxmt[cells.mem_to_cells]
         uymti = uymt[cells.mem_to_cells]
 
+        # uxmti, uymti = cells.single_cell_div_free(uxmti, uymti)
 
         # Store the normal component of microtubule alignment field mapped to membranes:
-        # self.umtn = (uxmt[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
-        #         uymt[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
-
         self.umtn = (uxmti * cells.mem_vects_flat[:, 2] + uymti * cells.mem_vects_flat[:, 3])
 
 
@@ -322,6 +327,9 @@ class Mtubes(object):
 
         d2 = np.delete( self.Dr, target_inds_mem)
         self.Dr = d2*1
+
+        mtd2 = np.delete( self.mt_density, target_inds_mem)
+        self.mt_density = mtd2*1
 
         # mtux2 = np.delete(self.uxmt, target_inds_cell)
         # self.uxmt = mtux2*1

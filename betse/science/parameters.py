@@ -735,7 +735,7 @@ class Parameters(YamlFileABC):
 
         self.length_charge = float(mtb.get('charge per micrometer', -360.0))
         self.mt_radius = float(mtb.get('radius', 15.0e-9))
-        self.mt_length = float(mtb.get('length', 1.0e-5))
+        self.mt_length = float(mtb.get('length', 5.0e-6))
         self.tubulin_dipole = float(mtb.get('tubulin unit dipole', 1750))
         self.tubulin_polar = float(mtb.get('tubulin polarizability', 50.0))
 

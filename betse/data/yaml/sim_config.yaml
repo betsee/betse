@@ -728,8 +728,7 @@ variable settings:
     use microtubules: False      # compute microtubule dynamics?
     charge per micrometer: -360   # charge of tubulin molecule in electron charge units per micrometer of length
     radius: 15.0e-9        # microtubule radius in m
-    tubulin unit dipole: 1750   # Permanent Dipole of tubulin molecule in Debye units
-    tubulin polarizability: 50.0    # tubulin polarizability x10-40 [C m2/ V]
+    length: 1.0e-5         # average length of the microtubules in m
     tethered tubule: True          # microtubule tethered to centrosome or free-floating?
     time dilation factor: 1.0             # Alter the simulation timestep for microtubules, to slow or speed up movement
     microtubule density: None # bitmap specifying density of microtubules in space (None defaults to homogeneous density)

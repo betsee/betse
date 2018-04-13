@@ -1004,33 +1004,56 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         fgj_X = np.zeros(sim.mdl)
 
     #----Motor protein transport-----------------------------------------------------------------------------
-    if update_intra is False and ignoreGJ:
+    if update_intra is False and ignoreGJ and transmem is True:
 
-        if umt != 0.0 or mu_mem != 0.0 or Do != 0.0:
+        nx = cells.mem_vects_flat[:, 2]
+        ny = cells.mem_vects_flat[:, 3]
 
-            # concentration gradient at cell centres:
-            gcc, gccmx, gccmy = cells.gradient(cX_cells)
+        # concentration gradient at cell centres:
+        gcc, gccmx, gccmy = cells.gradient(cX_cells)
 
-            # mean value of concentration between two cells:
-            mcc = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i])/2
-            # mcc = cX_cells[cells.mem_to_cells]
+        # mean value of concentration between two cells:
+        mcc = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i])/2
+        # mcc = cX_cells[cells.mem_to_cells]
 
-            # mean value of u-field between cells, treating motor protein transport like convection field:
-            # umtx = (sim.mtubes.mtubes_x[cells.nn_i] + sim.mtubes.mtubes_x[cells.mem_i])/2
-            # umty = (sim.mtubes.mtubes_y[cells.nn_i] + sim.mtubes.mtubes_y[cells.mem_i])/2
+        # mean value of u-field between cells, treating motor protein transport like convection field:
+        umtx = (sim.mtubes.mtubes_x[cells.nn_i] + sim.mtubes.mtubes_x[cells.mem_i])/2
+        umty = (sim.mtubes.mtubes_y[cells.nn_i] + sim.mtubes.mtubes_y[cells.mem_i])/2
 
-            umtx = (sim.mtubes.uxmt[cells.mem_to_cells][cells.nn_i] + sim.mtubes.uxmt[cells.mem_to_cells][cells.mem_i])/2
-            umty = (sim.mtubes.uymt[cells.mem_to_cells][cells.nn_i] + sim.mtubes.uymt[cells.mem_to_cells][cells.mem_i])/2
+        # umtx = sim.mtubes.uxmt[cells.mem_to_cells]
+        # umty = sim.mtubes.uymt[cells.mem_to_cells]
 
-            flux_mtx = -Do*gccmx + umtx*mcc*umt
-            flux_mty = -Do*gccmy + umty*mcc*umt
+        emtx = (sim.E_cell_x[cells.mem_to_cells][cells.nn_i] + sim.E_cell_x[cells.mem_to_cells][cells.nn_i])/2
+        emty = (sim.E_cell_y[cells.mem_to_cells][cells.nn_i] + sim.E_cell_y[cells.mem_to_cells][cells.nn_i])/2
 
-            # divergence of the flux, finite volume style:
-            div_ccmt = -cells.div(flux_mtx, flux_mty, cbound = True)
+        # emtx = sim.E_cell_x[cells.mem_to_cells]
+        # emty = sim.E_cell_y[cells.mem_to_cells]
 
-            # update cell concentration:
-            cX_cells += div_ccmt*p.dt*time_dilation_factor
-            cX_mems = cX_cells[cells.mem_to_cells]
+        alpha = (Do*p.q*z)/(p.kb*sim.T)
+
+        # bgrad_x = ((umtx[cells.bflags_mems]*umt + (mu_mem + alpha)*emtx[cells.bflags_mems])*mcc[cells.bflags_mems])/Do
+        # bgrad_y = ((umty[cells.bflags_mems]*umt + (mu_mem + alpha)*emty[cells.bflags_mems])*mcc[cells.bflags_mems])/Do
+        #
+        # gccmx[cells.bflags_mems] = bgrad_x
+        # gccmy[cells.bflags_mems] = bgrad_y
+
+        flux_mtx = -Do*gccmx + umtx*mcc*umt + (mu_mem + alpha)*emtx*mcc
+        flux_mty = -Do*gccmy + umty*mcc*umt + (mu_mem + alpha)*emty*mcc
+
+        # flux_mtx[cells.bflags_mems] = -umtx[cells.bflags_mems]*mcc[cells.bflags_mems]*umt
+        # flux_mty[cells.bflags_mems] = -umty[cells.bflags_mems]*mcc[cells.bflags_mems]*umt
+
+        flux_mtn = flux_mtx*nx  + flux_mty*ny
+        # flux_mtn = -Do*gcc + sim.mtubes.umtn*mcc*umt
+
+        flux_mtn[cells.bflags_mems] = 0.0
+
+        div_ccmt = -np.dot(cells.M_sum_mems, flux_mtn*cells.mem_sa)/cells.cell_vol
+
+        # update cell concentration:
+        cX_cells += div_ccmt*p.dt*time_dilation_factor
+
+        cX_mems = cX_cells[cells.mem_to_cells]*1
 
 
 

@@ -472,6 +472,8 @@ class Cells(object):
 
         self.cell_i = np.asarray(self.cell_i) # we need this to be an array for advanced indexing & assignments
 
+        self.gj_default_weights = np.ones(len(self.mem_i))
+
     def deformWorld(self, p, ecm_verts) -> None:
         """
         Recalculates the current world to accomodate a mechanical deformation.
@@ -2209,7 +2211,9 @@ class Cells(object):
 
                     new_cell_nn[i].append(cell)
 
-        self.cell_nn = np.asarray(new_cell_nn)
+        # FIXME -- instead of breaking the GJ connections, simply flag them and use them in bioelectric calculations with GJ
+
+        self.cell_nn_connected = np.asarray(new_cell_nn)
 
         # Redo the number and average nearest neighbours per cell:
         self.num_nn = []  # initialize a list that will hold number of nns to a cell
@@ -2221,7 +2225,7 @@ class Cells(object):
 
         self.num_nn = np.asarray(self.num_nn)
 
-        for cell_i, nn_cell_i_set in enumerate(self.cell_nn):
+        for cell_i, nn_cell_i_set in enumerate(self.cell_nn_connected):
 
             mem_i_set = self.cell_to_mems[cell_i]  # get all the membranes for this cell
 
@@ -2234,10 +2238,12 @@ class Cells(object):
                     cell_j = self.mem_to_cells[mem_j]
 
                     if cell_j not in nn_cell_i_set:  # if the partner cell is no longer listed as a nn...
+                        # ...then the gap junction weight to zero to fully inhibit coupling:
+                        self.gj_default_weights[mem_i] = 0.0
 
                         #...then set both the membrane and cell neighbour spot to "self":
-                        self.nn_i[mem_i] = mem_i
-                        self.cell_nn_i[mem_i] = [cell_i,cell_i]
+                        # self.nn_i[mem_i] = mem_i
+                        # self.cell_nn_i[mem_i] = [cell_i,cell_i]
 
         # calculate gap junction vectors
         self.calc_gj_vects(p)
@@ -2646,7 +2652,7 @@ class Cells(object):
 
         gSn = gSx * self.mem_vects_flat[:, 2] + gSy * self.mem_vects_flat[:, 3]
 
-        if cbound is True: # close the boundary (zero-flux boundary condition
+        if cbound is True: # close the boundary (zero-flux boundary condition)
             gSn[self.bflags_mems] = 0.0
 
         divS = np.dot(self.M_sum_mems, gSn * self.mem_sa) / self.cell_vol

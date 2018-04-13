@@ -711,7 +711,7 @@ class Simulator(object):
 
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.mem_i))  # identity array for gap junction indices...
-        self.gjopen = np.ones(len(cells.mem_i))  # holds gap junction open fraction for each gj
+        self.gjopen = np.ones(len(cells.mem_i))*cells.gj_default_weights  # holds gap junction open fraction for each gj
         self.gjl = np.zeros(len(cells.mem_i))  # gj length for each gj
         self.gjl[:] = cells.gj_len
 
@@ -1483,6 +1483,9 @@ class Simulator(object):
         # self.G_gj = sum(sigma_gj)*self.geo_conv*(cells.mem_sa.mean()/cells.cell_sa.mean())
         self.G_gj = sum(sigma_gj) * self.geo_conv*(1/cells.num_mems)
 
+        self.Emx = np.zeros(self.mdl)
+        self.Emy = np.zeros(self.mdl)
+
 
     @type_check
     def _run_fast_sim_core_loop(
@@ -1582,7 +1585,7 @@ class Simulator(object):
                 self.gj_funk.run(self, cells, p)
 
             else:
-                self.gjopen = self.gj_block * np.ones(len(cells.mem_i))
+                self.gjopen = self.gj_block*np.ones(len(cells.mem_i))*cells.gj_default_weights
 
             Jgj = self.G_gj*np.dot(cells.M_sum_mems, self.vgj)
 
@@ -1597,11 +1600,10 @@ class Simulator(object):
 
             self.Jn = Jtot
 
-            # average the transmembrane current to the cell centre (for smoothing):
-            Jn_ave = np.dot(cells.M_sum_mems, self.Jn * cells.mem_sa) / cells.cell_sa
+            Jmx = self.Jn*cells.mem_vects_flat[:,2]
+            Jmy = self.Jn*cells.mem_vects_flat[:,3]
 
-            # Smooth the free current at the membrane:
-            self.Jn = self.smooth_weight_mem * self.Jn + Jn_ave[cells.mem_to_cells] * self.smooth_weight_o
+            self.Emx, self.Emy = cells.single_cell_div_free(Jmx/(0.1*self.sigma_cell.mean()), Jmy/(0.1*self.sigma_cell.mean()))
 
             Jcx = self.Jn * cells.mem_vects_flat[:, 2]
             Jcy = self.Jn * cells.mem_vects_flat[:, 3]
@@ -1613,6 +1615,10 @@ class Simulator(object):
             # intracellular electric field:
             self.E_cell_x = self.J_cell_x / (0.1 * self.sigma_cell)
             self.E_cell_y = self.J_cell_y / (0.1 * self.sigma_cell)
+
+            # # calculate electric field in cells using net intracellular current and cytosol conductivity:
+            # self.Emc = (self.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+            #            self.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
 
             # check for NaNs in voltage and stop simulation if found:
             stb.check_v(self.vm_ave)
@@ -1998,9 +2004,9 @@ class Simulator(object):
 
             self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
 
-            if p.is_ecm:
-
-                self.vm += -self.v_env[cells.map_mem2ecm]
+            # if p.is_ecm:
+            #
+            #     self.vm += -self.v_env[cells.map_mem2ecm]
 
             # average vm:
             # self.vm_ave = np.dot(cells.M_sum_mems, self.vm*cells.mem_sa)/cells.cell_sa
@@ -2145,7 +2151,7 @@ class Simulator(object):
             self.gj_funk.run(self, cells, p)
 
         else:
-            self.gjopen = self.gj_block*np.ones(len(cells.mem_i))
+            self.gjopen = self.gj_block*np.ones(len(cells.mem_i))*cells.gj_default_weights
 
 
         conc_mem = self.cc_at_mem[i]
