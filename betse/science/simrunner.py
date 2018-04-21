@@ -10,34 +10,40 @@ import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
 from betse.exceptions import (
     BetseFileException, BetseSimException, BetseSimConfigException)
+from betse.lib.pickle import pickles
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.export import exppipe
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
+from betse.science.phase.phasecallabc import (
+    SimCallbacksABCOrNoneTypes, SimCallbacksNoop)
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.tissue.tishandler import TissueHandler
-from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
 from betse.util.type.call.callables import deprecated
-from betse.lib.pickle import pickles
+from betse.util.type.types import type_check
 
 # ....................{ CLASSES                            }....................
 class SimRunner(object):
     '''
-    High-level simulation class encapsulating the running of *all* available
-    simulation phases.
+    **Simulation runner** (i.e., high-level object encapsulating the running of
+    simulation phases as corresponding public methods commonly referred to as
+    simulation subcommands).
 
-    This class provides high-level methods for initializing, running, and
-    plotting simulations specified by the YAML configuration file with which
-    this class is instantiated. Thus, each instance of this class only handles a
-    single simulation.
+    This runner provides high-level methods for initializing, running, and
+    plotting simulations specified by the YAML-formatted simulation
+    configuration file with which this runner is instantiated. Each instance of
+    this runner simulates exactly one simulation.
 
     Attributes
     ----------
+    _callbacks : SimCallbacksABC
+        Caller-defined object whose methods are periodically called during each
+        simulation subcommand (e.g., :meth:`SimRunner.seed`).
     _config_filename : str
         Absolute path of the YAML file configuring this simulation.
     _config_basename : str
@@ -45,7 +51,37 @@ class SimRunner(object):
     '''
 
     # ..................{ INITIALIZERS                       }..................
-    def __init__(self, conf_filename: str) -> None:
+    @type_check
+    def __init__(
+        self,
+
+        # Mandatory parameters.
+        conf_filename: str,
+
+        # Optional parameters.
+        callbacks: SimCallbacksABCOrNoneTypes = None,
+    ) -> None:
+        '''
+        Initialize this simulation runner.
+
+        Attributes
+        ----------
+        conf_filename : str
+            Absolute path of the YAML file configuring this simulation.
+        callbacks : SimCallbacksABCOrNoneTypes
+            Caller-defined object whose methods are periodically called during
+            each simulation subcommand (e.g., :meth:`SimRunner.seed`). Defaults
+            to ``None``, in which case this object defaults to an instance of
+            the :class:`SimCallbacksNoop` subclass whose methods all silently
+            reduce to noops.
+        '''
+
+        # Default all unpassed parameters to sane defaults.
+        if callbacks is None:
+            callbacks = SimCallbacksNoop()
+
+        # Classify all passed parameters *AFTER* defaulting these parameters.
+        self._callbacks = callbacks
 
         # Validate and localize this filename.
         files.die_unless_file(conf_filename)
@@ -112,6 +148,7 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
+
     def init(self) -> SimPhase:
         '''
         Initialize this simulation with the cell cluster seeded by a prior call
@@ -161,7 +198,7 @@ class SimRunner(object):
             logs.log_info('Cell cluster loaded.')
 
             # check to ensure compatibility between original and present sim files:
-            self._die_unless_seed_same(p_old, p)
+            self._die_if_seed_differs(p_old, p)
 
         else:
             logs.log_warning("Ooops! No such cell cluster file found to load!")
@@ -193,6 +230,7 @@ class SimRunner(object):
 
         # Return this phase.
         return phase
+
 
     def sim(self) -> SimPhase:
         '''
@@ -230,7 +268,7 @@ class SimRunner(object):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
             # check to ensure compatibility between original and present sim files:
-            self._die_unless_seed_same(p_old, p)
+            self._die_if_seed_differs(p_old, p)
 
         else:
             logs.log_warning(
@@ -264,6 +302,7 @@ class SimRunner(object):
 
         # Return this phase.
         return phase
+
 
     def sim_grn(self) -> SimPhase:
         '''
@@ -707,6 +746,7 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
+
     def plot_sim(self) -> SimPhase:
         '''
         Visualize the cell cluster simulated by a prior call to the :meth:`sim`
@@ -843,25 +883,34 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-    # ..................{ UTILITIES                          }..................
-    def _die_unless_seed_same(self, p_old, p) -> None:
+    # ..................{ EXCEPTIONS                         }..................
+    @type_check
+    def _die_if_seed_differs(
+        self,
+        p_old: Parameters,
+        p_new: Parameters,
+    ) -> None:
         '''
-        Raise an exception unless the two passed simulation configurations share
-        the same general and seed (i.e., world) options, implying the current
-        configuration to have been modified since the initial seeding of this
-        configuration's cell cluster.
+        Raise an exception if one or more general or seed (i.e., world) options
+        differ between the passed simulation configurations, implying the
+        current configuration to have been unsafely modified since the initial
+        creation of the cell cluster for this configuration.
+
+        Attributes
+        ----------
+        p_old : Parameters
+            Previous simulation configuration to be compared.
+        p_new : Parameters
+            Current simulation configuration to be compared.
+
+        Raises
+        ----------
+        :class:`BetseSimConfigException`
+            If these options differ for these configurations.
         '''
 
-        if (p_old.config['general options'] != p.config['general options'] or
-            p_old.config['world options'  ] != p.config['world options']):
-            # logs.log_warning('---------------------------------------------------')
-            # logs.log_warning('**WARNING!**')
-            # logs.log_warning('Important config file options are out of sync ')
-            # logs.log_warning('between the seed and this init/sim attempt! ')
-            # logs.log_warning('Run "betse seed" again to match the current settings')
-            # logs.log_warning(' of this config file.')
-            # logs.log_warning('---------------------------------------------------')
-
+        if (p_old.config['general options'] != p_new.config['general options'] or
+            p_old.config['world options'  ] != p_new.config['world options']):
             raise BetseSimConfigException(
                 'Important config file options are out of sync between '
                 'seed and this init/sim attempt! '

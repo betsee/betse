@@ -301,7 +301,7 @@ class test(Command):
             # on the first failure. Hence, this option is confined to this
             # subcommand rather than added to the general-purpose "pytest.ini"
             # configuration.
-            # '--maxfail=1',
+            '--maxfail=1',
         ]
 
         #FIXME: Disable "xdist" if at least one serial test exists. Currently,
