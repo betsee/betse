@@ -9,7 +9,7 @@ matching various criteria to the corresponding tissue profile) classes.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
-from betse.exceptions import BetseSimConfigException
+from betse.exceptions import BetseSimConfException
 from betse.lib.numpy import nparray
 from betse.science.math import toolbox
 from betse.util.io.log import logs
@@ -195,7 +195,7 @@ class TissuePickerPercent(TissuePickerABC):
         # If this is not a valid percentage, raise an exception. This is
         # important enough to always test rather than defer to assertions.
         if not 0.0 <= cells_percent <= 100.0:
-            raise BetseSimConfigException(
+            raise BetseSimConfException(
                 '{} not in the range [0.0, 100.0].'.format(cells_percent))
 
         # Classify this parameter.

@@ -28,9 +28,26 @@ class BetseException(Exception, metaclass=ABCMeta):
     pass
 
 
+class BetseAttributeException(BetseException):
+    '''
+    **Attribute** (i.e., variable or method bound to an object)-specific
+    exception.
+    '''
+
+    pass
+
+
 class BetseLogException(BetseException):
     '''
-    Low-level logging-specific exception.
+    Logging-specific exception.
+    '''
+
+    pass
+
+
+class BetseModuleException(BetseException):
+    '''
+    Module-specific exception.
     '''
 
     pass
@@ -98,28 +115,10 @@ class BetseCLIArgException(BetseCLIException):
     pass
 
 
-class BetseCLIArgParserException(SystemExit):
+class BetseCLIArgParserException(BetseCLIArgException):
     '''
-    :class:`betse.script.argparse.ArgumentParser`-specific exception connoting
-    the :meth:`betse.script.argparse.parse_args` method to have unsuccessfully
-    parsed the argument list passed to the current command-line application.
-    '''
-
-    pass
-
-# ....................{ EXCEPTIONS ~ object                }....................
-class BetseAttributeException(BetseException):
-    '''
-    **Attribute** (i.e., variable or method bound to an object)-specific
+    **Argument parser** (i.e., :class:`argparse.ArgumentParser`)-specific
     exception.
-    '''
-
-    pass
-
-
-class BetseModuleException(BetseException):
-    '''
-    Module-specific exception.
     '''
 
     pass
@@ -427,7 +426,7 @@ class BetseSimException(BetseException):
     pass
 
 
-class BetseSimConfigException(BetseSimException):
+class BetseSimConfException(BetseSimException):
     '''
     Simulation configuration-specific exception.
     '''

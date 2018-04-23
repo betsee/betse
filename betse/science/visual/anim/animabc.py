@@ -94,7 +94,7 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 #    https://stackoverflow.com/questions/21099121/python-matplotlib-unable-to-call-funcanimation-from-inside-a-function
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseSimConfigException
+from betse.exceptions import BetseSimConfException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplcls import ImageMovieWriter, NoopMovieWriter
@@ -249,7 +249,7 @@ class AnimCellsABC(VisualCellsABC):
         # If this subclass requires extracellular spaces but extracellular
         # spaces are currently disabled, raise an exception.
         if is_ecm_required and not self._phase.p.is_ecm:
-            raise BetseSimConfigException(
+            raise BetseSimConfException(
                 'Animation "{}" requires extracellular spaces, which are '
                 'disabled by the current simulation configuration.'.format(
                 self._label))

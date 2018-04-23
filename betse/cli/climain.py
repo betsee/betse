@@ -166,15 +166,24 @@ directory:
                 ),
 
 
-                CLISubcommandNoArg(
-                    name='repl',
-                    help_synopsis=(
-                        'enter an interactive {program_name}-aware REPL'),
-                    help_description='''
-Initialize the {program_name} environment and immediately open a
-Read-Evaluate-Print Loop (REPL). This allows interactive manipulation of the
-simulations and analyses.
-''',),
+                #FIXME: Implementing a genuine BETSE REPL is a brilliant idea.
+                #While we *DID* have a poorly maintained attempt to implement
+                #such a REPL, the herculean effort to maintain this
+                #implementation against bit-rot dwarfed the benefits of doing
+                #so. Any future attempt should offer demonstrable benefits over
+                #existing REPLs -- notably, iPython. While a genuine BETSE REPL
+                #is unlikely to ever compete with a Jupyter Notebook, it should
+                #be feasible to at least improve upon iPython for BETSE. Until
+                #then, explicit REPL support remains disabled... permanently.
+#                 CLISubcommandNoArg(
+#                     name='repl',
+#                     help_synopsis=(
+#                         'enter an interactive {program_name}-aware REPL'),
+#                     help_description='''
+# Initialize the {program_name} environment and immediately open a
+# Read-Evaluate-Print Loop (REPL). This allows interactive manipulation of the
+# simulations and analyses.
+# ''',),
 
 
                 CLISubcommandNoArg(
@@ -425,6 +434,8 @@ from input files defined by this configuration.
         return self._sim_runner.plot_grn()
 
 
+    #FIXME: Soft-disabled due to the lack of a corresponding "repl" subcommand.
+    #(See "FIXME:" commentary above.)
     def _do_repl(self) -> None:
         '''
         Run the ``repl`` subcommand.
@@ -446,13 +457,18 @@ from input files defined by this configuration.
 
     # ..................{ GETTERS                            }..................
     @property_cached
-    def _sim_runner(self):
+    def _sim_runner(self) -> 'betse.science.simrunner.SimRunner':
         '''
-        Simulation runner preconfigured with sane defaults.
+        Simulation runner running simulation subcommands on the YAML-formatted
+        simulation configuration file passed by the user at the CLI.
         '''
 
         # Defer heavyweight imports.
+        from betse.science.parameters import Parameters
         from betse.science.simrunner import SimRunner
 
-        # Return this runner.
-        return SimRunner(conf_filename=self._args.conf_filename)
+        # Simulation configuration loaded from this YAML-formatted file.
+        p = Parameters.make(conf_filename=self._args.conf_filename)
+
+        # Create and return a simulation runner for this configuration.
+        return SimRunner(p=p)

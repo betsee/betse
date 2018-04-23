@@ -24,7 +24,7 @@ from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.config import confio
-from betse.exceptions import BetseSimConfigException
+from betse.exceptions import BetseSimConfException
 from betse.science.chemistry.netplot import set_net_opts
 
 
@@ -113,7 +113,7 @@ class MasterOfMetabolism(object):
         # test to make sure the metabolic simulation includes core components:
         if 'ATP' not in self.core.molecules or 'ADP' not in self.core.molecules or 'Pi' not in self.core.molecules:
 
-            raise BetseSimConfigException("This metabolic simulation does not contain key substances."
+            raise BetseSimConfException("This metabolic simulation does not contain key substances."
                                            "Please define 'ATP', 'ADP' and 'Pi' biomolecules in your "
                                            "metabolism configuration file and try again.")
 
@@ -220,7 +220,7 @@ class MasterOfMetabolism(object):
 
         # test to make sure the metabolic simulation includes core components:
         if 'ATP' not in self.core.molecules or 'ADP' not in self.core.molecules or 'Pi' not in self.core.molecules:
-            raise BetseSimConfigException("This metabolic simulation does not contain key substances."
+            raise BetseSimConfException("This metabolic simulation does not contain key substances."
                                            "Please define 'ATP', 'ADP' and 'Pi' biomolecules in your "
                                            "metabolism configuration file and try again.")
 

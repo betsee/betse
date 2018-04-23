@@ -9,7 +9,7 @@ simulated data of a single cell of the cell cluster).
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.exceptions import BetseSimConfigException
+from betse.exceptions import BetseSimConfException
 from betse.science.config.export.visual.confvisabc import (
     SimConfVisualCellListItem)
 from betse.science.phase.pipe.piperun import piperunner
@@ -37,7 +37,7 @@ class PlotCellPipe(PlotPipeABC):
 
         # If this index is not that of an actual cell, raise an exception.
         if self._phase.p.plot_cell not in self._phase.cells.cell_i:
-            raise BetseSimConfigException(
+            raise BetseSimConfException(
                 'Plot cell index {} invalid '
                 '(i.e., not in range [{}, {}]).'.format(
                     self._phase.p.plot_cell,

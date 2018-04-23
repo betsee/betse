@@ -127,7 +127,7 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
 
         Raises
         ----------
-        BetseSimConfigException
+        BetseSimConfException
             If this simulation has disabled extracellular spaces.
         '''
 

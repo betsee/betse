@@ -12,41 +12,44 @@ REPL packages (e.g., :mod:`code`, :mod:`ptpython`).
 
 # ....................{ IMPORTS                            }....................
 from betse import pathtree
-from betse.cli.repl import environment
+from betse.cli.repl import replenv
 from betse.lib import libs
 from betse.util.io.log import logs
 from betse.util.path import files
 from betse.util.path.command import cmdexit
+from betse.util.type.enums import make_enum
 from betse.util.type.types import type_check
-from enum import Enum
 
 # ....................{ ENUMS                              }....................
 # One-liners are happy liners.
-REPLType = Enum('REPLType', ('first_available', 'ptpython', 'code',))
+ReplType = make_enum(
+    class_name='ReplType',
+    member_names=('first_available', 'ptpython', 'code',),
+)
 '''
 Enumeration of all possible REPLs currently supported by this submodule.
 '''
 
 # ....................{ FUNCTIONS                          }....................
 @type_check
-def start_repl(repl_type: REPLType = REPLType.first_available) -> None:
+def start_repl(repl_type: ReplType = ReplType.first_available) -> None:
     '''
     Start a REPL of the passed type.
 
     Parameters
     ----------
-    repl_type : optional[REPLType]
-        Type of REPL to prefer. If :data:`REPLType.first_available`, the set of
+    repl_type : optional[ReplType]
+        Type of REPL to prefer. If :data:`ReplType.first_available`, the set of
         all possible REPLs is iteratively searched for the first available REPL;
         else if this REPL is unavailable, the first available REPL is used.
-        Defaults to :data:`REPLType.first_available`.
+        Defaults to :data:`ReplType.first_available`.
     '''
 
-    if repl_type is REPLType.first_available:
+    if repl_type is ReplType.first_available:
         start_first_repl()
-    elif repl_type is REPLType.ptpython:
+    elif repl_type is ReplType.ptpython:
         start_ptpython_repl()
-    elif repl_type is REPLType.code:
+    elif repl_type is ReplType.code:
         start_code_repl()
     else:
         logs.log_warning(
@@ -102,12 +105,12 @@ def start_ptpython_repl() -> None:
     try:
         embed(
             globals=None,
-            locals=environment.repl_env,
+            locals=replenv.repl_env,
             history_filename=history_filename,
         )
     # When this REPL halts with error, reraise this exception.
-    except SystemExit as exit:
-        if cmdexit.is_failure(exit.code):
+    except SystemExit as exception:
+        if cmdexit.is_failure(exception.exception):
             raise
 
 
@@ -138,11 +141,11 @@ def start_code_repl() -> None:
 
     # Run this REPL.
     try:
-        code.interact(banner="", local=environment.repl_env)
+        code.interact(banner="", local=replenv.REPL_ENV)
     # When this REPL halts...
-    except SystemExit as exit:
+    except SystemExit as exception:
         # If this REPL halted with error, reraise this exception.
-        if cmdexit.is_failure(exit.code):
+        if cmdexit.is_failure(exception.code):
             raise
         # Else, this REPL halted without error. Silently ignore this exception.
     # Serialize this REPL's history back to disk regardless of whether an

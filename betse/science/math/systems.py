@@ -12,7 +12,7 @@
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
-from betse.exceptions import BetseSimConfigException
+from betse.exceptions import BetseSimConfException
 from betse.lib import libs
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
@@ -1390,7 +1390,7 @@ class SimMaster(object):
 
                 else:
 
-                    raise BetseSimConfigException("Transporter tag not properly defined!")
+                    raise BetseSimConfException("Transporter tag not properly defined!")
 
                 denomo_string_Q += "**{})".format(coeff)
 
@@ -1424,7 +1424,7 @@ class SimMaster(object):
 
                 else:
 
-                    raise BetseSimConfigException("Transporter tag not properly defined!")
+                    raise BetseSimConfException("Transporter tag not properly defined!")
 
                 numo_string_Q += "**{})".format(coeff)
 
@@ -1469,7 +1469,7 @@ class SimMaster(object):
 
                 else:
 
-                    raise BetseSimConfigException("Transporter tag not properly defined!")
+                    raise BetseSimConfException("Transporter tag not properly defined!")
 
                 term = "(" + numo_string_r + "/" + denomo_string_r + ")"
 
@@ -1511,7 +1511,7 @@ class SimMaster(object):
 
                 else:
 
-                    raise BetseSimConfigException("Transporter tag not properly defined!")
+                    raise BetseSimConfException("Transporter tag not properly defined!")
 
 
                 term = "(" + numo_string_p + "/" + denomo_string_p + ")"
@@ -1969,7 +1969,7 @@ class SimMaster(object):
             dl = "np.ones(self.cdl))"
 
         else:
-            raise BetseSimConfigException("Reaction zone requested not an existing option!")
+            raise BetseSimConfException("Reaction zone requested not an existing option!")
 
 
         if a_list is not None and a_list != 'None' and len(a_list) > 0:
@@ -2085,7 +2085,7 @@ class SimMaster(object):
                         direct_string_a += "self.env_concs['{}']".format(name)
 
                 else:
-                    raise BetseSimConfigException("You've asked for a reaction zone"
+                    raise BetseSimConfException("You've asked for a reaction zone"
                                                    "that doesn't exist. Ensure all "
                                                    "reaction and transporter zones are 'cell' or 'env'.")
 
@@ -2336,12 +2336,12 @@ class SimMaster(object):
                 self.cell_concs['K'] = self.cell_concs['K'] - np.abs(Q)
 
             elif Q < 0 and np.abs(Q) > self.cell_concs['P'].mean():  # if net charge is anionic
-                raise BetseSimConfigException("You've defined way more anionic charge in"
+                raise BetseSimConfException("You've defined way more anionic charge in"
                                                "the extra substances than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
             elif Q > 0 and np.abs(Q) > self.cell_concs['K'].mean():
-                raise BetseSimConfigException("You've defined way more cationic charge in"
+                raise BetseSimConfException("You've defined way more cationic charge in"
                                                "the extra substances than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
@@ -2353,12 +2353,12 @@ class SimMaster(object):
             elif Q > 0 and np.abs(Q) <= self.cell_concs['K'].mean():
                 self.cell_concs['K']= self.cell_concs['K'] - np.abs(Q)
             elif Q < 0 and np.abs(Q) > self.cell_concs['P'].mean():  # if net charge is anionic
-                raise BetseSimConfigException("You've defined way more anionic charge in"
+                raise BetseSimConfException("You've defined way more anionic charge in"
                                                "the extra substances than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
             elif Q > 0 and np.abs(Q) > self.cell_concs['K'].mean():
-                raise BetseSimConfigException("You've defined way more cationic charge in"
+                raise BetseSimConfException("You've defined way more cationic charge in"
                                                "the extra substances than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
@@ -2663,7 +2663,7 @@ class SimMaster(object):
 
                 else:
 
-                    raise BetseSimConfigException("Something's not right with the way direction surface "
+                    raise BetseSimConfException("Something's not right with the way direction surface "
                                                   "entities have been specified. Please check the config "
                                                   "settings and try again.")
 

@@ -7,7 +7,7 @@ High-level classes aggregating all parameters pertaining to simulation events.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseSimConfigException
+from betse.exceptions import BetseSimConfException
 from betse.science.tissue.event.tiseveabc import SimEventPulseABC
 from betse.science.math import toolbox
 from betse.util.io.log import logs
@@ -136,7 +136,7 @@ def make(p: 'betse.science.parameters.Parameters') -> (SimEventPulseVoltage, Non
 #    }
 #    boundary_char = BOUNDARY_STR_TO_CHAR.get(side, None)
 #    if boundary_char is None:
-#        raise BetseSimConfigException(
+#        raise BetseSimConfException(
 #            'Boundary edge "{}" unrecognized.'.format(side))
 #    return boundary_char
 #
@@ -157,5 +157,5 @@ def _convert_boundary_str_to_char(side: str) -> str:
     elif side == 'left':   return 'L'
     elif side == 'right':  return 'R'
     else:
-        raise BetseSimConfigException(
+        raise BetseSimConfException(
             'Boundary edge "{}" unrecognized.'.format(side))

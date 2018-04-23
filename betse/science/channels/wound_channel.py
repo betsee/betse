@@ -9,7 +9,7 @@ Wound-induced transient channel response classes.
 # .................... IMPORTS                            ....................
 from abc import ABCMeta, abstractmethod
 import numpy as np
-from betse.exceptions import BetseSimConfigException
+from betse.exceptions import BetseSimConfException
 from betse.science import sim_toolbox as stb
 from betse.science.channels.channelsabc import ChannelsABC
 from betse.science.math import toolbox as tb

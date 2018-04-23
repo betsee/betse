@@ -6,7 +6,7 @@
 import csv, math
 import matplotlib.pyplot as plt
 import numpy as np
-from betse.exceptions import BetseSimConfigException, BetseSimUnstableException
+from betse.exceptions import BetseSimConfException, BetseSimUnstableException
 from betse.lib import libs
 from betse.science import sim_toolbox as stb
 from betse.science.channels import cation as vgcat
@@ -761,7 +761,7 @@ class MasterOfNetworks(object):
 
         # check that the plot cell is in range of the available cell indices:
         if p.plot_cell not in cells.cell_i:
-            raise BetseSimConfigException(
+            raise BetseSimConfException(
                 'The "plot cell" defined in the "results" section of your '
                 'configuration file does not exist in your cluster. '
                 'Choose a plot cell number smaller than the maximum cell number.')
@@ -2304,7 +2304,7 @@ class MasterOfNetworks(object):
 
                 else:
 
-                    raise BetseSimConfigException("Transporter tag not properly defined!")
+                    raise BetseSimConfException("Transporter tag not properly defined!")
 
                 denomo_string_Q += "**{})".format(coeff)
 
@@ -2354,7 +2354,7 @@ class MasterOfNetworks(object):
 
                 else:
 
-                    raise BetseSimConfigException("Transporter tag not properly defined!")
+                    raise BetseSimConfException("Transporter tag not properly defined!")
 
                 numo_string_Q += "**{})".format(coeff)
 
@@ -2419,7 +2419,7 @@ class MasterOfNetworks(object):
 
                 else:
 
-                    raise BetseSimConfigException("Transporter tag not properly defined!")
+                    raise BetseSimConfException("Transporter tag not properly defined!")
 
                 term = "(" + numo_string_r + "/" + denomo_string_r + ")"
 
@@ -2490,7 +2490,7 @@ class MasterOfNetworks(object):
 
                 else:
 
-                    raise BetseSimConfigException("Transporter tag not properly defined!")
+                    raise BetseSimConfException("Transporter tag not properly defined!")
 
 
                 term = "(" + numo_string_p + "/" + denomo_string_p + ")"
@@ -2984,7 +2984,7 @@ class MasterOfNetworks(object):
 
                 else:
 
-                    raise BetseSimConfigException("Internal error: transporter zone not specified correctly!")
+                    raise BetseSimConfException("Internal error: transporter zone not specified correctly!")
 
             for i, (delc, coeff) in enumerate(zip(self.transporters[name].delta_prod_eval_strings,
                 self.transporters[name].products_coeff)):
@@ -3034,7 +3034,7 @@ class MasterOfNetworks(object):
 
                 else:
 
-                    raise BetseSimConfigException("Internal error: transporter zone not specified correctly!")
+                    raise BetseSimConfException("Internal error: transporter zone not specified correctly!")
 
         # if p.substances_affect_charge:
         #
@@ -3250,7 +3250,7 @@ class MasterOfNetworks(object):
 
             else:
 
-                raise BetseSimConfigException("You have requested a "
+                raise BetseSimConfException("You have requested a "
                                                "sim modulator that is not "
                                                "available. Available choices "
                                                "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
@@ -3855,12 +3855,12 @@ class MasterOfNetworks(object):
                 self.cell_concs['K'] = sim.cc_cells[sim.iK] - np.abs(Q)
 
             elif Q < 0 and np.abs(Q) > sim.cc_at_mem[sim.iM].mean():  # if net charge is anionic
-                raise BetseSimConfigException("You've defined way more anionic charge in "
+                raise BetseSimConfException("You've defined way more anionic charge in "
                                                "the extra substances (cell region) than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
             elif Q > 0 and np.abs(Q) > sim.cc_cells[sim.iK].mean():
-                raise BetseSimConfigException("You've defined way more cationic charge in"
+                raise BetseSimConfException("You've defined way more cationic charge in"
                                                "the extra substances (cell region) than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
@@ -3879,12 +3879,12 @@ class MasterOfNetworks(object):
                 self.bound_concs['Na'] = sim.c_env_bound[sim.iNa] - np.abs(Q)
 
             elif Q < 0 and np.abs(Q) > sim.cc_env[sim.iM].mean():  # if net charge is anionic
-                raise BetseSimConfigException("You've defined way more anionic charge in "
+                raise BetseSimConfException("You've defined way more anionic charge in "
                                                "the extra substances (env region) than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
             elif Q > 0 and np.abs(Q) > sim.cc_env[sim.iNa].mean():
-                raise BetseSimConfigException("You've defined way more cationic charge in "
+                raise BetseSimConfException("You've defined way more cationic charge in "
                                                "the extra substances (env region) than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
@@ -3900,12 +3900,12 @@ class MasterOfNetworks(object):
                 self.mit_concs['K'] = sim.cc_mit[sim.iK] - np.abs(Q)
 
             elif Q < 0 and np.abs(Q) > sim.cc_mit[sim.iP].mean():  # if net charge is anionic
-                raise BetseSimConfigException("You've defined way more anionic charge in"
+                raise BetseSimConfException("You've defined way more anionic charge in"
                                                "the extra substances than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
             elif Q > 0 and np.abs(Q) > sim.cc_mit[sim.iK].mean():
-                raise BetseSimConfigException("You've defined way more cationic charge in"
+                raise BetseSimConfException("You've defined way more cationic charge in"
                                                "the extra substances than we can "
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
@@ -5052,7 +5052,7 @@ class MasterOfNetworks(object):
             dl = "np.ones(sim.edl))"
 
         else:
-            raise BetseSimConfigException("Reaction zone requested not an existing option!")
+            raise BetseSimConfException("Reaction zone requested not an existing option!")
 
         # if max_inhibitors or max_activators lists are not supplied (and therefore None) default to original
         if max_activators is None and a_list != 'None' and a_list is not None:
@@ -5198,7 +5198,7 @@ class MasterOfNetworks(object):
                         direct_string_a += "self.env_concs['{}']".format(name)
 
                 else:
-                    raise BetseSimConfigException("You've asked for a reaction zone"
+                    raise BetseSimConfException("You've asked for a reaction zone"
                                                    "that doesn't exist. Enable mitochondria or ensure all "
                                                    "reaction and transporter zones are 'cell' or 'env'.")
 
@@ -6388,7 +6388,7 @@ class Channel(object):
 
         else:
 
-            raise BetseSimConfigException("Substance-modulated ion type not available. "
+            raise BetseSimConfException("Substance-modulated ion type not available. "
                                            "Valid choices: Na, K, Ca, NaP, Kir, and Fun")
 
         # create the desired dynamic channel class instance:
@@ -6473,7 +6473,7 @@ class Modulator(object):
 
         else:
 
-            raise BetseSimConfigException("You have requested a "
+            raise BetseSimConfException("You have requested a "
                                            "sim modulator that is not "
                                            "available. Available choices "
                                            "are: 'GJ', 'Na/K-ATPase' and 'MT' ")

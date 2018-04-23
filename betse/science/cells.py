@@ -9,7 +9,7 @@ import scipy.spatial as sps
 from numpy import ndarray
 from scipy import interpolate as interp
 from scipy import ndimage
-from betse.exceptions import BetseSequenceException, BetseSimConfigException
+from betse.exceptions import BetseSequenceException, BetseSimConfException
 from betse.lib.numpy import nparray
 from betse.science import filehandling as fh
 from betse.science.config.confenum import CellLatticeType
@@ -757,7 +757,7 @@ class Cells(object):
 
         # Else, this lattice type is unrecognized. Raise us up an exception!
         else:
-            raise BetseSimConfigException(
+            raise BetseSimConfException(
                 'Cell lattice type "{}" unrecognized.'.format(
                     p.cell_lattice_type))
 
@@ -2757,7 +2757,7 @@ class Cells(object):
             curl_z = 0
 
         else:
-            raise BetseSimConfigException("Input to cells.curl not defined properly."
+            raise BetseSimConfException("Input to cells.curl not defined properly."
                                            "It takes (Fx = 0, Fy=0, phi)  or "
                                            "(Fx,Fy,phi=0). Also, the 0 must"
                                            "be an integer, not 0.0.")

@@ -28,9 +28,7 @@ class YamlListItemABC(YamlABC):
     related key-value pairs (e.g., animation settings, tissue profile).
     '''
 
-    # ..................{ MAKERS ~ abstract                  }..................
-    # Subclasses are required to implement the following abstract class methods.
-
+    # ..................{ MAKERS                             }..................
     @classmethod
     def make_list(cls, *args, **kwargs) -> (
         'betse.lib.yaml.abc.yamllistabc.YamlList'):
@@ -48,6 +46,7 @@ class YamlListItemABC(YamlABC):
 
     # ..................{ MAKERS ~ abstract                  }..................
     # Subclasses are required to implement the following abstract class methods.
+
     @classmethod
     @abstractmethod
     def make_default(

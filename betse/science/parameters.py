@@ -5,7 +5,7 @@
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse import pathtree
-from betse.exceptions import BetseSimConfigException, BetseSimPhaseException
+from betse.exceptions import BetseSimConfException, BetseSimPhaseException
 from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
@@ -1051,7 +1051,7 @@ class Parameters(YamlFileABC):
             zs = [self.z_Na, self.z_K, self.z_P]
 
             conc_env = [self.cNa_env, self.cK_env, self.cP_env]
-            self.conc_env_m, self.z_M_env = bal_charge(conc_env,zs)
+            self.conc_env_m, self.z_M_env = _balance_charge(conc_env,zs)
 
             assert self.z_M_env == -1
 
@@ -1061,7 +1061,7 @@ class Parameters(YamlFileABC):
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
 
-            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+            self.cM_cell, self.z_M_cell = _balance_charge(conc_cell,zs)
 
             assert self.z_M_cell == -1
 
@@ -1084,7 +1084,7 @@ class Parameters(YamlFileABC):
             zs = [self.z_Na, self.z_K, self.z_Ca, self.z_P]
 
             conc_env = [self.cNa_env, self.cK_env, self.cCa_env, self.cP_env]
-            self.conc_env_m, self.z_M_env = bal_charge(conc_env,zs)
+            self.conc_env_m, self.z_M_env = _balance_charge(conc_env,zs)
 
             assert self.z_M_env == -1
 
@@ -1095,7 +1095,7 @@ class Parameters(YamlFileABC):
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCa_cell, self.cP_cell]
 
-            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+            self.cM_cell, self.z_M_cell = _balance_charge(conc_cell,zs)
 
             assert self.z_M_cell == -1
 
@@ -1124,7 +1124,7 @@ class Parameters(YamlFileABC):
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]
 
             conc_env = [self.cNa_env, self.cK_env, self.cCl_env, self.cCa_env, self.cP_env]
-            self.conc_env_m, self.z_M_env = bal_charge(conc_env,zs)
+            self.conc_env_m, self.z_M_env = _balance_charge(conc_env,zs)
 
             assert self.z_M_env == -1
 
@@ -1135,7 +1135,7 @@ class Parameters(YamlFileABC):
             self.cP_cell = 135.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cP_cell]
-            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+            self.cM_cell, self.z_M_cell = _balance_charge(conc_cell,zs)
 
             assert self.z_M_cell == -1
 
@@ -1176,7 +1176,7 @@ class Parameters(YamlFileABC):
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]
 
             conc_env = [self.cNa_env, self.cK_env, self.cCl_env, self.cCa_env, self.cP_env]
-            self.conc_env_m, self.z_M_env = bal_charge(conc_env,zs)
+            self.conc_env_m, self.z_M_env = _balance_charge(conc_env,zs)
 
             assert self.z_M_env == -1
 
@@ -1187,7 +1187,7 @@ class Parameters(YamlFileABC):
             self.cP_cell = 100.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cP_cell]
-            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+            self.cM_cell, self.z_M_cell = _balance_charge(conc_cell,zs)
 
             assert self.z_M_cell == -1
 
@@ -1227,7 +1227,7 @@ class Parameters(YamlFileABC):
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]
 
             conc_env = [self.cNa_env, self.cK_env, self.cCl_env, self.cCa_env, self.cP_env]
-            self.conc_env_m, self.z_M_env = bal_charge(conc_env, zs)
+            self.conc_env_m, self.z_M_env = _balance_charge(conc_env, zs)
 
             self.cNa_cell = float(cip['cytosolic Na+ concentration'])
             self.cK_cell = float(cip['cytosolic K+ concentration'])
@@ -1237,7 +1237,7 @@ class Parameters(YamlFileABC):
             self.cP_cell = float(cip['cytosolic protein- concentration'])
 
             conc_cell = [self.cNa_cell, self.cK_cell, self.cCl_cell, self.cCa_cell, self.cP_cell]
-            self.cM_cell, self.z_M_cell = bal_charge(conc_cell, zs)
+            self.cM_cell, self.z_M_cell = _balance_charge(conc_cell, zs)
 
             assert self.z_M_cell == -1
 
@@ -1263,7 +1263,7 @@ class Parameters(YamlFileABC):
 
         # Else, this ion profile type is unrecognized. Raise an exception.
         else:
-            raise BetseSimConfigException(
+            raise BetseSimConfException(
                 'Ion profile type "{}" unrecognized.'.format(self.ion_profile))
 
     # ..................{ UNLOADERS                          }..................
@@ -1293,7 +1293,7 @@ class Parameters(YamlFileABC):
         '''
 
         if not self.is_ecm:
-            raise BetseSimConfigException(
+            raise BetseSimConfException(
                 'Extracellular spaces disabled by '
                 'this simulation configuration.')
 
@@ -1361,8 +1361,7 @@ class Parameters(YamlFileABC):
         return dirs.iter_subdir_basenames(pathtree.get_data_yaml_dirname())
 
 # ....................{ HELPERS                            }....................
-#FIXME: Shift this into a more appropriate math-oriented module. Funny sunning!
-def bal_charge(concentrations: SequenceTypes, zs: SequenceTypes) -> tuple:
+def _balance_charge(concentrations: SequenceTypes, zs: SequenceTypes) -> tuple:
     '''
     Sum the concentrations of profile ions with their charge state to
     determine how much net positive charge exists, returning the concentration
