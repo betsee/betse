@@ -59,10 +59,12 @@ class Parameters(YamlFileABC):
     ----------
     seed_pickle_basename : str
         Basename of the pickled file providing this simulation's most recently
-        seeded cell cluster within the current :attr:`init_dirname`.
+        seeded cell cluster, relative to the :attr:`init_pickle_dirname`
+        directory.
     init_pickle_basename : str
         Basename of the pickled file providing this simulation's most recent
-        initialization run within the current :attr:`init_dirname`.
+        initialization run, relative to the :attr:`init_pickle_dirname`
+        directory.
     init_pickle_dirname : str
         Absolute pathname of the directory containing this simulation's most
         recently seeded cell cluster *and* initialization run, guaranteed to
@@ -70,8 +72,7 @@ class Parameters(YamlFileABC):
     init_pickle_dirname_relative : str
         Relative pathname of the directory containing this simulation's most
         recently seeded cell cluster *and* initialization run, relative to the
-        absolute path of the directory containing this simulation
-        configuration's YAML file.
+        :attr:`conf_dirname` directory.
     sim_pickle_basename : str
         Basename of the pickled file providing this simulation's most recent
         simulation run within the current :attr:`sim_dirname`.
@@ -79,9 +80,22 @@ class Parameters(YamlFileABC):
         Absolute pathname of the directory containing this simulation's most
         recent simulation run, guaranteed to exist.
     sim_pickle_dirname_relative : str
-        Relative pathname of the directory this simulation's most
-        recent simulation run, relative to the absolute path of the directory
-        containing this simulation configuration's YAML file.
+        Relative pathname of the directory containing this simulation's most
+        recent simulation run, relative to the :attr:`conf_dirname` directory.
+
+    Attributes (Path: Pickle: GRN)
+    ----------
+    grn_pickle_basename : str
+        Basename of the pickled file providing this simulation's most recent
+        gene regulatory network (GRN) run, relative to the
+        :attr:`grn_pickle_dirname` directory.
+    grn_pickle_dirname : str
+        Absolute pathname of the directory containing this simulation's most
+        recent gene regulatory network (GRN) run, guaranteed to exist.
+    grn_pickle_dirname_relative : str
+        Relative pathname of the directory containing this simulation's most
+        recent gene regulatory network (GRN) run, relative to the
+        :attr:`conf_dirname` directory.
 
     Attributes (Space: Cell)
     ----------
@@ -640,18 +654,15 @@ class Parameters(YamlFileABC):
         simgrndic = self._conf['gene regulatory network settings'].get('sim-grn settings', None)
 
         if simgrndic is not None:
-
             self.grn_piggyback = simgrndic['run network on']
             grn_savedir = simgrndic['save to directory']
             self.grn_savedir = pathnames.join(self.conf_dirname, grn_savedir)
             self.grn_savefile = simgrndic['save to file']
-
             self.grn_loadfrom = simgrndic['load from']
 
             if self.grn_loadfrom is not None and self.grn_loadfrom != 'None':
                 self.loadMoG = pathnames.join(
                     self.conf_dirname, self.grn_loadfrom)
-
             else:
                 self.loadMoG = None
 
@@ -659,9 +670,10 @@ class Parameters(YamlFileABC):
             self.grn_total_time = float(simgrndic.get('total time', 10.0))
             self.grn_tsample = float(simgrndic.get('sampling rate', 1.0))
             self.grn_runmodesim = simgrndic.get('run as sim', False)
-
+        #FIXME: Refactor this logic into the
+        #"betse.science.compat.compatconf" submodule, as this is purely for
+        #backward compatibility with older configuration file formats.
         else:
-
             self.grn_piggyback = 'seed'
             self.grn_savedir = pathnames.join(self.conf_dirname, 'GRN')
             self.grn_savefile = 'GRN_1.betse.gz'

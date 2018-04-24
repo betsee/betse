@@ -284,7 +284,7 @@ class Simulator(object):
     Attributes (Ion: Index)
     ----------
     The following ion indices are dynamically defined by the
-    :meth:`baseInit_all` method.
+    :meth:`init_core` method.
 
     iCa : int
         0-based index of the calcium ion if enabled by this simulation's ion
@@ -409,49 +409,56 @@ class Simulator(object):
             Current simulation configuration.
         '''
 
-        #FIXME: Define all other instance attributes as well.
+        #FIXME: Default all other instance attributes as well.
         #FIXME: Do we still need the "ignore_ecm" flag? It's never set
         #elsewhere, which is a bit... awkward. Clarion winds of change, unveil!
 
         # Default all remaining attributes.
         self.ignore_ecm = True
 
-        #FIXME: Defer until later. To quote the "simrunner" module, which
-        #explicitly calls this public method:
-        #   "Reinitialize save and load directories in case params defines new
-        #    ones for this sim."
-        #Hence, this method should instead be called as the first statement in
-        #both the run_loop_no_ecm() and run_loop_with_ecm() methods.
-        self.fileInit(p)
-
-    def fileInit(self, p):
-        '''
-        Initializes the pathnames of top-level files and directories comprising
-        the BETSE cache for subsequent initialization and simulation runs.
-        '''
-
-        #FIXME: These variables should ideally reside in the "Parameters" class,
-        #at which point this method may be safely removed. Specifically:
-        #
-        #* Rename "self.savedInit" to "p.init_pickle_filename".
-        #* Rename "self.savedSim" to "p.sim_pickle_filename".
+        #FIXME: Shift these variables into the "Parameters" class by:
+        #* Renaming "self.savedInit" to "p.init_pickle_filename".
+        #* Renaming "self.savedSim"  to "p.sim_pickle_filename".
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedInit = pathnames.join(p.init_pickle_dirname, p.init_pickle_basename)
-        self.savedSim  = pathnames.join(p.sim_pickle_dirname, p.sim_pickle_basename)
+        self.savedInit = pathnames.join(
+            p.init_pickle_dirname, p.init_pickle_basename)
+        self.savedSim  = pathnames.join(
+            p.sim_pickle_dirname, p.sim_pickle_basename)
 
-    def baseInit_all(self, cells, p):
-        """
-        Prepare core data structures necessary for subsequent initialization and
-        simulation phases.
 
-        This method creates a variety of initialized data matrices for the main
-        simulation, including intracellular and environmental concentrations,
-        voltages, specific diffusion constants, and types of ions included in
-        the simulation. This method is performed only once per seed (i.e., cell
+    @type_check
+    def init_core(self, phase: SimPhase) -> None:
+        '''
+        Prepare core data structures required by the passed phase in a
+        general-purpose manner applicable to *all* possible phases.
+
+        This method initializes core computational matrices -- including those
+        concerning intracellular and environmental concentrations, voltages,
+        specific diffusion constants, and types of ions included in the
+        simulation. This method is performed only once per seed (i.e., cell
         cluster creation) and thus contains crucial parameters, which cannot be
         changed after running an initialization.
-        """
+
+        Parameters
+        --------
+        phase : SimPhase
+            Current simulation phase.
+        '''
+
+        # Log this attempt.
+        logs.log_info('Initializing core simulation matrices...')
+
+        # Localize frequently referenced phase variables for convenience.
+        p = phase.p
+        cells = phase.cells
+
+        #FIXME: Eliminate this crude hack by refactoring all references to
+        #"sim.dyna" throughout the codebase to "phase.dyna" instead. Naturally,
+        #this will require refactoring all methods referencing "sim.dyna" to
+        #accept a "phase: SimPhase" parameter. After doing so, remove this line.
+        #Praise be to the multifoliate rose!
+        self.dyna = phase.dyna
 
         # initialize all extra substances related objects to None, to be filled in if desired later
         self.molecules = None
@@ -462,7 +469,7 @@ class Simulator(object):
         self.mdl = len(cells.mem_i)  # mems-data-length
         self.cdl = len(cells.cell_i)  # cells-data-length
 
-        if p.is_ecm is True:  # set environnment data length
+        if p.is_ecm:  # set environnment data length
             self.edl = len(cells.xypts)
         else:
             self.edl = self.mdl
@@ -481,7 +488,7 @@ class Simulator(object):
         self.vgj = np.zeros(self.mdl)
 
 
-        self.gj_block = 1 # will update this according to user preferences in self.init_tissue()
+        self.gj_block = 1 # will update this according to user preferences in self.init_dynamics()
 
         # Identity matrix to easily make matrices out of scalars
         self.id_mems = np.ones(self.mdl)
@@ -718,7 +725,7 @@ class Simulator(object):
         # GJ fluxes storage vector:
         self.fluxes_gj = np.copy(self.fluxes_mem)
 
-        self.gj_funk = None  # initialize this to None; set in init_tissue
+        self.gj_funk = None  # initialize this to None; set in init_dynamics
 
         # Initialize matrices to store concentration gradient information for each ion:
         self.fluxes_intra = np.zeros(self.fluxes_mem.shape)
@@ -735,15 +742,30 @@ class Simulator(object):
         self.u_env_x = 0.0
         self.u_env_y = 0.0
 
-    def init_tissue(self, cells, p):
-        '''
-        Prepares data structures pertaining to tissue profiles, dynamic
-        activity, and optional methods such as electroosmotic fluid,
-        which can be changed in between an initialization and simulation
-        run.
 
-        This method is called at the start of all simulations.
+    @type_check
+    def init_dynamics(self, phase: SimPhase) -> None:
         '''
+        Prepare tissue-centric data structures required by the passed phase in a
+        general-purpose manner applicable to *all* possible phases.
+
+        This method initializes core computational matrices -- including those
+        concerning tissue, cut, and boundary profiles, dynamic activities, and
+        optional simulation features safely modifiable between the
+        initialization and simulation phases (e.g., electroosmotic fluid flow).
+
+        Parameters
+        --------
+        phase : SimPhase
+            Current simulation phase.
+        '''
+
+        # Log this attempt.
+        logs.log_info('Initializing tissue and boundary profiles...')
+
+        # Localize frequently referenced phase variables for convenience.
+        p = phase.p
+        cells = phase.cells
 
         # smoothing weights for membrane and central values:
         nfrac = p.smooth_cells
@@ -770,17 +792,8 @@ class Simulator(object):
                 if p.cbnd is not None:
                     self.c_env_bound[ion_i] = p.cbnd[key]
 
-        #FIXME: Consider removing this duplicate tissue handler. All "SimPhase"
-        #objects now provide the exact same "dyna" object. Ergo:
-        #
-        #* Refactor this method to accept a "SimPhase" parameter named "phase".
-        #* Refactor every call to this method to pass only a "SimPhase" object.
-        #* Replace "self.dyna" everywhere below with "phase.dyna".
-        #
-        #Dark forest ignites the night with festive glee!
-
-        self.dyna = TissueHandler(p)   # create the tissue dynamics object
-        self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles
+        # Initialize all tissue profiles.
+        phase.dyna.tissueProfiles(self, cells, p)
 
         if p.is_ecm:
             # create a copy-base of the environmental junctions diffusion constants:
@@ -960,8 +973,8 @@ class Simulator(object):
         self.rho_pump = 1
         self.rho_channel = 1
 
-        # Initialize core user-specified interventions:
-        self.dyna.runAllInit(self,cells,p)
+        # Initialize core user-specified interventions.
+        phase.dyna.runAllInit(self, cells, p)
 
         # update the microtubules dipole for the case user changed it between init and sim:
         self.mtubes.reinit(cells, p)
@@ -1007,6 +1020,7 @@ class Simulator(object):
         if p.solver_type is SolverType.FAST:
             self.fast_sim_init(cells, p)
 
+
     @type_check
     def run_sim_core(self, phase: SimPhase) -> None:
         '''
@@ -1022,7 +1036,7 @@ class Simulator(object):
 
         # Initialize all structures used for gap junctions, ion channels, and
         # other dynamics.
-        self.init_tissue(phase.cells, phase.p)
+        self.init_dynamics(phase)
 
         # Reinitialize all time-data structures
         self.clear_storage(phase.cells, phase.p)
@@ -1112,6 +1126,7 @@ class Simulator(object):
         if exception_instability is not None:
             raise exception_instability
 
+
     @type_check
     def _run_sim_core_loop(
         self,
@@ -1169,7 +1184,7 @@ class Simulator(object):
             # Calculate the values of scheduled and dynamic quantities (e.g..
             # ion channel multipliers).
             if p.run_sim:
-                self.dyna.runAllDynamics(self, cells, p, t)
+                phase.dyna.runAllDynamics(self, cells, p, t)
 
             # -----------------PUMPS-------------------------------------------------------------------------------------
 
@@ -1535,7 +1550,7 @@ class Simulator(object):
             # Calculate the values of scheduled and dynamic quantities (e.g..
             # ion channel multipliers).
             if p.run_sim:
-                self.dyna.runAllDynamics(self, cells, p, t)
+                phase.dyna.runAllDynamics(self, cells, p, t)
 
             # update the microtubules:------------------------------------------------------------------------------
 

@@ -315,7 +315,7 @@ class TissueHandler(object):
         '''
 
         # Log this initialization.
-        logs.log_debug('Mapping tissue profiles to cells...')
+        logs.log_debug('Mapping tissue, cut, and boundary profiles...')
 
         #FIXME: These three dictionaries are all indexed by tissue profile names
         #and hence should simply be folded into the "TissueProfile" class as

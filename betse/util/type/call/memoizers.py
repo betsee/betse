@@ -8,6 +8,8 @@ Low-level **memoization** (i.e., efficient caching and reuse of the values
 returned by callables, typically via decorators) facilities.
 '''
 
+#FIXME: Shift this submodule to "betse.util.type.decorator.decmemo".
+
 # ....................{ IMPORTS                            }....................
 from betse.util.type.types import type_check, CallableTypes, PropertyType
 from functools import wraps

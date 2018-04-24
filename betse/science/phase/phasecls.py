@@ -121,8 +121,8 @@ class SimPhase(object):
 
         #FIXME: Rename the "save_dirname" variable to "export_dirname".
         #FIXME: Isolate exports produced by the "seed" phase to their own
-        #directory; for simplicity, such exports currently reuse that of the
-        #"init" phase.
+        #directory; for simplicity, these exports currently reuse the same
+        #directory as that of the "init" phase.
 
         # Absolute path of the top-level exports directory for this phase.
         if kind is SimPhaseKind.SEED:

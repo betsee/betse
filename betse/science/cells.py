@@ -357,7 +357,6 @@ class Cells(object):
             p.init_pickle_dirname, p.seed_pickle_basename)
 
 
-    # Avoid circular import dependencies.
     @type_check
     def make_world(self, phase: SimPhase) -> None:
         '''
@@ -371,8 +370,10 @@ class Cells(object):
             Current simulation phase.
         '''
 
-        # If the current simulation phase is *NOT* a seed (e.g., is an
-        # initialization or simulation), raise an exception.
+        # Log this attempt.
+        logs.log_info('Creating cell cluster...')
+
+        # If this phase is *NOT* the seed phase, raise an exception.
         phase.die_unless_kind(SimPhaseKind.SEED)
 
         # Create the cell lattice, which serves as the seed grid underlying all
@@ -393,9 +394,8 @@ class Cells(object):
         # Calculate the centroids of the Voronoi Cells:
         self.cell_index(phase.p)  # Calculate the correct centre and index for each cell
 
-        # Optionally, refine the Voronoi mesh, as per user specifications
+        # If optionally refining the Voronoi mesh, do so.
         if phase.p.refine_mesh:
-
             self._refine_voronoi(phase)
 
         logs.log_info('Defining cell-specific geometric properties... ')
@@ -1990,7 +1990,7 @@ class Cells(object):
             self.M_divmap_mem2ecm[ecm_i, mem_i] += (mem_sa)
             # self.M_divmap_mem2ecm[ecm_i, mem_i] += (mem_sa) / (p.cell_height*(self.delta**2))
 
-    def graphLaplacian(self,p):
+    def graphLaplacian(self, p) -> None:
         '''
         Defines an abstract inverse Laplacian that is used to solve Poisson's equation on the
         irregular Voronoi grid of the cell cluster.
@@ -2005,8 +2005,10 @@ class Cells(object):
         ----------
         self.lapGJinv          Solver for Poisson equation with Dirchlet (zero value) boundary
         self.lapGJ_P_inv       Solver for Poisson equation with Neumann (zero gradient) boundary
-
         '''
+
+        # Log this attempt.
+        logs.log_info('Creating cell network Poisson solver...')
 
         # zero-value fixed boundary version (Dirchlet condition)
         lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
