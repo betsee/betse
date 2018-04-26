@@ -235,11 +235,11 @@ class MasterOfMolecules(object):
 
         logs.log_info('Saving simulation...')
         datadump = [self, cells, p]
-        fh.saveSim(p.savedMoG, datadump)
+        fh.saveSim(p.grn_pickle_filename, datadump)
         self.core.init_saving(cells, p, plot_type='init', nested_folder_name='Gene')
         self.core.export_eval_strings(p)
         self.core.export_equations(p)
-        message = 'Gene regulatory network simulation saved to' + ' ' + p.savedMoG
+        message = 'Gene regulatory network simulation saved to' + ' ' + p.grn_pickle_filename
         logs.log_info(message)
 
         logs.log_info('-------------------Simulation Complete!-----------------------')

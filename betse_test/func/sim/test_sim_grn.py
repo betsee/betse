@@ -32,6 +32,13 @@ def test_cli_grn_isolated(betse_cli_sim: 'CLISimTester') -> None:
         Object running BETSE CLI simulation subcommands.
     '''
 
+    # Defer heavyweight imports.
+    from betse.util.io.log import logs
+    from betse.util.path import pathnames
+
+    # Simulation configuration specific to this test.
+    p = betse_cli_sim.sim_state.p
+
     # Enable these networks.
     betse_cli_sim.sim_state.config.enable_networks()
 
@@ -43,17 +50,24 @@ def test_cli_grn_isolated(betse_cli_sim: 'CLISimTester') -> None:
     # this configuration.
     betse_cli_sim.run_subcommands(('seed',), ('sim-grn',),)
 
-    # Test all GRN-specific subcommands required to simulate by reusing the GRN
-    # simulated by previous subcommands with this configuration.
+    # Log this rerun attempt with suitable aesthetics.
+    logs.log_banner(title='sim-grn (rerun)', padding='~')
 
-    #FIXME: Uncomment this line and comment the subsequent line. Doing so will
-    #require setting the "betse_cli_sim.sim_state.p.grn_loadfrom" variable to
-    #the concatenation of "betse_cli_sim.sim_state.p.grn_savedir" +
-    #"betse_cli_sim.sim_state.p.grn_savefile". Naturally, doing that will in
-    #turn necessitate refactoring these variables into YAML data descriptors.
+    # Prepare to rerun the "sim-grn" subcommand from the prior run pickled by
+    # the prior subcommand. To do so safely (in order):
+    #
+    # * Reconstruct the relative filename of the prior GRN run.
+    # * Ensure that the next GRN run is pickled to another file.
+    p.grn_unpickle_filename_relative = pathnames.join(
+        p.grn_pickle_dirname_relative, p.grn_pickle_basename)
+    p.grn_pickle_basename = 'new_' + p.grn_pickle_basename
 
-    # betse_cli_sim.run_subcommands(('sim-grn',), ('plot', 'sim-grn',),)
-    betse_cli_sim.run_subcommands(('plot', 'sim-grn',),)
+    # Redefine all absolute pathnames depending upon these relative pathnames.
+    p.reload_paths()
+
+    # Test rerunning the "sim-grn" subcommand from the prior such run and, for
+    # completeness, exporting the results of doing so.
+    betse_cli_sim.run_subcommands(('sim-grn',), ('plot', 'sim-grn',),)
 
 
 @skip_unless_networkable

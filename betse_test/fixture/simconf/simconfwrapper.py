@@ -20,9 +20,9 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 #  data descriptors defined by "self._p".
 #FIXME: Ideally, after implementing the above, use of the "SimConfigTestWrapper"
 #wrapper will be able to be replaced everywhere in tests by direct use of the
-#"SimConfTestInternal.p" property providing direct access to this "Parameters" object,
-#which increasingly provides all test functionality. We're not quite there yet
-#-- but we will be, eventually.
+#"SimConfTestInternal.p" property providing direct access to this "Parameters"
+#object, which increasingly provides all test functionality. We're not quite
+#there yet -- but we will be, eventually.
 
 # ....................{ IMPORTS                            }....................
 # This subclass necessarily imports from submodules defined by the main codebase
@@ -159,9 +159,8 @@ class SimConfigTestWrapper(object):
     # ..................{ WRITERS                            }..................
     def overwrite(self) -> None:
         '''
-        Reserialize the current low-level configuration dictionary to the
-        current configuration file, silently overwriting the contents of this
-        file with the possibly modified contents of this dictionary.
+        Silently overwrite the contents of this configuration file with the
+        in-memory contents of this configuration dictionary.
         '''
 
         self._p.save_inplace()

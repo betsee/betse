@@ -19,10 +19,11 @@ from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.tissue.event import tisevevolt
-# from betse.util.io.log import logs
+from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 # from betse.util.type.call.memoizers import property_cached
-from betse.util.type.types import type_check, IterableTypes, SequenceTypes
+from betse.util.type.types import (
+    type_check, IterableTypes, SequenceTypes, StrOrNoneTypes)
 
 # ....................{ CLASSES                            }....................
 class Parameters(YamlFileABC):
@@ -61,41 +62,61 @@ class Parameters(YamlFileABC):
         Basename of the pickled file providing this simulation's most recently
         seeded cell cluster, relative to the :attr:`init_pickle_dirname`
         directory.
+
+    Attributes (Path: Pickle: Initialization)
+    ----------
     init_pickle_basename : str
         Basename of the pickled file providing this simulation's most recent
         initialization run, relative to the :attr:`init_pickle_dirname`
         directory.
     init_pickle_dirname : str
-        Absolute pathname of the directory containing this simulation's most
+        Absolute dirname of the directory containing this simulation's most
         recently seeded cell cluster *and* initialization run, guaranteed to
         exist.
     init_pickle_dirname_relative : str
-        Relative pathname of the directory containing this simulation's most
+        Relative dirname of the directory containing this simulation's most
         recently seeded cell cluster *and* initialization run, relative to the
         :attr:`conf_dirname` directory.
+
+    Attributes (Path: Pickle: Simulation)
+    ----------
     sim_pickle_basename : str
         Basename of the pickled file providing this simulation's most recent
         simulation run within the current :attr:`sim_dirname`.
     sim_pickle_dirname : str
-        Absolute pathname of the directory containing this simulation's most
+        Absolute dirname of the directory containing this simulation's most
         recent simulation run, guaranteed to exist.
     sim_pickle_dirname_relative : str
-        Relative pathname of the directory containing this simulation's most
+        Relative dirname of the directory containing this simulation's most
         recent simulation run, relative to the :attr:`conf_dirname` directory.
 
-    Attributes (Path: Pickle: GRN)
+    Attributes (Path: Pickle: Gene)
     ----------
     grn_pickle_basename : str
         Basename of the pickled file providing this simulation's most recent
         gene regulatory network (GRN) run, relative to the
         :attr:`grn_pickle_dirname` directory.
+    grn_pickle_filename : str
+        Absolute filename of the pickled file providing this simulation's most
+        recent gene regulatory network (GRN) run.
     grn_pickle_dirname : str
-        Absolute pathname of the directory containing this simulation's most
+        Absolute dirname of the directory containing this simulation's most
         recent gene regulatory network (GRN) run, guaranteed to exist.
     grn_pickle_dirname_relative : str
-        Relative pathname of the directory containing this simulation's most
+        Relative dirname of the directory containing this simulation's most
         recent gene regulatory network (GRN) run, relative to the
         :attr:`conf_dirname` directory.
+    grn_unpickle_filename : StrOrNoneTypes
+        Absolute filename of the pickled file providing a prior gene regulatory
+        network (GRN) run for this simulation if restarting the current such run
+        from where this prior run left off *or* ``None`` otherwise (i.e., if
+        starting the current such run from scratch).
+    grn_unpickle_filename_relative : StrOrNoneTypes
+        Relative filename of the pickled file providing a prior gene regulatory
+        network (GRN) run for this simulation, relative to the
+        :attr:`conf_dirname` directory, if restarting the current such run from
+        where this prior run left off *or* ``None`` otherwise (i.e., if starting
+        the current such run from scratch).
 
     Attributes (Space: Cell)
     ----------
@@ -297,6 +318,17 @@ class Parameters(YamlFileABC):
     sim_export_dirname_relative  = yaml_alias(
         "['results file saving']['sim directory']", str)
 
+    # ..................{ ALIASES ~ path : grn               }..................
+    grn_pickle_basename = yaml_alias(
+        "['gene regulatory network settings']"
+        "['sim-grn settings']['save to file']", str)
+    grn_pickle_dirname_relative = yaml_alias(
+        "['gene regulatory network settings']"
+        "['sim-grn settings']['save to directory']", str)
+    grn_unpickle_filename_relative = yaml_alias(
+        "['gene regulatory network settings']"
+        "['sim-grn settings']['load from']", StrOrNoneTypes)
+
     # ..................{ ALIASES ~ space : cell             }..................
     cell_radius = yaml_alias("['world options']['cell radius']", float)
 
@@ -386,7 +418,7 @@ class Parameters(YamlFileABC):
         compatconf.upgrade_sim_conf(self)
 
         # Initialize paths specified by this configuration.
-        self._init_paths()
+        self.reload_paths()
 
         # Load all currently unloaded tissue subconfigurations.
         self.cut_profiles.load(
@@ -651,43 +683,14 @@ class Parameters(YamlFileABC):
         if self.grn_enabled:
             self.grn.load(conf_filename=self.grn_config_filename)
 
-        simgrndic = self._conf['gene regulatory network settings'].get('sim-grn settings', None)
+        simgrndic = (
+            self._conf['gene regulatory network settings']['sim-grn settings'])
 
-        if simgrndic is not None:
-            self.grn_piggyback = simgrndic['run network on']
-            grn_savedir = simgrndic['save to directory']
-            self.grn_savedir = pathnames.join(self.conf_dirname, grn_savedir)
-            self.grn_savefile = simgrndic['save to file']
-            self.grn_loadfrom = simgrndic['load from']
-
-            if self.grn_loadfrom is not None and self.grn_loadfrom != 'None':
-                self.loadMoG = pathnames.join(
-                    self.conf_dirname, self.grn_loadfrom)
-            else:
-                self.loadMoG = None
-
-            self.grn_dt = float(simgrndic.get('time step', 1.0e-2))
-            self.grn_total_time = float(simgrndic.get('total time', 10.0))
-            self.grn_tsample = float(simgrndic.get('sampling rate', 1.0))
-            self.grn_runmodesim = simgrndic.get('run as sim', False)
-        #FIXME: Refactor this logic into the
-        #"betse.science.compat.compatconf" submodule, as this is purely for
-        #backward compatibility with older configuration file formats.
-        else:
-            self.grn_piggyback = 'seed'
-            self.grn_savedir = pathnames.join(self.conf_dirname, 'GRN')
-            self.grn_savefile = 'GRN_1.betse.gz'
-
-            self.grn_loadfrom = None
-
-            self.loadMoG = None
-
-            self.grn_dt = 1.0e-2
-            self.grn_total_time = 10.0
-            self.grn_tsample = 1.0
-
-        # Define data paths for saving an initialization and simulation run:
-        self.savedMoG = pathnames.join(self.grn_savedir, self.grn_savefile)
+        self.grn_piggyback = simgrndic['run network on']
+        self.grn_dt = float(simgrndic.get('time step', 1.0e-2))
+        self.grn_total_time = float(simgrndic.get('total time', 10.0))
+        self.grn_tsample = float(simgrndic.get('sampling rate', 1.0))
+        self.grn_runmodesim = simgrndic.get('run as sim', False)
 
         #--------------------------------------------------------------------------------------------------------------
         # VARIABLE SETTINGS
@@ -1021,29 +1024,78 @@ class Parameters(YamlFileABC):
         # Return this configuration for convenience.
         return self
 
-    # ..................{ INITIALIZERS ~ path                }..................
-    def _init_paths(self) -> None:
+    # ..................{ LOADERS ~ path                     }..................
+    #FIXME: Ideally, this method should be private. Unfortunately, external
+    #callers (notably, tests) currently need to call this method to update
+    #absolute pathnames after modifying relative pathnames. The solution, of
+    #course, is to have Python implicitly call this method whenever *ANY*
+    #relative pathname internally referenced by this modified. Doing so
+    #correctly will require augmenting the expr_alias() data descriptor to
+    #support yet-another-optional-keyword-parameter enabling callers to pass a
+    #callable to be implicitly called whenever that descriptor is set -- say,
+    #"callback_set". Given that, we would then refactor the above YAML aliases
+    #to resemble something like:
+    #
+    #    sim_pickle_basename = yaml_alias(
+    #        "['sim file saving']['file']", str, callback_set=self.load_path)
+    #
+    #Oh... wait. Obviously, we have no access to "self.load_path" from class
+    #scope. Err; perhaps refactor that to require a method accepting the current
+    #"Parameters" object be passed, which would then permit convenient calling
+    #via lambdas ala:
+    #
+    #    sim_pickle_basename = yaml_alias(
+    #        "['sim file saving']['file']", str,
+    #        callback_set: lambda p: p.load_path())
+    #
+    #Right. That's definitely it. Given that, we could then define and reuse a
+    #trivial private function in this submodule resembling:
+    #
+    #    @type_check
+    #    def _reload_paths(p: Parameters) -> none:
+    #        p.reload_paths()
+    #
+    #Works for us. *shrug*
+    def reload_paths(self) -> None:
         '''
-        Initialize pathnames specified by this configuration.
+        Redefine all absolute pathnames depending upon relative pathnames
+        specified by this configuration.
+
+        To avoid desynchronization between the two, this method *must* be called
+        on every change to such a relative pathname.
         '''
 
-        # Absolute pathname of directories specified by this configuration.
+        # Absolute dirnames to which phase results are pickled.
         self.init_pickle_dirname = pathnames.join_and_canonicalize(
             self.conf_dirname, self.init_pickle_dirname_relative)
         self.sim_pickle_dirname = pathnames.join_and_canonicalize(
             self.conf_dirname, self.sim_pickle_dirname_relative)
 
-        # Absolute or relative paths of the directories containing saved
-        # initialization and simulation results.
+        # Absolute dirnames to which phase results are exported.
         self.init_export_dirname = pathnames.join_and_canonicalize(
             self.conf_dirname, self.init_export_dirname_relative)
         self.sim_export_dirname = pathnames.join_and_canonicalize(
             self.conf_dirname, self.sim_export_dirname_relative)
 
+        # Absolute pathnames to which GRN results are pickled.
+        self.grn_pickle_dirname = pathnames.join(
+            self.conf_dirname, self.grn_pickle_dirname_relative)
+        self.grn_pickle_filename = pathnames.join(
+            self.grn_pickle_dirname, self.grn_pickle_basename)
+
+        # Absolute pathnames from which prior GRN results are unpickled.
+        self.grn_unpickle_filename = None
+        if self.grn_unpickle_filename_relative is not None:
+            # logs.log_debug('GRN load from: %s', self.grn_unpickle_filename_relative)
+            self.grn_unpickle_filename = pathnames.join(
+                self.conf_dirname, self.grn_unpickle_filename_relative)
+
         # Create all non-existing directories.
         dirs.make_unless_dir(
             self.init_pickle_dirname, self.sim_pickle_dirname,
-            self.init_export_dirname, self.sim_export_dirname)
+            self.init_export_dirname, self.sim_export_dirname,
+            self.grn_pickle_dirname,
+        )
 
     # ..................{ INITIALIZERS ~ ion                 }..................
     def _init_ion_profile(self) -> None:

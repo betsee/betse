@@ -461,125 +461,114 @@ class SimRunner(object):
         if phase is None:
             phase = SimPhase(kind=phase_kind, cells=cells, p=self._p, sim=sim)
 
-        # If loading from a previously pickled "sim-grn" file...
-        if self._p.loadMoG is not None and files.is_file(self._p.loadMoG):
-            # Log this attempt.
+        # If *NOT* starting from a prior GRN run, create a new GRN from scratch.
+        if self._p.grn_unpickle_filename is None:
+            # Log this creation.
+            logs.log_info("Initializing the gene regulatory network...")
+
+            # Create and initialize an instance of master of metabolism.
+            MoG = MasterOfGenes(self._p)
+            MoG.read_gene_config(sim, cells, self._p)
+        # Else, start from a prior GRN run.
+        else:
+            # Log this reuse.
             logs.log_info(
                 'Reinitializing the gene regulatory network from "%s"...',
-                pathnames.get_basename(self._p.loadMoG))
+                pathnames.get_basename(self._p.grn_unpickle_filename))
 
-            # load previously run instance of master of genes:
-            MoG, _, _ = pickles.load(self._p.loadMoG)
+            # If this file does *NOT* exist, raise an exception.
+            if not files.is_file(self._p.grn_unpickle_filename):
+                raise BetseSimException(
+                    'Gene regulatory network unloadable '
+                    'from file not found: {}'.format(
+                        self._p.grn_unpickle_filename))
 
-            is_cut_done = phase.dyna.event_cut.is_fired
+            # Unpickle this file into a high-level "MasterOfGenes" object.
+            MoG, _, _ = pickles.load(self._p.grn_unpickle_filename)
 
             # If running on a sim with a cut event, perform this cut...
-            if phase.dyna.event_cut is not None and is_cut_done:
-                sim_old = Simulator(self._p)
-
+            if (
+                phase.dyna.event_cut is not None and
+                phase.dyna.event_cut.is_fired
+            ):
+                # Log this cutting.
                 logs.log_info(
                     'A cutting event has been run, '
                     'so the GRN object needs to be modified...')
 
-                if files.is_file(sim_old.savedInit):
-                    logs.log_info(
-                        'Loading betse init from cache '
-                        'for reference to original cells...')
+                sim_old = Simulator(self._p)
 
-                    # Load the initialization from cache.
-                    init, cells_old, _ = fh.loadSim(sim_old.savedInit)
-
-                    #FIXME: This phase object would ideally be pickled to and
-                    #from the "sim_old.savedInit" file loaded above, in which
-                    #case this local variable would be safely removable. Flagon!
-
-                    # Original simulation phase.
-                    phase_old = SimPhase(
-                        kind=phase_kind,
-                        cells=cells_old,
-                        p=self._p,
-                        sim=sim_old,
-                    )
-
-                    # Initialize all tissue profiles on original cells.
-                    phase_old.dyna.tissueProfiles(init, cells_old, self._p)
-
-                    for cut_profile_name in (
-                        phase_old.dyna.event_cut.profile_names):
-                        logs.log_info(
-                            'Cutting cell cluster via cut profile "%s"...',
-                            cut_profile_name)
-
-                        # Object picking the cells removed by this cut profile.
-                        tissue_picker = phase_old.dyna.cut_name_to_profile[
-                            cut_profile_name].picker
-
-                        # One-dimensional Numpy arrays of the indices of all
-                        # cells and cell membranes to be removed.
-                        target_inds_cell, target_inds_mem = (
-                            tissue_picker.pick_cells_and_mems(
-                                cells=cells_old, p=self._p))
-
-                        MoG.core.mod_after_cut_event(
-                            target_inds_cell,
-                            target_inds_mem,
-                            sim,
-                            cells,
-                            self._p,
-                        )
-
-                        logs.log_info(
-                            "Redefining dynamic dictionaries to point to the new sim...")
-                        MoG.core.redefine_dynamic_dics(sim, cells, self._p)
-
-                        logs.log_info(
-                            "Reinitializing the gene regulatory network for simulation...")
-                        MoG.reinitialize(sim, cells, self._p)
-
-                else:
+                # If no prior initialization exists, raise an exception.
+                if not files.is_file(sim_old.savedInit):
                     logs.log_warning(
-                        "This situation is complex due to a cutting event being run.\n"
-                        "Please have a corresponding init file to run the GRN simulation!")
+                        'This situation is complex '
+                        'due to a cutting event being run. '
+                        'Please have a corresponding init file '
+                        'to run the GRN simulation!')
 
                     raise BetseSimException(
                         'Simulation terminated due to missing core init. '
                         'Please alter GRN settings and try again.')
+                # Else, a prior initialization exists.
 
-        # Else, a previously pickled "sim-grn" file is *NOT* being loaded from.
-        # In this case, create a new GRN from scratch.
-        else:
-            #FIXME: For safety, should this raise an exception instead? Wizards!
-            #FIXME: Yes. Yes, we absolutely should. To do so, we'll want to
-            #shift the "if" branch of this conditional far above and raise an
-            #exception of type "BetseSimConfException" -- perhaps even at the
-            #very top of this method as sanity validation. After doing so, the
-            #if conditional above may be refactored to resemble:
-            #
-            #    # From this...
-            #    if self._p.loadMoG is not None and files.is_file(self._p.loadMoG):
-            #
-            #    # ...into this.
-            #    if self._p.loadMoG is not None:
+                # Log this initialization.
+                logs.log_info(
+                    'Loading betse init from cache '
+                    'for reference to original cells...')
 
-            # If user requests to load from a previously run sim-grn but file
-            # not found, log a non-fatal error.
-            if (
-                self._p.loadMoG is not None and
-                not files.is_file(self._p.loadMoG)
-            ):
-                logs.log_error(
-                    'Load from sim-grn requested, '
-                    'but file "%s" not found.', self._p.loadMoG)
-            else:
-                # create an instance of master of metabolism
-                MoG = MasterOfGenes(self._p)
+                # Load the initialization from cache.
+                init, cells_old, _ = fh.loadSim(sim_old.savedInit)
 
-                # initialize it:
-                logs.log_info("Initializing the gene regulatory network...")
-                MoG.read_gene_config(sim, cells, self._p)
+                #FIXME: This phase object would ideally be pickled to and
+                #from the "sim_old.savedInit" file loaded above, in which
+                #case this local variable would be safely removable. Flagon!
+
+                # Original simulation phase.
+                phase_old = SimPhase(
+                    kind=phase_kind,
+                    cells=cells_old,
+                    p=self._p,
+                    sim=sim_old,
+                )
+
+                # Initialize all tissue profiles on original cells.
+                phase_old.dyna.tissueProfiles(init, cells_old, self._p)
+
+                for cut_profile_name in (
+                    phase_old.dyna.event_cut.profile_names):
+                    logs.log_info(
+                        'Cutting cell cluster via cut profile "%s"...',
+                        cut_profile_name)
+
+                    # Object picking the cells removed by this cut profile.
+                    tissue_picker = phase_old.dyna.cut_name_to_profile[
+                        cut_profile_name].picker
+
+                    # One-dimensional Numpy arrays of the indices of all
+                    # cells and cell membranes to be removed.
+                    target_inds_cell, target_inds_mem = (
+                        tissue_picker.pick_cells_and_mems(
+                            cells=cells_old, p=self._p))
+
+                    MoG.core.mod_after_cut_event(
+                        target_inds_cell,
+                        target_inds_mem,
+                        sim,
+                        cells,
+                        self._p,
+                    )
+
+                    logs.log_info(
+                        'Redefining dynamic dictionaries '
+                        'to point to the new sim...')
+                    MoG.core.redefine_dynamic_dics(sim, cells, self._p)
+
+                    logs.log_info(
+                        'Reinitializing the gene regulatory network '
+                        'for simulation...')
+                    MoG.reinitialize(sim, cells, self._p)
 
         logs.log_info("Running gene regulatory network test simulation...")
-
         MoG.run_core_sim(sim, cells, self._p)
 
         logs.log_info(
@@ -930,7 +919,7 @@ class SimRunner(object):
         self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         # MoG = MasterOfGenes(self._p)
-        MoG, cells, _ = fh.loadSim(self._p.savedMoG)
+        MoG, cells, _ = fh.loadSim(self._p.grn_pickle_filename)
 
         # Simulation phase.
         phase = SimPhase(kind=phase_kind, cells=cells, p=self._p, sim=sim)

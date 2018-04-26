@@ -392,19 +392,18 @@ def _upgrade_sim_conf_to_0_7_1(p: Parameters) -> None:
     logs.log_debug('Upgrading simulation configuration to 0.7.1 format...')
 
     # Localize configuration subdictionaries for convenience.
+    grn_dict     = p._conf['gene regulatory network settings']
     results_dict = p._conf['results options']
 
     # If the solver type is undefined, default to the complete BETSE solver.
-    if 'fast solver' not in p._conf:
-        p._conf['fast solver'] = False
+    p._conf.setdefault('fast solver', False)
 
-    # If solver settings are undefined, synthesize from existing settings.
-    if 'solver options' not in p._conf:
-        p._conf['solver options'] = {
-            'type': 'fast' if p._conf['fast solver'] else 'full'
-        }
+    # If solver settings are undefined, synthesize from existing defaults.
+    p._conf.setdefault('solver options', {
+        'type': 'fast' if p._conf['fast solver'] else 'full'
+    })
 
-    # If the CSV file pipeline is undefined, synthesize from existing settings.
+    # If the CSV file pipeline is undefined, synthesize from existing defaults.
     if 'csvs' not in results_dict['after solving']:
         results_dict['after solving']['csvs'] = {
             'save': True,
@@ -421,6 +420,26 @@ def _upgrade_sim_conf_to_0_7_1(p: Parameters) -> None:
             results_dict['after solving']['csvs']['pipeline'].append({
                 'type': 'cells_vmem', 'enabled': True,})
 
-    # If CSV save settings are undefined, synthesize from existing settings.
-    if 'csvs' not in results_dict['save']:
-        results_dict['save']['csvs'] = {'filetype': 'csv',}
+    # If CSV save settings are undefined, synthesize from existing defaults.
+    results_dict['save'].setdefault('csvs', {'filetype': 'csv',})
+
+    # If "sim-grn" settings are undefined, synthesize from existing defaults.
+    grn_dict.setdefault('sim-grn settings', {
+        'run network on': 'seed',
+        'save to directory': 'RESULTS/GRN',
+        'save to file': 'GRN_1.betse.gz',
+        'load from': None,
+    })
+
+    # If newer "sim-grn" settings are undefined, synthesize from existing
+    # defaults.
+    grn_dict['sim-grn settings'].setdefault('time step', 0.1)
+    grn_dict['sim-grn settings'].setdefault('total time', 1.0e2)
+    grn_dict['sim-grn settings'].setdefault('sampling rate', 1.0e1)
+    grn_dict['sim-grn settings'].setdefault('run as sim', False)
+
+    # If a "sim-grn" setting previously erroneously defaulting to the string
+    # "None" rather than the singleton "None" is set, coerce this setting from
+    # the former to the latter.
+    if grn_dict['sim-grn settings']['load from'] == 'None':
+        grn_dict['sim-grn settings']['load from'] = None

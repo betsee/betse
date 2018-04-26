@@ -754,7 +754,7 @@ class MasterOfNetworks(object):
             p.plot_type = 'init'
 
         elif plot_type == 'grn':
-            self.resultsPath = pathnames.join(p.grn_savedir, nested_folder_name)
+            self.resultsPath = pathnames.join(p.grn_pickle_dirname, nested_folder_name)
 
         dirs.make_unless_dir(self.resultsPath)
         self.imagePath = pathnames.join(self.resultsPath, 'fig_')

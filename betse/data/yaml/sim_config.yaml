@@ -632,11 +632,12 @@ gene regulatory network settings:
     run as sim: False           # run the network as an init (False) or a sim (True)?
     save to directory: RESULTS/GRN
     save to file: GRN_1.betse.gz # where to save the resulting sim-grn file
-    load from: None                # load a previously-run sim-grn file to start with? (None initializes to defaults)
+    load from:    # Prior "sim-grn" file to restart from, relative to this configuration
+                  # (e.g., "RESULTS/GRN/GRN_1.betse.gz"). Defaults to the empty string,
+                  # in which case a new "sim-grn" file is created from scratch.
     time step: 0.1       # time step-size [s]
     total time: 1.8e2         # time to end sim run [s]
     sampling rate: 1.8e1      # period to sample data [s] (at least time step or larger)
-
 
 #-----------------------------------------------------------------------------------------------------------------------
 # VARIABLE SETTINGS

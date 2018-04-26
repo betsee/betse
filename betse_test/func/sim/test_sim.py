@@ -70,7 +70,7 @@ def test_cli_sim_compat(
         *betse_cli_sim_compat.SUBCOMMANDS_PLOT,
 
         # Avoid overwriting the previously exported simulation configuration.
-        is_config_overwrite=False)
+        is_overwrite_conf=False)
 
     #FIXME: We unavoidably break backward compatibility with respect to pickled
     #objects and hence currently only test backward compatibility with respect
