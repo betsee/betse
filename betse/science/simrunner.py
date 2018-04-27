@@ -14,6 +14,7 @@ from betse.lib.pickle import pickles
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.chemistry.gene import MasterOfGenes
+from betse.science.config.confenum import GrnUnpicklePhaseType
 from betse.science.export import exppipe
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
@@ -21,7 +22,6 @@ from betse.science.phase.phasecallabc import (
     SimCallbacksABCOrNoneTypes, SimCallbacksNoop)
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.phaseenum import SimPhaseKind
-from betse.science.tissue.tishandler import TissueHandler
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
 from betse.util.type.call.callables import deprecated
@@ -383,7 +383,13 @@ class SimRunner(object):
         self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
         self._p.run_sim = False
 
-        if self._p.grn_piggyback == 'seed':
+        #FIXME: Does this enumeration have to be one of SEED, INIT, or SIM, or
+        #can it actually be empty, False, or None as well? Prismatic bedfellows!
+        # If networking an empty environment, simply log this fact.
+        if self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.NONE:
+            logs.log_info('Running gene regulatory network on empty environment...')
+        # Else if networking an uninitialized and unsimulated cell cluster...
+        elif self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.SEED:
             if files.is_file(cells.savedWorld):
                 cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
                 logs.log_info('Running gene regulatory network on betse seed...')
@@ -426,12 +432,11 @@ class SimRunner(object):
                     raise BetseSimException(
                         "Run terminated due to missing seed.\n"
                         "Please run 'betse seed' to try again.")
-
-        elif self._p.grn_piggyback == 'init':
+        # Else if networking an initialized but unsimulated cell cluster...
+        elif self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.INIT:
             if files.is_file(sim.savedInit):
                 logs.log_info('Running gene regulatory network on betse init...')
                 sim, cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
-
             else:
                 logs.log_warning(
                     "No initialization file found to run the GRN simulation!")
@@ -445,8 +450,8 @@ class SimRunner(object):
                     raise BetseSimException(
                         'Simulation terminated due to missing core initialization. '
                         'Please run a betse initialization and try again.')
-
-        elif self._p.grn_piggyback == 'sim':
+        # Else if networking an initialized and simulated cell cluster...
+        elif self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.SIM:
             if files.is_file(sim.savedSim):
                 logs.log_info('Running gene regulatory network on betse sim...')
                 sim, cells, _ = fh.loadSim(sim.savedSim)  # load the initialization from cache
@@ -456,22 +461,27 @@ class SimRunner(object):
                 raise BetseSimException(
                     'Simulation terminated due to missing core simulation. '
                     'Please run a betse simulation and try again.')
+        # Else, this type of networking is unrecognized. Raise an exception.
+        else:
+            raise BetseSimConfException(
+                'Gene regulatory network (GRN) unpickle simulation phase '
+                '"{}" unrecognized.'.format(self._p.grn_unpickle_phase_type))
 
         # If *NOT* defined above, define this simulation phase.
         if phase is None:
             phase = SimPhase(kind=phase_kind, cells=cells, p=self._p, sim=sim)
 
-        # If *NOT* starting from a prior GRN run, create a new GRN from scratch.
+        # If *NOT* restarting from a prior GRN run, start a new GRN.
         if self._p.grn_unpickle_filename is None:
-            # Log this creation.
+            # Log this start.
             logs.log_info("Initializing the gene regulatory network...")
 
             # Create and initialize an instance of master of metabolism.
             MoG = MasterOfGenes(self._p)
             MoG.read_gene_config(sim, cells, self._p)
-        # Else, start from a prior GRN run.
+        # Else, restart from a prior GRN run.
         else:
-            # Log this reuse.
+            # Log this restart.
             logs.log_info(
                 'Reinitializing the gene regulatory network from "%s"...',
                 pathnames.get_basename(self._p.grn_unpickle_filename))

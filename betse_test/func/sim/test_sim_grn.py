@@ -20,6 +20,8 @@ subcommands (e.g., ``plot sim-grn``).
 '''
 
 # ....................{ TESTS                              }....................
+#FIXME: Parametrize this test with all members of the "GrnUnpicklePhaseType"
+#enumeration. See the "test_sim" submodule for similar logic. (Possibly?)
 @skip_unless_networkable
 def test_cli_grn_isolated(betse_cli_sim: 'CLISimTester') -> None:
     '''
@@ -33,14 +35,20 @@ def test_cli_grn_isolated(betse_cli_sim: 'CLISimTester') -> None:
     '''
 
     # Defer heavyweight imports.
+    from betse.science.config.confenum import GrnUnpicklePhaseType
     from betse.util.io.log import logs
     from betse.util.path import pathnames
 
     # Simulation configuration specific to this test.
     p = betse_cli_sim.sim_state.p
 
+    #FIXME: Replace this overkill method call with direct usage of the local
+    #"p" parameter; then remove this method entirely from the codebase.
     # Enable these networks.
     betse_cli_sim.sim_state.config.enable_networks()
+
+    # Ensure that the
+    p.grn_unpickle_phase_type = GrnUnpicklePhaseType.SEED
 
     # Enable the saving of visuals, preventing the "plot sim-grn" subcommand
     # tested below from silently reducing to a noop.

@@ -52,28 +52,27 @@ solver options:
 # ------------------------------------------------------------------------------
 # Settings specific to saving simulations and results output.
 
-init file saving:                # Initialization paths to save and load.
-    directory: INITS             # Directory containing the following files.
-    worldfile: world_1.betse.gz  # File containing all cell cluster objects.
-                                 # Supported filetypes include (in order of
-                                 # increased compression):
-                                 # ".betse" (no compression),
-                                 # ".betse.gz" (very fast minimal compression),
-                                 # ".betse.bz2" (slow medium compression), and
-                                 # ".betse.xz" (fast maximal compression).
-    file: init_1.betse.gz        # File containing all initialization objects.
-                                 # Supported filetypes are as above.
+init file saving:              # Initialization paths to save and load.
+  directory: INITS             # Directory containing the following files.
+  worldfile: world_1.betse.gz  # File with cell cluster created by "betse seed".
+                               # Supported filetypes include (ordered by decreasing filesize):
+                               # ".betse" (no compression),
+                               # ".betse.gz" (very fast minimal compression),
+                               # ".betse.bz2" (slow medium compression), and
+                               # ".betse.xz" (fast maximal compression).
+  file: init_1.betse.gz        # File of initialization results created by "betse init".
+                               # Supported filetypes are as above.
 
-sim file saving:                 # Simulation paths to save and load.
-    directory: SIMS              # Directory containing the following files.
-    file: sim_1.betse.gz         # File containing all simulation objects.
-                                 # Supported filetypes are as above.
+sim file saving:               # Simulation paths to save and load.
+  directory: SIMS              # Directory containing the following file.
+  file: sim_1.betse.gz         # File of simulation results created by "betse sim".
+                               # Supported filetypes are as above.
 
-results file saving:          # Initialization and simulation exports to save.
-    init directory: RESULTS/init_1  # Directory containing all initialization
-                                    # exports (e.g., plots, animations).
-    sim directory: RESULTS/sim_1    # Directory containing all simulation
-                                    # exports (e.g., plots, animations).
+results file saving:              # Initialization and simulation exports to save.
+  init directory: RESULTS/init_1  # Directory of initialization exports created by
+                                  # "betse plot init" (e.g., plots, animations).
+  sim directory: RESULTS/sim_1    # Directory of simulation exports created by
+                                  # "betse plot sim" (e.g., plots, animations).
 
 # ------------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
@@ -626,18 +625,27 @@ gene regulatory network settings:
 
   gene regulatory network config: extra_configs/grn_basic.yaml
 
-  sim-grn settings: # Sim-grn allows you to calculate GRN on last time frame of bioelectricity simulation
-
-    run network on: seed    # (for sim-grn command, run the network on a pre-made betse seed, init, or sim ?)
-    run as sim: False           # run the network as an init (False) or a sim (True)?
-    save to directory: RESULTS/GRN
-    save to file: GRN_1.betse.gz # where to save the resulting sim-grn file
-    load from:    # Prior "sim-grn" file to restart from, relative to this configuration
-                  # (e.g., "RESULTS/GRN/GRN_1.betse.gz"). Defaults to the empty string,
-                  # in which case a new "sim-grn" file is created from scratch.
-    time step: 0.1       # time step-size [s]
-    total time: 1.8e2         # time to end sim run [s]
-    sampling rate: 1.8e1      # period to sample data [s] (at least time step or larger)
+  sim-grn settings:  # Settings for "betse sim-grn" subcommand, calculating network at last
+                     # time step of previously run simulations.
+    run as sim: False     # Run network as an initialization (False) or simulation (True)?
+    run network on: seed  # Type of previously run simulation phase to "piggyback" (i.e.,
+                          # restart) the current network from, as any following string:
+                          # * "none", networking an empty environment with no cell cluster.
+                          # * "seed", networking an uninitialized, unsimulated cell cluster
+                          #   (i.e., neither initialized to steady-state concentrations nor
+                          #   simulated with non-steady-state bioelectrical phenomena).
+                          # * "init", networking an initialized, unsimulated cell cluster.
+                          # * "sim", networking an initialized, simulated cell cluster.
+    save to directory: RESULTS/GRN  # Directory containing the following file.
+    save to file: GRN_1.betse.gz    # File of networking results created by "betse sim-grn".
+                                    # Supported filetypes are as above.
+    load from:            # File of prior networking results created by "betse sim-grn" to
+                          # restart this network from, relative to configuration directory
+                          # (e.g., "RESULTS/GRN/GRN_1.betse.gz"). Defaults to empty string,
+                          # in which case a new network is created from scratch.
+    time step: 0.1        # Time step-size [s]
+    total time: 1.8e2     # Time to end sim run [s]
+    sampling rate: 1.8e1  # Period to sample data [s] (at least time step or larger)
 
 #-----------------------------------------------------------------------------------------------------------------------
 # VARIABLE SETTINGS

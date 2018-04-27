@@ -10,7 +10,7 @@ from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.config.confenum import (
-    CellLatticeType, IonProfileType, SolverType)
+    CellLatticeType, GrnUnpicklePhaseType, IonProfileType, SolverType)
 from betse.science.config.export.confcsv import SimConfExportCSVs
 from betse.science.config.export.visual.confanim import SimConfAnimAll
 from betse.science.config.export.visual.confplot import SimConfPlotAll
@@ -19,7 +19,7 @@ from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.tissue.event import tisevevolt
-from betse.util.io.log import logs
+# from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 # from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import (
@@ -363,6 +363,12 @@ class Parameters(YamlFileABC):
     sim_time_sampling = yaml_alias(
         "['sim time settings']['sampling rate']", float)
 
+    # ..................{ ALIASES ~ grn                      }..................
+    grn_unpickle_phase_type = yaml_enum_alias(
+        "['gene regulatory network settings']"
+        "['sim-grn settings']['run network on']",
+        GrnUnpicklePhaseType)
+
     # ..................{ ALIASES ~ ion                      }..................
     #FIXME: Consider shifting all ion-centric functionality into a dedicated
     #"ion" instance variable, instantiated to be an instance of a newly defined
@@ -686,7 +692,6 @@ class Parameters(YamlFileABC):
         simgrndic = (
             self._conf['gene regulatory network settings']['sim-grn settings'])
 
-        self.grn_piggyback = simgrndic['run network on']
         self.grn_dt = float(simgrndic.get('time step', 1.0e-2))
         self.grn_total_time = float(simgrndic.get('total time', 10.0))
         self.grn_tsample = float(simgrndic.get('sampling rate', 1.0))
@@ -1019,12 +1024,12 @@ class Parameters(YamlFileABC):
         #*AFTER* tissue profile initialization required by this initialization?
 
         # Initialize the ion profile specified by this configuration.
-        self._init_ion_profile()
+        self._load_ion_profile()
 
         # Return this configuration for convenience.
         return self
 
-    # ..................{ LOADERS ~ path                     }..................
+    # ..................{ LOADERS                            }..................
     #FIXME: Ideally, this method should be private. Unfortunately, external
     #callers (notably, tests) currently need to call this method to update
     #absolute pathnames after modifying relative pathnames. The solution, of
@@ -1097,8 +1102,8 @@ class Parameters(YamlFileABC):
             self.grn_pickle_dirname,
         )
 
-    # ..................{ INITIALIZERS ~ ion                 }..................
-    def _init_ion_profile(self) -> None:
+
+    def _load_ion_profile(self) -> None:
         '''
         Initialize the ion profile specified by this configuration.
         '''

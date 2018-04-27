@@ -49,6 +49,36 @@ PERCENT : enum
     Randomized cell picker, randomly matching a given percentage of all cells.
 '''
 
+# ....................{ ENUMS ~ grn                        }....................
+GrnUnpicklePhaseType = make_enum(
+    class_name='GrnUnpicklePhaseType',
+    member_names=('NONE', 'SEED', 'INIT', 'SIM',))
+'''
+Enumeration of all supported types of gene regulatory network (GRN)-specific
+**unpickle simulation phases** (i.e., previously pickled simulation phase to
+unpickle as the basis for the current network to be run by the ``betse sim-grn``
+subcommand).
+
+Attributes
+----------
+NONE : enum
+    No unpickled simulation phase, running this network on an empty environment
+    with no cell cluster.
+SEED : enum
+    Unpickled seed phase, running this network on the results of a previously
+    run ``betse seed`` subcommand and hence an uninitialized and unsimulated
+    cell cluster (i.e., neither initialized to steady-state concentrations *nor*
+    simulated with non-steady-state bioelectrical phenomena).
+INIT : enum
+    Unpickled initialization phase, running this network on the results of a
+    previously run ``betse init`` subcommand and hence an initialized but
+    unsimulated cell cluster.
+SIM : enum
+    Unpickled simulation phase, running this network on the results of a
+    previously run ``betse sim`` subcommand and hence an initialized and
+    simulated cell cluster.
+'''
+
 # ....................{ ENUMS ~ ion                        }....................
 IonProfileType = make_enum(
     class_name='IonProfileType',
