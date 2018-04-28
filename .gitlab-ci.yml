@@ -227,6 +227,13 @@ before_script:
   #   preventing "conda" from unnecessarily upgrading itself.
   - conda config --set always_yes true --set auto_update_conda false
 
+  # Update "conda" *SAFELY.* To circumvent a well-known hard blocker in the
+  # supposedly stable release of conda 4.4, "conda" is intentionally *NOT*
+  # updated here with a standard one-liner: "conda upgrade -y conda". For
+  # further details, see the following exhaustive GitHub issue:
+  #     https://github.com/conda/conda/issues/6811
+  - conda install --quiet --name base conda
+
   # For debuggability, print metadata identifying this Anaconda release.
   - conda info --all
 

@@ -32,22 +32,29 @@
 # Ideally, these two lists should be manually synchronized as much as feasible. 
 # The *ONLY* changes should be the following:
 #
-# * This list omits the optional "pyside2" dependency, as that dependency
-#   applies *ONLY* to interactive end user environments.
 # * This list should be revised where necessary to reflect changes between the
 #   live and most recent stable versions of this application.
+# * This list intentionally omits the following dependencies:
+#   * The optional "pyside2" dependency, as that dependency applies *ONLY* to
+#     interactive end user environments.
+#   * The optional interrelated "graphviz", "networkx", and "pydot"
+#     dependencies, which currently fail to behave as expected under Windows.
+#     Specifically, the following exception suggesting Windows to be unable to
+#     find GraphViz in the %PATH% is raised:
+#         FileNotFoundError: [WinError 2] "dot.exe" not found in path.
 setuptools >=3.3
 dill >=0.2.3
-graphviz >=2.38.0
+#graphviz >=2.38.0
 matplotlib >=1.5.0
-networkx >=2.0
+#networkx >=2.0
 numpy >=1.8.2
 pillow >=2.3.0
-pydot >=1.0.28
+#pydot >=1.0.28
 pyyaml >=3.10
 scipy >=0.12.0
 six >=1.5.2
 ffmpeg
+#pyside2
 
 # ....................{ DEPENDENCIES ~ test                }....................
 # All mandatory test dependencies of this application, manually converted from
