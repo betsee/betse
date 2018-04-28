@@ -205,13 +205,20 @@ install:
   #FIXME: This environment should probably be cached. Consider researching
   #Appveyor-specific conda caching.
 
-  # Create a new Anaconda environment *AND* install all mandatory and optional
-  # dependencies of this application into this environment.
-  - cmd: conda create --quiet --name conda-env-%PYTHON_VERSION% python=%PYTHON_VERSION% --file requirements-conda.txt
+  # Create an empty Anaconda environment specific to this Python version.
+  - cmd: conda create --quiet --name conda-env-%PYTHON_VERSION% python=%PYTHON_VERSION%
 
-  # Activate the previously defined environment, prepending the current %PATH%
-  # by this environment's top-level directory.
+  # Activate this environment (i.e., prepend the current %PATH% by this
+  # environment's top-level directory).
   - cmd: activate conda-env-%PYTHON_VERSION%
+
+  # Add the third-party "conda-forge" channel as the highest-priority channel,
+  # See similar logic in ".gitlab-ci.yml" for further details.
+  - cmd: conda config --add channels conda-forge
+
+  # Install all mandatory and optional dependencies of this application into
+  # this environment from the "conda-forge" channel.
+  - cmd: conda install --quiet --file requirements-conda.txt
 
   # Install this project into this environment in the most efficient means
   # possible (i.e., without copying this project into this environment).
@@ -221,20 +228,13 @@ install:
 # List of all external commands to be run for each CI pipeline *AFTER* those
 # listed within "install" above.
 test_script:
-  #FIXME: Uncomment after permitting the Matplotlib backend to be explicitly
-  #specified via a new "--matplotlib-backend={backend_name}" CLI option. Why?
-  #Because the default Matplotlib backend under Windows is PyQt4-based, which is
-  #*NOT* installed as a Miniconda package above. Doing so would be trivial but
-  #also senseless, as PyQt4 would only be required to enable this single
-  #incidental command.
-
   # For debuggability, print metadata identifying this BETSE release. Since the
   # same metadata is also printed, captured, and squelched by a functional test
   # exercised by the test suite run below, doing so is somewhat redundant.
   # Nonetheless, py.test provides no means of selectively disabling output
   # capturing for only specific tests. For efficiency and readability, globally
   # disabling output capturing is undesirable. Hence, the current approach.
-  # - cmd: betse --matplotlib-backend=Agg info
+  - cmd: betse --matplotlib-backend=agg info
 
   # Run the following multiline Powershell script.
   - ps: |

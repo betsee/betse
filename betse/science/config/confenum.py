@@ -52,7 +52,7 @@ PERCENT : enum
 # ....................{ ENUMS ~ grn                        }....................
 GrnUnpicklePhaseType = make_enum(
     class_name='GrnUnpicklePhaseType',
-    member_names=('NONE', 'SEED', 'INIT', 'SIM',))
+    member_names=('SEED', 'INIT', 'SIM',))
 '''
 Enumeration of all supported types of gene regulatory network (GRN)-specific
 **unpickle simulation phases** (i.e., previously pickled simulation phase to
@@ -61,9 +61,6 @@ subcommand).
 
 Attributes
 ----------
-NONE : enum
-    No unpickled simulation phase, running this network on an empty environment
-    with no cell cluster.
 SEED : enum
     Unpickled seed phase, running this network on the results of a previously
     run ``betse seed`` subcommand and hence an uninitialized and unsimulated

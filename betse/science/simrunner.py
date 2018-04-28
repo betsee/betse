@@ -383,13 +383,8 @@ class SimRunner(object):
         self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
         self._p.run_sim = False
 
-        #FIXME: Does this enumeration have to be one of SEED, INIT, or SIM, or
-        #can it actually be empty, False, or None as well? Prismatic bedfellows!
-        # If networking an empty environment, simply log this fact.
-        if self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.NONE:
-            logs.log_info('Running gene regulatory network on empty environment...')
         # Else if networking an uninitialized and unsimulated cell cluster...
-        elif self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.SEED:
+        if self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.SEED:
             if files.is_file(cells.savedWorld):
                 cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
                 logs.log_info('Running gene regulatory network on betse seed...')

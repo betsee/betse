@@ -21,8 +21,11 @@ subcommands (e.g., ``plot sim-grn``).
 
 # ....................{ TESTS                              }....................
 #FIXME: Parametrize this test with all members of the "GrnUnpicklePhaseType"
-#enumeration. See the "test_sim" submodule for similar logic. (Possibly?)
-@skip_unless_networkable
+#enumeration. See the "test_sim" submodule for similar logic: e.g.,
+# @skip_unless_networkable
+# @pytest.mark.parametrize(
+#     ('writer_name', 'filetype'), (
+#         skip_unless_matplotlib_anim_writer('avconv')(('avconv', 'mp4',))))
 def test_cli_grn_isolated(betse_cli_sim: 'CLISimTester') -> None:
     '''
     Test simulating the default gene regulatory network (GRN) isolated away from

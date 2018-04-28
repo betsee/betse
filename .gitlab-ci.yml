@@ -243,14 +243,36 @@ before_script:
   # default directory for Anaconda environments, the "--prefix" rather than
   # "--name" option is passed. Since these two options are mutually exclusive,
   # only the former is passed.
+  #
+  # Note that isolating the installation of package dependencies into this
+  # environment is essential. Although this installation is already confined
+  # to a temporary Docker image and hence requires no additional isolation,
+  # Anaconda *ONLY* supports configurable caching via the "${CONDA_PREFIX}"
+  # environment variable specific to Anaconda environments. To persist this
+  # installation across jobs, there exists no sane alternative.
   - conda create --quiet --prefix "${_CONDA_ENV_DIRNAME}" || true
 
-  # Activate the previously defined environment, prepending the current
-  # ${PATH} by this environment's top-level directory.
+  # Activate this environment (i.e., prepend the current ${PATH} by this
+  # environment's top-level directory).
   - source activate "${_CONDA_ENV_DIRNAME}"
 
+  # Add the third-party "conda-forge" channel as the highest-priority channel,
+  # ensuring that subsequently installed dependencies prefer the versions
+  # supplied by this channel rather than any official default channels. This
+  # is strongly preferable for any number of obvious reasons, including:
+  #
+  # * Official default channels either fail to:
+  #   * Supply packages (e.g., "pyside2").
+  #   * Supply working packages (e.g., "graphviz", whose official package
+  #     appears to suffer numerous well-known deficiencies under Windows).
+  # * Parity with BETSE's existing Anaconda package, which is hosted by
+  #   conda-forge for the above reasons and more. Parity with respect to
+  #   dependency installation increases the likelihood of parity between
+  #   testing results and the end user experience.
+  - conda config --add channels conda-forge
+
   # Install all mandatory and optional dependencies of this application into
-  # this environment.
+  # this environment from the "conda-forge" channel.
   #
   # Note that passing the "--file requirements-conda.txt" option to the above
   # "conda create" command would suffice to do so for the initial creation of
@@ -258,12 +280,21 @@ before_script:
   # dependencies; hence, environment creation and dependency installation
   # *MUST* be separated. The efficiency hit is minimal if any.
   #
-  # Note that isolating the installation of these dependencies into an
-  # environment is essential. Although this installation is already confined
-  # to a temporary Docker image and hence requires no additional isolation,
-  # Anaconda *ONLY* supports configurable caching via the "${CONDA_PREFIX}"
-  # environment variable specific to Anaconda environments. To persist this
-  # installation across jobs, there exists no sane alternative.
+  # Note also that, in theory, it would be superficially feasible to replace our
+  # usage of this external requirements file with usage of the dependencies
+  # already defined for BETSE's existing Anaconda package with the new "--only-deps"
+  # option introduced with conda 4.4: e.g.,
+  #
+  #     - conda install --only-deps -c conda-forge betse
+  #
+  # In practice, that would be a terrible idea. There exists no guarantee that
+  # the dependency list required by the most recent stable release of BETSE (and
+  # hence that Anaconda package) perfectly coincides with the dependency list
+  # required by the live version of BETSE exercised by this configuration.
+  # Moreover, doing so would also install PySide2 -- a heavyweight interactive
+  # dependency with no meaningful utility during testing.
+  #
+  # In short: "Explicit is still better than implicit."
   - conda install --quiet --file requirements-conda.txt
 
 # ....................{ STAGES                             }....................
@@ -319,6 +350,17 @@ betse_test:
 
   # List of all external commands run by this job.
   script:
+    # For debuggability, print metadata identifying this BETSE release. Since
+    # the same metadata is also printed, captured, and squelched by a functional
+    # test exercised by testing run below, doing so is redundant. Nonetheless,
+    # py.test provides no means of selectively disabling output capturing for
+    # only specific tests. For efficiency and readability, globally disabling
+    # output capturing is undesirable. Dismantled, this is:
+    #
+    # * "--matplotlib-backend=agg", preventing BETSE from erroneously attempting
+    #   to initialize an interactive-only matplotlib backend (e.g., "PyQt4").
+    - betse --matplotlib-backend=agg info
+
     # Run the entire "py.test"-based test suite under the following options:
     #
     # * "--maxfail=3", halting testing on the third failure. For discussion, see

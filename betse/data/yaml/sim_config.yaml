@@ -621,31 +621,31 @@ general network:
 
 gene regulatory network settings:
 
-  gene regulatory network simulated: False
+  gene regulatory network simulated: False # Enable gene regulatory network (GRN)?
 
+  # Configuration file for network. Ignored if "gene regulatory network simulated" is False.
   gene regulatory network config: extra_configs/grn_basic.yaml
 
-  sim-grn settings:  # Settings for "betse sim-grn" subcommand, calculating network at last
-                     # time step of previously run simulations.
-    run as sim: False     # Run network as an initialization (False) or simulation (True)?
-    run network on: seed  # Type of previously run simulation phase to "piggyback" (i.e.,
-                          # restart) the current network from, as any following string:
-                          # * "none", networking an empty environment with no cell cluster.
-                          # * "seed", networking an uninitialized, unsimulated cell cluster
-                          #   (i.e., neither initialized to steady-state concentrations nor
-                          #   simulated with non-steady-state bioelectrical phenomena).
-                          # * "init", networking an initialized, unsimulated cell cluster.
-                          # * "sim", networking an initialized, simulated cell cluster.
-    save to directory: RESULTS/GRN  # Directory containing the following file.
-    save to file: GRN_1.betse.gz    # File of networking results created by "betse sim-grn".
-                                    # Supported filetypes are as above.
-    load from:            # File of prior networking results created by "betse sim-grn" to
-                          # restart this network from, relative to configuration directory
-                          # (e.g., "RESULTS/GRN/GRN_1.betse.gz"). Defaults to empty string,
-                          # in which case a new network is created from scratch.
-    time step: 0.1        # Time step-size [s]
-    total time: 1.8e2     # Time to end sim run [s]
-    sampling rate: 1.8e1  # Period to sample data [s] (at least time step or larger)
+  sim-grn settings: # Settings for "betse sim-grn" subcommand, calculating network at last
+                    # time step of previously run simulations.
+    run as sim: False    # Run network as an initialization (False) or simulation (True)?
+    run network on: seed # Type of previously run simulation phase to "piggyback" (i.e.,
+                         # restart) the current network from, as any following string:
+                         # * "seed", networking an uninitialized, unsimulated cell cluster
+                         #   (i.e., neither initialized to steady-state concentrations nor
+                         #   simulated with non-steady-state bioelectrical phenomena).
+                         # * "init", networking an initialized, unsimulated cell cluster.
+                         # * "sim", networking an initialized, simulated cell cluster.
+    save to directory: RESULTS/GRN # Directory containing the following file.
+    save to file: GRN_1.betse.gz   # File of networking results created by "betse sim-grn".
+                                   # Supported filetypes are as above.
+    load from:           # File of prior networking results created by "betse sim-grn" to
+                         # restart this network from, relative to configuration directory
+                         # (e.g., "RESULTS/GRN/GRN_1.betse.gz"). Defaults to empty string,
+                         # in which case a new network is created from scratch.
+    time step: 0.1       # Time step-size [s]
+    total time: 1.8e2    # Time to end sim run [s]
+    sampling rate: 1.8e1 # Period to sample data [s] (at least time step or larger)
 
 #-----------------------------------------------------------------------------------------------------------------------
 # VARIABLE SETTINGS
