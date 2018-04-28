@@ -304,6 +304,10 @@ before_script:
   # In short: "Explicit is still better than implicit."
   - conda install --quiet --file requirements-conda.txt
 
+  # Install this project into this environment in the most efficient means
+  # possible (i.e., without copying this project into this environment).
+  - python setup.py develop
+
 # ....................{ STAGES                             }....................
 # List of all stages to be run by this pipeline (in order).
 #
