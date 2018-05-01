@@ -2213,8 +2213,6 @@ class Cells(object):
 
                     new_cell_nn[i].append(cell)
 
-        # FIXME -- instead of breaking the GJ connections, simply flag them and use them in bioelectric calculations with GJ
-
         self.cell_nn_connected = np.asarray(new_cell_nn)
 
         # Redo the number and average nearest neighbours per cell:
@@ -2226,6 +2224,8 @@ class Cells(object):
         self.average_nn = (sum(self.num_nn)/len(self.num_nn))
 
         self.num_nn = np.asarray(self.num_nn)
+
+        self.gj_default_weights = np.ones(len(self.mem_i))
 
         for cell_i, nn_cell_i_set in enumerate(self.cell_nn_connected):
 

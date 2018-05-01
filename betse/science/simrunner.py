@@ -465,6 +465,7 @@ class SimRunner(object):
         # If *NOT* defined above, define this simulation phase.
         if phase is None:
             phase = SimPhase(kind=phase_kind, cells=cells, p=self._p, sim=sim)
+            phase.dyna.tissueProfiles(sim, cells, self._p) # Reinitialize all profiles
 
         # If *NOT* restarting from a prior GRN run, start a new GRN.
         if self._p.grn_unpickle_filename is None:
@@ -572,6 +573,12 @@ class SimRunner(object):
                         'Reinitializing the gene regulatory network '
                         'for simulation...')
                     MoG.reinitialize(sim, cells, self._p)
+
+            if p.use_microtubules:
+                sim.mtubes.mtubes_x = MoG.mtubes_x_time[-1]
+                sim.mtubes.mtubes_y = MoG.mtubes_y_time[-1]
+
+                sim.mtubes.uxmt, sim.mtubes.uymt = sim.mtubes.mtubes_to_cell(cells, p)
 
         logs.log_info("Running gene regulatory network test simulation...")
         MoG.run_core_sim(sim, cells, self._p)
@@ -931,6 +938,9 @@ class SimRunner(object):
 
         # Initialize core simulation data structures.
         sim.init_core(phase)
+
+        # Initialize simulation data structures
+        # sim.baseInit_all(cells, p)
 
         #FIXME: This... looks a bit hacky. That said, maybe it is good? Thunder
         #dragons unite!

@@ -259,7 +259,7 @@ class Mtubes(object):
 
             self.mtubes_x, self.mtubes_y = cells.single_cell_div_free(mtubes_xo, mtubes_yo)
 
-        self.uxmt, self.uymt = self.mtubes_to_cell(cells, p)
+            self.uxmt, self.uymt = self.mtubes_to_cell(cells, p)
 
     def mtubes_to_cell(self, cells, p):
 
@@ -348,34 +348,39 @@ class Mtubes(object):
         :param cells:
         :return:
         """
-        mssg = ("Preinitializing microtubule x- and y- coorinates with {} and {}").format(p.mtube_init_x, p.mtube_init_y)
-        logs.log_info("-------------------------------")
-        logs.log_info(mssg)
-        logs.log_info("-------------------------------")
+
 
         if len(gFxo) == len(cells.cell_i):
             gFxo = gFxo[cells.mem_to_cells]
             gFyo = gFyo[cells.mem_to_cells]
 
-        # rotate the axis of the model:
-        rotangle = (p.mtube_init_rotangle*np.pi)/180.0
+        if p.mtube_init_x is not None and p.mtube_init_y is not None:
 
-        gFx = gFxo*np.cos(rotangle) - gFyo*np.sin(rotangle)
-        gFy = gFxo*np.sin(rotangle) + gFyo*np.cos(rotangle)
+            mssg = ("Preinitializing microtubule x- and y- coorinates with {} and {}").format(p.mtube_init_x,
+                                                                                              p.mtube_init_y)
+            logs.log_info("-------------------------------")
+            logs.log_info(mssg)
+            logs.log_info("-------------------------------")
 
-        # magnitude of the orienting field:
-        magF = (np.sqrt(gFx ** 2 + gFy ** 2)).max() + 1.0e-15
+            # rotate the axis of the model:
+            rotangle = (p.mtube_init_rotangle*np.pi)/180.0
 
-        # set the microtubule vectors with the field values:
-        mtubes_xo = -(gFx/magF) * self.mt_density
-        mtubes_yo = -(gFy/magF) * self.mt_density
+            gFx = gFxo*np.cos(rotangle) - gFyo*np.sin(rotangle)
+            gFy = gFxo*np.sin(rotangle) + gFyo*np.cos(rotangle)
 
-        self.mtubes_x, self.mtubes_y = cells.single_cell_div_free(mtubes_xo, mtubes_yo)
+            # magnitude of the orienting field:
+            magF = (np.sqrt(gFx ** 2 + gFy ** 2)).max() + 1.0e-15
 
-        # initial angle of microtubules:
-        self.mt_theta = np.arctan2(self.mtubes_y, self.mtubes_x)
+            # set the microtubule vectors with the field values:
+            mtubes_xo = -(gFx/magF) * self.mt_density
+            mtubes_yo = -(gFy/magF) * self.mt_density
 
-        self.uxmt, self.uymt = self.mtubes_to_cell(cells, p)
+            self.mtubes_x, self.mtubes_y = cells.single_cell_div_free(mtubes_xo, mtubes_yo)
+
+            # initial angle of microtubules:
+            self.mt_theta = np.arctan2(self.mtubes_y, self.mtubes_x)
+
+            self.uxmt, self.uymt = self.mtubes_to_cell(cells, p)
 
 
 

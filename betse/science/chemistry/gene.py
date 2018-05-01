@@ -311,13 +311,31 @@ class MasterOfGenes(object):
             plt.figure()
             ax = plt.subplot(111)
 
-            viz.mem_quiver(
-                sim.mtubes.mtubes_x,
-                sim.mtubes.mtubes_y,
-                ax,
+            umtx, umty = sim.mtubes.mtubes_to_cell(cells, p)
+
+            plt.figure()
+            ax = plt.subplot(111)
+
+            viz.plotVectField(
+                umtx,
+                umty,
                 cells,
                 p,
+                plot_ecm=False,
+                title='Final Microtubule Alignment Field',
+                cb_title='Aligned MT Fraction',
+                colorAutoscale=False,
+                minColor=0.0,
+                maxColor=1.0,
             )
+
+            # viz.mem_quiver(
+            #     sim.mtubes.mtubes_x,
+            #     sim.mtubes.mtubes_y,
+            #     ax,
+            #     cells,
+            #     p,
+            # )
 
             ax.set_xlabel('X-Distance [um]')
             ax.set_ylabel('Y-Distance [um]')
