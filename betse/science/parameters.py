@@ -223,12 +223,17 @@ class Parameters(YamlFileABC):
 
     Attributes (Gene Regulatory Network)
     ----------
+    The following attributes are ignored if :attr:`grn_enabled` is ``False``.
+
     grn : SimConfGrnFile
         Gene regulatory network (GRN) subconfiguration, encapsulating *all*
         GRN-related settings both loaded from and saved back to the separate
         YAML-formatted configuration file with filename
-        :attr:`grn_config_filename`. Ignored if :attr:`grn_enabled` is
-        ``False``.
+        :attr:`grn_config_filename`.
+    grn_unpickle_phase_type : GrnUnpicklePhaseType
+        Type of **unpickle simulation phase** (i.e., previously pickled
+        simulation phase to unpickle as the computational basis for the current
+        network to be run by the ``betse sim-grn`` subcommand).
 
     Attributes (Ion)
     ----------

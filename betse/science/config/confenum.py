@@ -56,8 +56,8 @@ GrnUnpicklePhaseType = make_enum(
 '''
 Enumeration of all supported types of gene regulatory network (GRN)-specific
 **unpickle simulation phases** (i.e., previously pickled simulation phase to
-unpickle as the basis for the current network to be run by the ``betse sim-grn``
-subcommand).
+unpickle as the computational basis for the current network to be run by the
+``betse sim-grn`` subcommand).
 
 Attributes
 ----------

@@ -64,66 +64,51 @@ BETSE currently supports **Linux**, **macOS**, and **Windows** out-of-the-box.
 Simple
 --------
 
-For new users, BETSE is readily installable as follows:
+For new users, BETSE is portably installable as follows:
 
-.. # FIXME: Commented out until we actually have a working Windows installation script.
-
-.. # - Under **Windows 10**:
-.. #
-.. #   #. Install **Ubuntu Linux** via the `Windows Subsystem for Linux (WSL) <WSL_>`__.
-.. #   #. Open an **Ubuntu Linux terminal.** [#terminal]_
-.. #   #. Run the following commands in this terminal.
-.. # 
-.. #      wget https://gitlab.com/betse/betse/raw/master/bin/install/windows/betsee_windows_10.bash && source betsee_windows_10.bash
-
-.. # FIXME: Create a BETSE-specific installer reduced from this BETSEE installer.
-
-- Under `Ubuntu Linux 16.04 (Xenial Xerus)`_ and newer:
-
-  #. Open a **terminal.** [#terminal]_
-  #. Run the following commands.
-
-     .. code:: bash
-
-        wget https://gitlab.com/betse/betsee/raw/master/bin/install/linux/betsee_ubuntu_16_04.bash && source betsee_ubuntu_16_04.bash
-
-- Under all other platforms: :sup:`(e.g., macOS, Windows)`
-
-  #. Install the **Python 3.x** [#python2_not]_ (e.g., 3.6) variant of
-     Anaconda_. [#anaconda_not]_
-  #. Open a **terminal.** [#terminal]_
-  #. Run the following commands.
+- [\ *Windows*\ ] Emulate **Ubuntu Linux** via the `Windows Subsystem for Linux
+  (WSL) <WSL_>`__. [#windows_not]_
+- Install the **Python 3.x** [#python2_not]_ (e.g., 3.6) variant of Anaconda_.
+  [#anaconda_not]_
+- Open a **Bash terminal.** [#terminal]_
+- Run the following commands.
   
-     #. Install **mandatory dependencies.** [#why_dependencies]_
+  - Enable conda-forge_.
   
-        .. code:: bash
+    .. code:: bash
   
-           conda install dill
+       conda config --add channels conda-forge
   
-     #. Install **BETSE.** [#pip3_not]_
+  - Install **BETSE.** [#conda_package]_
   
-        .. code:: bash
+    .. code:: bash
   
-           python3 -m pip install betse
+       conda install betse
   
-     #. (\ *Optional*\ ) Install **recommended dependencies.** While *not*
-        required for basic usage, the following third-party packages are required
-        for advanced functionality (e.g., gene regulatory networks, animation
-        video encoding).
-  
-        .. code:: bash
-  
-           conda install -c anaconda graphviz && \
-           conda install -c conda-forge ffmpeg networkx && \
-           conda install -c rmg pydot
+  - [\ *Optional*\ ] Test **BETSE.** [#test_command]_
 
-- (\ *Optional*\ ) Test **BETSE.** Run all modelling phases of a sample
-  simulation from the current directory.
+    .. code:: bash
 
-  .. code:: bash
+       betse try
 
-     betse try
+.. [#windows_not]
+   The `Windows Subsystem for Linux (WSL) <WSL_>`__ and – hence BETSE itself –
+   is *only* installable under **Windows 10.** Under older Windows versions,
+   BETSE may be installed from a `virtual Linux guest <VirtualBox_>`__.
 
+.. [#python2_not]
+   Do *not* install the **Python 2.7** variant of Anaconda_. BETSE requires
+   **Python 3.x.**
+
+.. [#anaconda_not]
+   If you prefer *not* to install Anaconda_, BETSE dependencies are also
+   `manually installable <Advanced_>`__ via your platform-specific package
+   manager (e.g., Homebrew_ on macOS, APT_ on Ubuntu Linux). Doing so is
+   non-trivial and, where performed incorrectly, could produce a
+   performance-crippled single-core installation of BETSE. Anaconda_ suffers no
+   such issues and is guaranteed to produce a performance-optimized multicore
+   installation of BETSE on *all* supported platforms. We strongly recommend
+   Anaconda_ – even when you think you know better.
 
 .. [#terminal]
    To open a `POSIX`_\ -compatible terminal under:
@@ -144,32 +129,32 @@ For new users, BETSE is readily installable as follows:
 
      #. Type ``Ctrl``\ +\ ``Alt``\ +\ ``t``.
 
-.. [#python2_not]
-   Do *not* install the **Python 2.7** variant of Anaconda_. BETSE requires
-   **Python 3.x.**
+.. [#conda_package]
 
-.. [#anaconda_not]
-   If you prefer *not* to install Anaconda_, BETSE dependencies are `also
-   installable <Advanced_>`__ with your platform-specific package manager (e.g.,
-   Homebrew_ on macOS, APT_ on Ubuntu Linux). Doing so is non-trivial and, if
-   performed incorrectly, could produce a performance-crippled single-core
-   installation of BETSE – which would be bad. Anaconda_ suffers no such issues
-   and is guaranteed to produce a performance-optimized multicore installation
-   of BETSE on *all* supported platforms – which is good.
+   This command installs:
 
-.. [#why_dependencies]
-   Most mandatory dependencies of BETSE (e.g., NumPy_, SciPy_) are already
-   bundled by default with Anaconda_. Some (e.g., dill_, imageio_) are not.
-   The latter require manual installation.
+   - The **most recent stable release** of `BETSE's official Anaconda package
+     <conda package_>`__, kindly hosted by conda-forge_.
+   - All **mandatory** *and* **optional dependencies** required by this release.
 
-.. [#pip3_not]
-   Always run the ``python3 -m pip`` command to install Python packages into the
-   active Anaconda_ environment. *Never* run the ``pip`` or ``pip3`` commands,
-   which incorrectly refer to their non-\ Anaconda_ versions on some platforms
-   (e.g., macOS), which prevents BETSE from finding packages installed with
-   these commands – which is bad. The ``python3 -m pip`` command suffers no such
-   issues and is guaranteed to install packages in a BETSE-aware manner on *all*
-   supported platforms – which is good.
+   Older stable releases are installable in a similar manner (e.g.,
+   ``conda install betse=0.7.0`` for BETSE 0.7.0).
+
+.. [#test_command]
+
+   This test command:
+
+   #. Creates a ``sample_sim/`` subdirectory in the current directory, providing
+      the default simulation for this release of BETSE. This includes *all*
+      configuration files and resources referenced by these files.
+   #. Runs all simulation phases (e.g., seed, initialization) of this simulation.
+
+   When finished, you may safely:
+   
+   - Remove this subdirectory.
+   - Rename this subdirectory (e.g., to ``my_sim/``) to serve as a basis for
+     subsequent simulations.
+   - Preserve this subdirectory as is.
 
 Advanced
 --------
@@ -525,6 +510,8 @@ under the permissive `BSD-compatible <license compatibility_>`__ `CC BY
    doc/md/AUTHORS.md
 .. _codebase:
    https://gitlab.com/betse/betse/tree/master
+.. _conda package:
+   https://anaconda.org/conda-forge/betse
 .. _contributors:
    https://gitlab.com/betse/betse/graphs/master
 .. _dependencies:
@@ -781,6 +768,8 @@ under the permissive `BSD-compatible <license compatibility_>`__ `CC BY
    https://www.anaconda.com/download
 .. _Appveyor:
    https://ci.appveyor.com/project/betse/betse/branch/master
+.. _conda-forge:
+   https://conda-forge.org
 .. _dill:
    https://pypi.python.org/pypi/dill
 .. _FFmpeg:
@@ -807,6 +796,8 @@ under the permissive `BSD-compatible <license compatibility_>`__ `CC BY
    http://pytest.org
 .. _SciPy:
    http://www.scipy.org
+.. _VirtualBox:
+   https://www.virtualbox.org
 .. _YAML:
    http://yaml.org
 

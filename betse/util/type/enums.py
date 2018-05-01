@@ -19,6 +19,7 @@ from betse.util.type.types import (
     GeneratorType,
     SequenceTypes,
 )
+from functools import partial
 
 # ....................{ SUBCLASSES                         }....................
 class EnumOrdered(EnumClassType):
@@ -283,7 +284,7 @@ def get_converter_name_to_uppercase_enum_member(
     this string uppercased is *not* the name of a member of this enumeration.
 
     The callable returned by this function is principally intended to be passed
-    as the `type` parameter to the :meth:`ArgumentParser.add_argument` method,
+    as the ``type`` parameter to the :meth:`ArgumentParser.add_argument` method,
     converting from lowercase command-line option string arguments to
     corresponding enumeration members.
 
@@ -298,35 +299,8 @@ def get_converter_name_to_uppercase_enum_member(
         Callable whose signature is defined as above.
     '''
 
-    # Closure specific to this enumeration type implementing this converesion.
-    @type_check
-    def _to_enum(enum_member_name: str) -> EnumMemberType:
-        '''
-        Member of this enumeration whose name is the passed string uppercased if
-        such a member exists _or_ raise an exception otherwise.
-
-        Parameters
-        ----------
-        enum_member_name : EnumType
-            Name of the member to be returned.
-
-        Returns
-        ----------
-        EnumMemberType
-            Member of this enumeration with this name uppercased.
-        '''
-
-        # Uppercase name of this member.
-        enum_member_name_upper = enum_member_name.upper()
-
-        # Raise an exception unless this member exists.
-        die_unless_member_name(enum_type, enum_member_name_upper)
-
-        # Return this member.
-        return enum_type[enum_member_name_upper]
-
-    # Return this closure.
-    return _to_enum
+    # Return a closure passing the passed enumeration to an existing getter.
+    return partial(get_member_from_name_uppercased, enum_type=enum_type)
 
 
 @type_check
@@ -448,6 +422,70 @@ def get_member_name_lowercase(enum_member: EnumMemberType) -> str:
 
     # It cannot be, yet it is.
     return enum_member.name.lower()
+
+# ....................{ GETTERS ~ str                      }....................
+@type_check
+def get_member_from_name(
+    enum_type: EnumType, enum_member_name: str) -> EnumMemberType:
+    '''
+    Member of this enumeration with the passed name if this member exists *or*
+    raise an exception otherwise (i.e., if this member does *not* exist).
+
+    Parameters
+    ----------
+    enum_type: EnumType
+        Enumeration type to inspect.
+    enum_member_name : EnumType
+        Name of the member of this enumeration to be returned.
+
+    Returns
+    ----------
+    EnumMemberType
+        Member of this enumeration with this name.
+
+    Raises
+    ----------
+    BetseEnumException
+        If no member of this enumeration with this name exists.
+    '''
+
+    # Raise an exception unless this member exists.
+    die_unless_member_name(enum_type, enum_member_name)
+
+    # Return this member.
+    return enum_type[enum_member_name]
+
+
+@type_check
+def get_member_from_name_uppercased(
+    enum_type: EnumType, enum_member_name: str) -> EnumMemberType:
+    '''
+    Member of this enumeration with the passed name uppercased if this member
+    exists *or* raise an exception otherwise (i.e., if this member does *not*
+    exist).
+
+    Parameters
+    ----------
+    enum_type: EnumType
+        Enumeration type to inspect.
+    enum_member_name : EnumType
+        String that when uppercased yields the name of the member of this
+        enumeration to be returned.
+
+    Returns
+    ----------
+    EnumMemberType
+        Member of this enumeration with this name uppercased.
+
+    Raises
+    ----------
+    BetseEnumException
+        If no member of this enumeration with this name uppercased exists.
+    '''
+
+    # It pays to be lazy. Admittedly, it doesn't pay much.
+    return get_member_from_name(
+        enum_type=enum_type, enum_member_name=enum_member_name.upper())
 
 # ....................{ ITERATORS                          }....................
 @type_check

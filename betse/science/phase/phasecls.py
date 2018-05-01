@@ -32,15 +32,12 @@ class SimPhase(object):
 
     Attributes
     ----------
+    cells : betse.science.cells.Cells
+        Current simulation cell cluster.
+    dyna : betse.science.tissue.tishandler.TissueHandler
+        Current simulation tissue handler.
     kind : SimPhaseKind
         Current simulation phase type.
-
-    Attributes (Objects)
-    ----------
-    cells : betse.science.cells.Cells
-        Current cell cluster.
-    dyna : betse.science.tissue.tishandler.TissueHandler
-        Current tissue handler.
     p : betse.science.parameters.Parameters
         Current simulation configuration.
     sim : betse.science.sim.Simulator

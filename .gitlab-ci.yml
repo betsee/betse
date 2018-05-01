@@ -263,6 +263,21 @@ before_script:
   # environment's top-level directory).
   - source activate "${_CONDA_ENV_DIRNAME}"
 
+  #FIXME: Uncomment *AFTER* the conda-forge variants of application dependencies
+  #are sufficiently stable. As of this writing (i.e., 2018 Q2), one or more such
+  #dependencies non-deterministically induce segmentation faults on running the
+  #"test" job defined below under GitLab-CI (but, curiously, not Appveyor): e.g.,
+  #
+  #    $ betse --matplotlib-backend=agg info
+  #    [betse] Welcome to <<BETSE 0.7.1 | CPython 3.6.2 | debian 9.4>>.
+  #    [betse] Loading third-party BETSE dependencies...
+  #    [betse] Harvesting system metadata... (This may take a moment.)
+  #    /bin/bash: line 76:    70 Segmentation fault      (core dumped) betse --matplotlib-backend=agg info
+  #    ERROR: Job failed: exit code 1
+  #
+  #Unfortunately, this implies that all optional dependencies installable *ONLY*
+  #through conda-forge must be disabled in the "requirements-conda.txt" file.
+
   # Add the third-party "conda-forge" channel as the highest-priority channel,
   # ensuring that subsequently installed dependencies prefer the versions
   # supplied by this channel rather than any official default channels. This
@@ -276,7 +291,14 @@ before_script:
   #   conda-forge for the above reasons and more. Parity with respect to
   #   dependency installation increases the likelihood of parity between
   #   testing results and the end user experience.
-  - conda config --add channels conda-forge
+  #- conda config --add channels conda-forge
+
+  # Add the official "anaconda" channel as the highest-priority channel. This
+  # channel provides only a subset of the optional dependencies provided by the
+  # "conda-forge" channel, which is bad. Those dependencies that are provided
+  # by this channel, however, are typically stabler than those provided by the
+  # "conda-forge" channel, which is good. (The good outweighs the bad here.)
+  - conda config --add channels anaconda
 
   # Install all mandatory and optional dependencies of this application into
   # this environment from the "conda-forge" channel.

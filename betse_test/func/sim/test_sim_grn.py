@@ -9,6 +9,7 @@ to gene regulatory networks (e.g., `betse sim-grn`, `betse plot sim-grn`).
 '''
 
 # ....................{ IMPORTS                            }....................
+import pytest
 from betse_test.util.mark.skip import skip_unless_lib_runtime_optional
 
 # ....................{ DECORATORS                         }....................
@@ -20,49 +21,81 @@ subcommands (e.g., ``plot sim-grn``).
 '''
 
 # ....................{ TESTS                              }....................
-#FIXME: Parametrize this test with all members of the "GrnUnpicklePhaseType"
-#enumeration. See the "test_sim" submodule for similar logic: e.g.,
-# @skip_unless_networkable
-# @pytest.mark.parametrize(
-#     ('writer_name', 'filetype'), (
-#         skip_unless_matplotlib_anim_writer('avconv')(('avconv', 'mp4',))))
-def test_cli_grn_isolated(betse_cli_sim: 'CLISimTester') -> None:
+@skip_unless_networkable
+@pytest.mark.parametrize(
+    ('unpickle_phase_name', 'init_subcommands'), (
+        ('seed', (('seed',),),),
+        ('init', (('seed',), ('init',),),),
+        ('sim',  (('seed',), ('init',), ('sim',),),),
+    ))
+def test_cli_grn_isolated(
+    betse_cli_sim: 'CLISimTester',
+    unpickle_phase_name: str,
+    init_subcommands: tuple,
+) -> None:
     '''
     Test simulating the default gene regulatory network (GRN) isolated away from
-    all bioelectrical phenomena.
+    all bioelectrical phenomena for the passed unpickle simulation phase and
+    simulation subcommands.
 
     Parameters
     ----------
     betse_cli_sim : CLISimTester
         Object running BETSE CLI simulation subcommands.
+    unpickle_phase_name : str
+        Lowercase name of the type of **unpickle simulation phase** (i.e.,
+        previously pickled simulation phase to unpickle as the computational
+        basis for the current network to be run by the ``betse sim-grn``
+        subcommand) to be exercised by this test.
+    init_subcommands : tuple
+        Tuple of all simulation subcommands to be exercised by this test
+        *before* exercising the ``betse sim-grn`` subcommand.
     '''
 
-    # Defer heavyweight imports.
-    from betse.science.config.confenum import GrnUnpicklePhaseType
+    # Defer heavyweight imports required for logging. For readability in the
+    # unfortunate event of exceptions raised by subsequent imports, defer all
+    # remaining imports.
     from betse.util.io.log import logs
+
+    # Log this networking attempt with suitable aesthetics.
+    logs.log_banner(
+        title='sim-grn ({})'.format(unpickle_phase_name), padding='~')
+
+    # Defer all remaining heavyweight imports.
+    from betse.science.config.confenum import GrnUnpicklePhaseType
     from betse.util.path import pathnames
+    from betse.util.type import enums
 
     # Simulation configuration specific to this test.
     p = betse_cli_sim.sim_state.p
-
-    #FIXME: Replace this overkill method call with direct usage of the local
-    #"p" parameter; then remove this method entirely from the codebase.
-    # Enable these networks.
-    betse_cli_sim.sim_state.config.enable_networks()
-
-    # Ensure that the
-    p.grn_unpickle_phase_type = GrnUnpicklePhaseType.SEED
 
     # Enable the saving of visuals, preventing the "plot sim-grn" subcommand
     # tested below from silently reducing to a noop.
     betse_cli_sim.sim_state.config.enable_visuals_save()
 
-    # Test all GRN-specific subcommands required to simulate from scratch with
-    # this configuration.
-    betse_cli_sim.run_subcommands(('seed',), ('sim-grn',),)
+    #FIXME: Replace this overkill method call with direct usage of the local
+    #"p" parameter; then remove this method entirely from the codebase.
+    # Enable networking.
+    betse_cli_sim.sim_state.config.enable_networks()
 
-    # Log this rerun attempt with suitable aesthetics.
-    logs.log_banner(title='sim-grn (rerun)', padding='~')
+    # Enable this type of unpickle simulation phase by mapping from the passed
+    # string to the corresponding enumeration member. Ideally, this member
+    # rather than this string would simply be passed to this test;
+    # unfortunately, doing so would require unsafely importing from the main
+    # codebase at module scope, encouraging non-human-readable exceptions.
+    p.grn_unpickle_phase_type = enums.get_member_from_name_uppercased(
+        enum_type=GrnUnpicklePhaseType, enum_member_name=unpickle_phase_name)
+
+    # Test all simulation subcommands required by this GRN-specific subcommand
+    # with this configuration for this phase type.
+    betse_cli_sim.run_subcommands(*init_subcommands)
+
+    # Test this GRN-specific subcommand from scratch.
+    betse_cli_sim.run_subcommands(('sim-grn',),)
+
+    # Log this re-networking attempt with suitable aesthetics.
+    logs.log_banner(
+        title='sim-grn (re-{})'.format(unpickle_phase_name), padding='~')
 
     # Prepare to rerun the "sim-grn" subcommand from the prior run pickled by
     # the prior subcommand. To do so safely (in order):
@@ -76,7 +109,7 @@ def test_cli_grn_isolated(betse_cli_sim: 'CLISimTester') -> None:
     # Redefine all absolute pathnames depending upon these relative pathnames.
     p.reload_paths()
 
-    # Test rerunning the "sim-grn" subcommand from the prior such run and, for
+    # Test both this GRN-specific subcommand from the prior such run and, for
     # completeness, exporting the results of doing so.
     betse_cli_sim.run_subcommands(('sim-grn',), ('plot', 'sim-grn',),)
 
