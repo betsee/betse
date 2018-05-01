@@ -574,11 +574,13 @@ class SimRunner(object):
                         'for simulation...')
                     MoG.reinitialize(sim, cells, self._p)
 
-            if p.use_microtubules:
+            #FIXME: Would you mind documenting this a bit, beautiful! Lovalo!
+            if self._p.use_microtubules:
                 sim.mtubes.mtubes_x = MoG.mtubes_x_time[-1]
                 sim.mtubes.mtubes_y = MoG.mtubes_y_time[-1]
 
-                sim.mtubes.uxmt, sim.mtubes.uymt = sim.mtubes.mtubes_to_cell(cells, p)
+                sim.mtubes.uxmt, sim.mtubes.uymt = sim.mtubes.mtubes_to_cell(
+                    cells, self._p)
 
         logs.log_info("Running gene regulatory network test simulation...")
         MoG.run_core_sim(sim, cells, self._p)
