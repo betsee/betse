@@ -337,11 +337,33 @@ BETSE is releasable to all supported platforms as follows:
 
             $ rm -rf /tmp/betse-pypi /tmp/sample_sim && cd -
 
-#. (\ *Optional*\ ) **Update third-party platform-specific packages.** As of
-   this writing, these include (in no particular order):
+#. (\ *Optional*\ ) **Update third-party packages.** As of this writing, these
+   include (in no particular order):
 
-   * The official `Gentoo Linux BETSE ebuild`_, currently hosted at the
-     `raiagent overlay`_ maintained by a co-maintainer of BETSE.
+   * Our official `Anaconda package`_, automatically produced for all supported
+     platforms from the `conda recipe`_ hosted at the `conda-forge feedstock`_
+     maintained by a co-maintainer of BETSE. Updating this package thus reduces
+     to updating this recipe. To do so, avoid directly pushing to any branch
+     (including ``master``) of the `feedstock repository`_, as doing so
+     conflicts with `conda-forge`_ automation; instead (in order):
+
+     #. Remotely create a `GitHub`_ account.
+     #. Remotely login to this account.
+     #. Remotely fork our `feedstock repository`_.
+     #. Locally clone this forked feedstock repository.
+     #. Locally create a new branch of this repository specific to this update.
+     #. Locally update this recipe from this branch (typically, by editing the
+        ``recipe/meta.yaml`` file).
+     #. Locally commit these changes.
+     #. Locally push these changes to the upstream fork.
+     #. Remotely open a pull request (PR) from the upstream fork against the
+        `original repository <feedstock repository_>`__.
+     
+     See also the `conda-forge FAQ`_ entry `"Using a fork vs a branch when
+     updating a recipe." <conda-forge update recipe_>`__
+
+   * Our official `Gentoo Linux ebuild`_, currently hosted at the `raiagent
+     overlay`_ maintained by a co-maintainer of BETSE.
 
 Thus begins the dawn of a new scientific epoch.
 
@@ -357,45 +379,48 @@ Thus begins the dawn of a new scientific epoch.
    space and time. The cheese shop was not instantiated in a day.
 
 Version Nomenclature
-============
+====================
 
 This application should be **versioned** (i.e., assigned a new version)
 according to the `Semantic Versioning`_ schema. Each version *must* consist of
 three ``.``-delimited integers ``{major}.{minor}.{patch}``, where:
 
-- ``{major}`` is the **major version,** incremented only when either:
-  - **Breaking backward compatibility with existing simulation configurations.**
+* ``{major}`` is the **major version,** incremented only when either:
+
+  * **Breaking backward compatibility with existing simulation configurations.**
     The public API of this application is its configuration file format rather
     than the public subset of its codebase (e.g., public submodules or classes).
     No codebase change can be considered to break backward compatibility unless
     also changing the simulation configuration file format in a manner rendering
     existing files in the prior format unusable. Note that doing so is
     unequivocally bad and hence *much* discouraged.
-  - **Implementing headline-worthy functionality** (e.g., a GUI). Technically,
+  * **Implementing headline-worthy functionality** (e.g., a GUI). Technically,
     this condition breaks the `Semantic Versioning`_ schema, which stipulates
     that *only* changes breaking backward compatibility warrant major bumps.
     But this is the real world. In the real world, significant improvements
     are rewarded with significant version changes.
+
   In either case, the minor and patch versions both reset to 0.
-- ``{minor}`` is the **minor version,** incremented only when implementing
+
+* ``{minor}`` is the **minor version,** incremented only when implementing
   customary functionality in a manner preserving backward compatibility. In this
   case, only the patch version resets to 0.
-- ``{patch}`` is the **patch version,** incremented only when correcting
+* ``{patch}`` is the **patch version,** incremented only when correcting
   outstanding issues in a manner preserving backward compatibility.
 
 When in doubt, bump only the minor version and reset only the patch version.
 
 Codename Nomenclature
-============
+=====================
 
 This application should be **code named** (i.e., assigned a new human-readable
 code name) according to the following crude distortion of the `Ubuntu code name
 schema`_. Each code name *must* consist of two capitalized English words
 ``{adjective} {bioelectrician}``, where:
 
-- ``{adjective}`` is an arbitrary adjective whose first letter is the same as
+* ``{adjective}`` is an arbitrary adjective whose first letter is the same as
   that of the first character of the subsequent ``{bioelectrician}``.
-- ``{bioelectrician}`` is the last name of an arbitrary academic associated with
+* ``{bioelectrician}`` is the last name of an arbitrary academic associated with
   the long-standing field of bioelectricity.
 
 Unlike the `Ubuntu code name schema`_, the first letter of the code name for
@@ -411,11 +436,42 @@ names is a fruitless and hence worthless goal.
 .. _PyPI BETSE:
    https://pypi.python.org/pypi/betse
 
+.. # ------------------( LINKS ~ betse : gentoo              )------------------
+.. _Gentoo Linux ebuild:
+   https://github.com/leycec/raiagent/tree/master/sci-biology/betse
+.. _raiagent overlay:
+   https://github.com/leycec/raiagent
+
+.. # ------------------( LINKS ~ betse : conda               )------------------
+.. _Anaconda package:
+   https://anaconda.org/conda-forge/betse
+.. _conda recipe:
+   https://github.com/leycec/betse-feedstock/blob/master/recipe/meta.yaml
+.. _conda-forge feedstock:
+.. _feedstock repository:
+   https://github.com/leycec/betse-feedstock
+
 .. # ------------------( LINKS ~ betsee                      )------------------
 .. _BETSEE:
    https://gitlab.com/betse/betsee
 
-.. # ------------------( LINKS ~ pypi                       )------------------
+.. # ------------------( LINKS ~ python                     )------------------
+.. _Semantic Versioning:
+   http://semver.org
+.. _twine:
+   https://pypi.python.org/pypi/twine
+.. _wheel:
+   https://wheel.readthedocs.io
+
+.. # ------------------( LINKS ~ python : conda             )------------------
+.. _conda-forge:
+   https://conda-forge.org
+.. _conda-forge FAQ:
+   https://conda-forge.org/docs/conda-forge_gotchas.html
+.. _conda-forge update recipe:
+   https://conda-forge.org/docs/conda-forge_gotchas.html#using-a-fork-vs-a-branch-when-updating-a-recipe
+
+.. # ------------------( LINKS ~ python : pypi              )------------------
 .. _Test PyPI:
    https://testpypi.python.org/pypi
 .. _Test PyPI instructions:
@@ -427,20 +483,8 @@ names is a fruitless and hence worthless goal.
 .. _PyPI user:
    https://pypi.python.org/pypi?%3Aaction=register_form
 
-.. # ------------------( LINKS ~ python                     )------------------
-.. _Semantic Versioning:
-   http://semver.org
-.. _twine:
-   https://pypi.python.org/pypi/twine
-.. _wheel:
-   https://wheel.readthedocs.io
-
-.. # ------------------( LINKS ~ linux : ubuntu             )------------------
+.. # ------------------( LINKS ~ software                   )------------------
+.. _GitHub:
+   https://github.com
 .. _Ubuntu code name schema:
    https://wiki.ubuntu.com/DevelopmentCodeNames
-
-.. # ------------------( LINKS ~ linux : gentoo             )------------------
-.. _Gentoo Linux BETSE ebuild:
-   https://github.com/leycec/raiagent/tree/master/sci-biology/betse
-.. _raiagent overlay:
-   https://github.com/leycec/raiagent

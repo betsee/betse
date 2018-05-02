@@ -402,8 +402,8 @@ for such well-known cases as:
 
 For details, see our recently published `introductory paper <Reference_>`__.
 
-Reference
-=========
+Citation
+========
 
 BETSE is formally described in our `introductory paper <2016 article_>`__.
 Third-party papers, theses, and other texts leveraging BETSE should ideally
@@ -411,18 +411,24 @@ cite the following:
 
     `Alexis Pietak`_ and `Michael Levin`_, 2016. |2016 article name|_
     |2016 article supplement|_ [#supplement]_ |2016 journal name|_ *4*\ (55).
-    :sup:`doi:10.3389/fbioe.2016.00055`
+    :sup:`https://doi.org/10.3389/fbioe.2016.00055`
 
 Subsequent papers expanding the BETSE architecture with additional theory,
 experimental results, and comparative metrics include:
 
     * `Alexis Pietak`_ and `Michael Levin`_, 2017. |2017 article name|_
       |2017 article supplement|_ [#supplement]_ |2017 journal name|_ *14*\ (134),
-      p.20170425. :sup:`doi:10.1098/rsif.2017.0425`
+      p.20170425. :sup:`https://doi.org/10.1098/rsif.2017.0425`
     * Vaibhav P. Pai, `Alexis Pietak`_, Valerie Willocq, Bin Ye, Nian-Qing Shi,
       and `Michael Levin`_, 2018. |2018 hcn2 article name|_ |2018 hcn2 article
       supplement|_ [#supplement]_ |2018 hcn2 journal name|_ *9*\ (1), p.998.
-      :sup:`doi:10.1038/s41467-018-03334-5`
+      :sup:`https://doi.org/10.1038/s41467-018-03334-5`
+    * Javier Cervera, `Alexis Pietak`_, `Michael Levin`_, and Salvador Mafe,
+      2018. |2018 coupling article name|_ |2018 coupling journal name|_ *128*,
+      pp.45—61. :sup:`https://doi.org/10.1016/j.bioelechem.2018.04.013`
+    * `Alexis Pietak`_ and `Michael Levin`_, 2018. |2018 review article name|_
+      |2018 review journal name|_
+      :sup:`https://doi.org/10.1016/j.pbiomolbio.2018.03.008`
 
 .. # FIXME: Add an image thumbnail for the first article above displaying the
 .. # cover image selected by the prior journal for that edition's cover article.
@@ -617,6 +623,28 @@ under the permissive `BSD-compatible <license compatibility_>`__ `CC BY
    *Nature Communications.*
 .. _2018 hcn2 journal name:
    https://www.nature.com
+
+.. # ------------------( LINKS ~ paper ~ 2018 : coupling   )------------------
+.. |2018 coupling article name| replace::
+   **Bioelectrical coupling in multicellular domains regulated by gap junctions: A conceptual approach.**
+.. _2018 coupling article name:
+   https://www.sciencedirect.com/science/article/pii/S156753941830063X?via%3Dihub
+
+.. |2018 coupling journal name| replace::
+   *Bioelectrochemistry.*
+.. _2018 coupling journal name:
+   https://www.sciencedirect.com/journal/bioelectrochemistry
+
+.. # ------------------( LINKS ~ paper ~ 2018 : review     )------------------
+.. |2018 review article name| replace::
+   **Bioelectrical control of positional information in development and regeneration: A review of conceptual and computational advances.**
+.. _2018 review article name:
+   https://www.sciencedirect.com/science/article/pii/S0079610718300415
+
+.. |2018 review journal name| replace::
+   *Progress in Biophysics and Molecular Biology.*
+.. _2018 review journal name:
+   https://www.sciencedirect.com/journal/progress-in-biophysics-and-molecular-biology
 
 .. # ------------------( LINKS ~ science                    )------------------
 .. _bioelectricity:
