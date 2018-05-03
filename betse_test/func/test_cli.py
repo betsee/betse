@@ -15,7 +15,7 @@ from betse_test.util.mark.skip import skip_unless_lib_runtime_optional
 # ....................{ TESTS                              }....................
 def test_cli_no_arg(betse_cli: 'CLITester') -> None:
     '''
-    Test the `betse` command passed no arguments.
+    Test the ``betse`` command passed no arguments.
 
     Parameters
     ----------
@@ -28,7 +28,7 @@ def test_cli_no_arg(betse_cli: 'CLITester') -> None:
 
 def test_cli_info(betse_cli: 'CLITester') -> None:
     '''
-    Test the `betse info` subcommand.
+    Test the ``betse info`` subcommand.
 
     Parameters
     ----------
@@ -44,15 +44,16 @@ def test_cli_config(
     betse_temp_dir: 'LocalPath',
 ) -> None:
     '''
-    Test the `betse config` subcommand, creating a configuration in a temporary
-    directory specific to this test.
+    Test the ``betse config`` subcommand, creating a configuration in a
+    temporary directory specific to this test.
 
     While other tests requesting any fixture whose name is prefixed by
-    `betse_sim_config_` (e.g., the `betse_sim_config_default` fixture) already
-    create such configurations, they do so by directly calling a comparatively
-    low-level function of the BETSE API rather than by running a comparatively
-    high-level subcommand of the BETSE CLI. Since these two logic paths are
-    different (albeit related), this test ensures the latter to be exercised.
+    ``betse_sim_config_`` (e.g., the ``betse_sim_config_default`` fixture)
+    already create such configurations, they do so by directly calling a
+    comparatively low-level function of the BETSE API rather than by running a
+    comparatively high-level subcommand of the BETSE CLI. Since these two logic
+    paths are different (albeit related), this test ensures the latter to be
+    exercised.
 
     Parameters
     ----------
@@ -89,7 +90,7 @@ def test_cli_profile(
     profile_type: str,
 ) -> None:
     '''
-    Test profiling of an arbitrary `betse` command with the parametrized
+    Test profiling of an arbitrary ``betse`` command with the parametrized
     profiling type, serialized to a temporary file specific to this test.
 
     Parameters
@@ -100,9 +101,9 @@ def test_cli_profile(
         Object encapsulating a temporary directory isolated to the current test.
     profile_type : str
         Type of profiling to perform -- either:
-        * `none`, performing no profiling.
-        * `call`, performing call-granularity profiling.
-        * `size`, performing memory profiling.
+        * ``none``, performing no profiling.
+        * ``call``, performing call-granularity profiling.
+        * ``size``, performing memory profiling.
     '''
         # * `line`, performing line-granularity profiling.
 

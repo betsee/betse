@@ -228,13 +228,10 @@ install:
 # List of all external commands to be run for each CI pipeline *AFTER* those
 # listed within "install" above.
 test_script:
-  # For debuggability, print metadata identifying this BETSE release. Since the
-  # same metadata is also printed, captured, and squelched by a functional test
-  # exercised by the test suite run below, doing so is somewhat redundant.
-  # Nonetheless, py.test provides no means of selectively disabling output
-  # capturing for only specific tests. For efficiency and readability, globally
-  # disabling output capturing is undesirable. Hence, the current approach.
-  - cmd: betse --matplotlib-backend=agg info
+  #FIXME: See ".gitlab-ci.yml" for why this is currently disabled.
+  # For debuggability, print metadata identifying this BETSE release. See
+  # similar logic in ".gitlab-ci.yml" for details.
+  #- cmd: betse --matplotlib-backend=agg info
 
   # Run the following multiline Powershell script.
   - ps: |

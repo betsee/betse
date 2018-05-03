@@ -383,6 +383,14 @@ betse_test:
 
   # List of all external commands run by this job.
   script:
+    #FIXME: For unknown reasons, this command causes spurious non-deterministic
+    #segmentation faults on both Windows *AND* POSIX-compatible platforms. This
+    #issue is almost certainly due to this command's attempt to unsafely
+    #exercise interactive matplotlib backends in non-interactive CI
+    #environments. For unknown reasons, the same command appears to succeed when
+    #encapsulated by a py.test test. Until this issue is resolved, refer to the
+    #logging output captured by the "test_cli_info" test.
+
     # For debuggability, print metadata identifying this BETSE release. Since
     # the same metadata is also printed, captured, and squelched by a functional
     # test exercised by testing run below, doing so is redundant. Nonetheless,
@@ -392,7 +400,7 @@ betse_test:
     #
     # * "--matplotlib-backend=agg", preventing BETSE from erroneously attempting
     #   to initialize an interactive-only matplotlib backend (e.g., "PyQt4").
-    - betse --matplotlib-backend=agg info
+    #- betse --matplotlib-backend=agg info
 
     # Run the entire "py.test"-based test suite under the following options:
     #

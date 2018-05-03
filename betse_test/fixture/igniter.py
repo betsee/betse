@@ -54,8 +54,8 @@ def betse_init() -> None:
     print('\n[py.test] Initializing BETSE...')
 
     # Initialize the core application. Note that the higher-level
-    # ignition.ignote() function is intentionally *NOT* called here, as doing
-    # so could erroneously enable a headfull matplotlib backend.
+    # ignition.ignote() function is intentionally *NOT* called here, as doing so
+    # could erroneously enable a headfull matplotlib backend.
     ignition.init()
 
     # Singleton logging configuration for the current Python process retrieved
