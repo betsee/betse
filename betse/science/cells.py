@@ -5,10 +5,10 @@
 # ....................{ IMPORTS                            }....................
 import math
 import numpy as np
-import scipy.spatial as sps
 from numpy import ndarray
 from scipy import interpolate as interp
 from scipy import ndimage
+from scipy.spatial import Voronoi, cKDTree
 from betse.exceptions import BetseSequenceException, BetseSimConfException
 from betse.lib.numpy import nparray
 from betse.science import filehandling as fh
@@ -261,7 +261,7 @@ class Cells(object):
 
     Attributes (Extracellular Grid)
     ----------
-    The following attributes are defined *only* if the :meth:`makeECM` has been
+    These attributes are defined *only* if the :meth:`makeECM` method has been
     called, implying the current simulation to enable extracellular spaces. If
     that method has *not* yet been called, these attributes remain undefined.
 
@@ -289,6 +289,10 @@ class Cells(object):
         Two-dimensional Numpy array of the Cartesian coordinates of the centres
         of all extracellular grid spaces. See the
         :attr:`fd.FiniteDiffSolver.xy_cents` array for further details.
+    points_tree : scipy.spatial.cKDTree
+        Kd-tree on the :attr:`xypts` array, enabling efficient mapping from
+        arbitrary Cartesian coordinates to their nearest extracellular grid
+        spaces.
 
     Attributes (Voronoi Diagram)
     ----------
@@ -856,9 +860,8 @@ class Cells(object):
         # seed_points = self.clust_xy
 
         # define the Voronoi diagram from the seed points:
-        # vor = sps.Voronoi(self.clust_xy)
-
-        vor = sps.Voronoi(seed_points)
+        # vor = Voronoi(self.clust_xy)
+        vor = Voronoi(seed_points)
 
         # round the x,y values of the vertices so that duplicates aren't formed when we use search algorithms later:
         vor.vertices = np.round(vor.vertices,6)
@@ -1400,7 +1403,7 @@ class Cells(object):
         #----------------------------------------------------------------------
         # Construct an array indexing vertices of the membrane vertices array.
 
-        cellVertTree = sps.KDTree(self.mem_verts)
+        cellVertTree = cKDTree(self.mem_verts)
 
         self.index_to_mem_verts = []
         for cell_nest in mem_edges:
@@ -1643,9 +1646,9 @@ class Cells(object):
         #-- find nearest neighbour cell-cell junctions via adjacent membranes-------------------------------------------
 
         sc = 2.2*(1-p.scale_cell)*p.cell_radius
-        memTree = sps.KDTree(self.mem_mids_flat)
+        memTree = cKDTree(self.mem_mids_flat)
 
-        mem_nn_o = memTree.query_ball_point(self.mem_mids_flat,sc)
+        mem_nn_o = memTree.query_ball_point(self.mem_mids_flat, sc)
         mem_nn = [[] for x in self.mem_i]
         mem_bound = []
 
@@ -1899,7 +1902,7 @@ class Cells(object):
         #-------------------------
 
         # first obtain a structure to map to total xypts vector index:
-        self.points_tree = sps.KDTree(self.xypts)
+        self.points_tree = cKDTree(self.xypts)
 
         # define a mapping between a cell and its ecm space in the full list of xy points for the world:
         _, self.map_cell2ecm = self.points_tree.query(self.cell_centres)
@@ -2366,33 +2369,29 @@ class Cells(object):
 
         self.cell_to_nn_full = np.asarray(self.cell_to_nn_full)
 
-    def save_cluster(self,p,savecells = True):
+
+    # Avoid circular import dependencies.
+    @type_check
+    def save_cluster(self, p: 'betse.science.parameters.Parameters') -> None:
         '''
-        Saves the cell cluster using a python pickle.
+        Pickle (i.e., save) this cell cluster to the file described by the
+        passed simulation configuration.
 
         Parameters
         ----------
-        p               Instance of the Parameters object
-        savecells       Boolean indicating whether the cluster should be saved (that's kind of dumb if you're calling
-                        the function anyway!)
-
+        p : Parameters
+            Current simulation configuration.
         '''
 
-        if savecells is True:
+        # Log this
+        logs.log_info(
+            'Saving cell cluster to "%s"...',
+            pathnames.get_basename(self.savedWorld))
 
-            self.points_tree = None
+        # Pickle this cell cluster.
+        datadump = [self, p]
+        fh.saveSim(self.savedWorld, datadump)
 
-            for key, valu in vars(p).items():
-                if type(valu) == interp.interp1d or callable(valu):
-                    setattr(p,key,None)
-
-            # save the cell cluster
-            logs.log_info('Saving the cell cluster... ')
-
-            datadump = [self,p]
-            fh.saveSim(self.savedWorld,datadump)
-            message = 'Cell cluster saved to' + ' ' + self.savedWorld
-            logs.log_info(message)
 
     def voronoiGrid(self,p):
         """
@@ -2444,8 +2443,9 @@ class Cells(object):
         self.voronoi_centres = np.delete(self.voronoi_centres, 0, 0)
 
         # define a mapping between the voronoi cell centres and the cluster cell centres:
-        vertTree = sps.KDTree(self.voronoi_centres)
+        vertTree = cKDTree(self.voronoi_centres)
         _, self.cell_to_grid = vertTree.query(self.cell_centres)
+
 
     def make_maskM(self,p):
         """
@@ -2453,7 +2453,7 @@ class Cells(object):
         and differentiating between the cell cluster and environment.
         """
 
-        voronoiTree = sps.KDTree(self.voronoi_grid)
+        voronoiTree = cKDTree(self.voronoi_grid)
         _, self.map_voronoi2ecm = voronoiTree.query(self.ecm_verts_unique)
 
         self.voronoi_mask = np.zeros(len(self.voronoi_grid))
@@ -2540,7 +2540,7 @@ class Cells(object):
         # cells world after deforming ecm_verts_unique:
 
         # first get the search-points tree:
-        ecmTree = sps.KDTree(self.ecm_verts_unique)
+        ecmTree = cKDTree(self.ecm_verts_unique)
 
         self.inds2ecmVerts = []
 

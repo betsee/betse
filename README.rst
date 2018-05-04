@@ -131,14 +131,12 @@ For new users, BETSE is portably installable as follows:
 
 .. [#conda_package]
 
-   This command installs:
-
-   - The **most recent stable release** of `BETSE's official Anaconda package
-     <conda package_>`__, kindly hosted by conda-forge_.
-   - All **mandatory** *and* **optional dependencies** required by this release.
-
-   Older stable releases are installable in a similar manner (e.g.,
-   ``conda install betse=0.7.0`` for BETSE 0.7.0).
+   This command installs both the `most recent stable release of BETSE <conda
+   package_>`__ *and* all mandatory and most optional dependencies of this
+   release. Older stable releases are installable in a similar manner (e.g.,
+   ``conda install betse=0.7.0`` to install BETSE 0.7.0). These `Anaconda
+   packages`_ are all kindly hosted by the `non-profit conda-forge organization
+   <conda-forge_>`__.
 
 .. [#test_command]
 
@@ -792,12 +790,8 @@ under the permissive `BSD-compatible <license compatibility_>`__ `CC BY
    https://msdn.microsoft.com/en-us/commandline/wsl/install-win10
 
 .. # ------------------( LINKS ~ software                   )------------------
-.. _Anaconda:
-   https://www.anaconda.com/download
 .. _Appveyor:
    https://ci.appveyor.com/project/betse/betse/branch/master
-.. _conda-forge:
-   https://conda-forge.org
 .. _dill:
    https://pypi.python.org/pypi/dill
 .. _FFmpeg:
@@ -828,6 +822,14 @@ under the permissive `BSD-compatible <license compatibility_>`__ `CC BY
    https://www.virtualbox.org
 .. _YAML:
    http://yaml.org
+
+.. # ------------------( LINKS ~ software : conda           )------------------
+.. _Anaconda:
+   https://www.anaconda.com/download
+.. _Anaconda packages:
+   https://anaconda.org
+.. _conda-forge:
+   https://conda-forge.org
 
 .. # ------------------( LINKS ~ software : pyside2         )------------------
 .. _PySide2:

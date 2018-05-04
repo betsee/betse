@@ -2,13 +2,13 @@
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-
+# ....................{ IMPORTS                            }....................
 import math
 import numpy as np
 # import scipy.ndimage
-import scipy.spatial as sps
+from scipy.spatial import Delaunay, cKDTree
 
-
+# ....................{ CLASSES                            }....................
 class FiniteDiffSolver(object):
     '''
     Finite difference solver.
@@ -1351,7 +1351,7 @@ def makeMask(M,xy_pts,X,Y,delta,sensitivity=1.0):
     bpts = np.column_stack((x_bpts,y_bpts))
 
     bound_inds = boundTag(bpts,delta,alpha=sensitivity)
-    points_tree = sps.KDTree(xy_pts)
+    points_tree = cKDTree(xy_pts)
     b_inds = points_tree.query(bpts[bound_inds])[1]
 
     mm = maskM.ravel()
@@ -1384,7 +1384,7 @@ def boundTag(points,delta,alpha=1.0):
     """
     alpha = alpha/delta
 
-    tri = sps.Delaunay(points)
+    tri = Delaunay(points)
     tri_edges = []
     # circum_r_list = []
 

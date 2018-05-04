@@ -11,10 +11,8 @@ or absolute path) facilities.
 
 # ....................{ IMPORTS                            }....................
 import shutil
-
 from betse.exceptions import BetseCommandException
 from betse.util.type.types import type_check, SequenceTypes, StrOrNoneTypes
-
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -22,6 +20,15 @@ def is_pathable(command_basename: str) -> bool:
     '''
     ``True`` only if an external command with the passed basename exists (i.e.,
     corresponds to an executable file in the current ``${PATH}``).
+
+    Caveats
+    ----------
+    For safety, avoid appending the passed basename by a platform-specific
+    filetype -- especially, a Windows-specific filetype. On that platform, this
+    function iteratively appends this basename by each filetype associated with
+    executable files listed by the ``%PATHEXT%`` environment variable (e.g.,
+    ``.bat``, ``.cmd``, ``.com``, ``.exe``) until the resulting basename is that
+    of an executable file in the current ``%PATH%``.
 
     Parameters
     ----------

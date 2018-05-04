@@ -114,7 +114,8 @@ class SimRunner(object):
         sim = Simulator(self._p)
 
         # Simulation phase.
-        phase = SimPhase(kind=SimPhaseKind.SEED, cells=cells, p=self._p, sim=sim)
+        phase = SimPhase(
+            kind=SimPhaseKind.SEED, cells=cells, p=self._p, sim=sim)
 
         # Create the pseudo-randomized cell cluster.
         cells.make_world(phase)
@@ -124,27 +125,34 @@ class SimRunner(object):
 
         # Define the tissue and boundary profiles for plotting.
         phase.dyna.tissueProfiles(sim, cells, self._p)
-        cells.redo_gj(phase.dyna, self._p)  # redo gap junctions to isolate different tissue types
 
-        # make a laplacian and solver for discrete transfers on closed, irregular cell network
+        # Redo gap junctions to isolate different tissue types.
+        cells.redo_gj(phase.dyna, self._p)
+
+        # Create a Laplacian and solver for discrete transfers on closed,
+        # irregular cell network.
         cells.graphLaplacian(self._p)
 
+        #FIXME: Would shifting this logic into the cells.graphLaplacian() method
+        #called above be feasible? If not, no worries! (Granular lunar sunsets!)
         if not self._p.td_deform:  # if time-dependent deformation is not required
             cells.lapGJ = None
             cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
 
-        # make accessory matrices depending on user requirements:
+        # Create accessory matrices depending on user requirements.
         if self._p.deformation:
             cells.deform_tools(self._p)
 
         # if self._p.sim_eosmosis is True:
         #     cells.eosmo_tools(self._p)
 
-        # finish up:
+        # Finish up.
         cells.save_cluster(self._p)
+
+        # Log the completion of this phase.
         logs.log_info('Cell cluster creation complete!')
 
-        sim.sim_info_report(cells,self._p)
+        sim.sim_info_report(cells, self._p)
 
         # Return this phase.
         return phase
