@@ -43,7 +43,7 @@ class SimRunner(object):
     ----------
     _callbacks : SimCallbacksABC
         Caller-defined object whose methods are periodically called during each
-        simulation subcommand (e.g., :meth:`SimRunner.seed`).
+        simulation subcommand (e.g., to notify this caller of phase progress).
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -115,7 +115,12 @@ class SimRunner(object):
 
         # Simulation phase.
         phase = SimPhase(
-            kind=SimPhaseKind.SEED, cells=cells, p=self._p, sim=sim)
+            kind=SimPhaseKind.SEED,
+            cells=cells,
+            p=self._p,
+            sim=sim,
+            callbacks=self._callbacks,
+        )
 
         # Create the pseudo-randomized cell cluster.
         cells.make_world(phase)
@@ -257,7 +262,13 @@ class SimRunner(object):
                     "Please run 'betse seed' to try again.")
 
         # Simulation phase, created *AFTER* unpickling these objects above.
-        phase = SimPhase(kind=phase_kind, cells=cells, p=self._p, sim=sim)
+        phase = SimPhase(
+            kind=phase_kind,
+            cells=cells,
+            p=self._p,
+            sim=sim,
+            callbacks=self._callbacks,
+        )
 
         # Initialize core simulation data structures.
         sim.init_core(phase)
@@ -329,7 +340,13 @@ class SimRunner(object):
                     'Please run an initialization and try again.')
 
         # Simulation phase, created *AFTER* unpickling these objects above.
-        phase = SimPhase(kind=phase_kind, cells=cells, p=self._p, sim=sim)
+        phase = SimPhase(
+            kind=phase_kind,
+            cells=cells,
+            p=self._p,
+            sim=sim,
+            callbacks=self._callbacks,
+        )
 
         # Run and save the simulation to the cache.
         sim.sim_info_report(cells, self._p)
@@ -399,7 +416,12 @@ class SimRunner(object):
 
                 # Simulation phase.
                 phase = SimPhase(
-                    kind=phase_kind, cells=cells, p=self._p, sim=sim)
+                    kind=phase_kind,
+                    cells=cells,
+                    p=self._p,
+                    sim=sim,
+                    callbacks=self._callbacks,
+                )
 
                 # Initialize core simulation data structures.
                 sim.init_core(phase)
@@ -422,7 +444,8 @@ class SimRunner(object):
                 sim.u_env_y = np.zeros(sim.edl)
 
             else:
-                logs.log_warning("Ooops! No such cell cluster file found to load!")
+                logs.log_warning(
+                    'Ooops! No such cell cluster file found to load!')
 
                 if self._p.autoInit:
                     logs.log_info(
@@ -433,8 +456,8 @@ class SimRunner(object):
                     cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
                 else:
                     raise BetseSimException(
-                        "Run terminated due to missing seed.\n"
-                        "Please run 'betse seed' to try again.")
+                        'Run terminated due to missing seed. '
+                        'Please run "betse seed" to try again.')
         # Else if networking an initialized but unsimulated cell cluster...
         elif self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.INIT:
             if files.is_file(sim.savedInit):
@@ -472,8 +495,16 @@ class SimRunner(object):
 
         # If *NOT* defined above, define this simulation phase.
         if phase is None:
-            phase = SimPhase(kind=phase_kind, cells=cells, p=self._p, sim=sim)
-            phase.dyna.tissueProfiles(sim, cells, self._p) # Reinitialize all profiles
+            phase = SimPhase(
+                kind=phase_kind,
+                cells=cells,
+                p=self._p,
+                sim=sim,
+                callbacks=self._callbacks,
+            )
+
+            # Reinitialize all profiles.
+            phase.dyna.tissueProfiles(sim, cells, self._p)
 
         # If *NOT* restarting from a prior GRN run, start a new GRN.
         if self._p.grn_unpickle_filename is None:
@@ -537,7 +568,8 @@ class SimRunner(object):
                 #from the "sim_old.savedInit" file loaded above, in which
                 #case this local variable would be safely removable. Flagon!
 
-                # Original simulation phase.
+                # Original simulation phase. To avoid caller confusion, the
+                # optional "callbacks" parameter is intentionally *NOT* passed.
                 phase_old = SimPhase(
                     kind=phase_kind,
                     cells=cells_old,
@@ -630,7 +662,13 @@ class SimRunner(object):
                 "Ooops! No such cell cluster file found to load!")
 
         # Simulation phase, created *AFTER* unpickling these objects above
-        phase = SimPhase(kind=SimPhaseKind.SEED, cells=cells, p=self._p, sim=sim)
+        phase = SimPhase(
+            kind=SimPhaseKind.SEED,
+            cells=cells,
+            p=self._p,
+            sim=sim,
+            callbacks=self._callbacks,
+        )
 
         # Initialize core simulation data structures.
         sim.init_core(phase)
@@ -774,7 +812,13 @@ class SimRunner(object):
                 "Ooops! No such initialization file found to plot!")
 
         # Simulation phase, created *AFTER* unpickling these objects above
-        phase = SimPhase(kind=phase_kind, cells=cells, p=self._p, sim=sim)
+        phase = SimPhase(
+            kind=phase_kind,
+            cells=cells,
+            p=self._p,
+            sim=sim,
+            callbacks=self._callbacks,
+        )
 
         #FIXME: This... isn't the best. Ideally, the phase.dyna.tissueProfiles()
         #method would *ALWAYS* be implicitly called by the SimPhase.__init__()
@@ -869,7 +913,13 @@ class SimRunner(object):
         sim, cells, _ = fh.loadSim(sim.savedSim)
 
         # Simulation phase, created *AFTER* unpickling these objects above
-        phase = SimPhase(kind=phase_kind, cells=cells, p=self._p, sim=sim)
+        phase = SimPhase(
+            kind=phase_kind,
+            cells=cells,
+            p=self._p,
+            sim=sim,
+            callbacks=self._callbacks,
+        )
 
         #FIXME: This... isn't the best. Ideally, the phase.dyna.tissueProfiles()
         #method would *ALWAYS* be implicitly called by the SimPhase.__init__()
@@ -944,7 +994,13 @@ class SimRunner(object):
         MoG, cells, _ = fh.loadSim(self._p.grn_pickle_filename)
 
         # Simulation phase.
-        phase = SimPhase(kind=phase_kind, cells=cells, p=self._p, sim=sim)
+        phase = SimPhase(
+            kind=phase_kind,
+            cells=cells,
+            p=self._p,
+            sim=sim,
+            callbacks=self._callbacks,
+        )
 
         # Initialize core simulation data structures.
         sim.init_core(phase)

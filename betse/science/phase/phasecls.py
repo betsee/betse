@@ -10,6 +10,8 @@ simulation) functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimPhaseException
+from betse.science.phase.phasecallabc import (
+    SimCallbacksABCOrNoneTypes, SimCallbacksNoop)
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.util.type.types import type_check
 
@@ -32,18 +34,27 @@ class SimPhase(object):
 
     Attributes
     ----------
-    cells : betse.science.cells.Cells
-        Current simulation cell cluster.
-    dyna : betse.science.tissue.tishandler.TissueHandler
-        Current simulation tissue handler.
     kind : SimPhaseKind
-        Current simulation phase type.
+        Type of this simulation phase.
+
+    Attributes (High-level)
+    ----------
+    cells : betse.science.cells.Cells
+        Cell cluster for this phase.
+    dyna : betse.science.tissue.tishandler.TissueHandler
+        Tissue handler for this phase.
     p : betse.science.parameters.Parameters
-        Current simulation configuration.
+        Simulation configuration for this phase.
     sim : betse.science.sim.Simulator
-        Current simulation.
+        Simulation for this phase.
     cache : betse.science.phase.cache.cacheabc.SimPhaseCaches
-        Current simulation cache.
+        Simulation cache for this phase.
+
+    Attributes (Caller)
+    ----------
+    callbacks : SimCallbacksABC
+        Caller-defined object whose methods are periodically called during this
+        phase (e.g., to notify this caller of phase progress).
 
     Attributes (Path)
     ----------
@@ -58,12 +69,28 @@ class SimPhase(object):
     @type_check
     def __init__(
         self,
+
+        # Mandatory parameters.
         kind: SimPhaseKind,
 
         # Avoid circular import dependencies.
+
+        #FIXME: Refactor this into an optional parameter. If unpassed, this
+        #parameter should default to:
+        #    cells = Cells(p)
+        #Then, simplify all callers accordingly.
         cells: 'betse.science.cells.Cells',
+
         p:     'betse.science.parameters.Parameters',
+
+        #FIXME: Refactor this into an optional parameter. If unpassed, this
+        #parameter should default to:
+        #    sim = Simulator(p)
+        #Then, simplify all callers accordingly.
         sim:   'betse.science.sim.Simulator',
+
+        # Optional parameters.
+        callbacks: SimCallbacksABCOrNoneTypes = None,
     ) -> None:
         '''
         Initialize this simulation phase.
@@ -78,15 +105,26 @@ class SimPhase(object):
             Current simulation configuration.
         sim : betse.science.sim.Simulation
             Current simulation.
+        callbacks : SimCallbacksABCOrNoneTypes
+            Caller-defined object whose methods are periodically called during
+            this phase (e.g., to notify this caller of phase progress). Defaults
+            to ``None``, in which case this object defaults to an instance of
+            the :class:`SimCallbacksNoop` subclass whose methods all silently
+            reduce to noops.
         '''
 
         # Avoid circular import dependencies.
         from betse.science.math.cache.cacheabc import SimPhaseCaches
         from betse.science.tissue.tishandler import TissueHandler
 
+        # Default all unpassed parameters to sane defaults.
+        if callbacks is None:
+            callbacks = SimCallbacksNoop()
+
         # Classify all passed parameters.
-        self.kind = kind
+        self.callbacks = callbacks
         self.cells = cells
+        self.kind = kind
         self.p = p
         self.sim = sim
 

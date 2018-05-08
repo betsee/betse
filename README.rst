@@ -134,9 +134,8 @@ For new users, BETSE is portably installable as follows:
    This command installs both the `most recent stable release of BETSE <conda
    package_>`__ *and* all mandatory and most optional dependencies of this
    release. Older stable releases are installable in a similar manner (e.g.,
-   ``conda install betse=0.7.0`` to install BETSE 0.7.0). These `Anaconda
-   packages`_ are all kindly hosted by the `non-profit conda-forge organization
-   <conda-forge_>`__.
+   ``conda install betse=0.7.0`` for BETSE 0.7.0). All `Anaconda packages`_ are
+   kindly hosted by the `non-profit conda-forge organization <conda-forge_>`__.
 
 .. [#test_command]
 
@@ -147,7 +146,7 @@ For new users, BETSE is portably installable as follows:
       configuration files and resources referenced by these files.
    #. Runs all simulation phases (e.g., seed, initialization) of this simulation.
 
-   When finished, you may safely:
+   When finished, you may safely either:
    
    - Remove this subdirectory.
    - Rename this subdirectory (e.g., to ``my_sim/``) to serve as a basis for
