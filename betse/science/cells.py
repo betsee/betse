@@ -2036,10 +2036,10 @@ class Cells(object):
 
                 mem_sa = self.mem_sa[mem_ij]
 
-                # correction constant as membrane normals and segments connecting centers aren't quite parallel:
-                norm_cor = 0.5*(self.nn_tx[mem_ij]*self.mem_vects_flat[mem_ij, 2] +
-                                self.nn_ty[mem_ij]*self.mem_vects_flat[mem_ij, 3])
-                # norm_cor = 0.5
+                # # correction constant as membrane normals and segments connecting centers aren't quite parallel:
+                # norm_cor = 0.5*(self.nn_tx[mem_ij]*self.mem_vects_flat[mem_ij, 2] +
+                #                 self.nn_ty[mem_ij]*self.mem_vects_flat[mem_ij, 3])
+                norm_cor = 1.0
 
                 lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
 
