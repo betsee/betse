@@ -293,7 +293,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
         # If unpassed, default this directory to the top-level directory
         # containing all CSV files exported for this simulation phase.
         if dirname is None:
-            dirname = self._phase.save_dirname
+            dirname = self._phase.export_dirname
 
         # Create this directory if needed.
         dirs.make_unless_dir(dirname)
@@ -337,7 +337,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
         # Absolute pathname of the directory containing all CSV files
         # specifically exported by this method.
-        csv_dirname = pathnames.join(self._phase.save_dirname, csv_dir_basename)
+        csv_dirname = pathnames.join(self._phase.export_dirname, csv_dir_basename)
 
         # One-dimensional Numpy arrays of the X and Y coordinates (respectively)
         # of the centres of all cells.

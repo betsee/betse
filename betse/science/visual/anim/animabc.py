@@ -333,7 +333,7 @@ class AnimCellsABC(VisualCellsABC):
         # Path of the subdirectory to which these files will be saved,
         # creating this subdirectory and all parents thereof if needed.
         save_dirname = dirs.canonicalize_and_make_unless_dir(pathnames.join(
-            self._phase.save_dirname, save_dir_parent_basename, self._label))
+            self._phase.export_dirname, save_dir_parent_basename, self._label))
 
         # If saving animation frames as images, prepare to do so.
         if anim_config.is_images_save:

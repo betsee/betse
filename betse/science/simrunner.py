@@ -69,9 +69,8 @@ class SimRunner(object):
         callbacks : SimCallbacksABCOrNoneTypes
             Caller-defined object whose methods are periodically called during
             each simulation subcommand (e.g., :meth:`SimRunner.seed`). Defaults
-            to ``None``, in which case this object defaults to an instance of
-            the :class:`SimCallbacksNoop` subclass whose methods all silently
-            reduce to noops.
+            to ``None``, in which case this defaults to a placeholder object
+            whose methods all silently reduce to noops.
 
         Raises
         ----------
@@ -109,55 +108,46 @@ class SimRunner(object):
         # Log this attempt.
         logs.log_info('Seeding simulation...')
 
-        # High-level simulation objects.
-        cells = Cells(self._p)
-        sim = Simulator(self._p)
-
         # Simulation phase.
         phase = SimPhase(
-            kind=SimPhaseKind.SEED,
-            cells=cells,
-            p=self._p,
-            sim=sim,
-            callbacks=self._callbacks,
-        )
+            kind=SimPhaseKind.SEED, p=self._p, callbacks=self._callbacks)
 
         # Create the pseudo-randomized cell cluster.
-        cells.make_world(phase)
+        phase.cells.make_world(phase)
 
         # Initialize core simulation data structures.
-        sim.init_core(phase)
+        phase.sim.init_core(phase)
 
         # Define the tissue and boundary profiles for plotting.
-        phase.dyna.tissueProfiles(sim, cells, self._p)
+        phase.dyna.tissueProfiles(phase.sim, phase.cells, self._p)
 
         # Redo gap junctions to isolate different tissue types.
-        cells.redo_gj(phase.dyna, self._p)
+        phase.cells.redo_gj(phase.dyna, self._p)
 
         # Create a Laplacian and solver for discrete transfers on closed,
         # irregular cell network.
-        cells.graphLaplacian(self._p)
+        phase.cells.graphLaplacian(self._p)
 
         #FIXME: Would shifting this logic into the cells.graphLaplacian() method
         #called above be feasible? If not, no worries! (Granular lunar sunsets!)
         if not self._p.td_deform:  # if time-dependent deformation is not required
-            cells.lapGJ = None
-            cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
+            phase.cells.lapGJ = None
+            phase.cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
 
         # Create accessory matrices depending on user requirements.
         if self._p.deformation:
-            cells.deform_tools(self._p)
+            phase.cells.deform_tools(self._p)
 
         # if self._p.sim_eosmosis is True:
-        #     cells.eosmo_tools(self._p)
+        #     phase.cells.eosmo_tools(self._p)
 
         # Finish up.
-        cells.save_cluster(self._p)
+        phase.cells.save_cluster(self._p)
 
         # Log the completion of this phase.
         logs.log_info('Cell cluster creation complete!')
 
-        sim.sim_info_report(cells, self._p)
+        phase.sim.sim_info_report(phase.cells, self._p)
 
         # Return this phase.
         return phase

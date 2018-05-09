@@ -397,6 +397,7 @@ class Simulator(object):
         arrays over all time steps.
     '''
 
+    # ..................{ INITIALIZORS                       }..................
     # Avoid circular import dependencies.
     @type_check
     def __init__(self, p: 'betse.science.parameters.Parameters') -> None:

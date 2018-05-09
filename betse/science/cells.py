@@ -26,7 +26,7 @@ from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockw
 from betse.science.math.geometry.polygon.geopoly import orient_counterclockwise
 
 # ....................{ CLASSES                            }....................
-# FIXME create a new option for seed points: Fibonacci radial-spiral array
+#FIXME: Create a new option for seed points: Fibonacci radial-spiral array.
 class Cells(object):
     '''
     High-level tissue simulation object encapsulating the cell population.
@@ -338,7 +338,7 @@ class Cells(object):
         attribute (replacing "cell" with "Voronoi region").
     '''
 
-
+    # ..................{ INITIALIZORS                       }..................
     # Avoid circular import dependencies.
     @type_check
     def __init__(self, p: 'betse.science.parameters.Parameters') -> None:

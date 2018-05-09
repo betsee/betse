@@ -18,7 +18,7 @@ and :func:`instanceof`\ -friendly tuples of such types *and* the pivotal
 # third-party packages.)
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import inspect, re
+import inspect, logging, re
 from argparse import ArgumentParser, _SubParsersAction
 from collections.abc import (
     Container,
@@ -316,6 +316,14 @@ enumeration's type and should be directly referenced as such: e.g.,
 ModuleOrStrTypes = (str, ModuleType)
 '''
 Tuple of both the module *and* string type.
+'''
+
+
+CheckableMemberTypes = (ClassType, str)
+'''
+Tuple of all **checkable member types** (i.e., types suitable for use as the
+members of function annotations type-checked via the :func:`type_check`
+decorator).
 '''
 
 
@@ -744,26 +752,26 @@ if __debug__:
         This decorator performs rudimentary type checking based on Python 3.x
         function annotations, as officially documented by PEP 484 ("Type
         Hints"). While PEP 484 supports arbitrarily complex type composition,
-        this decorator requires _all_ parameter and return value annotations to
+        this decorator requires *all* parameter and return value annotations to
         be either:
 
-        * Classes (e.g., `int`, `OrderedDict`).
-        * Tuples of classes (e.g., `(int, OrderedDict)`).
+        * Classes (e.g., :class:`int`, :class:`OrderedDict`).
+        * Tuples of classes (e.g., ``(int, OrderedDict)``).
 
         If optimizations are enabled by the active Python interpreter (e.g.,
-        due to option `-O` passed to this interpreter), this decorator reduces
+        due to option ``-O`` passed to this interpreter), this decorator reduces
         to a noop.
 
         Raises
         ----------
         NameError
-            If any parameter has the reserved name `__beartype_func`.
+            If any parameter has the reserved name ``__beartype_func``.
         TypeError
             If either:
             * Any parameter or return value annotation is neither:
               * A type.
               * A tuple of types.
-            * The kind of any parameter is unrecognized. This should _never_
+            * The kind of any parameter is unrecognized. This should *never*
               happen, assuming no significant changes to Python semantics.
         '''
 
@@ -818,11 +826,12 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
                     'Parameter {} reserved for use by @type_check.'.format(
                         func_arg.name))
 
-            # Value of this annotation.
+            # Annotation for this parameter if any *OR* "Parameter.empty"
+            # otherwise (i.e., if this parameter is unannotated).
             func_arg_annotation = func_arg.annotation
 
-            # If this parameter is both annotated and non-ignorable for
-            # purposes of type checking, type check this parameter.
+            # If this parameter is annotated and non-ignorable for purposes of
+            # type checking, type check this parameter with this annotation.
             if (func_arg_annotation is not Parameter.empty and
                 func_arg.kind not in _PARAMETER_KIND_IGNORED):
                 # Human-readable label describing this annotation.
@@ -844,18 +853,15 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
                 # passed as a keyword.
                 func_arg_value_key_expr = 'kwargs[{!r}]'.format(func_arg.name)
 
-                # If this annonation's value is a string, replace this value
-                # with the value of the module attribute whose fully-qualified
-                # name is this string.
-                if isinstance(func_arg_annotation, str):
-                    func_body += (
-                        _get_code_setting_annotation_to_module_attr(
-                            annotation_expr=func_arg_type_expr,
-                            annotation_label=func_arg_annotation_label,
-                            module_attr_name=func_arg_annotation,))
+                # Replace all classnames in this annotation by the corresponding
+                # classes.
+                func_body += _get_code_replacing_annotation_by_types(
+                    annotation=func_arg_annotation,
+                    annotation_expr=func_arg_type_expr,
+                    annotation_label=func_arg_annotation_label,)
 
                 # If this parameter is actually a tuple of positional variadic
-                # parameters, iteratively check all such parameters.
+                # parameters, iteratively check these parameters.
                 if func_arg.kind is Parameter.VAR_POSITIONAL:
                     func_body += '''
     for __beartype_arg in args[{arg_index!r}:]:
@@ -934,16 +940,16 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
             # currently passed value, as above.
             func_return_type_expr = (
                 "__beartype_func.__annotations__['return']")
+#             func_body += '''
+#     print('Return annotation: {{}}'.format({func_return_type_expr}))
+# '''.format(func_return_type_expr=func_return_type_expr)
 
-            # If this annonation's value is a string, replace this value with
-            # the value of the module attribute whose fully-qualified name is
-            # this string.
-            if isinstance(func_return_annotation, str):
-                func_body += (
-                    _get_code_setting_annotation_to_module_attr(
-                        annotation_expr=func_return_type_expr,
-                        annotation_label=func_return_annotation_label,
-                        module_attr_name=func_return_annotation,))
+            # Replace all classnames in this annotation by the corresponding
+            # classes.
+            func_body += _get_code_replacing_annotation_by_types(
+                annotation=func_return_annotation,
+                annotation_expr=func_return_type_expr,
+                annotation_label=func_return_annotation_label,)
 
             # Call this callable, type check the returned value, and return
             # this value from this wrapper.
@@ -966,7 +972,7 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
         # copied from the current namespace. (See below.)
         local_attrs = {'__beartype_func': func}
 
-        # Dynamically define this wrapper as a closure of this decorator. For
+        # Attempt to define this wrapper as a closure of this decorator. For
         # obscure and presumably uninteresting reasons, Python fails to locally
         # declare this closure when the locals() dictionary is passed; to
         # capture this closure, a local dictionary must be passed instead.
@@ -983,8 +989,20 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
         #
         # Since doing so is both more verbose and obfuscatory for no tangible
         # gain, the current circumspect approach is preferred.
-        # print('\n{} wrapper: {}'.format(func_name, func_body))
-        exec(func_body, globals(), local_attrs)
+        try:
+            # print('@type_check {}() wrapper\n{}'.format(func_name, func_body))
+            exec(func_body, globals(), local_attrs)
+        # If doing so fails for any reason...
+        except Exception:
+            # Log the body of this function for debugging purposes. To avoid
+            # circular import dependencies, the low-level "logging" API is
+            # accessed directly here.
+            logging.error(
+                '@type_check %s() wrapper unparseable:\n%s',
+                func_name, func_body)
+
+            # Re-raise this exception.
+            raise
 
         # Return this wrapper.
         return local_attrs['func_type_checked']
@@ -996,87 +1014,230 @@ else:
         return func
 
 
-# Due to chicken-and-egg issues, this implementation duplicates rather than
-# defers to similar functions in the "betse.util.py.modules" submodule.
-def _get_code_setting_annotation_to_module_attr(
+def _get_code_replacing_annotation_by_types(
+    annotation: object,
     annotation_expr: str,
     annotation_label: str,
-    module_attr_name: str,
 ) -> object:
     '''
-    Block of valid Python code dynamically replacing the value of the function
-    annotation with the first passed name with the value of the module
-    attribute with the second passed name.
+    Block of Python code replacing all classnames in the function annotation
+    settable by the passed Python expression with the corresponding classes.
+
+    Specifically:
+
+    * If this annotation is a string, this function returns a block replacing
+      this annotation with the class whose name is this string.
+    * If this annotation is a tuple containing one or more strings, this
+      function returns a block replacing this annotation with a new tuple such
+      that each member of the original tuple that is:
+
+      * A string is replaced with the class whose name is this string.
+      * A class is preserved as is.
+
+    * Else, this function returns the empty string reducing to a noop.
 
     Parameters
     ----------
+    annotation : object
+        Annotation to be inspected, assumed to be either a class,
+        fully-qualified classname, or tuple of classes and/or classnames. Since
+        the previously called :func`_check_type_annotation` function already
+        validates this to be the case, this assumption is guaranteed to be safe.
     annotation_expr : str
         Python expression evaluating to the annotation to be replaced.
     annotation_label : str
         Human-readable label describing this annotation, interpolated into
         exceptions raised by this function.
-    module_attr_name : str
-        Fully-qualified `.`-delimited name of the module attribute to retrieve
-        (e.g., `betse.science.sim.Simulator`). This name _must_ contain at
-        least one `.`. The substring of this name:
-        * Preceding the last `.` signifies the fully-qualified name of the
-          module containing this attribute (e.g., `betse.science.sim`).
-        * Following the last `.` signifies the unqualified basename of this
-          attribute in this module (e.g., `Simulator`).
     '''
     assert isinstance(annotation_expr, str), (
-        '"{}" not a string.'.format(annotation_expr))
+        '"{!r}" not a string.'.format(annotation_expr))
     assert isinstance(annotation_label, str), (
-        '"{}" not a string.'.format(annotation_label))
-    assert isinstance(module_attr_name, str), (
-        '"{}" not a string.'.format(module_attr_name))
+        '"{!r}" not a string.'.format(annotation_label))
 
-    # Fully-qualified module name and unqualified attribute basename split
-    # from the passed fully-qualified module attribute name. (It is good.)
-    #
-    # Note that, if the passed string erroneously contains no "." delimiters
-    # and hence is *NOT* a fully-qualified module attribute name, the
-    # str.rsplit() method silently returns a list whose single element is this
-    # string as is rather than raising an exception. While such behaviour would
-    # typically be bad, the previously called _check_type_annotation() function
-    # has already guaranteed this string to contain at least one "." delimiter.
-    # Ergo, we're guaranteed good here.
-    module_name, attr_name = module_attr_name.rsplit(sep='.', maxsplit=1)
+    #FIXME: Validate that all classnames are valid Python identifiers *BEFORE*
+    #generating code embedding these classnames. Sadly, doing so will require
+    #duplicating existing "betse.util.py.pyident" code.
 
-    # Return the desired block of Python code.
-    return '''
-    # If this annotation's value is still a string, this value has yet to be
-    # replaced with the value of the module attribute whose fully-qualified
-    # name is this attribute, implying this to be the first call to this
-    # callable. In this, perform this replacement, ensuring that no subsequent
-    # calls to this callable are required to do so.
-    if isinstance({annotation_expr}, str):
+    # If this annotation is a classname...
+    if is_str(annotation):
+        # Import statement importing the module defining this class if any
+        # (i.e., if this classname contains at least one ".") *OR* the empty
+        # string otherwise (i.e., if this class is a builtin type requiring no
+        # explicit importation).
+        annotation_type_import_code = ''
+
+        # If this classname contains at least one "." delimiter...
+        if '.' in annotation:
+            # Fully-qualified module name and unqualified attribute basename
+            # parsed from this classname. It is good.
+            annotation_type_module_name, annotation_type_basename = (
+                annotation.rsplit(sep='.', maxsplit=1))
+
+        # print('Importing "{annotation_type_module_name}.{annotation_type_basename}"...')
+            # Import statement importing this module.
+            annotation_type_import_code = '''
         # Attempt to import this attribute from this module, implicitly
         # raising a human-readable "ImportError" exception on failure.
-        from {module_name} import {attr_name}
+        from {annotation_type_module_name} import {annotation_type_basename}
+'''.format(
+                annotation_type_module_name=annotation_type_module_name,
+                annotation_type_basename=annotation_type_basename,
+            )
+        # Else, this classname contains *NO* "." delimiters and hence signifies
+        # a builtin type (e.g., "int"). In this case, the unqualified basename
+        # of this this type is simply its classname.
+        else:
+            annotation_type_basename = annotation
 
-        # Validate this attribute to be either a new-style class or tuple of
-        # such classes, preventing this attribute from being yet another
-        # string. (The recursion ends here, folks.)
+        # Block of Python code to be returned.
+        return '''
+    # If this annotation is still a classname, this annotation has yet to be
+    # replaced by the corresponding class, implying this to be the first call to
+    # this callable. Perform this replacement in this call, preventing
+    # subsequent calls to this callable from repeatedly doing so.
+    if isinstance({annotation_expr}, str):
+        {annotation_type_import_code}
+
+        # Validate this class to be either a class or tuple of classes,
+        # preventing this attribute from being yet another classname. (The
+        # recursion definitively ends here, folks.)
         _check_type_annotation(
-            annotation={attr_name},
+            annotation={annotation_type_basename},
             annotation_label={annotation_label!r},
             is_str_valid=False,
         )
 
-        # Replace the external copy of this annotation stored with this
-        # function's signature by the value of the module attribute whose
-        # fully-qualified name is the value of this annotation -- guaranteeing
-        # that subsequent access of this annotation via
-        # "__beartype_func.__annotations__" accesses the expected type rather
-        # than this type's name.
-        {annotation_expr} = {attr_name}
-    '''.format(
-        annotation_expr=annotation_expr,
-        annotation_label=annotation_label,
-        module_name=module_name,
-        attr_name=attr_name,
-    )
+        # Replace the external copy of this annotation stored in this function's
+        # signature by this class -- guaranteeing that subsequent access of this
+        # annotation via "__beartype_func.__annotations__" accesses this class
+        # rather than this classname.
+        {annotation_expr} = {annotation_type_basename}
+'''.format(
+            annotation_expr=annotation_expr,
+            annotation_label=annotation_label,
+            annotation_type_basename=annotation_type_basename,
+            annotation_type_import_code=annotation_type_import_code,
+        )
+    # Else if this annotation is a tuple containing one or more classnames...
+    elif isinstance(annotation, tuple):
+        # Tuple of the indices of all classnames in this annotation.
+        annotation_type_name_indices = tuple(
+            subannotation_index
+            for subannotation_index, subannotation in enumerate(annotation)
+            if is_str(subannotation)
+        )
+
+        # If this annotation contains no classnames, this annotation requires no
+        # replacement at runtime. Return the empty string signifying a noop.
+        if not annotation_type_name_indices:
+            return ''
+        # Else, this annotation contains one or more classnames...
+
+        # String evaluating to the first classname in this annotation.
+        subannotation_type_name_expr = '{}[{}]'.format(
+            annotation_expr, annotation_type_name_indices[0])
+
+        # Block of Python code to be returned.
+        #
+        # Note that this approach is mildly inefficient, due to the
+        # need to manually construct a list to be converted into the
+        # desired tuple. Due to subtleties, this approach cannot be
+        # reasonably optimized by directly producing the desired
+        # tuple without an intermediary tuple. Why? Because this
+        # approach trivially circumvents class basename collisions
+        # (e.g., between the hypothetical classnames "rising.Sun"
+        # and "sinking.Sun", which share the same basename "Sun").
+        annotation_replacement_code = '''
+    # If the first classname in this annotation is still a classname, this
+    # annotation has yet to be replaced by a tuple containing classes rather
+    # than classnames, implying this to be the first call to this callable.
+    # Perform this replacement in this call, preventing subsequent calls to this
+    # callable from repeatedly doing so.
+    if isinstance({subannotation_type_name_expr}, str):
+        # List replacing all classnames in this tuple with the classes with
+        # these classnames with which this tuple will be subsequently replaced.
+        __beartype_func_annotation_list = []
+'''.format(subannotation_type_name_expr=subannotation_type_name_expr)
+
+        # For the 0-based index of each member and that member of this
+        # annotation...
+        for subannotation_index, subannotation in enumerate(annotation):
+            # String evaluating to this member's annotated type.
+            subannotation_expr = '{}[{}]'.format(
+                annotation_expr, subannotation_index)
+
+            # If this member is a classname...
+            if is_str(subannotation):
+                # If this classname contains at least one "." delimiter...
+                #
+                # Note that the following logic is similar to but subtly
+                # different enough from similar logic above that the two cannot
+                # reasonably be unified into a general-purpose utility function.
+                if '.' in subannotation:
+                    # Fully-qualified module name and unqualified attribute basename
+                    # parsed from this classname. It is good.
+                    subannotation_type_module_name, \
+                    subannotation_type_basename = (
+                        subannotation.rsplit(sep='.', maxsplit=1))
+
+                    # Import statement importing this module.
+                    annotation_replacement_code += '''
+        # Attempt to import this attribute from this module, implicitly
+        # raising a human-readable "ImportError" exception on failure.
+        from {subannotation_type_module_name} import {subannotation_type_basename}
+'''.format(
+                subannotation_type_module_name=subannotation_type_module_name,
+                subannotation_type_basename=subannotation_type_basename,
+            )
+                # Else, this classname contains *NO* "." delimiters and hence
+                # signifies a builtin type (e.g., "int"). In this case, the
+                # unqualified basename of this this type is its classname.
+                else:
+                    subannotation_type_basename = subannotation
+
+                # Block of Python code to be returned.
+                annotation_replacement_code += '''
+        # Validate this member to be a class, preventing this member from being
+        # yet another classname or tuple of classes and/or classnames. (The
+        # recursion definitively ends here, folks.)
+        if not isinstance({subannotation_type_basename}, type):
+            raise TypeError(
+                '{annotation_label} tuple member {{}} not a class.'.format(
+                    {subannotation_type_basename}))
+
+        # Append this class to this list.
+        __beartype_func_annotation_list.append({subannotation_type_basename})
+'''.format(
+    annotation_label=annotation_label,
+    subannotation_type_basename=subannotation_type_basename,
+)
+            # Else, this member is assumed to be a class. In this case...
+            else:
+                # Block of Python code to be returned.
+                annotation_replacement_code += '''
+        # Append this class copied from the original tuple to this list.
+        __beartype_func_annotation_list.append({subannotation_expr})
+'''.format(subannotation_expr=subannotation_expr)
+
+        # Block of Python code to be returned.
+        annotation_replacement_code += '''
+        # Replace the external copy of this annotation stored in this function's
+        # signature by this list coerced back into a tuple for conformance with
+        # isinstance() constraints -- guaranteeing that subsequent access of
+        # this annotation via "__beartype_func.__annotations__" accesses this
+        # class rather than this classname.
+        {annotation_expr} = tuple(__beartype_func_annotation_list)
+
+        # Nullify this list for safety.
+        __beartype_func_annotation_list = None
+'''.format(annotation_expr=annotation_expr)
+
+        # Return this block.
+        return annotation_replacement_code
+    # Else, this annotation requires no replacement at runtime. In this case,
+    # return the empty string signifying a noop.
+    else:
+        return ''
 
 
 def _check_type_annotation(
@@ -1086,7 +1247,7 @@ def _check_type_annotation(
 ) -> None:
     '''
     Validate the passed annotation to be a valid type supported by the
-    `@type_check` decorator.
+    :func:`type_check` decorator.
 
     Parameters
     ----------
@@ -1097,43 +1258,42 @@ def _check_type_annotation(
         exceptions raised by this function.
     is_str_valid : optional[bool]
         ``True`` only if this function accepts string annotations as valid.
-        Defaults to `True`. If this boolean is:
-        * `True`, this annotation is valid if this annotation's value is either
-          a new-style class, tuple of such classes, or string containing one or
-          more `.` characters.
-        * `False`, this annotation is valid if this annotation's value is
-          either a new-style class or tuple of such classes.
+        Defaults to ``True``. If this boolean is:
+
+        * ``True``, this annotation is valid if this annotation's value is
+          either a class, fully-qualified ``.``-delimited classname, or tuple of
+          classes and/or classnames.
+
+        * ``False``, this annotation is valid if this annotation's value is
+          either a class or tuple of classes.
 
     Raises
     ----------
     TypeError
         If this annotation is none of the following:
-        * A new-style class.
-        * A tuple of new-style classes.
-        * A **fully-qualified module attribute name** (i.e., string containing
-          at least one `.` delimiter, such that the substring of this string:
-          * Preceding the last `.` signifies the fully-qualified name of the
-            module containing this attribute (e.g., `betse.science.sim`).
-          * Following the last `.` signifies the unqualified basename of this
-            attribute in this module (e.g., `Simulator`).
+        * A class.
+        * A fully-qualified classname.
+        * A tuple of classes and/or classnames.
     '''
 
-    # If this annotation is a new-style class, no further validation is needed.
-    if is_class_new(annotation):
+    # If this annotation is a class, no further validation is needed.
+    if is_class(annotation):
         pass
-    # If this annotation is a tuple, raise an exception unless all members of
-    # this tuple are new-style classes.
-    elif isinstance(annotation, tuple):
-        for member in annotation:
-            if not is_class_new(member):
-                raise TypeError(
-                    '{} tuple member {} not a new-style class.'.format(
-                        annotation_label, member))
-    # If this function accepts string annotations as valid...
+    # Else, this annotation is *NOT* a class.
+    #
+    # If string annotations are acceptable...
     elif is_str_valid:
-        # If this annotation is a string, raise an exception unless this name
-        # contains at least one "." delimiter and thus superficially appears to
-        # be a fully-qualified module attribute name.
+        # If this annotation is a tuple...
+        if isinstance(annotation, tuple):
+            # If any member of this tuple is neither a class nor string, raise
+            # an exception.
+            for subannotation in annotation:
+                if not isinstance(subannotation, CheckableMemberTypes):
+                    raise TypeError(
+                        '{} tuple member {} neither a class nor '
+                        'fully-qualified classname.'.format(
+                            annotation_label, subannotation))
+        # Else if this annotation is *NOT* a string, raise an exception.
         #
         # Ideally, this function would also validate this module to be
         # importable and contain this attribute. Unfortunately, string
@@ -1142,33 +1302,32 @@ def _check_type_annotation(
         # usually transitively rather than directly). Validating this module to
         # be importable and contain this attribute would necessitate importing
         # this module here. Since the @type_check decorator calling this
-        # function is typically invoked via the global scope of a source
-        # module, however, importing this target module here would be
-        # functionally equivalent to importing that target module from that
-        # source module -- triggering a circular import dependency in
-        # susceptible source modules. Ergo, such validation *MUST* be deferred
-        # to function call time.
-        if isinstance(annotation, str):
-            # If this name contains no "." delimiter, raise an exception.
-            if '.' not in annotation:
-                raise TypeError(
-                    '{} {} not a fully-qualified module attribute name '
-                    '(i.e., contains no "." delimiter).'.format(
-                        annotation_label, annotation))
-        # Else, this annotation is of unsupported type. Raise an exception.
-        else:
+        # function is typically invoked via the global scope of a source module,
+        # importing this target module here would be functionally equivalent to
+        # importing that target module from that source module -- triggering a
+        # circular import dependency in susceptible source modules. Ergo, that
+        # validation *MUST* be deferred to function call time.
+        elif not is_str(annotation):
             raise TypeError(
-                '{} {} unsupported (i.e., neither a '
-                'new-style class, '
-                'tuple of such classes, nor '
-                'fully-qualified module attribute name).'.format(
+                '{} {} unsupported (i.e., neither a class, '
+                'fully-qualified classname, nor '
+                'tuple of classes and/or classnames).'.format(
                     annotation_label, annotation))
+    # Else, string annotations are unacceptable.
+    #
+    # If this annotation is a tuple...
+    elif isinstance(annotation, tuple):
+        # If any members of this tuple is *NOT* a class, raise an exception.
+        for subannotation in annotation:
+            if not is_class(subannotation):
+                raise TypeError(
+                    '{} tuple member {} not a class.'.format(
+                        annotation_label, subannotation))
     # Else, this annotation is of unsupported type. Raise an exception.
     else:
         raise TypeError(
-            '{} {} unsupported (i.e., neither a '
-            'new-style class nor '
-            'tuple of such classes).'.format(annotation_label, annotation))
+            '{} {} unsupported (i.e., neither a class nor '
+            'tuple of classes).'.format(annotation_label, annotation))
 
 # ....................{ OBSOLETE                           }....................
 #FIXME: *ALL OF THE FOLLOWING FUNCTIONALITY SHOULD EVENTUALLY BE REMOVED.* The
@@ -1213,20 +1372,6 @@ def is_class(obj: object) -> bool:
     '''
 
     return isinstance(obj, ClassType)
-
-
-#FIXME: Nonsense! Remove. There are only new-style classes in Python 3.x.
-
-# Note that this function is an unavoidable duplicate of the
-# betse.util.type.classes.is_new() function. Why? Because this function is
-# required by the type_check decorator itself required by that function. Minor
-# code duplication is a negligible price to pay for type check validation.
-def is_class_new(obj: object) -> bool:
-    '''
-    ``True`` only if the passed class is a new- rather than old-style class.
-    '''
-
-    return is_class(obj)
 
 # ....................{ TESTERS ~ collection               }....................
 def is_mapping(obj: object) -> bool:

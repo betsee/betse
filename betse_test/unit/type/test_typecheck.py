@@ -17,7 +17,7 @@ from random import Random
 def test_type_check_noop() -> None:
     '''
     Test type checking for a function with no function annotations, reducing to
-    _no_ type checking.
+    *no* type checking.
     '''
 
     # Import this decorator.
@@ -88,9 +88,10 @@ def test_type_check_pass_param_tuple() -> None:
     # Import this decorator.
     from betse.util.type.types import type_check
 
-    # Function to be type checked.
+    # Function to be type checked. For completeness, test both an actual class
+    # *AND* a the fully-qualified name of a class in this tuple annotation.
     @type_check
-    def genestealer(tyranid: str, hive_fleet: (str, int)) -> str:
+    def genestealer(tyranid: str, hive_fleet: (str, 'int')) -> str:
         return tyranid + str(hive_fleet)
 
     # Call this function with each of the two types listed in the above tuple.
@@ -149,7 +150,7 @@ def test_type_check_pass_param_str() -> None:
 # ....................{ TESTS ~ pass : return              }....................
 def test_type_check_pass_return_none() -> None:
     '''
-    Test type checking for a function call successfully returning `None` and
+    Test type checking for a function call successfully returning ``None`` and
     annotated as such.
     '''
 
@@ -159,7 +160,7 @@ def test_type_check_pass_return_none() -> None:
     # Function to be type checked.
     @type_check
     def xenos(interex: str, diasporex: str) -> None:
-        interex + diasporex
+        print(interex + diasporex)
 
     # Call this function and assert no value to be returned.
     assert xenos(
@@ -321,14 +322,6 @@ def test_type_check_fail_annotation_param_str() -> None:
     from betse.util.type.types import type_check
 
     # Assert the expected exception from attempting to type check a function
-    # with a string parameter annotation that is not "."-delimited and hence not
-    # the fully-qualified name of a module attribute.
-    with pytest.raises(TypeError):
-        @type_check
-        def wolves_of_horus(champion: str, chaos_lord: 'random') -> str:
-            return champion + chaos_lord
-
-    # Assert the expected exception from attempting to type check a function
     # with a string parameter annotation referencing an unimportable module.
     with pytest.raises(ImportError):
         @type_check
@@ -373,8 +366,8 @@ def test_type_check_fail_annotation_return() -> None:
     from betse.util.type.types import type_check
 
     # Assert the expected exception from attempting to type check a function
-    # with a return annotation that is *NOT* a type.
+    # with a return annotation that is *NOT* a supported type.
     with pytest.raises(TypeError):
         @type_check
-        def tzeentch(disc: str, lord_of_change: str) -> 'Player of Games':
-            return disc + lord_of_change
+        def tzeentch(disc: str, lord_of_change: str) -> ['Player of Games',]:
+            return 0xB16B00B5

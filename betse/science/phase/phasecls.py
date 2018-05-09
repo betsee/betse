@@ -13,7 +13,7 @@ from betse.exceptions import BetseSimPhaseException
 from betse.science.phase.phasecallabc import (
     SimCallbacksABCOrNoneTypes, SimCallbacksNoop)
 from betse.science.phase.phaseenum import SimPhaseKind
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, NoneType
 
 # ....................{ CLASSES                            }....................
 class SimPhase(object):
@@ -58,7 +58,7 @@ class SimPhase(object):
 
     Attributes (Path)
     ----------
-    save_dirname : StrOrNoneTypes
+    export_dirname : StrOrNoneTypes
         Absolute path of the top-level directory containing all exported results
         (e.g., plots, animations, CSVs) for this simulation phase if this phase
         is either an initialization or simulation *or* ``None`` otherwise (i.e.,
@@ -72,24 +72,11 @@ class SimPhase(object):
 
         # Mandatory parameters.
         kind: SimPhaseKind,
-
-        # Avoid circular import dependencies.
-
-        #FIXME: Refactor this into an optional parameter. If unpassed, this
-        #parameter should default to:
-        #    cells = Cells(p)
-        #Then, simplify all callers accordingly.
-        cells: 'betse.science.cells.Cells',
-
         p:     'betse.science.parameters.Parameters',
 
-        #FIXME: Refactor this into an optional parameter. If unpassed, this
-        #parameter should default to:
-        #    sim = Simulator(p)
-        #Then, simplify all callers accordingly.
-        sim:   'betse.science.sim.Simulator',
-
         # Optional parameters.
+        cells: ('betse.science.cells.Cells', NoneType) = None,
+        sim:   ('betse.science.sim.Simulator', NoneType) = None,
         callbacks: SimCallbacksABCOrNoneTypes = None,
     ) -> None:
         '''
@@ -99,27 +86,34 @@ class SimPhase(object):
         ----------
         kind : SimPhaseKind
             Current simulation phase type.
-        cells : betse.science.cells.Cells
-            Current cell cluster.
         p : betse.science.parameters.Parameters
             Current simulation configuration.
-        sim : betse.science.sim.Simulation
-            Current simulation.
+        cells : (betse.science.cells.Cells, NoneType)
+            Current cell cluster. Defaults to ``None``, in which case this
+            defaults to the empty cell cluster for this configuration.
+        sim : (betse.science.sim.Simulation, NoneType)
+            Current simulation. Defaults to ``None``, in which case this
+            defaults to an uninitialized simulation for this configuration.
         callbacks : SimCallbacksABCOrNoneTypes
             Caller-defined object whose methods are periodically called during
             this phase (e.g., to notify this caller of phase progress). Defaults
-            to ``None``, in which case this object defaults to an instance of
-            the :class:`SimCallbacksNoop` subclass whose methods all silently
-            reduce to noops.
+            to ``None``, in which case this defaults to a placeholder object
+            whose methods all silently reduce to noops.
         '''
 
         # Avoid circular import dependencies.
+        from betse.science.cells import Cells
         from betse.science.math.cache.cacheabc import SimPhaseCaches
+        from betse.science.sim import Simulator
         from betse.science.tissue.tishandler import TissueHandler
 
         # Default all unpassed parameters to sane defaults.
         if callbacks is None:
             callbacks = SimCallbacksNoop()
+        if cells is None:
+            cells = Cells(p=p)
+        if sim is None:
+            sim = Simulator(p=p)
 
         # Classify all passed parameters.
         self.callbacks = callbacks
@@ -154,21 +148,20 @@ class SimPhase(object):
         self.cache = SimPhaseCaches(self)
         self.dyna = TissueHandler(p)
 
-        #FIXME: Rename the "save_dirname" variable to "export_dirname".
         #FIXME: Isolate exports produced by the "seed" phase to their own
         #directory; for simplicity, these exports currently reuse the same
         #directory as that of the "init" phase.
 
         # Absolute path of the top-level exports directory for this phase.
         if kind is SimPhaseKind.SEED:
-            self.save_dirname = p.init_export_dirname
+            self.export_dirname = p.init_export_dirname
         elif kind is SimPhaseKind.INIT:
-            self.save_dirname = p.init_export_dirname
+            self.export_dirname = p.init_export_dirname
         elif kind is SimPhaseKind.SIM:
-            self.save_dirname = p.sim_export_dirname
+            self.export_dirname = p.sim_export_dirname
         else:
             raise BetseSimPhaseException(
-                'Simulation phase {} unrecognized.'.format(kind.name))
+                'Simulation phase "{}" unrecognized.'.format(kind.name))
 
     # ..................{ EXCEPTIONS                         }..................
     @type_check

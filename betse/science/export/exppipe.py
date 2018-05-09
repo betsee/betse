@@ -63,4 +63,4 @@ def pipeline(phase: SimPhase) -> None:
     AnimCellsPipe(phase).run()
 
     # Log the directory to which all results were exported.
-    logs.log_info('Results exported to: %s', phase.save_dirname)
+    logs.log_info('Results exported to: %s', phase.export_dirname)

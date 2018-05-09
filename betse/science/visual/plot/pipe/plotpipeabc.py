@@ -91,7 +91,7 @@ class PlotPipeABC(SimPipeExportABC):
         # If saving post-simulation plots...
         if self._phase.p.plot.is_after_sim_save:
             # Create the top-level directory containing these plots if needed.
-            dirs.make_unless_dir(self._phase.save_dirname)
+            dirs.make_unless_dir(self._phase.export_dirname)
 
     # ..................{ SUPERCLASS                         }..................
     @property
@@ -169,7 +169,7 @@ class PlotPipeABC(SimPipeExportABC):
             basename = 'fig_{}.{}'.format(basename, filetype)
 
             # Absolute path of the file to be saved.
-            filename = pathnames.join(self._phase.save_dirname, basename)
+            filename = pathnames.join(self._phase.export_dirname, basename)
 
             # Log this saving attempt.
             logs.log_debug('Saving plot: %s', filename)

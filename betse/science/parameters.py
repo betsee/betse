@@ -398,6 +398,19 @@ class Parameters(YamlFileABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
+        #FIXME: The following should also be performed by the unload() method,
+        #suggesting that this logic should be shifted there and the unload()
+        #method then explicitly called -- perhaps by our superclass?
+
+        # Nullify all instance variables for safety.
+        self.grn_pickle_dirname = None
+        self.grn_pickle_filename = None
+        self.grn_unpickle_filename = None
+        self.init_export_dirname = None
+        self.init_pickle_dirname = None
+        self.sim_export_dirname = None
+        self.sim_pickle_dirname = None
+
         # Classify unloaded tissue and cut profiles.
         self.cut_profiles = SimConfCutListItem.make_list()
         self.tissue_default = SimConfTissueDefault()
