@@ -126,23 +126,23 @@ class SimPhase(object):
         #"TissueHandler" class as follows:
         #
         #* The TissueHandler.tissueProfiles() method should be refactored into a
-        #  private TissueHandler._map_tissue_profiles_to_cells() method having
+        #  private TissueHandler._map_tissues_to_cells() method having
         #  the following signature:
         #      @type_check
-        #      def _map_tissue_profiles_to_cells(self, phase: SimPhase) -> None:
+        #      def _map_tissues_to_cells(self, phase: SimPhase) -> None:
         #* The TissueHandler.__init__() method should be refactered to:
         #  * As the very first logic in that method, validate that the passed
         #    "cells" and "sim" objects have been *FULLY* initialized.
         #  * As the very last logic in that method, call the newly refactored
-        #    self._map_tissue_profiles_to_cells() method.
-        #* The old TissueHandler.tissueProfiles() method should *NOT* be called
-        #  any other class. In practice, we probably will need to break
-        #  encapsulation and call the newly private
-        #  TissueHandler._map_tissue_profiles_to_cells() method elsewhere. When
-        #  we do so, add a FIXME comment suggesting this to be bad.
+        #    self._map_tissues_to_cells() method.
+        #* The TissueHandler._map_tissues_to_cells() method should *NOT* be
+        #  called by any other class. In practice, we probably will need to
+        #  break encapsulation and call the newly private
+        #  TissueHandler._map_tissues_to_cells() method elsewhere. When we do
+        #  so, add a FIXME comment suggesting this to be bad.
         #
-        #Alternately, if the _map_tissue_profiles_to_cells() method truly *DOES*
-        #need to be called elsewhere, simply make it public. *sigh*
+        #Alternately, if the _map_tissues_to_cells() method truly *DOES* need to
+        #be called elsewhere, simply make it public. *sigh*
 
         # Classify all remaining high-level objects for this phase.
         self.cache = SimPhaseCaches(self)

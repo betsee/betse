@@ -10,7 +10,7 @@ periodically called while simulating one or more phases) class hierarchy.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
-# from betse.util.io.log import logs
+from betse.util.io.log import logs
 from betse.util.type.types import NoneType  #type_check
 
 # ....................{ SUPERCLASSES                       }....................

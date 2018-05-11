@@ -54,7 +54,6 @@ class Cells(object):
     makeECM()                         Make the Marker and Cell (MACs) grid for extracellular calculations
     environment()                     Calculate details for the extracellular calculations, including mappings
     graphLaplacian()                  Creates an abstract discrete Laplacian for the irregular Voronoi-based cell grid
-    redo_gj()                         Create gap junction connection network after assessing tissue profile requests
 
     Attributes (Cell)
     ----------
@@ -2182,7 +2181,17 @@ class Cells(object):
         self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
         # self.M_max_cap = M_max_cap
 
-    def redo_gj(self,dyna,p,savecells=True):
+
+    def redo_gj(self, dyna, p) -> None:
+        '''
+        (Re)create the gap junction connection network after assessing tissue
+        profile requests.
+
+        Parameters
+        ----------
+        p : Parameters
+            Current simulation configuration.
+        '''
 
         flag_cell_nn = [ [] for x in range(0,len(self.cell_i))]
 
@@ -2252,6 +2261,7 @@ class Cells(object):
 
         # calculate gap junction vectors
         self.calc_gj_vects(p)
+
 
     def calc_gj_vects(self,p):
 

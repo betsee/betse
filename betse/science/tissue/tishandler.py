@@ -771,7 +771,7 @@ class TissueHandler(object):
             self.data_length = len(cells.mem_i)
 
             self.tissueProfiles(sim, cells, p)
-            cells.redo_gj(self, p, savecells=False)
+            cells.redo_gj(self, p)
             self.runAllInit(sim, cells, p)
 
             # Avoid repeating this cutting event at subsequent time steps.
@@ -780,6 +780,7 @@ class TissueHandler(object):
         # If the voltage event is enabled, adjust the voltage accordingly.
         if p.scheduled_options['extV'] is not None:
             p.scheduled_options['extV'].fire(sim, t)
+
 
     def stretchChannel(self,sim,cells,p,t):
 
