@@ -71,7 +71,7 @@ from betse.util.os import displays, kernels, oses
 from betse.util.path import dirs, pathnames
 from betse.util.py import pyfreeze
 from betse.util.type import iterables, modules
-from betse.util.type.call.memoizers import property_cached
+from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.numeric import versions
 from betse.util.type.text import regexes, strs

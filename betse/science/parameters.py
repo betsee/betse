@@ -21,7 +21,7 @@ from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.tissue.event import tisevevolt
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
-# from betse.util.type.call.memoizers import property_cached
+# from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceTypes, StrOrNoneTypes)
 

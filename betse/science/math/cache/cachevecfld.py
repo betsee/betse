@@ -13,7 +13,7 @@ from betse.science.export import expmath
 from betse.science.math.cache.cacheabc import SimPhaseCacheABC
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.math.vector.vecfldcls import VectorFieldCellsCache
-from betse.util.type.call.memoizers import property_cached
+from betse.util.type.decorator.decmemo import property_cached
 
 # FIXME: Sess, why the heck would you put these plotting functions into math?!?!?
 

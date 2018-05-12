@@ -12,7 +12,7 @@ from betse.science.math.cache.cacheabc import SimPhaseCacheABC
 from betse.science.visual.layer.vector import lyrvecabc
 from betse.science.visual.layer.vector.lyrvecabc import (
     LayerCellsVectorColorfulABC)
-from betse.util.type.call.memoizers import property_cached
+from betse.util.type.decorator.decmemo import property_cached
 
 # ....................{ SUBCLASSES                         }....................
 class SimPhaseCacheLayerCellsVector(SimPhaseCacheABC):

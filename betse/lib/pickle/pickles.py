@@ -26,7 +26,7 @@ application, including:
 import dill as pickle
 from betse.util.io import iofiles
 from betse.util.io.log import logs
-from betse.util.type.call.memoizers import CALLABLE_CACHED_VAR_NAME_PREFIX
+from betse.util.type.decorator.decmemo import CALLABLE_CACHED_VAR_NAME_PREFIX
 from betse.util.type.types import type_check
 from dill import Pickler
 
@@ -56,7 +56,7 @@ class BetsePickler(Pickler):
 
     * Preventing temporary in-memory cached data from being pickled to disk,
       including all private instance variables cached by decorators defined by
-      the :mod:`betse.util.type.call.memoizers` module (e.g.,
+      the :mod:`betse.util.type.decorator.decmemo` module (e.g.,
       :func:`property_cached`). To do so efficiently, this pickler uncaches
       *all* previously cached data from *all* objects pickled to disk. This data
       is guaranteed to be transparently re-cached on the next in-memory access

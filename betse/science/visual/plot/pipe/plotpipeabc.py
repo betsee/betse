@@ -70,7 +70,7 @@ from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.phase.pipe.pipeabc import SimPipeExportABC
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
-from betse.util.type.call.memoizers import property_cached
+from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import type_check
 from matplotlib import pyplot as pyplot
 

@@ -15,7 +15,7 @@ High-level support facilities for Pillow, the Python Image Library
 from PIL import Image
 from betse.util.io.log import logs
 from betse.util.path import pathnames
-from betse.util.type.call.memoizers import callable_cached
+from betse.util.type.decorator.decmemo import callable_cached
 from betse.util.type.types import SetType  # type_check,
 
 # ....................{ GETTERS                            }....................

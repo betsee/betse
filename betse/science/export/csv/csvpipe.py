@@ -20,7 +20,7 @@ from betse.science.phase.require import phasereqs
 from betse.science.visual.plot.plotutil import cell_ave
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
-from betse.util.type.call.memoizers import property_cached
+from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceTypes, StrOrNoneTypes,)

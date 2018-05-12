@@ -11,7 +11,7 @@ High-level operating system (OS)-specific display facilities.
 #osx.is_aqua() function in particular would be useful to a wide audience.
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type.call.memoizers import callable_cached
+from betse.util.type.decorator.decmemo import callable_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 
 # ....................{ TESTERS ~ head                     }....................

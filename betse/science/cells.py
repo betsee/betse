@@ -19,7 +19,7 @@ from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.util.io.log import logs
 from betse.util.path import pathnames
-from betse.util.type.call.memoizers import property_cached
+from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import (
     type_check, NumericOrSequenceTypes, SequenceTypes)
 from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockwise

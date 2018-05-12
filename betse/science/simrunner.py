@@ -27,6 +27,20 @@ from betse.util.path import files, pathnames
 from betse.util.type.call.callables import deprecated
 from betse.util.type.types import type_check
 
+# ....................{ CONSTANTS                          }....................
+_SEED_PROGRESS_TOTAL = 6
+'''
+Cuumulative number of times that each call of the :meth:`SimRunner.seed`
+simulation subcommand calls the :meth:`SimCallbacksABC.progressed` callback.
+
+Caveats
+----------
+This magic number *must* be manually synchronized with the implementation of
+both the :meth:`SimRunner.seed` method and methods transitively called by that
+method. Failure to do so *will* raise exceptions on calling the former. Sadly,
+there exists no reasonable means of automating this synchronization.
+'''
+
 # ....................{ CLASSES                            }....................
 class SimRunner(object):
     '''
@@ -108,24 +122,33 @@ class SimRunner(object):
         # Log this attempt.
         logs.log_info('Seeding simulation...')
 
+        # Notify the caller of the range of work performed by this subcommand.
+        self._callbacks.progress_ranged(
+            progress_min=0, progress_max=_SEED_PROGRESS_TOTAL)
+
         # Simulation phase.
         phase = SimPhase(
             kind=SimPhaseKind.SEED, p=self._p, callbacks=self._callbacks)
 
         # Create the pseudo-randomized cell cluster.
+        self._callbacks.progressed_next()
         phase.cells.make_world(phase)
 
         # Initialize core simulation data structures.
+        self._callbacks.progressed_next()
         phase.sim.init_core(phase)
 
         # Define the tissue and boundary profiles for plotting.
+        self._callbacks.progressed_next()
         phase.dyna.tissueProfiles(phase.sim, phase.cells, self._p)
 
         # Redo gap junctions to isolate different tissue types.
+        self._callbacks.progressed_next()
         phase.cells.redo_gj(phase.dyna, self._p)
 
         # Create a Laplacian and solver for discrete transfers on closed,
         # irregular cell network.
+        self._callbacks.progressed_next()
         phase.cells.graphLaplacian(self._p)
 
         #FIXME: Would shifting this logic into the cells.graphLaplacian() method
@@ -142,11 +165,11 @@ class SimRunner(object):
         #     phase.cells.eosmo_tools(self._p)
 
         # Finish up.
+        self._callbacks.progressed_next()
         phase.cells.save_cluster(self._p)
 
         # Log the completion of this phase.
         logs.log_info('Cell cluster creation complete!')
-
         phase.sim.sim_info_report(phase.cells, self._p)
 
         # Return this phase.

@@ -10,7 +10,7 @@ applicable to both integers and floats) facilities.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseNumericException
-from betse.util.type.call.memoizers import callable_cached
+from betse.util.type.decorator.decmemo import callable_cached
 from betse.util.type.types import (
     type_check, IterableTypes, NumericSimpleTypes, RegexCompiledType)
 

@@ -10,7 +10,7 @@ Low-level floating point facilities.
 # ....................{ IMPORTS                            }....................
 from sys import float_info
 # from betse.util.io.log import logs
-from betse.util.type.call.memoizers import callable_cached
+from betse.util.type.decorator.decmemo import callable_cached
 from betse.util.type.types import type_check, RegexCompiledType
 from decimal import Decimal
 

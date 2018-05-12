@@ -129,6 +129,15 @@ class BetseCallableException(BetseException):
     General-purpose exception applicable to all **callables** (e.g., functions,
     lambdas, methods, properties).
     '''
+
+    pass
+
+
+class BetseCallbackException(BetseCallableException):
+    '''
+    Callback-specific exception.
+    '''
+
     pass
 
 
@@ -136,6 +145,7 @@ class BetseDecoratorException(BetseCallableException):
     '''
     Decorator-specific exception.
     '''
+
     pass
 
 
@@ -143,6 +153,7 @@ class BetseFunctionException(BetseCallableException):
     '''
     Function-specific exception.
     '''
+
     pass
 
 
@@ -150,6 +161,7 @@ class BetseLambdaException(BetseCallableException):
     '''
     Lambda-specific exception.
     '''
+
     pass
 
 
@@ -157,6 +169,7 @@ class BetseMethodException(BetseCallableException):
     '''
     Method-specific exception.
     '''
+
     pass
 
 

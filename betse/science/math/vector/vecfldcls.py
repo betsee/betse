@@ -10,7 +10,7 @@ Abstract base classes of all vector field subclasses.
 import numpy as np
 from betse.lib.numpy import nparray
 from betse.science.math.vector.veccls import VectorCellsCache
-from betse.util.type.call.memoizers import property_cached
+from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import type_check, SequenceTypes
 from numpy import ndarray
 

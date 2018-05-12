@@ -40,7 +40,7 @@ executables and :mod:`setuptools`-installed script wrappers.
 import os
 from betse import metadata
 from betse.exceptions import BetseModuleException
-from betse.util.type.call.memoizers import callable_cached
+from betse.util.type.decorator.decmemo import callable_cached
 from betse.util.type.types import type_check, StrOrNoneTypes
 
 # ....................{ GETTERS ~ dir                      }....................

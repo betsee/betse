@@ -9,70 +9,22 @@ periodically called while simulating one or more phases) class hierarchy.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractmethod
-from betse.util.io.log import logs
+# from abc import ABCMeta, abstractmethod
+# from betse.util.io.log import logs
+from betse.util.type.call.callbacks import CallbacksABC
 from betse.util.type.types import NoneType  #type_check
 
 # ....................{ SUPERCLASSES                       }....................
-class SimCallbacksABC(metaclass=ABCMeta):
+# This subclass is currently an empty placeholder but will be subsequently
+# extended with subclass-specific behaviour.
+class SimCallbacksABC(CallbacksABC):
     '''
     Abstract base class of all **simulation phase callbacks** (i.e.,
-    caller-defined object whose methods are periodically called while simulating
-    one or more phases) subclasses.
+    caller-defined object whose methods are periodically called while
+    simulating one or more simulation phases) subclasses.
     '''
 
-    # ..................{ CALLBACKS ~ progress               }..................
-    # Subclasses are required to implement the following abstract callbacks.
-
-    @abstractmethod
-    def progress_ranged(self, progress_min: int, progress_max: int) -> None:
-        '''
-        Callback passed the range of progress values subsequently passed to the
-        :meth:`progressed` callback by the current simulation subcommand
-        (e.g., :meth:`SimRunner.seed`, :meth:`SimRunner.init`).
-
-        Each simulation subcommand calls this callback once *before* simulating
-        that simulation phase. This callback is guaranteed to be called *before*
-        the :meth:`progressed` callback is called by that subcommand, enabling
-        callers to initialize external high-level objects (e.g., progress bars)
-        requiring this range.
-
-        Parameters
-        ----------
-        progress_min : int
-            Minimum value subsequently passed to the :meth:`progressed` callback
-            by this simulation subcommand. While this value is typically 0,
-            callers should *not* necessarily assume this to be the case.
-        progress_max : int
-            Maximum value subsequently passed to the :meth:`progressed` callback
-            by this simulation subcommand.
-        '''
-
-        pass
-
-
-    @abstractmethod
-    def progressed(self, progress: int) -> None:
-        '''
-        Callback passed the range of progress values subsequently passed to the
-        :meth:`progressed` callback by the current simulation subcommand
-        (e.g., :meth:`SimRunner.seed`, :meth:`SimRunner.init`
-
-        Each simulation subcommand calls this callback repeatedly while
-        simulating that simulation phase, enabling callers to incrementally
-        update external high-level objects (e.g., progress bars).
-
-        Parameters
-        ----------
-        progress : int
-            Current state of progress for this simulation subcommand. This
-            integer is guaranteed to be in the range ``[progress_min,
-            progress_max]``, where ``progress_min`` and ``progress_max`` are the
-            pair of integers previously passed to the :attr:`progress_ranged`
-            callback for this simulation subcommand.
-        '''
-
-        pass
+    pass
 
 # ....................{ TYPES                              }....................
 SimCallbacksABCOrNoneTypes = (SimCallbacksABC, NoneType)
@@ -85,11 +37,18 @@ singleton.
 class SimCallbacksNoop(SimCallbacksABC):
     '''
     **Noop simulation phase callbacks** (i.e., simulation phase callbacks whose
-    methods all silently reduce to noops).
+    methods all silently reduce to noops for efficiency).
 
     This callbacks subclass is typically instantiated as a convenience fallback
     in the event that no other callbacks subclass is passed by an external
     caller to a simulation subcommand.
+
+    Design
+    ----------
+    For efficiency, all callbacks reimplemented by this subclass intentionally:
+
+    * Do *not* type-check any parameters passed by the source callable.
+    * Do *not* call their superclass implementations.
     '''
 
     # ..................{ CALLBACKS                          }..................
@@ -97,4 +56,7 @@ class SimCallbacksNoop(SimCallbacksABC):
         pass
 
     def progressed(self, progress: int) -> None:
+        pass
+
+    def progressed_next(self) -> None:
         pass

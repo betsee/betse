@@ -29,7 +29,7 @@ from betse.util.cli.clicmdabc import CLISubcommandableABC
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
 from betse.util.py import pys
-from betse.util.type.call.memoizers import property_cached
+from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import ModuleType
 
 # ....................{ SUBCLASS                           }....................

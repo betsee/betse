@@ -9,7 +9,7 @@ Low-level \*ML (e.g., HTML, SGML, XML) facilities.
 
 # ....................{ IMPORTS                            }....................
 import html
-from betse.util.type.call.memoizers import callable_cached
+from betse.util.type.decorator.decmemo import callable_cached
 from betse.util.type.types import type_check, RegexCompiledType
 
 # ....................{ GETTERS                            }....................

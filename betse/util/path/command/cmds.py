@@ -11,7 +11,7 @@ Low-level **command** (i.e., external executable file) facilities.
 import sys
 from betse.exceptions import BetseCommandException
 from betse.metadata import SCRIPT_BASENAME
-from betse.util.type.call.memoizers import callable_cached
+from betse.util.type.decorator.decmemo import callable_cached
 from betse.util.type.types import type_check, StrOrNoneTypes
 
 # ....................{ EXCEPTIONS                         }....................

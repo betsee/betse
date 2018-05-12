@@ -12,7 +12,7 @@ from betse.exceptions import BetseSimVectorException
 from betse.lib.numpy import nparray
 from betse.science.math.cache.cacheabc import SimPhaseCacheABC
 from betse.util.type import sequences
-from betse.util.type.call.memoizers import property_cached
+from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import type_check, IterableOrNoneTypes
 from numpy import ndarray
 
