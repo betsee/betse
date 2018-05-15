@@ -40,11 +40,11 @@ executables and :mod:`setuptools`-installed script wrappers.
 import os
 from betse import metadata
 from betse.exceptions import BetseModuleException
-from betse.util.type.decorator.decmemo import callable_cached
+from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import type_check, StrOrNoneTypes
 
 # ....................{ GETTERS ~ dir                      }....................
-@callable_cached
+@func_cached
 def get_root_dirname() -> str:
     '''
     Absolute pathname of the root directory suffixed by a directory separator.
@@ -69,7 +69,7 @@ def get_root_dirname() -> str:
         return os.path.sep
 
 
-@callable_cached
+@func_cached
 def get_home_dirname() -> str:
     '''
     Absolute pathname of the home directory of the current user if found *or*
@@ -89,7 +89,7 @@ def get_home_dirname() -> str:
     return home_dirname
 
 # ....................{ GETTERS ~ dir : app                }....................
-@callable_cached
+@func_cached
 def get_dot_dirname() -> str:
     '''
     Absolute pathname of this application's top-level dot directory in the home
@@ -155,7 +155,7 @@ def get_dot_dirname() -> str:
     return dot_dirname
 
 # ....................{ GETTERS ~ dir : data               }....................
-@callable_cached
+@func_cached
 def get_data_dirname() -> str:
     '''
     Absolute pathname of this application's top-level data directory if found
@@ -184,7 +184,7 @@ def get_data_dirname() -> str:
     return data_dirname
 
 
-@callable_cached
+@func_cached
 def get_data_yaml_dirname() -> str:
     '''
     Absolute pathname of this application's data subdirectory containing
@@ -209,7 +209,7 @@ def get_data_yaml_dirname() -> str:
     return dirs.join_and_die_unless_dir(get_data_dirname(), 'yaml')
 
 # ....................{ GETTERS ~ dir : package            }....................
-@callable_cached
+@func_cached
 def get_package_dirname() -> str:
     '''
     Absolute pathname of this application's top-level package directory if found
@@ -240,7 +240,7 @@ def get_package_dirname() -> str:
     return package_dirname
 
 # ....................{ GETTERS ~ dir : git                }....................
-@callable_cached
+@func_cached
 def get_git_worktree_dirname() -> str:
     '''
     Absolute pathname of this application's Git-based **working tree** (i.e.,
@@ -269,7 +269,7 @@ def get_git_worktree_dirname() -> str:
     return git_worktree_dirname
 
 
-@callable_cached
+@func_cached
 def get_git_worktree_dirname_or_none() -> StrOrNoneTypes:
     '''
     Absolute pathname of this application's Git-based **working tree** (i.e.,
@@ -310,7 +310,7 @@ def get_git_worktree_dirname_or_none() -> StrOrNoneTypes:
     return worktree_dirname if dirs.is_dir(git_subdirname) else None
 
 # ....................{ GETTERS ~ file                     }....................
-@callable_cached
+@func_cached
 def get_log_default_filename() -> str:
     '''
     Absolute pathname of this application's default user-specific logfile.
@@ -325,7 +325,7 @@ def get_log_default_filename() -> str:
     return pathnames.join(get_dot_dirname(), metadata.SCRIPT_BASENAME + '.log')
 
 
-@callable_cached
+@func_cached
 def get_profile_default_filename() -> str:
     '''
     Absolute pathname of this application's default user-specific profile
@@ -341,7 +341,7 @@ def get_profile_default_filename() -> str:
     return pathnames.join(get_dot_dirname(), metadata.SCRIPT_BASENAME + '.prof')
 
 
-@callable_cached
+@func_cached
 def get_sim_config_default_filename() -> str:
     '''
     Absolute pathname of this application's default simulation configuration

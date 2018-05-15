@@ -9,11 +9,11 @@ Low-level \*ML (e.g., HTML, SGML, XML) facilities.
 
 # ....................{ IMPORTS                            }....................
 import html
-from betse.util.type.decorator.decmemo import callable_cached
+from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import type_check, RegexCompiledType
 
 # ....................{ GETTERS                            }....................
-@callable_cached
+@func_cached
 def get_tag_regex() -> RegexCompiledType:
     r'''
     Compiled regular expression matching a syntactically but *not* necessarily

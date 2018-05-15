@@ -10,7 +10,7 @@ Low-level floating point facilities.
 # ....................{ IMPORTS                            }....................
 from sys import float_info
 # from betse.util.io.log import logs
-from betse.util.type.decorator.decmemo import callable_cached
+from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import type_check, RegexCompiledType
 from decimal import Decimal
 
@@ -226,7 +226,7 @@ def get_base_10_precision(number: float) -> int:
 # expression is intentionally pre-compiled rather than uncompiled and thus
 # returned as a cached getter.
 
-@callable_cached
+@func_cached
 def get_float_regex() -> RegexCompiledType:
     '''
     Compiled regular expression matching a floating point number represented as
@@ -300,7 +300,7 @@ def get_float_regex() -> RegexCompiledType:
     )
 
 
-@callable_cached
+@func_cached
 def _get_float_exponent_regex() -> RegexCompiledType:
     '''
     Compiled regular expression matching the exponent of a floating point number

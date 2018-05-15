@@ -4,11 +4,9 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level **memoization** (i.e., efficient caching and reuse of the values
-returned by callables, typically via decorators) facilities.
+Low-level **decorator-based memoization** (i.e., efficient caching and reuse of
+the values returned by decorated callables) facilities.
 '''
-
-#FIXME: Shift this submodule to "betse.util.type.decorator.decmemo".
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type.types import type_check, CallableTypes, PropertyType
@@ -32,7 +30,7 @@ pickling filtering) to uniquely match and act upon these variables.
 
 FUNCTION_CACHED_VAR_NAME = CALLABLE_CACHED_VAR_NAME_PREFIX + 'function_value'
 '''
-Name of the private instance variable to which the :func:`callable_cached`
+Name of the private instance variable to which the :func:`func_cached`
 decorator statically caches the value returned by the decorated function.
 '''
 
@@ -45,20 +43,8 @@ decorated property method.
 '''
 
 # ....................{ DECORATORS                         }....................
-#FIXME: Rename to "function_cached". While this decorator *COULD* technically be
-#used to decorate non-function callables, it never will be. Why? Because:
-#
-#* Decorating lambdas is highly non-trivial and hence impractical.
-#* Attempting to cache unbound method return values via this decorator would do
-#  so globally rather than on an instance-specific basis and hence be
-#  functionally useless. To instead cache bound method return values on an
-#  instance-specific basis, this decorator would need to be refactored to return
-#  a descriptor whose __get__() special method created and returned bound
-#  methods whose return values are cached onto instance variables of those bound
-#  methods themselves. For similar functionality, see the @expr_alias data
-#  descriptor.
 @type_check
-def callable_cached(func: CallableTypes) -> CallableTypes:
+def func_cached(func: CallableTypes) -> CallableTypes:
     '''
     Decorate the passed **non-property callable** (e.g., function, lambda,
     method) to cache the value returned by the first call of this callable.
@@ -70,7 +56,7 @@ def callable_cached(func: CallableTypes) -> CallableTypes:
     returned as is *without* calling this callable. Hence, this callable is
     called at most once for each instance of the class containing this property.
 
-    Caveats
+    Caveats (Memoization)
     ----------
     **This decorator does not memoize callables.** Memoization would map each
     permutation of parameters passed to the decorated callable to a unique
@@ -80,6 +66,28 @@ def callable_cached(func: CallableTypes) -> CallableTypes:
     return value for *all* permutations of passed parameters. Hence, this
     decorator is principally intended to decorate callables accepting *no*
     parameters (e.g., simple testers and getters).
+
+    Caveats (Methods)
+    ----------
+    **This decorator is only intended to cache return values of functions.**
+    This decorator is *not* intended to cache return values of non-function
+    callables (e.g., bound or unbound methods). Ergo, this decorator is named
+    ``func_cached`` rather than the more general-purpose name
+    ``callable_cached``.
+
+    While this decorator *could* technically be used to decorate non-function
+    callables, it never should be. Why? Because:
+
+    - Decorating lambdas is highly non-trivial and hence impractical.
+    - Attempting to cache return values of unbound methods with this decorator
+      would do so globally rather than on an instance-specific basis and hence
+      be functionally useless. To cache return values of bound method on an
+      instance-specific basis, an entirely new decorator would need to be
+      created -- presumably returning a descriptor whose ``__get__()`` special
+      method creates and returns bound methods whose return values are cached
+      onto instance variables of those bound methods themselves. For similar
+      functionality, see the
+      ``betse.util.type.descriptor.expralias.expr_alias`` data descriptor.
 
     See Also
     ----------

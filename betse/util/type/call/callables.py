@@ -42,40 +42,6 @@ human-readable type of that class, ignoring low-level implementation details
 (e.g., the distinction between built-in and user-defined methods).
 '''
 
-# ....................{ DECORATORS                         }....................
-@type_check
-def deprecated(func: CallableTypes) -> CallableTypes:
-    '''
-    Decorate the passed **callable** (e.g., function, method) to log a non-fatal
-    warning on the first and *only* first call of this callable.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.type.text import strs
-
-    # True only if this callable has had a deprecation warning logged.
-    func.__is_deprecation_logged = False
-
-    # Callable returned by this decorator below.
-    @wraps(func)
-    def _deprecated_inner(*args, **kwargs) -> object:
-        # If this callable has *NOT* had a deprecation warning logged, do so.
-        if not func.__is_deprecation_logged:
-            # Prevent this warning from being logged more than once.
-            func.__is_deprecation_logged = True
-
-            # Capitalized human-readable string describing this callable.
-            func_name = strs.uppercase_char_first(to_str(func))
-
-            # Log this warning.
-            logs.log_warning('%s deprecated.', func_name)
-
-        # Call this callable.
-        return func(*args, **kwargs)
-
-    # Return this callable decorated to log this deprecating warning.
-    return _deprecated_inner
-
 # ....................{ TESTERS                            }....................
 @type_check
 def is_function(func: CallableTypes) -> bool:
@@ -95,6 +61,31 @@ def is_method(func: CallableTypes) -> bool:
     return isinstance(func, MethodTypes)
 
 # ....................{ GETTERS                            }....................
+@type_check
+def get_name(func: CallableTypes) -> str:
+    '''
+    Machine-readable name of the passed callable.
+
+    Parameters
+    ----------
+    func: CallableTypes
+        Callable to get the name of.
+
+    Returns
+    ----------
+    str
+        Machine-readable name of this callable.
+
+    See Also
+    ----------
+    :func:`to_str`
+        Function getting a human-readable name of this callable.
+    '''
+
+    # The easy things in life are free.
+    return func.__name__
+
+
 @type_check
 def get_doc_or_none(func: CallableTypes) -> StrOrNoneTypes:
     '''
@@ -162,6 +153,25 @@ def to_str(func: CallableTypes) -> str:
 
     # Return a human-readable string describing this callable.
     return '{} {}()'.format(func_type, func.__name__)
+
+
+@type_check
+def to_str_capitalized(func: CallableTypes) -> str:
+    '''
+    Human-readable string describing the type and name of the passed callable
+    whose first character is capitalized (e.g., ``Method pala()``).
+
+    See Also
+    ----------
+    :func:`to_str`
+        Further details.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text import strs
+
+    # Return a capitalized human-readable string describing this callable.
+    return strs.uppercase_char_first(to_str(func))
 
 # ....................{ MAKERS                             }....................
 @type_check

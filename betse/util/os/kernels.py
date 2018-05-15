@@ -15,12 +15,12 @@ Caveats
 # ....................{ IMPORTS                            }....................
 import platform
 
-from betse.util.type.decorator.decmemo import callable_cached
+from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 
 
 # ....................{ GETTERS                            }....................
-@callable_cached
+@func_cached
 def get_name() -> str:
     '''
     Machine-readable name of the current kernel.
@@ -41,7 +41,7 @@ def get_name() -> str:
     return platform.system()
 
 
-@callable_cached
+@func_cached
 def get_version() -> str:
     '''
     Human-readable `.`-delimited version specifier of the current kernel.

@@ -9,20 +9,56 @@ callables) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.util.io.log import logs
 from betse.util.type.types import (
     type_check, CallableTypes, DecoratorTypes)
+from functools import wraps
 
 # ....................{ DECORATORS                         }....................
-# While type-checking these types would probably be advisable, this decorator is
-# currently passed non-callables by "py.test". While resolving that issue would
-# itself probably be advisable, we simply cannot be bothered. Hence, these types
-# remain blithely unchecked.
+# While type-checking these types would probably be advisable, this decorator
+# is currently passed non-callables by "py.test". While resolving that issue
+# would itself probably be advisable, we simply cannot be bothered. Hence,
+# these types remain blithely unchecked.
 def decorator_identity(func: CallableTypes) -> CallableTypes:
     '''
     Identity decorator returning the decorated callable unmodified.
     '''
 
     return func
+
+# ....................{ DECORATORS                         }....................
+@type_check
+def deprecated(func: CallableTypes) -> CallableTypes:
+    '''
+    Decorate the passed **callable** (e.g., function, method) to log a
+    non-fatal warning on the first and *only* first call of this callable.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.call import callables
+
+    # True only if this callable has had a deprecation warning logged.
+    func.__is_deprecation_logged = False
+
+    # Callable returned by this decorator below.
+    @wraps(func)
+    def _deprecated_inner(*args, **kwargs) -> object:
+        # If this callable has *NOT* had a deprecation warning logged, do so.
+        if not func.__is_deprecation_logged:
+            # Prevent this warning from being logged more than once.
+            func.__is_deprecation_logged = True
+
+            # Capitalized human-readable string describing this callable.
+            func_name = callables.to_str_capitalized(func)
+
+            # Log this warning.
+            logs.log_warning('%s deprecated.', func_name)
+
+        # Call this callable.
+        return func(*args, **kwargs)
+
+    # Return this callable decorated to log this deprecating warning.
+    return _deprecated_inner
 
 # ....................{ CHAINERS                           }....................
 @type_check

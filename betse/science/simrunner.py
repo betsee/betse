@@ -4,7 +4,6 @@
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                            }....................
-import time
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
@@ -24,7 +23,8 @@ from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
-from betse.util.type.call.callables import deprecated
+from betse.util.type.decorator.decorators import deprecated
+from betse.util.type.decorator.decprof import log_time_seconds
 from betse.util.type.types import type_check
 
 # ....................{ CONSTANTS                          }....................
@@ -104,6 +104,7 @@ class SimRunner(object):
         self._p = p
 
     # ..................{ RUNNERS                            }..................
+    @log_time_seconds(noun='seed')
     def seed(self) -> SimPhase:
         '''
         Seed this simulation with a new cell cluster and cache this cluster to
@@ -176,6 +177,7 @@ class SimRunner(object):
         return phase
 
 
+    @log_time_seconds(noun='initialization')
     def init(self) -> SimPhase:
         '''
         Initialize this simulation with the cell cluster seeded by a prior call
@@ -191,40 +193,6 @@ class SimRunner(object):
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
-
-        #FIXME: This and the corresponding logging at the end of this method are
-        #duplicated throughout this submodule. As a general-purpose alternative:
-        #
-        #* Define a new "betse.util.type.decorator.decprof" submodule.
-        #* Define a new time_seconds() decorator in this submodule resembling:
-        #
-        #    @type_check
-        #    def time_seconds(func: CallableTypes, label: str = 'Operation') -> CallableTypes:
-        #        def _func_profiled_time_seconds(*args, **kwargs) -> object:
-        #            '''
-        #            Closure decorating the passed callable with time profiling.
-        #            '''
-        #
-        #            # Current time in fractional seconds.
-        #            start_time = time.time()
-        #
-        #            # Call this function, passed these parameters and
-        #            # preserving the return value as is.
-        #            return_value = func(*args, **kwargs)
-        #
-        #            # Total time in fractional seconds consumed by this call.
-        #            func_time = round(time.time() - start_time, 2)
-        #
-        #            # Log this timing.
-        #            logs.log_info('%s completed in %d seconds.', label, end_time)
-        #
-        #            # Return this return value.
-        #            return return_value
-        #
-        #        # Return this decorated callable.
-        #        return _func_profiled_time_seconds
-        #* Replace all instances of this logic below with use of this decorator.
-        start_time = time.time()  # get a start value for timing the simulation
 
         # Log this attempt.
         logs.log_info('Initializing simulation...')
@@ -290,14 +258,11 @@ class SimRunner(object):
         sim.sim_info_report(cells, self._p)
         sim.run_sim_core(phase)
 
-        logs.log_info(
-            'Initialization completed in %d seconds.',
-            round(time.time() - start_time, 2))
-
         # Return this phase.
         return phase
 
 
+    @log_time_seconds(noun='simulation')
     def sim(self) -> SimPhase:
         '''
         Simulate this simulation with the cell cluster initialized by a prior
@@ -316,8 +281,6 @@ class SimRunner(object):
 
         # Log this attempt.
         logs.log_info('Running simulation...')
-
-        start_time = time.time()  # get a start value for timing the simulation
 
         # Simulation phase type.
         phase_kind = SimPhaseKind.SIM
@@ -365,14 +328,11 @@ class SimRunner(object):
         sim.sim_info_report(cells, self._p)
         sim.run_sim_core(phase)
 
-        logs.log_info(
-            'Simulation completed in %d seconds.',
-            round(time.time() - start_time, 2))
-
         # Return this phase.
         return phase
 
 
+    @log_time_seconds(noun='network')
     def sim_grn(self) -> SimPhase:
         '''
         Initialize and simulate a pure gene regulatory network (GRN) *without*
@@ -389,8 +349,6 @@ class SimRunner(object):
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
-
-        start_time = time.time()  # get a start value for timing the simulation
 
         # Simulation phase objects, defaulting to undefined initially.
         phase = None
@@ -638,14 +596,11 @@ class SimRunner(object):
         logs.log_info("Running gene regulatory network test simulation...")
         MoG.run_core_sim(sim, cells, self._p)
 
-        logs.log_info(
-            'Gene regulatory network test completed in %d seconds.',
-            round(time.time() - start_time, 2))
-
         # Return this phase.
         return phase
 
     # ..................{ PLOTTERS                           }..................
+    @log_time_seconds(noun='seed', verb='exported')
     def plot_seed(self) -> SimPhase:
         '''
         Visualize the cell cluster seed by a prior call to the :meth:`seed`
@@ -783,6 +738,7 @@ class SimRunner(object):
         return phase
 
 
+    @log_time_seconds(noun='initialization', verb='exported')
     def plot_init(self) -> SimPhase:
         '''
         Visualize the cell cluster initialized by a prior call to the
@@ -888,6 +844,7 @@ class SimRunner(object):
         return phase
 
 
+    @log_time_seconds(noun='simulation', verb='exported')
     def plot_sim(self) -> SimPhase:
         '''
         Visualize the cell cluster simulated by a prior call to the :meth:`sim`

@@ -89,7 +89,7 @@ For new users, BETSE is portably installable as follows:
 
     .. code:: bash
 
-       betse try
+       betse -v try
 
 .. [#windows_not]
    The `Windows Subsystem for Linux (WSL) <WSL_>`__ and – hence BETSE itself –
@@ -141,6 +141,8 @@ For new users, BETSE is portably installable as follows:
 
    This test command:
 
+   #. Enables verbosity with the ``-v`` option, simplifying issue reporting in
+      the event of an unexpected error.
    #. Creates a ``sample_sim/`` subdirectory in the current directory, providing
       the default simulation for this release of BETSE. This includes *all*
       configuration files and resources referenced by these files.
@@ -259,18 +261,63 @@ repository and prior stable releases – is manually installable as follows:
 Usage
 ============
 
-BETSE itself provides the ``betse`` command, a low-level command line interface
-(CLI) optimized for non-interactive scripting (e.g., for implementing `massively
-parallel genetic algorithms <genetic algorithms_>`_). See the following
-external documents for detailed usage instructions – complete with explanatory
-examples, sample plots, and ample screenshots:
+BETSE installs the ``betse`` command, a low-level command line interface (CLI)
+designed for experienced users. The typical CLI-based workflow resembles:
+
+#. Create a default simulation configuration in a new ``my_sim/`` subdirectory
+   of the current directory.
+
+   .. code:: bash
+
+      betse config my_sim/sim_config.yml
+
+#. [\ *Optional*\ ] Edit the newly created ``sim_config.yml`` file with your
+   favourite text editor.
+#. Create a pseudo-random cell cluster from this simulation configuration.
+
+   .. code:: bash
+
+      betse seed my_sim/sim_config.yml
+
+#. [\ *Optional*\ ] Plot this cell cluster.
+
+   .. code:: bash
+
+      betse plot seed my_sim/sim_config.yml
+
+#. Initialize (i.e., calculate steady-state concentrations for) this cell cluster.
+
+   .. code:: bash
+
+      betse init my_sim/sim_config.yml
+
+#. [\ *Optional*\ ] Plot this initialized cell cluster.
+
+   .. code:: bash
+
+      betse plot init my_sim/sim_config.yml
+
+#. Simulate this initialized cell cluster.
+
+   .. code:: bash
+
+      betse sim my_sim/sim_config.yml
+
+#. [\ *Optional*\ ] Plot this simulated cell cluster.
+
+   .. code:: bash
+
+      betse plot sim my_sim/sim_config.yml
+
+See the following external documents for detailed usage instructions – complete
+with explanatory examples, sample plots, and ample screenshots:
 
 - Official `BETSE 0.4 documentation`_. (\ *PDF format; 72 pages.*\ )
 - Official `BETSE 0.3 documentation`_. (\ *PDF format; 77 pages.*\ )
 
-Alternately, our sister project BETSEE_ provides the ``betsee`` command, a
-high-level graphical user interface (GUI) optimized for interactive
-experimentation.
+Alternately, our sister project BETSEE_ installs the ``betsee`` command, a
+high-level graphical user interface (GUI) designed for *all* users – regardless
+of prior experience or familiarity with the command line.
 
 Introduction
 ============

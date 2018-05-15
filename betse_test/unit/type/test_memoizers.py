@@ -13,18 +13,18 @@ Unit tests exercising memoization decorators.
 # ....................{ TESTS                              }....................
 def test_callable_cached() -> None:
     '''
-    Unit test the :func:`betse.util.type.callables.callable_cached` decorator.
+    Unit test the :func:`betse.util.type.callables.func_cached` decorator.
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type.decorator.decmemo import callable_cached
+    from betse.util.type.decorator.decmemo import func_cached
 
     # Class containing the callable to be cached.
     class Dreamland(object):
         def __init__(self, dreams: int) -> None:
             self.dreams = dreams
 
-        @callable_cached
+        @func_cached
         def dreams_cached(self) -> int:
             # Instance variable to be both cached and returned.
             dreams_cached = self.dreams * 2

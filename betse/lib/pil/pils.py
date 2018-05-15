@@ -15,11 +15,11 @@ High-level support facilities for Pillow, the Python Image Library
 from PIL import Image
 from betse.util.io.log import logs
 from betse.util.path import pathnames
-from betse.util.type.decorator.decmemo import callable_cached
+from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import SetType  # type_check,
 
 # ....................{ GETTERS                            }....................
-@callable_cached
+@func_cached
 def get_filetypes() -> SetType:
     '''
     Set of all image filetypes supported by the current version of Pillow.

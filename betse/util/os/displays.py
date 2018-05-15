@@ -11,11 +11,11 @@ High-level operating system (OS)-specific display facilities.
 #osx.is_aqua() function in particular would be useful to a wide audience.
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type.decorator.decmemo import callable_cached
+from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 
 # ....................{ TESTERS ~ head                     }....................
-@callable_cached
+@func_cached
 def is_headfull() -> bool:
     '''
     `True` only if the active Python interpreter is running **headfull** (i.e.,
@@ -75,7 +75,7 @@ def is_headless() -> bool:
     return not is_headfull()    # Makes sense.
 
 # ....................{ TESTERS                            }....................
-@callable_cached
+@func_cached
 def is_linux_wayland() -> bool:
     '''
     `True` only if the active Python interpreter is running under a Wayland

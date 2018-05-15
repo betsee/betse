@@ -13,11 +13,11 @@ Caveats
 
 # ....................{ IMPORTS                            }....................
 import os, platform, sys
-from betse.util.type.decorator.decmemo import callable_cached
+from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 
 # ....................{ TESTERS ~ posix                    }....................
-@callable_cached
+@func_cached
 def is_posix() -> bool:
     '''
     ``True`` only if the current operating system complies with POSIX standards
@@ -33,7 +33,7 @@ def is_posix() -> bool:
     return os.name == 'posix'
 
 
-@callable_cached
+@func_cached
 def is_linux() -> bool:
     '''
     ``True`` only if the current operating system is Linux.
@@ -42,7 +42,7 @@ def is_linux() -> bool:
     return platform.system() == 'Linux'
 
 
-@callable_cached
+@func_cached
 def is_macos() -> bool:
     '''
     ``True`` only if the current operating system is Apple macOS, the operating
@@ -52,7 +52,7 @@ def is_macos() -> bool:
     return platform.system() == 'Darwin'
 
 # ....................{ TESTERS ~ windows                  }....................
-@callable_cached
+@func_cached
 def is_windows() -> bool:
     '''
     ``True`` only if the current operating system is Microsoft Windows.
@@ -62,7 +62,7 @@ def is_windows() -> bool:
     return is_windows_vanilla() or is_windows_cygwin()
 
 
-@callable_cached
+@func_cached
 def is_windows_cygwin() -> bool:
     '''
     ``True`` only if the current operating system is **Cygwin Microsoft
@@ -71,7 +71,7 @@ def is_windows_cygwin() -> bool:
     return sys.platform == 'cygwin'
 
 
-@callable_cached
+@func_cached
 def is_windows_vanilla() -> bool:
     '''
     ``True`` only if the current operating system is **vanilla Microsoft
@@ -80,7 +80,7 @@ def is_windows_vanilla() -> bool:
     return sys.platform == 'win32'
 
 # ....................{ GETTERS                            }....................
-@callable_cached
+@func_cached
 def get_name() -> str:
     '''
     Human-readable name of the current operating system.
@@ -138,7 +138,7 @@ def get_name() -> str:
     return os_name
 
 
-@callable_cached
+@func_cached
 def get_version() -> str:
     '''
     Human-readable `.`-delimited version specifier string of the current
