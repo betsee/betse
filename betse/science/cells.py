@@ -2041,17 +2041,14 @@ class Cells(object):
                 norm_cor = 1.0
 
                 lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
+                lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + (1 / (len_ij)) * (mem_sa / vol) * norm_cor
 
                 lapGJ_P[cell_i, cell_i] = lapGJ_P[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
                 lapGJ_P[cell_i, cell_j] = lapGJ_P[cell_i, cell_j] + (1 / (len_ij)) * (mem_sa / vol) * norm_cor
 
-                if cell_j not in self.bflags_cells:
-                    lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + (1 / (len_ij)) * (mem_sa / vol) * norm_cor
-
             # deal with boundary values:
             if cell_i in self.bflags_cells:
-
-                lapGJ[cell_i,cell_i] = 0
+                lapGJ[cell_i, cell_i] += - 1.0 * (1 / (len_ij)) * (mem_sa / vol) * norm_cor
 
         self.lapGJinv = np.linalg.pinv(lapGJ)
         self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
@@ -2862,13 +2859,13 @@ class Cells(object):
 
         _, _, curlF = self.curl(Fx, Fy, 0)
 
-        if bounds_closed is True:
+        # if bounds_closed is True:
 
-            AA = np.dot(self.lapGJinv, -curlF)
+        AA = np.dot(self.lapGJinv, -curlF)
 
-        else:
+        # else:
 
-            AA = np.dot(self.lapGJ_P_inv, -curlF)
+             # AA = np.dot(self.lapGJ_P_inv, -curlF)
 
         Ax, Ay, _ = self.curl(0, 0, AA)
 
