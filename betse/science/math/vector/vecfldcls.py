@@ -116,6 +116,9 @@ class VectorField(object):
         comparable array guaranteed *not* to contain zero values,
         '''
 
+        #FIXME: For efficiency, refactor this to simply call a builtin numpy
+        #norm function or method. (Who knew?)
+
         # Array of all vector magnitudes computed from the arrays of all
         # vector X and Y components.
         return np.sqrt(self._x**2 + self._y**2)

@@ -15,15 +15,15 @@ current cell cluster.
 #* Simulator.time_currents_intra(), returning the vector field...
 #FIXME: Oh, wait. These vector fields require the "sim", "cells", and "p"
 #parameters -- which, due to arguably poor Simulator design, are currently
-#unavailable as attributes there. Very well. We see little choice but to finally
-#define a pipeline class. As these vector fields are currently only required by
-#plots and animations, sequestering these fields to that pipeline class would be
-#trivial. However, we would then need to pass the same instance of that class to
-#*EVERY* instantiated plot and animation.
+#unavailable as attributes there. Very well. We see little choice but to
+#finally define a pipeline class. As these vector fields are currently only
+#required by plots and animations, sequestering these fields to that pipeline
+#class would be trivial. However, we would then need to pass the same instance
+#of that class to *EVERY* instantiated plot and animation.
 #
 #Doing so is ultimately trivial but tedious and hence deferred to another day.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.science.export import expmath
 from betse.science.visual.layer.vectorfield.lyrvecfldabc import (
@@ -31,28 +31,29 @@ from betse.science.visual.layer.vectorfield.lyrvecfldabc import (
 # from betse.util.type.types import type_check
 from matplotlib.patches import FancyArrowPatch
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
     '''
-    Layer subclass both simulating *and* plotting streamlines of a single vector
-    field (e.g., total current density) onto the cell cluster for one on more
-    simulation time steps.
+    Layer subclass both simulating *and* plotting streamlines of a single
+    vector field (e.g., total current density) onto the cell cluster for one on
+    more simulation time steps.
 
-    This layer is somewhat more computationally expensive in both space and time
-    than the average layer. For each plot or animation frame to be layered with
-    streamlines, an internal fluid simulation of the density of the desired
-    vector field through the cell cluster specific to this frame is solved.
+    This layer is somewhat more computationally expensive in both space and
+    time than the average layer. For each plot or animation frame to be layered
+    with streamlines, an internal fluid simulation of the density of the
+    desired vector field through the cell cluster specific to this frame is
+    solved.
 
     Attributes
     ----------
     _stream_plot : matplotlib.streamplot.StreamplotSet
-        Streamplot of all streamlines previously plotted for the prior time step
-        if any or `None` otherwise, temporarily preserved for only one time step
-        to permit its removal prior to plotting a new streamplot for the current
-        time step.
+        Streamplot of all streamlines previously plotted for the prior time
+        step if any *or* ``None`` otherwise, temporarily preserved for only one
+        time step to permit its removal prior to plotting a new streamplot for
+        the current time step.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass.
@@ -61,7 +62,7 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
         # Default all remaining instance variables.
         self._stream_plot = None
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS                        }..................
     def _layer_first(self) -> None:
         '''
         Simulate and layer streamlines of this vector field for the first time

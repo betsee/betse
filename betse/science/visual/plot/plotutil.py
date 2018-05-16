@@ -508,6 +508,7 @@ def plotVectField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title
 
     return fig, ax, cb
 
+
 def plotStreamField(
     Fx,Fy,
     cells,
@@ -524,7 +525,7 @@ def plotStreamField(
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    if plot_ecm is True:
+    if plot_ecm:
         efield = np.sqrt(Fx**2 + Fy**2)
         # msh = ax.imshow(
         #     efield,
@@ -532,13 +533,18 @@ def plotStreamField(
         #     extent=[cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um, cells.ymax*p.um],
         #     cmap=p.background_cm,
         # )
-        splot, ax = env_stream(Fx,Fy,ax,cells,p, cmap=p.background_cm)
+        splot, ax = env_stream(Fx, Fy, ax, cells, p, cmap=p.background_cm)
         tit_extra = 'Extracellular'
-
-    elif plot_ecm is False:
+    else:
         efield = np.sqrt(Fx**2 + Fy**2)
+
         # msh, ax = cell_mesh(efield,ax,cells,p,p.background_cm)
-        splot, ax = cell_stream(Fx,Fy,ax,cells,p,showing_cells=show_cells,cmap=p.background_cm)
+        splot, ax = cell_stream(
+            Fx, Fy,
+            ax, cells, p,
+            show_cells=show_cells,
+            cmap=p.background_cm,
+        )
         tit_extra = 'Intracellular'
 
     ax.axis('equal')
@@ -548,20 +554,20 @@ def plotStreamField(
     ymin = cells.ymin*p.um
     ymax = cells.ymax*p.um
 
-    ax.axis([xmin,xmax,ymin,ymax])
+    ax.axis([xmin, xmax, ymin, ymax])
 
-    if colorAutoscale is False:
-        splot.lines.set_clim(minColor,maxColor)
+    if not colorAutoscale:
+        splot.lines.set_clim(minColor, maxColor)
 
     cb = fig.colorbar(splot.lines)
 
-    tit = title
-    ax.set_title(tit)
+    ax.set_title(title)
     ax.set_xlabel('Spatial distance [um]')
     ax.set_ylabel('Spatial distance [um]')
     cb.set_label(cb_title)
 
     return fig, ax, cb
+
 
 def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
         """
@@ -1066,52 +1072,55 @@ def env_quiver(datax,datay,ax,cells,p):
 
     return vplot, ax
 
-def cell_stream(datax,datay,ax,cells,p,showing_cells = False, cmap=None):
-    """
-    Sets up a streamline plot for cell-specific data on an existing axis.
+
+def cell_stream(
+    datax, datay, ax, cells, p, show_cells: bool = False, cmap = None):
+    '''
+    Add a streamline plot for cell-specific data to the passed axes.
 
     Parameters
     -----------
-
     datax, datay    Data defined on cell centres or membrane midpoints
+    ax              Existing figure axes to plot currents on
     cells           Instance of cells module
     p               Instance of parameters module
-    ax              Existing figure axis to plot currents on
 
     Returns
     --------
     streams             Container for stream plot, plotted at plot grid
     ax                  Modified axis
+    '''
 
-    """
-
-
-
-    if showing_cells is True:
+    if show_cells:
         cell_edges_flat = p.um*cells.mem_edges_flat
         coll = LineCollection(cell_edges_flat,colors='k')
         coll.set_alpha(0.3)
         ax.add_collection(coll)
 
     if datax.shape != cells.X.shape: # if the data hasn't been interpolated yet...
-
-        Fx = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),datax,(cells.X,cells.Y),
-                                              fill_value=0,method=p.interp_type)
+        Fx = interpolate.griddata(
+            (cells.cell_centres[:,0], cells.cell_centres[:,1]),
+            datax,
+            (cells.X, cells.Y),
+            fill_value=0,
+            method=p.interp_type,
+        )
+        Fy = interpolate.griddata(
+            (cells.cell_centres[:,0], cells.cell_centres[:,1]),
+            datay,
+            (cells.X, cells.Y),
+            fill_value=0,
+            method=p.interp_type,
+        )
 
         Fx = Fx*cells.maskECM
-
-        Fy = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),datay,(cells.X,cells.Y),
-                                              fill_value=0,method=p.interp_type)
-
         Fy = Fy*cells.maskECM
 
     else:
-
         Fx = datax
         Fy = datay
 
     Fmag = np.sqrt(Fx**2 + Fy**2) + 1e-30
-
 
     # normalize the data:
     if Fmag.all() != 0:
@@ -1120,14 +1129,13 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False, cmap=None):
 
     if Fmag.max() != 0.0:
         lw = (3.0*Fmag/Fmag.max()) + 0.5
-
     else:
         lw = 3.0
 
+    # Color(s) of each streamline, either as a scalar *OR* an array of the same
+    # shape as the "Fx" and "Fy" arrays.
     if cmap is None:
-
         stream_color = p.vcolor
-
     else:
         stream_color = Fmag
 
@@ -1137,9 +1145,9 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False, cmap=None):
         Fx, Fy,
         density=p.stream_density,
         linewidth=lw,
-        color=stream_color,
         arrowsize=5.0,
-        cmap = cmap
+        color=stream_color,
+        cmap=cmap,
     )
 
     return streams, ax
