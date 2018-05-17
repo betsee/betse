@@ -10,7 +10,8 @@ simulation) functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimPhaseException
-from betse.science.phase.phasecallabc import (
+from betse.science.phase import phasecallbacks
+from betse.science.phase.phasecallbacks import (
     SimCallbacksABCOrNoneTypes, SimCallbacksNoop)
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.util.type.types import type_check, NoneType
@@ -109,7 +110,7 @@ class SimPhase(object):
 
         # Default all unpassed parameters to sane defaults.
         if callbacks is None:
-            callbacks = SimCallbacksNoop()
+            callbacks = phasecallbacks.make_default()
         if cells is None:
             cells = Cells(p=p)
         if sim is None:
@@ -141,12 +142,12 @@ class SimPhase(object):
         #  TissueHandler._map_tissues_to_cells() method elsewhere. When we do
         #  so, add a FIXME comment suggesting this to be bad.
         #
-        #Alternately, if the _map_tissues_to_cells() method truly *DOES* need to
-        #be called elsewhere, simply make it public. *sigh*
+        #Alternately, if the _map_tissues_to_cells() method truly *DOES* need
+        #to be called elsewhere, simply make it public. *sigh*
 
         # Classify all remaining high-level objects for this phase.
-        self.cache = SimPhaseCaches(self)
-        self.dyna = TissueHandler(p)
+        self.cache = SimPhaseCaches(phase=self)
+        self.dyna = TissueHandler(p=p)
 
         #FIXME: Isolate exports produced by the "seed" phase to their own
         #directory; for simplicity, these exports currently reuse the same

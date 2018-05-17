@@ -17,8 +17,8 @@ from betse.science.config.confenum import GrnUnpicklePhaseType
 from betse.science.export import exppipe
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
-from betse.science.phase.phasecallabc import (
-    SimCallbacksABCOrNoneTypes, SimCallbacksNoop)
+from betse.science.phase import phasecallbacks
+from betse.science.phase.phasecallbacks import SimCallbacksABCOrNoneTypes
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.util.io.log import logs
@@ -97,7 +97,7 @@ class SimRunner(object):
 
         # Default all unpassed parameters to sane defaults.
         if callbacks is None:
-            callbacks = SimCallbacksNoop()
+            callbacks = phasecallbacks.make_default()
 
         # Classify all passed parameters *AFTER* defaulting these parameters.
         self._callbacks = callbacks

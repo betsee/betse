@@ -1120,17 +1120,19 @@ def cell_stream(
         Fx = datax
         Fy = datay
 
-    Fmag = np.sqrt(Fx**2 + Fy**2) + 1e-30
+    # Magnitude of the passed vector field.
+    Fmag = np.sqrt(Fx**2 + Fy**2)
 
-    # normalize the data:
-    if Fmag.all() != 0:
-        Fx = Fx/Fmag
-        Fy = Fy/Fmag
+    # Substitute all zero magnitudes by 1.0, enabling division by these
+    # magnitudes without concern for division-by-zero exceptions.
+    Fmag[Fmag == 0.0] = 1.0
 
-    if Fmag.max() != 0.0:
-        lw = (3.0*Fmag/Fmag.max()) + 0.5
-    else:
-        lw = 3.0
+    # Normalize this vector field to a unit vector field.
+    Fx = Fx/Fmag
+    Fy = Fy/Fmag
+
+    # Streamline width.
+    line_width = (3.0*Fmag/Fmag.max()) + 0.5
 
     # Color(s) of each streamline, either as a scalar *OR* an array of the same
     # shape as the "Fx" and "Fy" arrays.
@@ -1144,7 +1146,7 @@ def cell_stream(
         cells.Y*p.um,
         Fx, Fy,
         density=p.stream_density,
-        linewidth=lw,
+        linewidth=line_width,
         arrowsize=5.0,
         color=stream_color,
         cmap=cmap,

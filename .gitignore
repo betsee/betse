@@ -24,6 +24,7 @@
 
 # Ignore all top-level py.test-specific temporary directories.
 /.cache/
+/.pytest_cache/
 
 # Ignore all top-level setuptools-specific temporary directories.
 /build/
