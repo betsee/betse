@@ -2,7 +2,7 @@
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import copy, time
 import numpy as np
 from betse.exceptions import BetseSimException, BetseSimUnstableException
@@ -397,7 +397,7 @@ class Simulator(object):
         arrays over all time steps.
     '''
 
-    # ..................{ INITIALIZORS                       }..................
+    # ..................{ INITIALIZORS                      }..................
     # Avoid circular import dependencies.
     @type_check
     def __init__(self, p: 'betse.science.parameters.Parameters') -> None:
@@ -548,7 +548,6 @@ class Simulator(object):
         self.c_env_bound = []  # moving ion concentration at global boundary
 
         if p.is_ecm:  # special items specific to simulation of extracellular spaces only:
-
             # vectors storing separate cell and env voltages
             self.v_env = np.zeros(self.edl)   # voltage in the full environment
             self.rho_env = np.zeros(self.edl)  # charge in the full environment
@@ -566,7 +565,6 @@ class Simulator(object):
             self.v_env = np.zeros(len(cells.xypts))
             self.rho_env = np.zeros(len(cells.xypts))
 
-
         ion_names = list(p.ions_dict.keys())
 
         i = -1  # dynamic index
@@ -575,7 +573,6 @@ class Simulator(object):
         for name in ion_names:
             # If this ion is enabled...
             if p.ions_dict[name] == 1:
-
                 i = i+1 # update the dynamic index
 
                 str1 = 'i' + name  # create the ion index
@@ -1021,7 +1018,7 @@ class Simulator(object):
         if p.solver_type is SolverType.FAST:
             self.fast_sim_init(cells, p)
 
-
+    # ..................{ SOLVERS                           }..................
     @type_check
     def run_sim_core(self, phase: SimPhase) -> None:
         '''
@@ -1053,6 +1050,12 @@ class Simulator(object):
         # * "solver_context", the context manager intended to contextualize the
         #   core time loop for this phase.
         time_steps, time_steps_sampled, solver_context = self._plot_loop(phase)
+
+        # Notify the caller of the range of work performed by this subcommand.
+        # The phase.callbacks.progressed() callback is called exactly once for
+        # each sampled time step, implying the maximum progress value to be
+        # equal to the total number of sampled time steps.
+        phase.callbacks.progress_ranged(progress_max=len(time_steps_sampled))
 
         # Exception raised if this simulation becomes unstable, enabling safe
         # handling of this instability (e.g., by saving simulation results).
@@ -1090,15 +1093,15 @@ class Simulator(object):
                     #  * The plot_frame() method simply reduces to "pass".
                     #  * Like the "AnimCellsWhileSolving" subclass, the
                     #    "AnimCellsWhileSolvingNoop" subclass should also
-                    #    satisfy the context manager API (but by doing nothing).
-                    #* Restructure the "AnimCellsABC" class hierarchy to support
-                    #  this subclass.
-                    #* Refactor the _plot_loop() method to return an instance of
-                    #  the "AnimCellsWhileSolvingNoop" subclass rather than the
-                    #  noop() context manager.
-                    anim_cells=(
-                        solver_context if isinstance(
-                            solver_context, AnimCellsWhileSolving) else None),
+                    #    satisfy the context manager API (but by doing
+                    #    nothing).
+                    #* Restructure the "AnimCellsABC" class hierarchy to
+                    #  support this subclass.
+                    #* Refactor the _plot_loop() method to return an instance
+                    #  of the "AnimCellsWhileSolvingNoop" subclass rather than
+                    #  the noop() context manager.
+                    anim_cells=(solver_context if isinstance(
+                        solver_context, AnimCellsWhileSolving) else None),
                 )
         # If this phase becomes computationally unstable...
         except BetseSimUnstableException as exception:
@@ -1127,7 +1130,7 @@ class Simulator(object):
         if exception_instability is not None:
             raise exception_instability
 
-
+    # ..................{ SOLVERS ~ full                    }..................
     @type_check
     def _run_sim_core_loop(
         self,
@@ -1195,8 +1198,7 @@ class Simulator(object):
                 self.rate_NaKATP = np.zeros(self.mdl)
 
             if p.alpha_NaK > 0.0:
-
-                if p.is_ecm is True:
+                if p.is_ecm:
                     # run the Na-K-ATPase pump:
                     fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
                         self.cc_at_mem[self.iNa],
@@ -1222,7 +1224,6 @@ class Simulator(object):
                                 self.NaKATP_block,
                                 met = self.met_concs
                             )
-
 
                 # modify pump flux with any lateral membrane diffusion effects:
                 fNa_NaK = self.rho_pump*fNa_NaK
@@ -1406,6 +1407,10 @@ class Simulator(object):
             # ---------time sampling and data storage---------------------------------------------------
             # If this time step is sampled...
             if t in time_steps_sampled:
+                # Notify the caller that an additional sampled time step has
+                # been successfully simulated.
+                phase.callbacks.progressed_next()
+
                 # Write data to time storage vectors.
                 self.write2storage(t, cells, p)
 
@@ -1424,7 +1429,7 @@ class Simulator(object):
                 loop_time = time.time() - loop_measure
 
                 # Estimated number of seconds to complete this phase.
-                if p.run_sim is True:
+                if p.run_sim:
                     time_estimate = round(loop_time * p.sim_tsteps, 2)
                 else:
                     time_estimate = round(loop_time * p.init_tsteps, 2)
@@ -1434,36 +1439,28 @@ class Simulator(object):
                     'This run should take approximately %fs to compute...',
                     time_estimate)
 
-
-    #--------------FAST SIM LOOP (EQUIVALENT CIRCUIT METHOD)-------------------------------------------
+    # ..................{ SOLVERS ~ fast                    }..................
     def fast_sim_init(self, cells, p):
-        """
+        '''
         Special initialization required for fast (equivalent circuit) sims.
+        '''
 
-        """
         self.rev_E_dic = {}  # dictionary of reversal potentials
         self.cbar_dic = {}
         sigma_gj = []  # temporary array of gap junction conductivities
         sigma_mem = []  # temporary array of "leak" membrane conductivities
 
         for ion_n, ion_i in p.ions_dict.items():  # for each ion
-
             if ion_i == 1:  # if it's used in the simulation
-
                 ii = self.get_ion(ion_n)  # get the index
-
                 ccell = self.cc_cells[ii].mean()
 
                 if p.is_ecm:
-
                     cenv = self.cc_env[ii].mean()
-
                 else:
-
                     cenv = self.cc_env[ii]
 
                 cbar = (ccell + cenv) / 2
-
                 self.cbar_dic[ion_n] = cbar
 
                 # calculate the reversal potential using the Nernst Equation:
@@ -1639,10 +1636,13 @@ class Simulator(object):
             # check for NaNs in voltage and stop simulation if found:
             stb.check_v(self.vm_ave)
 
-
             # ---------time sampling and data storage---------------------------------------------------
             # If this time step is sampled...
             if t in time_steps_sampled:
+                # Notify the caller that an additional sampled time step has
+                # been successfully simulated.
+                phase.callbacks.progressed_next()
+
                 # Write data to time storage vectors.
                 self.vm_time.append(self.vm * 1)
 
@@ -1685,7 +1685,7 @@ class Simulator(object):
                 loop_time = time.time() - loop_measure
 
                 # Estimated number of seconds to complete this phase.
-                if p.run_sim is True:
+                if p.run_sim:
                     time_estimate = round(loop_time * p.sim_tsteps, 2)
                 else:
                     time_estimate = round(loop_time * p.init_tsteps, 2)
@@ -1695,13 +1695,11 @@ class Simulator(object):
                     'This run should take approximately %fs to compute...',
                     time_estimate)
 
-
-
-    #.................{  INITIALIZERS & FINALIZERS  }............................................
+    #.................{ FINALIZERS                  }..........................
     def clear_storage(self, cells, p):
-        """
+        '''
         Re-initializes time storage vectors at the begining of a sim or init.
-        """
+        '''
 
         # clear mass flux storage vectors:
         self.fluxes_mem = np.zeros(self.fluxes_mem.shape)
@@ -1809,6 +1807,7 @@ class Simulator(object):
             self.rho_pump_time = []    # store pump and channel states as function of time...
             self.rho_channel_time = []
 
+
     def write2storage(self,t,cells,p):
         '''
         Append each multidimensional Numpy array covering all time steps (e.g.,
@@ -1905,6 +1904,7 @@ class Simulator(object):
 
         # magnetic field
         # self.Bz_time.append(self.Bz)
+
 
     def save_and_report(self, cells, p) -> None:
         '''
@@ -2379,9 +2379,7 @@ class Simulator(object):
 
         self.Chi = gaussian_filter(self.Chi.reshape(cells.X.shape), 2)
 
-
-
-    # ..................{ PLOTTERS                           }..................
+    # ..................{ PLOTTERS                           }.................
     def _plot_loop(self, phase: SimPhase) -> tuple:
         '''
         Display and/or save an animation during solving if requested *and*
@@ -2397,13 +2395,18 @@ class Simulator(object):
         --------
         (ndarray, set, ContextManager)
             3-tuple ``(time_steps, time_steps_sampled, solver_context)`` where:
+
             * ``time_steps`` is a one-dimensional Numpy array defining the
               time-steps vector for the current phase.
             * ``time_steps_sampled`` is the subset of the ``time_steps`` array
-              whose elements are **sampled time steps** (i.e., time step at
+              whose elements are **sampled time steps** (i.e., time steps at
               which to sample data, substantially reducing data storage). In
-              particular, the length of this set governs the number of frames
-              in each exported animation.
+              particular, the length of this set is exactly equal to:
+
+              * The maximum progress value to be passed to the
+                :meth:`SimCallbacksAPI.progress_ranged` callback.
+              * The number of frames exported from each animation.
+
             * ``solver_context`` is the context manager intended to wrap the
               core time loop for this phase. Specifically, this is either:
               * If the configuration for this phase enables non-blocking display

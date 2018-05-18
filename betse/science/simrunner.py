@@ -27,20 +27,6 @@ from betse.util.type.decorator.decorators import deprecated
 from betse.util.type.decorator.decprof import log_time_seconds
 from betse.util.type.types import type_check
 
-# ....................{ CONSTANTS                          }....................
-_SEED_PROGRESS_TOTAL = 6
-'''
-Cuumulative number of times that each call of the :meth:`SimRunner.seed`
-simulation subcommand calls the :meth:`SimCallbacksABC.progressed` callback.
-
-Caveats
-----------
-This magic number *must* be manually synchronized with the implementation of
-both the :meth:`SimRunner.seed` method and methods transitively called by that
-method. Failure to do so *will* raise exceptions on calling the former. Sadly,
-there exists no reasonable means of automating this synchronization.
-'''
-
 # ....................{ CLASSES                            }....................
 class SimRunner(object):
     '''
@@ -120,12 +106,20 @@ class SimRunner(object):
             internally created by this method to run this phase.
         '''
 
+        # Cuumulative number of times that each call of the this subcommand
+        # calls the SimCallbacksABC.progressed() callback.
+        #
+        # This magic number *MUST* be manually synchronized with the
+        # implementation of both this method and methods transitively called by
+        # this method. Failure to do so *WILL* raise exceptions. Sadly, there
+        # exists no reasonable means of automating this synchronization.
+        SEED_PROGRESS_TOTAL = 6
+
         # Log this attempt.
         logs.log_info('Seeding simulation...')
 
         # Notify the caller of the range of work performed by this subcommand.
-        self._callbacks.progress_ranged(
-            progress_min=0, progress_max=_SEED_PROGRESS_TOTAL)
+        self._callbacks.progress_ranged(progress_max=SEED_PROGRESS_TOTAL)
 
         # Simulation phase.
         phase = SimPhase(
