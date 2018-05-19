@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
@@ -27,7 +27,7 @@ from betse.util.type.decorator.decorators import deprecated
 from betse.util.type.decorator.decprof import log_time_seconds
 from betse.util.type.types import type_check
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 class SimRunner(object):
     '''
     **Simulation runner** (i.e., high-level object encapsulating the running of
@@ -46,7 +46,7 @@ class SimRunner(object):
         simulation subcommand (e.g., to notify this caller of phase progress).
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(
         self,
