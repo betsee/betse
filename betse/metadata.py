@@ -160,13 +160,13 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 # For further details, see http://semver.org.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-VERSION = '0.8.1'
+VERSION = '0.8.2'
 '''
 Human-readable application version as a ``.``-delimited string.
 '''
 
 
-CODENAME = 'Kinder Kaufmann'
+CODENAME = 'Kindest Kaufmann'
 '''
 Human-readable code name associated with the current version of this
 application.
