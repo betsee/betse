@@ -353,7 +353,17 @@ BETSE is releasable to all supported platforms as follows:
      #. Locally clone this forked feedstock repository.
      #. Locally create a new branch of this repository specific to this update.
      #. Locally update this recipe from this branch (typically, by editing the
-        ``recipe/meta.yaml`` file).
+        ``recipe/meta.yaml`` file). When doing so, note that:
+
+        * The sha256 hash of the updated tarball *must* be manually embedded in
+          this recipe. To obtain this hash remotely (in order):
+
+          * Browse to `the PyPI-hosted page <PyPI BETSE_>`__ for this project.
+          * Click the *Download Files* link.
+          * Click the *SHA256* link to the right of the updated tarball.
+          * Paste the resulting string as the value of the ``sha256`` Jinja2
+            templated variable in this recipe.
+
      #. Locally commit these changes.
      #. Locally push these changes to the upstream fork.
      #. Remotely open a pull request (PR) from the upstream fork against the
