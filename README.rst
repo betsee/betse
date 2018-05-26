@@ -444,8 +444,6 @@ for such well-known cases as:
    potential_>`__.
 -  Bioelectrical signals at large-scale cellular wound sites.
 
-For details, see our recently published `introductory paper <Reference_>`__.
-
 Citation
 ========
 

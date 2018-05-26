@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,18 +7,18 @@
 Low-level Numpy-based array testing and validation facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.exceptions import BetseSimUnstableNaNException
 from betse.util.type.types import type_check  #, ClassType, IterableTypes
 from numpy import ndarray
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_if_nan(array: ndarray) -> bool:
     '''
-    Raise an exception if any element of any dimension of the passed Numpy array
-    is a **NaN** (i.e., Not-a-Number).
+    Raise an exception if any element of any dimension of the passed Numpy
+    array is a **NaN** (i.e., Not-a-Number).
 
     Parameters
     ----------
@@ -38,19 +38,19 @@ def die_if_nan(array: ndarray) -> bool:
         raise BetseSimUnstableNaNException(
             'Simulation instability detected '
             '(i.e., one or more NaNs in Numpy array). '
-            'Consider a smaller time step, reduced gap junction radius, and/or '
-            'reduced pump rate coefficients.'
+            'Consider a smaller time step, reduced gap junction radius, '
+            'and/or reduced pump rate coefficients.'
         )
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_nan(array: ndarray) -> bool:
     '''
     ``True`` only if any element of any dimension of the passed Numpy array is
     a **NaN** (i.e., Not-a-Number).
 
-    Assuming the default Numpy configuration, Numpy produces NaN elements in all
-    of the following numerical cases:
+    Assuming the default Numpy configuration, Numpy produces NaN elements in
+    all of the following numerical cases:
 
     * Division by zero (e.g., ``0/0``).
     * Division of infinity by infinity (e.g., ``inf/inf``).
@@ -59,17 +59,19 @@ def is_nan(array: ndarray) -> bool:
       ``(-inf) - (-inf)``).
     * Production of a complex number (e.g., ``np.sqrt(x)`` when ``x < 0``).
     * Performing the floating-point remainder of either:
-      * A dividend that is infinite (e.g., ``np.fmod(x, y)`` when x is ``inf``).
+      * A dividend that is infinite (e.g., ``np.fmod(x, y)`` when x is
+        ``inf``).
       * A divisor that is zero (e.g., ``np.fmod(x, y)`` when y is 0).
 
     Caveats
     ----------
-    **This high-level function should always be called in lieue of the low-level
-    :func:`np.isnan` function,** which is space- and time-consumptive by compare
-    to this function. Unlike this function, the :func:`np.isnan` returns a
-    boolean array of the same shape as the passed array. In the common case of a
-    two- or three-dimensional simulation matrix, passing this arrays to
-    :func:`np.isnan` commonly produces a prohibitively large boolean array.
+    **This high-level function should always be called in lieue of the
+    low-level :func:`np.isnan` function,** which is space- and time-consumptive
+    by compare to this function. Unlike this function, the :func:`np.isnan`
+    returns a boolean array of the same shape as the passed array. In the
+    common case of a two- or three-dimensional simulation matrix, passing this
+    arrays to :func:`np.isnan` commonly produces a prohibitively large boolean
+    array.
 
     This function circumvents such inefficiency by (in order):
 

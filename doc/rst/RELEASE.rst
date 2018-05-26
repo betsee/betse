@@ -358,7 +358,7 @@ BETSE is releasable to all supported platforms as follows:
      #. Locally push these changes to the upstream fork.
      #. Remotely open a pull request (PR) from the upstream fork against the
         `original repository <feedstock repository_>`__.
-     
+
      See also the `conda-forge FAQ`_ entry `"Using a fork vs a branch when
      updating a recipe." <conda-forge update recipe_>`__
 

@@ -373,7 +373,7 @@ class SimRunner(object):
         self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
         self._p.run_sim = False
 
-        # Else if networking an uninitialized and unsimulated cell cluster...
+        # If networking an uninitialized, unsimulated cell cluster...
         if self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.SEED:
             if files.is_file(cells.savedWorld):
                 cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
@@ -441,7 +441,7 @@ class SimRunner(object):
                     raise BetseSimException(
                         'Simulation terminated due to missing core initialization. '
                         'Please run a betse initialization and try again.')
-        # Else if networking an initialized and simulated cell cluster...
+        # Else if networking an initialized, simulated cell cluster...
         elif self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.SIM:
             if files.is_file(sim.savedSim):
                 logs.log_info('Running gene regulatory network on betse sim...')

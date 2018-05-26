@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -39,17 +39,16 @@ Pillow. Callers should *not* assume this to be the case, however.
 #FIXME: Revisit imageio when the following feature request is resolved in full:
 #    https://github.com/imageio/imageio/issues/289
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from PIL import Image
 from betse.lib.numpy import nparray
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
-from betse.util.type.types import (
-    type_check, NoneType, NumpyArrayType, NumpyDataOrNoneTypes)
+from betse.util.type.types import type_check, NoneType, NumpyArrayType
 from enum import Enum
 from numpy import array
 
-# ....................{ ENUMERATIONS                       }....................
+# ....................{ ENUMERATIONS                      }....................
 #FIXME: Define the remainder of all Pillow modes. See the URL given below.
 class ImageModeType(Enum):
     '''
@@ -86,8 +85,8 @@ class ImageModeType(Enum):
         fractional portion of each such ``L`` is preserved). This conversion
         generalizes the integer-based conversion to grayscale performed by
         converting to the :attr:`GRAYSCALE_INT` mode by preserving rather than
-        discarding the fractional portion of each luma value. Note that the only
-        file format currently supporting images of this mode is TIFF.
+        discarding the fractional portion of each luma value. Note that the
+        only file format currently supporting images of this mode is TIFF.
 
     See Also
     ----------
@@ -100,14 +99,14 @@ class ImageModeType(Enum):
     GRAYSCALE_INT   = 'I'
     GRAYSCALE_FLOAT = 'F'
 
-
+# ....................{ TYPES                             }....................
 ImageModeOrNoneTypes = (ImageModeType, NoneType)
 '''
 Tuple of the type of all image mode enumeration members *and* of the singleton
 ``None`` object.
 '''
 
-# ....................{ CONVERTERS                         }....................
+# ....................{ CONVERTERS                        }....................
 @type_check
 def load_image(
     # Mandatory parameters.
@@ -141,8 +140,8 @@ def load_image(
     should pass the following parameters:
 
     * ``mode``.
-    * ``is_signed`` to ``True``. Since this (and *always* will) be the default,
-      *not* passing this parameter satisfies this suggestion.
+    * ``is_signed`` to ``True``. Since this is (and *always* will be) the
+      default, *not* passing this parameter satisfies this suggestion.
 
     Failure to do so invites subtle issues in computations falsely assuming the
     data type and shape of a returned array to be sane, which is *not* the case
@@ -154,26 +153,27 @@ def load_image(
     Failure to do so instructs Pillow to produce an array with data type
     automatically corresponds to that of the input image. Since most (but *not*
     necessarily all) images reside in the :attr:`ImageModeType.COLOR_RGB` and
-    :attr:`ImageModeType.COLOR_RGBA` colour spaces whose three- and four-channel
-    pixel data is homogenously constrained onto unsigned bytes, most arrays
-    returned by this function when explicitly passed an ``is_signed`` parameter
-    of ``False`` will be **unsigned byte arrays** (i.e., arrays whose data types
-    are :attr:`np.uint8`).
+    :attr:`ImageModeType.COLOR_RGBA` colour spaces whose three- and
+    four-channel pixel data is homogenously constrained onto unsigned bytes,
+    most arrays returned by this function when explicitly passed an
+    ``is_signed`` parameter of ``False`` will be **unsigned byte arrays**
+    (i.e., arrays whose data types are :attr:`np.uint8`).
 
     Is that a subtle problem? **It is.**
 
     Python silently coerces scalar types as needed to preserve precision across
-    operations that change precision. The canonical example is integer division.
-    In Python, dividing two integers that are *not* simple integer multiples of
-    one another implicitly expands precision by producing a real number rather
-    than integer (e.g., ``1 / 2 == 0.5`` rather than ``1 / 2 == 0``).
+    operations that change precision. The canonical example is integer
+    division.  In Python, dividing two integers that are *not* simple integer
+    multiples of one another implicitly expands precision by producing a real
+    number rather than integer (e.g., ``1 / 2 == 0.5`` rather than
+    ``1 / 2 == 0``).
 
     On the other hand:
 
     * For all **signed Numpy arrays** (i.e., arrays whose data types are
-      implicitly signed rather than explicitly unsigned), Numpy silently coerces
-      the data types of these arrays as needed to preserve precision across
-      precision-modifying operations.
+      implicitly signed rather than explicitly unsigned), Numpy silently
+      coerces the data types of these arrays as needed to preserve precision
+      across precision-modifying operations.
     * For all **unsigned Numpy arrays** (i.e., arrays whose data types are
       explicitly unsigned rather than implicitly signed), Numpy silently
       preserves the unsigned facet of these arrays as needed by wrapping all
@@ -181,12 +181,13 @@ def load_image(
       discarding precision across precision-modifying operations.
 
     The canonical example is integer addition and substraction applied to
-    unsigned byte arrays. Since unsigned bytes are confined to the integer range
-    ``[0, 255]``, attempting to perform even seemingly trivial computation with
-    unsigned byte arrays silently wraps results exceeding this range onto this
-    range. The resulting arrays typically contain so-called "garbage data." As
-    the following example shows, applying integer subtraction to signed but
-    *not* unsigned Numpy arrays produces expected results:
+    unsigned byte arrays. Since unsigned bytes are confined to the integer
+    range ``[0, 255]``, attempting to perform even seemingly trivial
+    computation with unsigned byte arrays silently wraps results exceeding this
+    range onto this range. The resulting arrays typically contain so-called
+    "garbage data." As the following example shows, applying integer
+    subtraction to signed but *not* unsigned Numpy arrays produces expected
+    results:
 
         >>> import numpy as np
         >>> unsigned_garbage = np.array(((1,2), (3,4)), dtype=np.uint8)
@@ -217,16 +218,17 @@ def load_image(
     filename : str
         Absolute or relative filename of this image.
     is_signed : optional[bool]
-        ``True`` only if converting the possibly unsigned array loaded from this
-        image into a signed array. Defaults to ``True`` for the reasons detailed
-        above. Since explicitly setting this to ``False`` invites errors in
-        computations employing the returned array, callers should do so *ONLY*
-        where these issues are acknowledged and handled appropriately.
+        ``True`` only if converting the possibly unsigned array loaded from
+        this image into a signed array. Defaults to ``True`` for the reasons
+        detailed above. Since explicitly setting this to ``False`` invites
+        errors in computations employing the returned array, callers should do
+        so *ONLY* where these issues are acknowledged and handled
+        appropriately.
     mode : ImageModeOrNoneTypes
         Type and depth of all pixels in the array loaded from this image,
         converted from this image's pixel data according to industry-standard
-        image processing transforms implemented by :mod:`PIL`. Note that this is
-        *not* the type and depth of all pixels in the input image, which
+        image processing transforms implemented by :mod:`PIL`. Note that this
+        is *not* the type and depth of all pixels in the input image, which
         :mod:`PIL` implicitly detects and hence requires no explicit
         designation. Defaults to ``None``, in which case no such conversion is
         performed (i.e., this image's pixel data is returned as is).
