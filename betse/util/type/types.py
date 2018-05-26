@@ -32,7 +32,7 @@ from collections.abc import (
     Sized,
 )
 from enum import Enum, EnumMeta
-from functools import partial, wraps
+from functools import partial, wraps  # @wraps is dynamically called below.
 from io import IOBase
 from inspect import Parameter, Signature
 from weakref import CallableProxyType, ProxyType
@@ -53,15 +53,10 @@ from types import (
     BuiltinFunctionType,
     BuiltinMethodType,
     FunctionType,
-    GeneratorType,
+    GeneratorType,  # "GeneratorType" is imported from this submodule as is.
     MethodType,
     ModuleType,
 )
-
-# Silence IDE warnings concerning locally unused attributes. Move along, folks.
-wraps
-GeneratorType
-ModuleType
 
 # ....................{ TYPES                              }....................
 ClassType = type
@@ -502,7 +497,7 @@ to avoid importing that class.
 '''
 
 
-NumpyDataTypes = None
+NumpyDataTypes = ()
 '''
 Tuple of the **Numpy data type** (i.e., Numpy-specific numeric scalar type
 homogenously constraining all elements of all Numpy arrays) and all scalar
