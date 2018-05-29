@@ -290,25 +290,24 @@ BETSE is releasable to all supported platforms as follows:
 #. **Publish this release to** `PyPI`_.
 
    #. **Create a** `PyPI user`_.
+   #. **Validate the primary e-mail address associated with this account,**
+      which `PyPI`_ requires as a hard prerequisite to performing the first
+      upload (and hence creation) for this project.
    #. **Create a** ``~/.pypirc`` **dotfile,** ideally by following the
       `official instructions <Test PyPI instructions_>`__ for doing so.
-   #. **Register this project with** `PyPI`_. Breath deeply for you tread in
-      hallow waters.
-
-      .. code:: bash
-
-         $ python3 setup.py register
-
-   #. **Browse to this project on** `PyPI`_. Verify by inspection all
-      identifying metadata at the following URL:
-
-      https://pypi.python.org/pypi/betse
-
-   #. **Upload this source tarball and binary wheel to** `PyPI`_.
+   #. **Upload this source tarball and binary wheel to** `PyPI`_. If this is the
+      first such upload for this project, a `PyPI`_-hosted project page will be
+      implicitly created by this upload. `PyPI` neither requires, recommends,
+      nor supports end user intervention in this process.
 
       .. code:: bash
 
          $ twine upload dist/betse-${version}*
+
+   #. (\ *Optional*\ ) **Browse to this project on** `PyPI`_. Verify by
+      inspection all identifying metadata at the following URL:
+
+      https://pypi.python.org/pypi/betse
 
    #. (\ *Optional*\ ) **Test the installation of this release from** `PyPI`_.
 

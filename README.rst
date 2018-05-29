@@ -549,9 +549,9 @@ BETSE is open-source software `released <license_>`__ under the permissive `BSD
 2-clause license`_.
 
 The logo prominently displayed on this `project page <project_>`__ is a flat
-`Noun Project`_ icon entitled `"Cow," <Cows collection_>`__ `kindly released <Noun Project license_>`__
-under the permissive `BSD-compatible <license compatibility_>`__ `CC BY
-3.0 license`_ by `Maxim Kulikov`_.
+`Noun Project`_ icon entitled `"Cow," <Cows collection_>`__ `kindly released
+<Noun Project license_>`__ under the permissive `BSD-compatible <license
+compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
 
 .. # ------------------( LINKS ~ betse                      )------------------
 .. _author list:
