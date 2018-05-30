@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,14 +8,14 @@ Low-level **mapping utilities** (i.e., functions operating on dictionary-like
 types and instances).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import pprint
 from betse.exceptions import BetseMappingException
 from betse.util.type.types import (
     type_check, MappingType, HashableType,)
 from copy import deepcopy
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_unless_values_unique(mapping: MappingType) -> None:
     '''
@@ -49,7 +49,7 @@ def die_unless_values_unique(mapping: MappingType) -> None:
             'Dictionary values {} duplicate.'.format(
                 strs.join_as_conjunction_double_quoted(*values_duplicate)))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_keys(mapping: MappingType, *keys: HashableType) -> bool:
     '''
@@ -95,7 +95,7 @@ def is_values_unique(mapping: MappingType) -> bool:
     # For sanity, defer to an existing low-level tester.
     return iterables.is_items_unique(mapping.values())
 
-# ....................{ FORMATTERS                         }....................
+# ....................{ FORMATTERS                        }....................
 @type_check
 def format_map(mapping: MappingType) -> str:
     '''
@@ -104,12 +104,12 @@ def format_map(mapping: MappingType) -> str:
 
     return pprint.pformat(mapping)
 
-# ....................{ COPIERS                            }....................
+# ....................{ COPIERS                           }....................
 @type_check
 def copy_map(mapping: MappingType) -> MappingType:
     '''
-    Dictionary of all key-value pairs deeply (i.e., recursively) duplicated from
-    the passed dictionary.
+    Dictionary of all key-value pairs deeply (i.e., recursively) duplicated
+    from the passed dictionary.
 
     This function should *always* be called in lieu of the standard
     :meth:`dict.__init__` and :meth:`dict.copy` methods, which only perform
@@ -133,7 +133,49 @@ def copy_map(mapping: MappingType) -> MappingType:
     #of the same type as the passed mapping?
     return deepcopy(mapping)
 
-# ....................{ INVERTERS                          }....................
+
+@type_check
+def copy_map_sans_key(mapping: MappingType, key: HashableType) -> MappingType:
+    '''
+    Dictionary of all key-value pairs excluding that whose key is the passed
+    key deeply (i.e., recursively) duplicated from the passed dictionary.
+
+    Parameters
+    ----------
+    mapping: MappingType
+        Dictionary to be deeply copied.
+    key : HashableType
+        Key to be removed from this dictionary.
+
+    Returns
+    ----------
+    MappingType
+        Dictionary of all key-value pairs excluding that whose key is this
+        key deeply (i.e., recursively) duplicated from this dictionary.
+
+    Raises
+    ----------
+    :class:`KeyError`
+        If this dictionary contains no such key.
+
+    See Also
+    ----------
+    :func:`copy_map`
+        Further details on map copying.
+    :func:`remove_key`
+        Further details on key removal.
+    '''
+
+    # Deep copy of this dictionary.
+    mapping_copy = copy_map(mapping)
+
+    # Remove this key from this copy in-place.
+    remove_key(mapping=mapping_copy, key=key)
+
+    # Return this copy.
+    return mapping_copy
+
+# ....................{ INVERTERS                         }....................
 @type_check
 def invert_map_unique(mapping: MappingType) -> MappingType:
     '''
@@ -161,7 +203,8 @@ def invert_map_unique(mapping: MappingType) -> MappingType:
     Raises
     ----------
     BetseMappingException
-        If one or more key-value pairs of this dictionary share the same values.
+        If one or more key-value pairs of this dictionary share the same
+        values.
 
     See Also
     ----------
@@ -179,8 +222,8 @@ def invert_map_unique(mapping: MappingType) -> MappingType:
     # efficiently inverting this dictionary in the trivial way.
     if mapping_type is dict:
         return {value: key for key, value in mapping.items()}
-    # Else, this is possibly an ordered dictionary. In this case, a considerably
-    # less trivial and slightly less efficient approach is required.
+    # Else, this is possibly an ordered dictionary. In this case, a
+    # considerably less trivial and slightly less efficient approach is needed.
     else:
         # Iterable of reversed 2-iterables "(value, pair)" for each key-value
         # pair of the passed dictionary. Dismantled, this is:
@@ -202,12 +245,12 @@ def invert_map_unique(mapping: MappingType) -> MappingType:
         #          d[k] = v"
         return mapping_type(value_key_pairs)
 
-# ....................{ MERGERS                            }....................
+# ....................{ MERGERS                           }....................
 @type_check
-def merge_maps(*dicts: MappingType) -> MappingType:
+def merge_maps(*mappings: MappingType) -> MappingType:
     '''
-    Dictionary of all key-value pairs deeply (i.e., recursively) merged together
-    from all passed dictionaries (in the passed order).
+    Dictionary of all key-value pairs deeply (i.e., recursively) merged
+    together from all passed dictionaries (in the passed order).
 
     **Order is significant.** Dictionaries passed later take precedence over
     dictionaries passed earlier. Ergo, the last passed dictionary takes
@@ -236,23 +279,62 @@ def merge_maps(*dicts: MappingType) -> MappingType:
     '''
 
     # Type of dictionary to be returned.
-    dict_type = type(dicts[0])
+    dict_type = type(mappings[0])
 
     # Dictionary merged from the passed dictionaries via a doubly-nested
-    # dictionary comprehension. While there exist a countably infinite number of
-    # approaches to merging dictionaries in Python, this approach is known to be
-    # the most efficient for general-purpose merging of arbitrarily many
+    # dictionary comprehension. While there exist a countably infinite number
+    # of approaches to merging dictionaries in Python, this approach is known
+    # to be the most efficient for general-purpose merging of arbitrarily many
     # dictionaries under Python >= 3.4. See also Trey Hunter's exhaustive
     # commentary replete with timings at:
     #     http://treyhunner.com/2016/02/how-to-merge-dictionaries-in-python
     dict_merged = {
         # For safety, deeply copy rather than reuse this value.
         key: deepcopy(value)
-        for dict_cur in dicts
-        for key, value in dict_cur.items()
+        for mapping in mappings
+        for key, value in mapping.items()
     }
 
     # Return a dictionary of this type converted from this dictionary. If the
     # desired type is a "dict", this dictionary is returned as is; else, this
     # dictionary is converted into an instance of the desired type.
     return dict_merged if dict_type is dict else dict_type(dict_merged)
+
+# ....................{ REMOVERS                          }....................
+@type_check
+def remove_key(mapping: MappingType, key: HashableType) -> None:
+    '''
+    Remove the key-value pair whose key is the passed key from the passed
+    dictionary **in-place** (i.e., by modifying this dictionary rather than
+    creating and returning a new dictionary with this key removed) if this
+    dictionary contains this key *or* raise an exception otherwise.
+
+    This function is a caller convenience improving codebase readability and
+    efficiency. Although there exist multiple means of removing key-value pairs
+    from dictionaries, this function implements the most efficient approach.
+    These include:
+
+    * The ``del mapping[key]`` idiom, known to be the most efficient approach.
+    * The :meth:`dict.pop` method, known to be slightly less efficient than the
+      idiomatic approach.
+
+    Parameters
+    ----------
+    mapping : MappingType
+        Dictionary to remove this key from.
+    key : HashableType
+        Key to be removed from this dictionary.
+
+    Raises
+    ----------
+    :class:`KeyError`
+        If this dictionary contains no such key.
+
+    See Also
+    ----------
+    :func:`copy_map_sans_key`
+        Function creating and returning a new dictionary with this key removed.
+    '''
+
+    # The best things in life are free.
+    del mapping[key]

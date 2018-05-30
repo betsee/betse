@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,41 +8,43 @@ High-level **application dependency** (i.e., both mandatory and optional
 third-party Python packages required by this application) facilities.
 
 This low-level submodule defines functions intended to be called by high-level
-submodules (e.g., :mod:`betse.util.cli.cliabc`) *before* attempting to import any
-such dependencies.
+submodules (e.g., :mod:`betse.util.cli.cliabc`) *before* attempting to import
+any such dependencies.
 '''
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies,
 # the top-level of this module may import *ONLY* from packages guaranteed to
 # exist at initial runtime (i.e., standard Python and application packages).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse import metadata, metadeps
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, MappingType, StrOrNoneTypes
 
-# ....................{ GLOBALS                            }....................
+# ....................{ GLOBALS                           }....................
 _IS_INITTED = False
 '''
 ``True`` only if the :func:`init` function has already been called.
 
-That function uses this private boolean to guard against repeated invocations of
-the :func:`init` function from multiple modules in the same Python process
+That function uses this private boolean to guard against repeated invocations
+of the :func:`init` function from multiple modules in the same Python process
 (e.g., :mod:`betse.science.__init__`, :mod:`betse.util.cli.cliabc`). While that
-function does technically support repeated calls, each additional call after the
-first inefficiently performs no meaningful work and is thus safely ignorable.
+function does technically support repeated calls, each additional call after
+the first inefficiently performs no meaningful work and is thus safely
+ignorable.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_unless_runtime_mandatory_all() -> None:
     '''
     Raise an exception unless all mandatory runtime dependencies of this
-    application are **satisfiable** (i.e., both importable and of a satisfactory
-    version) *and* all external commands required by these dependencies (e.g.,
-    GraphViz's ``dot`` command) reside in the current ``${PATH}``.
+    application are **satisfiable** (i.e., both importable and of a
+    satisfactory version) *and* all external commands required by these
+    dependencies (e.g., GraphViz's ``dot`` command) reside in the current
+    ``${PATH}``.
 
     Equivalently, this function raises an exception if at least one such
     dependency is unsatisfied. For importable unsatisfied dependencies with
@@ -92,7 +94,7 @@ def die_unless_runtime_optional(*requirement_names: str) -> None:
     die_unless_requirements_dict_keys(
         metadeps.RUNTIME_OPTIONAL, *requirement_names)
 
-# ....................{ EXCEPTIONS ~ dict                  }....................
+# ....................{ EXCEPTIONS ~ dict                 }....................
 @type_check
 def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
     '''
@@ -134,8 +136,8 @@ def die_unless_requirements_dict_keys(
     Raise an exception unless all dependencies with the passed
     :mod:`setuptools`-specific project names described by the passed dictionary
     are **satisfiable** (i.e., both importable and of a satisfactory version)
-    *and* all external commands required by these dependencies (e.g., GraphViz's
-    ``dot`` command) reside in the current ``${PATH}``.
+    *and* all external commands required by these dependencies (e.g.,
+    GraphViz's ``dot`` command) reside in the current ``${PATH}``.
 
     Parameters
     ----------
@@ -164,7 +166,7 @@ def die_unless_requirements_dict_keys(
     # Validate all external commands required by these dependencies.
     die_unless_commands(*requirement_names)
 
-# ....................{ EXCEPTIONS ~ commands              }....................
+# ....................{ EXCEPTIONS ~ commands             }....................
 @type_check
 def die_unless_commands(*requirement_names: str) -> None:
     '''
@@ -211,7 +213,7 @@ def die_unless_commands(*requirement_names: str) -> None:
                             dependency_command.basename,
                         ))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_commands(*requirement_names: str) -> bool:
     '''
@@ -280,11 +282,11 @@ def is_runtime_optional(*requirement_names: str) -> bool:
 def is_requirements_dict_keys(
     requirements_dict: MappingType, *requirement_names: str) -> bool:
     '''
-    ``True`` only if all dependencies with the passed :mod:`setuptools`-specific
-    project names are **satisfiable** (i.e., both importable and of a
-    satisfactory version) *and* all external commands required by these
-    dependencies (e.g., GraphViz's ``dot`` command) reside in the current
-    ``${PATH}``.
+    ``True`` only if all dependencies with the passed
+    :mod:`setuptools`-specific project names are **satisfiable** (i.e., both
+    importable and of a satisfactory version) *and* all external commands
+    required by these dependencies (e.g., GraphViz's ``dot`` command) reside in
+    the current ``${PATH}``.
 
     Parameters
     ----------
@@ -324,7 +326,7 @@ def is_requirements_dict_keys(
         is_commands(*requirement_names)
     )
 
-# ....................{ GETTERS ~ runtime                  }....................
+# ....................{ GETTERS ~ runtime                 }....................
 def get_runtime_mandatory_tuple() -> tuple:
     '''
     Tuple listing the :mod:`setuptools`-specific requirement string containing
@@ -345,8 +347,8 @@ def get_runtime_optional_tuple() -> tuple:
     '''
     Tuple listing the :mod:`setuptools`-specific requirement string containing
     the mandatory name and optional version and extras constraints of each
-    optional runtime dependency for this application, dynamically converted from
-    the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
+    optional runtime dependency for this application, dynamically converted
+    from the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
     '''
 
     # Avoid circular import dependencies.
@@ -356,7 +358,7 @@ def get_runtime_optional_tuple() -> tuple:
     return setuptool.convert_requirements_dict_to_tuple(
         metadeps.RUNTIME_OPTIONAL)
 
-# ....................{ GETTERS ~ testing                  }....................
+# ....................{ GETTERS ~ testing                 }....................
 def get_testing_mandatory_tuple() -> tuple:
     '''
     Tuple listing the :mod:`setuptools`-specific requirement string containing
@@ -372,12 +374,12 @@ def get_testing_mandatory_tuple() -> tuple:
     return setuptool.convert_requirements_dict_to_tuple(
         metadeps.TESTING_MANDATORY)
 
-# ....................{ GETTERS ~ metadata                 }....................
+# ....................{ GETTERS ~ metadata                }....................
 def get_metadatas() -> tuple:
     '''
     Tuple of 2-tuples `(metedata_name, metadata_value`), describing all
-    currently installed optional and mandatory third-party dependencies required
-    at both runtime and testing time.
+    currently installed optional and mandatory third-party dependencies
+    required at both runtime and testing time.
     '''
 
     # Defer heavyweight imports.
@@ -409,7 +411,7 @@ def get_metadatas() -> tuple:
         numpys.get_metadatas()
     )
 
-# ....................{ IMPORTERS                          }....................
+# ....................{ IMPORTERS                         }....................
 @type_check
 def import_runtime_optional(*requirement_names: str) -> object:
     '''
@@ -457,7 +459,7 @@ def import_requirements_dict_keys(
     return setuptool.import_requirements_dict_keys(
         requirements_dict, *requirement_names)
 
-# ....................{ INITIALIZERS                       }....................
+# ....................{ INITIALIZERS                      }....................
 def reinit(*args, **kwargs) -> None:
     '''
     (Re-)initialize all mandatory runtime dependencies of this application with
@@ -479,12 +481,18 @@ def reinit(*args, **kwargs) -> None:
 @type_check
 def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
     '''
-    Initialize all mandatory runtime dependencies of this application.
+    Initialize all mandatory runtime dependencies of this application if this
+    function has not already been called *or* silently reduce to a noop
+    otherwise (i.e., if this function has already been called).
 
-    Specifically, this function:
+    Specifically, this function (in no particular order):
 
     * Reconfigures matplotlib with sane defaults specific to the current
-      platform.
+      platform and set of all available third-party GUI frameworks.
+    * Initializes exactly one available third-party YAML parsing framework
+      (e.g., PyYaml, :mod:`ruamel.yaml`).
+    * Initializes NumPy.
+    * Initializes Pillow.
 
     Parameters
     ----------

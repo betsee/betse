@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 r'''
 Core **type** (i.e., class) functionality, enumerating a variety of core types
 and :func:`instanceof`\ -friendly tuples of such types *and* the pivotal
-:func:`type_check` decorator validating callable parameters to be of such types.
+:func:`type_check` decorator validating callable parameters to be of such
+types.
 '''
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies
 # *AND* avoid non-halting recursive imports when imported at the top-level
 # of other modules in the "betse.util" package, this module may import *ONLY*
-# from stock Python packages. (By definition, this excludes both application and
-# third-party packages.)
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# from stock Python packages. (By definition, this excludes both application
+# and third-party packages.)
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import inspect, logging, re
 from argparse import ArgumentParser, _SubParsersAction
@@ -58,7 +59,7 @@ from types import (
     ModuleType,
 )
 
-# ....................{ TYPES                              }....................
+# ....................{ TYPES                             }....................
 ClassType = type
 '''
 Type of all types.
@@ -94,11 +95,11 @@ module defined the same type with the same name under Python 2.x but _not_ 3.x.
 Depressingly, this type must now be manually redefined everywhere.
 '''
 
-# ....................{ TYPES ~ arg                        }....................
+# ....................{ TYPES ~ arg                       }....................
 ArgParserType = ArgumentParser
 '''
-Type of argument parsers parsing all command-line arguments for either top-level
-commands *or* subcommands of those commands.
+Type of argument parsers parsing all command-line arguments for either
+top-level commands *or* subcommands of those commands.
 
 This class is a synonym of the :class:`argparse.ArgumentParser` class,
 permitting callers to avoid importing that class.
@@ -114,7 +115,7 @@ This class is a synonym of the :class:`argparse._SubParsersAction` class,
 permitting callers to avoid importing that private class.
 '''
 
-# ....................{ TYPES ~ callable                   }....................
+# ....................{ TYPES ~ callable                  }....................
 CallablePartialType = partial
 '''
 Type of all **partial callables** (i.e., callables dynamically produced by the
@@ -154,7 +155,7 @@ Note that, despite being unbound, slot wrappers remain callable (e.g., by
 explicitly passing the intended ``self`` object as the first parameter).
 '''
 
-# ....................{ TYPES ~ container                  }....................
+# ....................{ TYPES ~ container                 }....................
 ContainerType = Container
 '''
 Abstract interface implemented by all **containers** (i.e., objects
@@ -195,7 +196,7 @@ This class is a synonym of the `collections.abc.Sized` class, provided merely
 as a convenience to callers preferring to avoid importing that class.
 '''
 
-# ....................{ TYPES ~ container : mapping        }....................
+# ....................{ TYPES ~ container : mapping       }....................
 HashableType = Hashable
 '''
 Abstract interface implemented by all **hashables** (i.e., objects implementing
@@ -224,23 +225,23 @@ This class is a synonym of the `collections.abc.MutableMapping` class, provided
 merely as a convenience to callers preferring to avoid importing that class.
 '''
 
-# ....................{ TYPES ~ enum                       }....................
+# ....................{ TYPES ~ enum                      }....................
 # Enumeration types sufficiently obscure to warrant formalization here.
 
 EnumType = EnumMeta
 '''
-Metaclass of all **enumeration types** (i.e., classes containing all enumeration
-members comprising those enumerations).
+Metaclass of all **enumeration types** (i.e., classes containing all
+enumeration members comprising those enumerations).
 
 This class is a synonym of the :class:`enum.EnumMeta` class, permitting callers
 to avoid importing that class.
 
 Motivation
 ----------
-This type is widely used throughout the codebase to validate callable parameters
-to be enumerations. In recognition of its popularity, this type is intentionally
-named ``EnumType`` rather than ``EnumMetaType``. While the latter *would*
-technically be less ambiguous, the former has the advantage of inviting
+This type is widely used throughout the codebase to validate callable
+parameters to be enumerations. In recognition of its popularity, this type is
+intentionally named ``EnumType`` rather than ``EnumMetaType``. While the latter
+*would* technically be less ambiguous, the former has the advantage of inviting
 correctness throughout the codebase -- a less abundant resource.
 
 Why? Because *all* enumeration types are instances of this type rather than the
@@ -295,8 +296,8 @@ Caveats
 ----------
 When type checking callable parameters, this class should *only* be referenced
 where the callable permissively accepts any enumeration member type rather than
-a specific enumeration member type. In the latter case, that type is simply that
-enumeration's type and should be directly referenced as such: e.g.,
+a specific enumeration member type. In the latter case, that type is simply
+that enumeration's type and should be directly referenced as such: e.g.,
 
     >>> from betse.util.type.enums import make_enum
     >>> from betse.util.type.types import type_check
@@ -307,7 +308,7 @@ enumeration's type and should be directly referenced as such: e.g.,
     ...     return str(superlative).lower()
 '''
 
-# ....................{ TUPLES                             }....................
+# ....................{ TUPLES                            }....................
 ModuleOrStrTypes = (str, ModuleType)
 '''
 Tuple of both the module *and* string type.
@@ -338,7 +339,7 @@ This tuple contains classes matching both callable and uncallable weak
 reference proxies.
 '''
 
-# ....................{ TUPLES ~ callable                  }....................
+# ....................{ TUPLES ~ callable                 }....................
 CallableTypes = (
     BuiltinFunctionType,
     BuiltinMethodType,
@@ -389,14 +390,14 @@ Tuple of all **method classes** (i.e., classes whose instances are either
 built-in or user-defined methods).
 '''
 
-# ....................{ TUPLES ~ scalar                    }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ TUPLES ~ scalar                   }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # CAUTION: Order is significant here. See commentary in the docstring below.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 NumericSimpleTypes = (float, int,)
 '''
-Tuple of all **builtin simple numeric types** (i.e., classes whose instances are
-trivial scalar numbers), comprising both integer and real number types.
+Tuple of all **builtin simple numeric types** (i.e., classes whose instances
+are trivial scalar numbers), comprising both integer and real number types.
 
 This tuple intentionally excludes complex number types, whose non-trivial
 encapsulation of two scalar numbers often requires special-purpose handling.
@@ -406,8 +407,9 @@ Caveats
 For obscure reasons, this tuple intentionally lists the :class:`float` class
 *BEFORE* the :class:`int` class. (Downstream BETSEE requirements coerce
 GUI-based numeric string values into numbers by casting these strings into
-instances of the first item of this tuple. Reversing the order of these items in
-this tuple would adversely strip the decimal portion from real number strings.)
+instances of the first item of this tuple. Reversing the order of these items
+in this tuple would adversely strip the decimal portion from real number
+strings.)
 '''
 
 
@@ -442,11 +444,12 @@ Caveats
 For obscure reasons, this tuple intentionally lists the :class:`float` class
 *BEFORE* the :class:`int` class. (Downstream BETSEE requirements coerce
 GUI-based numeric string values into numbers by casting these strings into
-instances of the first item of this tuple. Reversing the order of these items in
-this tuple would adversely strip the decimal portion from real number strings.)
+instances of the first item of this tuple. Reversing the order of these items
+in this tuple would adversely strip the decimal portion from real number
+strings.)
 '''
 
-# ....................{ TUPLES : lib                       }....................
+# ....................{ TUPLES : lib                      }....................
 # Types conditionally dependent upon the importability of third-party
 # dependencies. For safety, all such types default to ``None`` here and are
 # subsequently redefined by the try-except block below.
@@ -468,18 +471,19 @@ SequenceTypes = None
 Tuple of all container base classes conforming to (but *not* necessarily
 subclassing) the canonical :class:`collections.abc.Sequence` API.
 
-Sequences are iterables supporting efficient element access via integer indices.
-Most sequences implement the :class:`collections.abc.Sequence` abstract base
-class, including the concrete :class:`str` string class. All sequences define
-the special ``__getitem__()`` and ``__len__()`` methods, amongst numerous
-others.
+Sequences are iterables supporting efficient element access via integer
+indices.  Most sequences implement the :class:`collections.abc.Sequence`
+abstract base class, including the concrete :class:`str` string class. All
+sequences define the special ``__getitem__()`` and ``__len__()`` methods,
+amongst numerous others.
 
 While all sequences are iterables, not all iterables are sequences. Generally
 speaking, sequences correspond to the proper subset of iterables whose elements
 are ordered. :class:`dict` and :class:`OrderedDict` are the canonical examples.
 :class:`dict` implements :class:`collections.abc.Iterable` but *not*
-:class:`collections.abc.Sequence`, due to failing to support integer index-based
-lookup; :class:`OrderedDict` implements both, due to supporting such lookup.
+:class:`collections.abc.Sequence`, due to failing to support integer
+index-based lookup; :class:`OrderedDict` implements both, due to supporting
+such lookup.
 
 For generality, this tuple contains classes matching both pure-Python sequences
 *and* non-Pythonic Fortran-based Numpy arrays and matrices -- which fail to
@@ -487,7 +491,7 @@ subclass :class:`collections.abc.Sequence` despite implementing the entirety of
 that that API.
 '''
 
-# ....................{ TUPLES : lib ~ numpy               }....................
+# ....................{ TUPLES : lib ~ numpy              }....................
 NumpyArrayType = None
 '''
 Type of Numpy arrays if :mod:`numpy` is importable *or* ``None`` otherwise.
@@ -509,7 +513,7 @@ This class is a synonym of the :class:`numpy.dtype` class, permitting callers
 to avoid importing that class.
 '''
 
-# ....................{ TUPLES : init ~ numpy              }....................
+# ....................{ TUPLES : init ~ numpy             }....................
 # Conditionally add sequence types to previously declared tuples.
 #
 # If Numpy is available, add both core APIs and the Numpy array type (which
@@ -531,7 +535,7 @@ except:
     IterableTypes = (Iterable,)
     SequenceTypes = (Sequence,)
 
-# ....................{ TUPLES : post-init                 }....................
+# ....................{ TUPLES : post-init                }....................
 # Tuples of types assuming the above initialization to have been performed.
 
 MappingOrSequenceTypes = (MappingType,) + SequenceTypes
@@ -554,7 +558,7 @@ Tuple of all numeric types *and* all container base classes conforming to (but
 *not* necessarily subclassing) the canonical :class:`Sequence` API.
 '''
 
-# ....................{ TUPLES : none                      }....................
+# ....................{ TUPLES : none                     }....................
 # Tuples of types containing at least the type of the singleton "None" object.
 
 NoneTypes = (NoneType,)
@@ -659,12 +663,12 @@ TestableOrNoneTypes = TestableTypes + NoneTypes
 Tuple of all testable types *and* the type of the ``None`` singleton.
 '''
 
-# ....................{ TUPLES ~ regex                     }....................
-# Yes, this is the only reliable means of obtaining the type of compiled regular
-# expressions. For unknown reasons presumably concerning the archaic nature of
-# Python's regular expression support, this type is *NOT* publicly exposed.
-# While the private "re._pattern_type" attribute does technically provide this
-# type, it does so in a private and hence inherently non-portable manner.
+# ....................{ TUPLES ~ regex                    }....................
+# Yes, this is the only reliable means of obtaining the type of compiled
+# regular expressions. For unknown reasons presumably concerning the archaic
+# nature of Python's regular expression support, this type is *NOT* publicly
+# exposed. While the private "re._pattern_type" attribute does technically
+# provide this type, it does so in a private and hence non-portable manner.
 RegexCompiledType = type(re.compile(''))
 '''
 Type of all compiled regular expressions.
@@ -697,7 +701,7 @@ Tuple of both the regular expression match object type *and* the type of the
 ``None`` singleton.
 '''
 
-# ....................{ SETS : private                     }....................
+# ....................{ SETS : private                    }....................
 #FIXME: Type-check variadic keyword arguments as well.
 _PARAMETER_KIND_IGNORED = {
     Parameter.POSITIONAL_ONLY, Parameter.VAR_KEYWORD,
@@ -708,11 +712,11 @@ annotation-based type checking in the :func:`type_check` decorator.
 
 This includes:
 
-* Constants specific to variadic parameters (e.g., `*args`, `**kwargs`).
+* Constants specific to variadic parameters (e.g., ``*args``, ``**kwargs``).
   Variadic parameters cannot be annotated and hence cannot be type checked.
 * Constants specific to positional-only parameters, which apply to non-pure-
   Python callables (e.g., defined by C extensions). The :func:`type_check`
-  decorator applies _only_ to pure-Python callables, which provide no syntactic
+  decorator applies *only* to pure-Python callables, which provide no syntactic
   means for specifying positional-only parameters.
 '''
 
@@ -724,17 +728,17 @@ based type checking in the :func:`type_check` decorator.
 
 This includes:
 
-* `Signature.empty`, signifying a callable whose return value is _not_
+* `Signature.empty`, signifying a callable whose return value is *not*
   annotated.
 * `None`, signifying a callable returning no value. By convention, callables
-  returning no value are typically annotated to return `None`. Technically,
-  callables whose return values are annotated as `None` _could_ be explicitly
-  checked to return `None` rather than a none-`None` value. Since return values
-  are safely ignorable by callers, however, there appears to be little
+  returning no value are typically annotated to return ``None``. Technically,
+  callables whose return values are annotated as ``None`` *could* be explicitly
+  checked to return `None` rather than a none-``None`` value. Since return
+  values are safely ignorable by callers, however, there appears to be little
   real-world utility in enforcing this constraint.
 '''
 
-# ....................{ DECORATORS                         }....................
+# ....................{ DECORATORS                        }....................
 # If the active Python interpreter is *NOT* optimized (e.g., option "-O" was
 # *NOT* passed to this interpreter), enable type checking.
 if __debug__:
