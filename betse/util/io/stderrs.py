@@ -7,6 +7,30 @@
 Low-level standard error facilities.
 '''
 
+#FIXME: Enable the default fault handler as follows at a suitably early point
+#in application startup:
+#
+#    import faulthandler
+#    faulthandler.enable()
+#
+#The above logic prints a detailed traceback on all segmentation faults to
+#standard error, as sanity requires. Note that, while the faulthandler.enable()
+#function called above technically supports redirection to an open file handle,
+#the handle is required to remain open for the lifetime of the fault handler
+#(i.e., foreover). This isn't really feasible, in general, so let's just run
+#with the default logic for safety.
+#
+#Ideally, this submodule would define a new enable_fault_handler() function
+#trivially calling faulthandler.enable(); the "betse.ignition" submodule should
+#then call that function at a suitably early point -- possibly even as the
+#first call, given the horror of segmentation faults that lack tracebacks.
+#
+#Lastly, note that there are *NO* performance penalties of enabling this
+#handler and that effectively all Python applications should do so. For further
+#details, see this authoritative StackOverflow answer by the author of the
+#"faulthandler" module:
+#    https://stackoverflow.com/a/29246977/2809027
+
 # ....................{ IMPORTS                            }....................
 import random, sys, traceback
 
