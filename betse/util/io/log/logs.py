@@ -221,11 +221,12 @@ def log_exception(exception: Exception) -> None:
     # Attempt to...
     try:
         # Avoid circular import dependencies.
-        from betse.util.io import ioexceptions, stderrs
+        from betse.util.io import stderrs
+        from betse.util.io.error import errexception
         from betse.util.io.log import logconfig
 
         # Terse synopsis and verbose traceback for this exception.
-        exc_synopsis, exc_traceback = ioexceptions.get_metadata(exception)
+        exc_synopsis, exc_traceback = errexception.get_metadata(exception)
 
         # Singleton logging configuration for the current Python process.
         log_config = logconfig.get()

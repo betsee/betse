@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,18 +7,19 @@
 Low-level exception handling facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import traceback
 from betse.util.type import types
 from betse.util.type.types import type_check
 from io import StringIO
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get_traceback(exception: Exception) -> str:
     '''
-    Non-human-readable traceback associated with the passed exception, typically
-    intended to be logged and/or displayed to end users for debugging purposes.
+    Non-human-readable traceback associated with the passed exception,
+    typically intended to be logged and/or displayed to end users for debugging
+    purposes.
 
     Parameters
     ----------
@@ -58,7 +59,7 @@ def get_metadata(exception: Exception) -> tuple:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.io import stderrs
+    from betse.util.io.error import errhaiku
     from betse.util.py import pyident
     from betse.util.type.text import regexes, strs
 
@@ -73,10 +74,10 @@ def get_metadata(exception: Exception) -> tuple:
     # function is called instead.
     exc_parents_generator = _iter_chain(exception, exception.__traceback__)
 
-    # Tuple of 2-tuples "(exception, traceback)" in the reverse order yielded by
-    # this generator, preserving readability by ensuring that this exception is
-    # logged first, the parent exception of this exception (if any) is logged
-    # second, and so forth.
+    # Tuple of 2-tuples "(exception, traceback)" in the reverse order yielded
+    # by this generator, preserving readability by ensuring that this exception
+    # is logged first, the parent exception of this exception (if any) is
+    # logged second, and so forth.
     exc_parents = tuple(reversed(tuple(exc_parents_generator)))
 
     # 0-based index of the last exception in this list.
@@ -124,8 +125,8 @@ def get_metadata(exception: Exception) -> tuple:
 
         # If the exception type prefixing the last line of this message is
         # itself prefixed by the expected and hence ignorable fully-qualified
-        # name of the subpackage defining BETSE exceptions, truncate this prefix
-        # for brevity.
+        # name of the subpackage defining BETSE exceptions, truncate this
+        # prefix for brevity.
         #
         # Note that the format_exception_only() function guarantees the last
         # line of this message to *ALWAYS* be "the message indicating which
@@ -157,21 +158,21 @@ def get_metadata(exception: Exception) -> tuple:
         # This message is guaranteed to be prefixed by a class name.
         exc_class_name = exc_message_match_groups[0]
 
-        # This message is *NOT* guaranteed to be prefixed by a non-empty message
-        # (e.g., assert statements passed no message).
+        # This message is *NOT* guaranteed to be prefixed by a non-empty
+        # message (e.g., assert statements passed no message).
         #
-        # If a non-empty message matched, use that.
+        # If a non-empty message matched, prefer that.
         exc_message = None
         if exc_message_match_groups[1] is not None:
             exc_message = exc_message_match_groups[1]
-        # Else if a debug assertion failed with no explicit message, use the
+        # Else if a debug assertion failed with no explicit message, prefer the
         # exception context directly detailing this assertion.
         elif exc_class_name == 'AssertionError':
             exc_message = 'Debug assertion failed: {}'.format(
                 # A traceback line typically contains an internal newline. The
-                # substring preceding this newline details the file and function
-                # containing the corresponding call; the substring following
-                # this newline is this call. Hence, ignore the former.
+                # substring preceding this newline details the file and
+                # function containing the corresponding call; the substring
+                # following this newline is this call. Ignore the former.
                 regexes.remove_substrs(
                     exc_traceback_lines[-1], r'^.+\n\s*'))
         # Else, convert this exception's class name into a human-readable
@@ -185,16 +186,16 @@ def get_metadata(exception: Exception) -> tuple:
             types.assert_not_str_nonempty(
                 exc_message, 'Exception message'))
 
-        # If this class is "KeyError", this message is the single-quoted name of
-        # a non-existent key in a dictionary whose access raised this exception.
-        # Replace this by a human-readable message.
+        # If this class is "KeyError", this message is the single-quoted name
+        # of a non-existent key in a dictionary whose access raised this
+        # exception.  Replace this by a human-readable message.
         if exc_class_name == 'KeyError':
             exc_message = 'Dictionary key {} not found.'.format(
                 exc_message)
 
         # Append this message to the synopsis buffer. For readability, this
-        # message is wrapped to the default terminal width and each wrapped line
-        # prefixed by indentation.
+        # message is wrapped to the default terminal width and each wrapped
+        # line prefixed by indentation.
         exc_iota_buffer.write(strs.wrap(
             text=exc_message, line_prefix='    '))
 
@@ -223,21 +224,20 @@ def get_metadata(exception: Exception) -> tuple:
             )
 
     # Append a random error haiku to the traceback buffer... *BECAUSE*!
-    exc_full_buffer.write('\n{}'.format(stderrs.get_haiku_random()))
+    exc_full_buffer.write('\n{}'.format(errhaiku.get_random()))
 
     # Return the string contents of these buffers in the expected order.
     return (exc_iota_buffer.getvalue(), exc_full_buffer.getvalue())
 
-# ....................{ PRIVATE ~ iterators                }....................
+# ....................{ PRIVATE ~ iterators               }....................
 # If the active Python interpreter is 3.4, import the private _iter_chain()
 # method from the standard "traceback" module.
 try:
     from traceback import _iter_chain
-    if False: _iter_chain  # squelch IDE warnings
-# Else, the active Python interpreter is >= 3.5, which replaced this method with
-# a new public class hierarchy (e.g., "TracebackException"). For portability,
-# forward port the traceback._iter_chain() method from the most recent stable
-# release of Python 3.4.
+# Else, the active Python interpreter is >= 3.5, which replaced this method
+# with a new public class hierarchy (e.g., "TracebackException"). For
+# portability, forward port the traceback._iter_chain() method from the most
+# recent stable release of Python 3.4.
 #
 # Alternately, this class hierarchy *COULD* be backported from the most recent
 # stable release of Python 3.6. Doing so, however, would be considerably more

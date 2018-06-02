@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -54,7 +54,7 @@ Footnote descriptions are as follows:
 
 #FIXME: Consider contributing most or all of this submodule back to matplotlib.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To permit matplotlib's default verbosity and backend to be replaced
 # by BETSE-specific values, no matplotlib package or module may be imported
@@ -64,7 +64,7 @@ Footnote descriptions are as follows:
 
 import sys
 from betse.exceptions import BetseMatplotlibException
-from betse.util.io import ioexceptions
+from betse.util.io.error import errexception
 from betse.util.io.log import logconfig, logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.os import displays, kernels, oses
@@ -79,7 +79,7 @@ from betse.util.type.types import (
     type_check, MappingType, SequenceTypes, SetType, StrOrNoneTypes,)
 from contextlib import contextmanager
 
-# ....................{ GLOBALS ~ str                      }....................
+# ....................{ GLOBALS ~ str                     }....................
 _BACKEND_NAME_HEADLESS = 'Agg'
 '''
 Name of the non-GUI-based matplotlib backend to fallback to in the event that
@@ -88,7 +88,7 @@ this backend is guaranteed to be usable on all platforms and systems regardless
 of matplotlib version.
 '''
 
-# ....................{ GLOBALS ~ dict                     }....................
+# ....................{ GLOBALS ~ dict                    }....................
 _LOG_LEVEL_TO_VERBOSITY_LEVEL_NAME = {
     LogLevel.NONE:     'silent',
     LogLevel.CRITICAL: 'silent',
@@ -99,9 +99,10 @@ _LOG_LEVEL_TO_VERBOSITY_LEVEL_NAME = {
     LogLevel.ALL:      'debug-annoying',
 }
 '''
-Dictionary mapping from each standard logging level expected by newer matplotlib
-versions (i.e., matplotlib >= 2.2.0) to the corresponding non-standard verbosity
-level name expected by older matplotlib versions (i.e., matplotlib < 2.2.0).
+Dictionary mapping from each standard logging level expected by newer
+matplotlib versions (i.e., matplotlib >= 2.2.0) to the corresponding
+non-standard verbosity level name expected by older matplotlib versions (i.e.,
+matplotlib < 2.2.0).
 '''
 
 
@@ -124,14 +125,14 @@ the custom options specified by this dictionary override the default options
 defined by that file.
 '''
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 class MplConfig(object):
     '''
     High-level wrapper simplifying low-level configuration and introspection of
     matplotlib.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def init(self, backend_name: StrOrNoneTypes) -> None:
         '''
         Reconfigure matplotlib with sane defaults specific to the current
@@ -139,11 +140,11 @@ class MplConfig(object):
 
         On first importation, matplotlib configures itself by loading the
         contents of the first ``matplotlibrc`` file found in any of several
-        candidate directories. Technically, BETSE _could_ supply an
+        candidate directories. Technically, this application *could* supply an
         application-specific version of this file to force matplotlib to adopt
         application-specific configuration settings. Since synchronizing this
         local copy with remote changes is an onerous (if not ultimately
-        infeasible) chore, we elect instead to reconfigure matplotlib _after_
+        infeasible) chore, we elect instead to reconfigure matplotlib *after*
         this file has already been loaded at application startup. While this
         does increase startup costs, the alternatives are all absurd at best.
 
@@ -151,9 +152,9 @@ class MplConfig(object):
         ----------
         backend_name: optional[str]
             Name of the matplotlib backend to explicitly enable. Defaults to
-            `None`, in which case this method implicitly enables the first
+            ``None``, in which case this method implicitly enables the first
             importable backend known to be both usable and supported by
-            application requirements (_in descending order of preference_).
+            application requirements (in descending order of preference).
 
         See Also
         ----------
@@ -195,15 +196,15 @@ class MplConfig(object):
 
         * The current command-line argument list :data:`sys.argv` is
           iteratively searched for arguments matching patterns, including:
-          * Arguments prefixed by `-d` of length greater than or equal to 3
-            (e.g., `-dtkagg` but _not_ simply `-d`). For each such argument,
+          * Arguments prefixed by ``-d`` of length greater than or equal to 3
+            (e.g., ``-dtkagg`` but _not_ simply `-d`). For each such argument,
             :mod:`matplotlib.__init__` attempts to enable the backend whose
-            name is given by such argument excluding the prefixing `-d`,
+            name is given by such argument excluding the prefixing ``-d``,
             silently ignoring exceptions.
-          * Arguments prefixed by `--verbose-` matching a matplotlib-specific
-            verbosity level (e.g., `--verbose-debug`). For each such argument,
-            :mod:`matplotlib.__init__` coerces the global verbosity to that
-            level.
+          * Arguments prefixed by ``--verbose-`` matching a matplotlib-specific
+            verbosity level (e.g., ``--verbose-debug``). For each such
+            argument, :mod:`matplotlib.__init__` coerces the global verbosity
+            to that level.
 
         This is utterly horrible. Since enabling arbitrary backends can have
         non-negligible side effects, the :mod:`matplotlib.__init__` submodule
@@ -253,18 +254,18 @@ class MplConfig(object):
             # required *ONLY* to ensure backward compatibility with older
             # matplotlib versions (i.e., matplotlib < 2.2.0).
             #
-            # Ideally, this logic would be conditionally performed *ONLY* if the
-            # current version of matplotlib is sufficiently old. Unfortunately,
-            # attempting to do so raises chicken-and-egg issues; notably, the
-            # current version of matplotlib can only be determined by importing
-            # the top-level "matplotlib" module, but doing so requires *ALL*
-            # matplotlib-specific CLI options (including those setting
-            # verbosity) to have already been injected into the "sys.argv" list.
-            # Since these two constraints are mutually exclusive *AND* since
-            # squelching verbosity in older versions of matplotlib takes
-            # precedence over doing so more intelligently, we do so
-            # unintelligently (i.e., unconditionally) -- regardless of whether
-            # the current version of matplotlib even supports these options.
+            # Ideally, this logic would be conditionally performed *ONLY* if
+            # the current version of matplotlib is sufficiently old.
+            # Unfortunately, attempting to do so raises chicken-and-egg issues;
+            # notably, the current version of matplotlib can only be determined
+            # by importing the top-level "matplotlib" module, but doing so
+            # requires *ALL* matplotlib-specific CLI options (including those
+            # setting verbosity) to have already been injected into the
+            # "sys.argv" list.  Since these two constraints are mutually
+            # exclusive *AND* since squelching verbosity in older versions of
+            # matplotlib takes precedence over doing so more intelligently, we
+            # do so unintelligently (i.e., unconditionally) -- regardless of
+            # whether this version of matplotlib even supports these options.
             matplotlib_log_level_name = None
 
             # If BETSE-specific debugging is enabled, enable the mildest form
@@ -287,18 +288,19 @@ class MplConfig(object):
             sys.argv.append('--verbose-' + matplotlib_log_level_name)
 
             #FIXME: We should additionally set the "ffmpeg"-specific CLI option
-            #"-loglevel" based on the above "betse_log_level" as well -- perhaps by
-            #setting "rcParams['animation.ffmpeg_args'] = '-report'" or some
-            #such *AFTER* importing matplotlib below.
+            #"-loglevel" based on the above "betse_log_level" as well --
+            #perhaps by setting "rcParams['animation.ffmpeg_args'] = '-report'"
+            #or some such *AFTER* importing matplotlib below.
 
             # Log this initialization.
-            logs.log_debug('Initializing matplotlib with options: %s', sys.argv)
+            logs.log_debug(
+                'Initializing matplotlib with options: %s', sys.argv)
 
-            # Set matplotlib's logging level *BEFORE* importing from matplotlib.
-            # Since matplotlib now defaults to the sane WARNING level, this
-            # could technically also be performed *AFTER* importing from
-            # matplotlib; doing so would, however, ignore all messages logged
-            # during this importation with a lower level. (That would be bad.)
+            # Set matplotlib's logging level *BEFORE* importing from
+            # matplotlib.  Since matplotlib now defaults to the sane WARNING
+            # level, this could technically also be performed *AFTER* importing
+            # from matplotlib; doing so would ignore all messages logged during
+            # this importation with a lower level. (That would be bad.)
             #
             # Note that this logic effectively reduces to a noop under older
             # matplotlib versions (i.e., matplotlib < 2.2.0). Although
@@ -363,25 +365,25 @@ class MplConfig(object):
     def _init_backend(self, backend_name: StrOrNoneTypes) -> None:
         '''
         Set the default matplotlib backend to be implicitly used for subsequent
-        plotting, which matplotlib requires to be configured _before_ the first
+        plotting, which matplotlib requires to be configured *before* the first
         importation of any the following modules: :mod:`matplotlib.pyplot` or
         :mod:`matplotlib.backends`.
 
         Specifically:
 
-        * If this method is called by `py.test`-based testing and hence
+        * If this method is called by :mod:`pytest`-based testing and hence
           possibly by headless continuous integration (CI) with no access to a
           window manager, the non-interactive `Agg` backend is used.
         * Else, if the current platform is:
-          * Either Linux or Windows, the `TkAgg` backend is used. This is the
+          * Either Linux or Windows, the ``TkAgg`` backend is used. This is the
             only backend currently known to survive freezing into executables.
             Alternatives include:
-            * `Qt4Agg`, an (_arguably_) aesthetically inferior backend with
-              (_inarguably_) significant performance concerns.
-          * OS X, the `MacOSX` backend is used. This is the only backend
+            * ``Qt4Agg``, an (arguably) aesthetically inferior backend with
+              (inarguably) significant performance concerns.
+          * OS X, the ``MacOSX`` backend is used. This is the only backend
             currently known to survive freezing into executables. Alternatives
             include:
-            * `CocoaAgg`, a non-native backend leveraging the cross-platform
+            * ``CocoaAgg``, a non-native backend leveraging the cross-platform
               C++ library AGG (Anti-grain Geometry). Yes! This backend is
               officially deprecated and fundametally broken, however. No!
 
@@ -389,13 +391,13 @@ class MplConfig(object):
         ----------
         backend_name: optional[str]
             Name of the matplotlib backend to explicitly enable. Defaults to
-            `None`, in which case this method implicitly enables the first
+            ``None``, in which case this method implicitly enables the first
             importable backend known to be both usable and supported by
-            application requirements (_in descending order of preference_).
+            application requirements (in descending order of preference).
         '''
 
-        # If no specific backend is requested *AND* the active Python process is
-        # headless and hence supports only headless backends...
+        # If no specific backend is requested *AND* the active Python process
+        # is headless and hence supports only headless backends...
         if backend_name is None and displays.is_headless():
             # Log this observation.
             logs.log_info(
@@ -417,7 +419,8 @@ class MplConfig(object):
                 return
             # Else, log a non-fatal error and continue.
             else:
-                logs.log_error('Preferred backend "%s" unusable.', backend_name)
+                logs.log_error(
+                    'Preferred backend "%s" unusable.', backend_name)
         # Else, no specific backend is requested. Since the default headless
         # backend (e.g., "Agg") should *ALWAYS* be usable, this typically
         # implies this process to be headfull and hence support GUI backends.
@@ -440,11 +443,12 @@ class MplConfig(object):
         logs.log_debug(
             'Finding usable backend in: %r', backend_names)
 
-        #FIXME: If this is Matplotlib >= 2.0.0 and the only available backend is
-        #"TkAgg", a non-fatal warning should be logged instructing the user to
-        #install a more stable backend (e.g., "Qt5Agg", "Qt4Agg", "WxAgg"). To
-        #leverage the local "backend_names" list, this warning should probably
-        #be emitted here rather than in the is_backend_usable() method.
+        #FIXME: If this is Matplotlib >= 2.0.0 and the only available backend
+        #is "TkAgg", a non-fatal warning should be logged instructing the user
+        #to install a more stable backend (e.g., "Qt5Agg", "Qt4Agg", "WxAgg").
+        #To leverage the local "backend_names" list, this warning should
+        #probably be emitted here rather than in the is_backend_usable()
+        #method.
 
         # For each such backend (in descending order of preference)...
         for backend_name in backend_names:
@@ -473,22 +477,22 @@ class MplConfig(object):
         # the ubiquity of the headless fallback backend (e.g., "Agg"), this
         # should only occur in extremely uncommon edge cases (e.g., manual
         # recompilation of the entire system). If this does occur, this is
-        # typically the result of internal issues in this codebase. To assist in
-        # debugging these issues, a simple exception message is raised.
+        # typically the result of internal issues in this codebase. To assist
+        # in debugging these issues, a simple exception message is raised.
         raise BetseMatplotlibException(
             'No usable matplotlib backend found. '
             '{}-supported backends tested include (in order): {}.'.format(
                 kernel_name,
                 strs.join_as_conjunction_double_quoted(*backend_names)))
 
-    # ..................{ PROPERTIES                         }..................
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # ..................{ PROPERTIES                        }..................
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # NOTE: To avoid desynchronization issues between low-level matplotlib
     # internals and the following high-level properties wrapping these
     # internals, most of these properties leverage the less efficient but safer
     # @property decorator rather than the more efficient but less safe
     # @property_cached decorator.
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     @property_cached
     def version(self) -> str:
@@ -507,9 +511,9 @@ class MplConfig(object):
         #
         # * If this version exhibits formatting discrepancies introduced in
         #   recent matplotlib versions violating Python conventions for version
-        #   specifiers (e.g., the non-compliant version "2.1.0-python3_4" rather
-        #   than the compliant version ""2.1.0"), a sequence whose single item
-        #   is this version stripped of these discrepencies.
+        #   specifiers (e.g., the non-compliant version "2.1.0-python3_4"
+        #   rather than the compliant version ""2.1.0"), a sequence whose
+        #   single item is this version stripped of these discrepencies.
         # * Else, "None".
         #
         # Note that this regular expression need *NOT* be compiled for
@@ -528,16 +532,16 @@ class MplConfig(object):
         # Return this possibly munged version.
         return version_return
 
-    # ..................{ PROPERTIES ~ log level             }..................
+    # ..................{ PROPERTIES ~ log level            }..................
     @property
     def log_level(self) -> LogLevel:
         '''
         Matplotlib-specific logging level.
 
-        If this is a sufficiently old version of matplotlib *not* supporting the
-        :mod:`logging` API (i.e., matplotlib < 2.2.0), this method attempts to
-        internally convert from a matplotlib-specific verbosity level name to a
-        :mod:`logging` level. If this name is:
+        If this is a sufficiently old version of matplotlib *not* supporting
+        the :mod:`logging` API (i.e., matplotlib < 2.2.0), this method attempts
+        to internally convert from a matplotlib-specific verbosity level name
+        to a :mod:`logging` level. If this name is:
 
         * ``silent``, hiding all Matplotlib output *except* non-fatal warnings,
           :attr:`LogLevel.WARNING` is returned. Not exactly silent, is it?
@@ -545,8 +549,9 @@ class MplConfig(object):
           :attr:`LogLevel.INFO` is returned.
         * `debug`, emitting verbose Matplotlib debugging output,
           :attr:`LogLevel.DEBUG` is returned.
-        * `debug-annoying`, emitting *very* verbose Matplotlib debugging output.
-          :attr:`LogLevel.ALL` is returned. You *never* want this. Trust us.
+        * `debug-annoying`, emitting *very* verbose Matplotlib debugging
+          output.  :attr:`LogLevel.ALL` is returned. You *never* want this.
+          Trust us.
         '''
 
         # Matplotlib-specific logger.
@@ -614,12 +619,12 @@ class MplConfig(object):
             # Set this verbosity level.
             matplotlib_verbose.set_level(verbosity_level_name)
 
-    # ..................{ PROPERTIES ~ path                  }..................
+    # ..................{ PROPERTIES ~ path                 }..................
     @property
     def cache_dirname(self) -> str:
         '''
-        Absolute pathname of the platform- and typically user-specific directory
-        to which matplotlib caches metadata (e.g., about fonts).
+        Absolute pathname of the platform- and typically user-specific
+        directory to which matplotlib caches metadata (e.g., about fonts).
         '''
 
         # Delay importation of the "matplotlib.__init__" module.
@@ -642,7 +647,7 @@ class MplConfig(object):
         # Return this path.
         return matplotlib.matplotlib_fname()
 
-    # ..................{ PROPERTIES ~ backend               }..................
+    # ..................{ PROPERTIES ~ backend              }..................
     @property
     def backend(self) -> type(sys):
         '''
@@ -731,7 +736,7 @@ class MplConfig(object):
         # Magic is magic. Do not question magic, for it is magical.
         return list(backend_canvas_class.filetypes.keys())
 
-    # ..................{ PROPERTIES ~ backend : name        }..................
+    # ..................{ PROPERTIES ~ backend : name       }..................
     @property
     def backend_name(self) -> str:
         '''
@@ -795,12 +800,13 @@ class MplConfig(object):
             # Re-raise this exception.
             raise
 
-    # ..................{ PROPERTIES ~ backend : names       }..................
+    # ..................{ PROPERTIES ~ backend : names      }..................
     @property_cached
     def backend_names(self) -> SequenceTypes:
         '''
         Sequence of the strictly lowercase names of all currently available
-        matplotlib-specific backends (e.g., `['gtk3agg', 'tkagg', 'qt4agg']`).
+        matplotlib-specific backends (e.g.,
+        ``['gtk3agg', 'tkagg', 'qt4agg']``).
 
         While matplotlib provides the canonical lists
         :attr:`matplotlib.rcsetup.interactive_bk`,
@@ -810,7 +816,7 @@ class MplConfig(object):
         missing). For completeness, this function instead iteratively inspects
         the current filesystem.
 
-        For efficiency, this property is created and cached on the first access.
+        This property is efficiently created and cached on the first access.
         '''
 
         # Importing such module has side effects and hence is deferred.
@@ -854,7 +860,7 @@ class MplConfig(object):
             # In either case, return and cache the empty list.
             return []
 
-    # ..................{ PROPERTIES ~ backend : names : pri }..................
+    # ..................{ PROPERTIES ~ backend : names: pri }..................
     @property_cached
     def _backend_names_blacklist(self) -> SetType:
         '''
@@ -915,7 +921,7 @@ class MplConfig(object):
         In that case, that method defers to the first matplotlib backend usable
         on the current system whose name is in this tuple.
 
-        For efficiency, this property is created and cached on the first access.
+        This property is efficiently created and cached on the first access.
         '''
 
         # List of the names of all backends known to be unconditionally
@@ -945,8 +951,9 @@ class MplConfig(object):
         # For unknown reasons, all recent versions of matplotlib have
         # fundamentally broken this backend with respect to non-blocking
         # animations -- either with or without experimental non-blocking
-        # behaviour. This has been extensively tested and isolated to matplotlib
-        # itself, which... is frustrating. Let me tell you: we are displeased.
+        # behaviour. This has been extensively tested and isolated to
+        # matplotlib itself, which... is frustrating. Let me tell you: we are
+        # displeased.
         if versions.is_at_least(self.version, '2.0.0'):
             # Append this backend to the end of this list.
             backend_names_prefer.append('TkAgg')
@@ -959,10 +966,10 @@ class MplConfig(object):
             # Prepend this backend to the beginning of this list.
             backend_names_prefer.insert(0, 'TkAgg')
 
-        # Darwin-specific list of such names, prioritizing the only truly usable
-        # Darwin-specific backend before the platform-agnostic backends. Since
-        # Darwin and Linux are both POSIX-compatible, cross-platform backends
-        # (e.g., "Qt5Agg") tend to behave similarly under both platforms.
+        # Darwin-specific list of such names, prioritizing the only truly
+        # usable Darwin-specific backend before the platform-agnostic backends.
+        # Since Darwin and Linux are both POSIX-compatible, cross-platform
+        # backends (e.g., "Qt5Agg") tend to behave similarly on both platforms.
         backend_names_prefer_darwin = ['MacOSX',] + backend_names_prefer
 
         # Under Windows, prefer the exact same backends as preferred under
@@ -980,7 +987,7 @@ class MplConfig(object):
         # Return and cache this dictionary
         return kernel_name_to_backend_names_prefer
 
-    # ..................{ TESTERS ~ backend                  }..................
+    # ..................{ TESTERS ~ backend                 }..................
     def is_backend(self) -> bool:
         '''
         ``True`` only if a backend has been successfully enabled.
@@ -1014,8 +1021,8 @@ class MplConfig(object):
           *without* raising exceptions.
 
         If this backend is usable, this method switches the current backend to
-        this backend *without* restoring the previously set backend. This is the
-        unavoidable price of robust, reproducible test results. Callers
+        this backend *without* restoring the previously set backend. This is
+        the unavoidable price of robust, reproducible test results. Callers
         requiring the previously set backend to be restored must do so manually
         (e.g., by setting the :func:`property` attribute to the name of that
         backend) *after* calling this method.
@@ -1044,8 +1051,9 @@ class MplConfig(object):
         #
         #Yeah. That's blatantly heaps better. Hindsight is always 20-20, neh?
 
-        # If this backend is unconditionally blacklisted, report this backend to
-        # be unusable *WITHOUT* unsafely attempting to switch to this backend.
+        # If this backend is unconditionally blacklisted, report this backend
+        # to be unusable *WITHOUT* unsafely attempting to switch to this
+        # backend.
         if backend_name in self._backend_names_blacklist:
             logs.log_debug(
                 'Matplotlib backend "%s" unusable, '
@@ -1063,7 +1071,7 @@ class MplConfig(object):
         # If doing so raises an exception, this backend is unusable.
         except Exception as exception:
             # Traceback for this exception.
-            traceback = ioexceptions.get_traceback(exception)
+            traceback = errexception.get_traceback(exception)
 
             # Log this traceback for debuggability.
             logs.log_debug(
@@ -1074,7 +1082,7 @@ class MplConfig(object):
             # Report this backend to be unusable.
             return False
 
-    # ..................{ TESTERS ~ block                    }..................
+    # ..................{ TESTERS ~ block                   }..................
     def is_backend_current_nonblockable(self) -> bool:
         '''
         ``True`` only if the current backend supports true non-blocking display
@@ -1104,8 +1112,9 @@ class MplConfig(object):
         * ``False``, the experimental ``block=False`` parameter must *not* be
           passed to the :func:`matplotlib.pyplot.show` function. Doing so will
           either silently hide plots and animations with no warnings or errors
-          *or* raise a low-level segmentation fault with no high-level exception
-          traceback. Instead, consider falling back to the following approach:
+          *or* raise a low-level segmentation fault with no high-level
+          exception traceback. Instead, consider falling back to the following
+          approach:
 
           .. code:: python
 
@@ -1127,7 +1136,9 @@ class MplConfig(object):
 
         .. code::
 
-           [betse] /usr/lib64/python3.4/site-packages/matplotlib/backend_bases.py:2437: MatplotlibDeprecationWarning: Using default event loop until function specific to this GUI is implemented
+           [betse] /usr/lib64/python3.4/site-packages/matplotlib/backend_bases.py:2437:
+           MatplotlibDeprecationWarning: Using default event loop until
+           function specific to this GUI is implemented
              warnings.warn(str, mplDeprecation)
 
         While verbose, this warning appears to be safely ignorable.
@@ -1135,11 +1146,11 @@ class MplConfig(object):
 
         # For safety, a whitelist approach is preferred. That is, only backends
         # explicitly known to support experimental "pyplot.show(block=False)"
-        # behavior are assumed to do so; all other backends are assumed to *NOT*
-        # support this behavior.
+        # behavior are assumed to do so; all other backends are assumed to
+        # *NOT* support this behavior.
         return backend_name == 'TkAgg'
 
-    # ..................{ GETTERS                            }..................
+    # ..................{ GETTERS                           }..................
     def get_rc_param(self, param_name) -> object:
         '''
         Value of the parameter with the passed ``.``-delimited name (e.g.,
@@ -1181,7 +1192,7 @@ class MplConfig(object):
         # Get this dictionary.
         return metadata
 
-    # ..................{ CONTEXTS                           }..................
+    # ..................{ CONTEXTS                          }..................
     @contextmanager
     def reducing_log_level_to_debug_if_info(self):
         '''
@@ -1194,8 +1205,8 @@ class MplConfig(object):
         *both* produce debug output, only the latter produces debug output for
         external commands invoked by matplotlib (e.g., for encoding video via
         ``ffmpeg``); the former produces *no* such output. Since the latter is
-        overly verbose for general use and hence useful only for specific cases,
-        consider instead:
+        overly verbose for general use and hence useful only for specific
+        cases, consider instead:
 
         * Defaulting to the :attr:`LogLevel.INFO` level.
         * Escalating to the :attr:`LogLevel.DEBUG` level by explicitly entering
@@ -1233,7 +1244,7 @@ class MplConfig(object):
         else:
             yield
 
-    # ..................{ MAKERS                             }..................
+    # ..................{ MAKERS                            }..................
     #FIXME: Define a new make_backend_figure_manager() method as well. This
     #method is fine, for now. We might very well want to call this sometime.
     def make_backend_figure(self, *args, **kwargs):
@@ -1272,7 +1283,7 @@ class MplConfig(object):
         # Return this figure.
         return figure
 
-    # ..................{ PRIVATE                            }..................
+    # ..................{ PRIVATE                           }..................
     @type_check
     def _enable_backend(self, backend_name: str) -> None:
         '''
@@ -1332,11 +1343,12 @@ class MplConfig(object):
                     backend_name)
 
                 # Unfortunately, if the current platform is macOS *AND* the new
-                # backend to be enabled is "TkAgg", enabling this backend is *NOT*
-                # safe and must absolutely be prohibited by raising an exception.
-                # Attempting to enable this backend under this edge case commonly
-                # results in a segmentation fault, terminating the active Python
-                # process in a non-human-readable manner resembling:
+                # backend to be enabled is "TkAgg", enabling this backend is
+                # *NOT* safe and must absolutely be prohibited by raising an
+                # exception.  Attempting to enable this backend under this edge
+                # case commonly results in a segmentation fault, terminating
+                # the active Python process in a non-human-readable manner
+                # resembling:
                 #
                 #     [betse] Testing matplotlib backend "tkagg"...
                 #     backend TkAgg version 8.5
@@ -1364,29 +1376,31 @@ class MplConfig(object):
                 # There exist two solutions (in no particular order):
                 #
                 # 1. Reinstall Python to use a Homebrew- or MacPorts-compiled
-                #    installation of Tcl/Tk instead. While this does constitute a
-                #    valid solution for end users, BETSE itself has no means of
-                #    enforcing this dictate and *MUST* thus assume the current
-                #    installation of Tcl/Tk to be the Xcode-bundled version.
+                #    installation of Tcl/Tk instead. While this does constitute
+                #    a valid solution for end users, BETSE itself has no means
+                #    of enforcing this dictate and *MUST* thus assume the
+                #    current installation of Tcl/Tk to be the Xcode-bundled
+                #    version.
                 # 2. Call "matplotlib.pyplot.use('TkAgg')" *BEFORE* the first
                 #    import of the "matplotlib.pyplot" submodule. While BETSE
                 #    itself could technically attempt to enforce this by
                 #    preferentially detecting the "TkAgg" backend *BEFORE* all
-                #    other backends, the "MacOS" backend is always preferable under
-                #    macOS and should thus always be detected first.
+                #    other backends, the "MacOS" backend is always preferable
+                #    under macOS and should thus always be detected first.
                 #
-                # In short, no sane solution exists. The only sane solution is to
-                # refuse to play the game at all.
+                # In short, no sane solution exists. The only sane solution is
+                # to refuse to play the game at all.
                 if backend_name == 'tkagg' and oses.is_macos():
                     raise BetseMatplotlibException(
                         'Matplotlib backend "TkAgg" not '
                         'safely switchable to under macOS.')
 
-                # Delay importation of this submodule until *ABSOLUTELY* necessary.
-                # Importing this submodule implicitly enables the default matplotlib
-                # backend defined by the "backend" RC parameter in the current
-                # matplotlib configuration if no backend has been enabled, which
-                # can exhibit harmful side effects in common edge cases.
+                # Delay importation of this submodule until *ABSOLUTELY*
+                # necessary.  Importing this submodule implicitly enables the
+                # default matplotlib backend defined by the "backend" RC
+                # parameter in the current matplotlib configuration if no
+                # backend has been enabled, which can exhibit harmful side
+                # effects in common edge cases.
                 from matplotlib import pyplot
 
                 # Switch from the current to the passed backend.
@@ -1399,10 +1413,10 @@ class MplConfig(object):
             # See pertinent commentary above.
             from matplotlib import pyplot
 
-            # Validate the usability of this backend by attempting to create and
-            # destroy a hidden empty figure. Technically, doing so could exhibit
-            # harmful side effects on uncooperative platforms (e.g., Windows) in
-            # common edge cases.
+            # Validate the usability of this backend by attempting to create
+            # and destroy a hidden empty figure. Technically, doing so could
+            # exhibit harmful side effects on uncooperative platforms (e.g.,
+            # Windows) in common edge cases.
             #
             # Unfortunately, doing so is also essential. The success of
             # switching to this backend above is a necessary but insufficient
@@ -1459,7 +1473,7 @@ class MplConfig(object):
             # Re-raise this exception.
             raise
 
-# ....................{ SINGLETONS                         }....................
+# ....................{ SINGLETONS                        }....................
 mpl_config = MplConfig()
 '''
 Singleton matplotlib configuration wrapper.

@@ -14,10 +14,9 @@ from betse.util.type.types import type_check, ClassType, GeneratorType
 from contextlib import contextmanager
 
 # ....................{ MANAGERS                           }....................
-#FIXME: For orthogonality, rename this function to ignoring_warnings().
 @contextmanager
 @type_check
-def warnings_ignored(warning_class: ClassType = Warning) -> GeneratorType:
+def ignoring_warnings(warning_class: ClassType = Warning) -> GeneratorType:
     '''
     Single-shot context manager temporarily ignoring all warnings of the passed
     type emitted by the :mod:`warnings` module for the duration of this context.
