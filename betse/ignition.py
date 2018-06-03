@@ -123,7 +123,6 @@ def reinit() -> None:
     init()
 
 
-#FIXME: Update docstring when time and kindness affords.
 def init() -> None:
     '''
     Initialize the current application if this application has not already been
@@ -131,12 +130,16 @@ def init() -> None:
 
     Specifically, this function (in order):
 
+    #. Enables Python's standard handler for segmentation faults.
+    #. Enables this application's default logging configuration.
+    #. Validates (but does *not* initialize) all mandatory third-party
+       dependencies of this application, which the :func:`betsee.lib.libs.init`
+       function initializes independently.
     #. Validates core directories and files required at program startup,
        creating all such directories and files that do *not* already exist and
        are reasonably creatable.
-    #. Validates but does *not* initialize mandatory third-party dependencies of
-       this application, which must be initialized independently by the
-       :func:`betsee.lib.libs.init` function.
+    #. Validates the active Python interpreter (e.g., to support
+       multithreading).
 
     To support caller-specific error handling, this function is intended to be
     called immediately *after* this application begins catching otherwise
@@ -150,8 +153,14 @@ def init() -> None:
 
     # Defer heavyweight and possibly circular imports.
     from betse.lib import libs
+    from betse.util.io.error import errfault
     from betse.util.io.log import logconfig
     from betse.util.py import pys
+
+    # Enable Python's standard handler for segmentation faults *BEFORE*
+    # performing any further logic, any of which could conceivably trigger a
+    # segmentation fault and hence process termination.
+    errfault.handle_faults()
 
     # Enable the default logging configuration for the current Python process
     # *BEFORE* performing any validation, thus logging any exceptions raised by
