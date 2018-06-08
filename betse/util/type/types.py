@@ -21,6 +21,7 @@ types.
 
 import inspect, logging, re
 from argparse import ArgumentParser, _SubParsersAction
+from collections import deque
 from collections.abc import (
     Container,
     Hashable,
@@ -170,11 +171,26 @@ permitting callers to avoid importing that class.
 IteratorType = Iterator
 '''
 Abstract interface implemented by all **iterators** (i.e., objects implementing
-the standard `__iter__()` and `__next__()` methods, typically iterating over an
-associated container).
+the standard ``__iter__()`` and ``__next__()`` methods, typically iterating
+over an associated container).
 
 This class is a synonym of the `collections.abc.Iterator` class, provided
 merely as a convenience to callers preferring to avoid importing that class.
+'''
+
+
+QueueType = deque
+'''
+Concrete type of the only available queue implementation in Python's stdlib.
+
+This class is a synonym of the :class:`collections.deque` class, provided
+merely as a convenience to callers preferring to avoid importing that class.
+
+Caveats
+----------
+Since the :class:`collections.abc` subpackage currently provides no
+corresponding abstract interface to formalize queue types, this type applies
+*only* to the standard double-ended queue implementation.
 '''
 
 
@@ -182,8 +198,8 @@ SetType = Set
 '''
 Abstract interface implemented by all set-like objects.
 
-This class is a synonym of the :class:`collections.abc.Set`, provided merely as
-a convenience to callers preferring to avoid importing that class.
+This class is a synonym of the :class:`collections.abc.Set` class, provided
+merely as a convenience to callers preferring to avoid importing that class.
 '''
 
 

@@ -51,7 +51,7 @@ def die_unless_values_unique(mapping: MappingType) -> None:
 
 # ....................{ TESTERS                           }....................
 @type_check
-def is_keys(mapping: MappingType, *keys: HashableType) -> bool:
+def is_key(mapping: MappingType, *keys: HashableType) -> bool:
     '''
     ``True`` only if the passed dictionary contains *all* passed keys.
 
@@ -68,8 +68,15 @@ def is_keys(mapping: MappingType, *keys: HashableType) -> bool:
         ``True`` only if this dictionary contains *all* passed keys.
     '''
 
-    # Yes, this is ridiculously awesome.
-    return set(keys).issubset(mapping)
+    return (
+        # If only one key is passed, optimize this common edge case with the
+        # standard idiom for testing key containment.
+        keys[0] in mapping if len(keys) == 1 else
+        # Else, two or more keys are passed. In this case, fallback to a
+        # general-case strategy testing key containment in a single one-liner.
+        # And yes: this is ridiculously awesome.
+        set(keys).issubset(mapping)
+    )
 
 
 @type_check

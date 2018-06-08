@@ -80,7 +80,7 @@ def is_var(*names: str) -> bool:
 
     # Return True only if the names of these environment variables are all keys
     # of the corresponding dictionary global.
-    return mappings.is_keys(environ, *names)
+    return mappings.is_key(environ, *names)
 
 # ....................{ GETTERS                            }....................
 def get_env() -> MappingType:

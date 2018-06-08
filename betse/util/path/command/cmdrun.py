@@ -445,7 +445,7 @@ def _init_popen_kwargs(
     logs.log_debug('Running command: %s', ' '.join(command_words))
 
     # If this is vanilla Windows, sanitize the "close_fds" argument.
-    if oses.is_windows_vanilla() and not mappings.is_keys(
+    if oses.is_windows_vanilla() and not mappings.is_key(
         popen_kwargs, 'stdin', 'stdout', 'stderr', 'close_fds'):
         popen_kwargs['close_fds'] = False
 

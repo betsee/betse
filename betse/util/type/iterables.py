@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -13,7 +13,7 @@ See Also
     Further details on what constitutes iterables and non-string iterables.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import itertools
 from betse.exceptions import BetseIterableException
 from betse.util.type import types
@@ -30,7 +30,7 @@ from betse.util.type.types import (
 from collections import deque
 from operator import itemgetter
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_unless_items_instance_of(
     iterable: IterableTypes, cls: TestableTypes) -> None:
@@ -43,14 +43,14 @@ def die_unless_items_instance_of(
     iterable: IterableTypes
         Iterable to be validated.
     cls : TestableTypes
-        Class or tuple of classes to validate that all items of this iterable be
-        instances of.
+        Class or tuple of classes to validate that all items of this iterable
+        be instances of.
 
     Raises
     ----------
     BetseIterableException
-        If at least one item of this iterable is *not* an instance of this class
-        or tuple of classes.
+        If at least one item of this iterable is *not* an instance of this
+        class or tuple of classes.
     '''
 
     # If one or more items of this iterable are *NOT* such instances...
@@ -90,7 +90,7 @@ def die_unless_items_unique(iterable: IterableTypes) -> None:
         raise BetseIterableException(
             'Iterable items {} duplicate.'.format(items_duplicate))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_reversible(iterable: IterableTypes) -> bool:
     '''
@@ -127,7 +127,7 @@ def is_reversible(iterable: IterableTypes) -> bool:
         )
     )
 
-# ....................{ TESTERS ~ items                    }....................
+# ....................{ TESTERS ~ items                   }....................
 @type_check
 def is_items_instance_of(iterable: IterableTypes, cls: TestableTypes) -> bool:
     '''
@@ -184,7 +184,7 @@ def is_items_unique(iterable: IterableTypes) -> bool:
         item in items_unique or items_unique.add(item)
         for item in iterable)
 
-# ....................{ TESTERS ~ item                     }....................
+# ....................{ TESTERS ~ item                    }....................
 @type_check
 def is_item_satisfying(
     iterable: IterableTypes, predicate: CallableTypes) -> bool:
@@ -243,7 +243,7 @@ def is_item_instance_of(
     return is_item_satisfying(
         iterable=iterable, predicate=lambda item: isinstance(item, cls))
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get_items_duplicate(iterable: IterableTypes) -> set:
     '''
@@ -283,7 +283,7 @@ def get_items_duplicate(iterable: IterableTypes) -> set:
     # Return this set of all duplicate items.
     return items_duplicate
 
-# ....................{ GETTERS ~ first                    }....................
+# ....................{ GETTERS ~ first                   }....................
 @type_check
 def get_item_first(iterable: IterableTypes) -> object:
     '''
@@ -339,14 +339,14 @@ def get_item_first(iterable: IterableTypes) -> object:
     # Return the first element iterated above.
     return first_item
 
-# ....................{ GETTERS ~ first : instance         }....................
+# ....................{ GETTERS ~ first : instance        }....................
 @type_check
 def get_item_first_instance_of(
     iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
     '''
     First instance of the passed class or tuple of classes retrieved from the
-    passed iterable if this iterable contains such an item *or* raise an exception
-    otherwise (i.e., if this iterable contains no such item).
+    passed iterable if this iterable contains such an item *or* raise an
+    exception otherwise (i.e., if this iterable contains no such item).
 
     Parameters
     ----------
@@ -385,8 +385,8 @@ def get_item_first_instance_of(
 def get_item_first_not_instance_of(
     iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
     '''
-    First item of this iterable that is *not* an instance of the passed class or
-    tuple of classes if this iterable contains such an item *or* raise an
+    First item of this iterable that is *not* an instance of the passed class
+    or tuple of classes if this iterable contains such an item *or* raise an
     exception otherwise (i.e., if all items of this iterable are such
     instances).
 
@@ -422,14 +422,14 @@ def get_item_first_not_instance_of(
         **kwargs
     )
 
-# ....................{ GETTERS ~ first : satisfying       }....................
+# ....................{ GETTERS ~ first : satisfying      }....................
 @type_check
 def get_item_first_satisfying_or_sentinel(
     iterable: IterableTypes, predicate: CallableTypes) -> object:
     '''
-    First item of the passed iterable satisfying the passed **predicate** (i.e.,
-    callable accepting one parameter, returning `True` only if this parameter
-    suffices) if this iterable contains such an item *or* the
+    First item of the passed iterable satisfying the passed **predicate**
+    (i.e., callable accepting one parameter, returning ``True`` only if this
+    parameter suffices) if this iterable contains such an item *or* the
     :attr:`betse.util.type.obj.sentinels.SENTINEL` placeholder constant
     otherwise.
 
@@ -475,17 +475,17 @@ def get_item_first_satisfying(
     exception_message: str = None,
 ) -> object:
     '''
-    First item of the passed iterable satisfying the passed **predicate** (i.e.,
-    callable accepting one parameter, returning `True` only if this parameter
-    suffices) if this iterable contains such an item *or* raise an exception
-    otherwise (i.e., if this iterable contains no such item).
+    First item of the passed iterable satisfying the passed **predicate**
+    (i.e., callable accepting one parameter, returning ``True`` only if this
+    parameter suffices) if this iterable contains such an item *or* raise an
+    exception otherwise (i.e., if this iterable contains no such item).
 
     Parameters
     ----------
     iterable : IterableTypes
         Iterable to be inspected.
     predicate : CallableTypes
-        Callable accepting one parameter and returning `True` only if this
+        Callable accepting one parameter and returning ``True`` only if this
         parameter suffices.
     exception_message : optional[str]
         Exception message to be raised if no such item is found. Defaults to
@@ -619,7 +619,7 @@ def get_item_last_instance_of_or_none(
     # Return this instance if *NOT* the sentinal placeholder or None otherwise.
     return item_found if item_found is not SENTINEL else None
 
-# ....................{ GETTERS ~ last : satisfying       }....................
+# ....................{ GETTERS ~ last : satisfying      }....................
 @type_check
 def get_item_last_satisfying_or_sentinel(
     iterable: IterableTypes, predicate: CallableTypes) -> object:
@@ -643,7 +643,7 @@ def get_item_last_satisfying_or_sentinel(
     iterable : IterableTypes
         Iterable to be inspected.
     predicate : CallableTypes
-        Callable accepting one parameter and returning `True` only if this
+        Callable accepting one parameter and returning ``True`` only if this
         parameter suffices.
 
     Returns
@@ -679,8 +679,8 @@ def get_item_last_satisfying(
 ) -> object:
     '''
     Last element of the passed iterable satisfying the passed **predicate**
-    (i.e., callable accepting one parameter, returning `True` only if this
-    parameter suffices) if this iterable contains such an element _or_ raise an
+    (i.e., callable accepting one parameter, returning ``True`` only if this
+    parameter suffices) if this iterable contains such an element *or* raise an
     exception otherwise (i.e., if this iterable contains no such element).
 
     Parameters
@@ -688,11 +688,12 @@ def get_item_last_satisfying(
     iterable : IterableTypes
         Iterable to be inspected.
     predicate : CallableTypes
-        Callable accepting one parameter and returning `True` only if this
+        Callable accepting one parameter and returning ``True`` only if this
         parameter suffices.
     exception_message : optional[str]
         Exception message to be raised if no such element is found. Defaults to
-        `None`, in which case a suitably general-purpose message is synthesized.
+        ``None``, in which case a suitably general-purpose message is
+        synthesized.
 
     Returns
     ----------
@@ -711,8 +712,8 @@ def get_item_last_satisfying(
     '''
 
     # For simplicity, the existing get_item_first_satisfying() function is
-    # deferred to by returning the first element in the reverse of this iterable
-    # satisfying this predicate.
+    # deferred to by returning the first element in the reverse of this
+    # iterable satisfying this predicate.
     return get_item_first_satisfying(
         # For safety, this iterable is reversed via the high-level reverse()
         # function rather than the low-level reversed() builtin; the latter
@@ -722,7 +723,7 @@ def get_item_last_satisfying(
         exception_message=exception_message,
     )
 
-# ....................{ CONVERTERS                         }....................
+# ....................{ CONVERTERS                        }....................
 @type_check
 def to_iterable(iterable: IterableTypes, cls: ClassType) -> IterableTypes:
     '''
@@ -731,11 +732,12 @@ def to_iterable(iterable: IterableTypes, cls: ClassType) -> IterableTypes:
     If this iterable is:
 
     * Of the same type as the passed type, this iterable is returned as is.
-    * A non-Numpy iterable (e.g., :class:`list`) and the passed type is that of:
+    * A non-Numpy iterable (e.g., :class:`list`) and the passed type is that
+      of:
       * Another non-Numpy iterable (e.g., :class:`tuple`), this iterable is
         converted into an instance of this type. To do so, this type's
-        ``__init__`` method is expected to accept this :class:`list` as a single
-        positional argument.
+        ``__init__`` method is expected to accept this :class:`list` as a
+        single positional argument.
       * A Numpy array, this iterable is converted to a Numpy array via the
         :func:`betse.lib.numpy.nparray.from_iterable` function.
     * A Numpy array, this array is converted to the passed type via the
@@ -778,7 +780,7 @@ def to_iterable(iterable: IterableTypes, cls: ClassType) -> IterableTypes:
     # constructor of the target iterable for conversion.
     return cls(iterable)
 
-# ....................{ CONSUMERS                          }....................
+# ....................{ CONSUMERS                         }....................
 @type_check
 def consume(iterable: IterableTypes, iterations: int) -> object:
     '''
@@ -794,14 +796,14 @@ def consume(iterable: IterableTypes, iterations: int) -> object:
         Iterable to be consumed.
     iterations : int
         Number of iterations to advance this iterable. This number should be
-        strictly positive (i.e., `iterations >= 1`).
+        strictly positive (i.e., ``iterations >= 1``).
 
     Returns
     ----------
     object
-        Object yielded by the last iterable iteration (i.e., the last `next()`
-        method called on this iterable) if any _or_ `None` if this iterable was
-        already exhausted (i.e., empty) when passed.
+        Object yielded by the last iterable iteration (i.e., the last
+        ``next()`` method called on this iterable) if any *or* ``None`` if this
+        iterable was already exhausted (i.e., empty) when passed.
 
     See Also
     ----------
@@ -833,8 +835,8 @@ def exhaust(iterable: IterableTypes) -> object:
 
     * Explicitly halts with a :class:`StopIteration` exception and hence is
       finite, this function exhausts this iterable as expected.
-    * Does *not* explicitly halt with a `StopIteration` exception and hence is
-      infinite, this function reduces to an **infinite loop.**
+    * Does *not* explicitly halt with a :class:`StopIteration` exception and
+      hence is infinite, this function reduces to an **infinite loop.**
 
     Parameters
     ----------
@@ -844,9 +846,9 @@ def exhaust(iterable: IterableTypes) -> object:
     Returns
     ----------
     object
-        Object yielded by the last iterable iteration (i.e., the last `next()`
-        method called on this iterable) if any _or_ `None` if this iterable was
-        already exhausted (i.e., empty) when passed.
+        Object yielded by the last iterable iteration (i.e., the last
+        ``next()`` method called on this iterable) if any *or* ``None`` if this
+        iterable was already exhausted (i.e., empty) when passed.
 
     See Also
     ----------
@@ -854,8 +856,8 @@ def exhaust(iterable: IterableTypes) -> object:
         Official documentation strongly inspiring this function.
     '''
 
-    # For efficiency, feed this iterable into a zero-length deque retaining only
-    # the last iterated value if any.
+    # For efficiency, feed this iterable into a zero-length deque retaining
+    # only the last iterated value if any.
     iterable_deque = deque(iterable, maxlen=1)
 
     # If this iterable was *NOT* already exhausted, return its last value.
@@ -865,12 +867,12 @@ def exhaust(iterable: IterableTypes) -> object:
     else:
         return None
 
-# ....................{ INVERTERS                          }....................
+# ....................{ INVERTERS                         }....................
 @type_check
 def invert_iterable_unique(iterable: IterableTypes) -> MappingType:
     '''
-    Dictionary inverted from the passed iterable if **internally unique** (i.e.,
-    containing no duplicate items) *or* raise an exception otherwise.
+    Dictionary inverted from the passed iterable if **internally unique**
+    (i.e., containing no duplicate items) *or* raise an exception otherwise.
 
     Specifically:
 
@@ -907,7 +909,7 @@ def invert_iterable_unique(iterable: IterableTypes) -> MappingType:
         #
         # While mappings are technically iterables and hence invertable via the
         # generic approach applied below, doing so incorrectly returns a
-        # dictionary mapping from the keys of the passed dictionary to arbitrary
+        # dictionary mapping from the keys of this dictionary to arbitrary
         # 0-based integers. As the adjective "arbitrary" implies, this renders
         # the resulting dictionary effectively useless for most purposes.
         return mappings.invert_map_unique(iterable)
@@ -921,7 +923,7 @@ def invert_iterable_unique(iterable: IterableTypes) -> MappingType:
         # One-liners for Great Glory.
         return {item: item_index for item_index, item in enumerate(iterable)}
 
-# ....................{ ITERATORS                          }....................
+# ....................{ ITERATORS                         }....................
 @type_check
 def iter_items(*iterables: IterableTypes) -> GeneratorType:
     '''
@@ -966,7 +968,7 @@ def iter_items(*iterables: IterableTypes) -> GeneratorType:
     for iterable in iterables:
         yield from iterable
 
-# ....................{ JOINERS                            }....................
+# ....................{ JOINERS                           }....................
 @type_check
 def join(*iterables: IterableTypes) -> IterableTypes:
     '''
@@ -1028,29 +1030,30 @@ def join(*iterables: IterableTypes) -> IterableTypes:
     # Return a new iterable of this type over each item of each passed iterable.
     return iterable_first_type(iter_items(*iterables))
 
-# ....................{ REVERSERS                          }....................
+# ....................{ REVERSERS                         }....................
 @type_check
 def reverse(iterable: IterableTypes) -> IterableTypes:
     '''
-    Reverse the passed iterable into a new iterable of differing type containing
-    all elements of the passed iterable in reverse order.
+    Reverse the passed iterable into a new iterable of differing type
+    containing all elements of the passed iterable in reverse order.
 
     Parameters
     ----------
     iterable : IterableTypes
-        Iterable to be returned reversed. For generality, this iterable is _not_
-        modified by this function.
+        Iterable to be returned reversed. For generality, this iterable is
+        *not* modified by this function.
 
     Returns
     ----------
     IterableTypes
         Iterable reversed from the passed iterable. For efficiency, this
-        iterable is only a shallow rather than deep copy of the passed iterable.
+        iterable is only a shallow rather than deep copy of the passed
+        iterable.
     '''
 
-    # If this iterable is *NOT* reversible as is, convert this iterable into the
-    # most space- and time-efficient iterable containing the same elements that
-    # *IS* reversible -- in this case, a tuple.
+    # If this iterable is *NOT* reversible as is, convert this iterable into
+    # the most space- and time-efficient iterable containing the same elements
+    # that *IS* reversible -- in this case, a tuple.
     if not is_reversible(iterable):
         iterable = tuple(iterable)
 
@@ -1058,16 +1061,16 @@ def reverse(iterable: IterableTypes) -> IterableTypes:
     # now guaranteed to be reversible as is.
     return reversed(iterable)
 
-# ....................{ SORTERS ~ ascending                }....................
+# ....................{ SORTERS ~ ascending               }....................
 @type_check
 def sort_ascending(iterable: IterableTypes) -> IterableTypes:
     '''
     Iterable sorted from the passed iterable in ascending order.
 
     Each element of this iterable is compared to each other element of this
-    iterable via the `<` operator, implicitly calling the `__le__()` special
-    method of these elements. Each element is ideally but _not_ necessarily of
-    the same type. If each element is:
+    iterable via the ``<`` operator, implicitly calling the ``__le__()``
+    special method of these elements. Each element is ideally but *not*
+    necessarily of the same type. If each element is:
 
     * A string, these strings are sorted in **ascending lexicographic order**
       (i.e., traditional order of dead-tree dictionaries and encyclopedias).
@@ -1078,15 +1081,15 @@ def sort_ascending(iterable: IterableTypes) -> IterableTypes:
     ----------
     iterable : IterableTypes
         Unsorted iterable to be returned sorted. For generality, this iterable
-        is _not_ modified by this function.
+        is *not* modified by this function.
 
     Returns
     ----------
     IterableTypes
         Iterable sorted from and of the same type as the passed iterable. For
-        efficiency, this iterable is only a shallow rather than deep copy of the
-        passed iterable. Note lastly that the class of the passed iterable
-        _must_ define an `__init__()` method accepting a list.
+        efficiency, this iterable is only a shallow rather than deep copy of
+        the passed iterable. Note lastly that the class of the passed iterable
+        *must* define an ``__init__()`` method accepting a list.
     '''
 
     # Type of the passed iterable.
@@ -1105,11 +1108,11 @@ def sort_by_index_ascending(
     ascending order of the value of each element at the passed key or index of
     each subiterable of this iterable.
 
-    Each element at the passed key or index of each subiterable of this iterable
-    is compared to each other element at each other key or index of each other
-    subiterable of this iterable via the `<` operator, implicitly calling the
-    `__le__()` special method of these elements. Each element is ideally but
-    _not_ necessarily of the same type. If each element is:
+    Each element at the passed key or index of each subiterable of this
+    iterable is compared to each other element at each other key or index of
+    each other subiterable of this iterable via the ``<`` operator, implicitly
+    calling the ``__le__()`` special method of these elements. Each element is
+    ideally but *not* necessarily of the same type. If each element is:
 
     * A string, these strings are sorted in **ascending lexicographic order**
       (i.e., traditional order of dead-tree dictionaries and encyclopedias).
@@ -1124,11 +1127,14 @@ def sort_by_index_ascending(
         by this function.
     subiterable_index : object
         Object with which to index each subiterable of this iterable. The type
-        of this object _must_ be a type accepted by the `__getitem__()` special
-        method of each subiterable. Specifically, if each subiterable is a:
-        * **Mapping** (e.g., :class:`dict`), this object _must_ be hashable.
+        of this object _must_ be a type accepted by the ``__getitem__()``
+        special method of each subiterable. Specifically, if each subiterable
+        is a:
+
+        * **Mapping** (e.g., :class:`dict`), this object *must* be hashable.
         * **Sequence** (e.g., :class:`list`, :class:`tuple`), this object
-          _must_ be either:
+          *must* be either:
+
           * An integer.
           * A :func:`slice` object.
 
@@ -1138,7 +1144,7 @@ def sort_by_index_ascending(
         Iterable of subiterables sorted from and of the same type as the passed
         iterable of subiterables. For efficiency, this iterable is only a
         shallow rather than deep copy of the passed iterable. Note lastly that
-        the class of the passed iterable _must_ define an `__init__()` method
+        the class of the passed iterable *must* define an ``__init__()`` method
         accepting a list.
     '''
 
@@ -1171,16 +1177,16 @@ def sort_by_index_ascending(
     #     https://stackoverflow.com/a/17243726/2809027
     return iterable_type(sorted(iterable, key=itemgetter(subiterable_index)))
 
-# ....................{ SORTERS ~ descending               }....................
+# ....................{ SORTERS ~ descending              }....................
 @type_check
 def sort_descending(iterable: IterableTypes) -> IterableTypes:
     '''
     Iterable sorted from the passed iterable in descending order.
 
     Each element of this iterable is compared to each other element of this
-    iterable via the `>` operator, implicitly calling the `__ge__()` special
-    method of these elements. Each element is ideally but _not_ necessarily of
-    the same type. If each element is:
+    iterable via the ``>`` operator, implicitly calling the ``__ge__()``
+    special method of these elements. Each element is ideally but *not*
+    necessarily of the same type. If each element is:
 
     * A string, these strings are sorted in **descending lexicographic order**
       (i.e., reverse order of dead-tree dictionaries and encyclopedias).
@@ -1211,9 +1217,9 @@ def sort_by_index_descending(
 
     Each element at the passed key or index of each subiterable of this
     iterable is compared to each other element at each other key or index of
-    each other subiterable of this iterable via the `>` operator, implicitly
-    calling the `__ge__()` special method of these elements. Each element is
-    ideally but _not_ necessarily of the same type. If each element is:
+    each other subiterable of this iterable via the ``>`` operator, implicitly
+    calling the ``__ge__()`` special method of these elements. Each element is
+    ideally but *not* necessarily of the same type. If each element is:
 
     * A string, these strings are sorted in **descending lexicographic order**
       (i.e., reverse order of dead-tree dictionaries and encyclopedias).
@@ -1235,17 +1241,17 @@ def sort_by_index_descending(
     return iterable_type(sorted(
         iterable, key=itemgetter(subiterable_index), reverse=True))
 
-# ....................{ ZIPPERS                            }....................
+# ....................{ ZIPPERS                           }....................
 #FIXME: Unit test us up.
 @type_check
 def zip_isometric(*iterables: IterableTypes) -> GeneratorType:
     '''
     Generator zipping all passed iterables required to be of the same length.
 
-    This generator iteratively yields an `n`-tuple, where:
+    This generator iteratively yields an n-tuple, where:
 
-    * `n` is the length of each passed iterable.
-    * The `i`-th element of this tuple is in the `i`-th passed iterable.
+    * n is the length of each passed iterable.
+    * The i-th element of this tuple is in the i-th passed iterable.
 
     Parameters
     ----------
@@ -1260,7 +1266,8 @@ def zip_isometric(*iterables: IterableTypes) -> GeneratorType:
     Raises
     ----------
     BetseIterableException
-        If any passed iterable differs in length from any other passed iterable.
+        If any passed iterable differs in length from any other passed
+        iterable.
 
     See Also
     ----------
@@ -1305,10 +1312,10 @@ def zip_isometric(*iterables: IterableTypes) -> GeneratorType:
 def _zip_isometric_error(iterables: tuple, ntuple: tuple) -> None:
     '''
     Raise an exception indicating that the iterable of the passed tuple of
-    iterables identified by the passed `n`-tuple is of smaller length than other
-    iterables in this tuple of iterables.
+    iterables identified by the passed `n`-tuple is of smaller length than
+    other iterables in this tuple of iterables.
 
-    This private function is _only_ intended to be called by the
+    This private function is *only* intended to be called by the
     :func:`zip_isometric` function.
     '''
 
@@ -1334,9 +1341,9 @@ def _zip_isometric_error(iterables: tuple, ntuple: tuple) -> None:
     else:
         exception_suffix = 'length of prior iterables'
 
-    # If this erroneously short iterable is of predefined length (e.g., is *NOT*
-    # a generator of dynamic length), begin this exception message with this
-    # length and end this message with this iterable's contents.
+    # If this erroneously short iterable is of predefined length (e.g., is
+    # *NOT* a generator of dynamic length), begin this exception message with
+    # this length and end this message with this iterable's contents.
     if isinstance(iterable_short, SizedType):
         exception_prefix = "Length {} of iterable {}".format(
             len(iterable_short), iterable_short_index)
