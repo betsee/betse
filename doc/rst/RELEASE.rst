@@ -206,10 +206,15 @@ BETSE is releasable to all supported platforms as follows:
    #. The ``betse.metadata.CODENAME`` global should be incremented according
       to the `best practices <Codename Nomenclature_>`__ provided below.
 
-#. (\ *Optional*\ ) **Bump downstream metadata.** As example, if the current
-   version of BETSEE_ strictly requires the current version of BETSE, the
-   ``betsee.guimetadeps.BETSE_VERSION_REQUIRED_MIN`` global string variable of
-   the former should be incremented to reflect the latter.
+#. (\ *Optional*\ ) **Bump downstream metadata.** This includes:
+
+   * BETSEE_, whose current version strictly requires at least the current
+     version of BETSE. To guarantee this, the external
+     ``betsee.guimetadata.VERSION`` string variable of the former should be
+     bumped to reflect the latter. For maintainability, note that bumping that
+     variable also automatically bumps the version of BETSE required by BETSEE_.
+     For example, setting ``betsee.guimetadata.VERSION = '0.8.4.0'`` also bumps
+     the version of BETSE required by BETSEE_ to ``0.8.4``.
 
 #. **Create another announcement commit.** This commit should have a message
    whose first line is of the format ``"BETSE {version} ({codename})

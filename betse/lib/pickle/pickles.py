@@ -47,6 +47,12 @@ competing tradeoffs:
 '''
 
 # ....................{ CLASSES                            }....................
+#FIXME: Given the unreliability of the private "dill._dill" API, it would be
+#both substantially safer *AND* simpler to directly monkey-patch the existing
+#dill.Pickler.save() method with that defined below rather than attempting to
+#entirely replace the "dill._dill.Pickler" class as we currently do. Food for
+#contemplative thought -- especially if dill breaks backward compatibility in
+#this respect again.
 class BetsePickler(dill.Pickler):
     '''
     Application-specific :mod:`dill`-based custom pickler.
