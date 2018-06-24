@@ -511,6 +511,7 @@ def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
     # Defer heavyweight imports.
     from betse.lib.matplotlib.matplotlibs import mpl_config
     from betse.lib.numpy import numpys
+    from betse.lib.pickle import pickles
     from betse.lib.pil import pils
     from betse.lib.yaml import yamls
 
@@ -522,6 +523,7 @@ def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
     # Initialize these dependencies.
     mpl_config.init(backend_name=matplotlib_backend_name)
     numpys.init()
+    pickles.init()
     pils.init()
     yamls.init()
 

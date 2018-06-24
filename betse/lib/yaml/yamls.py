@@ -234,8 +234,8 @@ def _save_ruamel(
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
     '''
-    Initialize the currently active YAML implementation (e.g.,
-    :mod:`ruamel.yaml`, PyYAML).
+    Initialize both this submodule *and* the currently active YAML
+    implementation (e.g., :mod:`ruamel.yaml`, PyYAML).
 
     This function selects the first such implementation importable under the
     active Python interpreter from the following list (in descending order of
@@ -245,7 +245,7 @@ def init() -> None:
     # Globals assigned to below.
     global YAML_TYPE_ACTIVE
 
-    # Log the active YAML implementation.
+    # Log this initialization.
     logs.log_debug(
         'Initializing preferred YAML binding "%s"...',
         metadeps.RUNTIME_MANDATORY_YAML_PROJECT_NAME)

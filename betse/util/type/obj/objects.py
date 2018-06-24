@@ -11,6 +11,7 @@ Low-level object facilities.
 import inspect, platform
 from betse.exceptions import (
     BetseAttributeException, BetseMethodException, BetseTypeException)
+from betse.util.type import types
 from betse.util.type.types import (
     type_check, CallableTypes, CallableOrNoneTypes, ClassType, GeneratorType)
 
@@ -33,6 +34,31 @@ def die_unless_instance(obj: object, cls: ClassType) -> None:
         raise BetseTypeException(
             'Object {!r} not an instance of class {!r}'.format(obj, cls))
 
+# ....................{ EXCEPTIONS ~ attr                  }....................
+@type_check
+def die_unless_class(obj: object, *class_names: str) -> None:
+    '''
+    Raise an exception unless the passed object provides all classes with the
+    passed names.
+
+    Parameters
+    ----------
+    obj : object
+        Object to test for these classes.
+    class_names : tuple[str]
+        Tuple of the names of all classes to test this object for.
+
+    Raises
+    ----------
+    BetseMethodException
+        If one or more such classes are *not* bound to this object.
+    '''
+
+    for class_name in class_names:
+        if not is_class(obj=obj, class_name=class_name):
+            raise BetseMethodException(
+                'Object "{}" class "{}" undefined.'.format(obj, class_name))
+
 
 @type_check
 def die_unless_method(obj: object, *method_names: str) -> None:
@@ -54,11 +80,63 @@ def die_unless_method(obj: object, *method_names: str) -> None:
     '''
 
     for method_name in method_names:
-        if not is_method(obj, method_name):
+        if not is_method(obj=obj, method_name=method_name):
             raise BetseMethodException(
                 'Object "{}" method {}() undefined.'.format(obj, method_name))
 
 # ....................{ TESTERS                            }....................
+@type_check
+def is_attr(obj: object, attr_name: str) -> bool:
+    '''
+    ``True`` only if the passed object provides an attribute of arbitrary type
+    with the passed name.
+
+    This function is a convenient synonym of the :func:`hasattr` builtin,
+    provided entirely as a caller convenience.
+
+    Parameters
+    ----------
+    obj : object
+        Object to be tested for this attribute.
+    attr_name : str
+        Name of the attribute to be tested for.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this attribute is bound to this object.
+    '''
+
+    return hasattr(obj, attr_name)
+
+
+@type_check
+def is_class(obj: object, class_name: str) -> bool:
+    '''
+    ``True`` only if the passed object provides a class with the passed name.
+
+    Parameters
+    ----------
+    obj : object
+        Object to test for this class.
+    class_name : str
+        Name of the class to test this object for.
+
+    Returns
+    ----------
+    bool
+        `True` only if a class with this name is bound to this object.
+    '''
+
+    # Attribute with this name in this object if any or "None" otherwise.
+    cls = getattr(obj, class_name, None)
+
+    # Return whether this attribute is a class. Since "None" is guaranteed to
+    # *NOT* be a class, this simple test produces the expected result in all
+    # possible cases.
+    return types.is_class(cls)
+
+
 @type_check
 def is_method(obj: object, method_name: str) -> bool:
     '''
@@ -74,14 +152,14 @@ def is_method(obj: object, method_name: str) -> bool:
     Returns
     ----------
     bool
-        `True` only if a method with this name is bound to this object.
+        ``True`` only if a method with this name is bound to this object.
     '''
 
-    # Attribute with this name in this object if any or None otherwise.
-    method = getattr(obj, method_name, None)
+    # Method with this name bound to this object if any or "None" otherwise.
+    method = get_method_or_none(obj=obj, method_name=method_name)
 
-    # Return whether this attribute is a method.
-    return callable(method)
+    # Return true only if this method exists.
+    return method is not None
 
 # ....................{ TESTERS ~ pure                     }....................
 # Tester distinguishing pure-Python from C-based class instances. Doing so is

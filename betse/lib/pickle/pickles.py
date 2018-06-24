@@ -23,12 +23,12 @@ application, including:
 '''
 
 # ....................{ IMPORTS                            }....................
-import dill as pickle
+import dill
 from betse.util.io import iofiles
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import CALLABLE_CACHED_VAR_NAME_PREFIX
+from betse.util.type.obj import objects
 from betse.util.type.types import type_check
-from dill import Pickler
 
 # ....................{ CONSTANTS                          }....................
 # The improved pickle-ability of protocol 4 appears to be required to pickle
@@ -47,7 +47,7 @@ competing tradeoffs:
 '''
 
 # ....................{ CLASSES                            }....................
-class BetsePickler(Pickler):
+class BetsePickler(dill.Pickler):
     '''
     Application-specific :mod:`dill`-based custom pickler.
 
@@ -117,10 +117,6 @@ class BetsePickler(Pickler):
         # Pickle this object.
         super().save(obj, *args, **kwargs)
 
-
-# Force "dill" to pickle via the custom pickler defined above.
-pickle.dill.Pickler = BetsePickler
-
 # ....................{ LOADERS                            }....................
 @type_check
 def load(filename: str) -> object:
@@ -150,7 +146,7 @@ def load(filename: str) -> object:
     # Load and return all objects saved to this file, silently decompressing
     # this file if compressed.
     with iofiles.reading_bytes(filename) as unpickle_file:
-        return pickle.load(file=unpickle_file)
+        return dill.load(file=unpickle_file)
 
 # ....................{ SAVERS                             }....................
 @type_check
@@ -197,13 +193,13 @@ def save(
     # filename is suffixed by an archive filetype.
     with iofiles.writing_bytes(
         filename=filename, is_overwritable=is_overwritable) as pickle_file:
-        pickle.dump(
+        dill.dump(
             objects,
             file=pickle_file,
             protocol=PROTOCOL,
 
             #FIXME: We may need to increase the maximum recursion depth *BEFORE*
-            #calling pickle.dump() above. Let's ignore this until issues arise.
+            #calling dill.dump() above. Let's ignore this until issues arise.
 
             # Physically pickle the contents of all objects transitively
             # referring to globals via stack-based recursion. By default, dill
@@ -226,3 +222,36 @@ def save(
             # objects, recursive object discovery is *STRONGLY* preferred.
             recurse=True,
         )
+
+# ....................{ INITIALIZERS                       }....................
+def init() -> None:
+    '''
+    Initialize both this submodule *and* the :mod:`dill` package.
+
+    Specifically, this function instructs :mod:`dill` to pickle with our
+    application-specific :class:`BetsePickler` subclass.
+    '''
+
+    # Log this initialization.
+    logs.log_debug('Initializing dill...')
+
+    # Core "dill" submodule. Sadly, dill 0.2.8.0 and 0.2.8.1 but (confusingly)
+    # *NOT* dill >= 0.2.8.2 fundamentally broke backward compatibility by
+    # renaming this public API -- necessitating conditional logic here to
+    # properly find this submodule. For further details, see:
+    #     https://github.com/uqfoundation/dill/issues/268
+    dill_core_submodule = None
+
+    # For dill >= 0.2.8.2, attempt to find the new "dill._dill" submodule.
+    try:
+        dill_core_submodule = dill._dill
+    # For dill < 0.2.8.2, attempt to find the older "dill.dill" submodule.
+    except:
+        dill_core_submodule = dill.dill
+
+    # If this submodule does *NOT* contain the expected "Pickler" base class,
+    # raise an exception.
+    objects.die_unless_class(dill_core_submodule, 'Pickler')
+
+    # Instruct "dill" to pickle with our application-specific pickler subclass.
+    dill_core_submodule.Pickler = BetsePickler

@@ -77,7 +77,7 @@ if __name__ == '__main__':
     # application codebase. Instead, we defer to the next best test.
     if not is_module_root('{entry_package_root}'):
         raise ImportError(
-            'Package "{entry_package_root}" unimportable. Consider rerunning either:\\n\\n'
+            'Package "{entry_package_root}" unimportable. Consider re-running either:\\n\\n'
             '\\tsudo python3 setup.py install\\n'
             '\\tsudo python3 setup.py develop\\n'
             '\\tsudo python3 setup.py symlink')
