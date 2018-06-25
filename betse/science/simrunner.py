@@ -26,6 +26,7 @@ from betse.util.path import files, pathnames
 from betse.util.type.decorator.decorators import deprecated
 from betse.util.type.decorator.decprof import log_time_seconds
 from betse.util.type.types import type_check
+from betse.science.tissue.tishandler import TissueHandler
 
 # ....................{ CLASSES                           }....................
 class SimRunner(object):
@@ -350,14 +351,6 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
 
-        #FIXME: Non-ideal. Ideally, these objects would both default to "None".
-        #Sadly, they're currently required for trivial access to filename
-        #variables (e.g., "cells.savedWorld", "sim.savedInit"). After shifting
-        #all such variables into the "Parameters" class, uncomment the
-        #following two lines and remove the corresponding two lines below.
-        # cells = None
-        # sim   = None
-
         # Simulation configuration.
         cells = Cells(self._p)
         sim = Simulator(self._p)
@@ -369,7 +362,6 @@ class SimRunner(object):
             pathnames.get_basename(self._p.grn_config_filename),
             self._p.conf_basename)
 
-        #FIXME: See above for pertinent commentary. Tendrils of wisdom, uncoil!
         self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
         self._p.run_sim = False
 
@@ -387,6 +379,7 @@ class SimRunner(object):
                     sim=sim,
                     callbacks=self._callbacks,
                 )
+
 
                 # Initialize core simulation data structures.
                 sim.init_core(phase)
@@ -460,6 +453,7 @@ class SimRunner(object):
 
         # If *NOT* defined above, define this simulation phase.
         if phase is None:
+
             phase = SimPhase(
                 kind=phase_kind,
                 cells=cells,
@@ -469,7 +463,11 @@ class SimRunner(object):
             )
 
             # Reinitialize all profiles.
+            #  SESS: DO NOT CHANGE THIS!!! IT IS REQUIRED FOR PROPER COMPATIBILITY with Present config settings!!!
+            phase.dyna = TissueHandler(self._p)
             phase.dyna.tissueProfiles(sim, cells, self._p)
+            phase.dyna.runAllInit(self, cells, self._p)
+            sim.dyna = phase.dyna
 
         # If *NOT* restarting from a prior GRN run, start a new GRN.
         if self._p.grn_unpickle_filename is None:
