@@ -342,7 +342,11 @@ cutting event:
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
     break TJ: True           # break tight junctions? (otherwise assumes instant barrier healing)
     wound TJ: 1.0e-1         # how leaky are the tight junctions at the wound (max 1.0)
-    cut time: 10.0e-3   # time at which cutting occurs durring simulation.
+
+    #FIXME: This setting is currently problematic. For now, please avoid changing this setting.
+    #This issue will be resolved in the next stable release of BETSE.
+    cut time: 0.0         # time at which cutting occurs durring simulation.
+    # cut time: 10.0e-3   # time at which cutting occurs durring simulation.
 
 #-----------------------------------------------------------------------------------------------------------------------
 # MODULATOR FUNCTION PROPERTIES

@@ -356,6 +356,11 @@ BETSE is releasable to all supported platforms as follows:
      #. Remotely fork our `feedstock repository`_.
      #. Locally clone this forked feedstock repository.
      #. Locally create a new branch of this repository specific to this update.
+
+        .. code:: bash
+
+           $ git checkout -b betse-${version}
+
      #. Locally update this recipe from this branch (typically, by editing the
         ``recipe/meta.yaml`` file). When doing so, note that:
 
