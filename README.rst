@@ -6,6 +6,17 @@
    :target: https://ci.appveyor.com/project/betse/betse/branch/master
    :alt: Windows Build Status
 
+.. # ------------------( DIRECTIVES                         )------------------
+.. # Fallback language applied to all code blocks failing to specify an
+.. # explicit language. Since the majority of all code blocks in this document
+.. # are Bash one-liners intended to be run interactively, this is "console".
+.. # For a list of all supported languages, see also:
+.. #     http://build-me-the-docs-please.readthedocs.org/en/latest/Using_Sphinx/ShowingCodeExamplesInSphinx.html#pygments-lexers
+
+.. # FIXME: Sadly, this appears to be unsupported by some ReST parsers and hence
+.. # is disabled until more widely supported. *collective shrug*
+.. # highlight:: console
+
 .. # ------------------( SYNOPSIS                           )------------------
 
 =====
@@ -75,19 +86,19 @@ For new users, BETSE is portably installable as follows:
   
   - Enable conda-forge_.
   
-    .. code:: bash
-  
+    .. code-block:: console
+
        conda config --add channels conda-forge
   
   - Install **BETSE.** [#conda_package]_
   
-    .. code:: bash
-  
+    .. code-block:: console
+
        conda install betse
   
   - [\ *Optional*\ ] Test **BETSE.** [#test_command]_
 
-    .. code:: bash
+    .. code-block:: console
 
        betse -v try
 
@@ -187,13 +198,13 @@ repository and prior stable releases – is manually installable as follows:
      #. Install Git_.
      #. Clone the ``master`` branch of this repository.
 
-        .. code:: bash
+        .. code-block:: console
 
            git clone https://gitlab.com/betse/betse.git
 
      #. Prepare for installation.
 
-        .. code:: bash
+        .. code-block:: console
 
            cd betse
 
@@ -204,19 +215,19 @@ repository and prior stable releases – is manually installable as follows:
         *Download tar.gz*.
      #. Extract the downloaded tarball into the current directory.
 
-        .. code:: bash
+        .. code-block:: console
 
            tar -xvzf betse-*.tar.gz
 
      #. (\ *Optional*\ ) Remove this tarball.
 
-        .. code:: bash
+        .. code-block:: console
 
            rm betse-*.tar.gz
 
      #. Prepare for installation.
 
-        .. code:: bash
+        .. code-block:: console
 
            cd betse-*
 
@@ -226,21 +237,21 @@ repository and prior stable releases – is manually installable as follows:
      to the current BETSE codebase. Modifications to this code are applied
      immediately *without* requiring reinstallation.
 
-     .. code:: bash
+     .. code-block:: console
 
         sudo python3 setup.py develop
 
    - **Non-editably,** installing a physical copy of the current BETSE codebase.
      Modifications to this code are ignored and thus require reinstallation.
 
-     .. code:: bash
+     .. code-block:: console
 
         sudo python3 setup.py install
 
 #. (\ *Optional*\ ) **Test BETSE,** running all modelling phases of a sample
    simulation from a new directory.
 
-   .. code:: bash
+   .. code-block:: console
 
       cd /tmp && betse try
 
@@ -267,7 +278,7 @@ designed for experienced users. The typical CLI-based workflow resembles:
 #. Create a default simulation configuration in a new ``my_sim/`` subdirectory
    of the current directory.
 
-   .. code:: bash
+   .. code-block:: console
 
       betse config my_sim/sim_config.yml
 
@@ -275,37 +286,37 @@ designed for experienced users. The typical CLI-based workflow resembles:
    favourite text editor.
 #. Create a pseudo-random cell cluster from this simulation configuration.
 
-   .. code:: bash
+   .. code-block:: console
 
       betse seed my_sim/sim_config.yml
 
 #. [\ *Optional*\ ] Plot this cell cluster.
 
-   .. code:: bash
+   .. code-block:: console
 
       betse plot seed my_sim/sim_config.yml
 
 #. Initialize (i.e., calculate steady-state concentrations for) this cell cluster.
 
-   .. code:: bash
+   .. code-block:: console
 
       betse init my_sim/sim_config.yml
 
 #. [\ *Optional*\ ] Plot this initialized cell cluster.
 
-   .. code:: bash
+   .. code-block:: console
 
       betse plot init my_sim/sim_config.yml
 
 #. Simulate this initialized cell cluster.
 
-   .. code:: bash
+   .. code-block:: console
 
       betse sim my_sim/sim_config.yml
 
 #. [\ *Optional*\ ] Plot this simulated cell cluster.
 
-   .. code:: bash
+   .. code-block:: console
 
       betse plot sim my_sim/sim_config.yml
 

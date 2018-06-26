@@ -42,7 +42,7 @@ BETSE is releasable to all supported platforms as follows:
    supported by both PyPI_ and `pip`. This mandatory dependency augments
    setuptools with the ``bdist_wheel`` subcommand invoked below.
 
-   .. code:: bash
+   .. code-block:: console
 
       $ sudo pip3 install wheel
 
@@ -62,13 +62,13 @@ BETSE is releasable to all supported platforms as follows:
 
    #. Install the ``collective.checkdocs`` Python package.
 
-      .. code:: bash
+      .. code-block:: console
 
          $ sudo pip3 install collective.checkdocs
 
    #. Validate the PyPI-specific compatilibility of `this file <readme_>`__.
 
-      .. code:: bash
+      .. code-block:: console
 
          $ python3 setup.py checkdocs
 
@@ -85,7 +85,7 @@ BETSE is releasable to all supported platforms as follows:
 #. (\ *Optional*\ ) **List all existing tags.** For reference, listing all
    previously created tags *before* creating new tags is often advisable.
 
-   .. code:: bash
+   .. code-block:: console
 
       $ git tag
 
@@ -123,13 +123,13 @@ BETSE is releasable to all supported platforms as follows:
 
    * Message is the same commit message created above.
 
-   .. code:: bash
+   .. code-block:: console
 
       $ git tag -a v{version}
 
 #. **Package both a source tarball and binary wheel.**
 
-   .. code:: bash
+   .. code-block:: console
 
       $ python3 setup.py sdist bdist_wheel
 
@@ -137,7 +137,7 @@ BETSE is releasable to all supported platforms as follows:
    ``${version}`` is the purely numeric version of this release (e.g.,
    ``0.4.1``). Verify by inspection that no unwanted paths were packaged.
 
-   .. code:: bash
+   .. code-block:: console
 
       $ tar -tvzf dist/betse-${version}.tar.gz | less
 
@@ -149,25 +149,25 @@ BETSE is releasable to all supported platforms as follows:
 
       #. **Create a new empty (venv)** (i.e., virtual environment).
 
-         .. code:: bash
+         .. code-block:: console
 
             $ python3 -m venv --clear /tmp/betse-sdist
 
       #. **Install this source tarball into this venv.**\ [#venv]_
 
-         .. code:: bash
+         .. code-block:: console
 
             $ /tmp/betse-sdist/bin/pip3 install dist/betse-${version}.tar.gz
 
       #. **Test this release from this venv.**
 
-         .. code:: bash
+         .. code-block:: console
 
             $ cd /tmp && /tmp/betse-sdist/bin/betse try
 
       #. **Remove this venv and return to the prior directory.**
 
-         .. code:: bash
+         .. code-block:: console
 
             $ rm -rf /tmp/betse-sdist && cd -
 
@@ -175,27 +175,27 @@ BETSE is releasable to all supported platforms as follows:
 
       #. **Create a new empty venv.**
 
-         .. code:: bash
+         .. code-block:: console
 
             $ python3 -m venv --clear /tmp/betse-wheel
 
       #. **Install this binary wheel into this venv.**\ [#venv]_
 
-         .. code:: bash
+         .. code-block:: console
 
             $ /tmp/betse-wheel/bin/pip3 install \
               dist/betse-${version}-py3-none-any.whl
 
       #. **Test this release from this venv.**
 
-         .. code:: bash
+         .. code-block:: console
 
             $ cd /tmp && /tmp/betse-wheel/bin/betse try
 
       #. **Remove this venv and sample simulation and return to the prior
          directory.**
 
-         .. code:: bash
+         .. code-block:: console
 
             $ rm -rf /tmp/betse-wheel /tmp/sample_sim && cd -
 
@@ -236,7 +236,7 @@ BETSE is releasable to all supported platforms as follows:
    project's `source tarball archive <tarballs_>`__. No further work is required
    to distribute source tarballs via Gitlab.
 
-   .. code:: bash
+   .. code-block:: console
 
       $ git push && git push --tags
 
@@ -251,7 +251,7 @@ BETSE is releasable to all supported platforms as follows:
          `official instructions <Test PyPI instructions_>`__ for doing so.
       #. **Register this project with** `Test PyPI`_.
 
-         .. code:: bash
+         .. code-block:: console
 
             $ python3 setup.py register -r testpypi
 
@@ -262,33 +262,33 @@ BETSE is releasable to all supported platforms as follows:
 
       #. **Upload this source tarball and binary wheel to**  `Test PyPI`_.
 
-         .. code:: bash
+         .. code-block:: console
 
             $ twine upload -r testpypi dist/betse-${version}*
 
       #. **Create a new empty venv.**
 
-         .. code:: bash
+         .. code-block:: console
 
             $ python3 -m venv --clear /tmp/betse-pypi
 
       #. **Install this release into this venv.**\ [#venv]_
 
-         .. code:: bash
+         .. code-block:: console
 
             $ /tmp/betse-pypi/bin/pip3 install \
               install -i https://testpypi.python.org/pypi betse
 
       #. **Test this release from this venv.**
 
-         .. code:: bash
+         .. code-block:: console
 
             $ cd /tmp && /tmp/betse-pypi/bin/betse try
 
       #. **Remove this venv and sample simulation and return to the prior
          directory.**
 
-         .. code:: bash
+         .. code-block:: console
 
             $ rm -rf /tmp/betse-pypi /tmp/sample_sim && cd -
 
@@ -305,7 +305,7 @@ BETSE is releasable to all supported platforms as follows:
       implicitly created by this upload. `PyPI` neither requires, recommends,
       nor supports end user intervention in this process.
 
-      .. code:: bash
+      .. code-block:: console
 
          $ twine upload dist/betse-${version}*
 
@@ -318,26 +318,26 @@ BETSE is releasable to all supported platforms as follows:
 
       #. **Create a new empty venv.**
 
-         .. code:: bash
+         .. code-block:: console
 
             $ python3 -m venv --clear /tmp/betse-pypi
 
       #. **Install this release into this venv.**\ [#venv]_
 
-         .. code:: bash
+         .. code-block:: console
 
             $ /tmp/betse-pypi/bin/pip3 install betse
 
       #. **Test this release from this venv.**
 
-         .. code:: bash
+         .. code-block:: console
 
             $ cd /tmp && /tmp/betse-pypi/bin/betse try
 
       #. **Remove this venv and sample simulation and return to the prior
          directory.**
 
-         .. code:: bash
+         .. code-block:: console
 
             $ rm -rf /tmp/betse-pypi /tmp/sample_sim && cd -
 
@@ -357,7 +357,7 @@ BETSE is releasable to all supported platforms as follows:
      #. Locally clone this forked feedstock repository.
      #. Locally create a new branch of this repository specific to this update.
 
-        .. code:: bash
+        .. code-block:: console
 
            $ git checkout -b betse-${version}
 
@@ -373,8 +373,18 @@ BETSE is releasable to all supported platforms as follows:
           * Paste the resulting string as the value of the ``sha256`` Jinja2
             templated variable in this recipe.
 
-     #. Locally commit these changes.
+     #. Locally stage and commit these changes.
+
+        .. code-block:: console
+
+           $ git commit --all
+
      #. Locally push these changes to the upstream fork.
+
+        .. code-block:: console
+
+           $ git push --set-upstream origin betse-v${version}
+
      #. Remotely open a pull request (PR) from the upstream fork against the
         `original repository <feedstock repository_>`__.
 
