@@ -90,7 +90,7 @@ class SimRunner(object):
         self._callbacks = callbacks
         self._p = p
 
-    # ..................{ RUNNERS                            }..................
+    # ..................{ RUNNERS                           }..................
     @log_time_seconds(noun='seed')
     def seed(self) -> SimPhase:
         '''
@@ -326,7 +326,7 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-
+    # ..................{ RUNNERS ~ grn                     }..................
     @log_time_seconds(noun='network')
     def sim_grn(self) -> SimPhase:
         '''
@@ -362,7 +362,8 @@ class SimRunner(object):
             pathnames.get_basename(self._p.grn_config_filename),
             self._p.conf_basename)
 
-        self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
+        # Force the time profile to be initialized.
+        self._p.set_time_profile(phase_kind)
         self._p.run_sim = False
 
         # If networking an uninitialized, unsimulated cell cluster...
@@ -374,10 +375,10 @@ class SimRunner(object):
                 # Simulation phase.
                 phase = SimPhase(
                     kind=phase_kind,
+                    callbacks=self._callbacks,
                     cells=cells,
                     p=self._p,
                     sim=sim,
-                    callbacks=self._callbacks,
                 )
 
 
@@ -453,21 +454,17 @@ class SimRunner(object):
 
         # If *NOT* defined above, define this simulation phase.
         if phase is None:
-
             phase = SimPhase(
                 kind=phase_kind,
+                callbacks=self._callbacks,
                 cells=cells,
                 p=self._p,
                 sim=sim,
-                callbacks=self._callbacks,
             )
 
             # Reinitialize all profiles.
-            #  SESS: DO NOT CHANGE THIS!!! IT IS REQUIRED FOR PROPER COMPATIBILITY with Present config settings!!!
-            phase.dyna = TissueHandler(self._p)
             phase.dyna.tissueProfiles(sim, cells, self._p)
-            phase.dyna.runAllInit(self, cells, self._p)
-            sim.dyna = phase.dyna
+            phase.dyna.init_events(phase)
 
         # If *NOT* restarting from a prior GRN run, start a new GRN.
         if self._p.grn_unpickle_filename is None:
@@ -543,8 +540,7 @@ class SimRunner(object):
                 # Initialize all tissue profiles on original cells.
                 phase_old.dyna.tissueProfiles(init, cells_old, self._p)
 
-                for cut_profile_name in (
-                    phase_old.dyna.event_cut.profile_names):
+                for cut_profile_name in phase_old.p.event_cut_profile_names:
                     logs.log_info(
                         'Cutting cell cluster via cut profile "%s"...',
                         cut_profile_name)
@@ -569,11 +565,11 @@ class SimRunner(object):
 
                     logs.log_info(
                         'Redefining dynamic dictionaries '
-                        'to point to the new sim...')
+                        'to refer to new simulation...')
                     MoG.core.redefine_dynamic_dics(sim, cells, self._p)
 
                     logs.log_info(
-                        'Reinitializing the gene regulatory network '
+                        'Reinitializing gene regulatory network '
                         'for simulation...')
                     MoG.reinitialize(sim, cells, self._p)
 
@@ -585,13 +581,13 @@ class SimRunner(object):
                 sim.mtubes.uxmt, sim.mtubes.uymt = sim.mtubes.mtubes_to_cell(
                     cells, self._p)
 
-        logs.log_info("Running gene regulatory network test simulation...")
-        MoG.run_core_sim(sim, cells, self._p)
+        logs.log_info('Simulating gene regulatory network...')
+        MoG.run_core_sim(phase)
 
         # Return this phase.
         return phase
 
-    # ..................{ PLOTTERS                           }..................
+    # ..................{ PLOTTERS                          }..................
     @log_time_seconds(noun='seed', verb='exported')
     def plot_seed(self) -> SimPhase:
         '''
@@ -1023,7 +1019,7 @@ class SimRunner(object):
                 'Run "betse seed" again to match the current settings of '
                 'this config file.')
 
-    # ..................{ DEPRECATED                         }..................
+    # ..................{ DEPRECATED                        }..................
     # The following methods have been deprecated for compliance with PEP 8.
 
     #FIXME: Remove all deprecated methods defined below *AFTER* a sufficient

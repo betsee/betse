@@ -1,36 +1,116 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-"""
+'''
 Controls a gene regulatory network.
 
-Creates and electrodiffuses a suite of customizable general gene products in the
-BETSE ecosystem, where the gene products are assumed to activate and/or inhibit
-the expression of other genes (and therefore the production of other gene
-products) in the gene regulatory network (GRN).
-"""
+Creates and electrodiffuses a suite of customizable general gene products in
+the BETSE ecosystem, where the gene products are assumed to activate and/or
+inhibit the expression of other genes (and therefore the production of other
+gene products) in the gene regulatory network (GRN).
+'''
 
+#FIXME: Unify the large amount of code shared in common between this and the
+#"gene" submodule as follows:
+#
+#* Define a new "grnabc" submodule defining a new "GrnABC" abstract base class,
+#  defining at least:
+#  * run_core_sim().
+#  * All other methods shared in common between the "MasterOfGenes" and
+#    "MasterOfMolecules" classes.
+#* Refactor the "MasterOfGenes" and "MasterOfMolecules" classes to subclass the
+#  "GrnABC" abstract base class.
+
+# ....................{ IMPORTS                           }....................
+import matplotlib.pyplot as plt
 import numpy as np
 from betse.science import filehandling as fh
-from betse.util.io.log import logs
-from betse.util.path import pathnames
-from betse.science.chemistry.networks import MasterOfNetworks
-from betse.science.config import confio
 from betse.science.chemistry.netplot import set_net_opts
-# from betse.science import sim_toolbox as stb
-from betse.science.visual.plot import plotutil as viz
-import matplotlib.pyplot as plt
+from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.organelles.microtubules import Mtubes
+from betse.science.phase.phasecls import SimPhase
+from betse.science.visual.plot import plotutil as viz
+from betse.util.io.log import logs
+from betse.util.type.types import type_check
 
-
+# ....................{ CLASSES                           }....................
 class MasterOfGenes(object):
+    '''
+    Gene regulatory network (GRN).
+    '''
 
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, p):
-
         pass
 
 
+    def reinitialize(self, sim, cells, p) -> None:
+
+        # Previously loaded GRN-specific configuration file as a dictionary.
+        config_dic = p.grn.conf
+
+        # Time dilation:
+        self.core.time_dila = float(config_dic.get('time dilation factor', 1.0))
+
+        # reset microtubules?
+        self.reset_MT = config_dic.get('reset microtubules', False)
+
+        # recalculate fluid flow?
+        self.recalc_fluid = config_dic.get('recalculate fluid flow', False)
+
+        # obtain specific sub-dictionaries from the config file:
+        substances_config = config_dic['biomolecules']
+        reactions_config = config_dic.get('reactions', None)
+        transporters_config = config_dic.get('transporters', None)
+        channels_config = config_dic.get('channels', None)
+        modulators_config = config_dic.get('modulators', None)
+
+        self.core.tissue_init(sim, cells, substances_config, p)
+
+        if reactions_config is not None:
+            # initialize the reactions of metabolism:
+            self.core.read_reactions(reactions_config, sim, cells, p)
+            self.core.write_reactions()
+            self.core.create_reaction_matrix()
+            self.core.write_reactions_env()
+            self.core.create_reaction_matrix_env()
+
+            self.reactions = True
+
+        else:
+            self.core.create_reaction_matrix()
+            self.core.create_reaction_matrix_env()
+            self.reactions = False
+
+        # initialize transporters, if defined:
+        if transporters_config is not None:
+            self.core.read_transporters(transporters_config, sim, cells, p)
+            self.core.write_transporters(sim, cells, p)
+
+            self.transporters = True
+
+        else:
+            self.transporters = False
+
+        # initialize channels, if desired:
+        if channels_config is not None:
+            self.core.read_channels(channels_config, sim, cells, p)
+            self.channels = True
+
+        else:
+            self.channels = False
+
+        # initialize modulators, if desired:
+        if modulators_config is not None:
+            self.core.read_modulators(modulators_config, sim, cells, p)
+            self.modulators = True
+
+        else:
+            self.modulators = False
+
+    # ..................{ READERS                           }..................
     def read_gene_config(self, sim, cells, p):
 
         # Previously loaded GRN-specific configuration file as a dictionary.
@@ -119,76 +199,28 @@ class MasterOfGenes(object):
         self.core.opti_step = float(config_dic['optimization']['optimization step'])
         # self.core.opti_run = config_dic['optimization']['run from optimization']
 
-        if opti is True:
-            logs.log_info("The Gene Network is being analyzed for optimal rates...")
+        if opti:
+            logs.log_info('Analyzing gene network for optimal rates...')
             self.core.optimizer(sim, cells, p)
             self.reinitialize(sim, cells, p)
 
-    def reinitialize(self, sim, cells, p):
+    # ..................{ RUNNERS                           }..................
+    @type_check
+    def run_core_sim(self, phase: SimPhase) -> None:
+        '''
+        Run this gene regulatory network (GRN) in an isolated manner ignoring
+        all other biophysicality (e.g., bioelectricity, fluid flow).
 
-        # Previously loaded GRN-specific configuration file as a dictionary.
-        config_dic = p.grn.conf
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+        '''
 
-        # Time dilation:
-        self.core.time_dila = float(config_dic.get('time dilation factor', 1.0))
-
-        # reset microtubules?
-        self.reset_MT = config_dic.get('reset microtubules', False)
-
-        # recalculate fluid flow?
-        self.recalc_fluid = config_dic.get('recalculate fluid flow', False)
-
-        # obtain specific sub-dictionaries from the config file:
-        substances_config = config_dic['biomolecules']
-        reactions_config = config_dic.get('reactions', None)
-        transporters_config = config_dic.get('transporters', None)
-        channels_config = config_dic.get('channels', None)
-        modulators_config = config_dic.get('modulators', None)
-
-        self.core.tissue_init(sim, cells, substances_config, p)
-
-        if reactions_config is not None:
-            # initialize the reactions of metabolism:
-            self.core.read_reactions(reactions_config, sim, cells, p)
-            self.core.write_reactions()
-            self.core.create_reaction_matrix()
-            self.core.write_reactions_env()
-            self.core.create_reaction_matrix_env()
-
-            self.reactions = True
-
-        else:
-            self.core.create_reaction_matrix()
-            self.core.create_reaction_matrix_env()
-            self.reactions = False
-
-        # initialize transporters, if defined:
-        if transporters_config is not None:
-            self.core.read_transporters(transporters_config, sim, cells, p)
-            self.core.write_transporters(sim, cells, p)
-
-            self.transporters = True
-
-        else:
-            self.transporters = False
-
-        # initialize channels, if desired:
-        if channels_config is not None:
-            self.core.read_channels(channels_config, sim, cells, p)
-            self.channels = True
-
-        else:
-            self.channels = False
-
-        # initialize modulators, if desired:
-        if modulators_config is not None:
-            self.core.read_modulators(modulators_config, sim, cells, p)
-            self.modulators = True
-
-        else:
-            self.modulators = False
-
-    def run_core_sim(self, sim, cells, p):
+        # Localize pertinent simulation phase objects for convenience.
+        cells = phase.cells
+        p = phase.p
+        sim = phase.sim
 
         # set molecules to not affect charge for sim-grn test-drives:
         p.substances_affect_charge = False
@@ -249,27 +281,34 @@ class MasterOfGenes(object):
             self.mtubes_y_time = []
 
             if self.reset_MT:
-                logs.log_info("Resetting microtubules for sim-grn simulation...")
+                logs.log_info(
+                    'Resetting microtubules for sim-grn simulation...')
                 sim.mtubes = Mtubes(sim, cells, p)
 
         for t in tt:
-
             if self.transporters:
                 self.core.run_loop_transporters(t, sim, cells, p)
 
             self.core.run_loop(t, sim, cells, p)
 
-
             if p.use_microtubules: # update the microtubules:
                 sim.mtubes.update_mtubes(cells, sim, p)
 
-            if p.grn_runmodesim is True and t > p.cut_time and self.mod_after_cut is False:
+            if (p.grn_runmodesim and
+                t > p.event_cut_time and
+                not self.mod_after_cut):
+                phase.dyna.fire_events(phase=phase, t=t)
 
-                sim.dyna.runAllDynamics(sim, cells, p, t)
-
-                if sim.dyna.event_cut.is_fired and self.mod_after_cut is False: # if a cutting event has just been run:
-
-                    self.core.mod_after_cut_event(sim.target_inds_cell_o, sim.target_inds_mem_o, sim, cells, p)
+                # If a cutting event has just been run...
+                if (phase.dyna.event_cut.is_fired and
+                    not self.mod_after_cut):
+                    self.core.mod_after_cut_event(
+                        sim.target_inds_cell_o,
+                        sim.target_inds_mem_o,
+                        sim,
+                        cells,
+                        p,
+                    )
                     logs.log_info(
                         "Redefining dynamic dictionaries to point to the new sim...")
                     self.core.redefine_dynamic_dics(sim, cells, p)
@@ -281,7 +320,6 @@ class MasterOfGenes(object):
                     sim.uxmt, self.uymt = sim.mtubes.mtubes_to_cell(cells, p)
 
                     self.mod_after_cut = True  # set the boolean to avoid repeat action
-
 
             if t in tsamples:
                 sim.time.append(t)
@@ -295,8 +333,6 @@ class MasterOfGenes(object):
                     # microtubules:
                     self.mtubes_x_time.append(sim.mtubes.mtubes_x * 1)
                     self.mtubes_y_time.append(sim.mtubes.mtubes_y * 1)
-
-
 
         logs.log_info('Saving simulation...')
         datadump = [self, cells, p]

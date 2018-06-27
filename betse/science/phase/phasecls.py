@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-High-level **simulation phase** (e.g., cell cluster seeding, initialization, and
-simulation) functionality.
+High-level **simulation phase** (e.g., cell cluster seeding, initialization,
+and simulation) functionality.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseSimPhaseException
 from betse.science.phase import phasecallbacks
-from betse.science.phase.phasecallbacks import (
-    SimCallbacksABCOrNoneTypes, SimCallbacksNoop)
+from betse.science.phase.phasecallbacks import SimCallbacksABCOrNoneTypes
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.util.type.types import type_check, NoneType
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 class SimPhase(object):
     '''
     High-level simulation phase, encapsulating all lower-level objects required
@@ -25,9 +24,9 @@ class SimPhase(object):
 
     This object principally behaves as a simple container whose:
 
-    * Direct parent is the root-level :class:`betse.science.simrunner.SimRunner`
-      object owning all objects pertaining to the current cell cluster,
-      configuration, and simulation.
+    * Direct parent is the root-level
+      :class:`betse.science.simrunner.SimRunner` object owning all objects
+      pertaining to the current cell cluster, configuration, and simulation.
     * Direct children are:
       * The current cell cluster.
       * The current simulation.
@@ -60,13 +59,13 @@ class SimPhase(object):
     Attributes (Path)
     ----------
     export_dirname : StrOrNoneTypes
-        Absolute path of the top-level directory containing all exported results
-        (e.g., plots, animations, CSVs) for this simulation phase if this phase
-        is either an initialization or simulation *or* ``None`` otherwise (i.e.,
-        if this phase is a seed).
+        Absolute path of the top-level directory containing all exported
+        results (e.g., plots, animations, CSVs) for this simulation phase if
+        this phase is either an initialization or simulation *or* ``None``
+        otherwise (i.e., if this phase is a seed).
     '''
 
-    # ..................{ INITIALIZORS                       }..................
+    # ..................{ INITIALIZORS                      }..................
     @type_check
     def __init__(
         self,
@@ -97,9 +96,9 @@ class SimPhase(object):
             defaults to an uninitialized simulation for this configuration.
         callbacks : SimCallbacksABCOrNoneTypes
             Caller-defined object whose methods are periodically called during
-            this phase (e.g., to notify this caller of phase progress). Defaults
-            to ``None``, in which case this defaults to a placeholder object
-            whose methods all silently reduce to noops.
+            this phase (e.g., to notify this caller of phase progress).
+            Defaults to ``None``, in which case this defaults to a placeholder
+            object whose methods all silently reduce to noops.
         '''
 
         # Avoid circular import dependencies.
@@ -149,6 +148,13 @@ class SimPhase(object):
         self.cache = SimPhaseCaches(phase=self)
         self.dyna = TissueHandler(p=p)
 
+        #FIXME: Eliminate this crude hack by refactoring all references to
+        #"sim.dyna" throughout the codebase to "phase.dyna" instead. Naturally,
+        #this will require refactoring all methods referencing "sim.dyna" to
+        #accept a "phase: SimPhase" parameter. After doing so, remove this line.
+        #Praise be to the multifoliate rose!
+        self.sim.dyna = self.dyna
+
         #FIXME: Isolate exports produced by the "seed" phase to their own
         #directory; for simplicity, these exports currently reuse the same
         #directory as that of the "init" phase.
@@ -164,12 +170,12 @@ class SimPhase(object):
             raise BetseSimPhaseException(
                 'Simulation phase "{}" unrecognized.'.format(kind.name))
 
-    # ..................{ EXCEPTIONS                         }..................
+    # ..................{ EXCEPTIONS                        }..................
     @type_check
     def die_unless_kind(self, kind: SimPhaseKind) -> None:
         '''
         Raise an exception unless the kind of this simulation phase is exactly
-        the passed kind of such phases (e.g., seed, initialization, simulation).
+        the passed kind of such phases (e.g., initialization, simulation).
         '''
 
         if self.kind is not kind:

@@ -334,12 +334,11 @@ break ecm junctions:     # break extracellular junctions between cells
     apply to: ['spot']      # tissue profile(s) to apply intervention to
 
 
-# Cut (i.e., remove) all cells matched by the "cut profile" defined above from
-# the initialized cluster at the start of the simulation run. Note that this is
-# ignored unless the "cut profile" is also enabled.
+# Remove all cells selected by one or more cut profiles defined above at an arbitrary
+# simulation time step. (Ignored unless at least one such profile is defined.)
 cutting event:
     event happens: True      # enable (True) or disable (False) this event?
-    apply to: ['surgery']    # names of cut profiles selecting cells to be cut
+    apply to: ['surgery']    # list of names of all cut profiles selecting cells to be removed
     break TJ: True           # break tight junctions? (otherwise assumes instant barrier healing)
     wound TJ: 1.0e-1         # how leaky are the tight junctions at the wound (max 1.0)
 

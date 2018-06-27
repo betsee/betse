@@ -1,25 +1,29 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-"""
+'''
 Controls a gene regulatory network.
 
-Creates and electrodiffuses a suite of customizable general gene products in the
-BETSE ecosystem, where the gene products are assumed to activate and/or inhibit
-the expression of other genes (and therefore the production of other gene
-products) in the gene regulatory network (GRN).
-"""
+Creates and electrodiffuses a suite of customizable general gene products in
+the BETSE ecosystem, where the gene products are assumed to activate and/or
+inhibit the expression of other genes (and therefore the production of other
+gene products) in the gene regulatory network (GRN).
+'''
 
+#FIXME: Unify the large amount of code shared in common between this and the
+#"gene" submodule. See the latter for details.
+
+# ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.science import filehandling as fh
 from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.chemistry.netplot import set_net_opts
-# from betse.science.math.systems import SimMaster
 
-
+# ....................{ CLASSES                           }....................
 class MasterOfMolecules(object):
 
     def __init__(self, p):
@@ -182,12 +186,12 @@ class MasterOfMolecules(object):
         else:
             self.modulators = False
 
+    #FIXME: This method no longer appears to be called anywhere. Is this
+    #vestigial or does my monocle simply need to be cleaned?
     def run_core_sim(self, sim, cells, p):
 
         sim.vm = -50e-3*np.ones(sim.mdl)
-
         sim.time = []
-
 
         # initialize key fields of simulator required to interface (dummy init)
         sim.rho_pump = 1.0

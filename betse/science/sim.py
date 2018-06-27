@@ -454,13 +454,6 @@ class Simulator(object):
         p = phase.p
         cells = phase.cells
 
-        #FIXME: Eliminate this crude hack by refactoring all references to
-        #"sim.dyna" throughout the codebase to "phase.dyna" instead. Naturally,
-        #this will require refactoring all methods referencing "sim.dyna" to
-        #accept a "phase: SimPhase" parameter. After doing so, remove this line.
-        #Praise be to the multifoliate rose!
-        self.dyna = phase.dyna
-
         # initialize all extra substances related objects to None, to be filled in if desired later
         self.molecules = None
         self.metabo = None
@@ -744,8 +737,8 @@ class Simulator(object):
     @type_check
     def init_dynamics(self, phase: SimPhase) -> None:
         '''
-        Prepare tissue-centric data structures required by the passed phase in a
-        general-purpose manner applicable to *all* possible phases.
+        Prepare tissue-centric data structures required by the passed phase in
+        a general-purpose manner applicable to *all* possible phases.
 
         This method initializes core computational matrices -- including those
         concerning tissue, cut, and boundary profiles, dynamic activities, and
@@ -765,12 +758,14 @@ class Simulator(object):
         p = phase.p
         cells = phase.cells
 
-        # smoothing weights for membrane and central values:
+        # Smoothing weights for membrane and central values.
         nfrac = p.smooth_cells
-        self.smooth_weight_mem = ((nfrac*cells.num_mems[cells.mem_to_cells] -1)/(nfrac*cells.num_mems[cells.mem_to_cells]))
+        self.smooth_weight_mem = (
+            (nfrac*cells.num_mems[cells.mem_to_cells] - 1)/
+            (nfrac*cells.num_mems[cells.mem_to_cells]))
         self.smooth_weight_o = 1/(nfrac*cells.num_mems[cells.mem_to_cells])
 
-        # # load in the gap junction dynamics object:
+        # Load in the gap junction dynamics object.
         if p.v_sensitive_gj:
             self.gj_funk = Gap_Junction(self, cells, p)
 
@@ -972,7 +967,7 @@ class Simulator(object):
         self.rho_channel = 1
 
         # Initialize core user-specified interventions.
-        phase.dyna.runAllInit(self, cells, p)
+        phase.dyna.init_events(phase)
 
         # update the microtubules dipole for the case user changed it between init and sim:
         self.mtubes.reinit(cells, p)
@@ -1188,7 +1183,7 @@ class Simulator(object):
             # Calculate the values of scheduled and dynamic quantities (e.g..
             # ion channel multipliers).
             if p.run_sim:
-                phase.dyna.runAllDynamics(self, cells, p, t)
+                phase.dyna.fire_events(phase=phase, t=t)
 
             # -----------------PUMPS-------------------------------------------------------------------------------------
 
@@ -1548,7 +1543,7 @@ class Simulator(object):
             # Calculate the values of scheduled and dynamic quantities (e.g..
             # ion channel multipliers).
             if p.run_sim:
-                phase.dyna.runAllDynamics(self, cells, p, t)
+                phase.dyna.fire_events(phase=phase, t=t)
 
             # update the microtubules:------------------------------------------------------------------------------
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -6,14 +7,14 @@
 High-level classes aggregating all parameters pertaining to simulation events.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseSimConfException
 from betse.science.tissue.event.tiseveabc import SimEventPulseABC
 from betse.science.math import toolbox
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, NoneType, NumericSimpleTypes
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 class SimEventPulseVoltage(SimEventPulseABC):
     '''
     Event applying a directed voltage to the environmental boundary for some
@@ -38,7 +39,7 @@ class SimEventPulseVoltage(SimEventPulseABC):
         to. Valid values are as for ``side_positive_voltage`` above.
     '''
 
-    # ..................{ PUBLIC                             }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(
         self,
@@ -63,6 +64,7 @@ class SimEventPulseVoltage(SimEventPulseABC):
         self.negative_voltage_boundary = negative_voltage_boundary
 
 
+    #FIXME: Refactor to resemble the superclass method signature.
     @type_check
     def fire(self, sim: 'betse.science.sim.Simulator', t: NumericSimpleTypes) -> None:
 

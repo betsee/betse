@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -6,17 +7,17 @@
 Abstract base classes of all timed event classes.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta  #, abstractmethod
 from betse.util.type.types import type_check, NumericSimpleTypes
 
-# ....................{ BASE                               }....................
+# ....................{ BASE                              }....................
 class SimEventABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all timed event classes.
 
-    Instances of this class parameterize an exogenous event (e.g., cell removal,
-    voltage change) to be triggered at some time step(s) of the simulation.
+    Each instance of this class parameterizes some user-defined event (e.g.,
+    cell removal) to be applied at some simulation time step(s).
 
     Attributes
     ----------
@@ -48,6 +49,8 @@ class SimEventABC(object, metaclass=ABCMeta):
         return self._is_fired
 
     # ..................{ FIRERS                             }..................
+    #FIXME: Refactor this and all subclass implementations to accept a single
+    #mandatory "phase: SimPhane" parameter.
     @type_check
     def fire(self) -> None:
         '''
@@ -59,11 +62,11 @@ class SimEventABC(object, metaclass=ABCMeta):
 
         self._is_fired = True
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 class SimEventSpikeABC(SimEventABC):
     '''
-    Abstract base class of all classes describing simulation events occurring at
-    only a single time step (rather than over a range of time steps).
+    Abstract base class of all **simulation spike event** (i.e., occurring at
+    only a single time step rather than over a range of time steps) subclasses.
 
     Attributes
     ----------
@@ -71,11 +74,11 @@ class SimEventSpikeABC(SimEventABC):
         Time step in seconds (s) at which to trigger this action.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                     }..................
     @type_check
     def __init__(self, time_step: NumericSimpleTypes) -> None:
         '''
-        Initialize this event.
+        Initialize this simulation spike event.
 
         Parameters
         ----------
@@ -92,8 +95,8 @@ class SimEventSpikeABC(SimEventABC):
 
 class SimEventPulseABC(SimEventABC):
     '''
-    Abstract base class of all classes describing simulation events occurring
-    over a range of time steps (rather than at only a single time step).
+    Abstract base class of all **simulation pulse event** (i.e., occurring over
+    a range of time steps rather than at only a single time step) subclasses.
 
     Attributes
     ----------
@@ -105,18 +108,22 @@ class SimEventPulseABC(SimEventABC):
         Slope of the pair of step functions guaranteeing smooth continuity
         between the background function and this event. Each step function is
         the mirror image of the other reflected across the Y axis. These are:
+
         * A "step" up from the background function to this event, whose
           mid-point is centered at ``start_time``.
         * A "step" down from this event back to the background function, whose
           mid-point is centered at ``stop_time``.
+
         If the background function is time-dependent, this slope is a **rate**
-        (i.e., change over time). For the :class:`SimEventPulseVoltage` subclass, for
-        example, this is the rate in voltage per seconds (V/s) at which:
+        (i.e., change over time). For the :class:`SimEventPulseVoltage`
+        subclass, for example, this is the rate in voltage per seconds (V/s) at
+        which:
+
         * The background voltage is first increased to the peak voltage.
         * The peak voltage is later decreased to the background voltage.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(
         self,
@@ -124,6 +131,20 @@ class SimEventPulseABC(SimEventABC):
         stop_time: NumericSimpleTypes,
         step_rate: NumericSimpleTypes,
     ) -> None:
+        '''
+        Initialize this simulation pulse event.
+
+        Parameters
+        ----------
+        start_time : NumericSimpleTypes
+            Time step (s) at which to begin triggering this event.
+        stop_time : NumericSimpleTypes
+            Time step (s) at which to cease triggering this event.
+        step_rate : NumericSimpleTypes
+            Slope of the pair of step functions guaranteeing smooth continuity
+            between the background function and this event. See the class
+            docstring for details.
+        '''
 
         # Initialize our superclass.
         super().__init__()

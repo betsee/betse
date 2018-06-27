@@ -157,10 +157,6 @@ class Parameters(YamlFileABC):
 
     Attributes (Space: Tissue)
     ----------
-    cut_profiles : YamlList
-        List of all **non-default cut profiles** (i.e., objects targeting a
-        region of the cell cluster to be permanently removed by a corresponding
-        simulation event). Ignored if :attr:`is_tissue_profiles` is ``False``.
     is_tissue_profiles : bool
         ``True`` only if **tissue profiles** (i.e., user-defined regions within
         the cell cluster to which specific base membrane diffusion profiles,
@@ -174,6 +170,19 @@ class Parameters(YamlFileABC):
         region of the cell cluster to be associated with particular simulation
         constants and parameters). Ignored if :attr:`is_tissue_profiles` is
         ``False``.
+
+    Attributes (Space: Tissue: Cut)
+    ----------
+    cut_profiles : YamlList
+        List of all **cut profiles** (i.e., objects targeting a region of the
+        cell cluster to be permanently removed by a corresponding simulation
+        event). Ignored if :attr:`is_tissue_profiles` is ``False``.
+    event_cut_profile_names : SequenceTypes
+        List of the names of all cut profiles whose corresponding cells are to
+        be removed by the cutting event. Cut profiles whose names are *not* in
+        this list are effectively ignored.
+    event_cut_time : float
+        Time step of the simulation phase at which to apply the cutting event.
 
     Attributes (Time: Total)
     ----------
@@ -601,8 +610,8 @@ class Parameters(YamlFileABC):
         # Parameterize the cutting event if enabled.
         self.break_TJ = self._conf['cutting event'].get('break TJ', True)
         self.wound_TJ = float(self._conf['cutting event'].get('wound TJ', 0.1))
-        self.cut_time = float(self._conf['cutting event'].get('cut time', 0.0))
-
+        self.event_cut_time = float(self._conf['cutting event'].get('cut time', 0.0))
+        self.event_cut_profile_names = self._conf['cutting event']['apply to']
 
         #---------------------------------------------------------------------------------------------------------------
         # GLOBAL INTERVENTIONS
