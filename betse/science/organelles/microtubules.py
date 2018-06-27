@@ -369,11 +369,11 @@ class Mtubes(object):
             gFy = gFxo*np.sin(rotangle) + gFyo*np.cos(rotangle)
 
             # magnitude of the orienting field:
-            magF = (np.sqrt(gFx ** 2 + gFy ** 2)).max() + 1.0e-15
+            magF = (np.sqrt(gFx ** 2 + gFy ** 2)) + 1.0e-15
 
             # set the microtubule vectors with the field values:
-            mtubes_xo = -(gFx/magF) * self.mt_density
-            mtubes_yo = -(gFy/magF) * self.mt_density
+            mtubes_xo = (gFx/magF) * self.mt_density
+            mtubes_yo = (gFy/magF) * self.mt_density
 
             self.mtubes_x, self.mtubes_y = cells.single_cell_div_free(mtubes_xo, mtubes_yo)
 
