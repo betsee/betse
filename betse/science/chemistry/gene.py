@@ -294,10 +294,28 @@ class MasterOfGenes(object):
             if p.use_microtubules: # update the microtubules:
                 sim.mtubes.update_mtubes(cells, sim, p)
 
-            if (p.grn_runmodesim and
-                t > p.event_cut_time and
-                not self.mod_after_cut):
+            # If...
+            if (
+                # The simulation phase is being run...
+                p.grn_runmodesim and
+                # The cutting event has yet to be performed here...
+                not self.mod_after_cut and
+                # The current time step is at least the time step at which the
+                # cutting event is scheduled to occur...
+                t >= p.event_cut_time
+            ):
                 phase.dyna.fire_events(phase=phase, t=t)
+
+                #FIXME: This logic should ideally reside somewhere in the
+                #"betse.science.tissue" subpackage. For example, similar logic
+                #already exists in the
+                #betse.science.tissue.tishandler.TissueHandler._sim_events_tissue()
+                #method called by the above phase.dyna.fire_events() call. It
+                #should thus be possible to shift the body of the following if
+                #conditional into the body of the similar if conditional in the
+                #TissueHandler._sim_events_tissue() method. After doing so,
+                #this outer if conditional and the "mod_after_cut" variable
+                #would then be safely removable. Overlord, unite your power!
 
                 # If a cutting event has just been run...
                 if (phase.dyna.event_cut.is_fired and

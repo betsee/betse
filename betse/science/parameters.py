@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+# ....................{ LICENSE                           }....................
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import numpy as np
 from betse import pathtree
 from betse.exceptions import BetseSimConfException, BetseSimPhaseException
@@ -25,7 +26,7 @@ from betse.util.path import dirs, pathnames
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceTypes, StrOrNoneTypes)
 
-# ....................{ CLASSES                            }....................
+# ....................{ SUBCLASSES                        }....................
 class Parameters(YamlFileABC):
     '''
     Root YAML-backed in-memory and on-disk simulation configuration,
@@ -190,8 +191,8 @@ class Parameters(YamlFileABC):
         Duration in seconds of the initialization phase *not* modified by
         extraneous settings (e.g., gap junction acceleration factor).
     sim_time_total : float
-        Duration in seconds of the simulation phase *not* modified by extraneous
-        settings (e.g., gap junction acceleration factor).
+        Duration in seconds of the simulation phase *not* modified by
+        extraneous settings (e.g., gap junction acceleration factor).
     total_time : float
         Duration in seconds of the current simulation phase *not* modified by
         extraneous settings (e.g., gap junction acceleration factor).
@@ -227,6 +228,7 @@ class Parameters(YamlFileABC):
         Number of time steps between each sampled time step, including that
         sampled time step itself. Notably, if the current time step ``t`` is a
         sampled time step:
+
         * ``t + t_resample`` is the next sampled time step (if any).
         * ``t - t_resample`` is the prior sampled time step (if any).
 
@@ -251,7 +253,9 @@ class Parameters(YamlFileABC):
         cytosolic ions enabled by this simulation).
     ions_dict : dict
         Dictionary mapping:
+
         * From each of the following names of a supported core ion:
+
           * ``Na``, the sodium cation Na+.
           * ``K``, the potassium cation K+.
           * ``Ca``, the calcium cation Ca2+.
@@ -259,7 +263,9 @@ class Parameters(YamlFileABC):
           * ``H``, the hydrogen cation H+.
           * ``M``, the M anion bicarbonate HCO3-.
           * ``P``, the anionic protein P-.
+
         * To either:
+
           * 0, if that ion is disabled by the ion profile in the current
             simulation configuration.
           * 1, if that ion is enabled by that ion profile.
@@ -300,39 +306,39 @@ class Parameters(YamlFileABC):
         Subconfiguration configuring exported plots.
     plot_cell : int
         0-based index of the cell to isolate all single-cell time plots to.
-        Defaults to 0, the index assigned to the first cell guaranteed to exist.
-        Note that cell indices are seed-specific and may be visualized via the
-        :attr:`enumerate_cells` boolean.
+        Defaults to 0, the index assigned to the first cell guaranteed to
+        exist.  Note that cell indices are seed-specific and may be visualized
+        via the :attr:`enumerate_cells` boolean.
     '''
 
-    # ..................{ ALIASES                            }..................
+    # ..................{ ALIASES                           }..................
     # To sanitize computation throughout the codebase, *ALL* real numbers are
-    # required to be floating point rather the more general "NumericSimpleTypes" type
-    # (i.e., either floating point or integer). Due to magic internal to the
-    # yaml_alias() data descriptor, integer values are both silently and safely
-    # cast to floating point values.
+    # required to be floating point rather the more general
+    # "NumericSimpleTypes" type (i.e., either floating point or integer). Due
+    # to magic internal to the yaml_alias() data descriptor, integer values are
+    # both silently and safely cast to floating point values.
 
-    # ..................{ ALIASES ~ solver                   }..................
+    # ..................{ ALIASES ~ solver                  }..................
     solver_type = yaml_enum_alias("['solver options']['type']", SolverType)
 
-    # ..................{ ALIASES ~ path : seed              }..................
+    # ..................{ ALIASES ~ path : seed             }..................
     seed_pickle_basename = yaml_alias("['init file saving']['worldfile']", str)
 
-    # ..................{ ALIASES ~ path : init              }..................
+    # ..................{ ALIASES ~ path : init             }..................
     init_pickle_basename = yaml_alias("['init file saving']['file']", str)
     init_pickle_dirname_relative = yaml_alias(
         "['init file saving']['directory']", str)
     init_export_dirname_relative = yaml_alias(
         "['results file saving']['init directory']", str)
 
-    # ..................{ ALIASES ~ path : sim               }..................
+    # ..................{ ALIASES ~ path : sim              }..................
     sim_pickle_basename = yaml_alias("['sim file saving']['file']", str)
     sim_pickle_dirname_relative = yaml_alias(
         "['sim file saving']['directory']", str)
     sim_export_dirname_relative  = yaml_alias(
         "['results file saving']['sim directory']", str)
 
-    # ..................{ ALIASES ~ path : grn               }..................
+    # ..................{ ALIASES ~ path : grn              }..................
     grn_pickle_basename = yaml_alias(
         "['gene regulatory network settings']"
         "['sim-grn settings']['save to file']", str)
@@ -343,47 +349,47 @@ class Parameters(YamlFileABC):
         "['gene regulatory network settings']"
         "['sim-grn settings']['load from']", StrOrNoneTypes)
 
-    # ..................{ ALIASES ~ space : cell             }..................
+    # ..................{ ALIASES ~ space : cell            }..................
     cell_radius = yaml_alias("['world options']['cell radius']", float)
 
-    # ..................{ ALIASES ~ space : cell cluster     }..................
+    # ..................{ ALIASES ~ space : cell cluster    }..................
     cell_lattice_disorder = yaml_alias(
         "['world options']['lattice disorder']", float)
     cell_lattice_type = yaml_enum_alias(
         "['world options']['lattice type']", CellLatticeType)
 
-    # ..................{ ALIASES ~ space : env              }..................
+    # ..................{ ALIASES ~ space : env             }..................
     grid_size = yaml_alias("['general options']['comp grid size']", int)
     is_ecm = yaml_alias(
         "['general options']['simulate extracellular spaces']", bool)
     world_len = yaml_alias("['world options']['world size']", float)
 
-    # ..................{ ALIASES ~ space : tissue           }..................
+    # ..................{ ALIASES ~ space : tissue          }..................
     #FIXME: Does this boolean actually serve a demonstrable purpose? I might be
-    #offbase here, but don't we always want tissue profiles? Is there actually a
-    #useful use case for even disabling all tissue profiles?
+    #offbase here, but don't we always want tissue profiles? Is there actually
+    #a useful use case for even disabling all tissue profiles?
     is_tissue_profiles = yaml_alias(
         "['tissue profile definition']['profiles enabled']", bool)
 
-    # ..................{ ALIASES ~ time : init              }..................
+    # ..................{ ALIASES ~ time : init             }..................
     init_time_total = yaml_alias("['init time settings']['total time']", float)
     init_time_step = yaml_alias("['init time settings']['time step']", float)
     init_time_sampling = yaml_alias(
         "['init time settings']['sampling rate']", float)
 
-    # ..................{ ALIASES ~ time : sim               }..................
+    # ..................{ ALIASES ~ time : sim              }..................
     sim_time_total  = yaml_alias("['sim time settings']['total time']", float)
     sim_time_step  = yaml_alias("['sim time settings']['time step']", float)
     sim_time_sampling = yaml_alias(
         "['sim time settings']['sampling rate']", float)
 
-    # ..................{ ALIASES ~ grn                      }..................
+    # ..................{ ALIASES ~ grn                     }..................
     grn_unpickle_phase_type = yaml_enum_alias(
         "['gene regulatory network settings']"
         "['sim-grn settings']['run network on']",
         GrnUnpicklePhaseType)
 
-    # ..................{ ALIASES ~ ion                      }..................
+    # ..................{ ALIASES ~ ion                     }..................
     #FIXME: Consider shifting all ion-centric functionality into a dedicated
     #"ion" instance variable, instantiated to be an instance of a newly defined
     #"SimConfIonProfile" class. Ion handling currently appears to consume in
@@ -391,17 +397,17 @@ class Parameters(YamlFileABC):
     ion_profile = yaml_enum_alias(
         "['general options']['ion profile']", IonProfileType)
 
-    # ..................{ ALIASES ~ ion ~ custom             }..................
+    # ..................{ ALIASES ~ ion ~ custom            }..................
     #FIXME: Actually use this.
     ion_profile_custom_conc_env_na = yaml_alias(
         "['general options']['customized ion profile']"
         "['extracellular Na+ concentration']", float)
 
-    # ..................{ ALIASES ~ scalar                   }..................
+    # ..................{ ALIASES ~ scalar                  }..................
     cell_polarizability = yaml_alias(
         "['internal parameters']['cell polarizability']", float)
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass with all passed parameters.
@@ -433,7 +439,7 @@ class Parameters(YamlFileABC):
         # Classify unloaded GRN subconfigurations.
         self.grn = SimConfGrnFile()
 
-    # ..................{ LOADERS                            }..................
+    # ..................{ LOADERS                           }..................
     #FIXME: Convert all or most of the variables parsed by this method into
     #aliases of the above form. Brainy rainbows!
     @type_check
@@ -499,10 +505,6 @@ class Parameters(YamlFileABC):
             self.refine_mesh = False
             self.maximum_voronoi_steps = 20
             self.voronoi_convergence = 1.0e-9
-
-
-
-
 
         #---------------------------------------------------------------------------------------------------------------
         # TARGETED INTERVENTIONS
@@ -591,21 +593,16 @@ class Parameters(YamlFileABC):
         else:
             self.scheduled_options['pressure'] = 0
 
-        #FIXME: Rename this dictionary key from "extV" to "external voltage".
-        # Parameterize the voltage event if enabled.
-        self.scheduled_options['extV'] = tisevevolt.make(p=self)
-
-        if bool_ecmj is False:
-            self.scheduled_options['ecmJ'] = 0
-        elif bool_ecmj is True:
+        if bool_ecmj:
             on_ecmj = float(self._conf['break ecm junctions']['change start'])
             off_ecmj = float(self._conf['break ecm junctions']['change finish'])
             rate_ecmj = float(self._conf['break ecm junctions']['change rate'])
             apply_ecmj = self._conf['break ecm junctions']['apply to']
             mult_ecmj = 1.0 - float(self._conf['break ecm junctions'].get('multiplier', 0.0))
-            ecmj = [on_ecmj, off_ecmj, rate_ecmj, apply_ecmj, mult_ecmj]
-
-            self.scheduled_options['ecmJ'] = ecmj
+            self.scheduled_options['ecmJ'] = [
+                on_ecmj, off_ecmj, rate_ecmj, apply_ecmj, mult_ecmj]
+        else:
+            self.scheduled_options['ecmJ'] = 0
 
         # Parameterize the cutting event if enabled.
         self.break_TJ = self._conf['cutting event'].get('break TJ', True)
@@ -1056,7 +1053,7 @@ class Parameters(YamlFileABC):
         # Return this configuration for convenience.
         return self
 
-    # ..................{ LOADERS                            }..................
+    # ..................{ LOADERS                           }..................
     #FIXME: Ideally, this method should be private. Unfortunately, external
     #callers (notably, tests) currently need to call this method to update
     #absolute pathnames after modifying relative pathnames. The solution, of
@@ -1362,7 +1359,7 @@ class Parameters(YamlFileABC):
             raise BetseSimConfException(
                 'Ion profile type "{}" unrecognized.'.format(self.ion_profile))
 
-    # ..................{ UNLOADERS                          }..................
+    # ..................{ UNLOADERS                         }..................
     def unload(self) -> None:
 
         # Unload our superclass.
@@ -1381,7 +1378,7 @@ class Parameters(YamlFileABC):
         self.csv.unload()
         self.plot.unload()
 
-    # ..................{ EXCEPTIONS                         }..................
+    # ..................{ EXCEPTIONS                        }..................
     def die_unless_ecm(self) -> None:
         '''
         Raise an exception unless this configuration has enabled simulation of
@@ -1393,7 +1390,7 @@ class Parameters(YamlFileABC):
                 'Extracellular spaces disabled by '
                 'this simulation configuration.')
 
-    # ..................{ SETTERS                            }..................
+    # ..................{ SETTERS                           }..................
     #FIXME: Actually, this method makes little sense here; clearly, this method
     #sets phase-specific attributes. All phase-specific attributes should reside
     #directly in the "SimPhase" API rather than in this class, which is
@@ -1439,7 +1436,7 @@ class Parameters(YamlFileABC):
         # the current gap junction acceleration factor.
         self.total_time_accelerated = self.total_time
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS                        }..................
     #FIXME: Actually implement this properly. Ideally, this method should return
     #the set of all subdirectories internally referenced by the current
     #top-level YAML file. Instead, it simply returns all subdirectories
@@ -1456,7 +1453,7 @@ class Parameters(YamlFileABC):
         # are guaranteed to be required by this file.
         return dirs.iter_subdir_basenames(pathtree.get_data_yaml_dirname())
 
-# ....................{ HELPERS                            }....................
+# ....................{ HELPERS                           }....................
 def _balance_charge(concentrations: SequenceTypes, zs: SequenceTypes) -> tuple:
     '''
     Sum the concentrations of profile ions with their charge state to

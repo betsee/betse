@@ -10,7 +10,7 @@ High-level classes aggregating all parameters pertaining to simulation events.
 # ....................{ IMPORTS                           }....................
 from betse.science.tissue.event.tiseveabc import SimEventSpikeABC
 # from betse.util.io.log import logs
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check  #, SequenceTypes
 
 # ....................{ SUBCLASSES                        }....................
 #FIXME: Refactor the TissueHandler.removeCells() method into a new
@@ -19,17 +19,19 @@ class SimEventCut(SimEventSpikeABC):
     '''
     **Cutting event** (i.e., event removing one or more cells of the current
     cell cluster at some time step during the simulation phase).
-
-    Attributes
-    ----------
     '''
 
     # ..................{ INITIALIZERS                      }..................
     @type_check
-    def __init__(
-        self,
-        *args, **kwargs
-    ) -> None:
+    def __init__(self, p: 'betse.science.parameters.Parameters') -> None:
+        '''
+        Initialize this cutting event for the passed simulation configuration.
 
-        # Initialize our superclass with all remaining parameters..
-        super().__init__(*args, **kwargs)
+        Attributes
+        ----------
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
+        '''
+
+        # Initialize our superclass.
+        super().__init__(p=p, time_step=p.event_cut_time)

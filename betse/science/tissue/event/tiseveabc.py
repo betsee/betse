@@ -9,9 +9,11 @@ Abstract base classes of all timed event classes.
 
 # ....................{ IMPORTS                           }....................
 from abc import ABCMeta  #, abstractmethod
-from betse.util.type.types import type_check, NumericSimpleTypes
+from betse.exceptions import BetseSimEventException
+from betse.science.phase.phasecls import SimPhase
+from betse.util.type.types import type_check
 
-# ....................{ BASE                              }....................
+# ....................{ SUPERCLASSES                      }....................
 class SimEventABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all timed event classes.
@@ -49,15 +51,21 @@ class SimEventABC(object, metaclass=ABCMeta):
         return self._is_fired
 
     # ..................{ FIRERS                             }..................
-    #FIXME: Refactor this and all subclass implementations to accept a single
-    #mandatory "phase: SimPhane" parameter.
     @type_check
-    def fire(self) -> None:
+    def fire(self, phase: SimPhase, time_step: float) -> None:
         '''
-        Apply this event.
+        Apply this event for the passed time step of the passed simulation
+        phase.
 
         This method notes this event to have been applied, ensuring the
         :meth:`is_fired` property to subsequently report ``True``.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+        time_step : float
+            Current time step of this phase being simulated.
         '''
 
         self._is_fired = True
@@ -70,24 +78,43 @@ class SimEventSpikeABC(SimEventABC):
 
     Attributes
     ----------
-    _time_step : NumericSimpleTypes
+    _time_step : float
         Time step in seconds (s) at which to trigger this action.
     '''
 
     # ..................{ INITIALIZERS                     }..................
     @type_check
-    def __init__(self, time_step: NumericSimpleTypes) -> None:
+    def __init__(
+        self,
+        p: 'betse.science.parameters.Parameters',
+        time_step: float,
+    ) -> None:
         '''
-        Initialize this simulation spike event.
+        Initialize this simulation spike event for the passed simulation
+        configuration.
 
         Parameters
         ----------
-        time_step : NumericSimpleTypes
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
+        time_step : float
             Time step in seconds (s) at which to trigger this action.
+
+        Raises
+        ----------
+        BetseSimEventException
+            If this time step is invalid (i.e., *not* in the range
+            ``[0, p.sim_time_total)``).
         '''
 
         # Initialize our superclass.
         super().__init__()
+
+        # If this time step is invalid, raise an exception.
+        if not 0.0 <= time_step < p.sim_time_total:
+            raise BetseSimEventException(
+                'Event time {} invalid (i.e., not in range '
+                '[0.0, {})).'.format(time_step, p.sim_time_total))
 
         # Classify all passed parameters.
         self._time_step = time_step
@@ -100,11 +127,11 @@ class SimEventPulseABC(SimEventABC):
 
     Attributes
     ----------
-    start_time : NumericSimpleTypes
+    start_time_step : float
         Time step (s) at which to begin triggering this event.
-    stop_time : NumericSimpleTypes
+    stop_time_step : float
         Time step (s) at which to cease triggering this event.
-    step_rate : NumericSimpleTypes
+    time_step_rate : float
         Slope of the pair of step functions guaranteeing smooth continuity
         between the background function and this event. Each step function is
         the mirror image of the other reflected across the Y axis. These are:
@@ -127,20 +154,24 @@ class SimEventPulseABC(SimEventABC):
     @type_check
     def __init__(
         self,
-        start_time: NumericSimpleTypes,
-        stop_time: NumericSimpleTypes,
-        step_rate: NumericSimpleTypes,
+        p: 'betse.science.parameters.Parameters',
+        start_time_step: float,
+        stop_time_step: float,
+        time_step_rate: float,
     ) -> None:
         '''
-        Initialize this simulation pulse event.
+        Initialize this simulation pulse event for the passed simulation
+        configuration.
 
         Parameters
         ----------
-        start_time : NumericSimpleTypes
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
+        start_time_step : float
             Time step (s) at which to begin triggering this event.
-        stop_time : NumericSimpleTypes
+        stop_time_step : float
             Time step (s) at which to cease triggering this event.
-        step_rate : NumericSimpleTypes
+        time_step_rate : float
             Slope of the pair of step functions guaranteeing smooth continuity
             between the background function and this event. See the class
             docstring for details.
@@ -149,7 +180,23 @@ class SimEventPulseABC(SimEventABC):
         # Initialize our superclass.
         super().__init__()
 
+        # If this start exceeds this stop time step, raise an exception.
+        if start_time_step > stop_time_step:
+            raise BetseSimEventException(
+                'Start event time {} exceeds stop event time {}.'.format(
+                    start_time_step, stop_time_step))
+
+        # If this start or stop time step are invalid, raise an exception.
+        if not 0.0 <= start_time_step < p.sim_time_total:
+            raise BetseSimEventException(
+                'Start event time {} invalid (i.e., not in range '
+                '[0.0, {})).'.format(start_time_step, p.sim_time_total))
+        if not 0.0 <= stop_time_step < p.sim_time_total:
+            raise BetseSimEventException(
+                'Stop event time {} invalid (i.e., not in range '
+                '[0.0, {})).'.format(stop_time_step, p.sim_time_total))
+
         # Classify all passed parameters.
-        self.start_time = start_time
-        self.stop_time = stop_time
-        self.step_rate = step_rate
+        self.start_time_step = start_time_step
+        self.stop_time_step = stop_time_step
+        self.time_step_rate = time_step_rate

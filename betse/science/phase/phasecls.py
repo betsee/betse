@@ -72,7 +72,7 @@ class SimPhase(object):
 
         # Mandatory parameters.
         kind: SimPhaseKind,
-        p:     'betse.science.parameters.Parameters',
+        p: 'betse.science.parameters.Parameters',
 
         # Optional parameters.
         cells: ('betse.science.cells.Cells', NoneType) = None,
@@ -153,6 +153,9 @@ class SimPhase(object):
         #this will require refactoring all methods referencing "sim.dyna" to
         #accept a "phase: SimPhase" parameter. After doing so, remove this line.
         #Praise be to the multifoliate rose!
+        #FIXME: O.K.; thanks to intrepid obsessiveness, only one submodule
+        #referencing "sim.dyna" exists in the codebase: the
+        #"betse.science.chemistry.networks" submodule. (You know what to do.)
         self.sim.dyna = self.dyna
 
         #FIXME: Isolate exports produced by the "seed" phase to their own

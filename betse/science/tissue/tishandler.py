@@ -19,6 +19,7 @@ from betse.science.math import toolbox as tb
 from betse.science.phase.phasecls import SimPhase
 from betse.science.tissue.tisprofile import CutProfile, TissueProfile
 from betse.science.tissue.event.tisevecut import SimEventCut
+from betse.science.tissue.event.tisevevolt import SimEventPulseVoltage
 from betse.science.tissue.picker.tispickcls import (
     TissuePickerAll, TissuePickerIndices, TissuePickerPercent)
 from betse.science.tissue.picker.tispickimage import TissuePickerImage
@@ -73,10 +74,6 @@ class TissueHandler(object):
         Ordered dictionary mapping from the name of each cut profile enabled by
         the current simulation configuration (in YAML list order) to the
         :class:`CutProfile` instance encapsulating this profile.
-    event_cut : SimEventCut
-        **Cutting event** (i.e., event removing a region of the current cluster
-        at some time step during the simulation phase) if enabled by the
-        current simulation configuration *or* ``None`` otherwise.
     _wound_channel : {TRP, NoneType}
         Wound-induced TRP-based channel if the following conditions are all
         satisfied *or* ``None`` otherwise:
@@ -85,6 +82,17 @@ class TissueHandler(object):
           mechanosensitive Na channel associated with wounding.
         * The cutting event has already been performed, thus generating a wound
           and activating this channel.
+
+    Attributes (Event)
+    ----------
+    _event_voltage : {SimEventPulseVoltage, NoneType}
+        **Voltage event** (i.e., event applying a directed voltage to the
+        environmental boundary for a range of simulation time steps) if enabled
+        by the current simulation configuration *or* ``None`` otherwise.
+    event_cut : {SimEventCut, NoneType}
+        **Cutting event** (i.e., event removing a region of the current cluster
+        at some time step during the simulation phase) if enabled by the
+        current simulation configuration *or* ``None`` otherwise.
     '''
 
     # ..................{ INITIALIZERS                      }..................
@@ -102,15 +110,16 @@ class TissueHandler(object):
 
         # Nullify all instance variables for safety.
         self.event_cut = None
+        self._event_voltage = None
         self._wound_channel = None
 
         # Initialize tissue and cut profiles.
         self._init_tissues(p)
         self._init_cuts(p)
 
-        # Initialize scheduled interventions *AFTER* tissue and cut profiles,
-        # as the former requires the latter.
-        self._init_event_cut(p)
+        # Initialize events *AFTER* tissue and cut profiles, as the former
+        # frequently require the latter.
+        self._init_events(p)
 
 
     @type_check
@@ -122,6 +131,11 @@ class TissueHandler(object):
         Specifically, this method encapsulates each low-level YAML-formatted
         list item defining a tissue profile in this configuration with a
         high-level instance of the :class:`CellsProfileABC` class.
+
+        Parameters
+        ----------
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
         '''
 
         # Ordered dictionaries mapping from the name of each each tissue profile
@@ -230,50 +244,45 @@ class TissueHandler(object):
         configuration.
 
         Specifically, this method encapsulates each low-level YAML-formatted
-        list item defining a cut profile in this configuration with a high-level
-        instance of the :class:`CellsProfileABC` class.
+        list item defining a cut profile in this configuration with a
+        high-level instance of the :class:`CellsProfileABC` class.
+
+        Parameters
+        ----------
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
         '''
 
         # Ordered dictionaries mapping from the name of each each cut profile
         # to the corresponding profile.
         self.cut_name_to_profile = OrderedDict()
 
-        # If cut profiles are disabled, silently noop.
-        if not p.is_tissue_profiles:
-            return
+        # If cut profiles are enabled...
+        if p.is_tissue_profiles:
+            # For each low-level cut profile...
+            for cut_index, cut_profile in enumerate(p.cut_profiles):
+                # If this profile is non-unique, raise an exception.
+                if cut_profile.name in self.cut_name_to_profile:
+                    raise BetseSimTissueException(
+                        'Cut profile "{0}" non-unique '
+                        '(i.e., two or more cut profiles named "{0}").'.format(
+                            cut_profile.name))
 
-        # For each low-level cut profile...
-        for cut_index, cut_profile in enumerate(p.cut_profiles):
-            # If this profile is non-unique, raise an exception.
-            if cut_profile.name in self.cut_name_to_profile:
-                raise BetseSimTissueException(
-                    'Cut profile "{0}" non-unique '
-                    '(i.e., two or more cut profiles named "{0}").'.format(
-                        cut_profile.name))
+                # Map this profile's name to a high-level profile object.
+                self.cut_name_to_profile[cut_profile.name] = CutProfile(
+                    name=cut_profile.name,
+                    z_order=cut_index + 1,
+                    picker=TissuePickerImage(
+                        filename=cut_profile.picker_image_filename,
+                        dirname=p.conf_dirname)
+                )
 
-            # Map this profile's name to a high-level profile object.
-            self.cut_name_to_profile[cut_profile.name] = CutProfile(
-                name=cut_profile.name,
-                z_order=cut_index + 1,
-                picker=TissuePickerImage(
-                    filename=cut_profile.picker_image_filename,
-                    dirname=p.conf_dirname)
-            )
-
-
-    #FIXME: Refactor this method to instead be called by init_events().
-    @type_check
-    def _init_event_cut(self, p: 'betse.science.parameters.Parameters') -> None:
-        '''
-        Initialize all scheduled interventions defined by the passed simulation
-        configuration.
-        '''
-
-        # If this event is enabled...
+        # If the cutting event is enabled, initialize this event *AFTER*
+        # initializing cut profiles, as the former assumes the latter to exist.
         if bool(p._conf['cutting event']['event happens']):
-            # If cut profiles are enabled...
+            # If one or more cut profiles are also enabled...
             if self.cut_name_to_profile:
-                # For each such name...
+                # For the name of each such profile applied by this event...
                 for cut_profile_name in p.event_cut_profile_names:
                     # If this cut profile does *NOT* exist, raise an exception.
                     if cut_profile_name not in self.cut_name_to_profile:
@@ -283,15 +292,65 @@ class TissueHandler(object):
                                 cut_profile_name))
 
                 # Define this event.
-                self.event_cut = SimEventCut(time_step=p.event_cut_time)
-            # Else, log a non-fatal warning.
+                self.event_cut = SimEventCut(p=p)
+            # Else, no cut profiles are also enabled. Since this effectively
+            # disables this event, warn the user that this is the case.
             else:
                 logs.log_warning(
                     'Ignoring cutting event, as cut profiles are disabled.')
 
 
-    #FIXME: Rename to _map_tissue_profiles_to_cells(). See the
-    #SimPhase.__init__() method for further discussion.
+    @type_check
+    def _init_events(self, p: 'betse.science.parameters.Parameters') -> None:
+        '''
+        Initialize all scheduled interventions for the passed simulation
+        configuration.
+
+        Parameters
+        ----------
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
+        '''
+
+        self._init_events_global(p)
+
+
+    @type_check
+    def _init_events_global(
+        self, p: 'betse.science.parameters.Parameters') -> None:
+        '''
+        Initialize all **global scheduled interventions** (i.e., events
+        globally applicable to all cells) for the passed simulation
+        configuration.
+
+        Parameters
+        ----------
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
+        '''
+
+        # If the voltage event is enabled...
+        if bool(p._conf['apply external voltage']['event happens']):
+            # If extracellular spaces are also enabled, enable this event.
+            if p.is_ecm:
+                self._event_voltage = SimEventPulseVoltage(p=p)
+            # Else, log a non-fatal warning.
+            else:
+                logs.log_warning(
+                    'Ignoring voltage event, '
+                    'as extracellular spaces are disabled.')
+
+    #FIXME: Refactor as follows:
+    #
+    #* Rename to simply init().
+    #* Shift the body of the existing init_events() method into this method.
+    #* Replace all calls to the init_events() method with calls to this method.
+    #
+    #Previously, we considered renaming this method to
+    #_map_tissue_profiles_to_cells(). Doing so appears wholly insufficient,
+    #however; external callers *MUST* finalize the initialization of this
+    #object after the cell cluster has been created. See the
+    #SimPhase.__init__() method for further (albeit obsolete) discussion.
     @type_check
     def tissueProfiles(
         self,
@@ -300,12 +359,15 @@ class TissueHandler(object):
         p:     'betse.science.parameters.Parameters',
     ) -> None:
         '''
-        Define all dictionaries mapping from tissue profile names to
-        one-dimensional NumPy arrays of the indices of various cellular objects
-        (e.g., cells, cell membranes) in the cluster belonging to these tissues.
+        Finalize the initialization of all events and tissue and cut profiles.
 
-        Specifically, this method defines the :attr:`cell_target_inds`,
-        :attr:`env_target_inds`, and :attr:`tissue_target_inds` dictionaries.
+        Specifically, this method:
+
+        * Defines all dictionaries mapping from tissue profile names to
+          one-dimensional arrays of the indices of various cellular objects
+          (e.g., cells, cell membranes) in the cluster belonging to these
+          tissues. This includes the :attr:`cell_target_inds`,
+          :attr:`env_target_inds`, and :attr:`tissue_target_inds` dictionaries.
         '''
 
         # Log this initialization.
@@ -367,6 +429,13 @@ class TissueHandler(object):
                         tissue_profile.Dm_P)
 
     # ..................{ INITIALIZERS ~ event              }..................
+    #FIXME: The overwhelming majority of the logic performed by this method
+    #should be shifted into the _init_events() method. The only logic that
+    #should remain here is that which requires a fully seeded cell cluster --
+    #notably, the logic initializing the "gj_block" event in the
+    #_init_events_global() method. All other logic is simple and unconditional.
+    #FIXME: Shift what remains of this method into the tissueProfiles() method.
+    #See that method's FIXME for further details.
     @type_check
     def init_events(self, phase: SimPhase) -> None:
         '''
@@ -378,12 +447,12 @@ class TissueHandler(object):
             Current simulation phase.
         '''
 
-        self._init_events_global(phase)
-        self._init_events_tissue(phase)
+        self._finalize_events_global(phase)
+        self._finalize_events_tissue(phase)
 
 
     @type_check
-    def _init_events_global(self, phase: SimPhase) -> None:
+    def _finalize_events_global(self, phase: SimPhase) -> None:
         '''
         Initialize all **global scheduled interventions** (i.e., events
         globally applicable to all cells) for the passed simulation phase.
@@ -432,9 +501,7 @@ class TissueHandler(object):
             self.toffGJ = p.global_options['gj_block'][1]
             self.trampGJ = p.global_options['gj_block'][2]
 
-            numo = p.global_options['gj_block'][3]
-
-            numo = int(numo)
+            numo = int(p.global_options['gj_block'][3])
 
             if numo > 100:
                 numo = 100
@@ -459,7 +526,7 @@ class TissueHandler(object):
 
 
     @type_check
-    def _init_events_tissue(self, phase: SimPhase) -> None:
+    def _finalize_events_tissue(self, phase: SimPhase) -> None:
         '''
         Initialize all **targeted scheduled interventions** (i.e., events only
         applicable to specific tissue profiles) for the passed simulation
@@ -550,11 +617,11 @@ class TissueHandler(object):
             self.scalar_Clmem = 1
             self.dyna_Clmem = lambda t: 1
 
+            # Call a special toolbox function to change membrane permeability:
+            # spatial grads ('gradient_x', 'gradient_y', 'gradient_r').
             if self.function_Clmem != 'None':
-
-                # call a special toolbox function to change membrane permeability: spatial grads
-                # 'gradient_x', 'gradient_y', 'gradient_r'
-                self.scalar_Clmem, self.dyna_Clmem = getattr(mod,self.function_Clmem)(self.targets_Clmem,cells,p)
+                self.scalar_Clmem, self.dyna_Clmem = getattr(
+                    mod, self.function_Clmem)(self.targets_Clmem, cells, p)
 
         #----------------------------------------------
 
@@ -580,8 +647,8 @@ class TissueHandler(object):
             if self.function_Camem != 'None':
                 # call a special toolbox function to change membrane permeability: spatial grads
                 # 'gradient_x', 'gradient_y', 'gradient_r'
-
-                self.scalar_Camem, self.dyna_Camem = getattr(mod, self.function_Camem)(self.targets_Camem,cells,p)
+                self.scalar_Camem, self.dyna_Camem = getattr(
+                    mod, self.function_Camem)(self.targets_Camem, cells, p)
 
         #----------------------------------------------
 
@@ -609,7 +676,7 @@ class TissueHandler(object):
             # 'gradient_x', 'gradient_y', 'gradient_r'
             if self.function_P != 'None':
                 self.scalar_P, self.dyna_P = getattr(mod, self.function_P)(
-                    self.targets_P,cells, p)
+                    self.targets_P, cells, p)
 
         #--------------------------------------------------------
 
@@ -643,13 +710,13 @@ class TissueHandler(object):
             Current time step of this phase being simulated.
         '''
 
-        self._sim_events_global(phase=phase, t=t)
-        self._sim_events_tissue(phase=phase, t=t)
+        self._fire_events_global(phase=phase, t=t)
+        self._fire_events_tissue(phase=phase, t=t)
         self.makeAllChanges(phase.sim)
 
 
     @type_check
-    def _sim_events_global(self, phase: SimPhase, t: float) -> None:
+    def _fire_events_global(self, phase: SimPhase, t: float) -> None:
         '''
         Apply all **global scheduled interventions** (i.e., events globally
         applicable to all cells) for the passed time step of the passed
@@ -715,7 +782,7 @@ class TissueHandler(object):
 
 
     @type_check
-    def _sim_events_tissue(self, phase: SimPhase, t: float) -> None:
+    def _fire_events_tissue(self, phase: SimPhase, t: float) -> None:
         '''
         Apply all **targeted scheduled interventions** (i.e., events only
         applicable to specific tissue profiles) for the passed time step of the
@@ -810,14 +877,9 @@ class TissueHandler(object):
             self.event_cut is not None and
             # The cutting event has yet to be performed...
             not self.event_cut.is_fired and
-            # The current time step is greater than the time step at which the
+            # The current time step is at least the time step at which the
             # cutting event is scheduled to occur...
-
-            #FIXME: This doesn't quite look right. Shouldn't this instead be:
-            #    t >= p.event_cut_time
-            #The logic below cuts at the time step following the time step at
-            #which the user requested the cutting event be performed. Oddballs!
-            t > p.event_cut_time
+            t >= p.event_cut_time
         ):
             for cut_profile_name in p.event_cut_profile_names:
                 logs.log_info(
@@ -839,13 +901,13 @@ class TissueHandler(object):
             self.init_events(phase)
 
             # Avoid repeating this cutting event at subsequent time steps.
-            self.event_cut.fire()
+            self.event_cut.fire(phase=phase, time_step=t)
 
         # If the voltage event is enabled, adjust the voltage accordingly.
-        if p.scheduled_options['extV'] is not None:
-            p.scheduled_options['extV'].fire(sim, t)
+        if self._event_voltage is not None:
+            self._event_voltage.fire(phase=phase, time_step=t)
 
-
+    # ..................{ CHANNELS                          }..................
     def stretchChannel(self,sim,cells,p,t):
 
         dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
@@ -877,6 +939,7 @@ class TissueHandler(object):
 
         sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch
         sim.Dm_stretch[sim.iK] = self.maxDmNaStretch*self.active_NaStretch
+
 
     def makeAllChanges(self, sim) -> None:
         '''
