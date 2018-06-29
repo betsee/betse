@@ -4,8 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-High-level **simulation phase** (e.g., cell cluster seeding, initialization,
-and simulation) functionality.
+High-level simulation phase classes.
 '''
 
 # ....................{ IMPORTS                           }....................
@@ -16,6 +15,26 @@ from betse.science.phase.phaseenum import SimPhaseKind
 from betse.util.type.types import type_check, NoneType
 
 # ....................{ CLASSES                           }....................
+#FIXME: Generalize to support dynamically changing cell structure as follows:
+#
+#* Rename the "cells" attribute to "cells_seed".
+#* Define a new "cells_time" list indexed by time step for the current phase,
+#  each item of which is a "Cells" instance. Most such items are simply
+#  references to "cells_seed"; all other items if any will be references to a
+#  post-cutting event "Cells" instance. Edge cases include:
+#  * For the seed phase, "cells_time" should be "None".
+#  * For the init phase, "cells_time" should be a list of the expected length
+#    (i.e., the number of initialization time steps), each of whose items is
+#    an unconditional reference to "cells_seed".
+#  * For the sim phase, "cells_time" should be a list of the expected length
+#    (i.e., the number of simulation time steps), only the first of whose items
+#    is guaranteed to be a reference to "cells_seed".
+#FIXME: While effectively mandatory, the above generalization opens up the
+#proverbial can of worms. In particular: pickling. We currently only pickle
+#"cells_seed", "p", and "sim". That's an obvious problem. Fortunately, the
+#answer is simple (albeit arguably non-ideal): just define a new
+#"Simulator.cells_time" list in lieu of a "SimPhase.cells_time" list, but
+#otherwise defined exactly as above.
 class SimPhase(object):
     '''
     High-level simulation phase, encapsulating all lower-level objects required
@@ -40,7 +59,13 @@ class SimPhase(object):
     Attributes (High-level)
     ----------
     cells : betse.science.cells.Cells
-        Cell cluster for this phase.
+        Pre-simulated (i.e., original) cell cluster for this phase. Since the
+        cluster may change with time while simulating (e.g., due to
+        user-defined interventions such as cutting events), callers must *not*
+        assume this cluster to uniformly apply to all simulation time steps.
+        Instead, callers should index the :attr:`sim.cells_time` list by time
+        step to obtain the cell cluster produced immediately *after* that time
+        step was simulated.
     dyna : betse.science.tissue.tishandler.TissueHandler
         Tissue handler for this phase.
     p : betse.science.parameters.Parameters
@@ -50,13 +75,13 @@ class SimPhase(object):
     cache : betse.science.phase.cache.cacheabc.SimPhaseCaches
         Simulation cache for this phase.
 
-    Attributes (Caller)
+    Attributes (Low-level: Caller)
     ----------
     callbacks : SimCallbacksABC
         Caller-defined object whose methods are periodically called during this
         phase (e.g., to notify this caller of phase progress).
 
-    Attributes (Path)
+    Attributes (Low-level: Path)
     ----------
     export_dirname : StrOrNoneTypes
         Absolute path of the top-level directory containing all exported

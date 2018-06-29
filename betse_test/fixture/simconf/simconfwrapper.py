@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -18,17 +18,17 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 #* Eliminate all properties defined below.
 #* Replace all usage of the low-level "self._p._conf" dictionary with high-level
 #  data descriptors defined by "self._p".
-#FIXME: Ideally, after implementing the above, use of the "SimConfigTestWrapper"
-#wrapper will be able to be replaced everywhere in tests by direct use of the
-#"SimConfTestInternal.p" property providing direct access to this "Parameters"
-#object, which increasingly provides all test functionality. We're not quite
-#there yet -- but we will be, eventually.
+#FIXME: Ideally, after implementing the above, use of the
+#"SimConfigTestWrapper" wrapper will be able to be replaced everywhere in tests
+#by direct use of the "SimConfTestInternal.p" property providing direct access
+#to this "Parameters" object, which increasingly provides all test
+#functionality. We're not quite there yet -- but we will be, eventually.
 
-# ....................{ IMPORTS                            }....................
-# This subclass necessarily imports from submodules defined by the main codebase
-# and is thus *NOT* safely importable in a fixture submodule directly imported
-# by a "conftest" plugin module. To defer the importation of this submodule
-# until *AFTER* test collection, this submodule is intentionally segregated.
+# ....................{ IMPORTS                           }....................
+# This subclass imports from submodules defined by the main codebase and is
+# thus *NOT* safely importable from fixture submodules directly imported by
+# "conftest" plugin modules. To defer the importation of this submodule until
+# *AFTER* test collection, this submodule is intentionally segregated.
 from betse.science.config import confio
 from betse.science.config.confenum import IonProfileType, SolverType
 from betse.science.phase.require import phasereqs
@@ -42,11 +42,12 @@ from betse.util.io.log import logs
 from betse.util.type.cls import classes
 from betse.util.type.types import type_check
 
-# ....................{ SUPERCLASSES                       }....................
+# ....................{ SUPERCLASSES                      }....................
 class SimConfigTestWrapper(object):
     '''
     Test-specific simulation configuration wrapper wrapping a low-level
-    dictionary deserialized from a YAML-formatted simulation configuration file.
+    dictionary deserialized from a YAML-formatted simulation configuration
+    file.
 
     This wrapper is intended to be instantiated *only* by non-interactive
     automation (e.g., tests, scripts).
@@ -54,12 +55,12 @@ class SimConfigTestWrapper(object):
     This wrapper superficially wraps this dictionary with convenience methods
     safely modifying this dictionary. This wrapper is lower level than the
     high-level :class:`Parameters` simulation configuration, which transforms
-    this dictionary into numerous high-level objects rather than merely wrapping
-    this dictionary. While the :class:`Parameters` configuration is principally
-    used by backend simulation modelling in the :mod:`betse.science` package,
-    this wrapper is principally used by frontend logic modifying simulation
-    configurations on behalf of either interactive users (e.g., BETSE's GUI) or
-    automated tests.
+    this dictionary into numerous high-level objects rather than merely
+    wrapping this dictionary. While the :class:`Parameters` configuration is
+    principally used by backend simulation modelling in the
+    :mod:`betse.science` package, this wrapper is principally used by frontend
+    logic modifying simulation configurations on behalf of either interactive
+    users (e.g., BETSE's GUI) or automated tests.
 
     Attributes
     ----------
@@ -67,7 +68,7 @@ class SimConfigTestWrapper(object):
         High-level simulation configuration encapsulated by this test wrapper.
     '''
 
-    # ..................{ MAKERS                             }..................
+    # ..................{ MAKERS                            }..................
     #FIXME: Rename to simply make_default().
     @classmethod
     def wrap_new_default(cls, filename: str) -> None:
@@ -79,21 +80,22 @@ class SimConfigTestWrapper(object):
         configuration.
 
         This factory method creates a valid simulation configuration consumable
-        by all BETSE CLI commands (e.g., `betse sim`), modified from the default
-        simulation configuration shipped with BETSE as follows:
+        by all BETSE CLI commands (e.g., `betse sim`), modified from the
+        default simulation configuration shipped with BETSE as follows:
 
-        * The `plot after solving` option in the `results options` section is
-          coerced to `False`, preventing hapless end-users from drowning under
-          an intimidating deluge of plot windows irrelevant to "beginner" usage.
+        * The ``plot after solving`` option in the ``results options`` section
+          is coerced to ``False``, preventing hapless end-users from drowning
+          under an intimidating deluge of plot windows irrelevant to "beginner"
+          usage.
 
         Parameters
         ----------
         filename : str
-            Absolute or relative path of the simulation configuration file to be
-            written. Since this file will be YAML-formatted, this filename
+            Absolute or relative path of the simulation configuration file to
+            be written. Since this file will be YAML-formatted, this filename
             should ideally be suffixed by a valid YAML filetype: namely, either
-            `.yml` or `.yaml`. This is _not_ strictly necessary, but is strongly
-            recommended.
+            ``.yml`` or ``.yaml``. This is *not* strictly necessary, but is
+            strongly recommended.
 
         Raises
         ----------
@@ -107,7 +109,7 @@ class SimConfigTestWrapper(object):
         # Create and return an instance of this class wrapping this file.
         return cls(filename)
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, filename: str) -> None:
         '''
         Wrap the low-level dictionary deserialized from the passed
@@ -125,7 +127,7 @@ class SimConfigTestWrapper(object):
         # In-memory simulation configuration deserialized from this file.
         self._p = Parameters().load(filename)
 
-    # ..................{ PROPERTIES                         }..................
+    # ..................{ PROPERTIES                        }..................
     # For safety, these properties lack setters and hence are read-only.
 
     @property
@@ -136,7 +138,7 @@ class SimConfigTestWrapper(object):
 
         return self._p
 
-    # ..................{ PROPERTIES ~ path                  }..................
+    # ..................{ PROPERTIES ~ path                 }..................
     @property
     def dirname(self) -> str:
         '''
@@ -156,7 +158,7 @@ class SimConfigTestWrapper(object):
 
         return self._p.conf_filename
 
-    # ..................{ WRITERS                            }..................
+    # ..................{ WRITERS                           }..................
     def overwrite(self) -> None:
         '''
         Silently overwrite the contents of this configuration file with the
@@ -165,7 +167,7 @@ class SimConfigTestWrapper(object):
 
         self._p.save_inplace()
 
-    # ..................{ PROPERTIES ~ float                 }..................
+    # ..................{ PROPERTIES ~ float                }..................
     @property
     def environment_size(self) -> float:
         '''
@@ -173,7 +175,7 @@ class SimConfigTestWrapper(object):
         cell cluster for this configuration.
 
         For simplicity, BETSE constrains the environment to be square in shape.
-        This dimension thus defines both the environmental width _and_ height.
+        This dimension thus defines both the environmental width *and* height.
         '''
 
         # Coerce the current number to a float for safety.
@@ -191,19 +193,22 @@ class SimConfigTestWrapper(object):
         # Coerce the passed number to a float for safety.
         self._p._conf['world options']['world size'] = float(environment_size)
 
-    # ..................{ MINIMIZERS                         }..................
+    # ..................{ MINIMIZERS                        }..................
     def minify(self) -> None:
         '''
-        Minimize the space and time costs associated with running the simulation
-        configured by this configuration while preserving all fundamental
-        configuration features.
+        Minimize the space and time costs associated with running the
+        simulation configured by this configuration while preserving all
+        fundamental configuration features.
 
         Specifically, this method numerically reduces all configuration options
-        pertaining to either world size _or_ simulation time to their **minimum
+        pertaining to either world size *or* simulation time to their **minimum
         permissible values** (i.e., the smallest values still preserving
-        simulation stability). This method is intended to be called only by test
-        automation.
+        simulation stability). This method is intended to be called only by
+        test automation.
         '''
+
+        # Pre-minified simulation duration in seconds.
+        sim_time_total_old = self._p.sim_time_total
 
         # Minify initialization time to exactly three sampled time steps. For
         # safety, permit currently defined options smaller than the minimums
@@ -228,6 +233,27 @@ class SimConfigTestWrapper(object):
         self._p.sim_time_sampling = min(
             self._p.sim_time_sampling, self._p.sim_time_step)
         self._p.sim_time_total = self._p.sim_time_step * 3
+
+        #FIXME: Generalize to minify the time steps of *ALL* enabled events.
+        # Minify simulation event times to the same durations in a manner
+        # preserving the relative time that these events occur with respect to
+        # the pre-minified simulation duration in seconds. For simplicity, each
+        # such minification preserves the following ratio:
+        #
+        #     event_time_old       event_time_new
+        #     ------------------ = ------------------
+        #     sim_time_total_old   sim_time_total_new
+        #
+        # Since "sim_time_total_new" is given by "self._p.sim_time_total", the
+        # desired unknown "event_time_new" is given by:
+        #
+        #                      self._p.sim_time_total * event_time_old
+        #                      ---------------------------------------
+        #     event_time_new = sim_time_total_old
+        event_cut = self._p._conf['cutting event']
+        event_cut['cut time'] = (
+            self._p.sim_time_total * event_cut['cut time'] /
+            sim_time_total_old)
 
         # Minify the physical dimensions of the cell cluster in meters. By
         # experimentation, the default simulation configuration both:
@@ -255,14 +281,11 @@ class SimConfigTestWrapper(object):
         #remains commented out. (If this behaviour is indeed unexpected, this
         #line should be shifted into the enable_exports_all() method and the
         #more preferable global default retained above).
-
         # self.environment_size = min(self.environment_size, 250e-6)
 
         # Minify ECM-specific grid size. For similar reasons as above, the
         # computational grid size specified below appears to be a hard minimum.
-        ecm = self._p._conf['general options']
-        ecm['comp grid size'] = min(int(ecm['comp grid size']), 20)
-        # ecm['plot grid size'] = min(int(ecm['plot grid size']), 50)
+        self._p.grid_size = min(self._p.grid_size, 20)
 
         # Log this minification.
         logs.log_debug(
@@ -277,7 +300,7 @@ class SimConfigTestWrapper(object):
             self._p.sim_time_total,
         )
 
-    # ..................{ DISABLERS                          }..................
+    # ..................{ DISABLERS                         }..................
     #FIXME: The implementation of the following methods is fundamentally unsafe.
     #If the structure of the underlying YAML file changes, these methods could
     #silently fail (e.g., if the "plot while solving" option were renamed to
@@ -316,7 +339,7 @@ class SimConfigTestWrapper(object):
         self._p.anim.is_while_sim_show = False
         self._p.plot.is_after_sim_show = False
 
-    # ..................{ ENABLERS                           }..................
+    # ..................{ ENABLERS                          }..................
     def enable_networks(self) -> None:
         '''
         Enable both biochemical reaction and gene regulatory networks.
@@ -325,7 +348,7 @@ class SimConfigTestWrapper(object):
         self._p._conf['gene regulatory network settings'][
             'gene regulatory network simulated'] = True
 
-    # ..................{ ENABLERS ~ export                  }..................
+    # ..................{ ENABLERS ~ export                 }..................
     @type_check
     def enable_anim_video(self, writer_name: str, filetype: str) -> None:
         '''
@@ -337,9 +360,9 @@ class SimConfigTestWrapper(object):
         ----------
         writer_name : str
             Name of the matplotlib animation writer with which to encode video
-            (e.g., `ffmpeg`, `imagemagick`).
+            (e.g., ``ffmpeg``, ``imagemagick``).
         filetype : str
-            Filetype of videos to encode with this writer (e.g., `mkv`, `mp4`).
+            Filetype of videos to encode with this writer (e.g., ``mkv``).
         '''
 
         # Enable animations and animation saving in the general sense.
@@ -369,7 +392,7 @@ class SimConfigTestWrapper(object):
         self._p.anim.is_after_sim_save = True
         self._p.plot.is_after_sim_save = True
 
-    # ..................{ ENABLERS ~ solver                  }..................
+    # ..................{ ENABLERS ~ solver                 }..................
     def enable_solver_full(self) -> None:
         '''
         Enable the complete BETSE solver.
@@ -386,14 +409,14 @@ class SimConfigTestWrapper(object):
 
         self._p.solver_type = SolverType.FAST
 
-    # ..................{ ENABLERS ~ solver : circuit        }..................
+    # ..................{ ENABLERS ~ solver : circuit       }..................
     def enable_solver_circuit_exports(self) -> None:
         '''
         Enable all possible exports (e.g., CSVs, plots, animations) supported
         by the equivalent circuit-based BETSE solver excluding those requiring
         extracellular spaces, all features required by these exports, and any
-        additional features trivially enabled *without* increasing time or space
-        complexity.
+        additional features trivially enabled *without* increasing time or
+        space complexity.
         '''
 
         # Enable all simulation features, including the full BETSE solver but
@@ -403,10 +426,11 @@ class SimConfigTestWrapper(object):
         # Disable extracellular spaces.
         self._p.is_ecm = False
 
-        # Enable all possible exports excluding those requiring the full solver.
+        # Enable all possible exports excluding those requiring the full
+        # solver.
         self._enable_exports(requirements_omit=phasereqs.SOLVER_FULL)
 
-    # ..................{ ENABLERS ~ solver : full           }..................
+    # ..................{ ENABLERS ~ solver : full          }..................
     def enable_solver_full_vg_ions(self) -> None:
         '''
         Enable all voltage-gated ion channels (e.g., sodium, potassium) *and*
@@ -417,13 +441,14 @@ class SimConfigTestWrapper(object):
 
         * The full BETSE solver.
         * The extracellular matrix (ECM).
-        * The mammalian ion profile (i.e., `animal`), enabling all ions.
+        * The mammalian ion profile (i.e., ``animal``), enabling all ions.
         * The intervention increasing the permeability of all cell membranes to
           sodium (Na+).
-        * The voltage-gated sodium (Na+) channel `Nav1p2`, corresponding to the
-          adult human brain.
-        * The voltage-gated potassium (K+) channel `K_Slow`.
-        * Decreased time step and sampling rates, ensuring simulation stability.
+        * The voltage-gated sodium (Na+) channel ``Nav1p2``, corresponding to
+          the adult human brain.
+        * The voltage-gated potassium (K+) channel ``K_Slow``.
+        * Decreased time step and sampling rates, ensuring simulation
+          stability.
         * Increased duration and cell count, exposing simulation instabilities.
 
         For efficiency, this method disables all visuals -- including both in-
@@ -511,7 +536,7 @@ class SimConfigTestWrapper(object):
         # spaces.
         self._enable_exports(requirements_omit=phasereqs.ECM)
 
-    # ..................{ PRIVATE ~ enablers                 }..................
+    # ..................{ PRIVATE ~ enablers                }..................
     @type_check
     def _enable_exports(
         self,
@@ -531,10 +556,10 @@ class SimConfigTestWrapper(object):
         Parameters
         ----------
         requirements_omit : SimPhaseRequirementsOrNoneTypes
-            Immutable set of all simulation phase requirements such that exports
-            requiring one or more requirements in this set are *not* enabled by
-            this method. Defaults to ``None``, in which case all possible
-            exports are unconditionally enabled.
+            Immutable set of all simulation phase requirements such that
+            exports requiring one or more requirements in this set are *not*
+            enabled by this method. Defaults to ``None``, in which case all
+            possible exports are unconditionally enabled.
         '''
 
         # If unpassed, default the set of requirements to omit to the empty set.
@@ -601,7 +626,7 @@ class SimConfigTestWrapper(object):
                 pipe_exporter_conf = pipe_exporters_enabled.append_default()
                 pipe_exporter_conf.name = pipe_exporter_name
 
-    # ..................{ PRIVATE ~ enablers : solver        }..................
+    # ..................{ PRIVATE ~ enablers : solver       }..................
     def _enable_solver_circuit_features(self) -> None:
         '''
         Enable all simulation features required by all exports (e.g., CSVs,
@@ -678,7 +703,7 @@ class SimConfigTestWrapper(object):
         results['enumerate cells'] = True
         results['overlay currents'] = True
 
-    # ..................{ PRIVOTE ~ iterators                }..................
+    # ..................{ PRIVOTE ~ iterators               }..................
     #FIXME: Add the CSV export pipeline, once completed, to this tuple.
     @property
     def _pipes_type_exporters_enabled(self) -> tuple:

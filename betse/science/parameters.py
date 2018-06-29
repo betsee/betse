@@ -19,7 +19,6 @@ from betse.science.config.grn.confgrn import SimConfGrnFile
 from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
 from betse.science.phase.phaseenum import SimPhaseKind
-from betse.science.tissue.event import tisevevolt
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 # from betse.util.type.decorator.decmemo import property_cached
