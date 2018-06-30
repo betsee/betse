@@ -17,21 +17,20 @@ from betse.util.type.types import type_check, NoneType
 # ....................{ CLASSES                           }....................
 #FIXME: Generalize to support dynamically changing cell structure as follows:
 #
-#* Rename the "cells" attribute to "cells_seed".
 #* Define a new "cells_time" list indexed by time step for the current phase,
 #  each item of which is a "Cells" instance. Most such items are simply
-#  references to "cells_seed"; all other items if any will be references to a
+#  references to "cells"; all other items if any will be references to a
 #  post-cutting event "Cells" instance. Edge cases include:
 #  * For the seed phase, "cells_time" should be "None".
 #  * For the init phase, "cells_time" should be a list of the expected length
 #    (i.e., the number of initialization time steps), each of whose items is
-#    an unconditional reference to "cells_seed".
+#    an unconditional reference to "cells".
 #  * For the sim phase, "cells_time" should be a list of the expected length
 #    (i.e., the number of simulation time steps), only the first of whose items
-#    is guaranteed to be a reference to "cells_seed".
+#    is guaranteed to be a reference to "cells".
 #FIXME: While effectively mandatory, the above generalization opens up the
 #proverbial can of worms. In particular: pickling. We currently only pickle
-#"cells_seed", "p", and "sim". That's an obvious problem. Fortunately, the
+#"cells", "p", and "sim". That's an obvious problem. Fortunately, the
 #answer is simple (albeit arguably non-ideal): just define a new
 #"Simulator.cells_time" list in lieu of a "SimPhase.cells_time" list, but
 #otherwise defined exactly as above.
@@ -59,13 +58,16 @@ class SimPhase(object):
     Attributes (High-level)
     ----------
     cells : betse.science.cells.Cells
-        Pre-simulated (i.e., original) cell cluster for this phase. Since the
-        cluster may change with time while simulating (e.g., due to
-        user-defined interventions such as cutting events), callers must *not*
-        assume this cluster to uniformly apply to all simulation time steps.
-        Instead, callers should index the :attr:`sim.cells_time` list by time
-        step to obtain the cell cluster produced immediately *after* that time
-        step was simulated.
+        Cell cluster for this phase. If this phase is currently being
+        simulated, this object refers to the cluster at the time step being
+        simulated; else (i.e., if this phase has already been simulated), this
+        object refers to the cluster at the last simulation time step for this
+        phase. Since the cluster may change with time while simulating (e.g.,
+        due to surgical interventions like cutting events), this object applies
+        *only* to this time step. Callers should *not* assume this object to
+        uniformly apply to any other time steps of either this or other phases;
+        callers should index the :attr:`sim.cells_time` list by time step for
+        the cluster at the time step immediately following that time step.
     dyna : betse.science.tissue.tishandler.TissueHandler
         Tissue handler for this phase.
     p : betse.science.parameters.Parameters
