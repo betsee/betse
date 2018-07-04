@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -15,12 +15,22 @@ https://setuptools.readthedocs.io/en/latest/pkg_resources.html#resourcemanager-a
     Official :mod:setuptools documentation for the "ResourceManager API."
 '''
 
-# ....................{ IMPORTS                            }....................
+#FIXME: Optimize this submodule to leverage the new "importlib.resources" API
+#introduced with Python >= 3.7, known to be substantially faster than the
+#outdated "pkg_resources" API leveraged here. Note that, since
+#"importlib.resources" has been backported to Python >= 3.4, we should:
+#
+#* Add the backported "importlib.resources" package (...whatever they elected
+#  to name it) as a new optional dependency of BETSE.
+#* If "importlib.resources" is importable, prefer that over "pkg_resources" in
+#  *ALL* functions defined below.
+
+# ....................{ IMPORTS                           }....................
 import pkg_resources
 from betse.util.type.types import type_check
 from pkg_resources import Requirement
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_dir(module_name: (str, Requirement), dirname: str) -> bool:
     '''
@@ -42,9 +52,10 @@ def is_dir(module_name: (str, Requirement), dirname: str) -> bool:
     dirname : str
         ``/``-separated pathname relative to this module or requirement. This
         pathname *must* be POSIX-compliant and hence separated with the POSIX-
-        specific ``/`` directory separator rather than the Windows-specific ``\``
-        directory separator (e.g., by calling ``'\\'.join()`` rather than either
-        :func:`betse.util.path.paths.join` or :func:`os.path.join`).
+        specific ``/`` directory separator rather than the Windows-specific
+        ``\\`` directory separator (e.g., by calling ``'\\'.join()`` rather
+        than either :func:`betse.util.path.paths.join` or
+        :func:`os.path.join`).
 
     Returns
     ----------
@@ -54,7 +65,7 @@ def is_dir(module_name: (str, Requirement), dirname: str) -> bool:
 
     return pkg_resources.resource_isdir(module_name, dirname)
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get_pathname(module_name: (str, Requirement), pathname: str) -> str:
     '''
@@ -64,9 +75,9 @@ def get_pathname(module_name: (str, Requirement), pathname: str) -> str:
 
     Caveats
     ----------
-    If this resource resides in an EGG-like archive file, this function silently
-    extracts this resource and all resources transitively required by this
-    resource to a temporary :mod:`setuptools`-specific directory *before*
+    If this resource resides in an EGG-like archive file, this function
+    silently extracts this resource and all resources transitively required by
+    this resource to a temporary :mod:`setuptools`-specific directory *before*
     returning the absolute path of this resource within this directory.
 
     To quote the `ResourceManager API`_ documentation:
@@ -90,9 +101,10 @@ def get_pathname(module_name: (str, Requirement), pathname: str) -> str:
     pathname : str
         ``/``-separated pathname relative to this module or requirement. This
         pathname *must* be POSIX-compliant and hence separated with the POSIX-
-        specific ``/`` directory separator rather than the Windows-specific ``\``
-        directory separator (e.g., by calling ``'\\'.join()`` rather than either
-        :func:`betse.util.path.paths.join` or :func:`os.path.join`).
+        specific ``/`` directory separator rather than the Windows-specific
+        ``\\`` directory separator (e.g., by calling ``'\\'.join()`` rather
+        than either :func:`betse.util.path.paths.join` or
+        :func:`os.path.join`).
 
     Returns
     ----------

@@ -60,6 +60,8 @@ Human-readable name of the license this application is licensed under.
 # submodule's docstring above.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+#FIXME: Bump this to Python >= 3.5.0. Python 3.4.0 is at its end-of-life and
+#scheduled to be decomissioned shortly.
 PYTHON_VERSION_MIN = '3.4.0'
 '''
 Human-readable minimum version of Python required by this application as a
