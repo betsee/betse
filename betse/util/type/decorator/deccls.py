@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,13 +8,13 @@ Low-level **class decorator** (i.e., class dynamically wrapping other classes
 and callables at runtime) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta, abstractmethod
 from betse.util.type.types import (
     type_check, CallableTypes, ClassType, MethodType)
 from betse.util.type.decorator.decorators import decorator_chain
 
-# ....................{ DECORATORS ~ method                }....................
+# ....................{ DECORATORS ~ method               }....................
 class MethodDecoratorABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **method decorators** (i.e., decorators *only*
@@ -36,7 +36,7 @@ class MethodDecoratorABC(object, metaclass=ABCMeta):
         bound methods on each call to the :meth:`__get__` method.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(self, method: CallableTypes) -> None:
         '''
@@ -54,10 +54,11 @@ class MethodDecoratorABC(object, metaclass=ABCMeta):
         # Initialize all remaining instance variables.
         self._obj_id_to_method_bound = {}
 
-    # ..................{ DESCRIPTORS                        }..................
+    # ..................{ DESCRIPTORS                       }..................
     def __get__(self, obj: object, cls: ClassType) -> MethodType:
         '''
-        Create, cache, and return a decorated method bound to the passed object.
+        Create, cache, and return a decorated method bound to the passed
+        object.
 
         This method satisfies the descriptor protocol in a similar manner to
         Python itself. Python implicitly converts each function in a class body
@@ -93,18 +94,18 @@ class MethodDecoratorABC(object, metaclass=ABCMeta):
             #   parent class with the signature:
             #       def __call__bound_bound(*args, **kwargs)
             #
-            # Hence, this bound method is actually a bound bound method (i.e., a
-            # function bound to two class instances).
+            # Hence, this bound method is actually a bound bound method (i.e.,
+            # a function bound to two class instances).
             method_bound = self._obj_id_to_method_bound[obj_id] = MethodType(
                 self.__call__, obj)
             return method_bound
 
-    # ..................{ CALLERS                            }..................
+    # ..................{ CALLERS                           }..................
     def __call__(self, obj, *args, **kwargs) -> object:
         '''
         Call the decorated method previously passed to the :meth:`__init__`
-        method bound to the passed object with the passed positional and keyword
-        arguments, returning the value returned by this call.
+        method bound to the passed object with the passed positional and
+        keyword arguments, returning the value returned by this call.
 
         This special method is typically overriden by subclass implementations
         wrapping the decorated method with additional functionality.
@@ -113,6 +114,29 @@ class MethodDecoratorABC(object, metaclass=ABCMeta):
         return self._method_unbound(obj, *args, **kwargs)
 
 # ....................{ DECORATORS ~ property              }....................
+abstractclassmethod = decorator_chain(classmethod, abstractmethod)
+'''
+Decorator decorating the passed superclass method as an **abstract class
+method** (i.e., method called on a class rather than an instance of a class,
+required to be defined by subclasses).
+
+Motivation
+----------
+Technically, there already exist two standard means of decorating methods as
+abstract properties:
+
+* The deprecated :func:`abc.abstractproperty` decorator, which this decorator is
+  intended to act as a drop-in replacement of. Since Python 3.3 unwisely
+  deprecated that decorator, that decorator is *not* safely usable in
+  perpetuity.
+* Manually chaining the :class:`property` and :func:`abc.abstractmethod`
+  decorators, which this decorator is intended to automate and hence replace.
+  For unknown reasons, the Python community now treats this cumbersome decorator
+  chain as a sensible replacement for the deprecated
+  :func:`abc.abstractproperty` decorator. We disagree. Ergo, this decorator.
+'''
+
+
 abstractproperty = decorator_chain(property, abstractmethod)
 '''
 Decorator decorating the passed superclass method as an **abstract property**

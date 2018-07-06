@@ -124,12 +124,19 @@ function-like :class:`partial` class).
 '''
 
 
+ClassMethodType = classmethod
+'''
+Type of all **class methods** (i.e., methods bound to a class rather than an
+instance of a class and implicitly passed that class as their first parameter).
+'''
+
+
 # Since Python appears to expose no explicit method descriptor type via any
 # standard module (e.g., "types", "collections.abc"), the type of an arbitrary
 # method descriptor guaranteed to *ALWAYS* exist is obtained instead.
 MethodDescriptorType = type(str.upper)
 '''
-Type of all **method descriptors** (i.e., unbound methods accessed as class
+Type of all **method descriptors** (i.e., unbound functions accessed as class
 rather than instance attributes).
 
 Note that, despite being unbound, method descriptors remain callable (e.g., by
@@ -154,6 +161,14 @@ rather than instance attributes).
 
 Note that, despite being unbound, slot wrappers remain callable (e.g., by
 explicitly passing the intended ``self`` object as the first parameter).
+'''
+
+
+StaticMethodType = staticmethod
+'''
+Type of all **static methods** (i.e., methods bound to a class rather than an
+instance of a class but *not* implicitly passed that class as their first
+parameter, unlike class methods).
 '''
 
 # ....................{ TYPES ~ container                 }....................
@@ -374,6 +389,14 @@ and method descriptors).
 CallableOrStrTypes = CallableTypes + (str,)
 '''
 Tuple of all callable classes *and* the string type.
+'''
+
+
+ClassOrStaticMethodTypes = (ClassMethodType, StaticMethodType)
+'''
+Tuple of both class and static methods, equivalent to the set of all
+**class-bound methods** (methods bound to a class rather than an instance of a
+class).
 '''
 
 

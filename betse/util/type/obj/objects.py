@@ -17,6 +17,29 @@ from betse.util.type.types import (
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
+def die_if_instance(obj: object, cls: ClassType) -> None:
+    '''
+    Raise an exception if the passed object is an instance of the passed class.
+
+    Parameters
+    ----------
+    obj : object
+        Object to be validated.
+    cls : ClassType
+        Class to be validated.
+
+    Raises
+    ----------
+    BetseTypeException
+        If this object is an instance of this class.
+    '''
+
+    if isinstance(obj, cls):
+        raise BetseTypeException(
+            'Object {!r} is an instance of class {!r}.'.format(obj, cls))
+
+
+@type_check
 def die_unless_instance(obj: object, cls: ClassType) -> None:
     '''
     Raise an exception unless the passed object is an instance of the passed
@@ -28,11 +51,16 @@ def die_unless_instance(obj: object, cls: ClassType) -> None:
         Object to be validated.
     cls : ClassType
         Class to be validated.
+
+    Raises
+    ----------
+    BetseTypeException
+        If this object is *not* an instance of this class.
     '''
 
     if not isinstance(obj, cls):
         raise BetseTypeException(
-            'Object {!r} not an instance of class {!r}'.format(obj, cls))
+            'Object {!r} not an instance of class {!r}.'.format(obj, cls))
 
 # ....................{ EXCEPTIONS ~ attr                  }....................
 @type_check

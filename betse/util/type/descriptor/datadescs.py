@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,16 +8,16 @@ Low-level **data descriptor** (i.e., objects satisfying the data descriptor
 protocol, typically defined at class scope) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 # from betse.util.type.types import type_check
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 class DataDescriptorBound(object):
     '''
-    High-level object encapsulating a low-level user-defined **data descriptor**
-    (i.e., object satisfying the standard data descriptor protocol), bound at
-    instantiation time to an instance of a user-defined class containing this
-    descriptor and hence servicing exactly one instance.
+    High-level object encapsulating a low-level user-defined **data
+    descriptor** (i.e., object satisfying the standard data descriptor
+    protocol), bound at instantiation time to an instance of a user-defined
+    class containing this descriptor and hence servicing exactly one instance.
 
     Motivation
     ----------
@@ -27,8 +27,8 @@ class DataDescriptorBound(object):
 
     Consider two similar scenarios:
 
-    * Passing an integer variable to a function as an integer parameter. In this
-      case, modifying the latter does *not* modify the former.
+    * Passing an integer variable to a function as an integer parameter. In
+      this case, modifying the latter does *not* modify the former.
     * Passing an instance of this class encapsulating an integer variable to a
       function as a parameter expecting only an instance of this class. In this
       case, modifying this instance actually modifies the integer variable
@@ -39,15 +39,16 @@ class DataDescriptorBound(object):
     Instances of this class access descriptors outside of class scope. Doing so
     is technically feasible but circumvents Python's default
     :meth:`object.__getattribute__` implementation transforming every attribute
-    access ``b.x`` where ``x`` is a data descriptor declared at class scope into
-    ``type(b).__dict__['x'].__get__(b, type(b))``. Circumventing this machinery
-    typically defeats the purpose of instantiating a descriptor, but is
-    warranted in this case.
+    access ``b.x`` where ``x`` is a data descriptor declared at class scope
+    into ``type(b).__dict__['x'].__get__(b, type(b))``. Circumventing this
+    machinery typically defeats the purpose of instantiating a descriptor, but
+    is warranted in this case.
 
-    Why? Because this class neither requires nor desires this descriptor to ever
-    be accessed via special machinery. Since the ``__get__()`` and ``__set__()``
-    methods defined by this descriptor already implement all functionality
-    required by this class, explicitly calling these methods as is suffices.
+    Why? Because this class neither requires nor desires this descriptor to
+    ever be accessed via special machinery. Since the ``__get__()`` and
+    ``__set__()`` methods defined by this descriptor already implement all
+    functionality required by this class, explicitly calling these methods as
+    is suffices.
 
     Attributes
     ----------
@@ -68,7 +69,7 @@ class DataDescriptorBound(object):
         aliased is known at class definition time).
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, obj: object, data_desc: object) -> None:
         '''
         Encapsulate the passed data descriptor against the passed object.
@@ -90,7 +91,7 @@ class DataDescriptorBound(object):
         self._obj = obj
         self.data_desc = data_desc
 
-    # ..................{ GETTERS                            }..................
+    # ..................{ GETTERS                           }..................
     def get(self) -> object:
         '''
         Value this data descriptor currently evaluates to.
@@ -110,7 +111,7 @@ class DataDescriptorBound(object):
         # See: https://docs.python.org/3/howto/descriptor.html
         return self.data_desc.__get__(self._obj, None)
 
-    # ..................{ SETTERS                            }..................
+    # ..................{ SETTERS                           }..................
     def set(self, value: object) -> None:
         '''
         Set this data descriptor's current value to the passed value.
@@ -121,10 +122,11 @@ class DataDescriptorBound(object):
 
 class DataDescriptorUnbound(object):
     '''
-    High-level object encapsulating a low-level user-defined **data descriptor**
-    (i.e., object satisfying the standard data descriptor protocol), *not* bound
-    at instantiation time to an instance of a user-defined class containing this
-    descriptor and hence servicing multiple different instances.
+    High-level object encapsulating a low-level user-defined **data
+    descriptor** (i.e., object satisfying the standard data descriptor
+    protocol), *not* bound at instantiation time to an instance of a
+    user-defined class containing this descriptor and hence servicing multiple
+    different instances.
 
     Attributes
     ----------
@@ -137,7 +139,7 @@ class DataDescriptorUnbound(object):
         Data descriptor bound to its parent object at instantiation time.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, data_desc: object) -> None:
         '''
         Encapsulate the passed data descriptor.
@@ -155,7 +157,7 @@ class DataDescriptorUnbound(object):
         # Classify all passed parameters.
         self.data_desc = data_desc
 
-    # ..................{ GETTERS                            }..................
+    # ..................{ GETTERS                           }..................
     def get(self, obj: object) -> object:
         '''
         Value this data descriptor currently evaluates to.
@@ -174,7 +176,7 @@ class DataDescriptorUnbound(object):
 
         return self.data_desc.__get__(obj, None)
 
-    # ..................{ SETTERS                            }..................
+    # ..................{ SETTERS                           }..................
     def set(self, obj: object, value: object) -> None:
         '''
         Set this data descriptor's current value to the passed value.
@@ -190,7 +192,7 @@ class DataDescriptorUnbound(object):
 
         self.data_desc.__set__(obj, value)
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_unless_data_desc(data_desc: object) -> None:
     '''
     Raise an exception unless the passed object is a **data descriptor** (i.e.,

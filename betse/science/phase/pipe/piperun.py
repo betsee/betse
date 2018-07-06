@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-High-level **simulation pipeline runner** (i.e., simulation activity iteratively
-run by its parent pipeline) functionality.
+High-level **simulation pipeline runner** (i.e., simulation activity
+iteratively run by its parent pipeline) functionality.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseSimPipeException
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirements, SimPhaseRequirementsOrNoneTypes)
@@ -17,14 +17,15 @@ from betse.util.type.text import strs
 from betse.util.type.types import (
     type_check, CallableTypes, SequenceTypes,)
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 class SimPipeRunner(MethodDecoratorABC):
     '''
-    Class decorator annotating simulation pipeline runners with custom metadata.
+    Class decorator annotating simulation pipeline runners with custom
+    metadata.
 
     All such runners decorated by the :func:`piperunner` decorator are
-    guaranteed to be instances of this class, which provides all metadata passed
-    to that decorator as instance variables of the same name.
+    guaranteed to be instances of this class, which provides all metadata
+    passed to that decorator as instance variables of the same name.
 
     Attributes
     ----------
@@ -47,7 +48,7 @@ class SimPipeRunner(MethodDecoratorABC):
         Further details.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(
         self,
@@ -65,9 +66,9 @@ class SimPipeRunner(MethodDecoratorABC):
         categories : SequenceTypes
             Sequence of one or more human-readable category names.
         requirements : SimPhaseRequirementsOrNoneTypes
-            Immutable set of zero or more :class:`SimPhaseRequirement` instances
-            *or* ``None``, in which case this parameter defaults to the empty
-            immutable set of such instances.
+            Immutable set of zero or more :class:`SimPhaseRequirement`
+            instances *or* ``None``, in which case this parameter defaults to
+            the empty immutable set of such instances.
 
         Raises
         ----------
@@ -105,12 +106,12 @@ class SimPipeRunner(MethodDecoratorABC):
             # Reducing from a (possibly) multi- to single-line string.
             strs.unwrap(self.description)))
 
-    # ..................{ CALLERS                            }..................
+    # ..................{ CALLERS                           }..................
     @type_check
     def __call__(
         self,
 
-        # To avoid circular import dependencies, this is type-checked as a
+        # To avoid circular import dependencies, this is validated as a
         # fully-qualified class name resolved at runtime.
         pipeline: 'betse.science.phase.pipe.pipeabc.SimPipeABC',
         *args,
@@ -125,7 +126,7 @@ class SimPipeRunner(MethodDecoratorABC):
         # Defer to the superclass implementation to run this runner.
         return super().__call__(pipeline, *args, **kwargs)
 
-# ....................{ DECORATORS                         }....................
+# ....................{ DECORATORS                        }....................
 @type_check
 def piperunner(
     # Mandatory metadata.
@@ -146,10 +147,10 @@ def piperunner(
     Caveats
     ----------
     **This decorator is strictly optional.** Runners *not* decorated by this
-    decorator are still runnable from simulation pipelines. Since this decorator
-    annotates runners with metadata, however, unannotated runners will *not* be
-    usable by external interfaces expecting this metadata -- typically, GUIs
-    populating interactive widget fields by this metadata.
+    decorator are still runnable from simulation pipelines. Since this
+    decorator annotates runners with metadata, however, unannotated runners
+    will *not* be usable by external interfaces expecting this metadata --
+    typically, GUIs populating interactive widget fields by this metadata.
 
     **Runner methods decorated by this decorator should not be decorated by
     other decorators.** In particular, decorated methods should *not* also be
@@ -164,10 +165,10 @@ def piperunner(
         of hierarchical taxonomy). Categories are arbitrary labels accessed
         *only* by external interfaces and are otherwise ignored by the core
         codebase. Specifically:
-        * The first string in this sequence names an arbitrary **root category**
-          (e.g., root node in a tree view), intended to be shared between
-          multiple runners. This string is typically a broadly applicable label
-          such as ``Voltage Plots``.
+        * The first string in this sequence names an arbitrary **root
+          category** (e.g., root node in a tree view), intended to be shared
+          between multiple runners. This string is typically a broadly
+          applicable label such as ``Voltage Plots``.
         * The last string in this sequence names an arbitrary **leaf category**
           (e.g., leaf node in a tree view), intended to be unique to a single
           runner. This string is typically a narrowly applicable label such as
