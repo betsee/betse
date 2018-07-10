@@ -13,54 +13,63 @@ from betse.exceptions import (
     BetseAttributeException, BetseMethodException, BetseTypeException)
 from betse.util.type import types
 from betse.util.type.types import (
-    type_check, CallableTypes, CallableOrNoneTypes, ClassType, GeneratorType)
+    type_check,
+    CallableTypes,
+    CallableOrNoneTypes,
+    ClassType,
+    GeneratorType,
+    TestableTypes,
+)
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
-def die_if_instance(obj: object, cls: ClassType) -> None:
+def die_if_instance(obj: object, cls: TestableTypes) -> None:
     '''
-    Raise an exception if the passed object is an instance of the passed class.
+    Raise an exception if the passed object is an instance of either the passed
+    class or one or more classes of the passed tuple of classes.
 
     Parameters
     ----------
     obj : object
-        Object to be validated.
-    cls : ClassType
-        Class to be validated.
+        Object to be validated as instance of this class or tuple of classes.
+    cls : TestableTypes
+        Class or tuple of classes to validate this object to be an instance of.
 
     Raises
     ----------
     BetseTypeException
-        If this object is an instance of this class.
+        If this object is an instance of either this class or one or more
+        classes of this tuple of classes.
     '''
 
     if isinstance(obj, cls):
         raise BetseTypeException(
-            'Object {!r} is an instance of class {!r}.'.format(obj, cls))
+            'Object {!r} instances {!r}.'.format(obj, cls))
 
 
 @type_check
-def die_unless_instance(obj: object, cls: ClassType) -> None:
+def die_unless_instance(obj: object, cls: TestableTypes) -> None:
     '''
-    Raise an exception unless the passed object is an instance of the passed
-    class.
+    Raise an exception unless the passed object is an instance of either the
+    passed class or one or more classes of the passed tuple of classes.
 
     Parameters
     ----------
     obj : object
-        Object to be validated.
-    cls : ClassType
-        Class to be validated.
+        Object to be validated as instance of this class or tuple of classes.
+    cls : TestableTypes
+        Class or tuple of classes to validate this object to be an instance of.
 
     Raises
     ----------
     BetseTypeException
-        If this object is *not* an instance of this class.
+        If this object is an instance of neither this class nor one or more
+        classes of this tuple of classes.
     '''
 
     if not isinstance(obj, cls):
         raise BetseTypeException(
-            'Object {!r} not an instance of class {!r}.'.format(obj, cls))
+            'Object {!r} not an instance of {!r}.'.format(obj, cls))
 
 # ....................{ EXCEPTIONS ~ attr                  }....................
 @type_check
