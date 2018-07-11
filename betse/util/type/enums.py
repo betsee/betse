@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,7 +8,7 @@ Low-level **enumeration** (i.e., enumerable types created by the `Enum()` class)
 facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseEnumException
 from betse.util.type.types import (
     type_check,
@@ -21,10 +21,11 @@ from betse.util.type.types import (
 )
 from functools import partial
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 class EnumOrdered(EnumClassType):
     '''
-    Enumeration whose members are comparable according to their assigned values.
+    Enumeration whose members are comparable according to their assigned
+    values.
 
     This :class:`Enum` subclass complies with the `Functional
     API<https://docs.python.org/3/library/enum.html#functional-api>`_ for
@@ -33,9 +34,9 @@ class EnumOrdered(EnumClassType):
 
     Oddly, the :class:`Enum` superclass does *not* support such comparisons.
     This :class:`Enum` subclass amends this oversight, implementing four of the
-    six rich comparison special methods. The fifth and sixth (i.e., ``__eq__()``
-    and ``__ne__()``) are already implemented by the :class:`Enum` superclass
-    and hence need *not* be reimplemented here.
+    six rich comparison special methods. The fifth and sixth (i.e.,
+    ``__eq__()`` and ``__ne__()``) are already implemented by the :class:`Enum`
+    superclass and hence need *not* be reimplemented here.
 
     See Also
     ----------
@@ -60,16 +61,16 @@ class EnumOrdered(EnumClassType):
     True
     '''
 
-    # ..................{ COMPARATORS                        }..................
-    # For efficiency, rich comparison special methods are expected to return the
-    # "NotImplemented" constant rather than raise the "NotImplementedError"
+    # ..................{ COMPARATORS                       }..................
+    # For efficiency, rich comparison special methods are expected to return
+    # the "NotImplemented" constant rather than raise the "NotImplementedError"
     # exception when the current and passed objects are incomparible.
 
     def __ge__(self, other: object) -> bool:
         '''
         :data:`NotImplemented` if the passed object is *not* a member of the
-        same enumeration as this member, ``True`` if the value of this member is
-        greater than or equal to that of the passed member, or ``False``
+        same enumeration as this member, ``True`` if the value of this member
+        is greater than or equal to that of the passed member, or ``False``
         otherwise.
         '''
 
@@ -81,8 +82,8 @@ class EnumOrdered(EnumClassType):
     def __gt__(self, other: object) -> bool:
         '''
         :data:`NotImplemented` if the passed object is *not* a member of the
-        same enumeration as this member, ``True`` if the value of this member is
-        greater than that of the passed member, or ``False`` otherwise.
+        same enumeration as this member, ``True`` if the value of this member
+        is greater than that of the passed member, or ``False`` otherwise.
         '''
 
         return (
@@ -93,8 +94,9 @@ class EnumOrdered(EnumClassType):
     def __le__(self, other: object) -> bool:
         '''
         :data:`NotImplemented` if the passed object is *not* a member of the
-        same enumeration as this member, ``True`` if the value of this member is
-        less than or equal to that of the passed member, or ``False`` otherwise.
+        same enumeration as this member, ``True`` if the value of this member
+        is less than or equal to that of the passed member, or ``False``
+        otherwise.
         '''
 
         return (
@@ -105,15 +107,15 @@ class EnumOrdered(EnumClassType):
     def __lt__(self, other: object) -> bool:
         '''
         :data:`NotImplemented` if the passed object is *not* a member of the
-        same enumeration as this member, ``True`` if the value of this member is
-        less than that of the passed member, or ``False`` otherwise.
+        same enumeration as this member, ``True`` if the value of this member
+        is less than that of the passed member, or ``False`` otherwise.
         '''
 
         return (
             self.value < other.value if self.__class__ is other.__class__ else
             NotImplemented)
 
-# ....................{ MAKERS                             }....................
+# ....................{ MAKERS                            }....................
 @type_check
 def make_enum(class_name: str, member_names: SequenceTypes) -> EnumType:
     '''
@@ -184,11 +186,12 @@ def make_enum(class_name: str, member_names: SequenceTypes) -> EnumType:
         qualname='{}.{}'.format(module_name, class_name),
     )
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_unless_member(
     enum_type: EnumType, enum_member: EnumMemberType) -> None:
     '''
-    Raise an exception unless the passed enumeration contains the passed member.
+    Raise an exception unless the passed enumeration contains the passed
+    member.
 
     Parameters
     ----------
@@ -223,7 +226,7 @@ def die_unless_member_name(
             'Enumeration {} member "{}" not found.'.format(
                 enum_type.__name__, enum_member_name))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_member(enum_type: EnumType, enum_member: EnumMemberType) -> bool:
     '''
@@ -274,7 +277,7 @@ def is_member_name(enum_type: EnumType, enum_member_name: str) -> bool:
     # method for testing enumeration member existence by name. Thanks, Guido.)
     return enum_member_name in enum_type.__members__
 
-# ....................{ GETTERS ~ enum                     }....................
+# ....................{ GETTERS ~ enum                    }....................
 @type_check
 def get_converter_name_to_uppercase_enum_member(
     enum_type: EnumType) -> CallableTypes:
@@ -284,8 +287,8 @@ def get_converter_name_to_uppercase_enum_member(
     this string uppercased is *not* the name of a member of this enumeration.
 
     The callable returned by this function is principally intended to be passed
-    as the ``type`` parameter to the :meth:`ArgumentParser.add_argument` method,
-    converting from lowercase command-line option string arguments to
+    as the ``type`` parameter to the :meth:`ArgumentParser.add_argument`
+    method, converting from lowercase command-line option string arguments to
     corresponding enumeration members.
 
     Parameters
@@ -323,7 +326,7 @@ def get_member_names_lowercase(enum_type: EnumType) -> SequenceTypes:
 
     return tuple(iter_names_lowercase(enum_type))
 
-# ....................{ GETTERS ~ member                   }....................
+# ....................{ GETTERS ~ member                  }....................
 @type_check
 def get_enum_name_from_member(enum_member: EnumMemberType) -> str:
     '''
@@ -423,7 +426,7 @@ def get_member_name_lowercase(enum_member: EnumMemberType) -> str:
     # It cannot be, yet it is.
     return enum_member.name.lower()
 
-# ....................{ GETTERS ~ str                      }....................
+# ....................{ GETTERS ~ member : name           }....................
 @type_check
 def get_member_from_name(
     enum_type: EnumType, enum_member_name: str) -> EnumMemberType:
@@ -449,7 +452,7 @@ def get_member_from_name(
         If no member of this enumeration with this name exists.
     '''
 
-    # Raise an exception unless this member exists.
+    # If no member with this name exists, raise an exception.
     die_unless_member_name(enum_type, enum_member_name)
 
     # Return this member.
@@ -487,7 +490,58 @@ def get_member_from_name_uppercased(
     return get_member_from_name(
         enum_type=enum_type, enum_member_name=enum_member_name.upper())
 
-# ....................{ ITERATORS                          }....................
+# ....................{ GETTERS ~ member : value          }....................
+@type_check
+def get_member_from_value(
+    enum_type: EnumType, enum_member_value: object) -> EnumMemberType:
+    '''
+    Member of this enumeration associated with the passed arbitrary value if
+    this member exists *or* raise an exception otherwise (i.e., if this member
+    does *not* exist).
+
+    Parameters
+    ----------
+    enum_type: EnumType
+        Enumeration type to inspect.
+    enum_member_value : object
+        Arbitrary value associated with the member of this enumeration to be
+        returned.
+
+    Returns
+    ----------
+    EnumMemberType
+        Member of this enumeration associated with this value.
+
+    Raises
+    ----------
+    ValueError
+        If no member of this enumeration with this value exists.
+    '''
+
+    # Return this member. Yes, for some obscure, inane, and unintelligible
+    # reason, the "Enum" superclass performs name lookup by indexing syntax and
+    # value lookup by... instantiating the "Enum" subclass. It makes utterly no
+    # sense, but there it is. (Rationality has left the building.)
+    #
+    # Note that enumerations provide efficient mechanisms for determining
+    # whether or not a member with a given name but *NOT* value exists. See the
+    # standard enum.Enum.__new__() function for the supporting evidence. Ergo,
+    # there intentionally exists no die_unless_member_value() function; while
+    # such a function could be defined, doing so would effectively reduce to:
+    #
+    #     try:
+    #         enum_type(enum_member_value)
+    #     except ValueError:
+    #         raise BetseEnumException(
+    #             'Enumeration {} member with value {!r} not found.'.format(
+    #                 enum_type.__name__, enum_member_value))
+    #
+    # To avoid such uselessly repetitious invocations of the enum_type()
+    # pseudo-method, we simply call this pseudo-method as is and defer to the
+    # mostly human-readable exception it already raises.
+    return enum_type(enum_member_value)
+
+# ....................{ ITERATORS                         }....................
 @type_check
 def iter_names_lowercase(enum_type: EnumType) -> GeneratorType:
     '''

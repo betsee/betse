@@ -194,6 +194,11 @@ class SimConfigTestWrapper(object):
         self._p._conf['world options']['world size'] = float(environment_size)
 
     # ..................{ MINIMIZERS                        }..................
+    #FIXME: Additionally, the three time durations defined by the
+    #"self._p._conf['gene regulatory network settings']['sim-grn settings']"
+    #dictionary must also be minified. For simplicity, unconditionally minify
+    #these settings within this method regardless of whether the "sim-grn"
+    #subcommand is being exercised by the current test or fixture.
     def minify(self) -> None:
         '''
         Minimize the space and time costs associated with running the
