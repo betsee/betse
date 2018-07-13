@@ -90,7 +90,26 @@ class SimRunner(object):
         self._callbacks = callbacks
         self._p = p
 
-    # ..................{ RUNNERS                           }..................
+    # ..................{ RUNNERS ~ seed                    }..................
+    _SEED_PROGRESS_TOTAL = (
+        # Number of progress callbacks performed directly in this method.
+        6 +
+        # Number of progress callbacks performed by Cells.make_world().
+        Cells.MAKE_WORLD_PROGRESS_TOTAL
+    )
+    '''
+    Cuumulative number of times that each call of the :meth:`seed` subcommand
+    calls either the :meth`SimCallbacksABC.progressed` callback or higher-level
+    callbacks calling that callback (e.g.,
+    :meth:`SimCallbacksABC.progressed_next`).
+
+    This magic number *must* be manually synchronized with the implementation
+    of both this subcommand and methods transitively called by this subcommand
+    (e.g., :meth:`Cells.make_world`). Failure to do so *will* result in fatal
+    exceptions. There exists no reasonable means of enforcing this constraint.
+    '''
+
+
     @log_time_seconds(noun='seed')
     def seed(self) -> SimPhase:
         '''
@@ -107,45 +126,37 @@ class SimRunner(object):
             internally created by this method to run this phase.
         '''
 
-        # Cuumulative number of times that each call of the this subcommand
-        # calls the SimCallbacksABC.progressed() callback.
-        #
-        # This magic number *MUST* be manually synchronized with the
-        # implementation of both this method and methods transitively called by
-        # this method. Failure to do so *WILL* raise exceptions. Sadly, there
-        # exists no reasonable means of automating this synchronization.
-        SEED_PROGRESS_TOTAL = 6
-
         # Log this attempt.
         logs.log_info('Seeding simulation...')
 
         # Notify the caller of the range of work performed by this subcommand.
-        self._callbacks.progress_ranged(progress_max=SEED_PROGRESS_TOTAL)
+        self._callbacks.progress_ranged(progress_max=self._SEED_PROGRESS_TOTAL)
+        # self._callbacks.progressed_first()
 
         # Simulation phase.
         phase = SimPhase(
             kind=SimPhaseKind.SEED, p=self._p, callbacks=self._callbacks)
 
         # Create the pseudo-randomized cell cluster.
-        self._callbacks.progressed_next()
         phase.cells.make_world(phase)
+        self._callbacks.progressed_next()
 
         # Initialize core simulation data structures.
-        self._callbacks.progressed_next()
         phase.sim.init_core(phase)
+        self._callbacks.progressed_next()
 
         # Define the tissue and boundary profiles for plotting.
-        self._callbacks.progressed_next()
         phase.dyna.tissueProfiles(phase.sim, phase.cells, self._p)
+        self._callbacks.progressed_next()
 
         # Redo gap junctions to isolate different tissue types.
-        self._callbacks.progressed_next()
         phase.cells.redo_gj(phase.dyna, self._p)
+        self._callbacks.progressed_next()
 
         # Create a Laplacian and solver for discrete transfers on closed,
         # irregular cell network.
-        self._callbacks.progressed_next()
         phase.cells.graphLaplacian(self._p)
+        self._callbacks.progressed_next()
 
         #FIXME: Would shifting this logic into the cells.graphLaplacian() method
         #called above be feasible? If not, no worries! (Granular lunar sunsets!)
@@ -157,21 +168,23 @@ class SimRunner(object):
         if self._p.deformation:
             phase.cells.deform_tools(self._p)
 
-        # if self._p.sim_eosmosis is True:
+        # if self._p.sim_eosmosis:
         #     phase.cells.eosmo_tools(self._p)
 
-        # Finish up.
-        self._callbacks.progressed_next()
+        # Pickle this cell cluster to disk.
         phase.cells.save_cluster(self._p)
 
         # Log the completion of this phase.
         logs.log_info('Cell cluster creation complete!')
         phase.sim.sim_info_report(phase.cells, self._p)
 
+        # Signal the completion of this phase with respect to progress.
+        self._callbacks.progressed_last()
+
         # Return this phase.
         return phase
 
-
+    # ..................{ RUNNERS ~ (init|sim)              }..................
     @log_time_seconds(noun='initialization')
     def init(self) -> SimPhase:
         '''

@@ -395,6 +395,20 @@ class Cells(object):
         self.savedWorld = pathnames.join(
             p.init_pickle_dirname, p.seed_pickle_basename)
 
+    # ..................{ MAKERS                            }..................
+    MAKE_WORLD_PROGRESS_TOTAL = 5
+    '''
+    Cuumulative number of times that each call of the :meth:`make_world` method
+    calls either the :meth:`SimCallbacksABC.progressed` callback or
+    higher-level callbacks calling that callback (e.g.,
+    :meth:`SimCallbacksABC.progressed_next`).
+
+    This magic number *must* be manually synchronized with the
+    implementation of both the :meth:`make_world` method and methods
+    transitively called by that method. Failure to do so *will* result in fatal
+    exceptions. There exists no reasonable means of enforcing this constraint.
+    '''
+
 
     @type_check
     def make_world(self, phase: SimPhase) -> None:
@@ -422,52 +436,70 @@ class Cells(object):
         # Define the initial seed point collection:
         seed_points_o = np.vstack((self.clust_xy, self.bbox))
 
-        # Create the initial Voronoi diagram after making the initial seed points of the cell lattice.
-        # Log this creation.
+        # Create the initial Voronoi diagram after making the initial seed
+        # points of the cell lattice.
         logs.log_info('Creating Voronoi geometry... ')
         self._make_voronoi(seed_points_o, phase)
 
         # Clean the Voronoi diagram of empty data structures.
         self._clean_voronoi(phase.p)
 
-        # Calculate the centroids of the Voronoi Cells:
-        self.cell_index(phase.p)  # Calculate the correct centre and index for each cell
+        # Calculate the centroids of all Voronoi cells.
+        self.cell_index(phase.p)
 
         # If optionally refining the Voronoi mesh, do so.
         if phase.p.refine_mesh:
             self._refine_voronoi(phase)
+        phase.callbacks.progressed_next()
 
+        # Create individual cell polygon vertices.
         logs.log_info('Defining cell-specific geometric properties... ')
-        # self.cell_index(phase.p)  # Calculate the correct centre and index for each cell
-        self.cellVerts(phase.p)  # create individual cell polygon vertices
+        self.cellVerts(phase.p)
 
-        logs.log_info('Creating computational matrices for cell-cell transfers... ')
-        self.cellMatrices(phase.p)  # creates a variety of matrices used in routine cells calculations
-        self.cell_vols(phase.p)   # calculate the volume of cell and its internal regions
+        # Create a variety of matrices used in routine cells calculations.
+        logs.log_info(
+            'Creating computational matrices for cell-cell transfers... ')
+        self.cellMatrices(phase.p)
+        phase.callbacks.progressed_next()
+
+        # Calculate the volume of each cell and its internal regions.
+        self.cell_vols(phase.p)
         # self.cellDivM(p)    # create matrix to invert divergence
         # self.memLaplacian()   # creates an inverse matrix to calculate voltage on individual membranes
 
+        # Calculate membrane nearest neighbours, ECM interaction, boundary
+        # tags, and so forth.
         logs.log_info('Creating gap junctions... ')
-        self.mem_processing(phase.p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
-        self.near_neigh(phase.p)  # Calculate the nn array for each cell
-        self.voronoiGrid(phase.p)
+        self.mem_processing(phase.p)
 
+        # Calculate the nearest neighbour array for each cell.
+        self.near_neigh(phase.p)
+        self.voronoiGrid(phase.p)
+        phase.callbacks.progressed_next()
+
+        # Create the ECM grid.
         logs.log_info('Setting global environmental conditions... ')
-        self.makeECM(phase.p)  # create the ecm grid
-        self.environment(phase.p)  # define features of the ecm grid
+        self.makeECM(phase.p)
+
+        # Fefine features of the ECM grid.
+        self.environment(phase.p)
         self.grid_len = len(self.xypts)
         self.make_maskM(phase.p)
         # self.env_weighting(p)
 
         logs.log_info('Creating environmental Poisson solver for voltage...')
         bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
-        self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
-        self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
+
+        # Avoid storing the non-inverse matrix, which only consumes memory.
+        _, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
+        phase.callbacks.progressed_next()
 
         logs.log_info('Creating environmental Poisson solver for currents...')
         bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
-        self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
-        self.lapENV_P = None
+
+        # Avoid storing the non-inverse matrix, which only consumes memory.
+        _, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
+        phase.callbacks.progressed_next()
 
         #FIXME: Do we still want this? If not, let's consider removing this. Two
         #pounds of flax!
@@ -513,14 +545,15 @@ class Cells(object):
 
         self.gj_default_weights = np.ones(len(self.mem_i))
 
-
+    # ..................{ DEFORMERS                         }..................
     def deformWorld(self, p, ecm_verts) -> None:
-        """
+        '''
         Recalculates the current world to accomodate a mechanical deformation.
 
-        Note: each cell is assumed to be incompressible by default. Therefore, cell
-        volumes and total surface area are not updated in a deformation routine.
-        """
+        Note that each cell is assumed to be incompressible by default.
+        Therefore, cell volumes and total surface area are not updated in a
+        deformation routine.
+        '''
 
         # begin by creating new cell centres from the passed Voronoi patch vertices:
 

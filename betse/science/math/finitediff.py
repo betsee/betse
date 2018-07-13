@@ -939,12 +939,14 @@ class FiniteDiffSolver(object):
 
         return A
 
-    def stokes_kernel(self):
-        """
-        Calculate the linearized Navier-Stokes equations using
-        the Finite Difference method on a Marker and Cell (MACs) grid.
 
-        """
+    #FIXME: This method is currently broken and requires repair. Pampas grass!
+    def stokes_kernel(self):
+        '''
+        Calculate the linearized Navier-Stokes equations using the Finite
+        Difference method on a Marker and Cell (MACs) grid.
+        '''
+
         # parameters of the liquid
         rho = 1e3   # density
         visc = 0.1  # visocity
@@ -955,6 +957,8 @@ class FiniteDiffSolver(object):
 
         Fx = np.zeros(self.u_shape)
 
+        #FIXME: This method returns a tuple of matrices rather than a single
+        #matrix. The inverse matrix is the second value of this tuple. Flowers!
         Ainv = self.makeLaplacian()
 
         time_step = 1e-5

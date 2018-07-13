@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -10,13 +10,13 @@ application as a means of facilitating inter-package communication)
 functionality.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta  #, abstractmethod
 from betse.exceptions import BetseCallbackException
 # from betse.util.io.log import logs
 from betse.util.type.types import type_check  #, NoneType
 
-# ....................{ SUPERCLASSES                       }....................
+# ....................{ SUPERCLASSES                      }....................
 class CallbacksABC(metaclass=ABCMeta):
     '''
     Abstract base class of all **callbacks** (i.e., caller-defined object
@@ -24,29 +24,27 @@ class CallbacksABC(metaclass=ABCMeta):
     internal to this application as a means of facilitating inter-package
     communication) subclasses.
 
-    Design
-    ----------
     Each of the public methods defined by this superclass is a callback
     intended to be called *only* by the **source callable** (i.e., function or
-    method calling each such callback). The source callback receives this
-    object from the **sink callable** (i.e., function or method instantiating
-    this object and passing this object to the source callable).
+    method calling each such callback), which receives this object from the
+    **sink callable** (i.e., function or method instantiating this object and
+    passing this object to the source callable).
 
     Attributes
     ----------
     _progress_min : int
-        Minimum value subsequently passed to the :meth:`progressed` callback by
-        the source callable. While typically 0, the sink callable should *not*
-        necessarily assume this to be the case.
+        Minimum value passed to the most recent call to the
+        :meth:`progress_ranged` callback by the source callable. While commonly
+        0, the sink callable should *not* assume this to be the case.
     _progress_max : int
-        Maximum value subsequently passed to the :meth:`progressed` callback by
-        the source callable.
+        Maximum value passed to the most recent call to the
+        :meth:`progress_ranged` callback by the source callable.
     _progress_next : int
-        Value to be subsequently passed to the :meth:`progressed` callback by
-        the :meth:`progressed_next` callback.
+        Next value to be implicitly passed to the next call to the
+        :meth:`progressed` callback by the :meth:`progressed_next` callback.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self) -> None:
         '''
         Initialize this callbacks object.
@@ -55,7 +53,7 @@ class CallbacksABC(metaclass=ABCMeta):
         # Nullify all instance variables for safety.
         self._clear_progress()
 
-    # ..................{ CALLBACKS ~ progress               }..................
+    # ..................{ CALLBACKS ~ progress              }..................
     @type_check
     def progress_ranged(
         self, progress_max: int, progress_min: int = 0) -> None:
@@ -65,10 +63,27 @@ class CallbacksABC(metaclass=ABCMeta):
 
         Design
         ----------
-        The source callable should call this callback exactly once per call
-        *before* either performing any significant work or calling the
-        :meth:`progressed` callback. Doing so enables the sink callable to
-        initialize external objects (e.g., progress bars) requiring this range.
+        The source callable should explicitly call the following callbacks
+        *before* performing significant work (in order):
+
+        #. This callback exactly once. Doing so enables the sink callable to
+           configure external objects (e.g., progress bars) requiring this
+           range.
+        #. Either:
+
+           * The :meth:`progressed_next` callback. (Recommended.)
+           * The :meth:`progressed` callback with the minimum progress value
+             passed to this callback. Since doing so is equivalent to calling
+             the :meth:`progressed_next` callback, calling the latter comes
+             recommended.
+
+        In either case, the call to the second such callback initializes the
+        same external objects (e.g., progress bars) to the minimum progress of
+        this range. By design, this :meth:`progress_ranged` callback does *not*
+        implicitly call either the :meth:`progressed` or
+        :meth:`progressed_next` callbacks on your behalf. Doing so would invite
+        chicken-and-egg subtleties with subclasses overriding this method to
+        configure external objects.
 
         Subclasses are required to reimplement this callback and call this
         superclass implementation in their own reimplementation.
@@ -77,12 +92,11 @@ class CallbacksABC(metaclass=ABCMeta):
         ----------
         progress_min : optional[int]
             Minimum value subsequently passed to the :meth:`progressed`
-            callback by the source callable. While typically 0, the sink
-            callable should *not* necessarily assume this to be the case. To
-            guarantee that the ``progress_max`` parameter is exactly equal to
-            the number of times that the :meth:`progressed_next` callback is
-            called by the source callable, this parameter should ideally be 0.
-            Defaults to 0.
+            callback by the source callable. Defaults to 0, ensuring the
+            ``progress_max`` parameter to be exactly equal to the number of
+            times that the :meth:`progressed_next` callback is called by the
+            source callable. Nonetheless, the sink callable should *not* assume
+            this value to always be 0.
         progress_max : int
             Maximum value subsequently passed to the :meth:`progressed`
             callback by the source callable. If the ``progress_min`` parameter
@@ -171,9 +185,11 @@ class CallbacksABC(metaclass=ABCMeta):
 
         See Also
         ----------
+        :meth:`progressed_first`
         :meth:`progressed_next`
-            Higher-level callback automatically passing the next progress value
-            according to the the range previously passed to the
+        :meth:`progressed_last`
+            Higher-level callbacks automatically passing the next progress
+            value according to the the range previously passed to the
             :meth:`progress_ranged` callback.
         '''
 
@@ -192,13 +208,21 @@ class CallbacksABC(metaclass=ABCMeta):
         if progress == self._progress_max:
             self._clear_progress()
 
-
+    # ..................{ CALLBACKS ~ progress : next       }..................
     def progressed_next(self) -> None:
         '''
         Higher-level callback wrapping the lower-level :meth:`progressed`
         callback by automatically passing the next progress value to that
-        callback according to the the range previously passed to the
+        callback according to the range previously passed to the
         :meth:`progress_ranged` callback.
+
+        Note that callers recalling this callback a predetermined number of
+        times are advised to replace the first and last calls to this callback
+        with calls to the higher-level :meth:`progressed_first` and
+        :meth:`progressed_last` callbacks. Doing so ensures that the first and
+        last progress values passed to the sink callable are the minimum and
+        maximum progress values previously passed to the
+        :meth:`progress_ranged` callback (respectively).
 
         Guarantees
         ----------
@@ -215,7 +239,7 @@ class CallbacksABC(metaclass=ABCMeta):
         called by the source callable.
 
         Specifically, since the sink callable typically handles the
-        :meth:`progress_ranged` callback by initializing a progress bar to the
+        :meth:`progress_ranged` callback by configuring a progress bar to the
         passed range, the sink callable is assumed to have already "consumed"
         the first progress value for all intents and purposes; instructing the
         sink callable to "reconsume" the same progress value would effectively
@@ -246,7 +270,65 @@ class CallbacksABC(metaclass=ABCMeta):
         if self._progress_next is not None:
             self._progress_next += 1
 
-    # ..................{ EXCEPTIONS                         }..................
+
+    #FIXME: Excise all references to this method, which rather now appears to
+    #be a poor idea.
+    # def progressed_first(self) -> None:
+    #     '''
+    #     Higher-level callback wrapping the lower-level :meth:`progressed_next`
+    #     callback by internally calling that callback and raising an exception
+    #     if the current progress value is *not* the maximum progress value
+    #     previously passed to the :meth:`progress_ranged` callback.
+    #
+    #     This callback is intended to be called by callers recalling the
+    #     :meth:`progressed_next` callback a predetermined number of times as a
+    #     replacement for the last such call. Doing so ensures that the last
+    #     progress value passed to the sink callable is the maximum.
+    #
+    #     Raises
+    #     ----------
+    #     :class:`BetseCallbackException`
+    #         If either:
+    #
+    #         * The :meth:`progress_ranged` callback has yet to be called.
+    #         * The current progress value is *not* the maximum progress value.
+    #     '''
+    #
+    #     # If progress_ranged() has yet to be called, raise an exception.
+    #     self._die_unless_progressing()
+    #
+    #     # Notify the sink callback of the initial state of progress.
+    #     self.progressed(progress=self._progress_min)
+
+
+    def progressed_last(self) -> None:
+        '''
+        Higher-level callback wrapping the lower-level :meth:`progressed_next`
+        callback by internally calling that callback and raising an exception
+        if the current progress value is *not* the maximum progress value
+        previously passed to the :meth:`progress_ranged` callback.
+
+        This callback is intended to be called by callers recalling the
+        :meth:`progressed_next` callback a predetermined number of times as a
+        replacement for the last such call. Doing so ensures that the last
+        progress value passed to the sink callable is the maximum.
+
+        Raises
+        ----------
+        :class:`BetseCallbackException`
+            If either:
+
+            * The :meth:`progress_ranged` callback has yet to be called.
+            * The current progress value is *not* the maximum progress value.
+        '''
+
+        # Notify the sink callback of the current state of progress.
+        self.progressed_next()
+
+        # If the source callable is still performing work, raise an exception.
+        self._die_if_progressing()
+
+    # ..................{ EXCEPTIONS                        }..................
     def _die_if_progressing(self) -> None:
         '''
         Raise an exception if the source callable is still performing work.
@@ -288,7 +370,7 @@ class CallbacksABC(metaclass=ABCMeta):
                 'progressed() callback called before '
                 'progress_ranged() callback.')
 
-    # ..................{ TESTERS                            }..................
+    # ..................{ TESTERS                           }..................
     @property
     def _is_progressing(self) -> bool:
         '''
@@ -309,7 +391,7 @@ class CallbacksABC(metaclass=ABCMeta):
             self._progress_next is not None
         )
 
-    # ..................{ CLEARERS                           }..................
+    # ..................{ CLEARERS                          }..................
     def _clear_progress(self) -> None:
         '''
         Record the source callable to no longer be performing work by clearing
