@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,8 +7,8 @@
 Low-level **callable** (e.g., function, lambda, method, property) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
-from betse.util.io.log import logs
+# ....................{ IMPORTS                           }....................
+# from betse.util.io.log import logs
 from betse.util.type.types import (
     type_check,
     CallableTypes,
@@ -28,7 +28,7 @@ from functools import partial, wraps
 
 if False: wraps  # silence contemptible IDE warnings
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 TYPE_TO_NAME = {
     BuiltinFunctionType: 'builtin',
     BuiltinMethodType:   'method',
@@ -42,7 +42,7 @@ human-readable type of that class, ignoring low-level implementation details
 (e.g., the distinction between built-in and user-defined methods).
 '''
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_function(func: CallableTypes) -> bool:
     '''
@@ -60,7 +60,7 @@ def is_method(func: CallableTypes) -> bool:
 
     return isinstance(func, MethodTypes)
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get_name(func: CallableTypes) -> str:
     '''
@@ -107,7 +107,7 @@ def get_doc_or_none(func: CallableTypes) -> StrOrNoneTypes:
 
     return getattr(func, '__doc__', None)
 
-# ....................{ SETTERS                            }....................
+# ....................{ SETTERS                           }....................
 @type_check
 def set_doc(func: CallableTypes, doc: str) -> None:
     '''
@@ -124,7 +124,7 @@ def set_doc(func: CallableTypes, doc: str) -> None:
 
     func.__doc__ = doc
 
-# ....................{ CONVERTERS                         }....................
+# ....................{ CONVERTERS                        }....................
 @type_check
 def to_str(func: CallableTypes) -> str:
     '''
@@ -173,7 +173,7 @@ def to_str_capitalized(func: CallableTypes) -> str:
     # Return a capitalized human-readable string describing this callable.
     return strs.uppercase_char_first(to_str(func))
 
-# ....................{ MAKERS                             }....................
+# ....................{ MAKERS                            }....................
 @type_check
 def make_partial(
     # Mandatory parameters.

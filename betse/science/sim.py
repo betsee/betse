@@ -23,7 +23,6 @@ from betse.science.physics.pressures import osmotic_P
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.organelles.microtubules import Mtubes
-from betse.science.tissue.tishandler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.io.log import logs
 from betse.util.path import pathnames
@@ -437,6 +436,12 @@ class Simulator(object):
     '''
 
     # ..................{ INITIALIZORS                      }..................
+    #FIXME: Refactor this method as follows:
+    #
+    #* Remove the optional "p" parameter, which is no longer (and should
+    #  ideally *NEVER*) be required here.
+    #* Refactor all calls to this method to avoid passing this parameter.
+
     # Avoid circular import dependencies.
     @type_check
     def __init__(self, p: 'betse.science.parameters.Parameters') -> None:
@@ -455,16 +460,6 @@ class Simulator(object):
 
         # Default all remaining attributes.
         self.ignore_ecm = True
-
-        #FIXME: Shift these variables into the "Parameters" class by:
-        #* Renaming "self.savedInit" to "p.init_pickle_filename".
-        #* Renaming "self.savedSim"  to "p.sim_pickle_filename".
-
-        # Define data paths for saving an initialization and simulation run:
-        self.savedInit = pathnames.join(
-            p.init_pickle_dirname, p.init_pickle_basename)
-        self.savedSim  = pathnames.join(
-            p.sim_pickle_dirname, p.sim_pickle_basename)
 
 
     @type_check
@@ -1398,35 +1393,21 @@ class Simulator(object):
 
             # calculate specific forces and pressures:
 
-            if p.deform_osmo is True:
-
+            if p.deform_osmo:
                 osmotic_P(self,cells, p)
 
-            if p.fluid_flow is True:
-
-                # self.run_sim = True
-
+            if p.fluid_flow:
                 getFlow(self,cells, p)
 
             # if desired, electroosmosis of membrane channels
-            # if p.sim_eosmosis is True:
-            #
-            #     # self.run_sim = True
+            # if p.sim_eosmosis:
             #     self.move_pumps_channels.run(self, cells, p)
 
-
-
-            if p.deformation is True:
-
-                # self.run_sim = True
-
-                if p.td_deform is False:
-
-                    getDeformation(self,cells, t, p)
-
-                elif p.td_deform is True:
-
+            if p.deformation:
+                if p.td_deform:
                     timeDeform(self,cells, t, p)
+                else:
+                    getDeformation(self,cells, t, p)
 
             # Use fluxes to update all concentrations in the cells
             self.update_all_concs(cells, p)
@@ -1954,15 +1935,16 @@ class Simulator(object):
             cells = copy.deepcopy(self.cellso)
 
         self.cellso = None
+        datadump = [self, cells, p]
 
-        if p.run_sim is False:
-            datadump = [self, cells, p]
-            fh.saveSim(self.savedInit, datadump)
-            logs.log_info('Initialization saved to "%s".', p.init_pickle_dirname)
+        if p.run_sim:
+            fh.saveSim(p.sim_pickle_filename, datadump)
+            logs.log_info(
+                'Simulation saved to:\n\t%s', p.sim_pickle_dirname)
         else:
-            datadump = [self, cells, p]
-            fh.saveSim(self.savedSim, datadump)
-            logs.log_info('Simulation saved to "%s".', p.sim_pickle_dirname)
+            fh.saveSim(p.init_pickle_filename, datadump)
+            logs.log_info(
+                'Initialization saved to:\n\t%s', p.init_pickle_dirname)
 
         final_vmean = 1000 * np.round(np.mean(self.vm_time[-1]), 6)
         logs.log_info('Final average cell Vmem: %g mV', final_vmean)
@@ -2128,6 +2110,7 @@ class Simulator(object):
             # ensure no negative concentrations:
             stb.no_negs(self.cc_cells[i])
 
+
     def acid_handler(self, cells, p) -> None:
         '''
         Update H+ concentrations in both the cell cluster and environment,
@@ -2139,14 +2122,12 @@ class Simulator(object):
 
         pass
 
-    def ca_handler(self,cells,p):
 
+    def ca_handler(self,cells,p):
 
         # operate default Ca2+ pumps only if the user-supplied rate is greater than zero, so user can shut them off.
         if p.alpha_Ca > 0.0:
-
-            if p.is_ecm is True:
-
+            if p.is_ecm:
                 # run Ca-ATPase
 
                 f_CaATP = stb.pumpCaATP(self.cc_at_mem[self.iCa],

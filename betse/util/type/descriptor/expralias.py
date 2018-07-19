@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -65,12 +65,13 @@ protocol dynamically defined at class scope) facilities.
 #the __get__() method. Equivalently, the only safely cachable expression aliases
 #are those for which the underlying expression is *NEVER* modified directly but
 #only ever through those aliases. To support this concept of safety, a new
-#"is_cachable" parameter will need to be accepted by the following methods.
+#optional "is_cachable" parameter defaulting to "False" will need to be
+#accepted by the following methods.
 
 #FIXME: If optimizations are enabled (i.e., "if not __debug__:"), avoid
 #embedding type validation in the data descriptor classes defined below.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import (
     BetseExprAliasException, BetseEnumException, BetseTypeException)
 from betse.util.type.types import (
@@ -85,14 +86,14 @@ from betse.util.type.types import (
 
 if False: BetseTypeException   # squelch IDE warnings
 
-# ....................{ GLOBALS                            }....................
+# ....................{ GLOBALS                           }....................
 _EXPR_ALIAS_ID = 0
 '''
 Unique arbitrary identifier with which to uniquify the class name of the next
 :func:`expr_alias` descriptor.
 '''
 
-# ....................{ DESCRIPTORS                        }....................
+# ....................{ DESCRIPTORS                       }....................
 @type_check
 def expr_alias(
     # Mandatory parameters.
@@ -112,27 +113,31 @@ def expr_alias(
 ) -> object:
     '''
     Expression alias **data descriptor** (i.e., object satisfying the data
-    descriptor protocol, usually defined at class scope), dynamically aliasing a
-    target variable of the passed type and/or satisfying the passed predicate
+    descriptor protocol, usually defined at class scope), dynamically aliasing
+    a target variable of the passed type and/or satisfying the passed predicate
     bound to instances of the class subclassing the passed base classes and
     instantiating this descriptor to an arbitrarily complex source Python
-    expression suitable for use as both the left- and right-hand sides of Python
-    assignment statements.
+    expression suitable for use as both the left- and right-hand sides of
+    Python assignment statements.
 
     This function (in order):
 
     #. Dynamically defines a new descriptor class specific to the passed string
        such that:
+
        * Getting the value of the target variable internally gets the current
          value of the source expression.
        * Setting the value of the target variable either:
+
          * If this value is of the expected type, internally sets the current
            value of the source expression to this value.
          * Else, raises a type exception.
-       * Deleting the target variable deletes this variable from the instance to
-         which this variable is bound much as for a typical instance variable.
-         Deleting this variable does *not* delete the variable bound to the
-         source expression.
+
+       * Deleting the target variable deletes this variable from the instance
+         to which this variable is bound much as for a typical instance
+         variable.  Deleting this variable does *not* delete the variable bound
+         to the source expression.
+
     #. Creates an instance of this descriptor class.
     #. Returns this instance.
 
@@ -145,24 +150,25 @@ def expr_alias(
     Expressions
     ----------
     The passed expression may be any arbitrarily complex source Python
-    expression suitable for use as both the left- and right-hand sides of Python
-    assignment statements. This expression may refer to the following local
-    variables:
+    expression suitable for use as both the left- and right-hand sides of
+    Python assignment statements. This expression may refer to the following
+    local variables:
 
-    * ``self``, the current instance of the class instantiating this descriptor.
-      Callers preferring an alternate name for this local variable may pass the
-      optional ``obj_name`` parameter. If this descriptor is retrieved:
+    * ``self``, the current instance of the class instantiating this
+      descriptor. Callers preferring an alternate name for this local variable
+      may pass the optional ``obj_name`` parameter. If this descriptor is
+      retrieved:
       * As an **instance variable** (i.e., from the current instance of this
         class), this local is that instance.
       * As a **class variable** (i.e., from this class), this local is `None`.
-        In this case, the ``cls`` local is guaranteed to be defined to the class
-        instantiating this descriptor.
+        In this case, the ``cls`` local is guaranteed to be defined to the
+        class instantiating this descriptor.
     * ``cls``, the class instantiating this descriptor. This local is only
       defined when getting this descriptor as a class rather than instance
       variable; equivalently, this local is undefined both when getting this
       descriptor as an instance variable *and* when setting this descriptor.
-      Since one or the other of this and the ``self`` local is *always* defined,
-      the class instantiating this descriptor is safely retrievable in
+      Since one or the other of this and the ``self`` local is *always*
+      defined, the class instantiating this descriptor is safely retrievable in
       expressions by referencing ``cls`` only if ``self`` is ``None``. For
       example, to get and set the name of this class:
 
@@ -172,9 +178,9 @@ def expr_alias(
              expr='(cls if self is None else self.__class__).__name__', cls=str)
 
     * ``self_descriptor``, the current instance of this descriptor. Since this
-      descriptor only implements special methods required by the data descriptor
-      protocol (e.g., ``__get__``, ``__set__``) and hence contains no data, this
-      local is unlikely to be of interest to most callers.
+      descriptor only implements special methods required by the data
+      descriptor protocol (e.g., ``__get__``, ``__set__``) and hence contains
+      no data, this local is unlikely to be of interest to most callers.
 
     Class
     ----------
@@ -184,6 +190,7 @@ def expr_alias(
 
     expr_alias_cls : ClassOrNoneTypes
         Either:
+
         * If the ``cls`` parameter passed to this method is non-``None``, the
           value of this parameter (i.e., the class or tuple of classes that the
           value of this expression is required to be an instance of).
@@ -192,20 +199,20 @@ def expr_alias(
     Caveats
     ----------
     As with all descriptors, this function is intended to be called *only* at
-    **class scope** (i.e., directly from within the body of a class) in a manner
-    assigning the descriptor returned by this function to a class variable of
-    arbitrary name. While feasible, calling this function from any other scope
-    is highly discouraged. In turn, this implies this function is intended to be
-    called *only* when the expression to be aliased is statically known at class
-    definition time. When this is *not* the case (e.g., when this expression is
-    only dynamically known at runtime), the higher-level :class:`ExprAlias`
-    class should be instantiated instead.
+    **class scope** (i.e., directly from within the body of a class) in a
+    manner assigning the descriptor returned by this function to a class
+    variable of arbitrary name. While feasible, calling this function from any
+    other scope is highly discouraged. In turn, this implies this function is
+    intended to be called *only* when the expression to be aliased is
+    statically known at class definition time. When this is *not* the case
+    (e.g., when this expression is only dynamically known at runtime), the
+    higher-level :class:`ExprAlias` class should be instantiated instead.
 
-    Additionally, the instance variable bound by the descriptor returned by this
-    function is *not* deletable via the :func:`del` builtin. Attempting to do so
-    reliably raises an :class:`AttributeError` exception. Why? To preserve
-    backward compatibility with pre-Python 3.6 versions, which provide no means
-    of doing so.
+    Additionally, the instance variable bound by the descriptor returned by
+    this function is *not* deletable via the :func:`del` builtin. Attempting to
+    do so reliably raises an :class:`AttributeError` exception. Why? To
+    preserve backward compatibility with pre-Python 3.6 versions, which provide
+    no means of doing so.
 
     Parameters
     ----------
@@ -213,52 +220,61 @@ def expr_alias(
         Arbitrarily complex Python expression suitable for use as at least the
         right-hand side of Python assignment statements, typically
         evaluating to the value of an arbitrarily nested dictionary key:
-        * Prefixed by the name of the instance variable to which this dictionary
-          is bound in instances of the class containing this descriptor (e.g.,
-          ``self._config``).
+
+        * Prefixed by the name of the instance variable to which this
+          dictionary is bound in instances of the class containing this
+          descriptor (e.g., ``self._config``).
         * Suffixed by one or more ``[``- and ``]``-delimited key lookups into
           the same dictionary (e.g.,
           ``['variable settings']['noise']['dynamic noise']``).
-        If this expression is unsuitable for use as the left-hand side of Python
-        assignment statements (e.g., due to expanding to a complex expression
-        comprising multiple variables rather than to a single simple variable),
-        the ``expr_settable`` parameter *must* be passed as well.
+
+        If this expression is unsuitable for use as the left-hand side of
+        Python assignment statements (e.g., due to expanding to a complex
+        expression comprising multiple variables rather than to a single simple
+        variable), the ``expr_settable`` parameter *must* be passed as well.
     expr_settable : optional[str]
         Arbitrarily complex Python expression suitable for use as the left-hand
-        side of Python assignment statements, producing a data descriptor whose:
+        side of Python assignment statements, creating a data descriptor whose:
+
         * ``__get__()`` implementation embeds the value of the passed ``expr``
           parameter.
         * ``__set__()`` implementation embeds the value of this parameter.
+
         Defaults to ``None``, in which case this parameter defaults to the
         value of the ``expr`` parameter.
     base_classes : optional[SequenceTypes]
         Sequence of all base classes of the class dynamically synthesized by
-        this function for the returned expression alias data descriptor, usually
-        used to unify all such descriptors under a common abstract base class.
-        Defaults to the empty tuple, equivalent to the 1-tuple ``(object,)``
-        containing only the root base class of all classes.
+        this function for the returned expression alias data descriptor,
+        usually used to unify all such descriptors under a common abstract base
+        class.  Defaults to the empty tuple, equivalent to the 1-tuple
+        ``(object,)`` containing only the root base class of all classes.
     cls : optional[TestableTypes]
         Either:
+
         * A class. If the value of this expression is not an instance of this
           class *and*:
+
           * If this value is **safely castable** (i.e., convertible *without*
             raising an exception) into an instance of this class, this value is
-            silently casted into an instance of this class by instantiating this
-            class with a single positional argument whose value is this value
-            (e.g., ``float('3.1415')`` to cast the string value ``3.1415`` into
-            a floating point number).
+            silently casted into an instance of this class by instantiating
+            this class with a single positional argument whose value is this
+            value (e.g., ``float('3.1415')`` to cast the string value
+            ``3.1415`` into a floating point number).
           * Else, an exception is raised.
+
         * A tuple of classes, in which case an exception is raised if the value
           of this expression is *not* an instance of at least one class in this
           tuple.
         Defaults to ``None``, in which case no such validation is performed.
     is_castable : optional[bool]
-        ``True`` only if the value of this expression is safely castable into an
-        instance of the class passed as the ``cls`` parameter. If:
-        * ``True``, an exception is raised at evaluation time only if this value
-          is *not* safely castable into an instance of this class.
+        ``True`` only if the value of this expression is safely castable into
+        an instance of the class passed as the ``cls`` parameter. If:
+
+        * ``True``, an exception is raised at evaluation time only if this
+          value is *not* safely castable into an instance of this class.
         * ``False``, an exception is raised at evaluation time if this value is
           *not* already an instance of this class.
+
         Defaults to ``None``, in which case this boolean conditionally defaults
         to ``True`` only if the ``cls`` parameter is :class:`float`, whose
         constructor is well-known to safely cast into most builtin scalar types
@@ -276,8 +292,8 @@ def expr_alias(
         Arbitrarily complex Python expression suitable for use as the condition
         of an if statement testing the local variable named ``value`` providing
         the value of this expression evaluating to a boolean ``True`` only if
-        the value of this expression satisfies arbitrary caller requirements and
-        ``False`` otherwise. If this expression evaluates to ``False``, an
+        the value of this expression satisfies arbitrary caller requirements
+        and ``False`` otherwise. If this expression evaluates to ``False``, an
         exception is raised on behalf of this expression. If the
         ``predicate_label`` parameter is *not* also passed, an exception is
         raised. Defaults to ``None``, in which case no such validation is
@@ -304,16 +320,16 @@ def expr_alias(
     :class:`betse.util.type.descriptor.datadesc`
         Submodule providing higher-level classes encapsulating data descriptors
         returned by this lower-level function, intended for use where declaring
-        a descriptor at class scope is inappropriate (e.g., where the expression
-        to be aliased is unknown at class definition time).
+        a descriptor at class scope is inappropriate (e.g., where the
+        expression to be aliased is unknown at class definition time).
     '''
 
     # Avoid circular import dependencies.
     from betse.util.type.cls import classes
 
     # Set of the names of all parameters hard-coded into the implementations of
-    # either the __get__() or __set__() methods defined below and hence reserved
-    # for internal use by this descriptor.
+    # either the __get__() or __set__() methods defined below and hence
+    # reserved for internal use by this descriptor.
     RESERVED_ARG_NAMES = {'cls', 'self_descriptor', 'value',}
 
     # If the passed object name is already reserved, raise an exception.
@@ -349,9 +365,9 @@ def expr_alias(
         is_castable = cls is float
 
     # Expression to be embedded in human-readable single-quoted exception
-    # messages raised by this data descriptor's __get__() method. To permit this
-    # expression to be embedded in single-quoted strings, all single quotes in
-    # this expression are globally escaped for safety.
+    # messages raised by this data descriptor's __get__() method. To permit
+    # this expression to be embedded in single-quoted strings, all single
+    # quotes in this expression are globally escaped for safety.
     expr_gettable_single_quotable = expr_gettable.replace("'", "\\'")
 
     # Python code snippet listing all optional arguments to be accepted by this
@@ -403,7 +419,7 @@ def expr_alias(
             raise BetseTypeException(
                 'Expression alias value {!r} not a {!r}.'.format(
                 value, self_descriptor.expr_alias_cls)) from exception'''
-        # Else, raise an exception unless this value is of the expected type(s).
+        # Else, raise an exception unless this value is of the desired type(s).
         else:
             value_test_block += '''
         raise BetseTypeException(
@@ -425,8 +441,8 @@ def expr_alias(
         class_init_body += '''
     self_descriptor.__expr_alias_predicate = __expr_alias_predicate'''
 
-        # Raise an exception unless the value to which this expression evaluates
-        # satisfies the same predicate.
+        # Raise an exception unless the value to which this expression
+        # evaluates satisfies the same predicate.
         value_test_block += '''
     if not self_descriptor.__expr_alias_predicate(value):
         raise BetseTypeException(
@@ -441,8 +457,8 @@ def expr_alias(
                 'Parameter "predicate_expr" passed, but '
                 'parameter "predicate_label" unpassed.')
 
-        # Raise an exception unless the value to which this expression evaluates
-        # satisfies the same predicate.
+        # Raise an exception unless the value to which this expression
+        # evaluates satisfies the same predicate.
         value_test_block += '''
     if not ({predicate_expr}):
         raise BetseTypeException(
@@ -456,8 +472,8 @@ def expr_alias(
     pass'''
 
     # Prefix all possible implementations of the __get__() method body with a
-    # conditional handling the two styles with which Python calls this method --
-    # specifically, class attribute access. This conditional is common
+    # conditional handling the two styles with which Python calls this method
+    # -- specifically, class attribute access. This conditional is common
     # boilerplate prefixing most implementations of this method.
     #
     # To quote the official documentation:
@@ -486,8 +502,8 @@ def expr_alias(
     # While exception handling technically imposes a minor performance penalty,
     # this cost is substantially outweighed by the usability gains. Indeed,
     # "try" blocks are faster in Python than the corresponding "if" statements
-    # assuming no exceptions are raised. For detailed timings, see the following
-    # authoritative StackOverflow answer:
+    # assuming no exceptions are raised. For detailed timings, see the
+    # following authoritative StackOverflow answer:
     #
     #     https://stackoverflow.com/a/2522013/2809027
     try:
@@ -531,10 +547,10 @@ def expr_alias(
 
     # Python code snippet declaring these special methods.
     #
-    # Note the differentiation between the "self_descriptor" parameter referring
-    # to the current descriptor and the "self" parameter referring to the object
-    # containing this descriptor, which may be referenced by the passed
-    # expression and must thus be assigned the name "self".
+    # Note the differentiation between the "self_descriptor" parameter
+    # referring to the current descriptor and the "self" parameter referring to
+    # the object containing this descriptor, which may be referenced by the
+    # passed expression and must thus be assigned the name "self".
     #
     # Note that the following special methods supported by the descriptor
     # protocol are intentionally left undefined:
@@ -545,13 +561,13 @@ def expr_alias(
     #   class leaves this special method unimplemented.
     # * "__delete__(self, instance)", deleting the variable to which this
     #   descriptor has been bound from the current instance of the class
-    #   instantiating this descriptor. Sanely defining this method would require
-    #   implementing the aforementioned __set_name__() method to store the name
-    #   of the variable to which this descriptor is bound. That method is only
-    #   available under Python 3.6, whereas this application is currently
-    #   compatible with older Python 3.x versions. Since deletion of this
-    #   descriptor is non-essential (and arguably undesirable), this descriptor
-    #   class leaves this special method unimplemented.
+    #   instantiating this descriptor. Sanely defining this method would
+    #   require implementing the aforementioned __set_name__() method to store
+    #   the name of the variable to which this descriptor is bound. That method
+    #   is only available under Python 3.6, whereas this application is
+    #   currently compatible with older Python 3.x versions. Since deletion of
+    #   this descriptor is non-essential (and arguably undesirable), this
+    #   descriptor class leaves this special method unimplemented.
     class_body = '''
 def __init__(self_descriptor{init_args}):
     {init_body}
@@ -572,8 +588,8 @@ def __set__(self_descriptor, {obj_name}, value):
     # Define these methods and this dictionary containing these methods.
     exec(class_body, globals(), class_method_name_to_func)
 
-    # Prevent input parameters passed into this snippet by this exec() call from
-    # polluting the attribute namespace of this class.
+    # Prevent input parameters passed into this snippet by this exec() call
+    # from polluting the attribute namespace of this class.
     del class_method_name_to_func['__expr_alias_cls']
     del class_method_name_to_func['__expr_alias_predicate']
 
@@ -587,7 +603,7 @@ def __set__(self_descriptor, {obj_name}, value):
     # Instantiate and return the singleton descriptor for this class.
     return expr_alias_class()
 
-# ....................{ DESCRIPTORS ~ enum                 }....................
+# ....................{ DESCRIPTORS ~ enum                }....................
 @type_check
 def expr_enum_alias(
     # Mandatory parameters.
@@ -608,8 +624,8 @@ def expr_enum_alias(
     Invariants
     ----------
     This data descriptor implicitly converts the value to which this expression
-    evaluates to and from the corresponding member of this enumeration type in a
-    case-insensitive manner. To facilitate this conversion, the caller *must*
+    evaluates to and from the corresponding member of this enumeration type in
+    a case-insensitive manner. To facilitate this conversion, the caller *must*
     guarantee the following two invariants:
 
     #. This expression *must* evaluate to a strictly lowercase string value.
@@ -643,31 +659,31 @@ def expr_enum_alias(
     Parameters
     ----------
     expr : str
-        Arbitrarily complex Python expression suitable for use as both the left-
-        and right-hand sides of Python assignment statements, typically
+        Arbitrarily complex Python expression suitable for use as both the
+        left- and right-hand sides of Python assignment statements, typically
         evaluating to the value of an arbitrarily nested dictionary key:
-        * Prefixed by the name of the instance variable to which this dictionary
-          is bound in instances of the class containing this descriptor (e.g.,
-          ``self._config``).
+        * Prefixed by the name of the instance variable to which this
+          dictionary is bound in instances of the class containing this
+          descriptor (e.g., ``self._config``).
         * Suffixed by one or more ``[``- and ``]``-delimited key lookups into
           the same dictionary (e.g.,
           ``['variable settings']['noise']['dynamic noise']``).
     enum_type : EnumType
         Enumeration constraining this expression. Specifically, the uppercased
-        string value of this expression *must* always be the name of a member of
-        this enumeration. If this is *not* the case, an exception is raised.
+        string value of this expression *must* always be the name of a member
+        of this enumeration. If this is *not* the case, an exception is raised.
     base_classes : optional[SequenceTypes]
         Sequence of all base classes of the class dynamically synthesized by
-        this function for the returned expression alias data descriptor, usually
-        used to unify all such descriptors under a common abstract base class.
-        Defaults to the empty tuple, equivalent to the 1-tuple ``(object,)``
-        containing only the root base class of all classes.
+        this function for the returned expression alias data descriptor,
+        usually used to unify all such descriptors under a common abstract base
+        class.  Defaults to the empty tuple, equivalent to the 1-tuple
+        ``(object,)`` containing only the root base class of all classes.
 
     Returns
     ----------
     base_classes
-        Enemuration-specific expression alias data descriptor as detailed above,
-        guaranteed to be an instance of all passed base classes.
+        Enemuration-specific expression alias data descriptor as detailed
+        above, guaranteed to be an instance of all passed base classes.
 
     See Also
     ----------
@@ -775,7 +791,7 @@ def __set__(self_descriptor, self, enum_member):
     # Instantiate and return the singleton descriptor for this class.
     return expr_alias_class()
 
-# ....................{ PRIVATE                            }....................
+# ....................{ PRIVATE                           }....................
 def _get_expr_alias_class_name() -> str:
     '''
     Name of the class of the next data descriptor created and returned by the

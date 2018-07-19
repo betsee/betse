@@ -7,8 +7,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
-from betse.exceptions import (
-    BetseFileException, BetseSimException, BetseSimConfException)
+from betse.exceptions import BetseSimException, BetseSimConfException
 from betse.lib.pickle import pickles
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
@@ -26,7 +25,6 @@ from betse.util.path import files, pathnames
 from betse.util.type.decorator.decorators import deprecated
 from betse.util.type.decorator.decprof import log_time_seconds
 from betse.util.type.types import type_check
-from betse.science.tissue.tishandler import TissueHandler
 
 # ....................{ CLASSES                           }....................
 class SimRunner(object):
@@ -208,10 +206,6 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
 
-        # High-level simulation objects.
-        cells = Cells(self._p)  # create an instance of world
-        sim = Simulator(self._p)
-
         #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
         #profile type be passed. The current approach leaves critical attributes
         #undefined in the event that the optional Parameters.set_time_profile()
@@ -221,50 +215,39 @@ class SimRunner(object):
         #FIXME comment preceding the set_time_profile() method for details.
         self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
         self._p.run_sim = False # let the simulator know we're just running an initialization
-        sim.run_sim = False
 
-        #FIXME: This if conditional is repeated verbatim twice below. Generalize
-        #into a new _load_cells() method containing this if conditional and
-        #returning the loaded "Cells" instance; then, call this method both here
-        #and everywhere this repeated logic appears below. Starbust dragons!
-        if files.is_file(cells.savedWorld):
-            cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-            logs.log_info('Cell cluster loaded.')
-
-            # check to ensure compatibility between original and present sim files:
-            self._die_if_seed_differs(p_old, self._p)
-
-        else:
-            logs.log_warning("Ooops! No such cell cluster file found to load!")
-
-            if self._p.autoInit:
-                logs.log_info(
-                    'Automatically seeding cell cluster from config file settings...')
-                self.seed()  # create an instance of world
-                logs.log_info(
-                    'Now using cell cluster to run initialization.')
-                cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
-
-            else:
+        if not files.is_file(self._p.seed_pickle_filename):
+            if not self._p.autoInit:
                 raise BetseSimException(
-                    "Run terminated due to missing seed.\n"
-                    "Please run 'betse seed' to try again.")
+                    'Initialization halted due to missing seed. '
+                    'Please run "betse seed" and try again.')
+
+            # Create an instance of world.
+            logs.log_info('Automatically seeding cell cluster...')
+            self.seed()
+            logs.log_info('Now using seed to run initialization.')
+
+        # Load the seed from cache.
+        cells, p_old = fh.loadWorld(self._p.seed_pickle_filename)
+        logs.log_info('Cell cluster loaded.')
+
+        # check to ensure compatibility between original and present sim files:
+        self._die_if_seed_differs(p_old, self._p)
 
         # Simulation phase, created *AFTER* unpickling these objects above.
         phase = SimPhase(
             kind=phase_kind,
             cells=cells,
             p=self._p,
-            sim=sim,
             callbacks=self._callbacks,
         )
 
         # Initialize core simulation data structures.
-        sim.init_core(phase)
+        phase.sim.init_core(phase)
 
         # Run this simulation phase.
-        sim.sim_info_report(cells, self._p)
-        sim.run_sim_core(phase)
+        phase.sim.sim_info_report(cells, self._p)
+        phase.sim.run_sim_core(phase)
 
         # Return this phase.
         return phase
@@ -293,35 +276,25 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.SIM
 
-        # High-level simulation objects.
-        sim = Simulator(p=self._p)
-
         #FIXME: See above for pertinent commentary. Mists of time, unpart!
         self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
         self._p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
 
-        if files.is_file(sim.savedInit):
-            # Load the initialization from cache.
-            sim, cells, p_old = fh.loadSim(sim.savedInit)
-
-            # Ensure compatibility between original and present config files.
-            self._die_if_seed_differs(p_old, self._p)
-        else:
-            logs.log_warning(
-                "No initialization file found to run this simulation!")
-
-            if self._p.autoInit:
-                logs.log_info("Automatically running initialization...")
-                self.init()
-                logs.log_info('Now using initialization to run simulation.')
-
-                # Load the initialization from cache.
-                sim, cells, _ = fh.loadSim(sim.savedInit)
-
-            else:
+        if not files.is_file(self._p.init_pickle_filename):
+            if not self._p.autoInit:
                 raise BetseSimException(
-                    'Simulation terminated due to missing initialization. '
-                    'Please run an initialization and try again.')
+                    'Simulation halted due to missing initialization. '
+                    'Please run "betse init" and try again.')
+
+            logs.log_info('Automatically initializing cell cluster...')
+            self.init()
+            logs.log_info('Now using initialization to run simulation.')
+
+        # Load the initialization from cache.
+        sim, cells, p_old = fh.loadSim(self._p.init_pickle_filename)
+
+        # Ensure compatibility between original and present config files.
+        self._die_if_seed_differs(p_old, self._p)
 
         # Simulation phase, created *AFTER* unpickling these objects above.
         phase = SimPhase(
@@ -364,9 +337,9 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
 
-        # Simulation configuration.
-        cells = Cells(self._p)
-        sim = Simulator(self._p)
+        # Simulator objects initialized below.
+        cells = None
+        sim = None
 
         # Log this simulation.
         logs.log_info(
@@ -381,84 +354,77 @@ class SimRunner(object):
 
         # If networking an uninitialized, unsimulated cell cluster...
         if self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.SEED:
-            if files.is_file(cells.savedWorld):
-                cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-                logs.log_info('Running gene regulatory network on betse seed...')
-
-                # Simulation phase.
-                phase = SimPhase(
-                    kind=phase_kind,
-                    callbacks=self._callbacks,
-                    cells=cells,
-                    p=self._p,
-                    sim=sim,
-                )
-
-
-                # Initialize core simulation data structures.
-                sim.init_core(phase)
-                sim.init_dynamics(phase)
-
-                # Initialize other aspects required for piggyback of GRN on the
-                # sim object.
-                sim.time = []
-                sim.vm = -50e-3 * np.ones(sim.mdl)
-
-                # Initialize key fields of simulator required to interface
-                # (dummy init).
-                sim.rho_pump = 1.0
-                sim.rho_channel = 1.0
-                sim.conc_J_x = np.zeros(sim.edl)
-                sim.conc_J_y = np.zeros(sim.edl)
-                sim.J_env_x = np.zeros(sim.edl)
-                sim.J_env_y = np.zeros(sim.edl)
-                sim.u_env_x = np.zeros(sim.edl)
-                sim.u_env_y = np.zeros(sim.edl)
-
-            else:
-                logs.log_warning(
-                    'Ooops! No such cell cluster file found to load!')
-
-                if self._p.autoInit:
-                    logs.log_info(
-                        'Automatically seeding cell cluster from config file settings...')
-                    self.seed()  # create an instance of world
-                    logs.log_info(
-                        'Now using cell cluster to run initialization.')
-                    cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
-                else:
+            if not files.is_file(self._p.seed_pickle_filename):
+                if not self._p.autoInit:
                     raise BetseSimException(
-                        'Run terminated due to missing seed. '
-                        'Please run "betse seed" to try again.')
+                        'Simulation halted due to missing core seed. '
+                        'Please run "betse seed" and try again.')
+
+                # Create an instance of world.
+                logs.log_info('Automatically seeding cell cluster...')
+                self.seed()
+
+            # Load the seed from cache.
+            cells, _ = fh.loadWorld(self._p.seed_pickle_filename)
+            logs.log_info('Running gene regulatory network on betse seed...')
+            logs.log_info('Now using cell cluster to run initialization.')
+
+            # Simulator.
+            sim = Simulator(self._p)
+
+            # Simulation phase.
+            phase = SimPhase(
+                kind=phase_kind,
+                callbacks=self._callbacks,
+                cells=cells,
+                p=self._p,
+                sim=sim,
+            )
+
+            # Initialize core simulation data structures.
+            sim.init_core(phase)
+            sim.init_dynamics(phase)
+
+            # Initialize other aspects required for piggyback of GRN on the
+            # sim object.
+            sim.time = []
+            sim.vm = -50e-3 * np.ones(sim.mdl)
+
+            # Initialize key fields of simulator required to interface
+            # (dummy init).
+            sim.rho_pump = 1.0
+            sim.rho_channel = 1.0
+            sim.conc_J_x = np.zeros(sim.edl)
+            sim.conc_J_y = np.zeros(sim.edl)
+            sim.J_env_x = np.zeros(sim.edl)
+            sim.J_env_y = np.zeros(sim.edl)
+            sim.u_env_x = np.zeros(sim.edl)
+            sim.u_env_y = np.zeros(sim.edl)
         # Else if networking an initialized but unsimulated cell cluster...
         elif self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.INIT:
-            if files.is_file(sim.savedInit):
-                logs.log_info('Running gene regulatory network on betse init...')
-                sim, cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
-            else:
-                logs.log_warning(
-                    "No initialization file found to run the GRN simulation!")
-
-                if self._p.autoInit:
-                    logs.log_info("Automatically running initialization...")
-                    self.init()
-                    logs.log_info('Now using initialization to run simulation.')
-                    sim, cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
-                else:
+            if not files.is_file(self._p.init_pickle_filename):
+                if not self._p.autoInit:
                     raise BetseSimException(
-                        'Simulation terminated due to missing core initialization. '
-                        'Please run a betse initialization and try again.')
+                        'Simulation halted due to missing core initialization. '
+                        'Please run "betse init" and try again.')
+
+                logs.log_info('Automatically initializing cell cluster...')
+                self.init()
+                logs.log_info('Now using initialization to run simulation.')
+
+            # Load the initialization from cache.
+            logs.log_info('Running gene regulatory network on betse init...')
+            sim, cells, _ = fh.loadSim(self._p.init_pickle_filename)
         # Else if networking an initialized, simulated cell cluster...
         elif self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.SIM:
-            if files.is_file(sim.savedSim):
-                logs.log_info('Running gene regulatory network on betse sim...')
-                sim, cells, _ = fh.loadSim(sim.savedSim)  # load the initialization from cache
-            else:
-                logs.log_warning(
-                    "No simulation file found to run the GRN simulation!")
+            if not files.is_file(self._p.sim_pickle_filename):
                 raise BetseSimException(
-                    'Simulation terminated due to missing core simulation. '
-                    'Please run a betse simulation and try again.')
+                    'Simulation halted due to missing core simulation. '
+                    'Please run "betse sim" and try again.')
+
+            # Load the simulation from cache.
+            logs.log_info('Running gene regulatory network on betse sim...')
+            sim, cells, _ = fh.loadSim(self._p.sim_pickle_filename)
         # Else, this type of networking is unrecognized. Raise an exception.
         else:
             raise BetseSimConfException(
@@ -495,11 +461,7 @@ class SimRunner(object):
                 pathnames.get_basename(self._p.grn_unpickle_filename))
 
             # If this file does *NOT* exist, raise an exception.
-            if not files.is_file(self._p.grn_unpickle_filename):
-                raise BetseSimException(
-                    'Gene regulatory network unloadable '
-                    'from file not found: {}'.format(
-                        self._p.grn_unpickle_filename))
+            files.die_unless_file(self._p.grn_unpickle_filename)
 
             # Unpickle this file into a high-level "MasterOfGenes" object.
             MoG, _, _ = pickles.load(self._p.grn_unpickle_filename)
@@ -514,10 +476,8 @@ class SimRunner(object):
                     'A cutting event has been run, '
                     'so the GRN object needs to be modified...')
 
-                sim_old = Simulator(self._p)
-
                 # If no prior initialization exists, raise an exception.
-                if not files.is_file(sim_old.savedInit):
+                if not files.is_file(self._p.sim_pickle_filename):
                     logs.log_warning(
                         'This situation is complex '
                         'due to a cutting event being run. '
@@ -535,20 +495,16 @@ class SimRunner(object):
                     'for reference to original cells...')
 
                 # Load the initialization from cache.
-                init, cells_old, _ = fh.loadSim(sim_old.savedInit)
+                init, cells_old, _ = fh.loadSim(self._p.sim_pickle_filename)
 
                 #FIXME: This phase object would ideally be pickled to and
-                #from the "sim_old.savedInit" file loaded above, in which
-                #case this local variable would be safely removable. Flagon!
+                #from the "self._p.sim_pickle_filename" file loaded above, in
+                #which case this local variable would be safely removable.
 
                 # Original simulation phase. To avoid caller confusion, the
                 # optional "callbacks" parameter is intentionally *NOT* passed.
                 phase_old = SimPhase(
-                    kind=phase_kind,
-                    cells=cells_old,
-                    p=self._p,
-                    sim=sim_old,
-                )
+                    kind=phase_kind, cells=cells_old, p=self._p)
 
                 # Initialize all tissue profiles on original cells.
                 phase_old.dyna.tissueProfiles(init, cells_old, self._p)
@@ -615,33 +571,28 @@ class SimRunner(object):
             internally created by this method to run this phase.
         '''
 
+        # Log this plotting attempt.
         logs.log_info(
             'Plotting cell cluster with configuration file "%s".',
             self._p.conf_basename)
 
-        # High-level simulation objects.
-        cells = Cells(self._p)
-        sim = Simulator(self._p)
+        # If an initialization does *NOT* already exist, raise an exception.
+        files.die_unless_file(self._p.seed_pickle_filename)
 
-        if files.is_file(cells.savedWorld):
-            cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-            logs.log_info('Cell cluster loaded.')
-        else:
-            raise BetseSimException(
-                "Ooops! No such cell cluster file found to load!")
+        # Load the seed from cache.
+        cells, _ = fh.loadWorld(self._p.seed_pickle_filename)
+        logs.log_info('Cell cluster loaded.')
 
         # Simulation phase, created *AFTER* unpickling these objects above
         phase = SimPhase(
             kind=SimPhaseKind.SEED,
-            cells=cells,
             p=self._p,
-            sim=sim,
             callbacks=self._callbacks,
         )
 
         # Initialize core simulation data structures.
-        sim.init_core(phase)
-        phase.dyna.tissueProfiles(sim, cells, self._p)
+        phase.sim.init_core(phase)
+        phase.dyna.tissueProfiles(phase.sim, phase.cells, self._p)
 
         #FIXME: Refactor into a seed-specific plot pipeline. Dreaming androids!
         if self._p.autosave:
@@ -662,14 +613,19 @@ class SimRunner(object):
             plt.figure()
             ax99 = plt.subplot(111)
             plt.imshow(
-                np.log10(sim.D_env_weight.reshape(cells.X.shape)),
+                np.log10(phase.sim.D_env_weight.reshape(phase.cells.X.shape)),
                 origin='lower',
-                extent=[self._p.um * cells.xmin, self._p.um * cells.xmax, self._p.um * cells.ymin, self._p.um * cells.ymax],
+                extent=[
+                    self._p.um * phase.cells.xmin,
+                    self._p.um * phase.cells.xmax,
+                    self._p.um * phase.cells.ymin,
+                    self._p.um * phase.cells.ymax,
+                ],
                 cmap=self._p.background_cm,
             )
             plt.colorbar()
 
-            cell_edges_flat = self._p.um * cells.mem_edges_flat
+            cell_edges_flat = self._p.um * phase.cells.mem_edges_flat
             coll = LineCollection(cell_edges_flat, colors='k')
             coll.set_alpha(1.0)
             ax99.add_collection(coll)
@@ -687,7 +643,12 @@ class SimRunner(object):
             plt.imshow(
                 cells.maskM,
                 origin='lower',
-                extent=[self._p.um * cells.xmin, self._p.um * cells.xmax, self._p.um * cells.ymin, self._p.um * cells.ymax],
+                extent=[
+                    self._p.um * phase.cells.xmin,
+                    self._p.um * phase.cells.xmax,
+                    self._p.um * phase.cells.ymin,
+                    self._p.um * phase.cells.ymax,
+                ],
                 cmap=self._p.background_cm,
             )
             plt.colorbar()
@@ -706,29 +667,34 @@ class SimRunner(object):
         ax_x = plt.subplot(111)
 
         if self._p.showCells:
-            base_points = np.multiply(cells.cell_verts, self._p.um)
-            col_cells = PolyCollection(base_points, facecolors='k', edgecolors='none')
+            base_points = np.multiply(phase.cells.cell_verts, self._p.um)
+            col_cells = PolyCollection(
+                base_points, facecolors='k', edgecolors='none')
             col_cells.set_alpha(0.3)
             ax_x.add_collection(col_cells)
 
-        con_segs = cells.nn_edges
+        con_segs = phase.cells.nn_edges
         connects = self._p.um * np.asarray(con_segs)
         collection = LineCollection(connects, linewidths=1.0, color='b')
         ax_x.add_collection(collection)
         plt.axis('equal')
-        plt.axis([cells.xmin * self._p.um, cells.xmax * self._p.um, cells.ymin * self._p.um, cells.ymax * self._p.um])
+        plt.axis([
+            self._p.um * phase.cells.xmin,
+            self._p.um * phase.cells.xmax,
+            self._p.um * phase.cells.ymin,
+            self._p.um * phase.cells.ymax,
+        ])
 
         ax_x.set_xlabel('Spatial x [um]')
         ax_x.set_ylabel('Spatial y [um')
         ax_x.set_title('Cell Connectivity Network')
 
-        if self._p.autosave is True:
+        if self._p.autosave:
             savename10 = savedImg + 'gj_connectivity_network' + '.png'
             plt.savefig(savename10, format='png', transparent=True)
 
         if self._p.turn_all_plots_off is False:
             plt.show(block=False)
-
         else:
             logs.log_info(
                 'Plots exported to init results folder '
@@ -758,28 +724,17 @@ class SimRunner(object):
             'Plotting initialization with configuration "%s"...',
             self._p.conf_basename)
 
+        # If an initialization does *NOT* already exist, raise an exception.
+        files.die_unless_file(self._p.init_pickle_filename)
+
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
-
-        # High-level simulation objects.
-        sim = Simulator(p=self._p)
 
         #FIXME: See above for pertinent commentary. Mists of time, unpart!
         self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
-        #FIXME: Bizarre logic. We create a "Simulator" instance above only to
-        #test whether a single file exists and, if so, replace that instance
-        #with a pickled "Simulator" instance unpickled from that file. Let's cut
-        #out the API middleman, as it were, by obtaining the pathname for this
-        #file from the "Parameters" instance instead and then removing the above
-        #instantiation of "sim = Simulator(self._p)". Note when doing so that similar
-        #behaviour has been duplicated across this submodule. Cheerful cherries!
-
-        if files.is_file(sim.savedInit):
-            sim, cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
-        else:
-            raise BetseSimException(
-                "Ooops! No such initialization file found to plot!")
+        # Load the initialization from cache.
+        sim, cells, _ = fh.loadSim(self._p.init_pickle_filename)
 
         # Simulation phase, created *AFTER* unpickling these objects above
         phase = SimPhase(
@@ -864,24 +819,17 @@ class SimRunner(object):
             'Plotting simulation with configuration "%s"...',
             self._p.conf_basename)
 
+        # If a simulation does *NOT* already exist, raise an exception.
+        files.die_unless_file(self._p.sim_pickle_filename)
+
         # Simulation phase type.
         phase_kind = SimPhaseKind.SIM
-
-        # High-level simulation objects.
-        sim = Simulator(p=self._p)
 
         #FIXME: See above for pertinent commentary. Mists of time, unpart!
         self._p.set_time_profile(phase_kind)  # force the time profile to be simulation
 
-        # If this simulation has yet to be run, fail.
-        if not files.is_file(sim.savedSim):
-            raise BetseFileException(
-                'Simulation cache file "{}" not found to plot '
-                '(e.g., due to no simulation having been run).'.format(
-                    sim.savedSim))
-
         # Load the simulation from the cache.
-        sim, cells, _ = fh.loadSim(sim.savedSim)
+        sim, cells, _ = fh.loadSim(self._p.sim_pickle_filename)
 
         # Simulation phase, created *AFTER* unpickling these objects above
         phase = SimPhase(

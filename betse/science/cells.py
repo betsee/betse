@@ -374,6 +374,12 @@ class Cells(object):
     '''
 
     # ..................{ INITIALIZORS                      }..................
+    #FIXME: Refactor this method as follows:
+    #
+    #* Remove the optional "p" parameter, which is no longer (and should
+    #  ideally *NEVER*) be required here.
+    #* Refactor all calls to this method to avoid passing this parameter.
+
     # Avoid circular import dependencies.
     @type_check
     def __init__(self, p: 'betse.science.parameters.Parameters') -> None:
@@ -386,14 +392,7 @@ class Cells(object):
             Current simulation configuration.
         '''
 
-        #FIXME: This variable should ideally reside in the "Parameters" class,
-        #at which point this method may be safely removed. Specifically:
-        #
-        #* Rename "self.savedWorld" to "p.seed_pickle_filename".
-
-        # Define data paths for saving an initialization and simulation run:
-        self.savedWorld = pathnames.join(
-            p.init_pickle_dirname, p.seed_pickle_basename)
+        pass
 
     # ..................{ MAKERS                            }..................
     MAKE_WORLD_PROGRESS_TOTAL = 5
@@ -2453,17 +2452,15 @@ class Cells(object):
             Current simulation configuration.
         '''
 
-        # Log this
-        logs.log_info(
-            'Saving cell cluster to "%s"...',
-            pathnames.get_basename(self.savedWorld))
+        # Log this pickling.
+        logs.log_info('Saving cell cluster to "%s"...', p.seed_pickle_basename)
 
         # Pickle this cell cluster.
         datadump = [self, p]
-        fh.saveSim(self.savedWorld, datadump)
+        fh.saveSim(p.seed_pickle_filename, datadump)
 
 
-    def voronoiGrid(self,p):
+    def voronoiGrid(self, p) -> None:
         """
         Creates a set of unique, flat points corresponding to cells in the
         cluster in addition to "ghost" points of cell centres present in the

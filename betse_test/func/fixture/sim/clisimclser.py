@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,12 +7,12 @@
 Fixture classes running BETSE CLI subcommands in the active Python interpreter.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.util.type.types import type_check, SequenceTypes
 from betse_test.fixture.simconf.simconfclser import SimConfTestABC
 from betse_test.func.fixture.clier import CLITester
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 class CLISimTester(object):
     '''
     BETSE CLI simulation test runner, exercising multiple subcommands of the
@@ -38,7 +38,7 @@ class CLISimTester(object):
         Further details on BETSE CLI execution.
     '''
 
-    # ..................{ CONSTANTS                          }..................
+    # ..................{ CONSTANTS                         }..................
     # The following tuples of argument tuples are intentionally declared as
     # class rather than global constants, dramatically simplifying usage by
     # fixtures and tests already passed an instance of this class.
@@ -74,7 +74,7 @@ class CLISimTester(object):
     ``betse`` command, perform the equivalent of the ``try`` subcommand).
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(
         self, cli_tester: CLITester, sim_state: SimConfTestABC) -> None:
@@ -95,14 +95,14 @@ class CLISimTester(object):
         self.cli_tester = cli_tester
         self.sim_state = sim_state
 
-    # ..................{ RUNNERS                            }..................
+    # ..................{ RUNNERS                           }..................
     @type_check
     def run_subcommands(
         self, *subcommands_args: SequenceTypes, is_overwrite_conf: bool = True
     ) -> None:
         '''
-        Perform all BETSE CLI subcommands signified by the passed argument lists
-        in the active Python process (in the passed order).
+        Perform all BETSE CLI subcommands signified by the passed argument
+        lists in the active Python process (in the passed order).
 
         To guarantee that each such subcommand efficiently reuses the same
         underlying simulation, this method implicitly:
@@ -147,8 +147,8 @@ class CLISimTester(object):
         self, *subcommand_args: str, is_overwrite_conf: bool = True
     ) -> None:
         '''
-        Run the simulation-specific BETSE CLI subcommand signified by the passed
-        argument list in the active Python process.
+        Run the simulation-specific BETSE CLI subcommand signified by the
+        passed argument list in the active Python process.
 
         This method implicitly:
 
@@ -161,7 +161,7 @@ class CLISimTester(object):
         failed to change the current working directory (CWD) to the directory
         containing this file. Why? Because operating outside of this directory
         encourages accidental permanent modification of the filesystem by tests
-        and hence _must_ be discouraged.
+        and hence *must* be discouraged.
 
         Parameters
         ----------
@@ -201,7 +201,7 @@ class CLISimTester(object):
             # Run this subcommand.
             self.cli_tester.run(*subcommand_args)
 
-    # ..................{ RUNNERS ~ predefined               }..................
+    # ..................{ RUNNERS ~ predefined              }..................
     def run_subcommands_sim(self) -> None:
         '''
         Perform all simulation-specific BETSE CLI subcommands excluding those
@@ -218,8 +218,8 @@ class CLISimTester(object):
 
     def run_subcommands_try(self) -> None:
         '''
-        Perform the equivalent of the BETSE CLI ``try`` subcommand in the active
-        Python process.
+        Perform the equivalent of the BETSE CLI ``try`` subcommand in the
+        active Python process.
 
         Specifically, this method performs all BETSE CLI subcommands performed
         by the ``try`` subcommand (in the same order).
@@ -232,7 +232,7 @@ class CLISimTester(object):
 
         self.run_subcommands(*self.SUBCOMMANDS_TRY)
 
-    # ..................{ OVERWRITERS                        }..................
+    # ..................{ OVERWRITERS                       }..................
     def overwrite_conf(self) -> None:
         '''
         Persist all in-memory changes to the current simulation configuration

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,17 +9,17 @@ simulations arbitrarily supporting all simulation solvers, including both the
 complete BETSE solver *and* the "fast" equivalent circuit solver).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import pytest
 from betse_test.util.mark.fail import xfail
 from betse_test.util.mark.skip import (
     skip_unless_matplotlib_anim_writer, skip_unless_requirement)
 
-# ....................{ TESTS                              }....................
+# ....................{ TESTS                             }....................
 #FIXME: This is... unfortunate. Since setuptools >= 38.0.0 will eventually
 #become industry-standard, this functional test and hence our backward
-#compatibility guarantee will eventually be untestable. To correct this, we have
-#little choice but to drop backward compatibility with older versions.
+#compatibility guarantee will eventually be untestable. To correct this, we
+#have little choice but to drop backward compatibility with older versions.
 #Specifically:
 #
 #* Bump the "betse.metadata.GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY" tag to
@@ -65,7 +65,7 @@ def test_cli_sim_compat(
         simulation configuration produced by this older application version.
     '''
 
-    # Test all simulation-specific plotting subcommands with this configuration.
+    # Test all simulation-specific plotting subcommands on this configuration.
     betse_cli_sim_compat.run_subcommands(
         *betse_cli_sim_compat.SUBCOMMANDS_PLOT,
 
@@ -83,18 +83,18 @@ def test_cli_sim_compat(
 
 def test_cli_sim_default(betse_cli_sim_default: 'CLISimTester') -> None:
     '''
-    Functional test exercising the default simulation configuration on the first
-    two simulation phases (i.e., seed and initialization), principally for
-    computational instability.
+    Functional test exercising the default simulation configuration on all
+    simulation phases (i.e., seed, initialization, and simulation), principally
+    for computational instability.
 
     Unlike the minified simulation configuration leveraged by all other tests,
     the default simulation configuration leveraged by this test is unmodified
-    (except for disabling interactive simulation features, which non-interactive
-    testing unavoidably requires). In particular, this configuration is *not*
-    minified for efficient usage by tests and thus incurs a significant
-    performance penalty. This test exercises only the minimal subset of this
-    configuration required to detect computational instabilities in this
-    configuration -- namely, the first two simulation phases.
+    (except for disabling interactive features, which non-interactive testing
+    unavoidably requires). In particular, this configuration is *not* minified
+    for efficient usage by tests and thus incurs a significant performance
+    penalty. This test exercises only the minimal subset of this configuration
+    required to detect computational instabilities in this configuration --
+    namely, the first two simulation phases.
 
     Parameters
     ----------
@@ -104,11 +104,11 @@ def test_cli_sim_default(betse_cli_sim_default: 'CLISimTester') -> None:
 
     # Test only the first two simulation-specific subcommands with this
     # configuration, as documented above.
-    betse_cli_sim_default.run_subcommands(('seed',), ('init',))
+    betse_cli_sim_default.run_subcommands_sim()
 
 
 # Sadly, all existing higher-level parametrization decorators defined by the
-# "betse_test.util.mark.params" submodule fail to support embedded py.test-style
+# "betse_test.util.mark.params" submodule fail to support embedded py.test
 # "skipif" and "xfail" markers. Consequently, we leverage the lower-level
 # parametrization decorator shipped with py.test itself.
 @pytest.mark.parametrize(

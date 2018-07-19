@@ -62,6 +62,9 @@ class Parameters(YamlFileABC):
         Basename of the pickled file providing this simulation's most recently
         seeded cell cluster, relative to the :attr:`init_pickle_dirname`
         directory.
+    seed_pickle_filename : str
+        Abolute filename of the pickled file providing this simulation's most
+        recently seeded cell cluster.
 
     Attributes (Path: Pickle: Initialization)
     ----------
@@ -69,6 +72,9 @@ class Parameters(YamlFileABC):
         Basename of the pickled file providing this simulation's most recent
         initialization run, relative to the :attr:`init_pickle_dirname`
         directory.
+    init_pickle_filename : str
+        Abolute filename of the pickled file providing this simulation's most
+        recent initialization run.
     init_pickle_dirname : str
         Absolute dirname of the directory containing this simulation's most
         recently seeded cell cluster *and* initialization run, guaranteed to
@@ -83,6 +89,9 @@ class Parameters(YamlFileABC):
     sim_pickle_basename : str
         Basename of the pickled file providing this simulation's most recent
         simulation run within the current :attr:`sim_dirname`.
+    sim_pickle_filename : str
+        Abolute filename of the pickled file providing this simulation's most
+        recent simulation run.
     sim_pickle_dirname : str
         Absolute dirname of the directory containing this simulation's most
         recent simulation run, guaranteed to exist.
@@ -412,18 +421,8 @@ class Parameters(YamlFileABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
-        #FIXME: The following should also be performed by the unload() method,
-        #suggesting that this logic should be shifted there and the unload()
-        #method then explicitly called -- perhaps by our superclass?
-
         # Nullify all instance variables for safety.
-        self.grn_pickle_dirname = None
-        self.grn_pickle_filename = None
-        self.grn_unpickle_filename = None
-        self.init_export_dirname = None
-        self.init_pickle_dirname = None
-        self.sim_export_dirname = None
-        self.sim_pickle_dirname = None
+        self._unload_paths()
 
         # Classify unloaded tissue and cut profiles.
         self.cut_profiles = SimConfCutListItem.make_list()
@@ -471,16 +470,16 @@ class Parameters(YamlFileABC):
         self.csv.load(conf=self._conf)
         self.plot.load(conf=self._conf)
 
-        #---------------------------------------------------------------------------------------------------------------
+        #----------------------------------------------------------------------
         # GENERAL OPTIONS
-        #---------------------------------------------------------------------------------------------------------------
+        #----------------------------------------------------------------------
 
         self.autoInit = self._conf['automatically run initialization']
         self.plot_grid_size = 50
 
-        #---------------------------------------------------------------------------------------------------------------
+        #----------------------------------------------------------------------
         # WORLD OPTIONS
-        #---------------------------------------------------------------------------------------------------------------
+        #----------------------------------------------------------------------
 
         # Geometric constants and factors
         self.wsx = self.world_len  # the x-dimension of the world space [m]
@@ -1052,7 +1051,7 @@ class Parameters(YamlFileABC):
         # Return this configuration for convenience.
         return self
 
-    # ..................{ LOADERS                           }..................
+
     #FIXME: Ideally, this method should be private. Unfortunately, external
     #callers (notably, tests) currently need to call this method to update
     #absolute pathnames after modifying relative pathnames. The solution, of
@@ -1065,32 +1064,43 @@ class Parameters(YamlFileABC):
     #to resemble something like:
     #
     #    sim_pickle_basename = yaml_alias(
-    #        "['sim file saving']['file']", str, callback_set=self.load_path)
+    #        "['sim file saving']['file']", str, callback_set=self.reload_paths)
     #
-    #Oh... wait. Obviously, we have no access to "self.load_path" from class
-    #scope. Err; perhaps refactor that to require a method accepting the current
-    #"Parameters" object be passed, which would then permit convenient calling
-    #via lambdas ala:
+    #Oh... wait. Obviously, we have no access to self.reload_paths() from class
+    #scope. Err; perhaps refactor that to require a method accepting the
+    #current "Parameters" object be passed, which would then permit convenient
+    #calling via lambdas ala:
     #
     #    sim_pickle_basename = yaml_alias(
     #        "['sim file saving']['file']", str,
-    #        callback_set: lambda p: p.load_path())
+    #        callback_set: lambda p: p.reload_paths())
     #
-    #Right. That's definitely it. Given that, we could then define and reuse a
-    #trivial private function in this submodule resembling:
+    #Right. That's definitely it. Given that, we could then define a
+    #yaml_alias() derivative specific to simulation paths in this submodule
+    #resembling:
     #
-    #    @type_check
-    #    def _reload_paths(p: Parameters) -> none:
-    #        p.reload_paths()
+    #    from betse.util.type.call import callables
+    #    _yaml_alias_path_absolute = callables.make_partial(
+    #        func=yaml_alias,
+    #        kwargs={
+    #            'cls': str,
+    #            'callback_set': lambda p: p.reload_paths(),
+    #        },
+    #        doc='''...''',
+    #    )
     #
     #Works for us. *shrug*
+    #FIXME: After doing so:
+    #
+    #* Remove *ALL* external calls to this method.
+    #* Rename this method to _load_paths() for orthogonality.
     def reload_paths(self) -> None:
         '''
         Redefine all absolute pathnames depending upon relative pathnames
         specified by this configuration.
 
-        To avoid desynchronization between the two, this method *must* be called
-        on every change to such a relative pathname.
+        To avoid desynchronization between the two, this method *must* be
+        called on every change to such a relative pathname.
         '''
 
         # Absolute dirnames to which phase results are pickled.
@@ -1098,6 +1108,15 @@ class Parameters(YamlFileABC):
             self.conf_dirname, self.init_pickle_dirname_relative)
         self.sim_pickle_dirname = pathnames.join_and_canonicalize(
             self.conf_dirname, self.sim_pickle_dirname_relative)
+
+        # Absolute filenames to which phase results are pickled, defined after
+        # absolute dirnames to these results.
+        self.init_pickle_filename = pathnames.join(
+            self.init_pickle_dirname, self.init_pickle_basename)
+        self.seed_pickle_filename = pathnames.join(
+            self.init_pickle_dirname, self.seed_pickle_basename)
+        self.sim_pickle_filename = pathnames.join(
+            self.sim_pickle_dirname, self.sim_pickle_basename)
 
         # Absolute dirnames to which phase results are exported.
         self.init_export_dirname = pathnames.join_and_canonicalize(
@@ -1364,6 +1383,9 @@ class Parameters(YamlFileABC):
         # Unload our superclass.
         super().unload()
 
+        # Unload all pathname-specific instance variables.
+        self._unload_paths()
+
         # Unload all previously loaded network subconfigurations.
         self.grn.unload()
 
@@ -1376,6 +1398,26 @@ class Parameters(YamlFileABC):
         self.anim.unload()
         self.csv.unload()
         self.plot.unload()
+
+
+    def _unload_paths(self) -> None:
+        '''
+        Deassociate the pathname-specific subset of this configuration.
+
+        Specifically, this method nullifies all absolute pathnames depending
+        upon relative pathnames for safety.
+        '''
+
+        self.grn_pickle_dirname = None
+        self.grn_pickle_filename = None
+        self.grn_unpickle_filename = None
+        self.init_export_dirname = None
+        self.init_pickle_dirname = None
+        self.init_pickle_filename = None
+        self.seed_pickle_filename = None
+        self.sim_export_dirname = None
+        self.sim_pickle_dirname = None
+        self.sim_pickle_filename = None
 
     # ..................{ EXCEPTIONS                        }..................
     def die_unless_ecm(self) -> None:

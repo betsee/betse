@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,17 +7,17 @@
 Fixture classes encapsulating test-related simulation configurations.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import type_check
 from py._path.local import LocalPath
 
-# ....................{ SUPERCLASSES                       }....................
+# ....................{ SUPERCLASSES                      }....................
 class SimConfTestABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all simulation configuration context subclasses, each
-    encapsulating state and metadata for a test-related simulation
+    Abstract base class of all simulation configuration context subclasses,
+    each encapsulating state and metadata for a test-related simulation
     configuration.
 
     Simulation configuration fixtures typically return instances of this class
@@ -38,7 +38,7 @@ class SimConfTestABC(object, metaclass=ABCMeta):
         Official :mod:`py.path` submodule documentation.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(self, conf_filename: str) -> None:
         '''
@@ -62,12 +62,12 @@ class SimConfTestABC(object, metaclass=ABCMeta):
         self.conf_filename = conf_filename
         self.conf_dirname = pathnames.get_dirname(self.conf_filename)
 
-    # ..................{ CONTEXTS                           }..................
+    # ..................{ CONTEXTS                          }..................
     def context(self) -> 'contextlib.contextmanager':
         '''
         Context manager changing the current working directory (CWD) of the
-        current test to the directory containing this configuration file for the
-        duration of this context.
+        current test to the directory containing this configuration file for
+        the duration of this context.
 
         Default simulation configuration paths are relative to the directory
         containing the simulation configuration file: namely, this temporary
@@ -76,7 +76,8 @@ class SimConfTestABC(object, metaclass=ABCMeta):
         directory, with predictably disastrous outcomes.) While this class
         could instead globally search-and-replace all relative simulation
         configuration paths with absolute paths, doing so would be considerably
-        more complex, fragile, and error-prone than simply changing directories.
+        more complex, fragile, and error-prone than simply changing
+        directories.
         '''
 
         # Defer heavyweight imports.
@@ -85,7 +86,7 @@ class SimConfTestABC(object, metaclass=ABCMeta):
         # Defer to the generator returned by the following utility function.
         return shelldir.setting_cwd(self.conf_dirname)
 
-    # ..................{ SUBCLASS                           }..................
+    # ..................{ SUBCLASS                          }..................
     # Subclasses are required to define the following read-only properties.
 
     @abstractproperty
@@ -96,7 +97,7 @@ class SimConfTestABC(object, metaclass=ABCMeta):
 
         pass
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 #FIXME: Most use of the increasingly obsolete "SimConfTestInternal.config"
 #wrapper attribute (both here and everywhere else) should be replaced by use of
 #the new "SimConfTestInternal.p" property, which increasingly provides all test
@@ -108,7 +109,8 @@ class SimConfTestInternal(SimConfTestABC):
 
     Since this configuration is guaranteed to be test-specific and hence safely
     modifiable, caller fixtures and tests are advised to modify the contents of
-    this configuration (e.g., to exercise specific feature sets and edge cases).
+    this configuration (e.g., to exercise specific feature sets and edge
+    cases).
 
     Attributes
     ----------
@@ -117,8 +119,8 @@ class SimConfTestInternal(SimConfTestABC):
         deserialized from the YAML-formatted simulation configuration file with
         path :attr:`conf_filepath`. Note the contents of this dictionary may
         be desynchronized from those of this file. For efficiency, callers may
-        modify this dictionary to suite test requirements *before* reserializing
-        this dictionary back to this file.
+        modify this dictionary to suite test requirements *before*
+        reserializing this dictionary back to this file.
 
     Attributes (Path)
     ----------
@@ -134,7 +136,7 @@ class SimConfTestInternal(SimConfTestABC):
         Official :mod:`py.path` submodule documentation.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(self, conf_filepath: LocalPath) -> None:
         '''
@@ -143,8 +145,8 @@ class SimConfTestInternal(SimConfTestABC):
         This method (in order):
 
         #. Copies BETSE's default simulation configuration file, complete with
-           all external assets (e.g., geometry masks) referenced and required by
-           this file, to the passed path.
+           all external assets (e.g., geometry masks) referenced and required
+           by this file, to the passed path.
         #. Sanitizes the copied simulation configuration file for all child
            fixtures and tests by unconditionally disabling options either
            requiring interactive input *or* displaying interactive output.
@@ -183,15 +185,15 @@ class SimConfTestInternal(SimConfTestABC):
         # high-level "py.path.local" instance is useful in fixtures and tests.
         self.conf_filepath = conf_filepath
 
-        # Configuration deserialized from this file, reducing this filename from
-        # a high-level "py.path.local" instance to a low-level string.
+        # Configuration deserialized from this file, reducing this filename
+        # from a high-level "py.path.local" instance to a low-level string.
         self.config = SimConfigTestWrapper.wrap_new_default(
             filename=self.conf_filename)
 
         # Sanitize this configuration for all child fixtures and tests.
         self.config.disable_interaction()
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS                        }..................
     @property
     def p(self) -> 'betse.science.parameters.Parameters':
 
@@ -211,7 +213,7 @@ class SimConfTestExternal(SimConfTestABC):
         simulation configuration file.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, *args, **kwargs) -> None:
         '''
         Initialize this simulation configuration context.
@@ -226,7 +228,7 @@ class SimConfTestExternal(SimConfTestABC):
         # In-memory simulation configuration deserialized from this file.
         self._p = Parameters().load(self.conf_filename)
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS                        }..................
     @property
     def p(self) -> 'betse.science.parameters.Parameters':
 

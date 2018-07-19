@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,28 +9,28 @@ isolated to specific tests, which typically modify the contents of these
 configurations so as to exercise specific feature sets and edge cases.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse_test.fixture.simconf.simconfclser import (
     SimConfTestExternal, SimConfTestInternal)
 from pytest import fixture
 from py._path.local import LocalPath
 
-# ....................{ FIXTURES                           }....................
-# Test-scope fixture creating and returning a new object for each discrete test.
+# ....................{ FIXTURES                          }....................
+# Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_sim_conf(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     '''
-    Per-test fixture creating a temporary minified simulation configuration file
-    and returning an object encapsulating the contents of this file.
+    Per-test fixture creating a temporary minified simulation configuration
+    file and returning an object encapsulating the contents of this file.
 
     Configuration Modifications (On-disk)
     ----------
     This fixture copies BETSE's default simulation configuration file,
     complete with all external assets (e.g., geometry masks) referenced and
-    required by this file, into a temporary directory whose basename is the name
-    of the test requesting this fixture excluding the prefixing substring
-    ``test_``. When requested by the ``test_cli_sim_default`` test, for example,
-    this fixture creates a temporary simulation configuration file
+    required by this file, into a temporary directory whose basename is the
+    name of the test requesting this fixture excluding the prefixing substring
+    ``test_``. When requested by the ``test_cli_sim_default`` test, for
+    example, this fixture creates a temporary simulation configuration file
     ``{tmpdir}/cli_sim_default/sim_config.yaml`` for the absolute path
     ``{tmpdir}`` of this test session's root temporary directory (e.g.,
     ``/tmp/pytest-0/cli_sim_default/sim_config.yaml``).
@@ -58,7 +58,7 @@ def betse_sim_conf(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     Parameters
     ----------
     betse_temp_dir : LocalPath
-        Object encapsulating a temporary directory isolated to the current test.
+        Object embodying a temporary directory isolated to the current test.
 
     Returns
     ----------
@@ -66,7 +66,8 @@ def betse_sim_conf(betse_temp_dir: LocalPath) -> SimConfTestInternal:
         Test-specific object encapsulating a temporary simulation configuration
         file specific to the current test, including such metadata as:
         * The absolute path of this configuration's on-disk YAML file.
-        * This configuration's in-memory dictionary deserialized from this file.
+        * This configuration's in-memory dictionary deserialized from this
+          file.
     '''
 
     # Absolute path of this configuration file in this temporary directory.
@@ -82,7 +83,7 @@ def betse_sim_conf(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     return sim_state
 
 
-# Test-scope fixture creating and returning a new object for each discrete test.
+# Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     '''
@@ -101,12 +102,12 @@ def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     Parameters
     ----------
     betse_temp_dir : LocalPath
-        Object encapsulating a temporary directory isolated to the current test.
+        Object embodying a temporary directory isolated to the current test.
 
     Returns
     ----------
     SimConfTestInternal
-        Test-specific object encapsulating a temporary simulation configuration.
+        Test-specific object embodying a temporary simulation configuration.
 
     See Also
     ----------
@@ -129,22 +130,23 @@ def betse_sim_conf_compat(
     betse_temp_dir: LocalPath) -> SimConfTestExternal:
     '''
     Per-test fixture creating and returning an object encapsulating a temporary
-    simulation configuration file (complete with a pickled seed, initialization,
-    and simulation) produced by the oldest version of this application for which
-    the current version of this application guarantees backward compatibility.
+    simulation configuration file (complete with a pickled seed,
+    initialization, and simulation) produced by the oldest version of this
+    application for which the current version of this application guarantees
+    backward compatibility.
 
     Caveats
     ----------
-    Unlike the object returned by the comparable :func:`betse_sim_conf` fixture,
-    the object returned by this fixture is *not* safely modifiable by the
-    current version of this application. Doing so would invalidate the pickled
-    files produced by the older version of this application, which would largely
-    defeat the purpose of invoking this fixture.
+    Unlike the object returned by the comparable :func:`betse_sim_conf`
+    fixture, the object returned by this fixture is *not* safely modifiable by
+    the current version of this application. Doing so would invalidate the
+    pickled files produced by the older version of this application, which
+    would largely defeat the purpose of invoking this fixture.
 
     Parameters
     ----------
     betse_temp_dir : LocalPath
-        Object encapsulating a temporary directory isolated to the current test.
+        Object embodying a temporary directory isolated to the current test.
 
     Returns
     ----------
@@ -169,12 +171,12 @@ def betse_sim_conf_compat(
     # Absolute path of the top-level temporary directory isolated to this test.
     betse_temp_dirname = str(betse_temp_dir)
 
-    # ..................{ PHASE                              }..................
+    # ..................{ PHASE                             }..................
     # Log a single-line terminal banner identifying the initial fixture phase.
     logs.log_banner(title='PHASE 1: shallow git clone', padding=BANNER_PADDING)
 
-    # Absolute pathname of this application's Git-based working tree. Since this
-    # test suite should only every be run from within a working tree, this
+    # Absolute pathname of this application's Git-based working tree. Since
+    # this test suite should only every be run from within a working tree, this
     # retrieval should *ALWAYS* succeed.
     git_worktree_dirname = pathtree.get_git_worktree_dirname_or_none()
 
@@ -191,12 +193,12 @@ def betse_sim_conf_compat(
         trg_dirname=betse_old_dirname,
     )
 
-    # ..................{ PHASE                              }..................
+    # ..................{ PHASE                             }..................
     # Log a single-line terminal banner identifying the next fixture phase.
     logs.log_banner(title='PHASE 2: sim config export', padding=BANNER_PADDING)
 
-    # Name of the functional test exporting an obsolete simulation configuration
-    # from this older version.
+    # Name of the functional test exporting an obsolete simulation
+    # configuration from this older version.
     test_cli_sim_export_name = 'test_cli_sim_export'
 
     # Absolute path of the simulation configuration file exported by this test
@@ -225,7 +227,7 @@ def betse_sim_conf_compat(
     # Test-specific object encapsulating this simulation configuration file.
     sim_state = SimConfTestExternal(conf_filename=sim_conf_old_filename)
 
-    # ..................{ PHASE                              }..................
+    # ..................{ PHASE                             }..................
     # Log a single-line terminal banner identifying the final fixture phase.
     logs.log_banner(title='PHASE 3: sim config test', padding=BANNER_PADDING)
 

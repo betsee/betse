@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -12,14 +12,14 @@ See Also
     Low-level non-directory file content facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import os, shutil
 from betse.exceptions import BetseFileException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
 from os import path as os_path
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_if_file(pathname: str) -> None:
     '''
     Raise an exception if the passed path is an existing non-directory file
@@ -99,7 +99,7 @@ def join_and_die_unless_file(*pathnames: str) -> str:
     # Return this dirname.
     return filename
 
-# ....................{ EXCEPTIONS ~ writable              }....................
+# ....................{ EXCEPTIONS ~ writable             }....................
 def die_unless_exists_writable(pathname: str) -> None:
     '''
     Raise an exception unless the passed path is an existing writable
@@ -116,12 +116,13 @@ def die_unless_exists_writable(pathname: str) -> None:
         Further details.
     '''
 
-    # If this file does not exist or does but is unwritable, raise an exception.
+    # If this file does not exist or does but is unwritable, raise an
+    # exception.
     if not is_exists_writable(pathname):
         raise BetseFileException(
             'File "{}" not found or unwritable.'.format(pathname))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_file(*pathnames: str) -> bool:
     '''
@@ -154,8 +155,8 @@ def is_file(*pathnames: str) -> bool:
     Returns
     ----------
     bool
-        ``True`` only if all such paths are existing non-directory files *after*
-        following symbolic links.
+        ``True`` only if all such paths are existing non-directory files
+        *after* following symbolic links.
     '''
 
     # Avoid circular import dependencies.
@@ -201,7 +202,7 @@ def is_exists_writable(pathname: str) -> bool:
 
     return is_file(pathname) and os.access(pathname, os.W_OK)
 
-# ....................{ TESTERS ~ symlink                  }....................
+# ....................{ TESTERS ~ symlink                 }....................
 @type_check
 def is_symlink(pathname: str) -> bool:
     '''
@@ -217,9 +218,9 @@ def is_symlink(pathname: str) -> bool:
 @type_check
 def is_symlink_valid(pathname: str) -> bool:
     '''
-    ``True`` only if the passed path is an existing **non-dangling symbolic link**
-    (i.e., symbolic link whose target also exists) *before* following symbolic
-    links.
+    ``True`` only if the passed path is an existing **non-dangling symbolic
+    link** (i.e., symbolic link whose target also exists) *before* following
+    symbolic links.
 
     This function does *not* raise an exception if this path does not exist.
     '''
@@ -230,7 +231,7 @@ def is_symlink_valid(pathname: str) -> bool:
     # This is why human-readable function names is a good thing, people.
     return is_symlink(pathname) and os_path.exists(pathname)
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get_size(filename: str) -> int:
     '''
@@ -243,7 +244,7 @@ def get_size(filename: str) -> int:
     # Return this filesize.
     return os_path.getsize(filename)
 
-# ....................{ COPIERS                            }....................
+# ....................{ COPIERS                           }....................
 @type_check
 def copy(
     # Mandatory parameters.
@@ -309,7 +310,7 @@ def copy(
     # Perform this copy in a manner preserving metadata and symbolic links.
     shutil.copy2(src_filename, trg_filename, follow_symlinks=False)
 
-# ....................{ REMOVERS                           }....................
+# ....................{ REMOVERS                          }....................
 @type_check
 def remove_if_found(filename: str) -> None:
     '''
@@ -322,9 +323,9 @@ def remove_if_found(filename: str) -> None:
 
     # Log this removal if the subsequent removal attempt is likely to actually
     # remove a file. Due to race conditions with other threads and processes,
-    # this file could be removed after this test succeeds but before the removal
-    # is performed. Since this is largely ignorable, the worst case is an
-    # extraneous log message.
+    # this file could be removed after this test succeeds but before the
+    # removal is performed. Since this is largely ignorable, the worst case is
+    # an extraneous log message.
     if is_file(filename):
         logs.log_debug('Removing file: %s', filename)
 
