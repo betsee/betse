@@ -37,10 +37,11 @@ def periodic(pc,cells,p):
 
     return scalar, y
 
-def f_sweep(pc,cells,p):
-    """
-    Creates a time-dependent sweep of a sinusoidal function through various
-    frequencies.
+
+def f_sweep(pc, cells, p) -> tuple:
+    '''
+    Create and return a time-dependent sweep of a sinusoidal function through
+    various frequencies.
 
     Parameters
     ----------
@@ -52,11 +53,11 @@ def f_sweep(pc,cells,p):
     ---------
     y              Data values from 0 to 1 defining a periodic signal.
     scalar         Null output corresponding to spatial variation.
-    """
+    '''
 
     scalar = 1
 
-    if p.f_scan_properties['f slope'] is None and p.run_sim is True:
+    if p.f_scan_properties['f slope'] is None and p._run_sim:
         p.f_scan_properties['f slope'] = (
             p.f_scan_properties['f stop'] -
             p.f_scan_properties['f start']) / p.sim_time_total
@@ -67,6 +68,7 @@ def f_sweep(pc,cells,p):
         np.pi*(f_slope*t + p.f_scan_properties['f start'])*t)**2
 
     return scalar, y
+
 
 def gradient_x(pc, cells,p):
     """

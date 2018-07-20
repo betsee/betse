@@ -92,23 +92,22 @@ init time settings:
 # ------------------------------------------------------------------------------
 
 sim time settings:
-
   time step: 1.0e-4       # time step-size [s] (recommended 1.0e-2 or smaller)
-  total time: 0.035         # time to end sim run [s]
-  sampling rate: 1.0e-3      # period to sample data [s] (at least time step or larger)
+  total time: 0.035       # time to end sim run [s]
+  sampling rate: 1.0e-3   # period to sample data [s] (at least time step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # GENERAL OPTIONS
 # ---------------------------------------------------------------------------------------------------------------------
 # Specify general options to be used in the init and sim runs.
-
+#
 # File sync warning: you can't change any of these general options after running 'betse seed'.
 
 general options:
-
-  comp grid size: 25   # grid used in computation of environmental parameters (min 10; keep smaller than 50)
-
-  simulate extracellular spaces: True    # include extracellular spaces and true environment simulation?
+  comp grid size: 25                     # grid used in computation of environmental
+                                         # parameters (min 10; keep smaller than 50)
+  simulate extracellular spaces: True    # include extracellular spaces and true environment
+                                         # simulation?
 
   ion profile: basic   # ion profile options:
                        # 'basic' (Na+, K+, M-, and proteins-)
@@ -122,7 +121,6 @@ general options:
                                # for the initialization run
                                # note both extracellular and cytosolic levels of all
                                # ions must sum to zero charge.
-
     extracellular Na+ concentration: 145.0          # extracellular sodium [mmol/L]
     extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
     extracellular Cl- concentration: 115.0          # extracellular chloride [mmol/L]
@@ -350,40 +348,41 @@ cutting event:
 #-----------------------------------------------------------------------------------------------------------------------
 # MODULATOR FUNCTION PROPERTIES
 #-----------------------------------------------------------------------------------------------------------------------
-# These are spatial or temporal functions, modifiable at any phase, that let you set a spatial gradient of production
-# rate or other effect, or define a time periodic signal for production or other effect. Alter their parameters here.
+# These are spatial or temporal functions, modifiable at any phase, that let you set a
+# spatial gradient of production rate or other effect, or define a time periodic signal for
+# production or other effect. Alter their parameters here.
 
 modulator function properties:   # set properties of modulating functions which may be used in above:
 
-  gradient_x:           # generate a spatial gradient of a property in the x-direction
-      slope: 1.0        # rate of change of gradient per unit x-dimension
-      x-offset: 0         # offset to all gradient values along the horizontal axis
-      z-offset: 0
-      exponent: 1      # Hill exponent for gradient values
+  gradient_x:        # generate a spatial gradient of a property in the x-direction
+    slope: 1.0       # rate of change of gradient per unit x-dimension
+    x-offset: 0      # offset to all gradient values along the horizontal axis
+    z-offset: 0
+    exponent: 1      # Hill exponent for gradient values
 
-  gradient_y:           # generate a spatial gradient of a property in the y-direction
-      slope: 1.0        # rate of change of gradient per unit x-dimension
-      x-offset: 0         # offset to all gradient values
-      z-offset: 0
-      exponent: 1      # Hill exponent for gradient values
+  gradient_y:        # generate a spatial gradient of a property in the y-direction
+    slope: 1.0       # rate of change of gradient per unit x-dimension
+    x-offset: 0      # offset to all gradient values
+    z-offset: 0
+    exponent: 1      # Hill exponent for gradient values
 
-  gradient_r:           # generate a radial spatial gradient of a property
-      slope: 1.0        # radial gradient rate of change per unit radius
-      x-offset: 0
-      z-offset: 0
-      exponent: 1      # Hill exponent for gradient values
+  gradient_r:        # generate a radial spatial gradient of a property
+    slope: 1.0       # radial gradient rate of change per unit radius
+    x-offset: 0
+    z-offset: 0
+    exponent: 1      # Hill exponent for gradient values
 
-  periodic:              # generate a sinusoidal oscillation of a property
-      frequency: 10       # frequency of oscillation [Hz]
-      phase: 0           # phase-offset of oscillation
+  periodic:          # generate a sinusoidal oscillation of a property
+    frequency: 10    # frequency of oscillation [Hz]
+    phase: 0         # phase-offset of oscillation
 
-  f_sweep:                    # apply a sinusoidal oscillation of a property as a sequence of frequencies
-      start frequency: 0.1e3          # start frequency
-      end frequency: 1e3            # end frequency
+  f_sweep:           # apply a sinusoidal oscillation of a property as a sequence of frequencies
+    start frequency: 0.1e3   # start frequency
+    end frequency: 1e3       # end frequency
 
   gradient_bitmap:           # generate a spatial gradient of a property from an imported bitmap image (png)
-      file: geo/ellipse/gradient.png
-      z-offset: 0.0
+    file: geo/ellipse/gradient.png
+    z-offset: 0.0
 
 # ----------------------------------------------------------------------------------------------------------------------
 # GLOBAL INTERVENTIONS

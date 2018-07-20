@@ -530,9 +530,7 @@ class Parameters(YamlFileABC):
         bool_ecmj = bool(self._conf['break ecm junctions']['event happens'])
         bool_pressure = bool(self._conf['apply pressure']['event happens'])
 
-        if bool_Namem is False:
-            self.scheduled_options['Na_mem'] = 0
-        elif bool_Namem is True:
+        if bool_Namem:
             on_Namem = float(self._conf['change Na mem']['change start'])
             off_Namem = float(self._conf['change Na mem']['change finish'])
             rate_Namem = float(self._conf['change Na mem']['change rate'])
@@ -541,10 +539,10 @@ class Parameters(YamlFileABC):
             function = self._conf['change Na mem']['modulator function']
             Namem = [on_Namem, off_Namem, rate_Namem, multi_Namem, apply_Namem,function]
             self.scheduled_options['Na_mem'] = Namem
+        else:
+            self.scheduled_options['Na_mem'] = 0
 
-        if bool_Kmem is False:
-            self.scheduled_options['K_mem'] = 0
-        elif bool_Kmem is True:
+        if bool_Kmem:
             on_Kmem = float(self._conf['change K mem']['change start'])
             off_Kmem = float(self._conf['change K mem']['change finish'])
             rate_Kmem = float(self._conf['change K mem']['change rate'])
@@ -553,10 +551,10 @@ class Parameters(YamlFileABC):
             function = self._conf['change K mem']['modulator function']
             Kmem = [on_Kmem, off_Kmem, rate_Kmem, multi_Kmem, apply_Kmem,function]
             self.scheduled_options['K_mem'] = Kmem
+        else:
+            self.scheduled_options['K_mem'] = 0
 
-        if bool_Clmem is False:
-            self.scheduled_options['Cl_mem'] = 0
-        elif bool_Clmem is True:
+        if bool_Clmem:
             on_Clmem = float(self._conf['change Cl mem']['change start'])
             off_Clmem = float(self._conf['change Cl mem']['change finish'])
             rate_Clmem = float(self._conf['change Cl mem']['change rate'])
@@ -565,10 +563,10 @@ class Parameters(YamlFileABC):
             function = self._conf['change Cl mem']['modulator function']
             Clmem = [on_Clmem, off_Clmem, rate_Clmem, multi_Clmem, apply_Clmem, function]
             self.scheduled_options['Cl_mem'] = Clmem
+        else:
+            self.scheduled_options['Cl_mem'] = 0
 
-        if bool_Camem is False:
-            self.scheduled_options['Ca_mem'] = 0
-        elif bool_Camem is True:
+        if bool_Camem:
             on_Camem = float(self._conf['change Ca mem']['change start'])
             off_Camem = float(self._conf['change Ca mem']['change finish'])
             rate_Camem = float(self._conf['change Ca mem']['change rate'])
@@ -577,6 +575,8 @@ class Parameters(YamlFileABC):
             function = self._conf['change Ca mem']['modulator function']
             Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem, apply_Camem,function]
             self.scheduled_options['Ca_mem'] = Camem
+        else:
+            self.scheduled_options['Ca_mem'] = 0
 
         if bool_pressure:
             on_p = float(self._conf['apply pressure']['change start'])

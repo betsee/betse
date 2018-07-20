@@ -24,6 +24,7 @@ from betse.util.io.log import logs
 from betse.util.path import files, pathnames
 from betse.util.type.decorator.decorators import deprecated
 from betse.util.type.decorator.decprof import log_time_seconds
+from betse.util.type.text import strs
 from betse.util.type.types import type_check
 
 # ....................{ CLASSES                           }....................
@@ -214,10 +215,11 @@ class SimRunner(object):
         #method should be shifted into the SimPhase.__init__() method. See a
         #FIXME comment preceding the set_time_profile() method for details.
         self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
-        self._p.run_sim = False # let the simulator know we're just running an initialization
 
         if not files.is_file(self._p.seed_pickle_filename):
             if not self._p.autoInit:
+                #FIXME: Call the _die_unless_file_pickled() function instead
+                #both here and everywhere else we perform similar logic. Bugbears!
                 raise BetseSimException(
                     'Initialization halted due to missing seed. '
                     'Please run "betse seed" and try again.')
@@ -278,7 +280,6 @@ class SimRunner(object):
 
         #FIXME: See above for pertinent commentary. Mists of time, unpart!
         self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
-        self._p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
 
         if not files.is_file(self._p.init_pickle_filename):
             if not self._p.autoInit:
@@ -350,7 +351,6 @@ class SimRunner(object):
 
         # Force the time profile to be initialized.
         self._p.set_time_profile(phase_kind)
-        self._p.run_sim = False
 
         # If networking an uninitialized, unsimulated cell cluster...
         if self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.SEED:
@@ -461,7 +461,10 @@ class SimRunner(object):
                 pathnames.get_basename(self._p.grn_unpickle_filename))
 
             # If this file does *NOT* exist, raise an exception.
-            files.die_unless_file(self._p.grn_unpickle_filename)
+            _die_unless_file_pickled(
+                filename=self._p.grn_unpickle_filename,
+                subcommand='sim-grn',
+                subcommand_label='Gene regulatory network')
 
             # Unpickle this file into a high-level "MasterOfGenes" object.
             MoG, _, _ = pickles.load(self._p.grn_unpickle_filename)
@@ -577,7 +580,10 @@ class SimRunner(object):
             self._p.conf_basename)
 
         # If an initialization does *NOT* already exist, raise an exception.
-        files.die_unless_file(self._p.seed_pickle_filename)
+        _die_unless_file_pickled(
+            filename=self._p.seed_pickle_filename,
+            subcommand='seed',
+            subcommand_label='Seed')
 
         # Load the seed from cache.
         cells, _ = fh.loadWorld(self._p.seed_pickle_filename)
@@ -725,7 +731,10 @@ class SimRunner(object):
             self._p.conf_basename)
 
         # If an initialization does *NOT* already exist, raise an exception.
-        files.die_unless_file(self._p.init_pickle_filename)
+        _die_unless_file_pickled(
+            filename=self._p.init_pickle_filename,
+            subcommand='init',
+            subcommand_label='Initialization')
 
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
@@ -820,7 +829,10 @@ class SimRunner(object):
             self._p.conf_basename)
 
         # If a simulation does *NOT* already exist, raise an exception.
-        files.die_unless_file(self._p.sim_pickle_filename)
+        _die_unless_file_pickled(
+            filename=self._p.sim_pickle_filename,
+            subcommand='sim',
+            subcommand_label='Simulation')
 
         # Simulation phase type.
         phase_kind = SimPhaseKind.SIM
@@ -1005,3 +1017,42 @@ class SimRunner(object):
     @deprecated
     def plotSim(self) -> None:
         return self.plot_sim()
+
+# ....................{ EXCEPTIONS                        }....................
+@type_check
+def _die_unless_file_pickled(
+    filename: str, subcommand: str, subcommand_label: str) -> None:
+    '''
+    Raise an exception containing the passed machine-readable subcommand and
+    human-readable label denoting that subcommand unless the file with the
+    passed filename pickled by a prior run of that subcommand exists.
+
+    Parameters
+    ----------
+    filename : str
+        Absolute filename of the pickled file to be validated.
+    subcommand : str
+        Machine-readable case-sensitive name of the prior subcommand expected
+        to have pickled this file (e.g., ``seed``, ``init``).
+    subcommand_label : str
+        Human-readable case-insensitive noun denoting the type of prior
+        subcommand expected to have pickled this file (e.g., ``Seed``,
+        ``initialization``).
+
+    Raises
+    ----------
+    BetseSimException
+        If this file does *not* exist.
+    '''
+
+    # If this file does *NOT* exist...
+    if not files.is_file(filename):
+        # Uppercase the first character of this label for readability.
+        subcommand_label_cased = strs.uppercase_char_first(subcommand_label)
+
+        # Raise an exception embedding these parameters.
+        raise BetseSimException(
+            '{} not previously run; '
+            'please run "betse {}" and try again.\n'
+            'Specifically, file not found: {}'.format(
+                subcommand_label_cased, subcommand, filename))

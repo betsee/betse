@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+# ....................{ LICENSE                           }....................
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import csv, math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,7 +36,7 @@ from matplotlib import colors
 from scipy.optimize import basinhopping
 from betse.science.math import finitediff as fd
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 # FIXME: if moving to have unpacked membrane concs, update transporters...
 class MasterOfNetworks(object):
     '''
@@ -49,6 +50,7 @@ class MasterOfNetworks(object):
         network to the corresponding :class:`Molecule` instance.
     '''
 
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, sim, cells, config_substances, p, mit_enabled = False):
         '''
         Initializes this object.
@@ -105,7 +107,6 @@ class MasterOfNetworks(object):
         self.extra_Jenv_y = np.zeros(sim.edl)
 
 
-    #------------Initializers-------------------------------------------------------------------------------------------
     def read_substances(self, sim, cells, config_substances, p):
         """
         Initialize all core data structures and concentration variables for all
@@ -291,15 +292,16 @@ class MasterOfNetworks(object):
         else:
             self.mit_concs = None
 
+
     def tissue_init(self, sim, cells, config_substances, p):
-        """
+        '''
         Complete the initialization process of each molecule with additional
         fields *without* modifying concentrations.
 
         This method also intelligently handles the edge case where the user
         changes configuration file settings *after* running an initiialization,
         ensuring that new parameters are updated.
-        """
+        '''
 
         logs.log_info("Initializing substances/reaction network...")
 
@@ -426,8 +428,9 @@ class MasterOfNetworks(object):
                     if modulator_function_name != 'None' and modulator_function_name is not None:
                         # mol.growth_mod_function_mems, _ = getattr(mods, modulator_function_name)(cells.mem_i,
                         #                                                                           cells, p)
-                        mol.growth_mod_function_cells, _ = getattr(mods, modulator_function_name)(cells.cell_i,
-                                                                                                    cells, p)
+                        mol.growth_mod_function_cells, _ = getattr(
+                            mods, modulator_function_name)(
+                                cells.cell_i, cells, p)
 
                     else:
                         # mol.growth_mod_function_mems = np.ones(sim.mdl)
@@ -2728,12 +2731,12 @@ class MasterOfNetworks(object):
         self.extra_Jenv_x = np.zeros(sim.edl)
         self.extra_Jenv_y = np.zeros(sim.edl)
 
-    def run_loop(self, t, sim, cells, p):
-        """
-        Runs the main simulation loop steps for each of the molecules included in the simulation.
 
-        """
-
+    def run_loop(self, t, sim, cells, p) -> None:
+        '''
+        Run the main simulation loop steps for each of the molecules included
+        in the simulation.
+        '''
 
         gad_rates_o = []
 
@@ -2844,21 +2847,19 @@ class MasterOfNetworks(object):
             # update concentration due to growth/decay and chemical reactions:
             self.cell_concs[name] = conco + deltac * p.dt
 
-
             if obj is not None:
 
                 # if pumping is enabled:
                 if obj.active_pumping:
                     obj.pump(sim, cells, p)
 
-            # if p.run_sim is True:
-            # use the substance as a gating ligand (if desired)
-
+                # use the substance as a gating ligand (if desired)
                 if obj.ion_channel_gating:
                     obj.gating_mod = eval(obj.gating_mod_eval_string, globalo, localo)
                     obj.gating(sim, cells, p)
 
-                if p.run_sim is True:
+                #FIXME: Refactor to test "phase.kind is SimPhaseKind.SIM". Yah!
+                if p._run_sim:
                     # update the global boundary (if desired)
                     if obj.change_bounds:
                         obj.update_boundary(t, p)
@@ -2911,6 +2912,7 @@ class MasterOfNetworks(object):
         if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
             self.mit.extra_rho = self.extra_rho_mit[:]
             self.mit.update(sim, cells, p)
+
 
     def run_loop_transporters(self, t, sim, cells, p):
 

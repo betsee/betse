@@ -1150,7 +1150,7 @@ class Simulator(object):
 
         # Save this initialization or simulation and report results of
         # potential interest to the user.
-        self.save_and_report(phase.cells, phase.p)
+        self._pickle_phase(phase)
 
         # If the simulation went unstable, inform the user and reraise the
         # previously raised exception to preserve the underlying cause. To
@@ -1216,11 +1216,10 @@ class Simulator(object):
 
             # Calculate the values of scheduled and dynamic quantities (e.g..
             # ion channel multipliers).
-            if p.run_sim:
+            if phase.kind is SimPhaseKind.SIM:
                 phase.dyna.fire_events(phase=phase, t=t)
 
-            # -----------------PUMPS-------------------------------------------------------------------------------------
-
+            # -----------------PUMPS-------------------------------------------
             # have the pump run only if the rate constant is larger than 0.0 (so people can shut it off):
 
             if p.alpha_NaK == 0.0:
@@ -1436,23 +1435,14 @@ class Simulator(object):
                 if anim_cells is not None:
                     anim_cells.plot_frame(time_step=-1)
 
-            # Get time for loop and estimate total time for simulation.
+            # If this is the first time step...
             if is_time_step_first:
                 # Ignore this conditional on all subsequent time steps.
                 is_time_step_first = False
 
-                loop_time = time.time() - loop_measure
-
-                # Estimated number of seconds to complete this phase.
-                if p.run_sim:
-                    time_estimate = round(loop_time * p.sim_tsteps, 2)
-                else:
-                    time_estimate = round(loop_time * p.init_tsteps, 2)
-
-                # Log this estimate.
-                logs.log_info(
-                    'This run should take approximately %fs to compute...',
-                    time_estimate)
+                # Log an estimate of the time required to compute this phase.
+                self._log_solver_time_estimate(
+                    phase=phase, step_first_time=loop_measure)
 
     # ..................{ SOLVERS ~ fast                    }..................
     def fast_sim_init(self, cells, p):
@@ -1562,7 +1552,7 @@ class Simulator(object):
 
             # Calculate the values of scheduled and dynamic quantities (e.g..
             # ion channel multipliers).
-            if p.run_sim:
+            if phase.kind is SimPhaseKind.SIM:
                 phase.dyna.fire_events(phase=phase, t=t)
 
             # update the microtubules:------------------------------------------------------------------------------
@@ -1692,25 +1682,53 @@ class Simulator(object):
                 if anim_cells is not None:
                     anim_cells.plot_frame(time_step=-1)
 
-            # Get time for loop and estimate total time for simulation.
+            # If this is the first time step...
             if is_time_step_first:
                 # Ignore this conditional on all subsequent time steps.
                 is_time_step_first = False
 
-                loop_time = time.time() - loop_measure
+                # Log an estimate of the time required to compute this phase.
+                self._log_solver_time_estimate(
+                    phase=phase, step_first_time=loop_measure)
 
-                # Estimated number of seconds to complete this phase.
-                if p.run_sim:
-                    time_estimate = round(loop_time * p.sim_tsteps, 2)
-                else:
-                    time_estimate = round(loop_time * p.init_tsteps, 2)
+    # ..................{ SOLVERS ~ util                    }..................
+    # Utility functions required by both the full and fast solvers.
 
-                # Log this estimate.
-                logs.log_info(
-                    'This run should take approximately %fs to compute...',
-                    time_estimate)
+    def _log_solver_time_estimate(
+        self, phase: SimPhase, step_first_time: float) -> None:
+        '''
+        Log an informational (i.e., with log level ``INFO``) estimate of the
+        time required to compute the passed simulation phase.
 
-    #.................{ FINALIZERS                  }..........................
+        Parameters
+        --------
+        phase : SimPhase
+            Current simulation phase.
+        step_first_time : float
+            Timestamp in fractional seconds at which the current solver began
+            computing this phase.
+        '''
+
+        # Number of seconds to compute the first time step of this phase.
+        step_first_duration = time.time() - step_first_time
+
+        #FIXME: Reuse the identical quantity already provided by this phase.
+        # Total number of time steps computed by this phase.
+        steps_total = (
+            phase.p.init_tsteps if phase.kind is SimPhaseKind.INIT else
+            phase.p.sim_tsteps)
+
+        # Number of seconds to compute all time steps of this phase, estimated
+        # by crudely extrapolating the time needed to compute the first time
+        # step to all remaining time steps.
+        time_estimate = round(step_first_duration * steps_total, 2)
+
+        # Log this estimate.
+        logs.log_info(
+            'This run should take approximately %fs to compute...',
+            time_estimate)
+
+    # ..................{ FINALIZERS                        }..................
     def clear_storage(self, cells, p):
         '''
         Re-initializes time storage vectors at the begining of a sim or init.
@@ -1794,22 +1812,19 @@ class Simulator(object):
             self.phi_time = []
 
         if p.molecules_enabled:
-
             self.molecules.core.clear_cache()
 
         if p.grn_enabled:
-
             self.grn.core.clear_cache()
 
         # if p.sim_eosmosis is True:
         #     self.rho_channel_time = []
         #     self.rho_pump_time = []
 
-        if p.Ca_dyn is True:
+        if p.Ca_dyn:
             self.endo_retic.clear_cache()
 
-        if p.is_ecm is True:
-
+        if p.is_ecm:
             self.charge_env_time = []
 
             self.efield_ecm_x_time = []   # matrices storing smooth electric field in ecm
@@ -1921,36 +1936,45 @@ class Simulator(object):
         # self.Bz_time.append(self.Bz)
 
 
-    def save_and_report(self, cells, p) -> None:
+    @type_check
+    def _pickle_phase(self, phase: SimPhase) -> None:
         '''
-        Save the results of running the current phase (e.g., initialization,
-        simulation).
+        Pickle (i.e., save) the results of running the passed simulation phase
+        and log an informative synopsis of these results.
+
+        Parameters
+        --------
+        phase : SimPhase
+            Current simulation phase.
         '''
 
-        cells.points_tree = None
+        #FIXME: This can probably be safely removed now. Since "points_tree"
+        #should be safely pickleable by "dill", we shouldn't need to nullify
+        #it. Maybe we can try commenting this out and giving it a go? Forests!
+        phase.cells.points_tree = None
 
-        #FIXME: What is this? Why do we need an extra copy of "cells", anyway?
+        #FIXME: This is... odd. Do we still need this extra copy of "cells"?
         # get rid of the extra copy of cells
-        if p.deformation:
-            cells = copy.deepcopy(self.cellso)
+        if phase.p.deformation:
+            phase.cells = copy.deepcopy(self.cellso)
 
         self.cellso = None
-        datadump = [self, cells, p]
+        datadump = [self, phase.cells, phase.p]
 
-        if p.run_sim:
-            fh.saveSim(p.sim_pickle_filename, datadump)
+        if phase.kind is SimPhaseKind.INIT:
+            fh.saveSim(phase.p.init_pickle_filename, datadump)
             logs.log_info(
-                'Simulation saved to:\n\t%s', p.sim_pickle_dirname)
+                'Initialization saved to:\n\t%s', phase.p.init_pickle_dirname)
         else:
-            fh.saveSim(p.init_pickle_filename, datadump)
+            fh.saveSim(phase.p.sim_pickle_filename, datadump)
             logs.log_info(
-                'Initialization saved to:\n\t%s', p.init_pickle_dirname)
+                'Simulation saved to:\n\t%s', phase.p.sim_pickle_dirname)
 
         final_vmean = 1000 * np.round(np.mean(self.vm_time[-1]), 6)
         logs.log_info('Final average cell Vmem: %g mV', final_vmean)
 
         # If this is the full BETSE solver...
-        if p.solver_type is SolverType.FULL:
+        if phase.p.solver_type is SolverType.FULL:
             # Report final output to the user.
             for i in range(0, len(self.ionlabel)):
                 endconc = np.round(np.mean(self.cc_time[-1][i]),6)
@@ -1964,17 +1988,18 @@ class Simulator(object):
                     'Final environmental concentration of %s: %g mmol/L',
                     self.ionlabel[i], endconc)
 
-            if p.GHK_calc:
-                final_vmean_GHK = 1000*np.round(np.mean(self.vm_GHK_time[-1]),6)
+            if phase.p.GHK_calc:
+                final_vmean_GHK = 1000*np.round(
+                    np.mean(self.vm_GHK_time[-1]),6)
                 logs.log_info(
-                    'Final average cell Vmem calculated using GHK: %s mV',
+                    'Final average cell Vmem calculated using GHK: %g mV',
                     final_vmean_GHK)
 
-        if p.molecules_enabled:
-            self.molecules.core.report(self, p)
+        if phase.p.molecules_enabled:
+            self.molecules.core.report(self, phase.p)
 
-        if p.grn_enabled:
-            self.grn.core.report(self, p)
+        if phase.p.grn_enabled:
+            self.grn.core.report(self, phase.p)
 
 
     def sim_info_report(self,cells,p):
@@ -2226,10 +2251,11 @@ class Simulator(object):
             ux = np.zeros(cells.X.shape)
             uy = np.zeros(cells.X.shape)
 
+        denv = (
+            self.D_env[i].reshape(cells.X.shape)*
+            self.TJ_modulator[i].reshape(cells.X.shape))
 
-        denv = self.D_env[i].reshape(cells.X.shape)*self.TJ_modulator[i].reshape(cells.X.shape)
-
-        # this equation assumes environmental transport is electrodiffusive--------------------------------------------:
+        # This equation assumes environmental transport is electrodiffusive.
         fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, ux, uy,
                                           denv, self.zs[i], self.T, p)
 

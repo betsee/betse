@@ -185,6 +185,38 @@ class SimPhase(object):
         #"betse.science.chemistry.networks" submodule. (You know what to do.)
         self.sim.dyna = self.dyna
 
+        #FIXME: Eliminate this crude hack by refactoring all references to
+        #"p._run_sim" throughout the codebase to test "phase.kind" instead.
+        #Although there only exists one remaining reference, refactoring that
+        #reference will be a living nightmare. Why? Because the reference
+        #resides in a modulator function -- which are currently called in an
+        #extremely dynamic, inscrutable, non-greppable manner. Refactoring this
+        #single reference to test "phase.kind" instead will require:
+        #
+        #* Defining a new high-level
+        #  betse.science.math.modulate.make_modulator() function resembling:
+        #      def make_modulator(modulator_name: str) -> CallableTypes
+        #* Refactoring *ALL* modulator functions to accept a single "phase:
+        #  SimPhase" parameter rather than the two "cells, p" parameters
+        #  currently accepted by modulator functions.
+        #* Refactoring *ALL* calls to modulator functions to instead:
+        #  * First call the make_modulator() function. This will ensure that
+        #    this *NEVER* happens again, by ensuring that we're able to
+        #    reliably manage modulator functions from a single point of
+        #    failure.
+        #  * Next call the callable returned by that function, passing that
+        #    callable the current "phase" object. Of course, this will in turn
+        #    necessitate refactoring each callable performing such a call to
+        #    transitively accept the current "phase" object. This is Hell.
+        #* Refactoring the f_sweep() modulator function to test "phase.kind"
+        #  rather than "p._run_sim".
+        #
+        #To grep for existing calls to modulator functions, grep for both the
+        #strings "\bmodulator function\b" and "\bgetattr\(". Our YAML structure
+        #appears to reliably refer to the desired modulator function for a
+        #given operation via "'modulator function'". *sigh*
+        self.p._run_sim = kind is SimPhaseKind.SIM
+
         #FIXME: Isolate exports produced by the "seed" phase to their own
         #directory; for simplicity, these exports currently reuse the same
         #directory as that of the "init" phase.
