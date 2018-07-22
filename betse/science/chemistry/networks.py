@@ -2732,43 +2732,48 @@ class MasterOfNetworks(object):
         self.extra_Jenv_y = np.zeros(sim.edl)
 
 
-    def run_loop(self, t, sim, cells, p) -> None:
+    @type_check
+    def run_loop(self, phase: SimPhase, t: float) -> None:
         '''
-        Run the main simulation loop steps for each of the molecules included
-        in the simulation.
+        Simulate this gene regulatory network (GRN) for the passed simulation
+        phase at the passed time step for all simulated molecules.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+        t : float
+            Time step at which to simulate this GRN.
         '''
 
+        # Localize high-level phase objects for convenience.
+        cells = phase.cells
+        p     = phase.p
+        sim   = phase.sim
+
+        # List locals, defaulting to the empty list.
         gad_rates_o = []
-
         gad_targs = []
-
         init_rates = []
-
         gad_rates = []
 
         globalo = globals()
         localo = locals()
 
         for mol in self.molecules:
-
             # calculate concentrations at membranes:
             obj = self.molecules[mol]
 
             # print(obj.use_time_dilation)
-
             obj.update_intra(sim, cells, p)
 
             # calculate rates of growth/decay:
             gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, globalo, localo))
-
             gad_targs.append(self.molecules[mol].growth_targets_cell)
-
             init_rates.append(np.zeros(sim.cdl))
 
         for mat, trgs, rts in zip(init_rates, gad_targs, gad_rates_o):
-
             mat[trgs] = rts[trgs]
-
             gad_rates.append(mat)
 
         gad_rates = np.asarray(gad_rates)
@@ -2780,7 +2785,6 @@ class MasterOfNetworks(object):
         # stack into an integrated data structure:
         if len(self.reaction_rates) > 0:
             all_rates = np.vstack((gad_rates, self.reaction_rates))
-
         else:
             all_rates = gad_rates
 
@@ -2796,26 +2800,22 @@ class MasterOfNetworks(object):
             # calculate concentration rate of change using linear algebra:
             self.delta_conc_mit = np.dot(self.reaction_matrix_mit, self.reaction_rates_mit)
 
-        # update environmental concentrations:
+        # Update environmental concentrations.
         if len(self.reactions_env)>0:
             # ... rates of chemical reactions in env:
             self.reaction_rates_env = np.asarray(
                 [eval(self.reactions_env[rn].reaction_eval_string, globalo, localo) for
                     rn in self.reactions_env])
 
-            # calculate concentration rate of change using linear algebra:
-            self.delta_conc_env = np.dot(self.reaction_matrix_env, self.reaction_rates_env)
-
+            # Calculate concentration rate of change using linear algebra.
+            self.delta_conc_env = np.dot(
+                self.reaction_matrix_env, self.reaction_rates_env)
         else:
-
             self.delta_conc_env = None
 
         if self.delta_conc_env is not None:
-
             for name_env, deltae in zip(self.env_concs, self.delta_conc_env):
-
                 conce = self.env_concs[name_env]
-
                 self.env_concs[name_env] = conce + deltae*p.dt
 
             #     # update the boundary condition as well:
@@ -2832,47 +2832,44 @@ class MasterOfNetworks(object):
             #         print(self.env_concs['K'].mean())
             # print('---------------')
 
-
-        for ii, (name, deltac) in enumerate(zip(self.cell_concs, self.delta_conc)):
-
+        for ii, (name, deltac) in enumerate(
+            zip(self.cell_concs, self.delta_conc)):
             conco = self.cell_concs[name]
 
             if name not in p.ions_dict:
-
                 obj = self.molecules[name]
-
             else:
                 obj = None
 
-            # update concentration due to growth/decay and chemical reactions:
+            # Update concentration due to growth/decay and chemical reactions.
             self.cell_concs[name] = conco + deltac * p.dt
 
             if obj is not None:
-
-                # if pumping is enabled:
+                # If pumping is enabled.
                 if obj.active_pumping:
                     obj.pump(sim, cells, p)
 
-                # use the substance as a gating ligand (if desired)
+                # Use the substance as a gating ligand (if desired).
                 if obj.ion_channel_gating:
-                    obj.gating_mod = eval(obj.gating_mod_eval_string, globalo, localo)
+                    obj.gating_mod = eval(
+                        obj.gating_mod_eval_string, globalo, localo)
                     obj.gating(sim, cells, p)
 
-                #FIXME: Refactor to test "phase.kind is SimPhaseKind.SIM". Yah!
-                if p._run_sim:
-                    # update the global boundary (if desired)
-                    if obj.change_bounds:
-                        obj.update_boundary(t, p)
+                # If this is the simulation phase and the global boundary for
+                # this molecule requires updating, do so.
+                if obj.change_bounds and phase.kind is SimPhaseKind.SIM:
+                    obj.update_boundary(t, p)
 
-                # transport the molecule through gap junctions and environment:
+                # Transport the molecule through gap junctions and environment.
                 obj.transport(sim, cells, p)
 
-                # ensure no negs:
+                # Ensure no negatives.
                 stb.no_negs(obj.c_cells)
                 stb.no_negs(obj.c_env)
 
                 if p.substances_affect_charge:
-                    # calculate the charge density this substance contributes to cell and environment:
+                    # Calculate the charge density this substance contributes
+                    # to cell and environment.
                     self.extra_rho_cells[:] += p.F*obj.c_cells*obj.z*obj.scale_factor
                     self.extra_J_mem[:] +=  -obj.z*obj.f_mem*p.F*obj.scale_factor + obj.z*obj.f_gj*p.F*obj.scale_factor
                     # self.extra_rho_mems[:] += p.F*obj.cc_at_mem*obj.z*obj.scale_factor
@@ -2882,16 +2879,15 @@ class MasterOfNetworks(object):
                         self.extra_Jenv_x += obj.fenvx.ravel()*obj.z*p.F*obj.scale_factor
                         self.extra_Jenv_y += obj.fenvy.ravel()*obj.z*p.F*obj.scale_factor
 
-
             if self.mit_enabled and len(self.reactions_mit)>0:
-
                 concm = self.mit_concs[name]
-                # update concentration due to chemical reactions in mitochondria:
+
+                # Update concentration due to chemical reactions in
+                # mitochondria.
                 self.mit_concs[name] = concm + self.delta_conc_mit[ii]*p.dt
 
-                # ensure no negative values:
+                # Ensure no negative values.
                 stb.no_negs(self.mit_concs[name])
-
 
             if self.mit_enabled and obj is not None:
                 # calculate the charge density this substance contributes to mit:

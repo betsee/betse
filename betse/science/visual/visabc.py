@@ -881,9 +881,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # "time_unit_suffix".
         time_unit_factor = None
 
-        # Duration in seconds of the current simulation phase (e.g., "init",
-        # "run"), accelerated by the current gap junction acceleration factor.
-        time_len = self._phase.p.total_time_accelerated
+        # Duration in seconds of the current simulation phase.
+        time_len = self._phase.p.total_time
 
         # If this phase runs for less than or equal to 100ms, report
         # simulation time in milliseconds (i.e., units of 0.001s).

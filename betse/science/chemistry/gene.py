@@ -4,12 +4,12 @@
 # See "LICENSE" for further details.
 
 '''
-Controls a gene regulatory network.
+Gene regulatory network (GRN).
 
-Creates and electrodiffuses a suite of customizable general gene products in
-the BETSE ecosystem, where the gene products are assumed to activate and/or
-inhibit the expression of other genes (and therefore the production of other
-gene products) in the gene regulatory network (GRN).
+This submodule creates and electrodiffuses a suite of customizable general gene
+products in the BETSE ecosystem, where the gene products are assumed to
+activate and/or inhibit the expression of other genes (and therefore the
+production of other gene products) in the gene regulatory network (GRN).
 '''
 
 #FIXME: Unify the large amount of code shared in common between this and the
@@ -208,8 +208,8 @@ class MasterOfGenes(object):
     @type_check
     def run_core_sim(self, phase: SimPhase) -> None:
         '''
-        Run this gene regulatory network (GRN) in an isolated manner ignoring
-        all other biophysicality (e.g., bioelectricity, fluid flow).
+        Simulate this gene regulatory network (GRN) in an isolated manner
+        ignoring all other biophysicality (e.g., bioelectricity, fluid flow).
 
         Parameters
         ----------
@@ -217,13 +217,20 @@ class MasterOfGenes(object):
             Current simulation phase.
         '''
 
-        # Localize pertinent simulation phase objects for convenience.
+        # Localize high-level phase objects for convenience.
         cells = phase.cells
-        p = phase.p
-        sim = phase.sim
+        p     = phase.p
+        sim   = phase.sim
 
         # set molecules to not affect charge for sim-grn test-drives:
         p.substances_affect_charge = False
+
+        #FIXME: This... is quite unfortunate. Ideally, core parameters in the
+        #"Parameters" object should *NEVER* be modified, as doing so actually
+        #modifies the underlying YAML dictionary structure. If the current
+        #simulation configuration file is saved to disk, the user-defined
+        #values for these parameters will be overwritten by the new hacky
+        #values defined below. Which would be bad. Is there no alternative?
 
         # Set sim-grn specific time step and sampling:
         p.dt = p.grn_dt
@@ -261,7 +268,6 @@ class MasterOfGenes(object):
         self.mod_after_cut = False # set this to false
 
         if self.recalc_fluid:  # If user requests the GRN recalculate/calculate fluid:
-
             logs.log_info("Calculating fluid in terms of endogenous currents...")
 
             p.fluid_flow = True  # turn fluid flow on (in case it was off)
@@ -274,7 +280,6 @@ class MasterOfGenes(object):
             sim.u_env_y = -sim.J_env_y / (p.F * cc * zz)
 
         if p.use_microtubules:
-
             sim.mtubes.reinit(cells, p)
 
             self.mtubes_x_time = []
@@ -289,7 +294,7 @@ class MasterOfGenes(object):
             if self.transporters:
                 self.core.run_loop_transporters(t, sim, cells, p)
 
-            self.core.run_loop(t, sim, cells, p)
+            self.core.run_loop(phase=phase, t=t)
 
             if p.use_microtubules: # update the microtubules:
                 sim.mtubes.update_mtubes(cells, sim, p)

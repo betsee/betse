@@ -207,15 +207,6 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
 
-        #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
-        #profile type be passed. The current approach leaves critical attributes
-        #undefined in the event that the optional Parameters.set_time_profile()
-        #method is left uncalled, which is pretty unacceptable.
-        #FIXME: Actually, no. All logic performed by the set_time_profile()
-        #method should be shifted into the SimPhase.__init__() method. See a
-        #FIXME comment preceding the set_time_profile() method for details.
-        self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
-
         if not files.is_file(self._p.seed_pickle_filename):
             if not self._p.autoInit:
                 #FIXME: Call the _die_unless_file_pickled() function instead
@@ -277,9 +268,6 @@ class SimRunner(object):
 
         # Simulation phase type.
         phase_kind = SimPhaseKind.SIM
-
-        #FIXME: See above for pertinent commentary. Mists of time, unpart!
-        self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         if not files.is_file(self._p.init_pickle_filename):
             if not self._p.autoInit:
@@ -348,9 +336,6 @@ class SimRunner(object):
             'defined in config file "%s"...',
             pathnames.get_basename(self._p.grn_config_filename),
             self._p.conf_basename)
-
-        # Force the time profile to be initialized.
-        self._p.set_time_profile(phase_kind)
 
         # If networking an uninitialized, unsimulated cell cluster...
         if self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.SEED:
@@ -739,9 +724,6 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
 
-        #FIXME: See above for pertinent commentary. Mists of time, unpart!
-        self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
-
         # Load the initialization from cache.
         sim, cells, _ = fh.loadSim(self._p.init_pickle_filename)
 
@@ -837,9 +819,6 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.SIM
 
-        #FIXME: See above for pertinent commentary. Mists of time, unpart!
-        self._p.set_time_profile(phase_kind)  # force the time profile to be simulation
-
         # Load the simulation from the cache.
         sim, cells, _ = fh.loadSim(self._p.sim_pickle_filename)
 
@@ -917,9 +896,6 @@ class SimRunner(object):
 
         # High-level simulation objects.
         sim = Simulator(self._p)
-
-        #FIXME: See above for pertinent commentary. Mists of time, unpart!
-        self._p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         # MoG = MasterOfGenes(self._p)
         MoG, cells, _ = fh.loadSim(self._p.grn_pickle_filename)

@@ -25,7 +25,6 @@ from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.organelles.microtubules import Mtubes
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.io.log import logs
-from betse.util.path import pathnames
 from betse.util.type.contexts import noop_context
 from betse.util.type.types import type_check, NoneType
 from numpy import ndarray
@@ -1278,30 +1277,24 @@ class Simulator(object):
                 #                                                              self.cc_env[self.iK], fK_NaK,
                 #                                                              cells, p, ignoreECM = self.ignore_ecm)
 
-
             # ----------------ELECTRODIFFUSION---------------------------------------------------------------------------
-
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
 
             # shuffle(self.movingIons)
-
             for i in self.movingIons:
 
                 IdM = np.ones(self.mdl)
 
                 if p.is_ecm:
-
                     f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_at_mem[i],
                         self.Dm_cells[i], IdM*p.tm, self.zs[i]*IdM, self.vm, self.T, p,
                         rho=self.rho_channel)
-
                 else:
-
                     f_ED = stb.electroflux(self.cc_env[i],self.cc_at_mem[i],
                                             self.Dm_cells[i],IdM*p.tm,self.zs[i]*IdM,
                                     self.vm,self.T,p,rho=self.rho_channel)
 
-                if p.cluster_open is False:
+                if not p.cluster_open:
                     f_ED[cells.bflags_mems] = 0
 
                 # add membrane flux to storage
@@ -1324,25 +1317,19 @@ class Simulator(object):
                 # update concentration gradient to estimate concentrations at membranes:
                 self.update_intra(cells, p, i)
 
-
-
-            # ----transport and handling of special ions------------------------------------------------------------
-
+            # ----transport and handling of special ions-----------------------
             if p.ions_dict['Ca'] == 1:
                 self.ca_handler(cells, p)
 
             # if p.ions_dict['H'] == 1:
-            #
             #     self.acid_handler(cells, p)
 
-            # update the microtubules:------------------------------------------------------------------------------
-
+            # update the microtubules:-----------------------------------------
             if p.use_microtubules:
                 self.mtubes.update_mtubes(cells, self, p)
 
-            # update the general molecules handler-----------------------------------------------------------------
+            # update the general molecules handler-----------------------------
             if p.molecules_enabled:
-
                 self.molecules.core.clear_run_loop(self)
 
                 if self.molecules.transporters:
@@ -1354,12 +1341,11 @@ class Simulator(object):
                 if self.molecules.modulators:
                     self.molecules.core.run_loop_modulators(self, cells, p)
 
-                self.molecules.core.run_loop(t, self, cells, p)
+                # Update the main molecules network.
+                self.molecules.core.run_loop(phase=phase, t=t)
 
-            # update gene regulatory network handler--------------------------------------------------------
-
+            # update gene regulatory network handler---------------------------
             if p.grn_enabled:
-
                 self.grn.core.clear_run_loop(self)
 
                 if self.grn.transporters:
@@ -1371,12 +1357,10 @@ class Simulator(object):
                 if self.grn.modulators:
                     self.grn.core.run_loop_modulators(self, cells, p)
 
-                # update the main gene regulatory network:
-                self.grn.core.run_loop(t, self, cells, p)
+                # Update the main gene regulatory network.
+                self.grn.core.run_loop(phase=phase, t=t)
 
-
-            # dynamic noise handling-----------------------------------------------------------------------------------
-
+            # dynamic noise handling-------------------------------------------
             if p.dynamic_noise == 1 and p.ions_dict['P'] == 1:
 
                 # add a random walk on protein concentration to generate dynamic noise:
@@ -1388,8 +1372,7 @@ class Simulator(object):
                                                         self.cc_env[self.iP], self.protein_noise_flux, cells,
                                                         p, ignoreECM = self.ignore_ecm)
 
-            #-----forces, fields, and flow-----------------------------------------------------------------------------
-
+            #-----forces, fields, and flow-------------------------------------
             # calculate specific forces and pressures:
 
             if p.deform_osmo:
@@ -1555,14 +1538,12 @@ class Simulator(object):
             if phase.kind is SimPhaseKind.SIM:
                 phase.dyna.fire_events(phase=phase, t=t)
 
-            # update the microtubules:------------------------------------------------------------------------------
-
+            # update the microtubules:-----------------------------------------
             if p.use_microtubules:
                 self.mtubes.update_mtubes(cells, self, p)
 
-            # update the general molecules handler-----------------------------------------------------------------
+            # update the general molecules handler-----------------------------
             if p.molecules_enabled:
-
                 self.molecules.core.clear_run_loop(self)
 
                 if self.molecules.transporters:
@@ -1574,12 +1555,11 @@ class Simulator(object):
                 if self.molecules.modulators:
                     self.molecules.core.run_loop_modulators(self, cells, p)
 
-                self.molecules.core.run_loop(t, self, cells, p)
+                # Update the main molecules network.
+                self.molecules.core.run_loop(phase=phase, t=t)
 
-            # update gene regulatory network handler--------------------------------------------------------
-
+            # update gene regulatory network handler---------------------------
             if p.grn_enabled:
-
                 self.grn.core.clear_run_loop(self)
 
                 if self.grn.transporters:
@@ -1591,8 +1571,8 @@ class Simulator(object):
                 if self.grn.modulators:
                     self.grn.core.run_loop_modulators(self, cells, p)
 
-                # update the main gene regulatory network:
-                self.grn.core.run_loop(t, self, cells, p)
+                # Update the main gene regulatory network.
+                self.grn.core.run_loop(phase=phase, t=t)
 
             # Update gap junctions:
             self.vgj = self.vm_ave[cells.cell_nn_i[:, 1]] - self.vm_ave[cells.cell_nn_i[:, 0]]
@@ -2363,16 +2343,15 @@ class Simulator(object):
 
         return ion
 
+
     def initDenv(self,cells,p):
         '''
         Initialize the environmental diffusion matrix and corresponding weight
         matrices, including tight and adherin junctions.
         '''
 
-        if p.is_ecm is True:
-
-            for i, dmat in enumerate(self.D_env):
-
+        if p.is_ecm:
+            for i, _ in enumerate(self.D_env):
                 Denv_o = np.ones(self.edl) * self.D_free[i]
 
                 # adherens junctions slow diffusion throughout the cell cluster:

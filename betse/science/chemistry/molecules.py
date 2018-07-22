@@ -186,8 +186,11 @@ class MasterOfMolecules(object):
         else:
             self.modulators = False
 
+
     #FIXME: This method no longer appears to be called anywhere. Is this
     #vestigial or does my monocle simply need to be cleaned?
+    #FIXME: This method now appears to be broken. While repairing this method
+    #should be feasible, perhaps we simply want to remove it entirely? Dunebuggy!
     def run_core_sim(self, sim, cells, p):
 
         sim.vm = -50e-3*np.ones(sim.mdl)
@@ -217,17 +220,13 @@ class MasterOfMolecules(object):
         self.time = []
 
         for t in tt:
-
             if self.transporters:
                 self.core.run_loop_transporters(t, sim, cells, p)
 
             # if self.modulators:
             #     self.core.run_loop_modulators(sim, self.core, cells, p)
 
-            self.core.run_loop(t, sim, cells, p)
-
-
-
+            self.core.run_loop(phase=phase, t=t)
 
             if t in tsamples:
                 sim.time.append(t)

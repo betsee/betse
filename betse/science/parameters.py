@@ -6,7 +6,7 @@
 # ....................{ IMPORTS                           }....................
 import numpy as np
 from betse import pathtree
-from betse.exceptions import BetseSimConfException, BetseSimPhaseException
+from betse.exceptions import BetseSimConfException
 from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
@@ -18,7 +18,7 @@ from betse.science.config.export.visual.confplot import SimConfPlotAll
 from betse.science.config.grn.confgrn import SimConfGrnFile
 from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
-from betse.science.phase.phaseenum import SimPhaseKind
+# from betse.science.phase.phaseenum import SimPhaseKind
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 # from betse.util.type.decorator.decmemo import property_cached
@@ -196,29 +196,24 @@ class Parameters(YamlFileABC):
     Attributes (Time: Total)
     ----------
     init_time_total : float
-        Duration in seconds of the initialization phase *not* modified by
-        extraneous settings (e.g., gap junction acceleration factor).
+        Duration in seconds of the initialization phase.
     sim_time_total : float
-        Duration in seconds of the simulation phase *not* modified by
-        extraneous settings (e.g., gap junction acceleration factor).
-    total_time : float
-        Duration in seconds of the current simulation phase *not* modified by
-        extraneous settings (e.g., gap junction acceleration factor).
-    total_time_accelerated : float
-        Duration in seconds of the current simulation phase accelerated by the
-        gap junction acceleration factor.
+        Duration in seconds of the simulation phase.
 
     Attributes (Time: Step)
     ----------
     init_time_step : float
-        Duration in seconds of each time step (including sampled and unsampled)
+        Duration in seconds of each time step (including both sampled and
+        unsampled) for the initialization phase.
+    init_tsteps : float
+        Total number of all time steps (including both sampled and unsampled)
         for the initialization phase.
     sim_time_step : float
-        Duration in seconds of each time step (including sampled and unsampled)
-        for the initialization phase.
-    dt : float
-        Duration in seconds of each time step (including sampled and unsampled)
-        for the current simulation phase.
+        Duration in seconds of each time step (including both sampled and
+        unsampled) for the simulation phase.
+    sim_tsteps : float
+        Total number of all time steps (including both sampled and unsampled)
+        for the simulation phase.
 
     Attributes (Time: Sampling)
     ----------
@@ -232,13 +227,6 @@ class Parameters(YamlFileABC):
         sampled time step itself) for the simulation phase. Decreasing this
         duration increases the number of time steps for which data is exported
         from this phase at a linear cost in space consumption.
-    t_resample : float
-        Number of time steps between each sampled time step, including that
-        sampled time step itself. Notably, if the current time step ``t`` is a
-        sampled time step:
-
-        * ``t + t_resample`` is the next sampled time step (if any).
-        * ``t - t_resample`` is the prior sampled time step (if any).
 
     Attributes (Gene Regulatory Network)
     ----------
@@ -476,6 +464,9 @@ class Parameters(YamlFileABC):
 
         self.autoInit = self._conf['automatically run initialization']
         self.plot_grid_size = 50
+
+        self.init_tsteps = self.init_time_total / self.init_time_step
+        self. sim_tsteps = self. sim_time_total / self. sim_time_step
 
         #----------------------------------------------------------------------
         # WORLD OPTIONS
@@ -1430,52 +1421,6 @@ class Parameters(YamlFileABC):
             raise BetseSimConfException(
                 'Extracellular spaces disabled by '
                 'this simulation configuration.')
-
-    # ..................{ SETTERS                           }..................
-    #FIXME: Actually, this method makes little sense here; clearly, this method
-    #sets phase-specific attributes. All phase-specific attributes should reside
-    #directly in the "SimPhase" API rather than in this class, which is
-    #supposed to be phase-agnostic and hence reusable between phases.
-
-    @type_check
-    def set_time_profile(self, phase_kind: SimPhaseKind) -> None:
-        '''
-        Set temporal attributes specific to the passed simulation phase type.
-
-        These attributes include:
-
-        * ``dt``, the duration in seconds of each time step for this phase.
-        * ``total_time``, the duration in seconds of this phase.
-
-        Parameters
-        ----------
-        phase_kind : SimPhaseKind
-            Current simulation phase type.
-        '''
-
-        # If this simulation phase is an initialization...
-        if phase_kind is SimPhaseKind.INIT:
-            self.dt = self.init_time_step
-            self.init_tsteps = self.init_time_total / self.dt
-            self.resample = self.init_time_sampling
-            self.total_time = self.init_time_total
-        # Else if this simulation phase is a simulation.
-        elif phase_kind is SimPhaseKind.SIM:
-            self.dt = self.sim_time_step
-            self.sim_tsteps = self.sim_time_total / self.dt
-            self.resample = self.sim_time_sampling
-            self.total_time = self.sim_time_total
-        else:
-            raise BetseSimPhaseException(
-                'Simulation phase "{}" unsupported.'.format(phase_kind.name))
-
-        # Number of time steps (including sampled and unsampled) between each
-        # unsampled time step, including that unsampled time step itself.
-        self.t_resample = self.resample / self.dt
-
-        # Duration in seconds of the current simulation phase accelerated by
-        # the current gap junction acceleration factor.
-        self.total_time_accelerated = self.total_time
 
     # ..................{ SUPERCLASS                        }..................
     #FIXME: Actually implement this properly. Ideally, this method should return
