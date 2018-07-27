@@ -60,12 +60,19 @@ Human-readable name of the license this application is licensed under.
 # submodule's docstring above.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-#FIXME: Bump this to Python >= 3.5.0. Python 3.4.0 is at its end-of-life and
-#scheduled to be decomissioned shortly.
-PYTHON_VERSION_MIN = '3.4.0'
+PYTHON_VERSION_MIN = '3.5.0'
 '''
 Human-readable minimum version of Python required by this application as a
 ``.``-delimited string.
+
+Rationale
+----------
+This application previously required only Python >= 3.4.0 for access to the
+standard :mod:`enum` module introduced by that major release. Since Python
+3.4.0 is approaching its official end-of-life (EOL) and scheduled to be
+decomissioned shortly, this application now unavoidably requires the next
+major release of Python despite currently leveraging no features introduced by
+that release.
 '''
 
 
@@ -129,7 +136,7 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 
     # Die ignominiously.
     raise RuntimeError(
-        '{} requires at least Python {}, but the active Python interpreter '
+        '{} requires at least Python {}, but the active interpreter '
         'is only Python {}. We feel deep sadness for you.'.format(
             NAME, PYTHON_VERSION_MIN, PYTHON_VERSION))
 

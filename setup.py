@@ -111,6 +111,8 @@ https://pypi.python.org/pypi?%3Aaction=list_classifiers
 '''
 
 # ....................{ INITIALIZERS                       }....................
+#FIXME: Replace this entire function with the considerably more succinct and
+#hence saner approach taken by BETSEE.
 def _init() -> None:
     '''
     Finalize the definition of all globals declared by this script.
@@ -152,16 +154,6 @@ def _init() -> None:
 # Finalize the definition of all globals declared by this module.
 _init()
 
-#FIXME: O.K.; it would appear that setuptools >= 38.0.0 now requires iterables
-#to strictly be ordered sequences, whereas before it accepted unordered
-#sequences. So, setuptools broke backwards compatibility yet again. Fortunately,
-#the fix should be (mostly) trivial: just compact the
-#"metadeps.RUNTIME_MANDATORY" dictionary passed to the "install_requires"
-#parameter into a tuple of concatenated strings instead. We'll also need to do
-#so for any other parameters accepting similar iterables. *sigh*
-
-# print('mandatory runtime dependencies: {}'.format(metadeps.RUNTIME_MANDATORY))
-
 # ....................{ OPTIONS                            }....................
 # Setuptools-specific options. Keywords not explicitly recognized by either
 # setuptools or distutils must be added to the above dictionary instead.
@@ -182,8 +174,8 @@ _setup_options = {
     # ..................{ PYPI                               }..................
     # PyPi-specific metadata.
     'classifiers': _CLASSIFIERS,
-    'keywords': _KEYWORDS,
-    'license': metadata.LICENSE,
+    'keywords':    _KEYWORDS,
+    'license':     metadata.LICENSE,
 
     # ..................{ DEPENDENCIES                       }..................
     # Mandatory runtime dependencies.
@@ -198,6 +190,7 @@ _setup_options = {
     # "sudo pip3 install betse[all]", installing both the application and all
     # mandatory and optional dependencies required by the application).
     'extras_require': {
+        # All optional runtime dependencies.
         'all': libs.get_runtime_optional_tuple(),
     },
 
