@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,13 +7,13 @@
 Top-level abstract base class of all command line interface (CLI) subclasses.
 '''
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
 # top-level of this module may import *ONLY* from submodules guaranteed to:
 # * Exist, including standard Python and application modules.
 # * Never raise exceptions on importation (e.g., due to module-level logic).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
 from abc import ABCMeta, abstractmethod
@@ -38,7 +38,7 @@ from betse.util.type.types import (
     SequenceOrNoneTypes,
 )
 
-# ....................{ SUPERCLASS                         }....................
+# ....................{ SUPERCLASS                        }....................
 class CLIABC(object, metaclass=ABCMeta):
     '''
     Top-level abstract base class of all command line interface (CLI)
@@ -57,8 +57,8 @@ class CLIABC(object, metaclass=ABCMeta):
         Top-level argument parser parsing all top-level options and subcommands
         passed to this application's external CLI command.
     _args : argparse.Namespace
-        :mod:`argparse`-specific container of all passed command-line arguments.
-        See "Attributes (_args)" below for further details.
+        :mod:`argparse`-specific container of all passed command-line
+        arguments.  See "Attributes (_args)" below for further details.
     _exit_status : IntOrNoneTypes
         Exit status with which to exit this application as a byte in the range
         ``[0, 255]``. Defaults to
@@ -66,8 +66,8 @@ class CLIABC(object, metaclass=ABCMeta):
         implementations of the :meth:`_do` method may explicitly override this
         default on failure as a CLI-oriented alternative to exception handling.
         Note that, although exit status is typically returned directly by
-        callables, doing so here is infeasible due to the :meth:`_do` method API
-        already returning profiled objects.
+        callables, doing so here is infeasible due to the :meth:`_do` method
+        API already returning profiled objects.
     _profile_filename : str
         Absolute or relative path of the dumpfile to export a profile of the
         current execution to if :attr:`_profile_type` is
@@ -78,8 +78,8 @@ class CLIABC(object, metaclass=ABCMeta):
     Attributes (of :attr:`_args`)
     ----------
     is_verbose : bool
-        ``True`` only if low-level debugging messages are to be logged. Defaults
-        to ``False``.
+        ``True`` only if low-level debugging messages are to be logged.
+        Defaults to ``False``.
     log_filename : str
         Absolute or relative path of the file to log to. Defaults to the
         absolute path of BETSE's default user-specific logfile.
@@ -102,10 +102,11 @@ class CLIABC(object, metaclass=ABCMeta):
         user-specific profile dumpfile.
     profile_type : str
         Type of profiling to be performed if any, formatted as the lowercased
-        name of a :class:`ProfileType` enumeration member. Defaults to ``none``.
+        name of a :class:`ProfileType` enumeration member. Defaults to
+        ``none``.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self):
 
         # Initialize subclasses performing diamond inheritance if any.
@@ -122,7 +123,7 @@ class CLIABC(object, metaclass=ABCMeta):
         self._profile_filename = None
         self._profile_type = None
 
-    # ..................{ RUNNERS                            }..................
+    # ..................{ RUNNERS                           }..................
     @type_check
     def run(self, arg_list: SequenceOrNoneTypes = None) -> int:
         '''
@@ -196,12 +197,13 @@ class CLIABC(object, metaclass=ABCMeta):
             # *ONLY* intended to be used internally rather than reported as an
             # exit status to parent processes.
             if self._exit_status == SUCCESS:
-                self._exit_status = getattr(exception, 'errno', FAILURE_DEFAULT)
+                self._exit_status = getattr(
+                    exception, 'errno', FAILURE_DEFAULT)
 
         # Report this application's exit status to the parent process.
         return self._exit_status
 
-    # ..................{ EXPANDERS                          }..................
+    # ..................{ EXPANDERS                         }..................
     @type_check
     def expand_help(self, text: str, **kwargs) -> str:
         '''
@@ -212,8 +214,8 @@ class CLIABC(object, metaclass=ABCMeta):
         For convenience, the following default keyword arguments are
         unconditionally interpolated into this template:
 
-        * ``{script_basename}``, expanding to the basename of the Python wrapper
-          script running the current application (e.g., ``betse``).
+        * ``{script_basename}``, expanding to the basename of the Python
+          wrapper script running the current application (e.g., ``betse``).
         * ``{program_name}``, expanding to the human-readable name of this
           application (e.g., ``BETSE``).
         '''
@@ -224,7 +226,7 @@ class CLIABC(object, metaclass=ABCMeta):
             **kwargs
         ))
 
-    # ..................{ PROPERTIES                         }..................
+    # ..................{ PROPERTIES                        }..................
     @property
     def arg_parser_kwargs(self) -> MappingType:
         '''
@@ -240,8 +242,8 @@ class CLIABC(object, metaclass=ABCMeta):
         '''
 
         return {
-            # Wrap non-indented lines in help and description text as paragraphs
-            # while preserving indented lines in such text as is.
+            # Wrap non-indented lines in help and description text as
+            # paragraphs while preserving indented lines in such text as is.
             'formatter_class': SemicolonAwareHelpFormatter,
         }
 
@@ -280,13 +282,13 @@ class CLIABC(object, metaclass=ABCMeta):
         # Return this dictionary.
         return arg_parser_top_kwargs
 
-    # ..................{ PROPERTIES ~ matplotlib            }..................
+    # ..................{ PROPERTIES ~ matplotlib           }..................
     @property
     def _is_option_matplotlib_backend(self) -> bool:
         '''
         ``True`` only if this CLI exposes the ``--matplotlib-backend`` option,
-        permitting users to externally specify an arbitrary matplotlib backend at
-        the command line.
+        permitting users to externally specify an arbitrary matplotlib backend
+        at the command line.
 
         Design
         ----------
@@ -299,7 +301,7 @@ class CLIABC(object, metaclass=ABCMeta):
 
         return True
 
-    # ..................{ ARGS                               }..................
+    # ..................{ ARGS                              }..................
     def _parse_args(self) -> None:
         '''
         Parse all currently passed command-line arguments.
@@ -353,14 +355,14 @@ class CLIABC(object, metaclass=ABCMeta):
         for option in self._make_options_top():
             option.add(self._arg_parser_top)
 
-    # ..................{ ARGS ~ options                     }..................
+    # ..................{ ARGS ~ options                    }..................
     def _make_options_top(self) -> SequenceTypes:
         '''
         Sequence of all :class:`CLIOptionABC` instances defining the top-level
         CLI options accepted by this application.
 
-        For each such option, a corresponding argument is added to the top-level
-        argument parser (i.e., :attr:`_arg_parser_top`).
+        For each such option, a corresponding argument is added to the
+        top-level argument parser (i.e., :attr:`_arg_parser_top`).
 
         **Order is significant,** defining the order that the ``--help`` option
         synopsizes these options in. Options omitted here are *not* parsed by
@@ -508,9 +510,9 @@ class CLIABC(object, metaclass=ABCMeta):
         log_config.file_level = LogLevel[self._args.log_level.upper()]
 
         # Log (and hence display, by default) a human-readable synopsis of this
-        # application. Since logging depends on parsing logging operations, this
-        # logging is intentionally deferred from the earliest time at which
-        # logging could technically be performed (namely, the body of the
+        # application. Since logging depends on parsing logging operations,
+        # this logging is intentionally deferred from the earliest time at
+        # which logging could technically be performed (namely, the body of the
         # betse.ignition.ignite() function) to here. The disadvantage of this
         # otherwise sane approach, of course, is that this logging is deferred.
         self._show_header()
@@ -531,7 +533,7 @@ class CLIABC(object, metaclass=ABCMeta):
         self._profile_filename = self._args.profile_filename
         self._profile_type = ProfileType[self._args.profile_type.upper()]
 
-    # ..................{ IGNITERS                           }..................
+    # ..................{ IGNITERS                          }..................
     def _ignite_app(self) -> None:
         '''
         (Re-)initialize this application *before* performing subsequent logic
@@ -545,7 +547,8 @@ class CLIABC(object, metaclass=ABCMeta):
         called to properly initialize this application.
         '''
 
-        # (Re-)initialize BETSE. Note that calling the ignition.init() function:
+        # (Re-)initialize BETSE. Note that calling the ignition.init()
+        # function:
         #
         # * Suffices when BETSE is *NOT* running under a test suite.
         # * Fails to suffice if BETSE is running under a test suite, in
@@ -576,8 +579,8 @@ class CLIABC(object, metaclass=ABCMeta):
         initialize these dependencies.
         '''
 
-        # Name of the matplotlib backend explicitly requested by the user if any
-        # *OR* "None" otherwise.
+        # Name of the matplotlib backend explicitly requested by the user if
+        # any *OR* "None" otherwise.
         matplotlib_backend_name = None
 
         # If this CLI exposes the "--matplotlib-backend" option to users, this
@@ -592,8 +595,8 @@ class CLIABC(object, metaclass=ABCMeta):
     def _show_header(self) -> None:
         '''
         Display a human-readable synopsis of this application, typically by
-        logging the basename and current version of this application and various
-        metadata assisting debugging of end user issues.
+        logging the basename and current version of this application and
+        various metadata assisting debugging of end user issues.
         '''
 
         # Log this in a manner suitable for downstream applications requiring
@@ -611,7 +614,7 @@ class CLIABC(object, metaclass=ABCMeta):
                 betse_codename=betse_metadata.CODENAME,
             ))
 
-    # ..................{ EXCEPTIONS                         }..................
+    # ..................{ EXCEPTIONS                        }..................
     @type_check
     def _handle_exception(self, exception: Exception) -> None:
         '''
@@ -626,7 +629,7 @@ class CLIABC(object, metaclass=ABCMeta):
         # Log this exception.
         logs.log_exception(exception)
 
-    # ..................{ SUBCLASS ~ mandatory               }..................
+    # ..................{ SUBCLASS ~ mandatory              }..................
     # The following methods *MUST* be implemented by subclasses.
 
     @abstractmethod
@@ -639,7 +642,8 @@ class CLIABC(object, metaclass=ABCMeta):
         On failure, the subclass implementation of this method should either:
 
         * Raise an exception, in which case this abstract base class implicitly
-          logs this exception and report failure as this application's exit status.
+          logs this exception and report failure as this application's exit
+          status.
         * Explicitly set the :attr:`_exit_status` instance variable to a
           non-zero integer in the range ``[1, 255]`` (e.g.,
           :attr:`betse.util.path.command.cmdexit.FAILURE_DEFAULT`). Note that,
@@ -650,7 +654,7 @@ class CLIABC(object, metaclass=ABCMeta):
 
         pass
 
-    # ..................{ SUBCLASS ~ mandatory : property    }..................
+    # ..................{ SUBCLASS ~ mandatory : property   }..................
     # The following properties *MUST* be implemented by subclasses.
 
     @abstractproperty
@@ -687,7 +691,7 @@ class CLIABC(object, metaclass=ABCMeta):
 
         pass
 
-    # ..................{ SUBCLASS ~ optional                }..................
+    # ..................{ SUBCLASS ~ optional               }..................
     # The following methods may but need *NOT* be implemented by subclasses.
 
     def _config_arg_parsing(self) -> None:

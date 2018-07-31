@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,13 +8,13 @@ Low-level **decorator-based memoization** (i.e., efficient caching and reuse of
 the values returned by decorated callables) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.util.type.types import type_check, CallableTypes, PropertyType
 from functools import wraps
 
 if False: wraps  # silence contemptible IDE warnings
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 CALLABLE_CACHED_VAR_NAME_PREFIX = '_betse_cached__'
 '''
 Substring prefixing the names of all private instance variables to which all
@@ -42,7 +42,22 @@ Substring prefixing the names of all private instance variables to which the
 decorated property method.
 '''
 
-# ....................{ DECORATORS                         }....................
+# ....................{ DECORATORS                        }....................
+#FIXME: Generalize a new method_cached() decorator whose implementation will
+#resemeble (and possibly even be effectively identical to) the existing
+#property_cached() decorator. After doing so, revise the docstring for the
+#func_cached() function to remove all reference to bound methods.
+#FIXME: After defining method_cached(), refactor this submodule as follows:
+#
+#* Create a new callable_cached() decorator, internally calling either
+#  func_cached() or method_cached() conditionally depending on whether the
+#  passed callable is a bound method or not.
+#* Rename all existing "@func_cached" decorations to "@callable_cached".
+#* Renome func_cached() to _func_cached.
+#* Renome method_cached() to _method_cached.
+
+#FIXME: Raise an exception if the passed callable is either an unbound or bound
+#method. Note that we may only be able to reliably test for the latter.
 @type_check
 def func_cached(func: CallableTypes) -> CallableTypes:
     '''
@@ -51,16 +66,18 @@ def func_cached(func: CallableTypes) -> CallableTypes:
 
     On the first call of a callable decorated with this decorator, the passed
     callable is called with all passed parameters, the value returned by this
-    callable is cached into a private attribute of this callable, and this value
-    is returned. On each subsequent call of this callable, the cached value is
-    returned as is *without* calling this callable. Hence, this callable is
-    called at most once for each instance of the class containing this property.
+    callable is cached into a private attribute of this callable, and this
+    value is returned. On each subsequent call of this callable, the cached
+    value is returned as is *without* calling this callable. Hence, this
+    callable is called at most once for each instance of the class containing
+    this property.
 
     Caveats (Memoization)
     ----------
     **This decorator does not memoize callables.** Memoization would map each
     permutation of parameters passed to the decorated callable to a unique
-    return value conditionally cached (and hence returned) for that permutation.
+    return value conditionally cached (and hence returned) for that
+    permutation.
 
     This decorator instead unconditionally caches (and hence returns) a single
     return value for *all* permutations of passed parameters. Hence, this
@@ -73,15 +90,13 @@ def func_cached(func: CallableTypes) -> CallableTypes:
     This decorator is *not* intended to cache return values of non-function
     callables (e.g., bound or unbound methods). Ergo, this decorator is named
     ``func_cached`` rather than the more general-purpose name
-    ``callable_cached``.
+    ``callable_cached``. While this decorator *could* technically be used to
+    decorate non-function callables, it never should be. Why? Because:
 
-    While this decorator *could* technically be used to decorate non-function
-    callables, it never should be. Why? Because:
-
-    - Decorating lambdas is highly non-trivial and hence impractical.
-    - Attempting to cache return values of unbound methods with this decorator
+    * Decorating lambdas is highly non-trivial and hence impractical.
+    * Attempting to cache return values of unbound methods with this decorator
       would do so globally rather than on an instance-specific basis and hence
-      be functionally useless. To cache return values of bound method on an
+      be functionally useless. To cache return values of bound methods on an
       instance-specific basis, an entirely new decorator would need to be
       created -- presumably returning a descriptor whose ``__get__()`` special
       method creates and returns bound methods whose return values are cached
@@ -100,12 +115,12 @@ def func_cached(func: CallableTypes) -> CallableTypes:
     #
     # Technically, note that this decorator *SHOULD* raise a
     # "BetseCallableException" if any parameter accepted by this callable has
-    # the reserved name `__callable_cached`. However, validating this constraint
-    # would require inspecting this callable's signature and iteratively
-    # searching the parameter list of that signature for parameter names
-    # violating this constraint. Since the likelihood of a callable accepting
-    # such parameters is "None", doing so would increase time complexity
-    # *WITHOUT* yielding tangible benefits. (Also, we're lazy.)
+    # the reserved name `__callable_cached`. However, validating this
+    # constraint would require inspecting this callable's signature and
+    # iteratively searching the parameter list of that signature for parameter
+    # names violating this constraint. Since the likelihood of a callable
+    # accepting such parameters is "None", doing so would increase time
+    # complexity *WITHOUT* yielding tangible benefits. (Also, we're lazy.)
     func_body = '''
 @wraps(__callable_cached)
 def callable_cached_arged(
@@ -136,21 +151,21 @@ def callable_cached_arged(
 @type_check
 def property_cached(property_method: CallableTypes) -> PropertyType:
     '''
-    Decorate the passed property method to cache the value returned by the first
-    implicit call of this method.
+    Decorate the passed property method to cache the value returned by the
+    first implicit call of this method.
 
     On the first access of a property decorated with this decorator, the passed
     method implementing this property is called, the value returned by this
     property is internally cached into a private attribute of the object to
     which this method is bound, and this value is returned. On each subsequent
-    access of this property, this cached value is returned as is _without_
+    access of this property, this cached value is returned as is *without*
     calling this method. Hence, this method is called at most once for each
     object exposing this property.
 
     Caveats
     ----------
-    **This decorator does not destroy bound property methods.** Technically, the
-    most efficient means of caching a property value into an instance is to
+    **This decorator does not destroy bound property methods.** Technically,
+    the most efficient means of caching a property value into an instance is to
     replace the property method currently bound to that instance with an
     instance variable initialized to that value (e.g., as documented by this
     `StackOverflow answer`_).

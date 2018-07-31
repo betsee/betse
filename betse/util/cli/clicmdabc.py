@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,75 +8,84 @@ Top-level abstract base class of all **subcommandable command line interface
 (CLI)** (i.e., CLI accepting one or more subcommands) subclasses.
 '''
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
 # top-level of this module may import *ONLY* from submodules guaranteed to:
 # * Exist, including standard Python and application modules.
 # * Never raise exceptions on importation (e.g., due to module-level logic).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from abc import abstractmethod
 from betse.util.cli.cliabc import CLIABC
 from betse.util.cli.clicmd import CLISubcommander, CLISubcommandParent
 from betse.util.py import pyident
+from betse.util.type.decorator.deccls import abstractproperty
+from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.obj import objects
 from betse.util.type.types import type_check, ArgParserType
 
-# ....................{ SUBCLASS                           }....................
+# ....................{ SUBCLASS                          }....................
 class CLISubcommandableABC(CLIABC):
     '''
-    Top-level abstract base class of all **subcommandable command line interface
-    (CLI)** (i.e., CLI accepting one or more subcommands) subclasses, suitable
-    for use by both CLI and GUI front-ends for BETSE.
+    Top-level abstract base class of all **subcommandable command line
+    interface (CLI)** (i.e., CLI accepting one or more subcommands) subclasses,
+    suitable for use by both CLI and GUI front-ends for BETSE.
 
     Unlike the parent :class:`CLIABC` superclass, this superclass provides
     explicit support for subcommands. Concrete subclasses implementing
     subcommands should directly subclass this rather than that superclass.
-
-    Attributes
-    ----------
-    _subcommander_top : CLISubcommander
-        Container of all argument subparsers parsing all top-level subcommands
-        accepted by this application (e.g., ``init``, ``sim``).
     '''
 
-    # ..................{ INITIALIZERS                       }..................
-    def __init__(self) -> None:
+    # ..................{ SUPERCLASS ~ properties           }..................
 
-        # Initialize our superclass.
-        super().__init__()
+    @property_cached
+    def _help_epilog(self) -> str:
 
-        # Nullify all instance variables for safety.
-        self._subcommander_top = None
+        # Sequence of all top-level subcommands.
+        subcommands = self._subcommander_top.subcommands
 
-    # ..................{ SUPERCLASS ~ args                  }..................
+        # If this CLI accepts *NO* subcommands, return the empty string.
+        if not subcommands:
+            return ''
+        # Else, this CLI accepts at least one subcommand.
+
+        # Return a help string embedding the name of the first such subcommand.
+        return '''
+subcommand help:
+
+For help with a specific subcommand, pass the "-h" or "--help" option to that
+subcommand. For example, for help with the "{subcommand_name}" subcommand, run:
+
+;    {{script_basename}} {subcommand_name} --help
+'''.format(subcommand_name=subcommands[0].name)
+
+    # ..................{ SUPERCLASS ~ args                 }..................
     def _config_arg_parsing(self) -> None:
 
         # Container of all top-level argument subparsers for this application.
-        self._subcommander_top = self._make_subcommander_top()
         self._subcommander_top.add(cli=self, arg_parser=self._arg_parser_top)
 
-    # ....................{ SUBCLASS ~ mandatory               }....................
-    # The following methods *MUST* be implemented by subclasses.
+    # ..................{ SUPERCLASS ~ properties           }..................
+    # The following properties *MUST* be implemented by subclasses.
 
-    @abstractmethod
-    def _make_subcommander_top(self) -> CLISubcommander:
+    @abstractproperty
+    def _subcommander_top(self) -> CLISubcommander:
         '''
         Container of all top-level subcommands accepted by this CLI command.
 
         **Order is significant,** defining the order that the ``--help`` option
-        synopsizes these subcommands in. Subcommands omitted from this container
-        will *not* be parsed by argument subparsers and thus ignored.
+        synopsizes these subcommands in. Subcommands omitted from this
+        container will *not* be parsed by argument subparsers and thus ignored.
 
-        For each such subcommand, the :meth:`_config_arg_parsing` method creates
-        and adds a corresponding argument subparser to the lower-level container
-        of all top-level argument subparsers.
+        For each such subcommand, the :meth:`_config_arg_parsing` method
+        creates and adds a corresponding argument subparser to the lower-level
+        container of all top-level argument subparsers.
         '''
 
         pass
 
-    # ..................{ SUPERCLASS ~ cli                   }..................
+    # ..................{ SUPERCLASS ~ cli                  }..................
     def _do(self) -> object:
         '''
         Implement this command-line interface (CLI).

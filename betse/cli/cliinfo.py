@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-Implementation of the ``info`` subcommand for this command line interface (CLI).
+Implementation of the ``info`` subcommand for this command line interface
+(CLI).
 '''
 
 #FIXME; For aesthetics, convert to yppy-style "cli.memory_table" output.
 
-# ..................{ IMPORTS                                }..................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ..................{ IMPORTS                               }..................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid non-trivial delays on importing this module, this module
 # should import *ONLY* from modules and packages whose importation is unlikely
-# to incur such delays. This includes all standard Python packages and all BETSE
-# packages required by the log_info_header() function, which is called
-# sufficiently early in application startup as to render these imports
+# to incur such delays. This includes all standard Python packages and all
+# application packages required by the log_info_header() function, which is
+# called sufficiently early in application startup as to render these imports
 # effectively mandatory.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse import metadata
 from betse.util.io.log import logconfig, logs
@@ -26,10 +27,11 @@ from betse.util.py import pyimpl, pys
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from collections import OrderedDict
 
-# ..................{ GETTERS                                }..................
+# ..................{ GETTERS                               }..................
 def get_metadata() -> OrderedArgsDict:
     '''
-    Ordered dictionary synopsizing the current installation of this application.
+    Ordered dictionary synopsizing the current installation of this
+    application.
     '''
 
     # Defer heavyweight imports.
@@ -48,7 +50,7 @@ def get_metadata() -> OrderedArgsDict:
         'data directory',  pathtree.get_data_dirname(),
     )
 
-# ..................{ LOGGERS                                }..................
+# ..................{ LOGGERS                               }..................
 def log_header() -> None:
     '''
     Log a single-line human-readable sentence synopsizing the state of the

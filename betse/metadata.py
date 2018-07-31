@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -12,33 +12,41 @@ For uniformity between this codebase and the ``setup.py`` setuptools script
 importing this module, this module also validates the version of the active
 Python 3 interpreter. An exception is raised if this version is insufficient.
 
-This application currently requires **Python 3.4**, as Python < 3.4:
+This application currently requires **Python 3.5.** This application previously
+required only Python 3.4.0 for access to the standard :mod:`enum` module
+introduced by that major release. Since Python 3.4.0 is approaching its
+official end-of-life (EOL) and scheduled to be decomissioned shortly, this
+application now unavoidably requires the next major release of Python despite
+currently leveraging no features introduced by that release.
 
-* Provides insufficient machinery for dynamically inspecting modules at runtime.
-  In particular, both the long-standing :func:`imp.find_module` function and the
-  :func:`importlib.find_loader` function introduced by Python 3.3 require all
-  parent packages of the passed module to be recursively imported *before* these
-  functions are called; failing to do so results in these functions
-  unconditionally returning ``None``. Since this has been the source of numerous
-  subtle issues throughout this codebase, Python 3.3 is strictly out. Since most
-  modern Linux distributions have adopted Python 3.4 as the default Python
+Note that Python < 3.4.0:
+
+* Provides insufficient machinery for dynamically inspecting modules at
+  runtime. In particular, both the long-standing :func:`imp.find_module`
+  function and the :func:`importlib.find_loader` function introduced by Python
+  3.3 require all parent packages of the passed module to be recursively
+  imported *before* these functions are called; failing to do so results in
+  these functions unconditionally returning ``None``. Since this has been the
+  source of numerous subtle issues throughout this codebase, Python 3.3 is
+  strictly out. Since most modern Linux distributions have adopted Python 3.4
+  as the default Python
   3 interpreters, this *should* impose no hardship.
 * Fails to provide the :mod:`enum` module introduced by Python 3.4, which both
   standardizes and simplifies enumeration implementations.
 '''
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from modules guaranteed to exist at the start of
 # installation. This includes all standard Python and application modules but
 # *NOT* third-party dependencies, which if currently uninstalled will only be
 # installed at some later time in the installation.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
 
-# ....................{ METADATA                           }....................
+# ....................{ METADATA                          }....................
 NAME = 'BETSE'
 '''
 Human-readable application name.
@@ -50,29 +58,25 @@ LICENSE = '2-clause BSD'
 Human-readable name of the license this application is licensed under.
 '''
 
-# ....................{ PYTHON ~ version                   }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ PYTHON ~ version                  }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this section *MUST* be synchronized with:
 # * The corresponding section of the "betsee.metadata" submodule.
 # * Front-facing documentation (e.g., "README.rst", "doc/md/INSTALL.md").
 # On bumping the minimum required version of Python, consider also documenting
 # the justification for doing so in the "Python Version" section of this
 # submodule's docstring above.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 PYTHON_VERSION_MIN = '3.5.0'
 '''
 Human-readable minimum version of Python required by this application as a
 ``.``-delimited string.
 
-Rationale
+See Also
 ----------
-This application previously required only Python >= 3.4.0 for access to the
-standard :mod:`enum` module introduced by that major release. Since Python
-3.4.0 is approaching its official end-of-life (EOL) and scheduled to be
-decomissioned shortly, this application now unavoidably requires the next
-major release of Python despite currently leveraging no features introduced by
-that release.
+"Python Version" section of this submodule's docstring for a detailed
+justification of this constant's current value.
 '''
 
 
@@ -94,11 +98,12 @@ tuple of integers.
 '''
 
 
-# Validate the version of the active Python interpreter *BEFORE* subsequent code
-# possibly depending on such version. Since such version should be validated
-# both at setuptools-based install time and post-install runtime *AND* since
-# this module is imported sufficiently early by both, stash such validation here
-# to avoid duplication of such logic and hence the hardcoded Python version.
+# Validate the version of the active Python interpreter *BEFORE* subsequent
+# code possibly depending on such version. Since such version should be
+# validated both at setuptools-based install time and post-install runtime
+# *AND* since this module is imported sufficiently early by both, stash such
+# validation here to avoid duplication of such logic and hence the hardcoded
+# Python version.
 #
 # The "sys" module exposes three version-related constants for this purpose:
 #
@@ -120,14 +125,14 @@ tuple of integers.
 # string-formatted release type of the current Python version exposed via the
 # fourth element of the "version_info" tuple. Since the first three elements of
 # that tuple are guaranteed to be integers *AND* since a comparable 3-tuple of
-# integers is declared above, comparing the former and latter yield the simplest
-# and most reliable Python version test.
+# integers is declared above, comparing the former and latter yield the
+# simplest and most reliable Python version test.
 #
-# Note that the nearly decade-old and officially accepted PEP 345 proposed a new
-# field "requires_python" configured via a key-value pair passed to the call to
-# setup() in "setup.py" (e.g., "requires_python = ['>=2.2.1'],"), that field has
-# yet to be integrated into either disutils or setuputils. Hence, that field is
-# validated manually in the typical way. Behead the infidel setuptools!
+# Note that the nearly decade-old and officially accepted PEP 345 proposed a
+# new field "requires_python" configured via a key-value pair passed to the
+# call to setup() in "setup.py" (e.g., "requires_python = ['>=2.2.1'],"), that
+# field has yet to be integrated into either disutils or setuputils. Hence,
+# that field is validated manually in the typical way.
 if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
     # Human-readable current version of Python. "sys.version" is sufficiently
     # overly verbose as to be unusuable, sadly.

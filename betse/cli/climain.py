@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,16 +7,13 @@
 Concrete subclasses defining this application's command line interface (CLI).
 '''
 
-#FIXME: Refactor the class defined below to subclass "CLISubcommandableABC"
-#instead, which should dramatically reduce the size and scope of this submodule.
-
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
 # top-level of this module may import *ONLY* from submodules guaranteed to:
 # * Exist, including standard Python and application modules.
 # * Never raise exceptions on importation (e.g., due to module-level logic).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse.cli import cliinfo
 from betse.util.cli.clicmd import (
@@ -32,34 +29,13 @@ from betse.util.py import pys
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import ModuleType
 
-# ....................{ SUBCLASS                           }....................
+# ....................{ SUBCLASS                          }....................
 class BetseCLI(CLISubcommandableABC):
     '''
     Command line interface (CLI) for this application.
     '''
 
-    # # ..................{ INITIALIZERS                       }..................
-    # def __init__(self) -> None:
-    #
-    #     # Initialize our superclass.
-    #     super().__init__()
-
-    # ..................{ SUPERCLASS ~ property              }..................
-    @property
-    def _help_epilog(self) -> str:
-
-        return '''
-subcommand help:
-
-For help with a specific subcommand, pass the "-h" or "--help" option to that
-subcommand. For example, for help with the "plot" subcommand and that
-subcommand's "init" subsubcommand, run:
-
-;    {script_basename} plot --help
-;    {script_basename} plot init --help
-'''
-
-
+    # ..................{ PROPERTIES ~ superclass           }..................
     @property
     def _module_ignition(self) -> ModuleType:
 
@@ -73,8 +49,27 @@ subcommand's "init" subsubcommand, run:
         from betse import metadata
         return metadata
 
-    # ....................{ SUBCOMMANDS                        }....................
-    def _make_subcommander_top(self) -> CLISubcommander:
+    # ..................{ PROPERTIES                        }..................
+    @property_cached
+    def _sim_runner(self) -> 'betse.science.simrunner.SimRunner':
+        '''
+        Simulation runner running simulation subcommands on the YAML-formatted
+        simulation configuration file passed by the user at the CLI.
+        '''
+
+        # Defer heavyweight imports.
+        from betse.science.parameters import Parameters
+        from betse.science.simrunner import SimRunner
+
+        # Simulation configuration loaded from this YAML-formatted file.
+        p = Parameters.make(conf_filename=self._args.conf_filename)
+
+        # Create and return a simulation runner for this configuration.
+        return SimRunner(p=p)
+
+
+    @property_cached
+    def _subcommander_top(self) -> CLISubcommander:
 
         return CLISubcommander(
             subcommand_var_name='subcommand_name_top',
@@ -300,7 +295,7 @@ from input files defined by this configuration.
 
             ))
 
-    # ..................{ SUBCOMMANDS ~ info                 }..................
+    # ..................{ SUBCOMMANDS ~ info                }..................
     def _show_header(self) -> None:
 
         cliinfo.log_header()
@@ -313,7 +308,7 @@ from input files defined by this configuration.
 
         cliinfo.log_info()
 
-    # ..................{ SUBCOMMANDS ~ sim                  }..................
+    # ..................{ SUBCOMMANDS ~ sim                 }..................
     def _do_try(self) -> object:
         '''
         Run the ``try`` subcommand and return the result of doing so.
@@ -454,21 +449,3 @@ from input files defined by this configuration.
 
         # Start the desired REPL.
         repls.start_repl()
-
-    # ..................{ GETTERS                            }..................
-    @property_cached
-    def _sim_runner(self) -> 'betse.science.simrunner.SimRunner':
-        '''
-        Simulation runner running simulation subcommands on the YAML-formatted
-        simulation configuration file passed by the user at the CLI.
-        '''
-
-        # Defer heavyweight imports.
-        from betse.science.parameters import Parameters
-        from betse.science.simrunner import SimRunner
-
-        # Simulation configuration loaded from this YAML-formatted file.
-        p = Parameters.make(conf_filename=self._args.conf_filename)
-
-        # Create and return a simulation runner for this configuration.
-        return SimRunner(p=p)

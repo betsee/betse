@@ -153,6 +153,11 @@ environment:
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     # Dot-delimited Python version required by this profile.
+    - PYTHON_VERSION: 3.7
+      # Absolute path of the Miniconda version specific to this Python version.
+      MINICONDA_DIRNAME: C:\Miniconda37-x64
+
+    # Dot-delimited Python version required by this profile.
     - PYTHON_VERSION: 3.6
       # Absolute path of the Miniconda version specific to this Python version.
       MINICONDA_DIRNAME: C:\Miniconda36-x64

@@ -12,11 +12,16 @@ submodules (e.g., :mod:`betse.util.cli.cliabc`) *before* attempting to import
 any such dependencies.
 '''
 
+#FIXME: Ideally eliminate the boilerplate repeated across the equivalent of
+#this submodule in BETSE, BETSEE, and now NIMME by generalizing this
+#functionality. To do so, see "nimme.lib.nimlib" for detailed commentary.
+
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: To raise human-readable exceptions on missing mandatory dependencies,
-# the top-level of this module may import *ONLY* from packages guaranteed to
-# exist at initial runtime (i.e., standard Python and application packages).
+# WARNING: To raise human-readable exceptions on missing mandatory
+# dependencies, the top-level of this module may import *ONLY* from packages
+# guaranteed to exist at initial runtime (i.e., standard Python and application
+# packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse import metadata, metadeps
