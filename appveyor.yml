@@ -110,6 +110,8 @@ environment:
   # 32-bit Python 3.x versions, 32-bit architectures are explicitly unsupported
   # (e.g., due to the 4GB memory barrier) and hence ignorable. See also:
   #
+  # * The official list of all supported Miniconda environments under Appveyor:
+  #   https://www.appveyor.com/docs/build-environment/#miniconda
   # * The "betse.metadata.PYTHON_VERSION_MIN" string global, defining the
   #   minimum version of Python 3.x supported by this project. All stable
   #   versions of Python 3.x greater than or equal to this minimum version
@@ -152,19 +154,15 @@ environment:
     # no longer exercised (i.e., tested) under Windows.
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    # Dot-delimited Python version required by this profile.
-    - PYTHON_VERSION: 3.7
-      # Absolute path of the Miniconda version specific to this Python version.
-      MINICONDA_DIRNAME: C:\Miniconda37-x64
+    #FIXME: Uncomment after Appveyor adds Miniconda support for Python 3.7. See:
+    #    https://www.appveyor.com/docs/build-environment/#miniconda
 
-    # Dot-delimited Python version required by this profile.
+    # - PYTHON_VERSION: 3.7
+    #   MINICONDA_DIRNAME: C:\Miniconda37-x64
+
     - PYTHON_VERSION: 3.6
-      # Absolute path of the Miniconda version specific to this Python version.
       MINICONDA_DIRNAME: C:\Miniconda36-x64
-
-    # Dot-delimited Python version required by this profile.
     - PYTHON_VERSION: 3.5
-      # Absolute path of the Miniconda version specific to this Python version.
       MINICONDA_DIRNAME: C:\Miniconda35-x64
 
 # ....................{ COMMANDS                           }....................
