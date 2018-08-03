@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-High-level Python facilities.
-
-This module provides functionality pertaining to the active Python interpreter
-as a whole.
+High-level Python facilities pertaining to the active Python interpreter.
 
 Caveats
 ----------
@@ -15,15 +12,16 @@ Word size-specific functions (e.g., :func:`is_wordsize_64`) are generally
 considered poor form. Call these functions *only* where necessary.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import platform, sys
 from betse import metadata
 from betse.exceptions import BetsePyException
 from betse.util.io.log import logs
+from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import (
     type_check, MappingOrNoneTypes, SequenceTypes)
 
-# ....................{ INITIALIZERS                       }....................
+# ....................{ INITIALIZERS                      }....................
 def init() -> None:
     '''
     Validate the active Python interpreter.
@@ -48,7 +46,8 @@ def init() -> None:
             '64-bit Python interpreter.'.format(name=metadata.NAME)
         )
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
+@func_cached
 def is_testing() -> bool:
     '''
     ``True`` only if the active Python interpreter is running a test session
@@ -57,7 +56,8 @@ def is_testing() -> bool:
 
     return metadata._IS_TESTING
 
-# ....................{ TESTERS ~ wordsize                 }....................
+# ....................{ TESTERS ~ wordsize                }....................
+@func_cached
 def is_wordsize_32() -> bool:
     '''
     ``True`` only if the active Python interpreter is **32-bit** (i.e., was
@@ -67,6 +67,7 @@ def is_wordsize_32() -> bool:
     return not is_wordsize_64()
 
 
+@func_cached
 def is_wordsize_64() -> bool:
     '''
     ``True`` only if the active Python interpreter is **64-bit** (i.e., was
@@ -89,7 +90,8 @@ def is_wordsize_64() -> bool:
     #     32-bit executable binary embedded in a so-called "universal binary."
     return sys.maxsize > ints.INT_VALUE_MAX_32_BIT
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
+@func_cached
 def get_wordsize() -> int:
     '''
     Size in bits of variables of internal type `Py_ssize_t` for the active
@@ -113,7 +115,8 @@ def get_version() -> str:
 
     return platform.python_version()
 
-# ....................{ GETTERS ~ filename                 }....................
+# ....................{ GETTERS ~ filename                }....................
+@func_cached
 def get_command_line_prefix() -> list:
     '''
     List of one or more shell words unambiguously running the executable binary
@@ -121,8 +124,8 @@ def get_command_line_prefix() -> list:
 
     Since the absolute path of the executable binary for the active Python
     interpreter is insufficient to unambiguously run this binary under the
-    active machine architecture, this function should *always* be called in lieu
-    of :func:`get_filename` when attempting to rerun this interpreter as a
+    active machine architecture, this function should *always* be called in
+    lieu of :func:`get_filename` when attempting to rerun this interpreter as a
     subprocess of the current Python process. As example:
 
     * Under macOS, the executable binary for this interpreter may be bundled
@@ -161,13 +164,14 @@ def get_command_line_prefix() -> list:
     return command_line
 
 
+@func_cached
 def get_filename() -> str:
     '''
     Absolute filename of the executable binary for the active Python process.
     '''
 
-    # Absolute filename of this executable if this path is retrievable by Python
-    # *OR* either "None" or the empty string otherwise.
+    # Absolute filename of this executable if this path is retrievable by
+    # Python *OR* either "None" or the empty string otherwise.
     py_filename = sys.executable
 
     # If this filename is *NOT* retrievable, raise an exception.
@@ -179,6 +183,7 @@ def get_filename() -> str:
     return py_filename
 
 
+@func_cached
 def get_shebang() -> str:
     '''
     POSIX-compliant **shebang** (i.e., machine-readable ``#!``-prefixed first
@@ -215,14 +220,17 @@ def get_metadata() -> 'OrderedArgsDict':
         'is frozen', pyfreeze.is_frozen(),
     )
 
-# ....................{ ADDERS                             }....................
+# ....................{ ADDERS                            }....................
+#FIXME: Shift this utility function elsewhere. While useful, it's rather
+#low-level and thoroughly dissimilar from *ALL* of the other functionality
+#provided by this high-level submodule.
 @type_check
 def add_import_dirname(dirname: str) -> None:
     '''
     Register all files and subdirectories of the directory with the passed path
     to be importable modules and packages (respectively) for the remainder of
-    the current Python process if this directory has not already been registered
-    *or* noop otherwise.
+    the current Python process if this directory has not already been
+    registered *or* noop otherwise.
 
     Specifically, this function appends this dirname to the current
     :data:`sys.path` listing (in order) the dirnames of all directories to be
@@ -259,7 +267,7 @@ def add_import_dirname(dirname: str) -> None:
     # Append this directory to the current PYTHONPATH.
     sys.path.append(dirname)
 
-# ....................{ RUNNERS                            }....................
+# ....................{ RUNNERS                           }....................
 @type_check
 def rerun_or_die(
     command_args: SequenceTypes,
@@ -274,8 +282,8 @@ def rerun_or_die(
         List of zero or more arguments to pass to this interpreter.
     popen_kwargs : optional[MappingType]
         Dictionary of all keyword arguments to pass to the
-        :meth:`subprocess.Popen.__init__` method. Defaults to ``None``, in which
-        case the empty dictionary is assumed.
+        :meth:`subprocess.Popen.__init__` method. Defaults to ``None``, in
+        which case the empty dictionary is assumed.
 
     See Also
     ----------
