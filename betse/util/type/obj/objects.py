@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +7,7 @@
 Low-level object facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import inspect, platform
 from betse.exceptions import (
     BetseAttributeException, BetseMethodException, BetseTypeException)
@@ -21,7 +21,7 @@ from betse.util.type.types import (
     TestableTypes,
 )
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_if_instance(obj: object, cls: TestableTypes) -> None:
     '''
@@ -71,7 +71,7 @@ def die_unless_instance(obj: object, cls: TestableTypes) -> None:
         raise BetseTypeException(
             'Object {!r} not an instance of {!r}.'.format(obj, cls))
 
-# ....................{ EXCEPTIONS ~ attr                  }....................
+# ....................{ EXCEPTIONS ~ attr                 }....................
 @type_check
 def die_unless_class(obj: object, *class_names: str) -> None:
     '''
@@ -121,7 +121,7 @@ def die_unless_method(obj: object, *method_names: str) -> None:
             raise BetseMethodException(
                 'Object "{}" method {}() undefined.'.format(obj, method_name))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_attr(obj: object, attr_name: str) -> bool:
     '''
@@ -198,25 +198,25 @@ def is_method(obj: object, method_name: str) -> bool:
     # Return true only if this method exists.
     return method is not None
 
-# ....................{ TESTERS ~ pure                     }....................
+# ....................{ TESTERS ~ pure                    }....................
 # Tester distinguishing pure-Python from C-based class instances. Doing so is
 # surprisingly non-trivial and, indeed, technically feasible with 100% accuracy
 # *ONLY* under the official CPython interpreter. Why? Because the most accurate
 # means of portably implementing this test in a cross-interpreter manner is to
 # test whether the passed class instance defines the reserved "__dict__" or
-# "__slots__" attributes. Whereas all pure-Python class instances are guaranteed
-# to declare one or the other, most C-based class instances define neither. Of
-# course, "most" is hardly "all." A C-based class may optionally request a
-# "__dict__" attribute via "tp_dictoffset", resulting in false negatives in
-# uncommon edge cases.
+# "__slots__" attributes. Whereas all pure-Python class instances are
+# guaranteed to declare one or the other, most C-based class instances define
+# neither. Of course, "most" is hardly "all." A C-based class may optionally
+# request a "__dict__" attribute via "tp_dictoffset", resulting in false
+# negatives in uncommon edge cases.
 #
-# If *NOT* running under the official CPython interpreter, this is the strongest
-# possible implementation of this test; if running under the official CPython
-# interpreter, however, this implementation may be strengthened by detecting
-# whether or not the class of the passed class instance is a "heap type" (as
-# defined by the "_Py_TPFLAGS_HEAPTYPE" docstring below). Only pure-Python
-# classes are heap types, preserving a one-to-one correspondence between tester
-# results and underlying interpreter reality.
+# If *NOT* running under the official CPython interpreter, this is the
+# strongest possible implementation of this test; if running under the official
+# CPython interpreter, however, this implementation may be strengthened by
+# detecting whether or not the class of the passed class instance is a "heap
+# type" (as defined by the "_Py_TPFLAGS_HEAPTYPE" docstring below). Only
+# pure-Python classes are heap types, preserving a one-to-one correspondence
+# between tester results and underlying interpreter reality.
 #
 # If the active Python interpreter is the official CPython implementation,
 # prefer a more reliable CPython-specific solution guaranteed to succeed. Note
@@ -259,18 +259,18 @@ else:
         # If the passed object is a class, return True only if this class
         # defines either the "__dict__" or "__slots__" attributes.
         # Unfortunately, the trivial test "hasattr(cls, '__dict__')" does *NOT*
-        # suffice to decide whether this class defines the "__dict__" attribute.
-        # Why? Because this attribute unconditionally exists for *ALL* classes,
-        # pure-Python and C-based alike. Hence:
+        # suffice to decide whether this class defines the "__dict__"
+        # attribute.  Why? Because this attribute unconditionally exists for
+        # *ALL* classes, pure-Python and C-based alike. Hence:
         #
         #     >>> hasattr(int, '__dict__')
         #     True
         #
-        # For unknown and presumably banal reasons, the dir() builtin strips the
-        # "__dict__" attribute name from its returned list only for C-based
-        # classes. Hence, detecting whether a class is pure-Python or C-based in
-        # a cross-interpreter manner reduces to iteratively searching the list
-        # returned by dir() for this name.
+        # For unknown and presumably banal reasons, the dir() builtin strips
+        # the "__dict__" attribute name from its returned list only for C-based
+        # classes. Hence, detecting whether a class is pure-Python or C-based
+        # in a cross-interpreter manner reduces to iteratively searching the
+        # list returned by dir() for this name.
         #
         # This constraint does *NOT* extend to the "__slots__" attribute, which
         # exists if and only if this class explicitly defines this attribute.
@@ -280,17 +280,18 @@ else:
         # Else, this object *MUST* be a class instance. In this case, return
         # True only if similar conditions hold. Since a class instance defines
         # the "__dict__" attribute only if this instance is a pure-Python
-        # instance whose class does *NOT* define the "__slots__" attribute, this
-        # conditional may efficiently lookup the "__dict__" attribute directly
-        # rather than inefficiently defer to the dir() builtin. It is fun!
+        # instance whose class does *NOT* define the "__slots__" attribute,
+        # this conditional may efficiently lookup the "__dict__" attribute
+        # directly rather than inefficiently defer to the dir() builtin. Fun!
         else:
             return hasattr(obj, '__dict__') or hasattr(obj, '__slots__')
 
 # Docstring dynamically set for the tester defined above.
 is_pure_python.__doc__ = '''
 ``True`` if the passed object is either a pure-Python class or instance of such
-a class *or* ``False`` otherwise (i.e., if this object is either a C-based class
-or instance of such a class, either builtin or defined by a C extension,).
+a class *or* ``False`` otherwise (i.e., if this object is either a C-based
+class or instance of such a class, either builtin or defined by a C
+extension).
 
 Parameters
 ----------
@@ -300,7 +301,7 @@ obj : object
 Returns
 ----------
 bool
-    ``True`` only if this object is a pure-Python class _or_ instance of such a
+    ``True`` only if this object is a pure-Python class *or* instance of such a
     class.
 
 See Also
@@ -312,10 +313,10 @@ https://stackoverflow.com/a/41012823/2809027
 
 def is_c_based(obj: object) -> bool:
     '''
-    ``True`` if the passed object is either a C-based class or instance of such a
-    class (either builtin or defined by a C extension) *or* ``False`` otherwise
-    (i.e., if this object is either a pure-Python class or instance of such a
-    class).
+    ``True`` if the passed object is either a C-based class or instance of such
+    a class (either builtin or defined by a C extension) *or* ``False``
+    otherwise (i.e., if this object is either a pure-Python class or instance
+    of such a class).
 
     Parameters
     ----------
@@ -325,18 +326,18 @@ def is_c_based(obj: object) -> bool:
     Returns
     ----------
     bool
-        ``True`` only if this object is a C-based class _or_ instance of such a
+        ``True`` only if this object is a C-based class *or* instance of such a
         class.
     '''
 
     return not is_pure_python(obj)
 
-# ....................{ GETTERS ~ metadata                 }....................
+# ....................{ GETTERS ~ metadata                }....................
 def get_class_name(obj: object) -> str:
     '''
     Unqualified name of either the passed object if this object is itself a
-    class *or* the class of this object otherwise (i.e., if this object is *not*
-    a class).
+    class *or* the class of this object otherwise (i.e., if this object is
+    *not* a class).
 
     Parameters
     ----------
@@ -358,9 +359,9 @@ def get_class_name(obj: object) -> str:
 
 def get_class_module_name(obj: object) -> str:
     '''
-    Fully-qualified name of the module defining either the passed object if this
-    object is itself a class *or* the class of this object otherwise (i.e., if
-    this object is *not* a class).
+    Fully-qualified name of the module defining either the passed object if
+    this object is itself a class *or* the class of this object otherwise
+    (i.e., if this object is *not* a class).
 
     Parameters
     ----------
@@ -392,7 +393,7 @@ def get_class_module_name(obj: object) -> str:
     # Else, return this attribute's value.
     return cls.__module__
 
-# ....................{ GETTERS : attr                     }....................
+# ....................{ GETTERS : attr                    }....................
 @type_check
 def get_attr(obj: object, attr_name: str) -> object:
     '''
@@ -434,12 +435,44 @@ def get_attr(obj: object, attr_name: str) -> object:
 
 
 @type_check
+def get_attr_or_none(obj: object, attr_name: str) -> object:
+    '''
+    Attribute with the passed name bound to the passed object if any *or*
+    ``None`` otherwise.
+
+    Caveats
+    ----------
+    For disambiguity, consider calling the :func:`get_attr_or_sentinel`
+    function instead. Whereas this function fails to distinguish between
+    existing attributes whose values are ``None`` and non-existing attributes
+    for which this function returns ``None``, the :func:`get_attr_or_sentinel`
+    function trivially disambiguates between these two common edge cases.
+
+    Parameters
+    ----------
+    obj : object
+        Object to obtain this attribute from.
+    attr_name : str
+        Name of the attribute to be obtained.
+
+    Returns
+    ----------
+    object
+        Attribute with this name bound to this object if any *or* ``None``
+        otherwise.
+    '''
+
+    # All that which glitters is not gold.
+    return getattr(obj, attr_name, None)
+
+
+@type_check
 def get_attr_or_sentinel(obj: object, attr_name: str) -> object:
     '''
     Value of the attribute with the passed name bound to the passed object if
     any *or* :attr:`betse.util.type.obj.sentinels.SENTINEL` otherwise,
-    permitting callers to distinguish between attributes that do *not* exist and
-    attributes that do exist but whose values are ``None``.
+    permitting callers to distinguish between attributes that do *not* exist
+    and attributes that do exist but whose values are ``None``.
 
     Parameters
     ----------
@@ -460,7 +493,7 @@ def get_attr_or_sentinel(obj: object, attr_name: str) -> object:
     # Return this attribute if any or the sentinel otherwise.
     return getattr(obj, attr_name, SENTINEL)
 
-# ....................{ GETTERS : method                   }....................
+# ....................{ GETTERS : method                  }....................
 @type_check
 def get_method(obj: object, method_name: str) -> CallableTypes:
     '''
@@ -534,17 +567,18 @@ def get_method_or_none(obj: object, method_name: str) -> CallableOrNoneTypes:
     # Attribute with this name in this object if any or the sentinel otherwise.
     method = get_attr_or_sentinel(obj, method_name)
 
-    # If this attribute is a method, return this attribute; else, return "None".
+    # If this attribute is a method, return this attribute; else, return
+    # "None".
     return method if method is not SENTINEL and callable(method) else None
 
-# ....................{ ITERATORS ~ attrs                  }....................
+# ....................{ ITERATORS ~ attrs                 }....................
 @type_check
 def iter_attrs_matching(
     obj: object, predicate: CallableTypes) -> GeneratorType:
     '''
-    Generator yielding 2-tuples of the name and value of each attribute bound to
-    the passed object whose name and/or value matches the passed predicate (in
-    ascending lexicographic order of attribute name).
+    Generator yielding 2-tuples of the name and value of each attribute bound
+    to the passed object whose name and/or value matches the passed predicate
+    (in ascending lexicographic order of attribute name).
 
     Parameters
     ----------
@@ -573,7 +607,7 @@ def iter_attrs_matching(
         if predicate(attr_name, attr_value)
     )
 
-# ....................{ ITERATORS ~ methods                }....................
+# ....................{ ITERATORS ~ methods               }....................
 #FIXME: Reimplement in terms of iter_attrs_matching().
 def iter_methods(obj: object) -> GeneratorType:
     '''
@@ -584,8 +618,10 @@ def iter_methods(obj: object) -> GeneratorType:
 
     * All methods statically registered in this object's internal dictionary
       (e.g., ``__dict__`` in unslotted objects), including both:
+
       * Builtin methods, whose names are both prefixed and suffixed by ``__``.
       * Custom methods, whose names are *not* prefixed and suffixed by ``__``.
+
     * All methods dynamically returned by **property methods** (i.e., methods
       decorated by the :func:`property` decorator).
 
@@ -611,8 +647,8 @@ def iter_methods(obj: object) -> GeneratorType:
     ----------
     Exception
         If any method of this object is a property whose
-        :func:`property`-decorated method raises an exception. To avoid handling
-        such exceptions, consider instead calling the
+        :func:`property`-decorated method raises an exception. To avoid
+        handling such exceptions, consider instead calling the
         :func:`iter_methods_custom_simple` generator excluding all properties.
     '''
 
@@ -697,19 +733,23 @@ def iter_methods_custom(obj: object) -> GeneratorType:
         obj=obj, predicate=lambda method_name: not (
             method_name.startswith('__') and method_name.endswith('__')))
 
-# ....................{ ITERATORS ~ vars                   }....................
+# ....................{ ITERATORS ~ vars                  }....................
 #FIXME: Reimplement in terms of iter_attrs_matching().
 def iter_vars(obj: object) -> GeneratorType:
     '''
-    Generator yielding a 2-tuple of the name and value of each variable bound to
-    the passed object (in ascending lexicographic order of variable name).
+    Generator yielding a 2-tuple of the name and value of each variable bound
+    to the passed object (in ascending lexicographic order of variable name).
 
     This includes:
 
     * All variables statically registered in this object's internal dictionary
       (e.g., ``__dict__`` in unslotted objects), including both:
-      * Builtin variables, whose names are both prefixed and suffixed by ``__``.
-      * Custom variables, whose names are *not* prefixed and suffixed by ``__``.
+
+      * Builtin variables, whose names are both prefixed and suffixed by
+        ``__``.
+      * Custom variables, whose names are *not* prefixed and suffixed by
+        ``__``.
+
     * All variables dynamically returned by **property methods** (i.e., methods
       decorated by the :func:`property` decorator).
 
@@ -732,8 +772,8 @@ def iter_vars(obj: object) -> GeneratorType:
     ----------
     Exception
         If any variable of this object is a property whose
-        :func:`property`-decorated method raises an exception. To avoid handling
-        such exceptions, consider instead calling the
+        :func:`property`-decorated method raises an exception. To avoid
+        handling such exceptions, consider instead calling the
         :func:`iter_vars_custom_simple` generator excluding all properties.
     '''
 
@@ -752,8 +792,8 @@ def iter_vars(obj: object) -> GeneratorType:
 def iter_vars_custom(obj: object) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin
-    variable** (i.e., variable whose name is *not* both prefixed and suffixed by
-    `__`) bound to the passed object (in ascending lexicographic order of
+    variable** (i.e., variable whose name is *not* both prefixed and suffixed
+    by `__`) bound to the passed object (in ascending lexicographic order of
     variable name).
 
     Parameters
@@ -764,8 +804,8 @@ def iter_vars_custom(obj: object) -> GeneratorType:
     Yields
     ----------
     (var_name, var_value)
-        2-tuple of the name and value of each non-builtin variable bound to this
-        object (in ascending lexicographic order of variable name).
+        2-tuple of the name and value of each non-builtin variable bound to
+        this object (in ascending lexicographic order of variable name).
 
     See Also
     ----------
@@ -779,19 +819,19 @@ def iter_vars_custom(obj: object) -> GeneratorType:
         if not (var_name.startswith('__') and var_name.endswith('__')):
             yield var_name, var_value
 
-# ....................{ ITERATORS ~ vars : custom simple   }....................
+# ....................{ ITERATORS ~ vars : custom simple  }....................
 def iter_vars_custom_simple(obj: object) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin
     non-property variable** (i.e., variable whose name is *not* both prefixed
     and suffixed by ``__`` and whose value is *not* dynamically defined by the
-    ``@property`` decorator to be the implicit result of a method call) bound to
-    the passed object (in ascending lexicographic order of variable name).
+    ``@property`` decorator to be the implicit result of a method call) bound
+    to the passed object (in ascending lexicographic order of variable name).
 
     Only variables statically registered in this object's internal dictionary
-    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables dynamically
-    defined by this object's ``__getattr__()`` method or related runtime magic
-    are simply ignored.
+    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables
+    dynamically defined by this object's ``__getattr__()`` method or related
+    runtime magic are simply ignored.
 
     Parameters
     ----------
@@ -812,7 +852,8 @@ def iter_vars_custom_simple(obj: object) -> GeneratorType:
         obj=obj, predicate=noop_attr_predicate)
 
 
-def iter_vars_custom_simple_prefixed(obj: object, prefix: str) -> GeneratorType:
+def iter_vars_custom_simple_prefixed(
+    obj: object, prefix: str) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin
     non-property prefixed variable** (i.e., variable whose name is prefixed by
@@ -822,9 +863,9 @@ def iter_vars_custom_simple_prefixed(obj: object, prefix: str) -> GeneratorType:
     ascending lexicographic order of variable name).
 
     Only variables statically registered in this object's internal dictionary
-    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables dynamically
-    defined by this object's ``__getattr__()`` method or related runtime magic
-    are simply ignored.
+    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables
+    dynamically defined by this object's ``__getattr__()`` method or related
+    runtime magic are simply ignored.
 
     Parameters
     ----------
@@ -854,14 +895,14 @@ def iter_vars_custom_simple_matching(
     Generator yielding 2-tuples of the name and value of each **non-builtin
     non-property variable** (i.e., variable whose name is *not* both prefixed
     and suffixed by ``__`` and whose value is *not* dynamically defined by the
-    ``@property`` decorator to be the implicit result of a method call) bound to
-    the passed object whose name and/or value also matches the passed predicate
-    (in ascending lexicographic order of variable name).
+    ``@property`` decorator to be the implicit result of a method call) bound
+    to the passed object whose name and/or value also matches the passed
+    predicate (in ascending lexicographic order of variable name).
 
     Only variables statically registered in this object's internal dictionary
-    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables dynamically
-    defined by this object's ``__getattr__()`` method or related runtime magic
-    are simply ignored.
+    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables
+    dynamically defined by this object's ``__getattr__()`` method or related
+    runtime magic are simply ignored.
 
     Parameters
     ----------
@@ -917,16 +958,16 @@ def iter_vars_custom_simple_matching(
                     callable(attr_value) or
                     isinstance(attr_value, property)
                 ) and
-                # This non-property variable matches this predicate. For safety,
-                # this predicate is passed this attribute only *AFTER* this
-                # attribute has been guaranteed to be such a variable; this
-                # predicate may thus safely assume this to be the case.
+                # This non-property variable matches this predicate. For
+                # safety, this predicate is passed this attribute only *AFTER*
+                # this attribute has been guaranteed to be such a variable;
+                # this predicate may thus safely assume this to be the case.
                 predicate(attr_name, attr_value)
             # ...yield this matching variable.
             ):
                 yield attr_name, attr_value
 
-# ....................{ PREDICATES                         }....................
+# ....................{ PREDICATES                        }....................
 def noop_attr_predicate(attr_name: object, attr_value: object) -> bool:
     '''
     Null attribute predicate unconditionally returning ``True`` for all passed

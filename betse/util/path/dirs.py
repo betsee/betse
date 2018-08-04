@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +7,7 @@
 Low-level directory facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import os, shutil
 from betse.exceptions import BetseDirException, BetsePathException
 from betse.util.io.log import logs
@@ -23,7 +23,7 @@ from betse.util.type.types import (
 from distutils import dir_util
 from os import path as os_path
 
-# ....................{ GLOBALS ~ enum                     }....................
+# ....................{ GLOBALS ~ enum                    }....................
 DirOverwritePolicy = make_enum(
     class_name='DirOverwritePolicy',
     member_names=(
@@ -43,15 +43,15 @@ HALT_WITH_EXCEPTION : enum
     Policy raising a fatal exception if any target path already exists. This
     constitutes the strictest and hence safest such policy.
 SKIP_WITH_WARNING : enum
-    Policy ignoring (i.e., skipping) each target path that already exists with a
-    logged non-fatal warning. This policy strikes a convenient balance between
-    strictness and laxness.
+    Policy ignoring (i.e., skipping) each target path that already exists with
+    a logged non-fatal warning. This policy strikes a convenient balance
+    between strictness and laxness.
 OVERWRITE : enum
     Policy silently overwriting each target path that already exists. This
     constitutes the laxest and hence riskiest such policy.
 '''
 
-# ....................{ GLOBALS ~ regex                    }....................
+# ....................{ GLOBALS ~ regex                   }....................
 # There exist only two possible directory separators for all modern platforms.
 # Hence, this reliably suffices with no error handling required.
 SEPARATOR_REGEX = r'/' if os_path.sep == '/' else r'\\'
@@ -65,7 +65,7 @@ Specifically, under:
 * All other platforms, this is `/`.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_if_dir(*dirnames: str) -> None:
     '''
     Raise an exception if any of the passed directories exist.
@@ -112,7 +112,7 @@ def join_and_die_unless_dir(*pathnames: str) -> str:
     # Return this dirname.
     return dirname
 
-# ....................{ EXCEPTIONS ~ parent                }....................
+# ....................{ EXCEPTIONS ~ parent               }....................
 def die_unless_parent_dir(pathname: str) -> None:
     '''
     Raise an exception unless the parent directory of the passed path exists.
@@ -121,10 +121,11 @@ def die_unless_parent_dir(pathname: str) -> None:
     # Avoid circular import dependencies.
     from betse.util.path import pathnames
 
-    # If the parent directory of this path does *NOT* exist, raise an exception.
+    # If the parent directory of this path does *NOT* exist, raise an
+    # exception.
     die_unless_dir(pathnames.get_dirname(pathname))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_dir(dirname: str) -> bool:
     '''
@@ -133,12 +134,12 @@ def is_dir(dirname: str) -> bool:
 
     return os_path.isdir(dirname)
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get_parent_dir_last(pathname: str) -> str:
     '''
-    Absolute pathname of the most deeply nested existing parent directory of the
-    path with the passed pathname.
+    Absolute pathname of the most deeply nested existing parent directory of
+    the path with the passed pathname.
 
     Since the passed pathname is required to be absolute *and* since the root
     directory (e.g., ``/`` on POSIX-compatible platforms) always exists, this
@@ -152,8 +153,8 @@ def get_parent_dir_last(pathname: str) -> str:
     Returns
     -----------
     str
-        Absolute pathname of the most deeply nested existing parent directory of
-        this path.
+        Absolute pathname of the most deeply nested existing parent directory
+        of this path.
 
     Examples
     -----------
@@ -182,7 +183,7 @@ def get_parent_dir_last(pathname: str) -> str:
     # Return this existing directory component.
     return dirname_component
 
-# ....................{ GETTERS ~ mtime : recursive        }....................
+# ....................{ GETTERS ~ mtime : recursive       }....................
 #FIXME: Consider contributing the get_mtime_recursive_newest() function as an
 #answer to the following StackOverflow question:
 #    https://stackoverflow.com/questions/26498285/find-last-update-time-of-a-directory-includes-all-levels-of-sub-folders
@@ -201,9 +202,9 @@ if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
 
         # Return the maximum of all mtimes in the...
         return max(
-            # Generator expression recursively yielding the maximum mtime of all
-            # files and subdirectories of each subdirectory of this directory
-            # including this directory.
+            # Generator expression recursively yielding the maximum mtime of
+            # all files and subdirectories of each subdirectory of this
+            # directory including this directory.
             (
                 # Maximum of this subdirectory's mtime and the mtimes of all
                 # files in this subdirectory, whose filenames are produced by a
@@ -244,9 +245,9 @@ else:
 
         # Return the maximum of all mtimes in the...
         return max(
-            # Generator expression recursively yielding the maximum mtime of all
-            # files and subdirectories of each subdirectory of this directory
-            # including this directory.
+            # Generator expression recursively yielding the maximum mtime of
+            # all files and subdirectories of each subdirectory of this
+            # directory including this directory.
             (
                 # Maximum of this subdirectory's mtime and the mtimes of all
                 # files in this subdirectory, whose filenames are produced by a
@@ -282,9 +283,9 @@ get_mtime_recursive_newest.__doc__ = '''
     Note that symbolic links whose transitive targets are:
 
     * Directories are *not* followed, avoiding infinite recursion in edge cases
-      (e.g., directories containing symbolic links to themselves). Such links
-      are effectively non-directory files. Since the mtime of a symbolic link is
-      typically its ctime (i.e., creation time), such links thus contribute
+      (e.g., directories containing symbolic links to themselves). These links
+      are effectively non-directory files. Since the mtime of a symbolic link
+      is typically its ctime (i.e., creation time), such links thus contribute
       their own ctime to this calculation.
     * Files are followed, improving the accuracy of this calculation.
 
@@ -296,8 +297,8 @@ get_mtime_recursive_newest.__doc__ = '''
     Returns
     -----------
     NumericSimpleTypes
-        Most recent mtime in seconds of this directory calculated recursively as
-        either an integer or float, depending on the boolean returned by the
+        Most recent mtime in seconds of this directory calculated recursively
+        as either an integer or float, depending on the boolean returned by the
         platform-specific :func:`os.stat_float_times` function.
 
     Raises
@@ -308,12 +309,12 @@ get_mtime_recursive_newest.__doc__ = '''
         insufficient permissions).
     '''
 
-# ....................{ COPIERS                            }....................
+# ....................{ COPIERS                           }....................
 @type_check
 def copy_into_dir(src_dirname: str, trg_dirname: str, *args, **kwargs) -> None:
     '''
-    Recursively copy the passed source directory to a subdirectory of the passed
-    target directory having the same basename as this source directory.
+    Recursively copy the passed source directory to a subdirectory of the
+    passed target directory having the same basename as this source directory.
 
     Parameters
     -----------
@@ -365,10 +366,10 @@ def copy(
     '''
     Recursively copy the passed source to target directory.
 
-    All nonexistent parents of the target directory will be recursively created,
-    mimicking the action of the ``mkdir -p`` shell command. All symbolic links
-    in the source directory will be preserved (i.e., copied as is rather than
-    their transitive targets copied instead).
+    All nonexistent parents of the target directory will be recursively
+    created, mimicking the action of the ``mkdir -p`` shell command. All
+    symbolic links in the source directory will be preserved (i.e., copied as
+    is rather than their transitive targets copied instead).
 
     Parameters
     -----------
@@ -376,7 +377,8 @@ def copy(
         Absolute or relative path of the source directory to be recursively
         copied from.
     trg_dirname : str
-        Absolute or relative path of the target directory to recursively copy to.
+        Absolute or relative path of the target directory to recursively copy
+        to.
     overwrite_policy : DirOverwritePolicy
         **Directory overwrite policy** (i.e., strategy for handling existing
         paths to be overwritten by this copy) to apply. Defaults to
@@ -418,10 +420,11 @@ def copy(
     # If passed an iterable of shell-style globs matching ignorable basenames,
     # convert this iterable into a predicate function of the form required by
     # the shutil.copytree() function. Specifically, this function accepts the
-    # absolute or relative pathname of an arbitrary directory and an iterable of
-    # the basenames of all subdirectories and files directly in this directory;
-    # this function returns an iterable of the basenames of all subdirectories
-    # and files in this directory to be ignored. This signature resembles:
+    # absolute or relative pathname of an arbitrary directory and an iterable
+    # of the basenames of all subdirectories and files directly in this
+    # directory; this function returns an iterable of the basenames of all
+    # subdirectories and files in this directory to be ignored. This signature
+    # resembles:
     #
     #     def ignore_basename_func(
     #         parent_dirname: str,
@@ -451,8 +454,8 @@ def copy(
         die_if_dir(trg_dirname)
 
         # Recursively copy this source to target directory. To avoid silently
-        # overwriting all conflicting target paths, the shutil.copytree() rather
-        # than dir_util.copy_tree() function is called.
+        # overwriting all conflicting target paths, the shutil.copytree()
+        # rather than dir_util.copy_tree() function is called.
         shutil.copytree(src=src_dirname, dst=trg_dirname, **copytree_kwargs)
     # Else if overwriting this target directory with this source directory...
     elif overwrite_policy is DirOverwritePolicy.OVERWRITE:
@@ -467,7 +470,8 @@ def copy(
 
         # Recursively copy this source to target directory, preserving symbolic
         # links as is. To silently overwrite all conflicting target paths, the
-        # dir_util.copy_tree() rather than shutil.copytree() function is called.
+        # dir_util.copy_tree() rather than shutil.copytree() function is
+        # called.
         dir_util.copy_tree(
             src_dirname, trg_dirname, preserve_symlinks=1)
 
@@ -540,8 +544,10 @@ def copy(
                     # Remove these files from the original iterable. Unlike
                     # above, we could technically modify this iterable via
                     # set subtraction: e.g.,
+                    #
                     #     subdir_basenames -= subdir_basenames_ignored
-                    # For orthogonality, we preserve the above approach instead.
+                    #
+                    # For orthogonality, preserve the above approach instead.
                     sequences.remove_items(
                         sequence=file_basenames,
                         items=file_basenames_ignored)
@@ -557,8 +563,10 @@ def copy(
             # directory...
             for file_basename in file_basenames:
                 # Absolute filenames of this source and target file.
-                src_filename = pathnames.join(src_parent_dirname, file_basename)
-                trg_filename = pathnames.join(trg_parent_dirname, file_basename)
+                src_filename = pathnames.join(
+                    src_parent_dirname, file_basename)
+                trg_filename = pathnames.join(
+                    trg_parent_dirname, file_basename)
 
                 # If this target file already exists...
                 if paths.is_path(trg_filename):
@@ -585,12 +593,12 @@ def copy(
         raise BetseDirException(
             'Overwrite policy "{}" unrecognized.'.format(overwrite_policy))
 
-# ....................{ MAKERS                             }....................
+# ....................{ MAKERS                            }....................
 @type_check
 def make_unless_dir(*dirnames: str) -> None:
     '''
-    Create all passed directories that do *not* already exist, silently ignoring
-    those that *do* already exist.
+    Create all passed directories that do *not* already exist, silently
+    ignoring those that *do* already exist.
 
     All nonexistent parents of this directory are also recursively created,
     reproducing the action of the POSIX-compliant ``mkdir -p`` shell command.
@@ -649,7 +657,7 @@ def make_parent_unless_dir(*pathnames: str) -> None:
     for pathname in pathnames:
         make_unless_dir(get_dirname(canonicalize(pathname)))
 
-# ....................{ MAKERS ~ convenience               }....................
+# ....................{ MAKERS ~ convenience              }....................
 def canonicalize_and_make_unless_dir(dirname: str) -> str:
     '''
     Create the directory with the passed absolute or relative path if this
@@ -697,7 +705,7 @@ def join_and_make_unless_dir(*partnames: str) -> str:
     # Return this dirname.
     return dirname
 
-# ....................{ ITERATORS                          }....................
+# ....................{ ITERATORS                         }....................
 @type_check
 def iter_basenames(dirname: str) -> SequenceTypes:
     '''
@@ -721,7 +729,7 @@ def iter_basenames(dirname: str) -> SequenceTypes:
     # Sequence of all such basenames.
     return os.listdir(dirname)
 
-# ....................{ ITERATORS ~ subdir                 }....................
+# ....................{ ITERATORS ~ subdir                }....................
 @type_check
 def iter_subdirnames(dirname: str) -> GeneratorType:
     '''
@@ -741,7 +749,8 @@ def iter_subdirnames(dirname: str) -> GeneratorType:
     Yields
     -----------
     str
-        Absolute or relative path of each direct subdirectory of this directory.
+        Absolute or relative path of each direct subdirectory of this
+        directory.
 
     See Also
     -----------
@@ -757,7 +766,8 @@ def iter_subdirnames(dirname: str) -> GeneratorType:
     #   * The ignorable absolute or relative path of this parent directory,
     #     which we (of course) were passed as input and thus already have.
     #   * This desired sequence.
-    #   * An ignorable sequence of the basenames of all files of this directory.
+    #   * An ignorable sequence of the basenames of all files of this
+    #     directory.
     # * Errors emitted by low-level functions called by os.walk() (e.g.,
     #   os.listdir()) are *NOT* silently ignored.
     _, subdir_basenames, _ = next(_walk(dirname))
@@ -787,14 +797,14 @@ def iter_subdir_basenames(dirname: str) -> SequenceTypes:
         Sequence of direct subdirectory basenames of this parent directory.
     '''
 
-    # Sequence of the basenames of all subdirectories of this directory. See the
-    # iter_subdirnames() function for further details.
+    # Sequence of the basenames of all subdirectories of this directory. See
+    # the iter_subdirnames() function for further details.
     _, subdir_basenames, _ = next(_walk(dirname))
 
     # Return this sequence of basenames as is.
     return subdir_basenames
 
-# ....................{ PRIVATE ~ raisers                  }....................
+# ....................{ PRIVATE ~ raisers                 }....................
 @type_check
 def _raise_exception_dir(dirname: str) -> CallableTypes:
     '''
@@ -826,8 +836,8 @@ def _raise_exception_dir(dirname: str) -> CallableTypes:
     Parameters
     -----------
     dirname : str
-        Absolute pathname of the top-level directory to raise exceptions against
-        in this closure.
+        Absolute pathname of the top-level directory to raise exceptions
+        against in this closure.
 
     Returns
     -----------
@@ -861,7 +871,7 @@ def _raise_exception_dir(dirname: str) -> CallableTypes:
     # Return this closure.
     return _raise_exception_dir_inner
 
-# ....................{ PRIVATE ~ walkers                  }....................
+# ....................{ PRIVATE ~ walkers                 }....................
 # Undocumented os.fwalk() and os.walk() wrappers defaulting to a sane "onerror"
 # callable (namely, the _raise_exception_dir() closure defined above), but
 # otherwise identical to their standard variants.
