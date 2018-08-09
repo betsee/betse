@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,18 +7,18 @@
 Metadata constants synopsizing high-level application dependencies.
 '''
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from modules guaranteed to exist at the start of
 # installation. This includes all standard Python and application modules but
 # *NOT* third-party dependencies, which if currently uninstalled will only be
 # installed at some later time in the installation.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse.util.type import modules
 
-# ....................{ LIBS ~ runtime : mandatory         }....................
+# ....................{ LIBS ~ runtime : mandatory        }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this subsection *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
@@ -27,7 +27,7 @@ from betse.util.type import modules
 #   and the Python-specific module names imported by this application.
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
 # * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 RUNTIME_MANDATORY = {
     # setuptools is currently required at both install and runtime. At runtime,
@@ -68,15 +68,17 @@ To simplify subsequent lookup, these dependencies are contained by a dictionary
 rather than a simple set or sequence such that each:
 
 * Key is the name of a :mod:`setuptools`-specific project identifying this
-  dependency, which may have no relation to the name of that project's top-level
-  module or package (e.g., the ``PyYAML`` project's top-level package is
-  :mod:`yaml`). For human readability in error messages, this name should
+  dependency, which may have no relation to the name of that project's
+  top-level module or package (e.g., the ``PyYAML`` project's top-level package
+  is :mod:`yaml`). For human readability in error messages, this name should
   typically be case-sensitively capitalized -- despite being parsed
   case-insensitively by :mod:`setuptools`.
 * Value is either:
-  * ``None`` or the empty string, in which case this dependency is unconstrained
-    (i.e., any version of this dependency is sufficient).
+
+  * ``None`` or the empty string, in which case this dependency is
+    unconstrained (i.e., any version of this dependency is sufficient).
   * A string of the form ``{comparator} {version}``, where:
+
     * ``{comparator}`` is a comparison operator (e.g., ``>=``, ``!=``).
     * ``{version}`` is the required version of this project to compare.
 
@@ -106,7 +108,7 @@ https://setuptools.readthedocs.io/en/latest/setuptools.html#id12
     Human-readable list of these dependencies.
 '''
 
-# ....................{ LIBS ~ runtime : mandatory : yaml  }....................
+# ....................{ LIBS ~ runtime : mandatory : yaml }....................
 RUNTIME_MANDATORY_YAML_PROJECT_NAME = None
 '''
 :mod:`setuptools`-specific project name of the current YAML implementation
@@ -147,9 +149,10 @@ YAML implementation satisfying the same mandatory runtime dependency for this
 application to the suffix of a :mod:`setuptools`-specific requirements string
 constraining this dependency.
 
-Since neither :mod:`distutils` nor :mod:`setuptools` support mutual exclusivity,
-these alternatives are isolated into a separate dictionary implicitly merged
-into the :data:`RUNTIME_MANDATORY` dictionary at submodule importation time.
+Since neither :mod:`distutils` nor :mod:`setuptools` support mutual
+exclusivity, these alternatives are isolated into a separate dictionary
+implicitly merged into the :data:`RUNTIME_MANDATORY` dictionary at submodule
+importation time.
 
 Motivation
 ----------
@@ -160,7 +163,7 @@ non-trivial and frankly fragile to warrant falling back to less preferable but
 more widely available alternatives.
 '''
 
-# ....................{ LIBS ~ runtime : optional          }....................
+# ....................{ LIBS ~ runtime : optional         }....................
 #FIXME: Should these be dependencies also be added to our "setup.py" metadata,
 #perhaps as so-called "extras"? Contemplate. Consider. Devise.
 RUNTIME_OPTIONAL = {
@@ -173,11 +176,11 @@ RUNTIME_OPTIONAL = {
     'ptpython': '>= 0.29',
 
     # A relatively modern version of NetworkX *EXCLUDING* 1.11, which
-    # critically broke backwards compatibility by coercing use of the unofficial
-    # inactive "pydotplus" PyDot fork rather than the official active "pydot"
-    # PyDot project, is directly required by this application. NetworkX >= 1.12
-    # reverted to supporting "pydot", thus warranting blacklisting of only
-    # NetworkX 1.11. It is confusing, maybe?
+    # critically broke backwards compatibility by coercing use of the
+    # unofficial inactive "pydotplus" PyDot fork rather than the official
+    # active "pydot" PyDot project, is directly required by this application.
+    # NetworkX >= 1.12 reverted to supporting "pydot", thus warranting
+    # blacklisting of only NetworkX 1.11. It is confusing, maybe?
     'networkx': '>= 1.8, != 1.11',
     'pydot': '>= 1.0.28',
 }
@@ -197,12 +200,12 @@ See Also
     of strings (e.g., within :download:`/setup.py`).
 '''
 
-# ....................{ LIBS ~ testing : mandatory         }....................
+# ....................{ LIBS ~ testing : mandatory        }....................
 TESTING_MANDATORY = {
-    # For simplicity, py.test should remain the only hard dependency for testing
-    # on local machines. While our setuptools-driven testing regime optionally
-    # leverages third-party py.test plugins (e.g., "pytest-xdist"), these
-    # plugins are *NOT* required for simple testing.
+    # For simplicity, py.test should remain the only hard dependency for
+    # testing on local machines. While our setuptools-driven testing regime
+    # optionally leverages third-party py.test plugins (e.g., "pytest-xdist"),
+    # these plugins are *NOT* required for simple testing.
     'pytest': '>= 2.5.0',
 }
 '''
@@ -218,12 +221,12 @@ See Also
     Human-readable list of these dependencies.
 '''
 
-# ....................{ LIBS ~ command                     }....................
+# ....................{ LIBS ~ command                    }....................
 class DependencyCommand(object):
     '''
     Lightweight metadata describing a single external command required by some
-    application dependency (of any type, including optional, mandatory, runtime,
-    testing, or otherwise).
+    application dependency (of any type, including optional, mandatory,
+    runtime, testing, or otherwise).
 
     Attributes
     ----------
@@ -259,7 +262,7 @@ See Also
     Human-readable list of these dependencies.
 '''
 
-# ....................{ INITIALIZERS                       }....................
+# ....................{ INITIALIZERS                      }....................
 def _init() -> None:
     '''
     Dynamically finalize the contents of the :data:`RUNTIME_MANDATORY` global
@@ -268,14 +271,14 @@ def _init() -> None:
     Specifically, this function selects the first importable third-party YAML
     implementation (in descending order of preference) and merges the
     :mod:`setuptools`-specific metadata constraining this implementation from
-    the :data:`RUNTIME_MANDATORY_YAML` global into the :data:`RUNTIME_MANDATORY`
-    and :data:`RUNTIME_OPTIONAL` globals.
+    the :data:`RUNTIME_MANDATORY_YAML` global into the
+    :data:`RUNTIME_MANDATORY` and :data:`RUNTIME_OPTIONAL` globals.
 
     Caveats
     ----------
     Note that this install- and runtime logic only applies to logic paths that
-    actually execute this script. This excludes wheel installation, which avoids
-    script execution for safety. (Because this is Python.)
+    actually execute this script. This excludes wheel installation, which
+    avoids script execution for safety. (Because this is Python.)
     '''
 
     # Global variables assigned to below.
@@ -327,6 +330,9 @@ def _init() -> None:
     #at beast. Until resolved, "ruamel.yaml" *MUST* be ignored. For discussion,
     #see the following upstream issue:
     #    https://bitbucket.org/ruamel/yaml/issues/146/torture-test-breaks-the-fragile-back-of
+    #FIXME: The prior issue has thankfully been resolved for... several years.
+    #Let's honour the commitment of the "ruamel.yaml" project by finally
+    #deleting the following line and properly supporting "ruamel.yaml".
     RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'PyYAML'
 
     # Enforce installation of the preferred YAML framework detected above.
@@ -334,10 +340,11 @@ def _init() -> None:
         RUNTIME_MANDATORY_YAML[RUNTIME_MANDATORY_YAML_PROJECT_NAME])
 
     # Merge the requirement strings for all YAML frameworks into those for all
-    # optional dependencies, permitting the former to be treated like the latter
-    # (e.g., by the betse.lib.libs.die_unless_runtime_optional() function).
+    # optional dependencies, permitting the former to be treated like the
+    # latter (e.g., by the betse.lib.libs.die_unless_runtime_optional()
+    # function).
     RUNTIME_OPTIONAL.update(RUNTIME_MANDATORY_YAML)
 
-# ....................{ MAIN                               }....................
+# ....................{ MAIN                              }....................
 # Initialize this submodule.
 _init()

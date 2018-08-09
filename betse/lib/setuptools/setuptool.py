@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,32 +8,39 @@ High-level support facilities for :mod:`pkg_resources`, a mandatory runtime
 dependency simplifying inspection of application dependencies.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import pkg_resources
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
 from betse.util.type import iterables, modules
 from betse.util.type.modules import DISTUTILS_PROJECT_NAME_TO_MODULE_NAME
 from betse.util.type.types import (
-    type_check, GeneratorType, MappingType, ModuleType, NoneType, SequenceTypes)
+    type_check,
+    DistributionOrNoneTypes,
+    GeneratorType,
+    MappingType,
+    ModuleType,
+    ModuleOrSequenceTypes,
+    SequenceTypes,
+)
 from collections import OrderedDict
 from pkg_resources import (
-    Distribution,
     DistributionNotFound,
     Requirement,
     UnknownExtra,
     VersionConflict,
 )
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
     '''
     Raise an exception unless each :mod:`setuptools`-formatted requirements
     string produced by concatenating each key and corresponding value of the
     passed dictionary (e.g., converting key ``Numpy`` and value ``>= 1.8.0``
-    into requirements string ``Numpy >= 1.8.0``) are satisfiable, implying these
-    third-party packages to be both importable and of satisfactory version.
+    into requirements string ``Numpy >= 1.8.0``) are satisfiable, implying
+    these third-party packages to be both importable and of satisfactory
+    version.
 
     Parameters
     ----------
@@ -48,10 +55,10 @@ def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
 
     # Tuple of requirements strings converted by concatenating each key and
     # value of this dictionary.
-    requirement_strs = convert_requirements_dict_to_tuple(requirements_dict)
+    requirement_strs = get_requirements_str_from_dict(requirements_dict)
 
     # Validate these requirements strings.
-    die_unless_requirement_str(*requirement_strs)
+    die_unless_requirements_str(*requirement_strs)
 
 
 @type_check
@@ -60,9 +67,10 @@ def die_unless_requirements_dict_keys(
     '''
     Raise an exception unless each :mod:`setuptools`-formatted requirements
     string produced by concatenating each passed key and corresponding value of
-    the passed dictionary (e.g., converting key ``Numpy`` and value ``>= 1.8.0``
-    into requirements string ``Numpy >= 1.8.0``) are satisfiable, implying these
-    third-party packages to be both importable and of satisfactory version.
+    the passed dictionary (e.g., converting key ``Numpy`` and value ``>=
+    1.8.0`` into requirements string ``Numpy >= 1.8.0``) are satisfiable,
+    implying these third-party packages to be both importable and of
+    satisfactory version.
 
     Parameters
     ----------
@@ -78,17 +86,17 @@ def die_unless_requirements_dict_keys(
         If at least one such requirement is unsatisfiable.
     '''
 
-    # Tuple of requirements strings converted by concatenating each such key and
-    # value of this dictionary.
-    requirement_strs = convert_requirements_dict_keys_to_tuple(
+    # Tuple of requirements strings converted by concatenating each such key
+    # and value of this dictionary.
+    requirements_str = get_requirements_str_from_dict_keys(
         requirements_dict, *requirement_names)
 
     # Validate these requirements strings.
-    die_unless_requirement_str(*requirement_strs)
+    die_unless_requirements_str(*requirements_str)
 
 
 @type_check
-def die_unless_requirement_str(*requirement_strs: str) -> None:
+def die_unless_requirements_str(*requirements_str: str) -> None:
     '''
     Raise an exception unless all passed :mod:`setuptools`-formatted
     requirements strings (e.g., ``Numpy >= 1.8.0``) are satisfiable, implying
@@ -107,7 +115,7 @@ def die_unless_requirement_str(*requirement_strs: str) -> None:
     '''
 
     # List of all requirement objects parsed from these requirement strings.
-    requirements = get_requirements(*requirement_strs)
+    requirements = iter_requirements_str(*requirements_str)
 
     # Validate these requirements.
     for requirement in requirements:
@@ -157,10 +165,10 @@ def die_unless_requirement(requirement: Requirement) -> None:
                 version_conflict.req, version_conflict.dist))
     #FIXME: Handle the "UnknownExtra" exception as well.
 
-    # If raising a human-readable exception, do so. While raising this exception
-    # in the exception handler above would be preferable, doing so encourages
-    # Python 3 to implicitly prepend this exception by the non-human-readable
-    # exception raised above. This convoluted logic circumvents that. (...Ugh!)
+    # If raising a human-readable exception, do so. Raising this exception in
+    # the handler above would be preferable but also incite Python 3 to
+    # implicitly prepend this exception by the non-human-readable exception
+    # raised above. This convoluted logic circumvents that. (...Ugh!)
     if betse_exception:
         raise betse_exception
 
@@ -189,7 +197,7 @@ def die_unless_requirement(requirement: Requirement) -> None:
             raise BetseLibException(
                 'Dependency "{}" unimportable.'.format(
                     requirement.project_name))
-    # Else if any other exception is raised, expose this exception to end users.
+    # Else if any other exception is raised, expose this exception to users.
     except Exception as root_exception:
         raise BetseLibException(
             'Dependency "{}" unimportable.'.format(requirement.project_name))
@@ -203,7 +211,7 @@ def die_unless_requirement(requirement: Requirement) -> None:
     # by the "in" operator below do correctly return True for all possible
     # versions, this package may *NOT* declare the optional "__version__"
     # attribute; in that case, calling the modules.get_version() function below
-    # would raise a fatal exception. Avoid this by short-circuiting immediately.
+    # would raise a fatal exception. Avoid this by short-circuiting *NOW*.
     if not _is_requirement_versioned(requirement):
         return
     # Else, this requirement is versioned.
@@ -217,9 +225,9 @@ def die_unless_requirement(requirement: Requirement) -> None:
             'Dependency "{}" unsatisfied by installed version {}.'.format(
                 requirement, package_version))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
-def is_requirement_str(*requirement_strs: str) -> bool:
+def is_requirement_str(*requirements_str: str) -> bool:
     '''
     ``True`` only if all passed :mod:`setuptools`-formatted requirement strings
     (e.g., `Numpy >= 1.8.0`) are satisfiable, implying the corresponding
@@ -227,7 +235,7 @@ def is_requirement_str(*requirement_strs: str) -> bool:
 
     Parameters
     ----------
-    requirement_strs : tuple[str]
+    requirements_str : tuple[str]
         Tuple of all requirement strings to test.
 
     Returns
@@ -237,7 +245,7 @@ def is_requirement_str(*requirement_strs: str) -> bool:
     '''
 
     # List of all requirement objects parsed from these requirement strings.
-    requirements = get_requirements(*requirement_strs)
+    requirements = iter_requirements_str(*requirements_str)
 
     # Return "True" only if these requirements are all satisfiable.
     return all(
@@ -250,9 +258,9 @@ def is_requirement_str(*requirement_strs: str) -> bool:
 def is_requirement(requirement: Requirement) -> bool:
     '''
     ``True`` only if the passed :mod:`setuptools`-specific **requirement**
-    (i.e., object describing this module or package's required name and version)
-    is satisfiable, implying the corresponding third-party package to be both
-    importable and of satisfactory version.
+    (i.e., object describing this module or package's required name and
+    version) is satisfiable, implying the corresponding third-party package to
+    be both importable and of satisfactory version.
 
     Parameters
     ----------
@@ -278,8 +286,8 @@ def is_requirement(requirement: Requirement) -> bool:
     except (UnknownExtra, VersionConflict):
         return False
 
-    # If no setuptools-managed egg exists for this requirement, fallback to this
-    # lower-level strategy:
+    # If no setuptools-managed egg exists for this requirement, fallback to
+    # this lower-level strategy:
     #
     # 1. Import this requirement's top-level package.
     # 2. Compare this package's "__version__" attribute (if any) with this
@@ -308,15 +316,13 @@ def is_requirement(requirement: Requirement) -> bool:
     # Return "True" only if this version exists and satisfies this requirement.
     return package_version is not None and package_version in requirement
 
-# ....................{ TESTERS ~ private                  }....................
+# ....................{ TESTERS ~ private                 }....................
 @type_check
 def _is_requirement_versioned(requirement: Requirement) -> bool:
     '''
     ``True`` only if the passed :mod:`setuptools`-specific requirement is
     **versioned** (i.e., constrained to require only a subset of all available
     versions of this requirement's distribution).
-
-    This
 
     Parameters
     ----------
@@ -333,8 +339,8 @@ def _is_requirement_versioned(requirement: Requirement) -> bool:
     # encapsulates the set of all versions required by this requirement. Note:
     #
     # * The SpecifierSet.__init__() method accepts a string defining this set
-    #   (e.g., ">= 3.1415"), which is the empty string when no specific versions
-    #   are required, in which case this set is empty.
+    #   (e.g., ">= 3.1415"), which is the empty string when no specific
+    #   versions are required, in which case this set is empty.
     # * The SpecifierSet.__eq__() method permits such sets to compared against
     #   such strings.
     #
@@ -342,35 +348,13 @@ def _is_requirement_versioned(requirement: Requirement) -> bool:
     # only if this requirement's specifier is *NOT* the empty string.
     return requirement.specifier != ''
 
-# ....................{ GETTERS                            }....................
-@type_check
-def get_requirements(*requirement_strs: str) -> GeneratorType:
-    '''
-    Generator of all high-level :mod:`setuptools`-specific
-    :class:`pkg_resources.Requirement` objects parsed from the passed low-level
-    requirement strings.
-
-    Parameters
-    ----------
-    requirement_strs: Tuple[str]
-        Tuple of all requirement strings to parse into requirement objects.
-
-    Yields
-    ----------
-    Requirement
-        For each passed requirement string, this generator yields a requirement
-        object parsed from this string (_in the same order_)
-    '''
-
-    yield from pkg_resources.parse_requirements(requirement_strs)
-
-
+# ....................{ GETTERS ~ requirement             }....................
 @type_check
 def get_requirement_distribution_or_none(
-    requirement: Requirement) -> (Distribution, NoneType):
+    requirement: Requirement) -> DistributionOrNoneTypes:
     '''
-    :class:`Distribution` instance describing the currently installed version of
-    the top-level third-party module or package satisfying the passed
+    :class:`Distribution` instance describing the currently installed version
+    of the top-level third-party module or package satisfying the passed
     :mod:`setuptools`-specific requirement if any *or* raise an exception if
     this requirement is guaranteed to be unsatisfied (e.g., due to a version
     mismatch) *or* ``None`` if this requirement cannot be guaranteed to be
@@ -390,20 +374,22 @@ def get_requirement_distribution_or_none(
 
     Returns
     ----------
-    Distribution or NoneType
+    DistributionOrNoneTypes
         Object describing the currently installed version of the package or
         module satisfying this requirement if any *or* ``None`` otherwise.
-        Specifically, ``None`` is returned in all of the following conditions --
-        only one of which genuinely corresponds to an error:
+        Specifically, ``None`` is returned in all of the following conditions
+        -- only one of which genuinely corresponds to an error:
+
         * This requirement is *not* installed at all. (**Error.**)
         * This requirement was installed manually rather than with
-          :mod:`setuptools`, in which case no such :class:`Distribution` exists.
-          (**Non-error.**)
+          :mod:`setuptools`, in which case no such :class:`Distribution`
+          exists. (**Non-error.**)
         * This requirement was installed with the :mod:`setuptools` subcommand
           ``develop``, in which case a :class:`Distribution` technically exists
           but in a sufficiently inconsistent state that the low-level
-          :func:`pkg_resources.get_distribution` function raises an exception on
-          attempting to retrieve that object. (**Non-error.**)
+          :func:`pkg_resources.get_distribution` function raises an exception
+          on attempting to retrieve that object. (**Non-error.**)
+
         Since distinguishing the erroneous from non-erroneous cases exceeds the
         mandate of this getter, the caller is expected to do so.
 
@@ -441,7 +427,8 @@ def get_requirement_distribution_or_none(
     # from other unexpected error conditions. In the former case, a
     # non-human-readable exception resembling the following is raised:
     #
-    #     ValueError: ("Missing 'Version:' header and/or PKG-INFO file", networkx [unknown version] (/home/leycec/py/networkx))
+    #     ValueError: ("Missing 'Version:' header and/or PKG-INFO file",
+    #     networkx [unknown version] (/home/leycec/py/networkx))
     except ValueError as version_missing:
         # If this exception was...
         if (
@@ -462,9 +449,58 @@ def get_requirement_distribution_or_none(
         # non-ignorable error condition. Reraise this exception!
         raise
 
-# ....................{ GETTERS ~ requirement : metadata   }....................
+
 @type_check
-def get_requirement_metadata(requirement: Requirement) -> str:
+def get_requirement_str_from_dict_key(
+    requirements_dict: MappingType, requirement_name: str) -> str:
+    '''
+    Convert the key-value pair of the passed dictionary of
+    :mod:`setuptools`-specific requirements strings whose key is the passed
+    string into a :mod:`setuptools`-specific requirements string.
+
+    Parameters
+    ----------
+    requirements_dict : MappingType
+        Dictionary of requirements strings.
+    requirement_names : str
+        Key identifying the key-value pairs of this dictionary to convert.
+
+    Returns
+    ----------
+    str
+        Requirements string converted from this key-value pair.
+
+    Raises
+    ----------
+    BetseLibException
+        If the passed key is *not* a key of this dictionary.
+
+    See Also
+    ----------
+    :func:`get_requirements_str_from_dict`
+        Further details on the format of this dictionary and resulting string.
+    '''
+
+    # If this name is unrecognized, raise an exception.
+    if requirement_name not in requirements_dict:
+        raise BetseLibException(
+            'Dependency "{}" unrecognized.'.format(requirement_name))
+
+    # String constraining this requirement (e.g., ">= 3.14159265359", "[svg]")
+    # if any or "None" otherwise.
+    requirement_constraints = requirements_dict[requirement_name]
+
+    # If this requirement is constrained, return the concatenation of this
+    # requirement's name and constraints.
+    if requirement_constraints:
+        return '{} {}'.format(requirement_name, requirement_constraints)
+    # Else, return only this requirement's name.
+    else:
+        return requirement_name
+
+
+@type_check
+def get_requirement_synopsis(requirement: Requirement) -> str:
     '''
     Human-readable string describing the currently installed third-party
     module or package corresponding to (but *not* necessarily satisfying) the
@@ -476,12 +512,15 @@ def get_requirement_metadata(requirement: Requirement) -> str:
 
     * Is unimportable, the string ``not installed`` is returned.
     * Is importable and...
+
       * Fails to satisfy this requirement, a string describing this conflict is
         returned.
       * Satisfies this requirement, the string ``{version} <{pathname}>`` is
         returned, where:
+
         * ``{pathname}`` is the absolute path of this module or package.
         * ``{version}`` is either:
+
           * If this module or package exports a version (e.g., via the
             ``__version__`` attribute), this version as a `.`-delimited string.
           * Else, the string ``unknown version``.
@@ -505,8 +544,8 @@ def get_requirement_metadata(requirement: Requirement) -> str:
         # module satisfying this requirement if any or "None" if this
         # requirement cannot be guaranteed to be unsatisfied.
         distribution = get_requirement_distribution_or_none(requirement)
-    # If setuptools found only requirements of insufficient version, return this
-    # version regardless (with a suffix noting this to be the case).
+    # If setuptools found only requirements of insufficient version, return
+    # this version regardless (with a suffix noting this to be the case).
     except VersionConflict as version_conflict:
         return '{} [fails to satisfy {}]'.format(
             version_conflict.dist.version, version_conflict.req)
@@ -533,7 +572,7 @@ def get_requirement_metadata(requirement: Requirement) -> str:
     # absolute path of the parent directory containing this module or package
     # rather than the absolute path of the latter. The former is overly
     # ambiguous and hence useless for our purposes. We have no recourse but to
-    # manually import this module or package and inspect its attributes. (*UGH*)
+    # manually import this module or package and inspect its attributes.
     if distribution is not None:
         package_version = distribution.version
     # Else, this requirement is unsatisfied. Fallback to the version metadata
@@ -548,80 +587,9 @@ def get_requirement_metadata(requirement: Requirement) -> str:
     # Return the expected string in the event of success.
     return '{} <{}>'.format(package_version, package_pathname)
 
-# ....................{ GETTERS ~ requirements : metadata  }....................
+# ....................{ GETTERS ~ requirements : dict     }....................
 @type_check
-def get_requirements_dict_metadata(
-    requirements_dict: MappingType) -> OrderedDict:
-    '''
-    Ordered dictionary synopsizing the currently installed third-party packages
-    corresponding to (but *not* necessarily satisfying) the
-    :mod:`setuptools`-formatted requirements strings produced by concatenating
-    each key and value of the passed dictionary (e.g., converting key ``Numpy``
-    and value ``>= 1.8.0`` into requirements string ``Numpy >= 1.8.0``).
-
-    Parameters
-    ----------
-    requirements_dict : MappingType
-        Dictionary of requirements strings to retrieve metadata for.
-
-    Returns
-    ----------
-    OrderedDict
-        Ordered dictionary lexicographically presorted on keys in ascending
-        order such that each:
-        * Key is a string of the form ``{{requirement_name}} version``.
-        * Value is either:
-          * The currently installed version specifier of this requirement
-            if this requirement is both installed and exports an
-            inspectable version at runtime (e.g., an ``__version__``
-            package attribute).
-          * The string ``not installed`` if this requirement is not found.
-          * The string ``unknown version`` if this requirement exports no
-            inspectable version at runtime.
-    '''
-
-    # Tuple of requirements strings converted by concatenating each key and
-    # value of this dictionary.
-    requirement_strs = convert_requirements_dict_to_tuple(requirements_dict)
-
-    # Return this metadata.
-    return get_requirement_str_metadata(*requirement_strs)
-
-
-@type_check
-def get_requirement_str_metadata(*requirement_strs: str) -> OrderedDict:
-    '''
-    Ordered dictionary synopsizing the currently installed third-party packages
-    corresponding to (but *not* necessarily satisfying) the passed
-    :mod:`setuptools`-formatted requirements strings (e.g., ``Numpy >= 1.8.0``).
-
-    Parameters
-    ----------
-    requirement_strs : Tuple[str]
-        Tuple of requirements strings to retrieve metadata for.
-
-    Returns
-    ----------
-    OrderedDict
-        Ordered dictionary lexicographically presorted on keys in ascending
-        order (as detailed by the :func:`get_requirements_dict_metadata`
-        function).
-    '''
-
-    # Lexicographically sorted tuple of these strings.
-    requirement_strs_sorted = iterables.sort_ascending(requirement_strs)
-
-    # List of all requirement objects parsed from these requirement strings.
-    requirements = get_requirements(*requirement_strs_sorted)
-
-    # Ordered dictionary synopsizing these requirements.
-    return OrderedDict(
-        (requirement.project_name, get_requirement_metadata(requirement))
-        for requirement in requirements)
-
-# ....................{ CONVERTERS ~ tuple-to-dict         }....................
-@type_check
-def convert_requirements_tuple_to_dict(
+def get_requirements_dict_from_str(
     requirements_tuple: SequenceTypes) -> dict:
     '''
     Convert the passed tuple of :mod:`setuptools`-specific requirements strings
@@ -652,7 +620,7 @@ def convert_requirements_tuple_to_dict(
     '''
 
     # List of all requirement objects parsed from these requirement strings.
-    requirements = get_requirements(*requirements_tuple)
+    requirements = iter_requirements_str(*requirements_tuple)
 
     # Dictionary containing these requirements.
     requirements_dict = {}
@@ -666,8 +634,8 @@ def convert_requirements_tuple_to_dict(
         # Technically, manually parsing each requirement string of the passed
         # tuple into the project name and specifications required below would
         # also be feasible. Since manual parsing is significantly more fragile
-        # than deferring to the authoritative parsing already implemented by the
-        # canonical "pkg_resources" module, however, the latter is preferred.
+        # than deferring to the authoritative parsing already implemented by
+        # the canonical "pkg_resources" module, the latter is preferred.
         requirement_specs_str = ','.join(
             '{} {}'.format(requirement_spec[0], requirement_spec[1])
             for requirement_spec in requirement.specs
@@ -681,9 +649,9 @@ def convert_requirements_tuple_to_dict(
     # Return this dictionary.
     return requirements_dict
 
-# ....................{ CONVERTERS ~ dict-to-tuple         }....................
+# ....................{ GETTERS ~ requirements : str      }....................
 @type_check
-def convert_requirements_dict_to_tuple(requirements_dict: MappingType) -> tuple:
+def get_requirements_str_from_dict(requirements_dict: MappingType) -> tuple:
     '''
     Convert the passed dictionary of :mod:`setuptools`-specific requirements
     strings into a tuple of such strings.
@@ -708,17 +676,17 @@ def convert_requirements_dict_to_tuple(requirements_dict: MappingType) -> tuple:
         described above.
     '''
 
-    return convert_requirements_dict_keys_to_tuple(
+    return get_requirements_str_from_dict_keys(
         requirements_dict, *requirements_dict.keys())
 
 
 @type_check
-def convert_requirements_dict_keys_to_tuple(
+def get_requirements_str_from_dict_keys(
     requirements_dict: MappingType, *requirement_names: str) -> tuple:
     '''
-    Convert all key-value pairs of the passed dictionary of :mod:`setuptools`-
-    specific requirements strings whose keys are the passed strings into a
-    tuple of :mod:`setuptools`-specific requirements strings.
+    Convert all key-value pairs of the passed dictionary of
+    :mod:`setuptools`-specific requirements strings whose keys are the passed
+    strings into a tuple of :mod:`setuptools`-specific requirements strings.
 
     Parameters
     ----------
@@ -731,7 +699,8 @@ def convert_requirements_dict_keys_to_tuple(
     Returns
     ----------
     tuple
-        Tuple of :mod:`setuptools`-specific requirements strings in the above format.
+        Tuple of :mod:`setuptools`-specific requirements strings in the above
+        format.
 
     Raises
     ----------
@@ -740,115 +709,163 @@ def convert_requirements_dict_keys_to_tuple(
 
     See Also
     ----------
-    :func:`convert_requirements_dict_to_tuple`
+    :func:`get_requirements_str_from_dict`
         Further details on the format of this dictionary and resulting strings.
     '''
 
     return tuple(
-        convert_requirements_dict_key_to_str(requirements_dict, requirement_name)
+        get_requirement_str_from_dict_key(
+            requirements_dict, requirement_name)
         for requirement_name in requirement_names
     )
 
-
+# ....................{ GETTERS ~ requirements : synopsis }....................
 @type_check
-def convert_requirements_dict_key_to_str(
-    requirements_dict: MappingType, requirement_name: str) -> str:
+def get_requirements_dict_synopsis(
+    requirements_dict: MappingType) -> OrderedDict:
     '''
-    Convert the key-value pair of the passed dictionary of :mod:`setuptools`-
-    specific requirements strings whose key is the passed string into a
-    :mod:`setuptools`-specific requirements string.
+    Ordered dictionary synopsizing the currently installed third-party packages
+    corresponding to (but *not* necessarily satisfying) the
+    :mod:`setuptools`-formatted requirements strings produced by concatenating
+    each key and value of the passed dictionary (e.g., converting key ``Numpy``
+    and value ``>= 1.8.0`` into requirements string ``Numpy >= 1.8.0``).
 
     Parameters
     ----------
     requirements_dict : MappingType
-        Dictionary of requirements strings.
-    requirement_names : str
-        Key identifying the key-value pairs of this dictionary to convert.
+        Dictionary of requirements strings to retrieve metadata for.
 
     Returns
     ----------
-    str
-        Requirements string converted from this key-value pair.
+    OrderedDict
+        Ordered dictionary lexicographically presorted on keys in ascending
+        order such that each:
 
-    Raises
-    ----------
-    BetseLibException
-        If the passed key is *not* a key of this dictionary.
+        * Key is a string of the form ``{{requirement_name}} version``.
+        * Value is either:
 
-    See Also
-    ----------
-    :func:`convert_requirements_dict_to_tuple`
-        Further details on the format of this dictionary and resulting string.
+          * The currently installed version specifier of this requirement
+            if this requirement is both installed and exports an
+            inspectable version at runtime (e.g., an ``__version__``
+            package attribute).
+          * The string ``not installed`` if this requirement is not found.
+          * The string ``unknown version`` if this requirement exports no
+            inspectable version at runtime.
     '''
 
-    # If this name is unrecognized, raise an exception.
-    if requirement_name not in requirements_dict:
-        raise BetseLibException(
-            'Dependency "{}" unrecognized.'.format(requirement_name))
+    # Tuple of requirements strings converted by concatenating each key and
+    # value of this dictionary.
+    requirement_strs = get_requirements_str_from_dict(requirements_dict)
 
-    # String constraining this requirement (e.g., ">= 3.14159265359", "[svg]")
-    # if any or "None" otherwise.
-    requirement_constraints = requirements_dict[requirement_name]
+    # Return this metadata.
+    return get_requirements_str_synopsis(*requirement_strs)
 
-    # If this requirement is constrained, return the concatenation of this
-    # requirement's name and constraints.
-    if requirement_constraints:
-        return '{} {}'.format(requirement_name, requirement_constraints)
-    # Else, return only this requirement's name.
-    else:
-        return requirement_name
 
-# ....................{ IMPORTERS                          }....................
+@type_check
+def get_requirements_str_synopsis(*requirements_str: str) -> OrderedDict:
+    '''
+    Ordered dictionary synopsizing the currently installed third-party packages
+    corresponding to (but *not* necessarily satisfying) the passed
+    :mod:`setuptools`-formatted requirements strings (e.g., ``Numpy >= 1.8``).
+
+    Parameters
+    ----------
+    requirements_str : Tuple[str]
+        Tuple of requirements strings to retrieve metadata for.
+
+    Returns
+    ----------
+    OrderedDict
+        Ordered dictionary lexicographically presorted on keys in ascending
+        order (as detailed by the :func:`get_requirements_dict_synopsis`
+        function).
+    '''
+
+    # Lexicographically sorted tuple of these strings.
+    requirement_strs_sorted = iterables.sort_ascending(requirements_str)
+
+    # List of all requirement objects parsed from these requirement strings.
+    requirements = iter_requirements_str(*requirement_strs_sorted)
+
+    # Ordered dictionary synopsizing these requirements.
+    return OrderedDict(
+        (requirement.project_name, get_requirement_synopsis(requirement))
+        for requirement in requirements)
+
+# ....................{ IMPORTERS                         }....................
 @type_check
 def import_requirements_dict_keys(
-    requirements_dict: MappingType, *requirement_names: str) -> object:
+    requirements_dict: MappingType, *requirements_name: str) -> (
+    ModuleOrSequenceTypes):
     '''
-    Import and return the top-level module object satisfying each
-    :mod:`setuptools`-formatted requirements string produced by concatenating
-    each passed key and corresponding value of the passed dictionary (e.g.,
-    converting key ``six`` and value ``>= 7.9`` into the requirements string
-    ``six >= 7.9``).
+    Import and return either a single top-level module object if passed one
+    :mod:`setuptools`-specific requirement name *or* sequence of top-level
+    module objects otherwise (i.e., if passed multiple such names).
+
+    Each returned module object is guaranteed to satisfy the
+    :mod:`setuptools`-specific requirement string produced by concatenating
+    the passed requirement name and value of the passed dictionary whose key
+    is that name (e.g., converting key ``six`` and value ``>= 7.9`` into the
+    requirements string ``six >= 7.9``).
 
     Parameters
     ----------
     requirements_dict : MappingType
         Dictionary of requirements strings to import and yield a subset of.
-    requirement_names : tuple[str]
+    requirements_name : tuple[str]
         Tuple of keys identifying the key-value pairs of this dictionary to be
         imported and yielded.
 
+    Returns
+    ----------
+    ModuleOrSequenceTypes
+        Either:
+
+        * If only one requirement name was passed, the top-level module object
+          satisfying the corresponding requirement of this dictionary.
+        * Else, a tuple of top-level module objects satisfying the
+          corresponding requirements of this dictionary.
+
     See Also
     ----------
-    :func:`import_requirement_str`
+    :func:`import_requirements_str`
         Further details.
     '''
 
-    # Tuple of requirements strings converted by concatenating each such key and
-    # value of this dictionary.
-    requirement_strs = convert_requirements_dict_keys_to_tuple(
-        requirements_dict, *requirement_names)
+    # Tuple of requirements strings converted by concatenating each such key
+    # and value of this dictionary.
+    requirements_str = get_requirements_str_from_dict_keys(
+        requirements_dict, *requirements_name)
 
-    # Validate these requirements strings.
-    return import_requirement_str(*requirement_strs)
+    # Import and return every top-level module for these requirements strings.
+    return import_requirements_str(*requirements_str)
 
 
 @type_check
-def import_requirement_str(*requirement_strs: str) -> object:
+def import_requirements_str(*requirements_str: str) -> ModuleOrSequenceTypes:
     '''
-    Import and return the top-level module object satisfying each passed
-    :mod:`setuptools`-formatted requirements string (e.g., ``six >= 7.9``).
+    Import and return either a single top-level module object if passed one
+    :mod:`setuptools`-specific requirement strings (e.g., ``six >= 7.9``) *or*
+    a sequence of top-level module objects otherwise (i.e., if passed multiple
+    such strings).
+
+    Each returned module object is guaranteed to satisfy the corresponding
+    :mod:`setuptools`-specific requirement string.
 
     Parameters
     ----------
-    requirement_strs : tuple[str]
+    requirements_str : tuple[str]
         Tuple of all such requirements strings to import and return modules of.
 
     Returns
     ----------
-    object
+    ModuleOrSequenceTypes
         Either:
-        * If more than one such module was imported, the tuple of these modules.
-        * Else, the single imported module.
+
+        * If only one requirement name was passed, the top-level module object
+          satisfying the corresponding requirement of this dictionary.
+        * Else, a tuple of top-level module objects satisfying the
+          corresponding requirements of this dictionary.
 
     See Also
     ----------
@@ -857,7 +874,7 @@ def import_requirement_str(*requirement_strs: str) -> object:
     '''
 
     # List of all requirement objects parsed from these requirement strings.
-    requirements = get_requirements(*requirement_strs)
+    requirements = iter_requirements_str(*requirements_str)
 
     # Tuple of all modules imported from these requirement objects.
     requirements_module = tuple(
@@ -903,3 +920,25 @@ def import_requirement(requirement: Requirement) -> ModuleType:
 
     # Import and return this package.
     return modules.import_module(package_name)
+
+# ....................{ ITERATORS                         }....................
+@type_check
+def iter_requirements_str(*requirements_str: str) -> GeneratorType:
+    '''
+    Generator iteratively yielding the high-level :mod:`setuptools`-specific
+    :class:`pkg_resources.Requirement` objects parsed from each passed
+    low-level requirement string.
+
+    Parameters
+    ----------
+    requirements_str: Tuple[str]
+        Tuple of all requirement strings to yield requirement objects for.
+
+    Yields
+    ----------
+    Requirement
+        Requirement parsed from each passed requirement string (in the passed
+        order).
+    '''
+
+    yield from pkg_resources.parse_requirements(requirements_str)

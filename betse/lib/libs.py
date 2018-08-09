@@ -27,7 +27,8 @@ any such dependencies.
 from betse import metadata, metadeps
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, MappingType, StrOrNoneTypes
+from betse.util.type.types import (
+    type_check, MappingType, ModuleOrSequenceTypes, StrOrNoneTypes)
 
 # ....................{ GLOBALS                           }....................
 _IS_INITTED = False
@@ -124,14 +125,15 @@ def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
         exception_message='Mandatory dependency "pkg_resources" not found.',
     )
 
-    # Import this submodule *AFTER* validating "pkg_resources" to exist above.
+    # Import the following submodule, which globally imports "pkg_resources",
+    # *AFTER* validating "pkg_resources" to be importable.
     from betse.lib.setuptools import setuptool
 
     # Validate these dependencies.
     setuptool.die_unless_requirements_dict(requirements_dict)
 
     # Validate all external commands required by these dependencies.
-    die_unless_commands(*requirements_dict.keys())
+    die_unless_command(*requirements_dict.keys())
 
 
 @type_check
@@ -169,11 +171,11 @@ def die_unless_requirements_dict_keys(
         requirements_dict, *requirement_names)
 
     # Validate all external commands required by these dependencies.
-    die_unless_commands(*requirement_names)
+    die_unless_command(*requirement_names)
 
 # ....................{ EXCEPTIONS ~ commands             }....................
 @type_check
-def die_unless_commands(*requirement_names: str) -> None:
+def die_unless_command(*requirement_names: str) -> None:
     '''
     Raise an exception unless all external commands required by all application
     dependencies (of any type, including optional, mandatory, runtime, testing,
@@ -199,7 +201,7 @@ def die_unless_commands(*requirement_names: str) -> None:
     # iteratively search for the first such missing command and raise a
     # human-readable exception synopsizing this command. For efficiency, this
     # inefficient iteration is performed *ONLY* as required.
-    if not is_commands(*requirement_names):
+    if not is_command(*requirement_names):
         # For the name of each such dependency...
         for requirement_name in requirement_names:
             # For each "betse.metadata.DependencyCommand" instance
@@ -220,7 +222,7 @@ def die_unless_commands(*requirement_names: str) -> None:
 
 # ....................{ TESTERS                           }....................
 @type_check
-def is_commands(*requirement_names: str) -> bool:
+def is_command(*requirement_names: str) -> bool:
     '''
     ``True`` only if all external commands required by all application
     dependencies (of any type, including optional, mandatory, runtime, testing,
@@ -320,7 +322,7 @@ def is_requirements_dict_keys(
 
     # Tuple of requirements strings converted from this subset of key-value
     # pairs of these requirements.
-    requirements_tuple = setuptool.convert_requirements_dict_keys_to_tuple(
+    requirements_tuple = setuptool.get_requirements_str_from_dict_keys(
         requirements_dict, *requirement_names)
 
     # Return True only if...
@@ -328,7 +330,7 @@ def is_requirements_dict_keys(
         # These dependencies are all satisfied.
         setuptool.is_requirement_str(*requirements_tuple) and
         # All external commands required by these dependencies are installed.
-        is_commands(*requirement_names)
+        is_command(*requirement_names)
     )
 
 # ....................{ GETTERS ~ runtime                 }....................
@@ -344,7 +346,7 @@ def get_runtime_mandatory_tuple() -> tuple:
     from betse.lib.setuptools import setuptool
 
     # Convert this dictionary into a tuple.
-    return setuptool.convert_requirements_dict_to_tuple(
+    return setuptool.get_requirements_str_from_dict(
         metadeps.RUNTIME_MANDATORY)
 
 
@@ -360,7 +362,7 @@ def get_runtime_optional_tuple() -> tuple:
     from betse.lib.setuptools import setuptool
 
     # Convert this dictionary into a tuple.
-    return setuptool.convert_requirements_dict_to_tuple(
+    return setuptool.get_requirements_str_from_dict(
         metadeps.RUNTIME_OPTIONAL)
 
 # ....................{ GETTERS ~ testing                 }....................
@@ -376,7 +378,7 @@ def get_testing_mandatory_tuple() -> tuple:
     from betse.lib.setuptools import setuptool
 
     # Convert this dictionary into a tuple.
-    return setuptool.convert_requirements_dict_to_tuple(
+    return setuptool.get_requirements_str_from_dict(
         metadeps.TESTING_MANDATORY)
 
 # ....................{ GETTERS ~ metadata                }....................
@@ -396,11 +398,11 @@ def get_metadatas() -> tuple:
     LIB_VERSION_METADATA = (
         # Dependencies metadata.
         ('runtime dependencies (mandatory)',
-         setuptool.get_requirements_dict_metadata(metadeps.RUNTIME_MANDATORY)),
+         setuptool.get_requirements_dict_synopsis(metadeps.RUNTIME_MANDATORY)),
         ('runtime dependencies (optional)',
-         setuptool.get_requirements_dict_metadata(metadeps.RUNTIME_OPTIONAL)),
+         setuptool.get_requirements_dict_synopsis(metadeps.RUNTIME_OPTIONAL)),
         ('testing dependencies (mandatory)',
-         setuptool.get_requirements_dict_metadata(metadeps.TESTING_MANDATORY)),
+         setuptool.get_requirements_dict_synopsis(metadeps.TESTING_MANDATORY)),
     )
 
     # Tuple of all dependency-specific metadata.
@@ -418,51 +420,51 @@ def get_metadatas() -> tuple:
 
 # ....................{ IMPORTERS                         }....................
 @type_check
-def import_runtime_optional(*requirement_names: str) -> object:
+def import_runtime_optional(*requirements_name: str) -> ModuleOrSequenceTypes:
     '''
-    Import and return the top-level module object satisfying each optional
-    runtime dependency of this application with the passed name.
+    Import and return either a single top-level module object if passed one
+    :mod:`setuptools`-specific requirement name *or* sequence of top-level
+    module objects otherwise (i.e., if passed multiple such names).
+
+    Each returned module object is guaranteed to satisfy the optional runtime
+    dependency of this application with the corresponding requirement name.
 
     Parameters
     ----------
-    requirement_names : tuple[str]
+    requirements_name : tuple[str]
         Tuple of the names of all :mod:`setuptools`-specific projects
         implementing these dependencies (e.g., ``NetworkX``). If any such name
         is unrecognized (i.e., is *not* a key of the
         :data:`metadeps.RUNTIME_OPTIONAL` dictionary), an exception is raised.
-
-    See Also
-    ----------
-    :func:`import_requirements_dict_keys`
-        Further details.
     '''
 
     return import_requirements_dict_keys(
-        metadeps.RUNTIME_OPTIONAL, *requirement_names)
+        metadeps.RUNTIME_OPTIONAL, *requirements_name)
 
 
 @type_check
 def import_requirements_dict_keys(
-    requirements_dict: MappingType, *requirement_names: str) -> object:
+    requirements_dict: MappingType, *requirements_name: str) -> (
+    ModuleOrSequenceTypes):
     '''
-    Import and return the top-level module object satisfying each dependency
-    with the passed name described by the passed dictionary.
+    Import and return either a single top-level module object if passed one
+    :mod:`setuptools`-specific requirement name *or* sequence of top-level
+    module objects otherwise (i.e., if passed multiple such names).
 
-    See Also
-    ----------
-    :func:`setuptool.import_requirements_dict_keys`
-        Further details.
+    Each returned module object is guaranteed to satisfy the dependency of this
+    application with the corresponding requirement name as a key of the passed
+    dictionary.
     '''
 
     # Avoid circular import dependencies.
     from betse.lib.setuptools import setuptool
 
     # Validate these dependencies.
-    die_unless_requirements_dict_keys(requirements_dict, *requirement_names)
+    die_unless_requirements_dict_keys(requirements_dict, *requirements_name)
 
     # Validate all external commands required by these dependencies.
     return setuptool.import_requirements_dict_keys(
-        requirements_dict, *requirement_names)
+        requirements_dict, *requirements_name)
 
 # ....................{ INITIALIZERS                      }....................
 def reinit(*args, **kwargs) -> None:

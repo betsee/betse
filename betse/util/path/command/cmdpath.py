@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
 Low-level **pathable** (i.e., commands reseding in the current ``${PATH}`` and
-hence executable by specifying merely their basename rather than either relative
-or absolute path) facilities.
+hence executable by specifying merely their basename rather than either
+relative or absolute path) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import shutil
 from betse.exceptions import BetseCommandException
 from betse.util.type.types import type_check, SequenceTypes, StrOrNoneTypes
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_pathable(command_basename: str) -> bool:
     '''
@@ -58,7 +58,7 @@ def is_pathable(command_basename: str) -> bool:
     # Return whether this command exists or not.
     return shutil.which(command_basename) is not None
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get_filename(command_basename: str) -> str:
     '''
@@ -121,13 +121,13 @@ def get_filename_or_none(command_basename: str) -> StrOrNoneTypes:
     # Return the absolute path of this command if found or "None" otherwise.
     return shutil.which(command_basename)
 
-# ....................{ GETTERS ~ first                    }....................
+# ....................{ GETTERS ~ first                   }....................
 @type_check
 def get_first_basename(
     command_basenames: SequenceTypes, exception_message: str = None) -> str:
     '''
-    First pathable string in the passed list (i.e., the first string that is the
-    basename of a command in the current ``${PATH}``) if any *or* raise an
+    First pathable string in the passed list (i.e., the first string that is
+    the basename of a command in the current ``${PATH}``) if any *or* raise an
     exception otherwise.
 
     Parameters

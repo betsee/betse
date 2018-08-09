@@ -37,7 +37,8 @@ from enum import Enum, EnumMeta
 from functools import partial, wraps  # @wraps is dynamically called below.
 from io import IOBase
 from inspect import Parameter, Signature
-from weakref import CallableProxyType, ProxyType
+from pkg_resources import Distribution
+from weakref import CallableProxyType, ProxyType, ref
 
 # Import the following types as is into the namespace of this submodule,
 # permitting callers to reference these types conveniently. Since the
@@ -94,6 +95,13 @@ This class is principally useful for annotating both:
 Note that, for obscure and uninteresting reasons, the standard :mod:`types`
 module defined the same type with the same name under Python 2.x but _not_ 3.x.
 Depressingly, this type must now be manually redefined everywhere.
+'''
+
+
+WeakRefType = ref
+'''
+Type of all **unproxied weak references** (i.e., weak references created by the
+:func:`betse.util.py.pyref.get_weak` getter).
 '''
 
 # ....................{ TYPES ~ arg                       }....................
@@ -584,6 +592,13 @@ subclassing) the canonical :class:`Mapping` *or* :class:`Sequence` APIs.
 '''
 
 
+ModuleOrSequenceTypes = (ModuleType,) + SequenceTypes
+'''
+Tuple of the module type *and* all container base classes conforming to (but
+*not* necessarily subclassing) the canonical :class:`Sequence` API.
+'''
+
+
 NumericOrIterableTypes = NumericSimpleTypes + IterableTypes
 '''
 Tuple of all numeric types *and* all container base classes conforming to (but
@@ -624,6 +639,12 @@ Tuple of all callable classes *and* the type of the ``None`` singleton.
 ClassOrNoneTypes = (ClassType, NoneType)
 '''
 Tuple of the type of all types *and* that of the ``None`` singleton.
+'''
+
+DistributionOrNoneTypes = (Distribution, NoneType)
+'''
+Tuple of the type of all :mod:`setuptools`-specific package metadata objects
+*and* that of the ``None`` singleton.
 '''
 
 

@@ -179,7 +179,6 @@ class CLIABC(object, metaclass=ABCMeta):
                 profile_type=self._profile_type,
                 profile_filename=self._profile_filename,
             )
-            # libs.die_unless_runtime_optional('networkx')
             # raise ValueError('Test exception handling.')
         except Exception as exception:
             # Handle this exception.

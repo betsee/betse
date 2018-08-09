@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -25,35 +25,36 @@ Low-level logging facilities.
 
 Logging Hierarchy
 ----------
-Loggers are hierarchically structured according to their `.`-delimited names.
-Since the name of the root logger is _always_ the empty string, this logger is
-_always_ the parent of all user-defined loggers. This hierarchy is an implicit
-consequence of logger names and hence requires no manual intervention (e.g., the
-root logger `` is implicitly the parent of a user-defined logger `A` is
-implicitly the parent of a user-defined logger `A.B`).
+Loggers are hierarchically structured according to their ``.``-delimited names.
+Since the name of the root logger is *always* the empty string, this logger is
+*always* the parent of all user-defined loggers. This hierarchy is an implicit
+consequence of logger names and hence requires no manual intervention (e.g.,
+the root logger "" is implicitly the parent of a user-defined logger ``A`` is
+implicitly the parent of a user-defined logger ``A.B``).
 
 By default, logger messages are implicitly propagated up the logger hierarchy
-(e.g., messages to logger `A.B` are implicitly progagated to logger `A` are
-are implicitly progagated to the root logger). This is a good thing, effectively
-reducing child loggers to symbolic names; assuming all loggers except the root
-logger to be unconfigured, messages will be logged _only_ by the root logger.
+(e.g., messages to logger ``A.B`` are implicitly progagated to logger ``A`` are
+are implicitly progagated to the root logger). This is a good thing,
+effectively reducing child loggers to symbolic names; assuming all loggers
+except the root logger to be unconfigured, messages will be logged *only* by
+the root logger.
 '''
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid circular import dependencies, avoid importing from *ANY*
 # application-specific modules at the top-level -- excluding those explicitly
-# known *NOT* to import from this module. Since all application-specific modules
-# must *ALWAYS* be able to safely import from this module at any level, these
-# circularities are best avoided here rather than elsewhere.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# known *NOT* to import from this module. Since all application-specific
+# modules must *ALWAYS* be able to safely import from this module at any level,
+# these circularities are best avoided here rather than elsewhere.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import logging, sys, traceback
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type import types
 from betse.util.type.types import type_check, StrOrNoneTypes
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get(logger_name: StrOrNoneTypes = None) -> logging.Logger:
     '''
@@ -84,15 +85,16 @@ def get(logger_name: StrOrNoneTypes = None) -> logging.Logger:
         logger_name = logging.root.name
 
     # If this name is the empty string, this function would get the root logger.
-    # Since this name being empty typically constitutes an implicit error rather
-    # than an attempt to get the root logger, prevent this via an assertion.
+    # Since this name being empty typically constitutes an implicit error
+    # rather than an attempt to get the root logger, prevent this via an
+    # assertion.
     assert types.is_str_nonempty(logger_name), (
         types.assert_not_str_nonempty(logger_name, 'Logger name'))
 
     # Return this logger.
     return logging.getLogger(logger_name)
 
-# ....................{ LOGGERS ~ banner                   }....................
+# ....................{ LOGGERS ~ banner                  }....................
 @type_check
 def log_banner(*args, **kwargs) -> None:
     '''
@@ -100,8 +102,8 @@ def log_banner(*args, **kwargs) -> None:
     informational message with the root logger.
 
     Since formatting this banner requires this banner's embedded title to be
-    preformatted, this function *does* not accept the ``%``-style positional and
-    keyword arguments accepted by most other logging functions (e.g.,
+    preformatted, this function *does* not accept the ``%``-style positional
+    and keyword arguments accepted by most other logging functions (e.g.,
     :func:`log_info`).
 
     This function expects the :class:`LogConfig` class globally configuring
@@ -122,7 +124,7 @@ def log_banner(*args, **kwargs) -> None:
     # Log this banner with level "INFO".
     log_info(banner)
 
-# ....................{ LOGGERS ~ level                    }....................
+# ....................{ LOGGERS ~ level                   }....................
 @type_check
 def log_levelled(message: str, level: LogLevel, *args, **kwargs) -> None:
     '''
@@ -151,8 +153,8 @@ def log_levelled(message: str, level: LogLevel, *args, **kwargs) -> None:
 @type_check
 def log_debug(message: str, *args, **kwargs) -> None:
     '''
-    Log the passed debug message with the root logger, formatted with the passed
-    ``%``-style positional and keyword arguments.
+    Log the passed debug message with the root logger, formatted with the
+    passed ``%``-style positional and keyword arguments.
 
     This function expects the :class:`LogConfig` class globally configuring
     logging to be instantiated as a singleton.
@@ -199,7 +201,7 @@ def log_error(message: str, *args, **kwargs) -> None:
 
     logging.error(message, *args, **kwargs)
 
-# ....................{ LOGGERS ~ exception                }....................
+# ....................{ LOGGERS ~ exception               }....................
 @type_check
 def log_exception(exception: Exception) -> None:
     '''
@@ -231,17 +233,18 @@ def log_exception(exception: Exception) -> None:
         # Singleton logging configuration for the current Python process.
         log_config = logconfig.get()
 
-        # If the end user requested that nothing be logged to disk, respect this
-        # request by logging tracebacks to the error level and hence stderr.
-        # (Avoid printing the synopsis already embedded in these tracebacks.)
+        # If the end user requested that nothing be logged to disk, respect
+        # this request by logging tracebacks to the error level and hence
+        # stderr.  (Avoid printing the synopsis already embedded in these
+        # tracebacks.)
         if log_config.file_level >= LogLevel.NONE:
             log_error(exc_traceback)
         # Else, the end user requested that at least something be logged to
         # disk. For debuggability, the logging level of the file handler is
-        # temporarily decreased to the debug level, guaranteeing that tracebacks
-        # are *ALWAYS* at least logged to disk rather than (possibly) discarded.
-        # For readability, tracebacks are only logged to stderr if explicitly
-        # requested by the end user.
+        # temporarily decreased to the debug level, guaranteeing that
+        # tracebacks are *ALWAYS* at least logged to disk rather than
+        # (possibly) discarded.  For readability, tracebacks are only logged to
+        # stderr if explicitly requested by the end user.
         else:
             # If verbosity is disabled, output this synopsis to stderr;
             # else, tracebacks containing this synopsis are already
@@ -275,7 +278,8 @@ def log_exception(exception: Exception) -> None:
         # Header preceding the exception to be printed.
         exc_heading = 'log_exception() recursively raised exception:\n'
 
-        # If the stderrs.output_exception() function exists, call that function.
+        # If the stderrs.output_exception() function exists, call that
+        # function.
         if 'stderrs' in locals():
             stderrs.output_exception(heading=exc_heading)
         # Else, something has gone horribly wrong. Defer to stock functionality

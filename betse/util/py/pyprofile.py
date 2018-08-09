@@ -277,7 +277,7 @@ def _profile_callable_size(
     from betse.util.type.obj import objsizes
 
     # Log this fact.
-    logs.log_debug('Memory profiling enabled.')
+    logs.log_debug('Enabling space (i.e., memory) profiling...')
 
     # Raise an exception unless the optional "pympler" dependency is available.
     libs.die_unless_runtime_optional('pympler')
@@ -289,7 +289,8 @@ def _profile_callable_size(
     # through the full object tree in the worst case, inform the end user of
     # this potentially slow operation *BEFORE* doing so.
     logs.log_debug(
-        'Profiling memory for %r() return value of type %r...',
+        'Profiling space (i.e., memory) consumption '
+        'for %r() return value of type %r...',
         call, type(return_value))
 
     # Human-readable string synopsizing this object's memory consumption.

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ....................{ LICENSE                           }....................
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -6,9 +7,9 @@
 #"betse.science.chemistry.networks" module with minor differences, doesn't
 #appear to be used anymore. That's great! Would removing this module or perhaps
 #shifting its most important functionality into the "networks" module be
-#possible? If not, no worries! Translucent lucidity erupts the thunder!
+#possible? If not, no worries! Translucent lucidity erupts the gravid thunder.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,7 +21,7 @@ from betse.util.type.mapping.mapcls import DynamicValue, DynamicValueDict
 from collections import OrderedDict
 from matplotlib import colors
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 class SimMaster(object):
 
     def __init__(self, config_dic, p, mit_enabled = False):

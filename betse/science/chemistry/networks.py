@@ -17,8 +17,9 @@ from betse.science.channels import vg_funny as vgfun
 from betse.science.channels import vg_k as vgk
 from betse.science.channels import vg_na as vgna
 from betse.science.channels import vg_morrislecar as vgml
-from betse.science.chemistry.netplot import set_net_opts
+from betse.science.chemistry.netplot import plot_master_network, set_net_opts
 from betse.science.config.export.visual.confvisabc import SimConfVisualCellsNonYAML
+from betse.science.math import finitediff as fd
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
@@ -34,7 +35,6 @@ from collections import OrderedDict
 from matplotlib import cm
 from matplotlib import colors
 from scipy.optimize import basinhopping
-from betse.science.math import finitediff as fd
 
 # ....................{ CLASSES                           }....................
 # FIXME: if moving to have unpacked membrane concs, update transporters...
@@ -720,6 +720,7 @@ class MasterOfNetworks(object):
         for i, conc_name in enumerate(self.conc_handler):
             self.conc_handler_index[conc_name] = i
 
+
     def plot_init(self, config_dic, p):
 
         config_substances = config_dic['biomolecules']
@@ -746,6 +747,7 @@ class MasterOfNetworks(object):
             mol.plot_max = pd['max val']
             mol.plot_min = pd['min val']
 
+
     def init_saving(
         self, cells, p, plot_type='init', nested_folder_name='Molecules'):
 
@@ -755,7 +757,6 @@ class MasterOfNetworks(object):
         elif plot_type == 'init':
             self.resultsPath = pathnames.join(p.init_export_dirname, nested_folder_name)
             p.plot_type = 'init'
-
         elif plot_type == 'grn':
             self.resultsPath = pathnames.join(p.grn_pickle_dirname, nested_folder_name)
 
@@ -3256,8 +3257,8 @@ class MasterOfNetworks(object):
 
     #----optimizer------------------------------------------------------------------------------------------------------
     def optimizer(self, sim, cells, p):
-        """
-        Runs an optimization routine returning reaction maximum rates (for
+        '''
+        Run an optimization routine returning reaction maximum rates (for
         growth and decay, chemical reactions, and transporters) that match to a
         user-specified set of target concentrations for all substances at
         steady-state.
@@ -3277,7 +3278,7 @@ class MasterOfNetworks(object):
         reaction rates to the results folder of the main simulation. It also
         prints these values to the screen, and generates a graph of the
         reaction network that has been optimized.
-        """
+        '''
 
         # FIXME option to set all reaction rates and D_mems automatically after a network optimization
 
@@ -3286,17 +3287,18 @@ class MasterOfNetworks(object):
         self.globals = globals()
         self.locals = locals()
 
-        # If either NetworkX or PyDot are unimportable, raise an exception.
-        libs.die_unless_runtime_optional('networkx', 'pydot')
+        # Defer importation of optional runtime dependencies until necessary.
+        # Since the logic below implicitly but *NOT* explicitly requires PyDot,
+        # we validate the importability of PyDot and then discard the returned
+        # "pydot" module object.
+        networkx, _ = libs.import_runtime_optional('networkx', 'pydot')
+        nx_pydot = networkx.networkx
 
-        # Import NetworkX and NetworkX's PyDot interface:
-        from networkx import nx_pydot
+        # Log this optimization.
+        logs.log_info('Optimizing with %s in %s iterations...',
+            self.opti_method, self.opti_Nmssg)
 
-        mssg = "Optimizing with {} in {} iterations".format(
-            self.opti_method, self.opti_N)
-        logs.log_info(mssg)
-
-        # set the Vmem to target value requested by user:
+        # Set the Vmem to target value requested by user.
         sim.vm = self.target_vmem
 
         if self.mit_enabled:
@@ -4148,13 +4150,12 @@ class MasterOfNetworks(object):
 
         self.chi_time.append(self.chi)
 
+    # ..................{ LOGGERS                           }..................
     def report(self, sim, p):
-        """
-        At the end of the simulation, tell user about mean, final concentrations of each molecule.
-
-        """
-
-
+        '''
+        Inform the end user of the mean and final concentrations of each
+        molecule at the end of the simulation.
+        '''
 
         logs.log_info('time: '+ str(np.round(sim.time[-1], 2)) +
                       ' s of ' + str(np.round(p.total_time, 2)) + ' s')
@@ -4223,18 +4224,15 @@ class MasterOfNetworks(object):
             logs.log_info('Average Ca '  + ' in the cell: ' +
                           str(np.round(1.0e6*sim.cc_cells[sim.iCa].mean(), 4)) + ' nmol/L')
 
-
-
-
-
         logs.log_info("-------------------------------------------------------------------")
 
+    # ..................{ EXPORTERS                         }..................
     @type_check
-    def export_all_data(self, sim, cells, p, message: str):
-        """
-        Exports concentration data from each molecule to a file for a single cell
-        (plot cell defined in params) as a function of time.
-        """
+    def export_all_data(self, sim, cells, p, message: str) -> None:
+        '''
+        Export concentration data from each molecule to a file for a single
+        cell (plot cell defined in params) as a function of time.
+        '''
 
         logs.log_info('Exporting raw data for %s...', message)
 
@@ -4251,29 +4249,29 @@ class MasterOfNetworks(object):
         self.export_equations(p)
         self.export_eval_strings(p)
 
+
     @type_check
-    def plot(self, sim, cells, p, message: str):
-        """
-        Creates plots for each molecule included in the simulation.
-        """
+    def plot(self, sim, cells, p, message: str) -> None:
+        '''
+        Create plots for each molecule included in the simulation.
+        '''
 
         logs.log_info('Plotting 1D and 2D data for %s...', message)
 
-        # network plot
+        # Master network plot.
         if p.plot_network:
-            # If NetworkX and PyDot are both importable, plot the master network
-            # with both.
+            # If NetworkX and PyDot are both importable, plot the master
+            # network with both.
             if libs.is_runtime_optional('networkx', 'pydot'):
                 # whole_graph = self.plot_network(p)
 
-                from betse.science.chemistry.netplot import plot_master_network, set_net_opts
-
                 whole_graph = plot_master_network(self, p)
-                savename = self.imagePath + 'NetworkGraph_Cell_' + str(p.plot_cell) + '.svg'
+                savename = '{}NetworkGraph_Cell_{}.svg'.format(
+                    self.imagePath, str(p.plot_cell))
                 whole_graph.write_svg(savename)
             # Else, log a non-fatal warning rather than raising a fatal
-            # exception. Plotting is non-essential and hence should *NEVER* halt
-            # the entire Python process, if it can be helped.
+            # exception. Plotting is non-essential and hence should *NEVER*
+            # halt the entire Python process, if it can be helped.
             else:
                 logs.log_warning(
                     'Optional dependencies NetworkX and/or PyDot unavailable. '
@@ -4309,13 +4307,11 @@ class MasterOfNetworks(object):
 
         for i, name in enumerate(self.molecules):
             obj = self.molecules[name]
-
             c_cells = [arr[p.plot_cell] for arr in obj.c_cells_time]
-
-            ax_all1D.plot(sim.time, c_cells, color=c_names.to_rgba(i), linewidth=2.0, label=name)
+            ax_all1D.plot(
+                sim.time, c_cells, color=c_names.to_rgba(i), linewidth=2.0, label=name)
 
         ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
-
         ax_all1D.set_xlabel('Time [s]')
         ax_all1D.set_ylabel('Concentration [mmol/L]')
         ax_all1D.set_title('Concentration of all substances in cell ' + str(p.plot_cell))
@@ -4333,18 +4329,13 @@ class MasterOfNetworks(object):
         ax_all1D = plt.subplot(111)
 
         # get a random selection of our chosen colors in the length of our data set:
-
         for i, name in enumerate(self.molecules):
-
             obj = self.molecules[name]
 
-            if p.is_ecm is True:
+            if p.is_ecm:
                 c_env = [arr[cells.map_cell2ecm][p.plot_cell] for arr in obj.c_env_time]
-
             else:
-
                 mem_i = cells.cell_to_mems[p.plot_cell][0]
-
                 c_env = [arr[mem_i] for arr in obj.c_env_time]
 
             ax_all1D.plot(sim.time, c_env, color=c_names.to_rgba(i), linewidth=2.0, label=name)
@@ -4385,7 +4376,6 @@ class MasterOfNetworks(object):
                 plt.show(block=False)
 
             # 2D plot of mitochondrial voltage ---------------------------------------------------
-
             fig, ax, cb = viz.plotPolyData(sim, cells, p,
                 zdata=self.mit.Vmit * 1e3, number_cells=p.enumerate_cells, clrmap=p.default_cm)
 
@@ -4429,9 +4419,7 @@ class MasterOfNetworks(object):
                 plt.show(block=False)
 
         # -------Reaction rate plot and data export----------------------------------------
-
         if len(self.reactions):
-
             # create a suite of single reaction line plots:
             for i, name in enumerate(self.reactions):
                 # get the reaction object field
@@ -4491,9 +4479,7 @@ class MasterOfNetworks(object):
             np.savetxt(saveDataReact, react_dataM.T, delimiter=',', header=react_header)
 
         # ---Transporter rate plot and data export ------------------------------------------------------
-
         if len(self.transporters):
-
             transp_dataM = []
             transp_header = 'Time [s], '
 
@@ -4552,15 +4538,11 @@ class MasterOfNetworks(object):
             saveDataTransp = pathnames.join(self.resultsPath, saveName)
 
             transp_dataM = np.asarray(transp_dataM)
-
             np.savetxt(saveDataTransp, transp_dataM.T, delimiter=',', header=transp_header)
-
 
         #----Channels flux plot-------------------------------------------------------------------
         if len(self.channels):
-
             for kch, vch in self.channels.items():
-
                 vch.plot_2D(sim, cells, p, self.imagePath)
 
         # # energy charge plots:----------------------------------------------------------
@@ -4599,11 +4581,12 @@ class MasterOfNetworks(object):
         # if p.turn_all_plots_off is False:
         #     plt.show(block=False)
 
+
     @type_check
     def anim(self, phase: SimPhase, message: str) -> None:
-        """
-        Animates 2D data for each molecule in the simulation.
-        """
+        '''
+        Animate 2D data for each molecule in the simulation.
+        '''
 
         logs.log_info('Animating data for %s...', message)
 
@@ -4706,19 +4689,19 @@ class MasterOfNetworks(object):
 
                 eqwriter.writerow([trans, eq_var])
 
+
+    #FIXME: Consider shifting this method into the "netplot" module. Ideally,
+    #all PyDot-specific logic should be centralized there. Contumely tubers!
     def build_reaction_network(self, p):
-        """
-        Uses pydot to create and return a directed graph representing only growth/decay and chemical reactions,
-        omitting any channels and activation/inhibition relationships considered in this reaction network object.
+        '''
+        Use :mod:`pydot` to create and return a directed graph representing
+        only growth/decay and chemical reactions, omitting any channels and
+        activation/inhibition relationships considered in this reaction network
+        object.
+        '''
 
-        """
-
-        # If PyDot is unimportable, raise an exception.
-        libs.die_unless_runtime_optional('pydot')
-
-        # Delay import of pydot in case the user doesn't have it and needs to
-        # turn this functionality off.
-        import pydot
+        # Defer importation of optional runtime dependencies until necessary.
+        pydot = libs.import_runtime_optional('pydot')
 
         # alpha value to decrease saturation of graph node colors
         # alpha_val = 0.5
@@ -4740,24 +4723,22 @@ class MasterOfNetworks(object):
 
         # add each substance as a node in the graph:
         for i, (name, val) in enumerate(self.cell_concs.items()):
-
             if name not in p.ions_dict:
-
                 mol = self.molecules[name]
 
                 nde = pydot.Node(name, shape = self.conc_shape)
                 graphicus_maximus.add_node(nde)
 
                 if mol.simple_growth:
-
                     # add node & edge for growth reaction component:
                     rea_name = name + '_growth'
-                    rea_node = pydot.Node(rea_name, style = 'filled', shape = self.reaction_shape)
+                    rea_node = pydot.Node(
+                        rea_name, style='filled', shape=self.reaction_shape)
                     graphicus_maximus.add_node(rea_node)
 
                     # if the substance has autocatalytic growth capacity add the edge in:
-                    graphicus_maximus.add_edge(pydot.Edge(rea_name, name, arrowhead='normal', coeff = 1.0,
-                                                          ))
+                    graphicus_maximus.add_edge(pydot.Edge(
+                        rea_name, name, arrowhead='normal', coeff=1.0,))
 
                     # add node & edge for decay reaction component:
                     rea_name = name + '_decay'
@@ -4833,26 +4814,24 @@ class MasterOfNetworks(object):
                 rea = self.reactions_mit[name]
 
                 for i, react_name in enumerate(rea.reactants_list):
-
                     react_name += '_mit'
 
                     nde = pydot.Node(react_name, shape = self.conc_shape)
                     graphicus_maximus.add_node(nde)
 
                     rea_coeff = rea.reactants_coeff[i]
-                    graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal', coeff = rea_coeff,
-                                                          ))
+                    graphicus_maximus.add_edge(pydot.Edge(
+                        react_name, name, arrowhead='normal', coeff = rea_coeff,))
 
                 for j, prod_name in enumerate(rea.products_list):
-
                     prod_name += '_mit'
 
                     nde = pydot.Node(prod_name, shape = self.conc_shape)
                     graphicus_maximus.add_node(nde)
 
                     prod_coeff = rea.products_coeff[j]
-                    graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff,
-                                                          ))
+                    graphicus_maximus.add_edge(pydot.Edge(
+                        name, prod_name, arrowhead='normal', coeff=prod_coeff,))
 
         # if there are any transporters, plot them on the graph:
         if len(self.transporters) > 0:
@@ -4862,60 +4841,47 @@ class MasterOfNetworks(object):
                 graphicus_maximus.add_node(nde)
 
             for name in self.transporters:
-
                 trans = self.transporters[name]
 
-                for i, (react_name, tag) in enumerate(zip(trans.reactants_list, trans.react_transport_tag)):
-
-
+                for i, (react_name, tag) in enumerate(zip(
+                    trans.reactants_list, trans.react_transport_tag)):
                     rea_coeff = trans.reactants_coeff[i]
 
                     if tag == 'cell_concs' or tag == 'mem_concs':
-
-
-                        graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal',coeff = rea_coeff,
-                                                              ))
+                        graphicus_maximus.add_edge(pydot.Edge(
+                            react_name, name, arrowhead='normal', coeff=rea_coeff,))
 
                     else:
-
                         if tag == 'env_concs':
-
                             react_name += '_env'
-
                         elif tag == 'mit_concs':
-
                             react_name += '_mit'
 
                         nde = pydot.Node(react_name, shape = self.conc_shape)
                         graphicus_maximus.add_node(nde)
 
-                        graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal',coeff=rea_coeff,
-                                                              ))
+                        graphicus_maximus.add_edge(pydot.Edge(
+                            react_name, name, arrowhead='normal',coeff=rea_coeff,))
 
-                for j, (prod_name, tag) in enumerate(zip(trans.products_list, trans.prod_transport_tag)):
-
+                for j, (prod_name, tag) in enumerate(zip(
+                    trans.products_list, trans.prod_transport_tag)):
                     prod_coeff = trans.products_coeff[j]
 
                     if tag == 'cell_concs' or tag == 'mem_concs':
 
-                        graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff= prod_coeff,
-                                                              ))
-
+                        graphicus_maximus.add_edge(pydot.Edge(
+                            name, prod_name, arrowhead='normal', coeff=prod_coeff,))
                     else:
-
                         if tag == 'env_concs':
-
                             prod_name += '_env'
-
                         elif tag == 'mit_concs':
-
                             prod_name += '_mit'
 
-                        nde = pydot.Node(prod_name, shape = self.conc_shape)
+                        nde = pydot.Node(prod_name, shape=self.conc_shape)
                         graphicus_maximus.add_node(nde)
 
-                        graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff,
-                                                              ))
+                        graphicus_maximus.add_edge(pydot.Edge(
+                            name, prod_name, arrowhead='normal', coeff=prod_coeff,))
 
         # if there are any channels, plot them on the graph:
         if len(self.channels) > 0:

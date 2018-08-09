@@ -140,7 +140,6 @@ class MasterOfGenes(object):
         self.core.read_substances(sim, cells, substances_config, p)
         self.core.tissue_init(sim, cells, substances_config, p)
 
-
         if reactions_config is not None:
             # initialize the reactions of metabolism:
             self.core.read_reactions(reactions_config, sim, cells, p)
@@ -150,7 +149,6 @@ class MasterOfGenes(object):
             self.core.create_reaction_matrix_env()
 
             self.reactions = True
-
         else:
             self.core.create_reaction_matrix()
             self.core.create_reaction_matrix_env()
@@ -162,7 +160,6 @@ class MasterOfGenes(object):
             self.core.write_transporters(sim, cells, p)
 
             self.transporters = True
-
         else:
             self.transporters = False
 
@@ -170,7 +167,6 @@ class MasterOfGenes(object):
         if channels_config is not None:
             self.core.read_channels(channels_config, sim, cells, p)
             self.channels = True
-
         else:
             self.channels = False
 
@@ -179,7 +175,6 @@ class MasterOfGenes(object):
         if modulators_config is not None:
             self.core.read_modulators(modulators_config, sim, cells, p)
             self.modulators = True
-
         else:
             self.modulators = False
 

@@ -198,7 +198,7 @@ def skip_unless_requirement(*requirement_strs: str):
     # Skip this test if one or more such dependences are unsatisfiable.
     return _skip_if_callable_raises_exception(
         exception_type=BetseLibException,
-        func=setuptool.die_unless_requirement_str,
+        func=setuptool.die_unless_requirements_str,
         args=requirement_strs,
     )
 
