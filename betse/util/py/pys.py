@@ -43,8 +43,7 @@ def init() -> None:
             'at most 4GB of available RAM, '
             'impeding the reliability and scalability of modelling. '
             'Consider running {name} only under a '
-            '64-bit Python interpreter.'.format(name=metadata.NAME)
-        )
+            '64-bit Python interpreter.'.format(name=metadata.NAME))
 
 # ....................{ TESTERS                           }....................
 @func_cached
@@ -203,7 +202,7 @@ def get_shebang() -> str:
     # Return this string prefixed by the shebang identifier.
     return '#!' + py_command
 
-# ....................{ GETTERS ~ metadata                 }....................
+# ....................{ GETTERS ~ metadata                }....................
 def get_metadata() -> 'OrderedArgsDict':
     '''
     Ordered dictionary synopsizing the active Python interpreter.

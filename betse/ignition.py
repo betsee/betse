@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -19,62 +19,32 @@ High-level application initialization common to both the CLI and GUI.
 #
 #    psutil.Process(os.getpid()).get_memory_info()
 
-#FIXME: Consider replacing bottleneck Numpy routines with routines imported from
-#the following third-party Numpy-like frameworks:
-#
-#* "bottleneck", providing optimized routines accepting Numpy arrays --
-#  implemented in Cython and hence faster than comparible Numpy routines.
-#* "numexpr", a Theano-like framework accepting Numpy arrays -- performing
-#  CPU-centric parallelization of expensive array operations. Whereas Theano
-#  permits such operations to be conveniently expressed in pure-Python, however,
-#  numexpr inconveniently requires such operations be expressed as... wait for
-#  it, raw strings. So, that sucks. Nonetheless, worth a possible look.
-#* "blaze", a purported second-gen Numpy replacement. We harbour sincere doubts,
-#  but everything deserves its millisecond to shine in the light. Ah. We see.
-#  Blaze is considerably more heavy-weight than Numpy, and largely serves a
-#  completely different marketshare: supercomputing. That's well beyond our
-#  means, at the moment. Numpy it is!
-#
-#In short, "bottleneck" is probably the only framework listed above of interest.
-
-#FIXME: Consider optimizing frequently used matrix and vector computations with
-#Theano, a general-purpose Python mathematical optimization framework. One
-#particularly compelling use case for Theano is to portably distribute
-#computational work across multiple GPUs. In general, Theano can be used to
-#reduce arbitrarily complex symbolic expressions expressed in pure Python to
-#dynamically compiled machine code on-the-fly. Fairly amazing, all around. For
-#the high-level synopsis, see:
-#
-#    http://deeplearning.net/software/theano/introduction.html
-#FIXME: Theano and Torch (a similar framewark) appear to now be subsumed by
-#TensorFlow, a Google-backed framework originally implemented in support of
-#machine learning workflows at Google (e.g., DeepMind), but sufficiently
-#generalized as to support a wide variety of computational needs -- like ours.
-
 #FIXME: The "~/.betse" directory grows fairly large fairly quickly. It'd be
 #great to emit non-fatal warnings if its size exceeds some reasonable threshold
 #(e.g., 1MB).
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To defer heavyweight and possibly circular imports, the top-level of
 # this module may import *ONLY* from standard Python packages. All imports from
-# application and third-party packages should be deferred to their point of use.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# application and third-party packages should be deferred to their point of
+# use.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-# ....................{ GLOBALS                            }....................
-_IS_IGNITED = False
+# ....................{ GLOBALS                           }....................
+_IS_INITTED = False
 '''
 ``True`` only if the :func:`init` function has already been called.
 
-That function uses this private boolean to guard against repeated invocations of
-the :func:`init` function from multiple modules in the same Python process
+That function uses this private boolean to guard against repeated invocations
+of the :func:`init` function from multiple modules in the same Python process
 (e.g., :mod:`betse.science.__init__`, :mod:`betse.util.cli.cliabc`). While that
-function does technically support repeated calls, each additional call after the
-first inefficiently performs no meaningful work and is thus safely ignorable.
+function does technically support repeated calls, each additional call after
+the first inefficiently performs no meaningful work and is thus safely
+ignorable.
 '''
 
-# ....................{ IGNITERS                           }....................
+# ....................{ IGNITERS                          }....................
 def ignite() -> None:
     '''
     Initialize both the current application *and* all mandatory third-party
@@ -95,7 +65,7 @@ def ignite() -> None:
     # Initialize all dependencies *AFTER* initializing this application.
     libs.init()
 
-# ....................{ INITIALIZERS                       }....................
+# ....................{ INITIALIZERS                      }....................
 def reinit() -> None:
     '''
     (Re-)initialize this application -- but *not* mandatory third-party
@@ -116,8 +86,8 @@ def reinit() -> None:
     '''
 
     # Force the init() function to reinitialize this application.
-    global _IS_IGNITED
-    _IS_IGNITED = False
+    global _IS_INITTED
+    _IS_INITTED = False
 
     # Reinitialize this application.
     init()
@@ -140,6 +110,8 @@ def init() -> None:
        are reasonably creatable.
     #. Validates the active Python interpreter (e.g., to support
        multithreading).
+    #. Validates the underlying operating system (e.g., to *not* be a vanilla
+       Windows shell environment ala either CMD.exe or PowerShell).
 
     To support caller-specific error handling, this function is intended to be
     called immediately *after* this application begins catching otherwise
@@ -147,14 +119,15 @@ def init() -> None:
     '''
 
     # If this function has already been called, noop.
-    global _IS_IGNITED
-    if     _IS_IGNITED:
+    global _IS_INITTED
+    if     _IS_INITTED:
         return
 
     # Defer heavyweight and possibly circular imports.
     from betse.lib import libs
     from betse.util.io.error import errfault
     from betse.util.io.log import logconfig
+    from betse.util.os import oses
     from betse.util.py import pys
 
     # Enable Python's standard handler for segmentation faults *BEFORE*
@@ -169,14 +142,16 @@ def init() -> None:
 
     # Validate mandatory dependencies. Avoid initializing these dependencies
     # here (e.g., by calling libs.init()), which requires the logging
-    # configuration to have been finalized (e.g., by parsing CLI options), which
-    # has yet to occur this early in the application lifecycle.
+    # configuration to have been finalized (e.g., by parsing CLI options),
+    # which has yet to occur this early in the application lifecycle.
     libs.die_unless_runtime_mandatory_all()
 
-    # Validate the active Python interpreter *AFTER* mandatory dependencies.
-    # While the former (mostly) comprises unenforced recommendations, the latter
-    # comprises enforced requirements and should thus be validated first.
+    # Validate the active Python interpreter and operating system *AFTER*
+    # mandatory dependencies. While the former (mostly) comprises unenforced
+    # recommendations, the latter comprises enforced requirements and should
+    # thus be validated first.
+    oses.init()
     pys.init()
 
     # Record this function as having been called *AFTER* successfully doing so.
-    _IS_IGNITED = True
+    _IS_INITTED = True

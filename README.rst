@@ -264,6 +264,9 @@ repository and prior stable releases – is manually installable as follows:
 Usage
 ============
 
+Basic
+-----
+
 BETSE installs the ``betse`` command, a low-level command line interface (CLI)
 designed for experienced users. The typical CLI-based workflow resembles:
 
@@ -274,15 +277,16 @@ designed for experienced users. The typical CLI-based workflow resembles:
 
       betse config my_sim/sim_config.yml
 
-#. [\ *Optional*\ ] Edit the newly created ``sim_config.yml`` file with your
-   favourite text editor.
+#. [\ *Optional*\ ] Edit the new ``my_sim/sim_config.yml`` file with `your
+   favourite text editor <Atom_>`__.
 #. Create a pseudo-random cell cluster from this simulation configuration.
 
    .. code-block:: console
 
       betse seed my_sim/sim_config.yml
 
-#. [\ *Optional*\ ] Plot this cell cluster.
+#. [\ *Optional*\ ] Export all enabled plots, animations, and comma-separated
+   value (CSV) files from this cell cluster.
 
    .. code-block:: console
 
@@ -294,7 +298,8 @@ designed for experienced users. The typical CLI-based workflow resembles:
 
       betse init my_sim/sim_config.yml
 
-#. [\ *Optional*\ ] Plot this initialized cell cluster.
+#. [\ *Optional*\ ] Export all enabled plots, animations, and comma-separated
+   value (CSV) files from this initialization.
 
    .. code-block:: console
 
@@ -306,21 +311,87 @@ designed for experienced users. The typical CLI-based workflow resembles:
 
       betse sim my_sim/sim_config.yml
 
-#. [\ *Optional*\ ] Plot this simulated cell cluster.
+#. [\ *Optional*\ ] Export all enabled plots, animations, and comma-separated
+   value (CSV) files from this simulation.
 
    .. code-block:: console
 
       betse plot sim my_sim/sim_config.yml
 
-See the following external documents for detailed usage instructions – complete
-with explanatory examples, sample plots, and ample screenshots:
+Also note that our sister project BETSEE_ installs the ``betsee`` command, a
+high-level graphical user interface (GUI) designed for *all* users – regardless
+of prior experience or familiarity with the command line.
+
+Advanced
+--------
+
+BETSE provides a variety of command-line options and subcommands in addition to
+those synopsized above. The standalone ``betse`` and ``betse --help`` commands
+describe these options and subcommands as follows:
+
+.. code-block:: console
+
+   usage: betse [-h] [-v] [-V] [--log-file LOG_FILENAME]
+                [--log-level {all,debug,info,warning,error,critical,none}]
+                [--profile-type {none,call,size}]
+                [--profile-file PROFILE_FILENAME]
+                [--matplotlib-backend MATPLOTLIB_BACKEND_NAME]
+                {config,seed,init,sim,sim-grn,plot,info,try} ...
+   
+   The BioElectric Tissue Simulation Engine (BETSE) is a finite volume simulator
+   for 2D computational multiphysics problems in the life sciences -- including
+   electrodiffusion, electro-osmosis, galvanotaxis, voltage-gated ion channels,
+   gene regulatory networks, and biochemical reaction networks.
+   
+   optional arguments:
+     -h, --help            show this help message and exit
+     -v, --verbose         print and log all messages verbosely
+     -V, --version         print program version and exit
+     --log-file LOG_FILENAME
+                           file to log to (defaults to
+                           "/home/leycec/.betse/betse.log")
+     --log-level {all,debug,info,warning,error,critical,none}
+                           minimum level of messages to log to "--log-file"
+                           (defaults to "info") [overridden by "--verbose"]
+     --profile-type {none,call,size}
+                           type of profiling to perform (defaults to "none"):
+                           * "none", disabling profiling
+                           * "call", profiling callables (functions, methods)
+                           * "size", profiling object sizes (requires "pympler")
+     --profile-file PROFILE_FILENAME
+                           file to profile to unless "--profile-type=none"
+                           (defaults to "/home/leycec/.betse/betse.prof")
+     --matplotlib-backend MATPLOTLIB_BACKEND_NAME
+                           name of matplotlib backend to use (see: "betse info")
+   
+   subcommands:
+   Exactly one of the following subcommands must be passed:
+   
+     {config,seed,init,sim,sim-grn,plot,info,try}
+       config              create a default config file for BETSE simulations
+       seed                seed a new cell cluster for a config file
+       init                initialize a seeded cell cluster for a config file
+       sim                 simulate an initialized cell cluster for a config file
+       sim-grn             simulate a gene regulatory network for a config file
+       plot                plot an initialized or simulated simulation
+       info                print metadata synopsizing BETSE and current system
+       try                 create, init, simulate, and plot a sample simulation
+   
+   subcommand help:
+   
+   For help with a specific subcommand, pass the "-h" or "--help" option to that
+   subcommand. For example, for help with the "config" subcommand, run:
+   
+       betse config --help
+
+Documentation
+-------------
+
+BETSE also provides external documentation optimized for offline reading –
+complete with explanatory examples, sample plots, and ample screenshots:
 
 - Official `BETSE 0.4 documentation`_. (\ *PDF format; 72 pages.*\ )
 - Official `BETSE 0.3 documentation`_. (\ *PDF format; 77 pages.*\ )
-
-Alternately, our sister project BETSEE_ installs the ``betsee`` command, a
-high-level graphical user interface (GUI) designed for *all* users – regardless
-of prior experience or familiarity with the command line.
 
 Introduction
 ============
@@ -839,6 +910,8 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
 .. # ------------------( LINKS ~ software                   )------------------
 .. _Appveyor:
    https://ci.appveyor.com/project/betse/betse/branch/master
+.. _Atom:
+   https://atom.io
 .. _dill:
    https://pypi.python.org/pypi/dill
 .. _FFmpeg:

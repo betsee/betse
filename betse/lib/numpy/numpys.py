@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +7,39 @@
 High-level support facilities for Numpy, a mandatory runtime dependency.
 '''
 
-# ....................{ IMPORTS                            }....................
+#FIXME: Consider replacing bottleneck Numpy routines with routines imported from
+#the following third-party Numpy-like frameworks:
+#
+#* "bottleneck", providing optimized routines accepting Numpy arrays --
+#  implemented in Cython and hence faster than comparible Numpy routines.
+#* "numexpr", a Theano-like framework accepting Numpy arrays -- performing
+#  CPU-centric parallelization of expensive array operations. Whereas Theano
+#  permits such operations to be conveniently expressed in pure-Python, however,
+#  numexpr inconveniently requires such operations be expressed as... wait for
+#  it, raw strings. So, that sucks. Nonetheless, worth a possible look.
+#* "blaze", a purported second-gen Numpy replacement. We harbour sincere doubts,
+#  but everything deserves its millisecond to shine in the light. Ah. We see.
+#  Blaze is considerably more heavy-weight than Numpy, and largely serves a
+#  completely different marketshare: supercomputing. That's well beyond our
+#  means, at the moment. Numpy it is!
+#
+#In short, "bottleneck" is probably the only framework listed above of interest.
+
+#FIXME: Consider optimizing frequently used matrix and vector computations with
+#Theano, a general-purpose Python mathematical optimization framework. One
+#particularly compelling use case for Theano is to portably distribute
+#computational work across multiple GPUs. In general, Theano can be used to
+#reduce arbitrarily complex symbolic expressions expressed in pure Python to
+#dynamically compiled machine code on-the-fly. Fairly amazing, all around. For
+#the high-level synopsis, see:
+#
+#    http://deeplearning.net/software/theano/introduction.html
+#FIXME: Theano and Torch (a similar framewark) appear to now be subsumed by
+#TensorFlow, a Google-backed framework originally implemented in support of
+#machine learning workflows at Google (e.g., DeepMind), but sufficiently
+#generalized as to support a wide variety of computational needs -- like ours.
+
+# ....................{ IMPORTS                           }....................
 from betse.util.io.log import logs
 from betse.util.os import dlls, oses
 from betse.util.path import dirs, files, pathnames
@@ -17,46 +49,46 @@ from betse.util.type.text import regexes, strs
 from betse.util.type.types import BoolOrNoneTypes
 from numpy import __config__ as numpy_config
 
-# ....................{ GLOBALS ~ opt_info                 }....................
+# ....................{ GLOBALS ~ opt_info                }....................
 # Fully initialized by the _init_globals() function below.
 _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX = None
 '''
 Uncompiled regular expression heuristically matching the basenames of optimized
-BLAS shared libraries in the `libraries` list of the global
+BLAS shared libraries in the ``libraries`` list of the global
 :data:`numpy.__config__.blas_opt_info` dictionary.
 
-This expression does _not_ match the strict superset of optimized BLAS shared
+This expression does *not* match the strict superset of optimized BLAS shared
 libraries that are also optimized, as doing so in a cross-platform manner is
 infeasible. Debian-based Linux distributions, for example, remove the prefixes
 uniquely identifying the threaded variants of both ATLAS and OpenBLAS from the
-basenames of their shared libraries (e.g., "libatlas.so" rather than
-"libtatlas.so").
+basenames of their shared libraries (e.g., ``libatlas.so`` rather than
+``libtatlas.so``).
 
 Optimized BLAS shared libraries matched by this expression include:
 
 * **AMD Core Math Library (ACML), unconditionally GPU- and CPU- optimized in
   both OpenMP-based and non-OpenMP-based variants regardless of underlying
-  compiler (e.g., GNU Fortran, Open64). Note, however, that ACML does _not_ ship
-  with a CBLAS interface and hence is non-trivial to link Numpy against. While
-  unlikely that any end users will ever do so, it nonetheless remains feasible
-  and hence somewhat supported.
+  compiler (e.g., GNU Fortran, Open64). Note, however, that ACML does *not*
+  ship with a CBLAS interface and hence is non-trivial to link Numpy against.
+  While unlikely that any end users will ever do so, it nonetheless remains
+  feasible and hence somewhat supported.
 * **Automatically Tuned Linear Algebra Software (ATLAS),** both single- and
   multithreaded CBLAS- and Fortran-based variants for both ATLAS < 3.10 and
   ATLAS >= 3.10, which ships shared libraries under different basenames than
   ATLAS < 3.10. (Life complicates life.)
 * **Intel Math Kernel Library (MKL),** unconditionally multithreaded in both
   OpenMP-based and non-OpenMP-based variants regardless of underlying compiler
-  (e.g., dynamic, GCC, Intel).  Note that **Intel Vector Mathematical Library
-  (VML)** is intentionally ignored.  Although also unconditionally
-  multithreaded, VML does _not_ implement the BLAS API. Numpy currently contains
-  no VML-specific handling, apart from (somewhat uselessly) detecting VML
-  installation on reporting system diagnostics.
+  (e.g., dynamic, GCC, Intel). Note that **Intel Vector Mathematical Library
+  (VML)** is intentionally ignored. Although also unconditionally
+  multithreaded, VML does *not* implement the BLAS API. Numpy currently
+  contains no VML-specific handling, apart from (somewhat uselessly) detecting
+  VML installation on reporting system diagnostics.
 * **OpenBLAS,** both single- and multithreaded 32- and 64-bit variants.
 
-This expression is typically only required once at application startup and hence
-is conditionally compiled in a just-in-time (JIT) manner by the
-:func:`_is_blas_optimized_python_general` function rather than
-unconditionally compiled here.
+This expression is typically only required once at application startup and
+hence is conditionally compiled in a just-in-time (JIT) manner by the
+:func:`_is_blas_optimized_python_general` function rather than unconditionally
+compiled here.
 '''
 # print('blas regex: ' + _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX)
 
@@ -85,15 +117,15 @@ _OPTIMIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_MACOS = {
 }
 '''
 Set of all strings in the `extra_link_args` list of the global
-:data:`numpy.__config__.blas_opt_info` dictionary heuristically corresponding to
-macOS-specific optimized BLAS shared libraries.
+:data:`numpy.__config__.blas_opt_info` dictionary heuristically corresponding
+to macOS-specific optimized BLAS shared libraries.
 
 Unlike all other such libraries, Numpy does _not_ declare unique dictionary
 globals describing macOS-specific BLAS shared libraries when linked against.
 Hence, this lower-level solution.
 '''
 
-# ....................{ GLOBALS ~ linked lib               }....................
+# ....................{ GLOBALS ~ linked lib              }....................
 # Fully initialized by the _init_globals() function below.
 _OPTIMIZED_BLAS_LINKED_LIB_BASENAME_REGEX = None
 '''
@@ -119,19 +151,19 @@ See Also
     Further details.
 '''
 
-# ....................{ INITIALIZERS                       }....................
-# For simplicity, this function is called below on the first importation of this
-# submodule rather than explicitly called by callers.
+# ....................{ INITIALIZERS                      }....................
+# For simplicity, this function is called below on the first importation of
+# this submodule rather than explicitly called by callers.
 def init() -> None:
     '''
     Initialize this submodule.
 
     Specifically (_in order_):
 
-    . Initialize all uninitialized global variables of this submodule.
-    . If the currently installed version of Numpy was linked against an
-      unoptimized BLAS implementation and is thus itself unoptimized, log a
-      non-fatal warning.
+    #. Initialize all uninitialized global variables of this submodule.
+    #. If the currently installed version of Numpy was linked against an
+       unoptimized BLAS implementation and is thus itself unoptimized, log a
+       non-fatal warning.
     '''
 
     # Initialize all uninitialized global variables of this submodule.
@@ -229,8 +261,8 @@ def _init_globals() -> None:
 
     # Redefine this global. Since Numpy has already stripped all
     # platform-specific prefixes (e.g., "lib") and suffixes (e.g., ".so") from
-    # this basename, only this substring followed by an arbitrary bounded suffix
-    # need be matched.
+    # this basename, only this substring followed by an arbitrary bounded
+    # suffix need be matched.
     _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX = (
         r'^({})(?:[_-].*)?$'.format(blas_lib_basename_regex))
 
@@ -242,15 +274,15 @@ def _init_globals() -> None:
     _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_DIRS_REGEX = (
         _OPTIMIZED_BLAS_LINKED_LIB_DIRNAME_REGEX)
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 def is_blas_optimized() -> bool:
     '''
-    ``True`` only" if the currently installed version of Numpy is linked against an
-    optimized BLAS (Basic Linear Algebra Subprograms) implementation, ideally
-    but _not_ necessarily parallelized across multiple processors.
+    ``True`` only if the currently installed version of Numpy is linked against
+    an optimized BLAS (Basic Linear Algebra Subprograms) implementation,
+    ideally but *not* necessarily parallelized across multiple processors.
 
-    Optimized BLAS implementations are _strongly_ recommended over unoptimized
-    BLAS implementations. The `numpy.dot()` operator, which is implicitly
+    Optimized BLAS implementations are *strongly* recommended over unoptimized
+    BLAS implementations. The :func:`numpy.dot` operator, which is implicitly
     optimized when Numpy is linked against a optimized BLAS implementation, is
     frequently called by BETSE in its critical path.
 
@@ -297,34 +329,35 @@ def is_blas_optimized() -> bool:
     # optimized or non-optimized. For safety, assume the latter.
     return False
 
-# ....................{ TESTERS ~ private : opt_info       }....................
+# ....................{ TESTERS ~ private : opt_info      }....................
 def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
     '''
-    ``True`` only" if the first element of the `libraries` list of the global
+    ``True`` only" if the first element of the ``libraries`` list of the global
     :data:`numpy.__config__.blas_opt_info` dictionary heuristically
-    corresponds to that of an optimized BLAS implementation, `False` if a non-
-    fatal error condition arises (e.g., due this list or dictionary being
-    undefined), _or_ `None` otherwise.
+    corresponds to that of an optimized BLAS implementation, ``False`` if a
+    non-fatal error condition arises (e.g., due this list or dictionary being
+    undefined), *or* ``None`` otherwise.
 
-    This function returns `None` when unable to deterministically decide this
+    This function returns ``None`` when unable to deterministically decide this
     boolean, in which case a subsequent heuristic will attempt to do so.
 
-    Numpy does _not_ define a public API directly defining this boolean. Numpy
+    Numpy does *not* define a public API directly defining this boolean. Numpy
     does, however, define a private API defining a variety of metadata from
     which this boolean is indirectly derivable: the :mod:`numpy.__config__`
-    submodule. The :func:`numpy.distutils.misc_util.generate_config_py` function
-    programmatically fabricates the contents of the :mod:`numpy.__config__`
-    submodule at Numpy installation time. This function introspectively inspects
-    these contents for uniquely identifying metadata in a portable manner.
+    submodule. The :func:`numpy.distutils.misc_util.generate_config_py`
+    function programmatically fabricates the contents of the
+    :mod:`numpy.__config__` submodule at Numpy installation time. This function
+    introspectively inspects these contents for uniquely identifying metadata
+    in a portable manner.
     '''
 
     # Global BLAS linkage dictionary for this Numpy installation if any or
-    # "None" otherwise. Technically, this dictionary should *ALWAYS* be defined.
-    # Reality probably occasionally begs to disagree, however.
+    # "None" otherwise. Technically, this dictionary should *ALWAYS* be
+    # defined.  Reality probably occasionally begs to disagree, however.
     blas_opt_info = getattr(numpy_config, 'blas_opt_info', None)
 
-    # If this dictionary is undefined, log a non-fatal warning and return False.
-    # While unfortunate, this is *NOT* worth raising a fatal exception over.
+    # If this dictionary is undefined, log a non-fatal warning and return
+    # False. While sad, this is *NOT* worth raising an exception over.
     if blas_opt_info is None:
         logs.log_warning(
             'Numpy installation misconfigured: '
@@ -368,21 +401,22 @@ def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
 
 def _is_blas_optimized_opt_info_library_dirs() -> BoolOrNoneTypes:
     '''
-    ``True`` only" if the first element of the `library_dirs` list of the global
-    :data:`numpy.__config__.blas_opt_info` dictionary heuristically
-    corresponds to that of an optimized BLAS implementation, `False` if a non-
-    fatal error condition arises (e.g., due this list or dictionary being
-    undefined), _or_ `None` otherwise.
+    ``True`` only" if the first element of the `library_dirs` list of the
+    global :data:`numpy.__config__.blas_opt_info` dictionary heuristically
+    corresponds to that of an optimized BLAS implementation, ``False`` if a
+    non-fatal error condition arises (e.g., due this list or dictionary being
+    undefined), *or* ``None`` otherwise.
 
-    This function returns `None` when unable to deterministically decide this
+    This function returns ``None`` when unable to deterministically decide this
     boolean, in which case a subsequent heuristic will attempt to do so.
     '''
 
-    # List of the dirnames of all BLAS libraries this version of Numpy is linked
-    # against in a high-level manner if any or "None" otherwise.
+    # List of the dirnames of all BLAS libraries this version of Numpy is
+    # linked against in a high-level manner if any or "None" otherwise.
     #
-    # Note that the "blas_opt_info" dictionary global is guaranteed to exist due
-    # to the previously called _is_blas_optimized_opt_info_basename() function.
+    # Note that the "blas_opt_info" dictionary global is guaranteed to exist
+    # due to the previously called _is_blas_optimized_opt_info_basename()
+    # function.
     #
     # Note that this list is *NOT* guaranteed to exist. When this version of
     # Numpy is linked against a BLAS library in a low-level manner (e.g., via
@@ -444,11 +478,12 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
         return None
     # Else, the current platform is macOS.
 
-    # List of all implementation-specific link arguments with which Numpy linked
-    # against the current BLAS implementation if any or "None".
+    # List of all implementation-specific link arguments with which Numpy
+    # linked against the current BLAS implementation if any or "None".
     #
-    # Note that the "blas_opt_info" dictionary global is guaranteed to exist due
-    # to the previously called _is_blas_optimized_opt_info_basename() function.
+    # Note that the "blas_opt_info" dictionary global is guaranteed to exist
+    # due to the previously called _is_blas_optimized_opt_info_basename()
+    # function.
     blas_link_args_list = numpy_config.blas_opt_info.get(
         'extra_link_args', None)
 
@@ -472,16 +507,16 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     # Else, instruct our caller to continue to the next heuristic.
     return None
 
-# ....................{ TESTERS ~ private : linkage        }....................
+# ....................{ TESTERS ~ private : linkage       }....................
 def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     '''
-    ``True`` only" if the current platform is POSIX-compliant and hence supports
-    symbolic links _and_ the first element of the `libraries` list of the global
-    :data:`numpy.__config__.blas_opt_info` dictionary is a symbolic link
-    masquerading as either the unoptimized reference BLAS implementation but in
-    fact linking to an optimized BLAS implementation.
+    ``True`` only" if the current platform is POSIX-compliant and hence
+    supports symbolic links *and* the first item of the ``libraries`` list of
+    the global :data:`numpy.__config__.blas_opt_info` dictionary is a symbolic
+    link masquerading as either the unoptimized reference BLAS implementation
+    but in fact linking to an optimized BLAS implementation.
 
-    This function returns `None` when unable to deterministically decide this
+    This function returns ``None`` when unable to deterministically decide this
     boolean, in which case a subsequent heuristic will attempt to do so.
     '''
 
@@ -540,8 +575,8 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
             continue
         # Else, this is either the BLAS or CBLAS reference library.
 
-        # If this library is *NOT* a symbolic link, Numpy links directly against
-        # an unoptimized BLAS implementation. Halt!
+        # If this library is *NOT* a symbolic link, Numpy links directly
+        # against an unoptimized BLAS implementation. Halt!
         if not files.is_symlink(numpy_linked_lib_filename):
             break
         # Else, this library is actually a symbolic link to another library.
@@ -568,7 +603,7 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     # Else, instruct our caller to continue to the next heuristic.
     return None
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 def get_metadatas() -> tuple:
     '''
     Tuple of 2-tuples ``(metedata_name, metadata_value)``, describing all
