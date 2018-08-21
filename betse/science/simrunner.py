@@ -17,7 +17,7 @@ from betse.science.export import exppipe
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
 from betse.science.phase import phasecallbacks
-from betse.science.phase.phasecallbacks import SimCallbacksABCOrNoneTypes
+from betse.science.phase.phasecallbacks import SimCallbacksBCOrNoneTypes
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.util.io.log import logs
@@ -41,7 +41,7 @@ class SimRunner(object):
 
     Attributes
     ----------
-    _callbacks : SimCallbacksABC
+    _callbacks : SimCallbacksBC
         Caller-defined object whose methods are periodically called during each
         simulation subcommand (e.g., to notify this caller of phase progress).
     '''
@@ -55,7 +55,7 @@ class SimRunner(object):
         p: Parameters,
 
         # Optional parameters.
-        callbacks: SimCallbacksABCOrNoneTypes = None,
+        callbacks: SimCallbacksBCOrNoneTypes = None,
     ) -> None:
         '''
         Initialize this simulation runner.
@@ -66,7 +66,7 @@ class SimRunner(object):
             Simulation configuration to be run. If this configuration is in the
             unloaded state (i.e., has *not* yet been loaded into memory from a
             YAML-formatted file on disk), an exception is raised.
-        callbacks : SimCallbacksABCOrNoneTypes
+        callbacks : SimCallbacksBCOrNoneTypes
             Caller-defined object whose methods are periodically called during
             each simulation subcommand (e.g., :meth:`SimRunner.seed`). Defaults
             to ``None``, in which case this defaults to a placeholder object
@@ -90,25 +90,6 @@ class SimRunner(object):
         self._p = p
 
     # ..................{ RUNNERS ~ seed                    }..................
-    _SEED_PROGRESS_TOTAL = (
-        # Number of progress callbacks performed directly in this method.
-        6 +
-        # Number of progress callbacks performed by Cells.make_world().
-        Cells.MAKE_WORLD_PROGRESS_TOTAL
-    )
-    '''
-    Cuumulative number of times that each call of the :meth:`seed` subcommand
-    calls either the :meth`SimCallbacksABC.progressed` callback or higher-level
-    callbacks calling that callback (e.g.,
-    :meth:`SimCallbacksABC.progressed_next`).
-
-    This magic number *must* be manually synchronized with the implementation
-    of both this subcommand and methods transitively called by this subcommand
-    (e.g., :meth:`Cells.make_world`). Failure to do so *will* result in fatal
-    exceptions. There exists no reasonable means of enforcing this constraint.
-    '''
-
-
     @log_time_seconds(noun='seed')
     def seed(self) -> SimPhase:
         '''
@@ -128,9 +109,25 @@ class SimRunner(object):
         # Log this attempt.
         logs.log_info('Seeding simulation...')
 
+        # Cuumulative number of times that each call of this subcommand calls
+        # either the SimCallbacksBC.progressed() callback or higher-level
+        # callbacks calling that callback (e.g.,
+        # SimCallbacksBC.progressed_next()).
+        #
+        # This magic number *must* be manually synchronized with the
+        # implementation of both this subcommand and methods transitively
+        # called by this subcommand (e.g., Cells.make_world()). Failure to do
+        # so *will* result in fatal exceptions. Sadly, there exists no
+        # reasonable means of either automating or enforcing this constraint.
+        _SEED_PROGRESS_TOTAL = (
+            # Number of progress callbacks performed directly in this method.
+            6 +
+            # Number of progress callbacks performed by Cells.make_world().
+            Cells.MAKE_WORLD_PROGRESS_TOTAL
+        )
+
         # Notify the caller of the range of work performed by this subcommand.
-        self._callbacks.progress_ranged(progress_max=self._SEED_PROGRESS_TOTAL)
-        # self._callbacks.progressed_first()
+        self._callbacks.progress_ranged(progress_max=_SEED_PROGRESS_TOTAL)
 
         # Simulation phase.
         phase = SimPhase(
@@ -138,6 +135,9 @@ class SimRunner(object):
 
         # Create the pseudo-randomized cell cluster.
         phase.cells.make_world(phase)
+
+        #FIXME: Pass status messages to all of the calls to this callback
+        #transitively performed by this method.
         self._callbacks.progressed_next()
 
         # Initialize core simulation data structures.

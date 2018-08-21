@@ -44,7 +44,6 @@ class Cells(object):
 
     Methods
     -------
-    cell_index()                      Returns a list of [x,y] points defining the cell centres in order
     cellVerts()                       Copy & scale in points from the ecm matrix to create unique polygonal cells
     quickVerts()                      Reformulates an exisitng cell world
     cellMatrices()                    Calculates for matrices for BETSE
@@ -398,9 +397,9 @@ class Cells(object):
     MAKE_WORLD_PROGRESS_TOTAL = 5
     '''
     Cuumulative number of times that each call of the :meth:`make_world` method
-    calls either the :meth:`SimCallbacksABC.progressed` callback or
+    calls either the :meth:`SimCallbacksBC.progressed` callback or
     higher-level callbacks calling that callback (e.g.,
-    :meth:`SimCallbacksABC.progressed_next`).
+    :meth:`SimCallbacksBC.progressed_next`).
 
     This magic number *must* be manually synchronized with the
     implementation of both the :meth:`make_world` method and methods
@@ -422,11 +421,11 @@ class Cells(object):
             Current simulation phase.
         '''
 
-        # Log this attempt.
-        logs.log_info('Creating cell cluster...')
+        # Notify the sink callback of the current state of progress.
+        phase.callbacks.progress_stated('Creating cell cluster...')
 
-        # If this phase is *NOT* the seed phase, raise an exception.
-        phase.die_unless_kind(SimPhaseKind.SEED)
+        # If this is *NOT* the seed phase, raise an exception.
+        phase.die_unless_kind_seed()
 
         # Create the cell lattice, which serves as the seed grid underlying all
         # subsequent data structures.
@@ -437,7 +436,6 @@ class Cells(object):
 
         # Create the initial Voronoi diagram after making the initial seed
         # points of the cell lattice.
-        logs.log_info('Creating Voronoi geometry... ')
         self._make_voronoi(seed_points_o, phase)
 
         # Clean the Voronoi diagram of empty data structures.
@@ -449,17 +447,20 @@ class Cells(object):
         # If optionally refining the Voronoi mesh, do so.
         if phase.p.refine_mesh:
             self._refine_voronoi(phase)
-        phase.callbacks.progressed_next()
+
+        # Notify the sink callback of the current state of progress.
+        phase.callbacks.progressed_next(
+            progress_status='Calculating geometric cell properties...')
 
         # Create individual cell polygon vertices.
-        logs.log_info('Defining cell-specific geometric properties... ')
         self.cellVerts(phase.p)
 
         # Create a variety of matrices used in routine cells calculations.
-        logs.log_info(
-            'Creating computational matrices for cell-cell transfers... ')
         self.cellMatrices(phase.p)
-        phase.callbacks.progressed_next()
+
+        # Notify the sink callback of the current state of progress.
+        phase.callbacks.progressed_next(
+            progress_status='Calculating geometric cell volumes...')
 
         # Calculate the volume of each cell and its internal regions.
         self.cell_vols(phase.p)
@@ -468,16 +469,17 @@ class Cells(object):
 
         # Calculate membrane nearest neighbours, ECM interaction, boundary
         # tags, and so forth.
-        logs.log_info('Creating gap junctions... ')
         self.mem_processing(phase.p)
 
         # Calculate the nearest neighbour array for each cell.
         self.near_neigh(phase.p)
         self.voronoiGrid(phase.p)
-        phase.callbacks.progressed_next()
+
+        # Notify the sink callback of the current state of progress.
+        phase.callbacks.progressed_next(
+            progress_status='Creating extracellular matrix (ECM) grid...')
 
         # Create the ECM grid.
-        logs.log_info('Setting global environmental conditions... ')
         self.makeECM(phase.p)
 
         # Fefine features of the ECM grid.
@@ -486,19 +488,21 @@ class Cells(object):
         self.make_maskM(phase.p)
         # self.env_weighting(p)
 
-        logs.log_info('Creating environmental Poisson solver for voltage...')
+        # Notify the sink callback of the current state of progress.
+        phase.callbacks.progressed_next(
+            progress_status='Creating environmental voltage Poisson solver...')
+
+        # Avoid storing the non-inverse matrix, which only consumes memory.
         bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
-
-        # Avoid storing the non-inverse matrix, which only consumes memory.
         _, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
-        phase.callbacks.progressed_next()
 
-        logs.log_info('Creating environmental Poisson solver for currents...')
-        bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
+        # Notify the sink callback of the current state of progress.
+        phase.callbacks.progressed_next(
+            progress_status='Creating environmental current Poisson solver...')
 
         # Avoid storing the non-inverse matrix, which only consumes memory.
+        bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
         _, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
-        phase.callbacks.progressed_next()
 
         #FIXME: Do we still want this? If not, let's consider removing this. Two
         #pounds of flax!
@@ -540,7 +544,8 @@ class Cells(object):
         self.M_sum_mem_to_ecm = None   # used for deformation
         self.gradMem = None  # used for electroosmosis
 
-        self.cell_i = np.asarray(self.cell_i) # we need this to be an array for advanced indexing & assignments
+        # Coerce this to an array for advanced indexing and assignments.
+        self.cell_i = np.asarray(self.cell_i)
 
         self.gj_default_weights = np.ones(len(self.mem_i))
 
@@ -865,6 +870,7 @@ class Cells(object):
         self.xmax = self.xmax + p.cell_radius
         self.ymax = self.ymax + p.cell_radius
 
+
     @type_check
     def _make_voronoi(self, seed_points, phase: SimPhase) -> None:
         '''
@@ -892,6 +898,9 @@ class Cells(object):
         self.cluster_mask           Matrix of booleans defining masked shape of cell cluster
         self.msize                  Size of bitmap (side pixel number)
         '''
+
+        # Log this action.
+        logs.log_info('Creating Voronoi geometry... ')
 
         #FIXME: Non-ideal. The cell cluster image mask should ideally be
         #instantiated via the existing "TissueHandler.tissue_default.picker"
@@ -1581,11 +1590,15 @@ class Cells(object):
 
         self.cell_sa = np.asarray(self.cell_sa)
 
-    def cellMatrices(self, p):
-        """
-        Creates the main matrices used in routine calculations on the Cell Grid.
 
-        """
+    def cellMatrices(self, p) -> None:
+        '''
+        Create the main matrices used in routine calculations on the Cell Grid.
+        '''
+
+        # Log this action.
+        logs.log_info(
+            'Creating computational matrices for cell-cell transfers...')
 
         #----------------MATRIX CALCULATIONs----------------------------------------
 
@@ -1611,11 +1624,8 @@ class Cells(object):
             self.num_mems.append(n)
 
         self.M_sum_mems_inv = np.linalg.pinv(self.M_sum_mems)  # matrix inverse of M_sum_mems for div-free cell calcs
-
         self.num_mems = np.asarray(self.num_mems)  # number of membranes per cell
-
         self.mem_distance = p.cell_space + 2*p.tm # distance between two adjacent intracellluar spaces
-
         self.cell_number = self.cell_centres.shape[0]
 
         # matrix for calculating gradients around the cell circumference:
@@ -1643,6 +1653,7 @@ class Cells(object):
             # self.aveTheta[mem_i, mem_i] = 1/2
             # self.aveTheta[mem_i, mem_io] = 1/2
 
+
     def memLaplacian(self):
 
         # matrix for computing divergence of a property defined on a membrane of each cell patch:
@@ -1663,17 +1674,17 @@ class Cells(object):
 
         self.lapGJmem_inv = np.linalg.pinv(lapGJmem)
 
-    def cell_vols(self,p):
-        """
-        Each cell is divided into a spider-web like volume with an outer
-        "pie-box" region volume associated with each membrane, and a region
-        around the central point (centroid region).
 
-        This helper-functino calculates volumes of cell, membrane "pie-boxes" and centroids,
-        as well as associated parameters of cell chords, which are the distance between the
-        cell center and each membrane midpoint.
+    def cell_vols(self, p) -> None:
+        '''
+        Divide each cell into a spider-web like volume with an outer "pie-box"
+        region volume associated with each membrane, and a region around the
+        central point (centroid region).
 
-        """
+        This function calculates the volumes of cells, membrane "pie-boxes" and
+        centroids, and associated parameters of **cell chords** (i.e., the
+        distance between the cell center and each membrane midpoint).
+        '''
 
         # calculate cell chords
         # self.chords = []
@@ -1698,14 +1709,18 @@ class Cells(object):
         # Finally, create an easy divergence inverse term for cells
         self.diviterm = (self.cell_vol / self.cell_sa)
 
-    def mem_processing(self,p):
-        """
-        Finds membrane-specific nearest neighbour pairs, interaction with
-        the extracellular data points (of voronoi grid) and membranes on the boundary.
-        """
+
+    def mem_processing(self, p) -> None:
+        '''
+        Calculate the membrane-specific nearest neighbour pairs, interaction
+        with the extracellular data points of the Voronoi grid lattice, and
+        membranes on the boundary.
+        '''
+
+        # Log this action.
+        logs.log_info('Creating gap junctions... ')
 
         #-- find nearest neighbour cell-cell junctions via adjacent membranes-------------------------------------------
-
         sc = 2.2*(1-p.scale_cell)*p.cell_radius
         memTree = cKDTree(self.mem_mids_flat)
 
@@ -2968,8 +2983,7 @@ class Cells(object):
 
         return ux, uy
 
-
-    # ..........{ PROPERTIES ~ membrane                   }.....................
+    # ..........{ PROPERTIES ~ membrane                  }.....................
     @property_cached
     def membranes_normal_unit_x(self) -> ndarray:
         '''
@@ -2991,7 +3005,7 @@ class Cells(object):
 
         return self.mem_vects_flat[:, 3]
 
-    # ..........{ PROPERTIES ~ mappers                    }.....................
+    # ..........{ PROPERTIES ~ mappers                   }.....................
     #FIXME: For readability, rename to membranes_midpoint_to_vertices().
     @property_cached
     def matrixMap2Verts(self) -> ndarray:
@@ -3018,8 +3032,8 @@ class Cells(object):
         ``m`` containing membrane-specific data by this matrix yields another
         Numpy vector of size ``n`` containing membrane vertex-specific data
         interpolated from these membranes over these vertices, where ``m`` and
-        ``n`` are as defined above. Technically, the dot product of a vector by a
-        matrix is undefined. To facilitate this otherwise invalid operation,
+        ``n`` are as defined above. Technically, the dot product of a vector by
+        a matrix is undefined. To facilitate this otherwise invalid operation,
         Numpy implicitly converts:
 
         * The input vector of size ``m`` into a matrix of size ``1 x m``.
@@ -3064,8 +3078,8 @@ class Cells(object):
         * 0 if this cell does *not* contain this membrane. Since most cells do
           *not* contain most membranes, most entries of this matrix are zero,
           implying this matrix to typically (but *not* necessarily) be sparse.
-        * ``1/k`` if this cell contains this membrane, where ``k`` is the number
-          of membranes this cell contains.
+        * ``1/k`` if this cell contains this membrane, where ``k`` is the
+          number of membranes this cell contains.
 
         Usage
         -----------
@@ -3080,20 +3094,20 @@ class Cells(object):
 
         # Dismantled, this is:
         #
-        # * "self.M_sum_mems.T", the transpose of the "M_sum_mems" matrix. Since
-        #   this matrix is of size m x n for m the number of cells and n is the
-        #   number of membranes, this transpose is a matrix of size n x m. Each
-        #   element of this transpose is either:
+        # * "self.M_sum_mems.T", the transpose of the "M_sum_mems" matrix.
+        #   Since this matrix is of size m x n for m the number of cells and n
+        #   is the number of membranes, this transpose is a matrix of size n x
+        #   m. Each element of this transpose is either:
         #   * 0 if this cell does *NOT* contain this membrane.
         #   * 1 if this cell contains this membrane.
         # * "... / self.num_mems", normalizing each cell membrane element of
         #   this matrix by the number of membranes in that cell. Since
-        #   "num_mems" is a row vector of length m whose elements are the number
-        #   of membranes in that cell, each column of this transpose is divided
-        #   by the corresponding element of this row vector.
+        #   "num_mems" is a row vector of length m whose elements are the
+        #   number of membranes in that cell, each column of this transpose is
+        #   divided by the corresponding element of this row vector.
         return self.M_sum_mems.T / self.num_mems
 
-    # ..........{ MAPPERS                                 }.....................
+    # ..........{ MAPPERS                                }.....................
     #FIXME: To reduce code duplication:
     #
     #    # Globally replace all instances of this...

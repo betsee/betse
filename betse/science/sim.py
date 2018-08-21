@@ -1060,6 +1060,10 @@ class Simulator(object):
             Current simulation phase.
         '''
 
+        # If this is neither the initialization or simulation phase, raise an
+        # exception.
+        phase.die_unless_kind_init_or_sim()
+
         # Initialize all structures used for gap junctions, ion channels, and
         # other dynamics.
         self.init_dynamics(phase)

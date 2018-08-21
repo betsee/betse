@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -11,9 +11,9 @@ Caveats
 ----------
 Call stack inspection typically assumes the current Python interpreter to be
 **CPython** (i.e., the official Python interpreter) rather than a third-party
-alternative (e.g., PyPy, Pyston), implying that functions defined by this module
-should typically *never* be called by production code. Consider calling these
-functions only where needed.
+alternative (e.g., PyPy, Pyston), implying that functions defined by this
+module should typically *never* be called by production code. Consider calling
+these functions only where needed.
 
 See Also
 ----------
@@ -23,12 +23,12 @@ See Also
     Printing the current call stack to standard output.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import inspect, traceback
 from betse.exceptions import BetseCallableException
 from betse.util.type.types import type_check, CallableTypes
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get_traceback(call_stack_index_last: int = -1) -> str:
     '''
@@ -52,30 +52,30 @@ def get_traceback(call_stack_index_last: int = -1) -> str:
     # Return this traceback.
     return traceback_header + ''.join(traceback.format_list(call_stack))
 
-# ....................{ GETTERS ~ caller : basename        }....................
+# ....................{ GETTERS ~ basename                }....................
 @type_check
 def get_caller_basename(call_stack_index: int = 2) -> str:
     '''
     **Basename** (i.e., unqualified name *not* preceded by the ``.``-delimited
-    name of the parent module or class) of the callable with the passed index on
-    the call stack if any *or* raise an exception otherwise.
+    name of the parent module or class) of the callable with the passed index
+    on the call stack if any *or* raise an exception otherwise.
 
     Parameters
     ----------
     call_stack_index : optional[int]
-        0-based index of the call stack frame to be inspected. Equivalently, the
-        1-based number of leading (most recent) stack frames to be ignored
-        including the call to this function. Defaults to an index inspecting the
-        **caller's caller** (i.e., the function or method calling the function
-        or method calling this function).
+        0-based index of the call stack frame to be inspected. Equivalently,
+        the 1-based number of leading (most recent) stack frames to be ignored
+        including the call to this function. Defaults to an index inspecting
+        the **caller's caller** (i.e., the function or method calling the
+        function or method calling this function).
 
     Returns
     ----------
     str
-        Basename of this callable, equivalent to the callable after ignoring the
-        passed number of leading stack frames on the call stack. As example, if
-        passed 2, this is the basename of the second callable on the call stack
-        corresponding to that of the caller's caller.
+        Basename of this callable, equivalent to the callable after ignoring
+        the passed number of leading stack frames on the call stack. As
+        example, if passed 2, this is the basename of the second callable on
+        the call stack corresponding to that of the caller's caller.
 
     Raises
     ----------
@@ -141,7 +141,8 @@ def get_caller_basename_first_matching(predicate: CallableTypes) -> str:
     predicate : CallableTypes
         Callable iteratively passed the basename of each callable on the call
         stack (starting at the call to this function and iterating up the call
-        stack), returning ``True`` only if that basename matches this predicate.
+        stack), returning ``True`` only if that basename matches this
+        predicate.
 
     Returns
     ----------
@@ -197,19 +198,19 @@ def get_caller_basename_first_matching(predicate: CallableTypes) -> str:
                 # return this basename.
                 if caller_basename is not None and predicate(caller_basename):
                     return caller_basename
+
         # Else, no callable on the call stack matches this predicate. In this
         # case, raise an exception.
-        else:
-            raise BetseCallableException(
-                'Caller basename matching predicate {!r} not found.'.format(
-                    predicate))
+        raise BetseCallableException(
+            'Caller basename matching predicate {!r} not found.'.format(
+                predicate))
     # For safety, explicitly release *ALL* call stack frames obtained above.
     # Failing to do so invites memory leaks due to circular references. See:
     #     https://docs.python.org/3/library/inspect.html#the-interpreter-stack
     finally:
         del call_stack, caller_frame_metadata, caller_frame
 
-# ....................{ GETTERS ~ caller : module name     }....................
+# ....................{ GETTERS ~ module                  }....................
 @type_check
 def get_caller_module_name(call_stack_index: int = 2) -> str:
     '''
@@ -219,20 +220,20 @@ def get_caller_module_name(call_stack_index: int = 2) -> str:
     Parameters
     ----------
     call_stack_index : optional[int]
-        0-based index of the call stack frame to be inspected. Equivalently, the
-        1-based number of leading (most recent) stack frames to be ignored
-        including the call to this function. Defaults to an index inspecting the
-        **caller's caller** (i.e., the function or method calling the function
-        or method calling this function).
+        0-based index of the call stack frame to be inspected. Equivalently,
+        the 1-based number of leading (most recent) stack frames to be ignored
+        including the call to this function. Defaults to an index inspecting
+        the **caller's caller** (i.e., the function or method calling the
+        function or method calling this function).
 
     Returns
     ----------
     str
         Fully-qualified name of the parent module of this callable, equivalent
-        to the callable after ignoring the passed number of leading stack frames
-        on the call stack. As example, if passed 2, this is the name of the
-        parent module of the second callable on the call stack corresponding to
-        that of the caller's caller.
+        to the callable after ignoring the passed number of leading stack
+        frames on the call stack. As example, if passed 2, this is the name of
+        the parent module of the second callable on the call stack
+        corresponding to that of the caller's caller.
 
     Raises
     ----------

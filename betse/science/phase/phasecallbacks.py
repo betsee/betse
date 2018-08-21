@@ -11,13 +11,13 @@ periodically called while simulating one or more phases) class hierarchy.
 # ....................{ IMPORTS                           }....................
 from betse.util.io.log import logs
 from betse.util.py import pys
-from betse.util.type.call.callbacks import CallbacksABC
+from betse.util.type.call.callbacks import CallbacksBC
 from betse.util.type.types import NoneType  #type_check
 
 # ....................{ SUPERCLASSES                      }....................
 # This subclass is currently an empty placeholder but will be subsequently
 # extended with subclass-specific behaviour.
-class SimCallbacksABC(CallbacksABC):
+class SimCallbacksBC(CallbacksBC):
     '''
     Abstract base class of all **simulation phase callbacks** (i.e.,
     caller-defined object whose methods are periodically called while
@@ -27,14 +27,14 @@ class SimCallbacksABC(CallbacksABC):
     pass
 
 # ....................{ TYPES                             }....................
-SimCallbacksABCOrNoneTypes = (SimCallbacksABC, NoneType)
+SimCallbacksBCOrNoneTypes = (SimCallbacksBC, NoneType)
 '''
 Tuple of both the simulation phase callbacks type *and* that of the ``None``
 singleton.
 '''
 
 # ....................{ SUBCLASSES                        }....................
-class SimCallbacksNoop(SimCallbacksABC):
+class SimCallbacksNoop(SimCallbacksBC):
     '''
     **Noop simulation phase callbacks** (i.e., simulation phase callbacks whose
     methods all silently reduce to noops for efficiency).
@@ -62,14 +62,20 @@ class SimCallbacksNoop(SimCallbacksABC):
         self, progress_max: int, progress_min: int = 0) -> None:
         pass
 
+    def progress_stated(self, progress_status: str) -> None:
+        pass
+
     def progressed(self, progress: int) -> None:
+        pass
+
+    def progressed_last(self) -> None:
         pass
 
     def progressed_next(self) -> None:
         pass
 
 # ....................{ MAKERS                            }....................
-def make_default() -> SimCallbacksABC:
+def make_default() -> SimCallbacksBC:
     '''
     Create and return a new simulation phase callbacks object suitable for use
     as an efficient fallback in the event that a caller fails to supply a
@@ -78,14 +84,14 @@ def make_default() -> SimCallbacksABC:
     Specifically, this factory function:
 
     * If tests are currently being run, this function creates and returns an
-      instance of the :class:`SimCallbacksABC` subclass. While less efficient
+      instance of the :class:`SimCallbacksBC` subclass. While less efficient
       than the comparable :class:`SimCallbacksNoop` subclass, doing so ensures
-      that contractual guarantees maintained by the :class:`CallbacksABC`
+      that contractual guarantees maintained by the :class:`CallbacksBC`
       superclass are properly exercised.
     * Else, this function creates and returns an instance of the
       :class:`SimCallbacksNoop` subclass. While more efficient than the
-      comparable :class:`SimCallbacksABC` subclass, doing so avoids contractual
-      guarantees maintained by the :class:`CallbacksABC` superclass.
+      comparable :class:`SimCallbacksBC` subclass, doing so avoids contractual
+      guarantees maintained by the :class:`CallbacksBC` superclass.
     '''
 
     # If tests are currently being run...
@@ -95,7 +101,7 @@ def make_default() -> SimCallbacksABC:
 
         # Return a new simulation phase callbacks object preserving (and hence
         # testing) superclass API guarantees.
-        return SimCallbacksABC()
+        return SimCallbacksBC()
     # Else, tests are *NOT* currently being run. In this case...
     else:
         # Log this behaviour.

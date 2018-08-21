@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,8 +7,8 @@
 Low-level string facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
-import html, textwrap
+# ....................{ IMPORTS                           }....................
+import textwrap
 from betse.exceptions import BetseStrException
 from betse.util.type import types
 from betse.util.type.types import type_check, IterableTypes, StrOrNoneTypes
@@ -20,7 +20,7 @@ from betse.util.type.types import trim
 
 if False: trim  # silence IDE warnings
 
-# ....................{ SINGLETONS                         }....................
+# ....................{ SINGLETONS                        }....................
 text_wrapper = TextWrapper()
 '''
 Singleton :class:`TextWrapper` instance with which to wrap text.
@@ -30,7 +30,7 @@ functions provided by the :mod:`textwrap` module implicitly instantiate
 temporary :class:`TextWrapper` instances on each function call.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_if_empty(text: str, exception_message: StrOrNoneTypes = None) -> None:
     '''
@@ -95,7 +95,7 @@ def die_unless_prefix(
         # Raise this exception.
         raise BetseStrException(exception_message)
 
-# ....................{ TESTERS ~ case                     }....................
+# ....................{ TESTERS ~ case                    }....................
 @type_check
 def is_lowercase(text: str) -> bool:
     '''
@@ -125,7 +125,7 @@ def is_uppercase(text: str) -> bool:
     # Ditto on the sweetness.
     return text.isupper()
 
-# ....................{ TESTERS ~ [pre|suf]fix             }....................
+# ....................{ TESTERS ~ [pre|suf]fix            }....................
 def is_prefix(text: str, prefix: str) -> bool:
     '''
     ``True`` only if the second passed string prefixes the first passed string.
@@ -156,7 +156,7 @@ def is_suffix(text: str, suffix: str) -> bool:
 
     return text.endswith(suffix)
 
-# ....................{ ADDERS                             }....................
+# ....................{ ADDERS                            }....................
 def add_prefix_unless_found(text: str, prefix: str) -> str:
     '''
     Prefix the passed string by the passed prefix unless the former is already
@@ -198,7 +198,7 @@ def add_suffix_unless_found(text: str, suffix: str) -> str:
 
     return text if is_suffix(text, suffix) else text + suffix
 
-# ....................{ JOINERS ~ on                       }....................
+# ....................{ JOINERS ~ on                      }....................
 def join(*texts) -> str:
     '''
     Concatenation of the passed strings with no separating delimiter.
@@ -233,14 +233,14 @@ def join_by_index(iterable: IterableTypes, subiterable_index: object) -> str:
     Returns
     ----------
     str
-        Concatenation of each string at this key or index of each subiterable of
-        this iterable, with no separating delimiter.
+        Concatenation of each string at this key or index of each subiterable
+        of this iterable, with no separating delimiter.
     '''
 
     # Efficiency and simplicity combine here to form SuperHappyFunFunction.
     return ''.join(subiterable[subiterable_index] for subiterable in iterable)
 
-# ....................{ JOINERS ~ on                       }....................
+# ....................{ JOINERS ~ on                      }....................
 def join_on_newline(*texts) -> str:
     '''
     Join the passed strings with newline as the separating delimiter.
@@ -275,6 +275,7 @@ def join_on(*texts: IterableTypes, delimiter: str) -> str:
     ----------
     texts : SequenceTypes
         Tuple of all strings to be joined, consisting of either:
+
         * One or more strings.
         * One iterable of strings.
     delimiter : str
@@ -294,7 +295,7 @@ def join_on(*texts: IterableTypes, delimiter: str) -> str:
     # Join these strings.
     return delimiter.join(texts)
 
-# ....................{ JOINERS ~ as                       }....................
+# ....................{ JOINERS ~ as                      }....................
 @type_check
 def join_as(
     *texts,
@@ -310,24 +311,26 @@ def join_as(
     * No strings are passed, the empty string is returned.
     * One string is passed, this string is returned as is without modification.
     * Two strings are passed, these strings are joined with the passed
-      `delimiter_if_two` separator.
+      ``delimiter_if_two`` separator.
     * Three or more strings are passed:
+
       * All such strings except the last two are joined with the passed
-        `delimiter_if_three_or_more_nonlast` separator.
+        ``delimiter_if_three_or_more_nonlast`` separator.
       * The last two such strings are joined with the passed
-        `delimiter_if_three_or_more_last` separator.
+        ``delimiter_if_three_or_more_last`` separator.
 
     Parameters
     ----------
-    texts : Tuple[str]
-        List of all strings to be joined.
+    texts : tuple[str]
+        Tuple of all strings to be joined.
     delimiter_if_two : str
-        String separating each element of `texts` if `len(texts) == 2`.
+        String separating each item of ``texts`` if ``len(texts) == 2``.
     delimiter_if_three_or_more_nonlast : str
-        String separating each element _except_ the last two of `texts` if
-        `len(texts) >= 3`.
+        String separating each item *except* the last two of ``texts`` if
+        ``len(texts) >= 3``.
     delimiter_if_three_or_more_last : str
-        String separating the last two elements of `texts` if `len(texts) >= 3`.
+        String separating the last two items of ``texts`` if
+        ``len(texts) >= 3``.
 
     Returns
     ----------
@@ -373,7 +376,7 @@ def join_as(
         return '{}{}{}'.format(
             texts_nonlast, delimiter_if_three_or_more_nonlast, texts_last)
 
-# ....................{ JOINERS ~ as : conjunction         }....................
+# ....................{ JOINERS ~ as : conjunction        }....................
 @type_check
 def join_as_conjunction(*texts: str) -> str:
     '''
@@ -381,8 +384,8 @@ def join_as_conjunction(*texts: str) -> str:
 
     Specifically:
 
-    * All passed strings excluding the last two are joined with `, `.
-    * The last two passed strings are joined with `, and `.
+    * All passed strings excluding the last two are joined with ``, ``.
+    * The last two passed strings are joined with ``, and ``.
     '''
 
     return join_as(
@@ -402,19 +405,19 @@ def join_as_conjunction_double_quoted(*texts: str) -> str:
     Specifically:
 
     * All passed strings are double-quoted.
-    * All passed strings excluding the last two are joined with `, `.
-    * The last two passed strings are joined with `, and `.
+    * All passed strings excluding the last two are joined with ``, ``.
+    * The last two passed strings are joined with ``, and ``.
     '''
 
     # Tuple of all passed strings double-quoted. Since the "*" operator applied
-    # to this tuple below requires a sequence rather than generator, this is the
-    # most space-efficient available sequence (i.e., frozen tuple).
+    # to this tuple below requires a sequence rather than generator, this is
+    # the most space-efficient available sequence (i.e., frozen tuple).
     texts_quoted = tuple(double_quote(text) for text in texts)
 
     # Conjunctively join these strings.
     return join_as_conjunction(*texts_quoted)
 
-# ....................{ JOINERS ~ as : conjunction         }....................
+# ....................{ JOINERS ~ as : conjunction        }....................
 @type_check
 def join_as_disjunction(*texts: str) -> str:
     '''
@@ -422,8 +425,8 @@ def join_as_disjunction(*texts: str) -> str:
 
     Specifically:
 
-    * All passed strings excluding the last two are joined with `, `.
-    * The last two passed strings are joined with `, or `.
+    * All passed strings excluding the last two are joined with ``, ``.
+    * The last two passed strings are joined with ``, or ``.
     '''
 
     return join_as(
@@ -443,8 +446,8 @@ def join_as_disconjunction_double_quoted(*texts: str) -> str:
     Specifically:
 
     * All passed strings are double-quoted.
-    * All passed strings excluding the last two are joined with `, `.
-    * The last two passed strings are joined with `, or `.
+    * All passed strings excluding the last two are joined with ``, ``.
+    * The last two passed strings are joined with ``, or ``.
     '''
 
     # Tuple of all passed strings double-quoted. See
@@ -454,7 +457,7 @@ def join_as_disconjunction_double_quoted(*texts: str) -> str:
     # Disjunctively join these strings.
     return join_as_disjunction(*texts_quoted)
 
-# ....................{ QUOTERS                            }....................
+# ....................{ QUOTERS                           }....................
 #FIXME: We don't actually escape embedded double quotes yet. The reason why is
 #that doing is subtly non-trivial; for safety, we don't want to re-escape
 #already escaped double quotes in this string. We only want to escape
@@ -468,12 +471,12 @@ def double_quote(text: str) -> str:
 
     Specifically (in order):
 
-    . All prefixing and suffixing whitespace is removed from this string.
-    . If this string is either double- or single-quoted, these quotes are
-      removed.
-    . All other double quotes in this string are escaped (e.g., replacing each
-      `"` character with `\\"`).
-    . The resulting string is double-quoted and returned.
+    #. All prefixing and suffixing whitespace is removed from this string.
+    #. If this string is either double- or single-quoted, these quotes are
+       removed.
+    #. All other double quotes in this string are escaped (e.g., replacing each
+       ``"`` character with ``\\"``).
+    #. The resulting string is double-quoted and returned.
     '''
 
     # Remove all prefixing and suffixing whitespace from this string.
@@ -488,7 +491,7 @@ def double_quote(text: str) -> str:
     # Double quote this string.
     return '"{}"'.format(text)
 
-# ....................{ REMOVERS ~ newline                 }....................
+# ....................{ REMOVERS ~ newline                }....................
 @type_check
 def remove_newlines_suffix(text: str) -> str:
     '''
@@ -497,7 +500,7 @@ def remove_newlines_suffix(text: str) -> str:
 
     return text.rstrip('\n')
 
-# ....................{ REMOVERS ~ space                   }....................
+# ....................{ REMOVERS ~ space                  }....................
 @type_check
 def remove_whitespace(text: str) -> str:
     '''
@@ -544,9 +547,10 @@ def remove_whitespace_suffix(text: str) -> str:
 
     return text.rstrip()
 
-# ....................{ REMOVERS ~ prefix                  }....................
+# ....................{ REMOVERS ~ prefix                 }....................
 @type_check
-def remove_prefix(text: str, prefix: str, exception_message: str = None) -> str:
+def remove_prefix(
+    text: str, prefix: str, exception_message: str = None) -> str:
     '''
     Passed string with the passed prefix removed if present *or* raise an
     exception with the passed message otherwise.
@@ -597,7 +601,7 @@ def remove_prefix_if_found(text: str, prefix: str) -> str:
 
     return text[len(prefix):] if is_prefix(text, prefix) else text
 
-# ....................{ REMOVERS ~ suffix                  }....................
+# ....................{ REMOVERS ~ suffix                 }....................
 @type_check
 def remove_suffix_if_found(text: str, suffix: str) -> str:
     '''
@@ -670,7 +674,7 @@ def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
         # Else, re-raise this exception as is.
         raise
 
-# ....................{ CASERS                             }....................
+# ....................{ CASERS                            }....................
 @type_check
 def lowercase_char_first(text: str) -> str:
     '''
@@ -685,15 +689,15 @@ def uppercase_char_first(text: str) -> str:
     '''
     Uppercase the first character of the passed string.
 
-    Whereas the related :meth:`str.capitalize` method both uppercases the first
-    character of this string *and* lowercases all remaining characters, this
-    function *only* uppercases the first character. All remaining characters
-    remain unmodified.
+    Whereas the standard :meth:`str.capitalize` method both uppercases the
+    first character of this string *and* lowercases all remaining characters,
+    this function *only* uppercases the first character. All remaining
+    characters remain unmodified.
     '''
 
     return text[0].upper() + text[1:] if text else ''
 
-# ....................{ WRAPPERS                           }....................
+# ....................{ WRAPPERS                          }....................
 def wrap_lines(lines: IterableTypes, **kwargs) -> str:
     '''
     Wrap the passed iterable of lines to the passed line width, prefixing each
@@ -701,8 +705,8 @@ def wrap_lines(lines: IterableTypes, **kwargs) -> str:
 
     See Also
     ----------
-    wrap()
-        For further details.
+    :func:`wrap`
+        Further details.
     '''
 
     return wrap(join(lines), **kwargs)
@@ -722,7 +726,7 @@ def wrap(
     This function accepts the following keyword arguments in addition to those
     accepted by the :func:`textwrap.wrap` function:
 
-    * ``text_wrapper`, the object on which to call the ``wrap()`` function or
+    * ``text_wrapper`, the object on which to call the :func:`wrap` function or
       method. For safety, this defaults to the :mod:`textwrap` module.
     * ``line_prefix``, the substring prefixing each wrapped output line.
 
@@ -739,7 +743,8 @@ def wrap(
     # wrap() function or method to be called.
     wrap_callable = getattr(text_wrapper, 'wrap')
     assert callable(wrap_callable), (
-        'Text wrapper "{}" attribute "wrap" not callable.'.format(text_wrapper))
+        'Text wrapper "{}" attribute "wrap" not callable.'.format(
+            text_wrapper))
 
     # If passed a nonempty line prefix, add appropriate keyword arguments.
     if line_prefix:
@@ -753,7 +758,7 @@ def wrap(
     # attributes -- which may no longer retain sensible defaults.
     return join_on_newline(wrap_callable(text, **kwargs))
 
-# ....................{ WRAPPERS ~ un                      }....................
+# ....................{ WRAPPERS ~ un                     }....................
 @type_check
 def unwrap(text: str) -> str:
     '''
@@ -765,7 +770,7 @@ def unwrap(text: str) -> str:
     # Nice one, stdlib.
     return text.replace('\n', ' ')
 
-# ....................{ (IN|DE)DENTERS                     }....................
+# ....................{ (IN|DE)DENTERS                    }....................
 def dedent(*texts) -> str:
     '''
     Remove all indentation shared in common by all lines of all passed strings.

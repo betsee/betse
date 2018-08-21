@@ -10,8 +10,10 @@ High-level simulation phase classes.
 # ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseSimPhaseException
 from betse.science.phase import phasecallbacks
-from betse.science.phase.phasecallbacks import SimCallbacksABCOrNoneTypes
+from betse.science.phase.phasecallbacks import SimCallbacksBCOrNoneTypes
 from betse.science.phase.phaseenum import SimPhaseKind
+from betse.util.type import iterables
+from betse.util.type.text import strs
 from betse.util.type.types import type_check, NoneType
 
 # ....................{ CLASSES                           }....................
@@ -79,7 +81,7 @@ class SimPhase(object):
 
     Attributes (Low-level: Caller)
     ----------
-    callbacks : SimCallbacksABC
+    callbacks : SimCallbacksBC
         Caller-defined object whose methods are periodically called during this
         phase (e.g., to notify this caller of phase progress).
 
@@ -104,7 +106,7 @@ class SimPhase(object):
         # Optional parameters.
         cells: ('betse.science.cells.Cells', NoneType) = None,
         sim:   ('betse.science.sim.Simulator', NoneType) = None,
-        callbacks: SimCallbacksABCOrNoneTypes = None,
+        callbacks: SimCallbacksBCOrNoneTypes = None,
     ) -> None:
         '''
         Initialize this simulation phase.
@@ -121,7 +123,7 @@ class SimPhase(object):
         sim : (betse.science.sim.Simulation, NoneType)
             Current simulation. Defaults to ``None``, in which case this
             defaults to an uninitialized simulation for this configuration.
-        callbacks : SimCallbacksABCOrNoneTypes
+        callbacks : SimCallbacksBCOrNoneTypes
             Caller-defined object whose methods are periodically called during
             this phase (e.g., to notify this caller of phase progress).
             Defaults to ``None``, in which case this defaults to a placeholder
@@ -320,12 +322,65 @@ class SimPhase(object):
 
     # ..................{ EXCEPTIONS                        }..................
     @type_check
-    def die_unless_kind(self, kind: SimPhaseKind) -> None:
+    def die_unless_kind_seed(self) -> None:
         '''
-        Raise an exception unless the kind of this simulation phase is exactly
-        the passed kind of such phases (e.g., initialization, simulation).
+        Raise an exception unless this is the seed phase.
+
+        Raises
+        ----------
+        BetseSimPhaseException
+            If this phase is *not* a seed.
         '''
 
-        if self.kind is not kind:
+        self._die_unless_kind(SimPhaseKind.SEED)
+
+
+    @type_check
+    def die_unless_kind_init_or_sim(self) -> None:
+        '''
+        Raise an exception unless this is either the initialization *or*
+        simulation phases.
+
+        Raises
+        ----------
+        BetseSimPhaseException
+            If this phase is neither an initialization *or* simulation.
+        '''
+
+        self._die_unless_kind(SimPhaseKind.INIT, SimPhaseKind.SIM)
+
+    # ..................{ EXCEPTIONS ~ private              }..................
+    @type_check
+    def _die_unless_kind(self, *kinds: SimPhaseKind) -> None:
+        '''
+        Raise an exception unless the type of this simulation phase is in the
+        passed tuple of simulation phase types.
+
+        Parameters
+        ----------
+        kinds : tuple[SimPhaseKind]
+            Tuple of all simulation phase types (i.e., members of the
+            :class:`SimPhaseKind` enumeration) to test this simulation phase
+            against.
+
+        Raises
+        ----------
+        BetseSimPhaseException
+            If this simulation phase's type is *not* in the passed tuple.
+        '''
+
+        # If the type of this simulation phase is *NOT* a passed type, raise an
+        # exception.
+        if self.kind not in kinds:
+            # Generator comprehension yielding the machine-readable name of
+            # each of the passed types.
+            kinds_name = (str(kind) for kind in kinds)
+
+            # Human-readable double-quoted disjunction of these names.
+            kinds_name_joined = strs.join_as_disconjunction_double_quoted(
+                *kinds_name)
+
+            # Raise an exception embedding this disjunction.
             raise BetseSimPhaseException(
-                'Simulation phase "{}" not "{}".'.format(self.kind, kind))
+                'Simulation phase "{}" not {}.'.format(
+                    self.kind, kinds_name_joined))

@@ -36,8 +36,8 @@ def proxy_weak(obj: object) -> WeakRefProxyTypes:
 
     This function should typically (but *not* necessarily always) be called in
     lieu of the lower-level :func:`get_weak` function, which silently and hence
-    unsafely returns ``None`` rather than safely raising an exception after the
-    passed object is collected and hence deleted.
+    unsafely returns ``None`` rather than safely raising an exception after
+    Python collects and hence deletes the passed object.
 
     Parameters
     ----------
@@ -80,16 +80,16 @@ def refer_weak(obj: object) -> WeakRefType:
 
     Caveats
     ----------
+    This function should typically (but *not* necessarily always) be avoided in
+    favour of the higher-level :func:`proxy_weak` function, which safely raises
+    an exception rather than silently and hence unsafely returning ``None``
+    after Python collects and hence deletes the passed object.
+
     This function should *always* be called in lieu of the lower-level
     :func:`weakref.ref` function, which unsafely raises the following
     exception when passed an existing weak reference:
 
         TypeError: cannot create weak reference to 'weakref' object
-
-    This function should typically (but *not* necessarily always) be avoided in
-    favour of the higher-level :func:`proxy_weak` function, which safely raises
-    an exception rather than silently and hence unsafely returning ``None``
-    after the passed object is collected and hence deleted.
 
     Parameters
     ----------
@@ -99,12 +99,12 @@ def refer_weak(obj: object) -> WeakRefType:
     Returns
     ----------
     WeakRefType
-        Weak reference to the passed object as an unproxied callable object. When the passed
-        object is garbage-collected, calling this weak reference returns
-        ``None`` rather than the passed object. This weak reference is
-        unhashable regardless of the hashability of the passed object, avoiding
-        issues arising from the mutability of weak references and preventing
-        their use as dictionary keys.
+        Weak reference to the passed object as an unproxied callable object.
+        When the passed object is garbage-collected, calling this weak
+        reference returns ``None`` rather than the passed object. This weak
+        reference is unhashable regardless of the hashability of the passed
+        object, avoiding issues arising from the mutability of weak references
+        and preventing their use as dictionary keys.
     '''
 
     # Return...
