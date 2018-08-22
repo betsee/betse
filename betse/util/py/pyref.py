@@ -9,7 +9,7 @@ Low-level **reference** (i.e., pointer to the address of an object) facilities.
 
 # ....................{ IMPORTS                           }....................
 import weakref
-from betse.util.type.types import WeakRefProxyTypes, WeakRefType
+from betse.util.type.types import WeakRefProxyTypes, WeakRefTypes
 
 # ....................{ PROXIERS                          }....................
 def proxy_weak(obj: object) -> WeakRefProxyTypes:
@@ -69,14 +69,23 @@ def proxy_weak(obj: object) -> WeakRefProxyTypes:
     )
 
 # ....................{ REFERERS                          }....................
-def refer_weak(obj: object) -> WeakRefType:
+def refer_weak(obj: object) -> WeakRefTypes:
     '''
     Weak reference to the passed object as an unproxied callable object, such
     that calling the latter returns a strong (i.e., non-weak and hence
     standard) reference to the former if the former has yet to be collected
     *or* ``None`` otherwise (i.e., if the former has already been collected).
 
-    If this object is already a weak reference, this object is returned as is.
+    This function explicitly supports common edge-cases unsupported by the
+    underlying :func:`weakref.ref` function. Notably, if the passed object is:
+
+    * Already a **weak reference** (i.e., object whose type is in the
+      :class:`WeakRefTypes` tuple), that object is returned as is.
+    * A **bound method** (i.e., function whose first parameter is *always*
+      implicitly passed the same parent object), that method is wrapped with a
+      weak reference specific to bound methods.
+    * Any other object, that object is wrapped with a general-purpose unproxied
+      weak reference.
 
     Caveats
     ----------
@@ -98,19 +107,55 @@ def refer_weak(obj: object) -> WeakRefType:
 
     Returns
     ----------
-    WeakRefType
+    WeakRefTypes
         Weak reference to the passed object as an unproxied callable object.
         When the passed object is garbage-collected, calling this weak
         reference returns ``None`` rather than the passed object. This weak
         reference is unhashable regardless of the hashability of the passed
         object, avoiding issues arising from the mutability of weak references
         and preventing their use as dictionary keys.
+
+    Examples
+    ----------
+    Calling the weak reference created and returned by this function yields a
+    strong reference to the object initially passed to this function. To avoid
+    subtle race conditions between pure-Python code leveraging this weak
+    reference and the garbage collector collecting the underlying object, this
+    reference should *only* be called in the following usage pattern:
+
+        >>> from betse.util.io.log import logconfig, logs
+        >>> from betse.util.py import pyref
+        >>> log_config_weak = pyref.refer_weak(logconfig.get())
+        >>> log_config_strong = log_config_weak()
+        >>> if log_config_strong is not None:
+        ...     logs.log_debug('Verbose logging enabled: %r',
+        ...                    log_config_strong.is_verbose)
+        ... else:
+        ...     logs.log_debug('Logging configuration no longer exists.')
+
+    That is to say, the following recommendations should be observed:
+
+    * Whenever this weak reference is called, the resulting strong reference
+      should be persisted to a variable for subsequent reference. Conversely,
+      this weak reference itself should *never* be directly referenced, as
+      doing so invites race conditions with the garbage collector.
+    * The first access of this strong reference should be embedded in an if
+      conditional testing whether the underlying object:
+
+      * Is still alive, in which case this reference is non-``None``.
+      * Has already been collected, in which case this reference is ``None``.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.types import BoundMethodTypes
 
     # Return...
     return (
         # If this object is already a weak reference, this object as is.
-        obj if isinstance(obj, WeakRefType) else
-        # Else, a weak reference referring to this object.
+        obj if isinstance(obj, WeakRefTypes) else
+        # Else if this object is a bound method, a weak reference specific
+        # to bound methods (whose obscure nature warrants special handling).
+        weakref.WeakMethod(obj) if isinstance(obj, BoundMethodTypes) else
+        # Else, a general-purpose weak reference referring to this object.
         weakref.ref(obj)
     )

@@ -38,7 +38,7 @@ from functools import partial, wraps  # @wraps is dynamically called below.
 from io import IOBase
 from inspect import Parameter, Signature
 from pkg_resources import Distribution
-from weakref import CallableProxyType, ProxyType, ref
+from weakref import ref, CallableProxyType, ProxyType, WeakMethod
 
 # Import the following types as is into the namespace of this submodule,
 # permitting callers to reference these types conveniently. Since the
@@ -95,13 +95,6 @@ This class is principally useful for annotating both:
 Note that, for obscure and uninteresting reasons, the standard :mod:`types`
 module defined the same type with the same name under Python 2.x but _not_ 3.x.
 Depressingly, this type must now be manually redefined everywhere.
-'''
-
-
-WeakRefType = ref
-'''
-Type of all **unproxied weak references** (i.e., weak references created by the
-:func:`betse.util.py.pyref.get_weak` getter).
 '''
 
 # ....................{ TYPES ~ arg                       }....................
@@ -177,6 +170,21 @@ StaticMethodType = staticmethod
 Type of all **static methods** (i.e., methods bound to a class rather than an
 instance of a class but *not* implicitly passed that class as their first
 parameter, unlike class methods).
+'''
+
+# ....................{ TYPES ~ callable : weakref        }....................
+WeakRefStandardType = ref
+'''
+Type of all **unproxied general-purpose weak references** (i.e., callable
+objects yielding a strong reference to their referred object when called).
+'''
+
+
+WeakRefBoundMethodType = WeakMethod
+'''
+Type of all **unproxied bound method weak references** (i.e., callable
+objects yielding a strong reference to their referred bound method when
+called).
 '''
 
 # ....................{ TYPES ~ container                 }....................
@@ -368,17 +376,14 @@ Tuple of all **testable types** (i.e., types suitable for use as the second
 parameter passed to the :func:`isinstance` and :func:`issubclass` builtins).
 '''
 
-
-WeakRefProxyTypes = (CallableProxyType, ProxyType)
-'''
-Tuple of all **weak reference proxy classes** (i.e., classes whose instances
-are weak references to other instances masquerading as those instances).
-
-This tuple contains classes matching both callable and uncallable weak
-reference proxies.
-'''
-
 # ....................{ TUPLES ~ callable                 }....................
+BoundMethodTypes = (MethodType, ClassMethodType, StaticMethodType)
+'''
+Tuple of all **bound method classes** (i.e., classes whose instances are
+callable objects bound to either a class or instance of a class).
+'''
+
+
 CallableTypes = (
     BuiltinFunctionType,
     BuiltinMethodType,
@@ -400,11 +405,11 @@ Tuple of all callable classes *and* the string type.
 '''
 
 
+#FIXME: Rename to "ClassBoundMethodTypes" for clarity.
 ClassOrStaticMethodTypes = (ClassMethodType, StaticMethodType)
 '''
-Tuple of both class and static methods, equivalent to the set of all
-**class-bound methods** (methods bound to a class rather than an instance of a
-class).
+Tuple of all **class-bound method classes** (i.e., classes whose instances are
+callable objects bound to a class rather than instance of a class).
 '''
 
 
@@ -435,6 +440,27 @@ MethodTypes = (BuiltinMethodType, MethodType,)
 '''
 Tuple of all **method classes** (i.e., classes whose instances are either
 built-in or user-defined methods).
+'''
+
+# ....................{ TUPLES ~ weakref                  }....................
+WeakRefProxyTypes = (CallableProxyType, ProxyType)
+'''
+Tuple of all **weak reference proxy classes** (i.e., classes whose instances
+are weak references to other instances masquerading as those instances).
+
+This tuple contains classes matching both callable and uncallable weak
+reference proxies.
+'''
+
+
+WeakRefTypes = (WeakRefStandardType, WeakRefBoundMethodType)
+'''
+Tuple of all **unproxied weak reference classes** (i.e., classes whose
+instances are weak references to other instances *not* masquerading as those
+instances).
+
+This tuple contains classes matching unproxied weak references of both standard
+objects *and* bound methods, which require specific handling.
 '''
 
 # ....................{ TUPLES ~ scalar                   }....................
