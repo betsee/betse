@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,44 +9,46 @@ typically by subclassing the builtin :class:`set` or :class:`frozenset`
 container types or analogues thereof).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta
 from betse.util.type.obj import objects
 from betse.util.type.types import (
     type_check, ClassType, IterableTypes, MappingType,)
 from functools import wraps
 
-# ....................{ GLOBALS                            }....................
+# ....................{ GLOBALS                           }....................
 _FROZENSET_METACLASS = type(frozenset)
 '''
 Metaclass of the builtin "frozenset" container type.
 '''
 
-# ....................{ METACLASSES                        }....................
+# ....................{ METACLASSES                       }....................
 class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
     '''
     Metaclass of the abstract :class:`FrozenSetSubclassable` base class and all
     concrete subclasses thereof.
 
-    This metaclass dynamically redefines *all* container-creating methods of the
-    :class:`frozenset` superclass of the :class:`FrozenSetSubclassable` class
-    (e.g., :meth:`frozenset.__or__`) within the currently declared concrete
-    subclass of that class. Specifically, this metaclass redefines each such
-    method to return an instance of the currently declared concrete subclass of
-    :class:`FrozenSetSubclassable` rather than of the :class:`frozenset`
-    superclass, preserving sane semantics and caller expectations.
+    This metaclass dynamically redefines *all* container-creating methods of
+    the :class:`frozenset` superclass of the :class:`FrozenSetSubclassable`
+    class (e.g., :meth:`frozenset.__or__`) within the currently declared
+    concrete subclass of that class. Specifically, this metaclass redefines
+    each such method to return an instance of the currently declared concrete
+    subclass of :class:`FrozenSetSubclassable` rather than of the
+    :class:`frozenset` superclass, preserving sane semantics and caller
+    expectations.
 
     Design
     ----------
-    The :class:`FrozenSetSubclassable` class is merely a placeholder subclass of
-    the :class:`frozenset` type whose metaclass is this metaclass. Ideally, the
-    work performed by this metaclass would directly reside in the
+    The :class:`FrozenSetSubclassable` class is merely a placeholder subclass
+    of the :class:`frozenset` type whose metaclass is this metaclass. Ideally,
+    the work performed by this metaclass would directly reside in the
     :class:`FrozenSetSubclassable` class instead, in which case this metaclass
     would have *no* demonstrable reason to exist. However, this work requires
     access to the concrete subclass of the :class:`FrozenSetSubclassable` class
-    being currently declared. Since each such subclass is accessible *only* from
-    within the metaclass of the :class:`FrozenSetSubclassable` class rather than
-    within that class itself, this work necessarily resides in this metaclass.
+    being currently declared. Since each such subclass is accessible *only*
+    from within the metaclass of the :class:`FrozenSetSubclassable` class
+    rather than within that class itself, this work necessarily resides in this
+    metaclass.
 
     For general-purpose usability, this metaclass subclasses both:
 
@@ -59,10 +61,10 @@ class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
       additionally subclass one or more other abstract base classes which
       themselves leverage the :class:`ABCMeta` metaclass. (Subtle dragons.)
 
-    For these and similar reasons, metaclass usage in Python should typically be
-    kept to a minimum. The :class:`FrozenSetSubclassable` class violates this
-    maxim because it absolutely must; in all other cases, alternate solutions
-    *not* leveraging metaclasses should be implemented instead.
+    For these and similar reasons, metaclass usage in Python should typically
+    be kept to a minimum. The :class:`FrozenSetSubclassable` class violates
+    this maxim because it absolutely must; in all other cases, alternate
+    solutions *not* leveraging metaclasses should be implemented instead.
 
     See Also
     ----------
@@ -70,7 +72,7 @@ class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
         StackOverflow answer mildly inspiring this class.
     '''
 
-    # ..................{ CONSTRUCTORS                       }..................
+    # ..................{ CONSTRUCTORS                      }..................
     def __new__(
         metacls,
         class_name: str,
@@ -85,8 +87,8 @@ class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
         subclass of that class identified by the passed parameters.
         '''
 
-        # Tuple of the unqualified names of all container-creating methods defined
-        # by the "frozenset" type, requiring redefinition in the
+        # Tuple of the unqualified names of all container-creating methods
+        # defined by the "frozenset" type, requiring redefinition in the
         # "FrozenSetSubclassable" subclass declared above.
         CREATION_METHOD_NAMES = (
             'copy',
@@ -116,7 +118,7 @@ class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
         # Return this sanitized "FrozenSetSubclassable" subclass.
         return frozenset_subclass
 
-    # ..................{ SANITIZERS                         }..................
+    # ..................{ SANITIZERS                        }..................
     @staticmethod
     @type_check
     def _sanitize_creation_method(
@@ -156,8 +158,8 @@ class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
         @wraps(frozenset_method)
         def sanitized_creation_method(self, *args, **kwargs):
 
-            # "frozenset" instance created by calling the superclass method with
-            # all passed positional and keyword arguments.
+            # "frozenset" instance created by calling the superclass method
+            # with all passed positional and keyword arguments.
             set_created = frozenset_method(self, *args, **kwargs)
 
             # Return either...
@@ -166,15 +168,15 @@ class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
                 # object is in fact a "frozenset" instance.
                 frozenset_subclass(set_created) if isinstance(
                     set_created, frozenset) else
-                # This object as is otherwise. Technically, this should probably
-                # never occur. Pragmatically, you know what they say about every
-                # bad assumption we've ever made.
+                # This object as is otherwise. Technically, this should
+                # probably never occur. Pragmatically, you know what they say
+                # about every bad assumption we've ever made.
                 set_created)
 
         # Override the superclass method with this closure.
         setattr(frozenset_subclass, method_name, sanitized_creation_method)
 
-# ....................{ SUPERCLASSES                       }....................
+# ....................{ SUPERCLASSES                      }....................
 class FrozenSetSubclassable(
     frozenset, metaclass=FrozenSetSubclassableMeta):
     '''
@@ -201,12 +203,13 @@ class FrozenSetSubclassable(
     initialized at object creation time.
 
     By Python design, the ``__new__()`` method is static rather than a
-    classmethod and hence *must* be manually redefined in *all* subclasses. This
-    redefinition *must* internally call the superclass :func:`frozenset.__new__`
-    method and return the result of doing so (i.e., an instance of the desired
-    subclass type). This redefinition should ideally (but *not* necessarily)
-    share a similar signature as the :func:`frozenset.__new__` method and pass
-    all passed parameters to that method as is. In positional order, these are:
+    classmethod and hence *must* be manually redefined in *all* subclasses.
+    This redefinition *must* internally call the superclass
+    :func:`frozenset.__new__` method and return the result of doing so (i.e.,
+    an instance of the desired subclass type). This redefinition should ideally
+    (but *not* necessarily) share a similar signature as the
+    :func:`frozenset.__new__` method and pass all passed parameters to that
+    method as is. In positional order, these are:
 
     #. **The type of the current subclass.** Since the ``__new__()`` method is
        static and hence *not* bound to the type of the current subclass, this
@@ -221,11 +224,11 @@ class FrozenSetSubclassable(
 
     Versus :class:`frozenset`
     ----------
-    The :class:`frozenset` type is *not* safely subclassable, due to unfortunate
-    design decisions baked into the C-based implementations of *all* builtin
-    container types. The core issue pertains to the objects returned by
-    **container-creating methods** (i.e., methods declared by these types that
-    create and return instances of the same types). In the case of
+    The :class:`frozenset` type is *not* safely subclassable, due to
+    unfortunate design decisions baked into the C-based implementations of
+    *all* builtin container types. The core issue pertains to the objects
+    returned by **container-creating methods** (i.e., methods declared by these
+    types that create and return instances of the same types). In the case of
     :class:`frozenset`, these methods include:
 
     * Binary set operations (e.g., the set union operator `|`, internally
@@ -233,8 +236,8 @@ class FrozenSetSubclassable(
     * Binary set methods (e.g., the set union method :meth:`frozenset.union`).
     * Copy set methods (e.g., the set copying method :meth:`frozenset.copy`).
 
-    The specifics of the unsuitability of :class:`frozenset` depend on the major
-    version of Python in use. Specifically, under:
+    The specifics of the unsuitability of :class:`frozenset` depend on the
+    major version of Python in use. Specifically, under:
 
     * Python 2.x, container-creating methods in both the :class:`frozenset` and
       :class:`set` types correctly created instances of subclasses inheriting
@@ -265,13 +268,13 @@ class FrozenSetSubclassable(
     the official immutable set API *is* safely subclassable, but only under the
     following stipulations:
 
-    * The abstract :class:`collections.abc.Hashable` base class should typically
-      also be subclassed. Failing to do so raises exceptions on attempting to
-      add subclass instances to builtin container types expecting hashable
-      objects (e.g., :class:`dict`, :class:`set`).
+    * The abstract :class:`collections.abc.Hashable` base class should
+      typically also be subclassed. Failing to do so raises exceptions on
+      attempting to add subclass instances to builtin container types expecting
+      hashable objects (e.g., :class:`dict`, :class:`set`).
     * All public methods defined by the :class:`frozenset` type (e.g.,
-      :meth:`frozenset.union`, :meth:`frozenset.issubset`) should typically also
-      be defined, both for usability *and* duck typing purposes.
+      :meth:`frozenset.union`, :meth:`frozenset.issubset`) should typically
+      also be defined, both for usability *and* duck typing purposes.
 
     Satisfying these stipulations requires defining the following 13 methods:
     ``__contains__``, ``__eq__``, ``__hash__``, ``__init__``, ``__iter__``,
@@ -292,7 +295,7 @@ class FrozenSetSubclassable(
     directly subclass the :class:`frozenset` type instead.
     '''
 
-    # ..................{ CONSTRUCTORS                       }..................
-    # The entirety of the logic for this class resides in our metaclass..
+    # ..................{ CONSTRUCTORS                      }..................
+    # The entirety of the logic for this class resides in our metaclass.
     def __new__(cls, *args):
         return super().__new__(cls, *args)
