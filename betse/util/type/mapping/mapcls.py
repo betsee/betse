@@ -186,7 +186,7 @@ class DynamicValueDict(MappingMutableType):
         '''
 
         #FIXME: Premature optimization. Reduce this to the following, please:
-        #    from betse.util.type import iterables
+        #    from betse.util.type.iterable import iterables
         #    iterables.die_unless_items_instance_of(
         #        iterable=key_to_dynamic_value.values(), cls=DynamicValue)
 

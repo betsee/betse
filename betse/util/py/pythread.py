@@ -125,8 +125,8 @@ def is_threadable() -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import modules
+    from betse.util.py import pymodule
 
     # Return true only if a low-level optional module installed *ONLY* when
     # Python supports multithreading is importable.
-    return modules.is_module('_thread')
+    return pymodule.is_module('_thread')

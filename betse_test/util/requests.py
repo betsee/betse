@@ -28,7 +28,7 @@ https://pytest.org/latest/builtin.html#_pytest.python.FixtureRequest
 
 # ....................{ IMPORTS                            }....................
 from pytest import Function
-from betse.util.type import sequences
+from betse.util.type.iterable import sequences
 from betse.util.type.types import type_check, TestableTypes
 from betse_test.exceptions import BetseTestFixtureException
 from betse_test.util import pytests

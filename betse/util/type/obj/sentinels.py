@@ -33,6 +33,6 @@ SENTINEL = Sentinel()
 Sentinel object of arbitrary value.
 
 This object is internally leveraged by various utility functions (e.g.,
-:func:`betse.util.type.iterables.zip_isometric`) to identify erroneous and
+:func:`betse.util.type.iterable.iterables.zip_isometric`) to identify erroneous and
 edge-case input (e.g., iterables of insufficient length).
 '''

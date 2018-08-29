@@ -17,7 +17,7 @@ from betse.science.phase.require import phasereqs
 from betse.science.visual.plot import plotutil
 from betse.science.visual.plot.pipe.plotpipeabc import PlotPipeABC
 from betse.util.io.log import logs
-from betse.util.type import iterables
+from betse.util.type.iterable import iterables
 from betse.util.type.types import IterableTypes
 from collections import OrderedDict
 from matplotlib import pyplot as pyplot

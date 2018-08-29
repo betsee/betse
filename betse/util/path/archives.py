@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -87,13 +87,12 @@ directories _and_ non-directory files) facilities.
 #exist much incentive to actually implement support for additional non-stdlib
 #formats. Nonetheless, the future exists and it is always coming.
 
-# ....................{ IMPORTS                            }....................
-from io import BufferedIOBase
-
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseArchiveException
 from betse.util.type.types import type_check
+from io import BufferedIOBase
 
-# ....................{ CONSTANTS ~ public                 }....................
+# ....................{ CONSTANTS ~ public                }....................
 # Initialized below by the init() function.
 ARCHIVE_FILETYPES = set()
 '''
@@ -102,20 +101,21 @@ Set of all archive filetypes supported by this submodule.
 Tradeoffs
 ----------
 Most compression algorithms succumb to the typical tradeoff between time and
-space complexity. Specifically, as the **(de)compression speed** (i.e., duration
-of time required to compress or decompress a given sequence of bytes) of a
-compression algorithm increases, the **compression ratio** (i.e., filesize of
-the output compressed archive to the size in bytes of the uncompressed input)
-of that algorithm typically increases. The principal exception to this heuristic
-is BZIP2, which runs slower and compresses less than competing algorithms.
+space complexity. Specifically, as the **(de)compression speed** (i.e.,
+duration of time required to compress or decompress a given sequence of bytes)
+of a compression algorithm increases, the **compression ratio** (i.e., filesize
+of the output compressed archive to the size in bytes of the uncompressed
+input) of that algorithm typically increases. The principal exception to this
+heuristic is BZIP2, which runs slower and compresses less than competing
+algorithms.
 
-Most benchmarks qualitatively profile the algorithms supported by this submodule
-as follows (_in increasing order of compression ratio_):
+Most benchmarks qualitatively profile the algorithms supported by this
+submodule as follows (in increasing order of compression ratio):
 
 * GZIP, exhibiting the worst compression ratio and fastest compression speed.
 * BZIP2, exhibiting average compression ratio and slowest compression speed.
-* XZ (effectively equivalent to LZMA), exhibiting the best compression ratio and
-  average compression speed.
+* XZ (effectively equivalent to LZMA), exhibiting the best compression ratio
+  and average compression speed.
 
 For general-purpose use, the **XZ** algorithm arguably strikes ideal balance
 between compression ratio and speed. Most algorithms exhibit similar
@@ -126,9 +126,9 @@ Caveats
 This set contains neither the ``tar`` nor ``zip`` container filetypes, which
 remain intentionally unsupported by this submodule. Neither the standard
 :mod:`tarfile` module supporting ``tar`` files nor the standard :mod:`zipfile`
-module supporting ``zip`` files provide a :class:`file`-like API for reading and
-writing arbitrary bytes or characters to and from these files, the primary use
-case and hence mandate of this submodule.
+module supporting ``zip`` files provide a :class:`file`-like API for reading
+and writing arbitrary bytes or characters to and from these files, the primary
+use case and hence mandate of this submodule.
 
 While wrapping the container-oriented APIs provided by these modules with
 :class:`file`-like APIs is feasible, there exists no demonstrable incentive to
@@ -137,7 +137,7 @@ already supported by :class:`file`-like APIs implemented by other standard
 modules (e.g., the :class:`bz2.BZ2File` and :class:`gzip.GzipFile` classes).
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_unless_filetype(pathname: str) -> None:
     '''
@@ -159,7 +159,7 @@ def die_unless_filetype(pathname: str) -> None:
     if not is_filetype(pathname):
         # Avoid circular import dependencies.
         from betse.util.path import pathnames
-        from betse.util.type import modules
+        from betse.util.py import pymodule
         from betse.util.type.text import strs
 
         # Filetype of this pathname if any or raise an exception otherwise.
@@ -182,7 +182,7 @@ def die_unless_filetype(pathname: str) -> None:
                 'Python installation time).'.format(module_name))
 
             # Raise the expected exception.
-            modules.die_unless_module(module_name, exception_message)
+            pymodule.die_unless_module(module_name, exception_message)
 
             # The above call should have raised an exception. For safety,
             # unconditionally raise another exception as a sentinel.
@@ -199,7 +199,7 @@ def die_unless_filetype(pathname: str) -> None:
                 'supported archive format (i.e., {}).'.format(
                     pathname, archive_filetypes))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_filetype(pathname: str) -> bool:
     '''
@@ -229,7 +229,7 @@ def is_filetype(pathname: str) -> bool:
     return pathnames.is_filetype_undotted_in(
         pathname=pathname, filetypes_undotted=ARCHIVE_FILETYPES)
 
-# ....................{ IO                                 }....................
+# ....................{ IO                                }....................
 @type_check
 def read_bytes(filename: str) -> BufferedIOBase:
     '''
@@ -281,35 +281,36 @@ def read_bytes(filename: str) -> BufferedIOBase:
 
 
 @type_check
-def write_bytes(filename: str, is_overwritable: bool = False) -> BufferedIOBase:
+def write_bytes(filename: str, is_overwritable: bool = False) -> (
+    BufferedIOBase):
     '''
     Open and return a filehandle suitable for writing the binary archive file
     with the passed filename.
 
     This function returns a :class:`file`-like object suitable for use wherever
-    the :func:`open` builtin is callable (e.g., in `with` statements).
+    the :func:`open` builtin is callable (e.g., in ``with`` statements).
 
     Parameters
     ----------
     filename : str
         Relative or absolute path of the binary archive file to be written,
-        whose **rightmost filetype** (i.e., substring suffixing the last `.`
-        character in this pathname) _must_ be that of a supported archive
+        whose **rightmost filetype** (i.e., substring suffixing the last ``.``
+        character in this pathname) *must* be that of a supported archive
         format.
     is_overwritable : optional[bool]
-        `True` if overwriting this file when this file already exists _or_
-        `False` if raising an exception when this file already exists. Defaults
-        to `False` for safety.
+        ``True`` if overwriting this file when this file already exists *or*
+        ``False`` if raising an exception when this file already exists.
+        Defaults to ``False`` for safety.
 
     Returns
     ----------
     BufferedIOBase
-        `file`-like object encapsulating this opened file.
+        :class:`file`-like object encapsulating this opened file.
 
     Raises
     ----------
     BetseArchiveException
-        If this filename is _not_ suffixed by a supported archive filetype.
+        If this filename is *not* suffixed by a supported archive filetype.
     BetsePathException
         If this filename is that of an existing file or directory.
     '''
@@ -339,7 +340,7 @@ def write_bytes(filename: str, is_overwritable: bool = False) -> BufferedIOBase:
     # Open and return a filehandle suitable for writing this archive.
     return writer(filename, is_overwritable=is_overwritable)
 
-# ....................{ IO ~ bz2                           }....................
+# ....................{ IO ~ bz2                          }....................
 def _read_bytes_bz2(filename: str) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for reading the binary bzip-archived
@@ -374,9 +375,10 @@ def _write_bytes_bz2(filename: str, is_overwritable: bool) -> BufferedIOBase:
     from bz2 import BZ2File
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return BZ2File(filename, mode=iofiles.get_mode_write_bytes(is_overwritable))
+    return BZ2File(
+        filename, mode=iofiles.get_mode_write_bytes(is_overwritable))
 
-# ....................{ IO ~ gz                            }....................
+# ....................{ IO ~ gz                           }....................
 def _read_bytes_gz(filename: str) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for reading the binary gzip-archived
@@ -411,9 +413,10 @@ def _write_bytes_gz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     from gzip import GzipFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return GzipFile(filename, mode=iofiles.get_mode_write_bytes(is_overwritable))
+    return GzipFile(
+        filename, mode=iofiles.get_mode_write_bytes(is_overwritable))
 
-# ....................{ IO ~ xz                            }....................
+# ....................{ IO ~ xz                           }....................
 def _read_bytes_xz(filename: str) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for reading the binary LZMA-archived
@@ -448,15 +451,16 @@ def _write_bytes_xz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     from lzma import LZMAFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return LZMAFile(filename, mode=iofiles.get_mode_write_bytes(is_overwritable))
+    return LZMAFile(
+        filename, mode=iofiles.get_mode_write_bytes(is_overwritable))
 
-# ....................{ CONSTANTS ~ private                }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ CONSTANTS ~ private               }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: When adding a new key-value pair or removing an existing key-value
 # pair from the dictionaries defined below, all testing parametrizations
 # exercising these dictionaries (e.g., in the
 # "betse_test.unit.path.test_archive" submodule) *MUST* be updated accordingly.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 _ARCHIVE_FILETYPE_TO_MODULE_NAME = {
     'bz2': 'bz2',
@@ -491,8 +495,8 @@ Dictionary mapping from each archive filetype supported by this submodule to
 the private function of this submodule writing archives of this filetype.
 '''
 
-# ....................{ INITIALIZERS                       }....................
-def init() -> None:
+# ....................{ INITIALIZERS                      }....................
+def _init() -> None:
     '''
     Initialize this submodule.
 
@@ -500,19 +504,16 @@ def init() -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import modules
-
-    # Globals initialized below.
-    global ARCHIVE_FILETYPES
+    from betse.util.py import pymodule
 
     # For each supported archive filetype and the fully-qualified name of the
     # optional stdlib module required to write archives of this filetype....
     for filetype, module_name in _ARCHIVE_FILETYPE_TO_MODULE_NAME.items():
         # If this module is installed...
-        if modules.is_module(module_name):
+        if pymodule.is_module(module_name):
             # Add this filetype to the set of all supported archive filetypes.
             ARCHIVE_FILETYPES.add(filetype)
 
-# ....................{ MAIN                               }....................
+# ....................{ MAIN                              }....................
 # Initialize this submodule.
-init()
+_init()

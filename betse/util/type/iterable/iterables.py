@@ -953,7 +953,7 @@ def iter_items(*iterables: IterableTypes) -> GeneratorType:
 
     Examples
     ----------
-        >>> from betse.util.type import iterables
+        >>> from betse.util.type.iterable import iterables
         >>> in_xanadu = ('did', 'Kubla', 'Khan')
         >>> a_stately = ('pleasure-dome', 'decree:')
         >>> for word in iterables.iter_items(in_xanadu, a_stately):
@@ -1004,7 +1004,7 @@ def join(*iterables: IterableTypes) -> IterableTypes:
 
     Examples
     ----------
-        >>> from betse.util.type import iterables
+        >>> from betse.util.type.iterable import iterables
         >>> where_alph = ('the', 'sacred', 'river,', 'ran')
         >>> through_caverns = ('measureless', 'to', 'man')
         >>> for word in iterables.iter_items(where_alph, through_caverns):

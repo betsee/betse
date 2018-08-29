@@ -11,7 +11,7 @@ and from various types) facilities.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 # from betse.util.io.log import logs
-from betse.util.type import sequences
+from betse.util.type.iterable import sequences
 from betse.util.type.types import (
     type_check, ClassType, IterableTypes, NumpyArrayType,)
 from numpy import ndarray

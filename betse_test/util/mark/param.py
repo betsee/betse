@@ -119,7 +119,7 @@ def parametrize_test_setwise(
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type.iterables import zip_isometric
+    from betse.util.type.iterable.iterables import zip_isometric
 
     # Default unpassed arguments to the empty dictionary for sanity. For unknown
     # (but presumably valid) reasons, these defaults *MUST* be established here

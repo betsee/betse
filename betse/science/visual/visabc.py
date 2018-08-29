@@ -26,7 +26,8 @@ from betse.science.visual.layer.lyrabc import LayerCellsABC
 from betse.science.visual.layer.lyrtext import LayerCellsIndex
 from betse.util.io.log import logs
 from betse.util.py import pyref
-from betse.util.type import iterables, types
+from betse.util.type import types
+from betse.util.type.iterable import iterables
 from betse.util.type.obj import objects
 from betse.util.type.types import (
     type_check,
@@ -1393,9 +1394,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     #FIXME: This plots somewhat similarly to the presumably superior
     #"LayerCellsVectorSurfaceDiscrete" subclass. Generalize this method into a
     #new "LayerCellsGouraudContinuous" subclass of the same submodule.
-
-    # FIXME: Your Layers API is totally incomprehensible. I can't figure out wtf is going on!
-    # FIXME: I like this version better than the current one that animates things like Vmem when p.showCells is False
+    # FIXME: I like this version better than the current one that animates
+    # things like Vmem when p.showCells is False
     def _plot_cell_mesh(self, cell_data: np.ndarray) -> 'TriMesh':
         '''
         Plot and return a mesh plot of all cells with colours corresponding to

@@ -485,7 +485,7 @@ def copy(
     elif overwrite_policy is DirOverwritePolicy.SKIP_WITH_WARNING:
         # Avoid circular import dependencies.
         from betse.util.path import files, paths, pathnames
-        from betse.util.type import sequences
+        from betse.util.type.iterable import sequences
 
         # Passed parameters renamed for disambiguity.
         src_root_dirname = src_dirname

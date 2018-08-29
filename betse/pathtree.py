@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -23,27 +23,27 @@ executables and :mod:`setuptools`-installed script wrappers.
 #"file"-like objects rather than indirectly requiring the absolute paths of
 #data resources that are then opened as "file"-like objects.
 #
-#Specifically, whenever we require a "file"-like object for a codebase resource,
-#we'll need to call the setuptools-specific pkg_resources.resource_stream()
-#function rather than attempting to open the path given by a global below.
-#Ultimately, *ALL* of the codebase-specific globals declared below (e.g.,
-#"DATA_DIRNAME") should go away.
+#Specifically, whenever we require a "file"-like object for a codebase
+#resource, we'll need to call the setuptools-specific
+#pkg_resources.resource_stream() function rather than attempting to open the
+#path given by a global below.  Ultimately, *ALL* of the codebase-specific
+#globals declared below (e.g., "DATA_DIRNAME") should go away.
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies,
 # the top-level of this module may import *ONLY* from packages guaranteed to
 # exist at installation time (i.e., standard Python packages). Likewise, to
 # avoid circular import dependencies, the top-level of this module should avoid
 # importing application packages except where explicitly required.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 import os
 from betse import metadata
 from betse.exceptions import BetseModuleException
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import type_check, StrOrNoneTypes
 
-# ....................{ GETTERS ~ dir                      }....................
+# ....................{ GETTERS ~ dir                     }....................
 @func_cached
 def get_root_dirname() -> str:
     '''
@@ -88,7 +88,7 @@ def get_home_dirname() -> str:
     # Return this directory's path.
     return home_dirname
 
-# ....................{ GETTERS ~ dir : app                }....................
+# ....................{ GETTERS ~ dir : app               }....................
 @func_cached
 def get_dot_dirname() -> str:
     '''
@@ -138,13 +138,13 @@ def get_dot_dirname() -> str:
         )
     # If the current platform is Windows, return the appropriate directory.
     elif oses.is_windows():
-        dot_dirname = pathnames.join(shellenv.get_var('APPDATA'), metadata.NAME)
+        dot_dirname = pathnames.join(
+            shellenv.get_var('APPDATA'), metadata.NAME)
     # Else, assume the current platform to be POSIX-compatible.
     else:
-        #FIXME: Explicitly assert POSIX compatibility here. To do so, we'll want
-        #to define and call a new betse.util.os.oses.die_unless_posix()
+        #FIXME: Explicitly assert POSIX compatibility here. To do so, we'll
+        #want to define and call a new betse.util.os.oses.die_unless_posix()
         #function here.
-
         dot_dirname = pathnames.join(
             get_home_dirname(), '.' + metadata.SCRIPT_BASENAME)
 
@@ -154,7 +154,7 @@ def get_dot_dirname() -> str:
     # Return this directory's path.
     return dot_dirname
 
-# ....................{ GETTERS ~ dir : data               }....................
+# ....................{ GETTERS ~ dir : data              }....................
 @func_cached
 def get_data_dirname() -> str:
     '''
@@ -208,12 +208,13 @@ def get_data_yaml_dirname() -> str:
     # Return this dirname if this directory exists or raise an exception.
     return dirs.join_and_die_unless_dir(get_data_dirname(), 'yaml')
 
-# ....................{ GETTERS ~ dir : package            }....................
+# ....................{ GETTERS ~ dir : package           }....................
 @func_cached
 def get_package_dirname() -> str:
     '''
-    Absolute pathname of this application's top-level package directory if found
-    *or* raise an exception otherwise (i.e., if this directory is *not* found).
+    Absolute pathname of this application's top-level package directory if
+    found *or* raise an exception otherwise (i.e., if this directory is *not*
+    found).
 
     This directory typically resides in the ``site-packages`` subdirectory of
     the system-wide standard lib for the active Python interpreter (e.g.,
@@ -228,10 +229,10 @@ def get_package_dirname() -> str:
     # Avoid circular import dependencies.
     import betse
     from betse.util.path import dirs
-    from betse.util.type import modules
+    from betse.util.py import pymodule
 
     # Absolute pathname of the directory yielding the top-level "betse" package.
-    package_dirname = modules.get_dirname(betse)
+    package_dirname = pymodule.get_dirname(betse)
 
     # If this directory is not found, fail.
     dirs.die_unless_dir(package_dirname)
@@ -239,7 +240,7 @@ def get_package_dirname() -> str:
     # Return this directory's pathname.
     return package_dirname
 
-# ....................{ GETTERS ~ dir : git                }....................
+# ....................{ GETTERS ~ dir : git               }....................
 @func_cached
 def get_git_worktree_dirname() -> str:
     '''
@@ -294,9 +295,10 @@ def get_git_worktree_dirname_or_none() -> StrOrNoneTypes:
     # Avoid circular import dependencies.
     from betse.util.path import dirs, pathnames
 
-    # Absolute pathname of the directory offering the top-level "betse" package,
-    # canonicalized into a directory rather than symbolic link to increase the
-    # likelihood of obtaining the actual parent directory of this package.
+    # Absolute pathname of the directory offering the top-level "betse"
+    # package, canonicalized into a directory rather than symbolic link to
+    # increase the likelihood of obtaining the actual parent directory of this
+    # package.
     package_dirname = pathnames.canonicalize(get_package_dirname())
 
     # Absolute pathname of the parent directory of this directory.
@@ -309,7 +311,7 @@ def get_git_worktree_dirname_or_none() -> StrOrNoneTypes:
     # exists *OR* "None" otherwise.
     return worktree_dirname if dirs.is_dir(git_subdirname) else None
 
-# ....................{ GETTERS ~ file                     }....................
+# ....................{ GETTERS ~ file                    }....................
 @func_cached
 def get_log_default_filename() -> str:
     '''
@@ -338,15 +340,16 @@ def get_profile_default_filename() -> str:
     from betse.util.path import pathnames
 
     # Return the absolute path of this file.
-    return pathnames.join(get_dot_dirname(), metadata.SCRIPT_BASENAME + '.prof')
+    return pathnames.join(
+        get_dot_dirname(), metadata.SCRIPT_BASENAME + '.prof')
 
 
 @func_cached
 def get_sim_config_default_filename() -> str:
     '''
     Absolute pathname of this application's default simulation configuration
-    file if found *or* raise an exception otherwise (i.e., if this file is *not*
-    found).
+    file if found *or* raise an exception otherwise (i.e., if this file is
+    *not* found).
 
     This is the plaintext YAML-formatted file from which all new simulation
     configurations derive.
@@ -364,7 +367,7 @@ def get_sim_config_default_filename() -> str:
     return files.join_and_die_unless_file(
         get_data_yaml_dirname(), 'sim_config.yaml')
 
-# ....................{ GETTERS ~ file : arg               }....................
+# ....................{ GETTERS ~ file : arg              }....................
 @type_check
 def get_repl_history_filename(repl_module_name: str) -> dict:
     '''

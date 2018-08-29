@@ -24,7 +24,7 @@ from matplotlib import cm as colormaps
 from matplotlib.colors import Colormap, LinearSegmentedColormap
 from betse.exceptions import BetseSequenceException
 from betse.util.io.log import logs
-from betse.util.type import sequences
+from betse.util.type.iterable import sequences
 from betse.util.type.numeric import ints
 from betse.util.type.types import type_check, SequenceTypes
 

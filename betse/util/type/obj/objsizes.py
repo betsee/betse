@@ -156,7 +156,7 @@ def get_sizes_vars(obj: object, *args, **kwargs) -> tuple:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import iterables
+    from betse.util.type.iterable import iterables
     from betse.util.type.numeric import numerics
     from betse.util.type.obj import objects
 
@@ -335,7 +335,7 @@ def get_size_profile(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import iterables
+    from betse.util.type.iterable import iterables
     from betse.util.type.text import strs
     from betse.util.type.numeric.ints import MiB
     from betse.util.type.obj import objects

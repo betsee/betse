@@ -12,8 +12,9 @@ dependency simplifying inspection of application dependencies.
 import pkg_resources
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
-from betse.util.type import iterables, modules
-from betse.util.type.modules import DISTUTILS_PROJECT_NAME_TO_MODULE_NAME
+from betse.util.py import pymodule
+from betse.util.py.pymodule import DISTUTILS_PROJECT_NAME_TO_MODULE_NAME
+from betse.util.type.iterable import iterables
 from betse.util.type.types import (
     type_check,
     DistributionOrNoneTypes,
@@ -217,7 +218,7 @@ def die_unless_requirement(requirement: Requirement) -> None:
     # Else, this requirement is versioned.
 
     # Package version if any or raise an exception otherwise.
-    package_version = modules.get_version(package)
+    package_version = pymodule.get_version(package)
 
     # If this version fails to satisfy this requirement, raise an exception.
     if package_version not in requirement:
@@ -311,7 +312,7 @@ def is_requirement(requirement: Requirement) -> bool:
     # Else, this requirement is versioned.
 
     # Package version if any or "None" otherwise.
-    package_version = modules.get_version_or_none(package)
+    package_version = pymodule.get_version_or_none(package)
 
     # Return "True" only if this version exists and satisfies this requirement.
     return package_version is not None and package_version in requirement
@@ -559,7 +560,7 @@ def get_requirement_synopsis(requirement: Requirement) -> str:
         return 'not installed'
 
     # Pathname and version of this module or package.
-    package_pathname = modules.get_filename(package)
+    package_pathname = pymodule.get_filename(package)
     package_version = None
 
     # If this requirement is satisfied, reuse the version provided by this
@@ -578,7 +579,7 @@ def get_requirement_synopsis(requirement: Requirement) -> str:
     # Else, this requirement is unsatisfied. Fallback to the version metadata
     # provided by this requirement's low-level module or package.
     else:
-        package_version = modules.get_version_or_none(package)
+        package_version = pymodule.get_version_or_none(package)
 
         # If no such version is provided, default to a human-readable string.
         if package_version is None:
@@ -919,7 +920,7 @@ def import_requirement(requirement: Requirement) -> ModuleType:
     logs.log_debug('Importing third-party package "%s"...', package_name)
 
     # Import and return this package.
-    return modules.import_module(package_name)
+    return pymodule.import_module(package_name)
 
 # ....................{ ITERATORS                         }....................
 @type_check

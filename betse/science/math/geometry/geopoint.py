@@ -8,7 +8,7 @@ Primitive two-dimensional point functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseMathLineException, BetseMathPointException
-from betse.util.type import iterables
+from betse.util.type.iterable import iterables
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ EXCEPTIONS                         }....................

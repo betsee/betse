@@ -27,6 +27,7 @@ any such dependencies.
 from betse import metadata, metadeps
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
+from betse.util.py import pymodule
 from betse.util.type.types import (
     type_check, MappingType, ModuleOrSequenceTypes, StrOrNoneTypes)
 
@@ -115,12 +116,9 @@ def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
         If at least passed dependency is unsatisfiable.
     '''
 
-    # Avoid circular import dependencies.
-    from betse.util.type import modules
-
     # If the "pkg_resources" setuptools dependency is missing, raise an
     # exception *BEFORE* importing this dependency below.
-    modules.die_unless_module(
+    pymodule.die_unless_module(
         module_name='pkg_resources',
         exception_message='Mandatory dependency "pkg_resources" not found.',
     )

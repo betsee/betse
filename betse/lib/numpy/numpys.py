@@ -43,7 +43,8 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 from betse.util.io.log import logs
 from betse.util.os import dlls, oses
 from betse.util.path import dirs, files, pathnames
-from betse.util.type import iterables, modules
+from betse.util.py import pymodule
+from betse.util.type.iterable import iterables
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.text import regexes, strs
 from betse.util.type.types import BoolOrNoneTypes
@@ -558,7 +559,7 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     # for the absolute paths of all external shared libraries to which this
     # extension links -- exactly one of which is guaranteed to be the absolute
     # path of what appears to be a reference BLAS or CBLAS implementation.
-    numpy_lib_filename = modules.get_filename('numpy.core.multiarray')
+    numpy_lib_filename = pymodule.get_filename('numpy.core.multiarray')
 
     # For the basename and absolute path of each shared library linked to
     # by this Numpy shared library...

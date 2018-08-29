@@ -69,8 +69,8 @@ from betse.util.io.log import logconfig, logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.os import displays, kernels, oses
 from betse.util.path import dirs, pathnames
-from betse.util.py import pyfreeze
-from betse.util.type import iterables, modules
+from betse.util.py import pyfreeze, pymodule
+from betse.util.type.iterable import iterables
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.numeric import versions
@@ -824,7 +824,7 @@ class MplConfig(object):
 
         # Absolute path of the directory containing all backends for the
         # currently imported "matplotlib".
-        backends_dir = modules.get_dirname(backends)
+        backends_dir = pymodule.get_dirname(backends)
 
         # If this directory exists, find all backends in this directory.
         if dirs.is_dir(backends_dir):
@@ -1005,7 +1005,7 @@ class MplConfig(object):
         # by the matplotlib.use() method itself to detect repetitious calls.
         # Since the "matplotlib.pyplot" subpackage internally imports this
         # subpackage, testing only this subpackage suffices.
-        return modules.is_imported('matplotlib.backends')
+        return pymodule.is_imported('matplotlib.backends')
 
 
     @type_check
@@ -1467,7 +1467,7 @@ class MplConfig(object):
             # Since the above behaviour is insane, this subpackage is
             # unimported instead to sanitize life.
             if not is_backend:
-                modules.unimport_module_if_imported(
+                pymodule.unimport_module_if_imported(
                     'matplotlib.backends', 'matplotlib.pyplot')
 
             # Re-raise this exception.

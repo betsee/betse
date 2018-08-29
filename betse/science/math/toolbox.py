@@ -16,7 +16,7 @@ from scipy import interpolate as interp
 
 # ....................{ UTILITIES                          }....................
 #FIXME: Consider shifting this general-purpose sequence method to
-#betse.util.type.sequences.flatten().
+#betse.util.type.iterable.sequences.flatten().
 @type_check
 def flatten(ls_of_ls: SequenceTypes) -> tuple:
     '''

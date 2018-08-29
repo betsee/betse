@@ -44,7 +44,8 @@ from abc import ABCMeta, abstractmethod
 from betse.exceptions import BetseSimVisualLayerException
 from betse.util.io.log import logs
 from betse.util.py import pyref
-from betse.util.type import iterables, types
+from betse.util.type import types
+from betse.util.type.iterable import iterables
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceOrNoneTypes,)

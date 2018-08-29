@@ -12,7 +12,7 @@ from betse.exceptions import BetseSimPhaseException
 from betse.science.phase import phasecallbacks
 from betse.science.phase.phasecallbacks import SimCallbacksBCOrNoneTypes
 from betse.science.phase.phaseenum import SimPhaseKind
-from betse.util.type import iterables
+from betse.util.type.iterable import iterables
 from betse.util.type.text import strs
 from betse.util.type.types import type_check, NoneType
 

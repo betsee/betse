@@ -17,7 +17,7 @@ Subcommands accepted by this application's command line interface (CLI).
 
 from abc import ABCMeta
 from betse.util.py import pyident
-from betse.util.type import iterables
+from betse.util.type.iterable import iterables
 from betse.util.type.types import (
     type_check, ArgParserType, ArgSubparsersType, SequenceTypes,)
 

@@ -14,7 +14,7 @@ from betse.lib.yaml import yamls
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from betse.util.path.dirs import DirOverwritePolicy
-from betse.util.type.iterators import empty_iterator
+from betse.util.type.iterable.iterators import empty_iterator
 from betse.util.type.types import (
     type_check,
     IterableTypes,

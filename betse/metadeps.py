@@ -16,13 +16,13 @@ Metadata constants synopsizing high-level application dependencies.
 # installed at some later time in the installation.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from betse.util.type import modules
+from betse.util.py import pymodule
 
 # ....................{ LIBS ~ runtime : mandatory        }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this subsection *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
-# * The "betse.util.type.modules.DISTUTILS_PROJECT_NAME_TO_MODULE_NAME"
+# * The "betse.util.py.pymodule.DISTUTILS_PROJECT_NAME_TO_MODULE_NAME"
 #   dictionary, converting between the setuptools-specific names listed below
 #   and the Python-specific module names imported by this application.
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
@@ -299,7 +299,7 @@ def _init() -> None:
 
     # Prefer "ruamel.yaml", the most actively maintained and hence preferred
     # YAML framework.
-    if modules.is_module('ruamel.yaml'):
+    if pymodule.is_module('ruamel.yaml'):
         pass
     # Fallback to "ruamel_yaml", the next most actively maintained and hence
     # preferred YAML framework. Unlike the more general-purpose "ruamel.yaml"
@@ -311,7 +311,7 @@ def _init() -> None:
     #     RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'ruamel_yaml'
     # Fallback to PyYaml, the officially dead and hence least preferred YAML
     # framework.
-    elif modules.is_module('yaml'):
+    elif pymodule.is_module('yaml'):
         RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'PyYAML'
 
     #FIXME: *DELETE THE FOLLOWING LINE AFTER* upstream "ruamel.yaml" roundtrip

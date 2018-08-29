@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,13 +7,13 @@
 Low-level module facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies,
 # the top-level of this module may import *ONLY* from packages guaranteed to
 # exist at installation time -- which typically means *ONLY* BETSE packages and
 # stock Python packages.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import importlib, sys
 from betse.exceptions import BetseModuleException
@@ -31,7 +31,7 @@ from collections import defaultdict
 from importlib import util as importlib_util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 
-# ....................{ GLOBALS ~ dict                     }....................
+# ....................{ GLOBALS ~ dict                    }....................
 DISTUTILS_PROJECT_NAME_TO_MODULE_NAME = DefaultDict(
     missing_key_value=lambda self, missing_key: missing_key,
     initial_mapping={
@@ -62,13 +62,14 @@ MODULE_NAME_TO_VERSION_ATTR_NAME = defaultdict(
 '''
 Dictionary mapping the fully-qualified name of a module or package (e.g.,
 :mod:``PIL``) to the name of the attribute (e.g., ``PILLOW_VERSION``) declared
-by that module or package, providing that module or package's version specifier.
+by that module or package, providing that module or package's version
+specifier.
 
 All modules and packages explicitly unmapped by this dictionary default to the
 canonical ``__version__`` attribute name.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_unless_module(
     module_name: str, exception_message: StrOrNoneTypes = None) -> None:
@@ -100,7 +101,7 @@ def die_unless_module(
         # Raise this exception. (See the docstring for further details.)
         raise ImportError(exception_message)
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_module(module_name: str) -> bool:
     '''
@@ -110,17 +111,18 @@ def is_module(module_name: str) -> bool:
     If this module is a **submodule** (i.e., contains a ``.`` character), all
     parent modules of this module will be imported as a side effect of this
     function call. Likewise, if this module is *not* importable via standard
-    mechanisms (e.g., the OS X-specific :mod:`PyObjCTools` package), this module
-    itself may also be imported as a side effect.
+    mechanisms (e.g., the OS X-specific :mod:`PyObjCTools` package), this
+    module itself may also be imported as a side effect.
     '''
 
-    # Depending on context, this function behaves in one of three distinct ways:
+    # Depending on context, this function behaves in one of three distinct
+    # ways:
     #
-    # * If this module's name is a key in the canonical dictionary "sys.modules"
-    #   and has thus already been imported at least once under the active Python
-    #   process, then...
-    #   * If the "sys.modules[module_name].__spec__" attribute is set to a non-
-    #     None value, that value is returned.
+    # * If this module's name is a key in the canonical dictionary
+    #   "sys.modules" and has thus already been imported at least once under
+    #   the active Python process, then...
+    #   * If the "sys.modules[module_name].__spec__" attribute is set to a
+    #     non-None value, that value is returned.
     #   * Else, the "ValueError" exception is raised.
     # * Else if this module is loadable by iteratively querying all module
     #   loaders in "sys.meta_path" (the canonical list of such loaders), a new
@@ -131,8 +133,8 @@ def is_module(module_name: str) -> bool:
     #     the "ImportError" exception is raised.
     #   * Else, None is returned.
     #
-    # Since this function only returns a single boolean, these return values and
-    # exceptions are converted to simple boolean values.
+    # Since this function only returns a single boolean, these return values
+    # and exceptions are converted to simple boolean values.
     try:
         return importlib_util.find_spec(module_name) is not None
     # If this module is a submodule (i.e., this module's name contains a "."
@@ -142,16 +144,18 @@ def is_module(module_name: str) -> bool:
         return False
     # If this module appears to have been imported at least once under the
     # active Python process but has no "__spec__" attribute, inspect deeper.
-    # This exception does *NOT* necessarily imply this module to not exist. This
-    # module may exist even if this exception is thrown -- namely for modules
-    # dynamically defined at runtime rather than loaded from external files.
+    # This exception does *NOT* necessarily imply this module to not exist.
+    # This module may exist even if this exception is thrown -- namely for
+    # modules dynamically defined at runtime rather than loaded from external
+    # files.
     #
-    # Unfortunately, this exception does imply that conventional alternatives to
-    # the prior function call (e.g., testing tuples generated by
-    # pkgutil.iter_modules()) will also fail to find this module. As a fallback,
-    # attempt to manually import this module. Since doing so implicitly imports
-    # the "__init__.py" files of all parent packages of this module and hence
-    # may have unhelpful side effects, we do so only if the prior call failed.
+    # Unfortunately, this exception does imply that conventional alternatives
+    # to the prior function call (e.g., testing tuples generated by
+    # pkgutil.iter_modules()) will also fail to find this module. As a
+    # fallback, attempt to manually import this module. Since doing so
+    # implicitly imports the "__init__.py" files of all parent packages of this
+    # module and hence may have unhelpful side effects, we do so only if the
+    # prior call failed.
     except ValueError:
         try:
             importlib.import_module(module_name)
@@ -170,7 +174,7 @@ def is_imported(*module_names: str) -> bool:
     # all(). It is awesome.
     return all(module_name in sys.modules for module_name in module_names)
 
-# ....................{ TESTERS ~ type                     }....................
+# ....................{ TESTERS ~ type                    }....................
 #FIXME: Add unit tests, as this is a fairly fragile tester.
 @type_check
 def is_c_extension(module: ModuleOrStrTypes) -> bool:
@@ -182,6 +186,7 @@ def is_c_extension(module: ModuleOrStrTypes) -> bool:
     ----------
     module : ModuleOrStrTypes
         Either:
+
         * The fully-qualified name of this module, in which case this function
           dynamically imports this module.
         * A previously imported module object.
@@ -222,7 +227,7 @@ def is_c_extension(module: ModuleOrStrTypes) -> bool:
     # C extension specific to the current platform.
     return module_filetype in EXTENSION_SUFFIXES
 
-# ....................{ GETTERS ~ path                     }....................
+# ....................{ GETTERS ~ path                    }....................
 @type_check
 def get_dirname(module: ModuleOrStrTypes) -> str:
     '''
@@ -235,6 +240,7 @@ def get_dirname(module: ModuleOrStrTypes) -> str:
     ----------
     module : ModuleOrStrTypes
         Either:
+
         * The fully-qualified name of this module, in which case this function
           dynamically imports this module.
         * A previously imported module object.
@@ -253,9 +259,9 @@ def get_dirname(module: ModuleOrStrTypes) -> str:
 
 
 #FIXME: The current approach is trivial and therefore terrible, breaking down
-#under commonplace real-world conditions (e.g., modules embedded within egg-like
-#archives). Consider generalizing this approach via the new setuptools-based
-#"betse.lib.setuptool.resources" submodule.
+#under commonplace real-world conditions (e.g., modules embedded within
+#egg-like archives). Consider generalizing this approach via the new
+#setuptools-based "betse.lib.setuptool.resources" submodule.
 @type_check
 def get_filename(module: ModuleOrStrTypes) -> str:
     '''
@@ -283,6 +289,7 @@ def get_filename(module: ModuleOrStrTypes) -> str:
     ----------
     module : str or ModuleType
         Either:
+
         * The fully-qualified name of this module, in which case this function
           dynamically imports this module.
         * A previously imported module object.
@@ -311,14 +318,14 @@ def get_filename(module: ModuleOrStrTypes) -> str:
     # Else, return this attribute's value.
     return module.__file__
 
-# ....................{ GETTERS ~ global                   }....................
+# ....................{ GETTERS ~ global                  }....................
 @type_check
 def get_global_names(module: ModuleOrStrTypes) -> SetType:
     '''
     Set of the names of all global variables defined by the passed module.
 
-    This function returns the set of the names of all attributes defined by this
-    module, excluding:
+    This function returns the set of the names of all attributes defined by
+    this module, excluding:
 
     * Special attributes reserved for use by Python (e.g., ``__file__``).
     * Callable attributes (e.g., functions, lambdas).
@@ -327,6 +334,7 @@ def get_global_names(module: ModuleOrStrTypes) -> SetType:
     ----------
     module : ModuleOrStrTypes
         Either:
+
         * The fully-qualified name of this module, in which case this function
           dynamically imports this module.
         * A previously imported module object.
@@ -350,7 +358,7 @@ def get_global_names(module: ModuleOrStrTypes) -> SetType:
         )
     }
 
-# ....................{ GETTERS ~ version                  }....................
+# ....................{ GETTERS ~ version                 }....................
 @type_check
 def get_version(module: ModuleOrStrTypes) -> str:
     '''
@@ -401,7 +409,8 @@ def get_version_or_none(module: ModuleOrStrTypes) -> StrOrNoneTypes:
 
     # Name of the version specifier attribute defined by that module. For sane
     # modules, this is "__version__". Insane modules, however, exist.
-    module_version_attr_name = MODULE_NAME_TO_VERSION_ATTR_NAME[module.__name__]
+    module_version_attr_name = MODULE_NAME_TO_VERSION_ATTR_NAME[
+        module.__name__]
 
     # This attribute defined by this module if any or "None" otherwise.
     module_version = getattr(module, module_version_attr_name, None)
@@ -413,7 +422,7 @@ def get_version_or_none(module: ModuleOrStrTypes) -> StrOrNoneTypes:
     # Return this version.
     return module_version
 
-# ....................{ IMPORTERS                          }....................
+# ....................{ IMPORTERS                         }....................
 @type_check
 def import_module(
     module_name: str, exception_message: StrOrNoneTypes = None) -> ModuleType:
@@ -433,9 +442,9 @@ def import_module(
 @type_check
 def unimport_module_if_imported(*module_names: str) -> None:
     '''
-    Dynamically unimport each of the modules, packages, or C extensions with the
-    passed fully-qualified names that have been previously imported under the
-    active Python interpreter.
+    Dynamically unimport each of the modules, packages, or C extensions with
+    the passed fully-qualified names that have been previously imported under
+    the active Python interpreter.
 
     Specifically, for each passed name:
 
@@ -454,7 +463,7 @@ def unimport_module_if_imported(*module_names: str) -> None:
             del sys.modules[module_name]
         # Else, this module has *NOT* yet been imported. Ignore this module.
 
-# ....................{ PRIVATE ~ resolvers                }....................
+# ....................{ PRIVATE ~ resolvers               }....................
 @type_check
 def _resolve_module(module : ModuleOrStrTypes) -> ModuleType:
     '''
@@ -468,6 +477,7 @@ def _resolve_module(module : ModuleOrStrTypes) -> ModuleType:
     ----------
     module : ModuleOrStrTypes
         Either:
+
         * The fully-qualified name of this module, in which case this function
           dynamically imports this module.
         * A previously imported module object.

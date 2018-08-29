@@ -13,7 +13,7 @@ simulation phase).
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require.abc.phasereqabc import SimPhaseRequirementABC
 from betse.util.io.log import logs
-from betse.util.type import iterables
+from betse.util.type.iterable import iterables
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.set.setcls import FrozenSetSubclassable
 from betse.util.type.text import strs

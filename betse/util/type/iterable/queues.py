@@ -12,9 +12,9 @@ backed by the standard :class:`collections.deque` type) functionality.
 #so will require heavy refactoring across multiple projects and hence should
 #ideally be performed sooner than later:
 #
-#* "betse.util.type.iterables".
-#* "betse.util.type.iterators".
-#* "betse.util.type.sequences".
+#* "betse.util.type.iterable.iterables".
+#* "betse.util.type.iterable.iterators".
+#* "betse.util.type.iterable.sequences".
 #* "betse.util.type.set".
 
 # ....................{ IMPORTS                           }....................
