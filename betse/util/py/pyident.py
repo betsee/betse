@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,17 +8,17 @@ Low-level **Python identifier** (i.e., class, module, or attribute name)
 facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import re
 from betse.exceptions import BetsePyIdentifierException
 from betse.util.type.types import type_check, RegexMatchType
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 IDENTIFIER_ALPHANUMERIC_CHAR_CLASS = r'a-zA-Z0-9'
 '''
-Character class (excluding ``[`` and ``]`` delimiters) matching any character of
-a **Python identifier** (i.e., class, module, or attribute name), excluding the
-underscore character.
+Character class (excluding ``[`` and ``]`` delimiters) matching any character
+of a **Python identifier** (i.e., class, module, or attribute name), excluding
+the underscore character.
 
 Of necessity, this character class is equivalent to the character class of all
 alphanumeric ASCII characters.
@@ -27,11 +27,11 @@ alphanumeric ASCII characters.
 
 IDENTIFIER_CHAR_CLASS = IDENTIFIER_ALPHANUMERIC_CHAR_CLASS + r'_'
 '''
-Character class (excluding ``[`` and ``]`` delimiters) matching any character of
-a **Python identifier** (i.e., class, module, or attribute name).
+Character class (excluding ``[`` and ``]`` delimiters) matching any character
+of a **Python identifier** (i.e., class, module, or attribute name).
 '''
 
-# ....................{ REGEXES                            }....................
+# ....................{ REGEXES                           }....................
 IDENTIFIER_CHAR_CAMELCASE_REGEX = (
     r'(?:(?<=[a-z0-9])|(?!^))([A-Z])(?=[a-z]|$)')
 '''
@@ -67,13 +67,14 @@ IDENTIFIER_QUALIFIED_REGEX = (
         identifier_unqualified=IDENTIFIER_UNQUALIFIED_REGEX))
 '''
 Uncompiled regular expression matching a **qualified Python identifier** (i.e.,
-class, module, or attribute name possibly prefixed by a package or module name).
+class, module, or attribute name possibly prefixed by a package or module
+name).
 '''
 
-# ....................{ REGEX ~ compiled                   }....................
-# These regular expressions are frequently referenced at application startup and
-# thus unconditionally compiled. Specifically, this regex is referenced by the
-# sanitize_camelcase() function called by the var_alias() descriptor
+# ....................{ REGEX ~ compiled                  }....................
+# These regular expressions are frequently referenced at application startup
+# and thus unconditionally compiled. Specifically, this regex is referenced by
+# the sanitize_camelcase() function called by the var_alias() descriptor
 # repeatedly instantiated at class scope by "Parameters"-related classes.
 
 _IDENTIFIER_UNQUALIFIED_REGEX_COMPILED = re.compile(
@@ -90,34 +91,39 @@ _IDENTIFIER_SANITIZE_CAMELCASE_REGEX_COMPILED = re.compile(
 '''
 Compiled regular expression matching either the string start *or* one or more
 alphanumeric ASCII characters optionally followed by a lowercase alphabetic
-ASCII character, internally required by the :func:`sanitize_camelcase` function.
+ASCII character, internally required by the :func:`sanitize_camelcase`
+function.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
-def die_unless_var_name(*texts: str) -> None:
+def die_unless_unqualified(*texts: str) -> None:
     '''
     Raise an exception unless all passed strings are syntactically valid
-    variable names.
+    **unqualified Python identifiers** (i.e., class, module, or attribute names
+    *not* prefixed by package or module names).
 
     See Also
     ----------
-    :func:`is_var_name`
-        Further details
+    :func:`is_unqualified`
+        Further details.
     '''
 
-    # For each such string...
+    # For each such string, if this string is *NOT* a valid variable name,
+    # raise an exception.
     for text in texts:
-        # If this string is *NOT* a valid variable name, raise an exception.
-        if not is_var_name(text):
+        if not is_unqualified(text):
             raise BetsePyIdentifierException(
-                'String "{}" not a valid variable name.'.format(text))
+                'String "{}" not a '
+                'valid unqualified Python identifier.'.format(text))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
-def is_var_name(text: str) -> bool:
+def is_unqualified(text: str) -> bool:
     '''
-    ``True`` only if the passed string is a syntactically valid variable name.
+    ``True`` only if the passed string is a syntactically valid
+    **unqualified Python identifier** (i.e., class, module, or attribute name
+    *not* prefixed by a package or module name).
     '''
 
     # Avoid circular import dependencies.
@@ -127,7 +133,7 @@ def is_var_name(text: str) -> bool:
     return regexes.is_match(
         text=text, regex=_IDENTIFIER_UNQUALIFIED_REGEX_COMPILED)
 
-# ....................{ CONVERTERS ~ camel                 }....................
+# ....................{ CONVERTERS ~ camel                }....................
 @type_check
 def convert_camelcase_to_snakecase(identifier: str) -> str:
     '''
@@ -150,7 +156,7 @@ def convert_camelcase_to_snakecase(identifier: str) -> str:
 def convert_camelcase_to_whitespaced_lowercase(identifier: str) -> str:
     '''
     Convert the passed CamelCase-formatted Python identifier to whitespaced
-    lowercase (e.g., from `CleanseIII` to `cleanse iii`).
+    lowercase (e.g., from ``CleanseIII`` to ``cleanse iii``).
     '''
 
     # Avoid circular import dependencies.
@@ -163,7 +169,7 @@ def convert_camelcase_to_whitespaced_lowercase(identifier: str) -> str:
         replacement=r' \1',
     ).lower()
 
-# ....................{ SANITIZERS ~ camelcase             }....................
+# ....................{ SANITIZERS ~ camelcase            }....................
 @type_check
 def sanitize_camelcase(identifier: str) -> str:
     '''
@@ -219,19 +225,21 @@ def sanitize_camelcase(identifier: str) -> str:
 
 def _sanitize_camelcase_match(match: RegexMatchType) -> str:
     '''
-    Uppercase the lowercase alphabetic ASCII character optionally grouped by the
-    passed regular expression match object if any *or* return the empty string
-    otherwise.
+    Uppercase the lowercase alphabetic ASCII character optionally grouped by
+    the passed regular expression match object if any *or* return the empty
+    string otherwise.
 
     Parameters
     ----------
     match: RegexMatchType
-        Match object optionally grouping a lowercase alphabetic ASCII character.
+        Match object optionally grouping a lowercase alphabetic ASCII
+        character.
 
     Returns
     ----------
     str
         Either:
+
         * If this match object grouped a lowercase alphabetic ASCII character,
           this character uppercased.
         * Else, the empty string.
@@ -239,7 +247,7 @@ def _sanitize_camelcase_match(match: RegexMatchType) -> str:
 
     return (match.group(1) or '').upper()
 
-# ....................{ SANITIZERS ~ snakecase             }....................
+# ....................{ SANITIZERS ~ snakecase            }....................
 #FIXME: Generalize to sanitize arbitrary strings. See the general-purpose
 #sanitize_camelcase() function for inspiration.
 @type_check

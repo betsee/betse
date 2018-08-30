@@ -107,7 +107,7 @@ Exactly one of the following subcommands must be passed:
         '''
 
         # If this name is *NOT* a valid variable name, raise an exception.
-        pyident.die_unless_var_name(subcommand_var_name)
+        pyident.die_unless_unqualified(subcommand_var_name)
 
         # If any passed subcommand is *NOT* a subcommand, raise an exception..
         iterables.die_unless_items_instance_of(

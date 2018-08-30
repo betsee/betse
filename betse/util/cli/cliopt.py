@@ -225,7 +225,7 @@ class CLIOptionABC(object, metaclass=ABCMeta):
         self._var_name = var_name if var_name is not None else var_name_default
 
         # If this vraiable name is invalid, raise an exception.
-        pyident.die_unless_var_name(self._var_name)
+        pyident.die_unless_unqualified(self._var_name)
 
     # ..................{ ADDERS                             }..................
     @type_check

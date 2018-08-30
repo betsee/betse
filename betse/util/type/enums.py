@@ -18,6 +18,7 @@ from betse.util.type.types import (
     EnumClassType,
     GeneratorType,
     SequenceTypes,
+    StrOrNoneTypes,
 )
 from functools import partial
 
@@ -116,17 +117,28 @@ class EnumOrdered(EnumClassType):
             NotImplemented)
 
 # ....................{ MAKERS                            }....................
+#FIXME: Add an additional "doc" optional parameter to this function, defaulting
+#to "None". If non-None, this function should set the docstring for the
+#returned tupe to the value of this parameter. See
+#tuples.make_named_subclass() for similar logic.
 @type_check
-def make_enum(class_name: str, member_names: SequenceTypes) -> EnumType:
+def make_enum(
+    # Mandatory parameters.
+    class_name: str,
+    member_names: SequenceTypes,
+
+    # Optional parameters.
+    doc: StrOrNoneTypes = None,
+) -> EnumType:
     '''
     **Integer-based enumeration type** (i.e., instance of the standard
     :class:`EnumClassType` type whose members are uniquely mapped to 1-based
     integers) dynamically synthesized to have the passed class name and contain
-    exactly the members with the passed names.
+    only the members with the passed names.
 
     This factory function is a convenience wrapper for the
     :class:`EnumClassType` subclass, whose non-standard semantics are arguably
-    more obfuscatory than useful.
+    more obfuscatory than helpful.
 
     Attributes
     ----------
@@ -141,6 +153,7 @@ def make_enum(class_name: str, member_names: SequenceTypes) -> EnumType:
         guaranteed to be the same string as that passed to this function.
       * ``value``, the 1-based integer uniquely identifying this member. The
         ``value`` of this enumeration's:
+
         * First member is guaranteed to be 1.
         * Last member is guaranteed to be the number of members (i.e., the
           length of this enumeration).
@@ -152,8 +165,11 @@ def make_enum(class_name: str, member_names: SequenceTypes) -> EnumType:
         attributes of the module calling this function.
     member_names : SequenceTypes
         Sequence of the names of all members of this enumeration type, required
-        to be valid Python identifiers (i.e., contain only alphanumeric
-        characters and the underscore)
+        to be valid **Python identifiers** (i.e., contain only alphanumeric
+        characters and the underscore).
+    doc : StrOrNoneTypes
+        Class docstring to document this type with. Defaults to ``None``, in
+        which case this type remains undocumented.
 
     Returns
     ----------
@@ -173,18 +189,33 @@ def make_enum(class_name: str, member_names: SequenceTypes) -> EnumType:
     '''
 
     # Avoid circular import dependencies.
+    from betse.util.py import pyident
     from betse.util.type.call import callers
+    from betse.util.type.iterable import iterables
+
+    # If the passed class name is syntactically invalid, raise an exception.
+    pyident.die_unless_unqualified(class_name)
+
+    # If any passed member name is *NOT* a string, raise an exception.
+    iterables.die_unless_items_instance_of(iterable=member_names, cls=str)
 
     # Fully-qualified name of the module defining this enumeration type.
     module_name = callers.get_caller_module_name()
 
     # Dynamically synthesize and return this enumeration type.
-    return EnumClassType(
+    enum_subclass = EnumClassType(
         value=class_name,
         names=member_names,
         module=module_name,
         qualname='{}.{}'.format(module_name, class_name),
     )
+
+    # If passed a docstring, assign this subclass this docstring.
+    if doc is not None:
+        enum_subclass.__doc__ = doc
+
+    # Return this subclass.
+    return enum_subclass
 
 # ....................{ EXCEPTIONS                        }....................
 def die_unless_member(

@@ -8,15 +8,6 @@ Low-level **queue** (i.e., First-In, First-Out (FIFO) data structure, typically
 backed by the standard :class:`collections.deque` type) functionality.
 '''
 
-#FIXME: Shift *ALL* of the following submodules into the same subpackage. Doing
-#so will require heavy refactoring across multiple projects and hence should
-#ideally be performed sooner than later:
-#
-#* "betse.util.type.iterable.iterables".
-#* "betse.util.type.iterable.iterators".
-#* "betse.util.type.iterable.sequences".
-#* "betse.util.type.set".
-
 # ....................{ IMPORTS                           }....................
 import itertools
 from betse.util.type.types import type_check, QueueType
