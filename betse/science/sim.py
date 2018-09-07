@@ -487,7 +487,8 @@ class Simulator(object):
         p = phase.p
         cells = phase.cells
 
-        # initialize all extra substances related objects to None, to be filled in if desired later
+        # Initialize all extra substances related objects to None, to be filled
+        # in (if desired) later.
         self.molecules = None
         self.metabo = None
         self.met_concs = None

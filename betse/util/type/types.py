@@ -667,6 +667,7 @@ ClassOrNoneTypes = (ClassType, NoneType)
 Tuple of the type of all types *and* that of the ``None`` singleton.
 '''
 
+
 DistributionOrNoneTypes = (Distribution, NoneType)
 '''
 Tuple of the type of all :mod:`setuptools`-specific package metadata objects

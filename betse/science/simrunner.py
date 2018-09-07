@@ -110,16 +110,15 @@ class SimRunner(object):
         logs.log_info('Seeding simulation...')
 
         # Cuumulative number of times that each call of this subcommand calls
-        # either the SimCallbacksBC.progressed() callback or higher-level
-        # callbacks calling that callback (e.g.,
-        # SimCallbacksBC.progressed_next()).
+        # the SimCallbacksBC.progressed() callback or a callback calling that
+        # callback (e.g., SimCallbacksBC.progressed_next()).
         #
         # This magic number *must* be manually synchronized with the
         # implementation of both this subcommand and methods transitively
         # called by this subcommand (e.g., Cells.make_world()). Failure to do
         # so *will* result in fatal exceptions. Sadly, there exists no
         # reasonable means of either automating or enforcing this constraint.
-        _SEED_PROGRESS_TOTAL = (
+        SEED_PROGRESS_TOTAL = (
             # Number of progress callbacks performed directly in this method.
             6 +
             # Number of progress callbacks performed by Cells.make_world().
@@ -127,7 +126,7 @@ class SimRunner(object):
         )
 
         # Notify the caller of the range of work performed by this subcommand.
-        self._callbacks.progress_ranged(progress_max=_SEED_PROGRESS_TOTAL)
+        self._callbacks.progress_ranged(progress_max=SEED_PROGRESS_TOTAL)
 
         # Simulation phase.
         phase = SimPhase(
@@ -137,7 +136,8 @@ class SimRunner(object):
         phase.cells.make_world(phase)
 
         #FIXME: Pass status messages to all of the calls to this callback
-        #transitively performed by this method.
+        #transitively performed by this method (e.g., by passing the optional
+        #"progress_status" parameter to each call to progressed_next()).
         self._callbacks.progressed_next()
 
         # Initialize core simulation data structures.
@@ -155,7 +155,6 @@ class SimRunner(object):
         # Create a Laplacian and solver for discrete transfers on closed,
         # irregular cell network.
         phase.cells.graphLaplacian(self._p)
-        self._callbacks.progressed_next()
 
         #FIXME: Would shifting this logic into the cells.graphLaplacian() method
         #called above be feasible? If not, no worries! (Granular lunar sunsets!)
@@ -171,6 +170,8 @@ class SimRunner(object):
         #     phase.cells.eosmo_tools(self._p)
 
         # Pickle this cell cluster to disk.
+        self._callbacks.progressed_next(
+            progress_status='Saving seeded cell cluster...')
         phase.cells.save_cluster(self._p)
 
         # Log the completion of this phase.

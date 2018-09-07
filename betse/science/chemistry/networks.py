@@ -753,10 +753,8 @@ class MasterOfNetworks(object):
 
         if plot_type == 'sim':
             self.resultsPath = pathnames.join(p.sim_export_dirname, nested_folder_name)
-            p.plot_type = 'sim'
         elif plot_type == 'init':
             self.resultsPath = pathnames.join(p.init_export_dirname, nested_folder_name)
-            p.plot_type = 'init'
         elif plot_type == 'grn':
             self.resultsPath = pathnames.join(p.grn_pickle_dirname, nested_folder_name)
 

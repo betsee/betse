@@ -1,25 +1,33 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-"""
-Creates an ER (endoplasmic reticulum) class, which includes ER-specific pumps,
-channels, and specific methods relating to calcium dynamics including calcium
-induced calcium release controlled by inositol-triphosphate. This class also
-contains the facilities to initialize, define the core computations for a
-simulation loop, remove ER during a cutting event, save and report on data, and
-plot.
-"""
+'''
+Endoplasmic reticulum (ER) functionality.
+'''
 
+# ....................{ IMPORTS                           }....................
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
 from betse.science import sim_toolbox as stb
 from betse.util.path import dirs, pathnames
 
-
+# ....................{ CLASSES                           }....................
 class EndoRetic(object):
+    '''
+    Endoplasmic reticulum (ER) modeller.
 
+    This modeller models all physical phenomena pertaining to the ER, including
+    ER-specific pumps, channels, and calcium dynamics (e.g., calcium-induced
+    calcium release controlled by inositol-triphosphate). This modeller also
+    contains the facilities to initialize, define the core computations for a
+    simulation loop, remove ER during a cutting event, save and report on data,
+    and plot.
+    '''
+
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, sim, cells, p):
 
         # init basic fields
@@ -45,11 +53,12 @@ class EndoRetic(object):
         for i, arr in enumerate(self.zer):
             arr[:] = sim.zs[i]
 
+
     def get_v(self, sim, p):
 
         self.Q = np.sum(self.zer*p.F*sim.cc_er, axis = 0)
-
         self.Ver = (1/self.cm_er)*self.Q*(self.er_vol/self.er_sa)
+
 
     def update(self, sim, cells, p):
 
@@ -78,6 +87,7 @@ class EndoRetic(object):
         self.get_v(sim, p)
 
         # print(1e3*self.Ver.mean(), sim.cc_er[sim.iCa].mean(), sim.cc_cells[sim.iCa].mean())
+
 
     def channels(self, sim, cells, p):
 
@@ -111,15 +121,18 @@ class EndoRetic(object):
         # print(sim.cc_er[sim.iCa][p.plot_cell], sim.cc_cells[sim.iCa][p.plot_cell],
         # sim.molecules.IP3.c_cells[p.plot_cell])
 
+
     def clear_cache(self):
 
         self.ver_time = []
         self.Ca_er_time = []
 
+
     def write_cache(self, sim):
 
         self.ver_time.append(1*self.Ver)
         self.Ca_er_time.append(1*sim.cc_er[sim.iCa][:])
+
 
     def plot_er(self, sim, cells, p):
 
@@ -148,19 +161,19 @@ class EndoRetic(object):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
+
     def init_saving(self, cells, p, plot_type = 'init', nested_folder_name = 'ER'):
 
         # init files
         if p.autosave:
             if plot_type == 'sim':
-                self.resultsPath = pathnames(p.sim_export_dirname, nested_folder_name)
-                p.plot_type = 'sim'
+                self.resultsPath = pathnames.join(p.sim_export_dirname, nested_folder_name)
             elif plot_type == 'init':
-                self.resultsPath = pathnames(p.init_export_dirname, nested_folder_name)
-                p.plot_type = 'init'
+                self.resultsPath = pathnames.join(p.init_export_dirname, nested_folder_name)
 
             dirs.make_unless_dir(self.resultsPath)
             self.imagePath = pathnames.join(self.resultsPath, 'fig_')
+
 
     def remove_ers(self, sim, target_inds_cell):
 

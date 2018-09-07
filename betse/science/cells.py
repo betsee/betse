@@ -422,7 +422,8 @@ class Cells(object):
         '''
 
         # Notify the sink callback of the current state of progress.
-        phase.callbacks.progress_stated('Creating cell cluster...')
+        phase.callbacks.progress_stated(
+            'Creating pseudo-random cell cluster...')
 
         # If this is *NOT* the seed phase, raise an exception.
         phase.die_unless_kind_seed()
@@ -530,8 +531,9 @@ class Cells(object):
         # else:
         #     self.is_ecm = False
 
-        # set all Laplacian matrices to None fields to allow for flexible creation
-        # Laplacians and inverses on the cell grid (two boundary conditions sets)
+        # Set all Laplacian matrices to "None" to allow for flexible creation
+        # of Laplacians and inverses on the cell grid (i.e., two boundary
+        # conditions sets).
         self.lapGJinv = None
         self.lapGJ_P_inv = None
         self.lapGJ = None
@@ -540,13 +542,12 @@ class Cells(object):
         # Lapalcian inverses on the env grid
         # self.lapENVinv = None
 
-        # other matrices
+        # Other matrices.
         self.M_sum_mem_to_ecm = None   # used for deformation
         self.gradMem = None  # used for electroosmosis
 
         # Coerce this to an array for advanced indexing and assignments.
         self.cell_i = np.asarray(self.cell_i)
-
         self.gj_default_weights = np.ones(len(self.mem_i))
 
     # ..................{ DEFORMERS                         }..................
