@@ -2070,16 +2070,16 @@ class Cells(object):
             self.M_divmap_mem2ecm[ecm_i, mem_i] += (mem_sa)
             # self.M_divmap_mem2ecm[ecm_i, mem_i] += (mem_sa) / (p.cell_height*(self.delta**2))
 
+
     def graphLaplacian(self, p) -> None:
         '''
-        Defines an abstract inverse Laplacian that is used to solve Poisson's equation on the
-        irregular Voronoi grid of the cell cluster.
+        Define an abstract inverse Laplacian used to solve Poisson's equation
+        on the irregular Voronoi grid of this cell cluster.
 
         Parameters
         ----------
-        p               An instance of the Parameters object
-
-
+        p : Parameters
+            Current simulation configuration.
 
         Creates
         ----------
@@ -2087,8 +2087,8 @@ class Cells(object):
         self.lapGJ_P_inv       Solver for Poisson equation with Neumann (zero gradient) boundary
         '''
 
-        # Log this attempt.
-        logs.log_info('Creating cell network Poisson solver...')
+        # Log this action.
+        logs.log_debug('Creating cell network Poisson solver...')
 
         # zero-value fixed boundary version (Dirchlet condition)
         lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
@@ -2457,23 +2457,24 @@ class Cells(object):
 
     # Avoid circular import dependencies.
     @type_check
-    def save_cluster(self, p: 'betse.science.parameters.Parameters') -> None:
+    def save_cluster(self, phase: SimPhase) -> None:
         '''
         Pickle (i.e., save) this cell cluster to the file described by the
-        passed simulation configuration.
+        passed seed simulation phase.
 
         Parameters
         ----------
-        p : Parameters
-            Current simulation configuration.
+        phase : SimPhase
+            Current simulation phase.
         '''
 
         # Log this pickling.
-        logs.log_info('Saving cell cluster to "%s"...', p.seed_pickle_basename)
+        logs.log_debug(
+            'Pickling cell cluster to: %s', phase.p.seed_pickle_filename)
 
         # Pickle this cell cluster.
-        datadump = [self, p]
-        fh.saveSim(p.seed_pickle_filename, datadump)
+        datadump = [self, phase.p]
+        fh.saveSim(phase.p.seed_pickle_filename, datadump)
 
 
     def voronoiGrid(self, p) -> None:

@@ -150,14 +150,15 @@ class SimRunner(object):
 
         # Redo gap junctions to isolate different tissue types.
         phase.cells.redo_gj(phase.dyna, self._p)
-        self._callbacks.progressed_next()
+        self._callbacks.progressed_next(
+            progress_status='Creating cell network Poisson solver...')
 
         # Create a Laplacian and solver for discrete transfers on closed,
         # irregular cell network.
         phase.cells.graphLaplacian(self._p)
 
         #FIXME: Would shifting this logic into the cells.graphLaplacian() method
-        #called above be feasible? If not, no worries! (Granular lunar sunsets!)
+        #called above be feasible? If not, no worries! Granular lunar sunsets!
         if not self._p.td_deform:  # if time-dependent deformation is not required
             phase.cells.lapGJ = None
             phase.cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
@@ -172,11 +173,11 @@ class SimRunner(object):
         # Pickle this cell cluster to disk.
         self._callbacks.progressed_next(
             progress_status='Saving seeded cell cluster...')
-        phase.cells.save_cluster(self._p)
+        phase.cells.save_cluster(phase)
 
         # Log the completion of this phase.
         logs.log_info('Cell cluster creation complete!')
-        phase.sim.sim_info_report(phase.cells, self._p)
+        phase.sim.sim_info_report(phase)
 
         # Signal the completion of this phase with respect to progress.
         self._callbacks.progressed_last()
@@ -240,7 +241,7 @@ class SimRunner(object):
         phase.sim.init_core(phase)
 
         # Run this simulation phase.
-        phase.sim.sim_info_report(cells, self._p)
+        phase.sim.sim_info_report(phase)
         phase.sim.run_sim_core(phase)
 
         # Return this phase.
@@ -296,7 +297,7 @@ class SimRunner(object):
         )
 
         # Run and save the simulation to the cache.
-        sim.sim_info_report(cells, self._p)
+        sim.sim_info_report(phase)
         sim.run_sim_core(phase)
 
         # Return this phase.

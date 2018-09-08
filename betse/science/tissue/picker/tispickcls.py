@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,27 +8,27 @@
 matching various criteria to the corresponding tissue profile) classes.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta, abstractmethod
 from betse.exceptions import BetseSimConfException
 from betse.lib.numpy import nparray
 from betse.science.math import toolbox
-from betse.util.io.log import logs
+# from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericSimpleTypes, SequenceTypes
 import numpy as np
 
-# ....................{ SUPERCLASS                         }....................
+# ....................{ SUPERCLASS                        }....................
 class TissuePickerABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all **tissue profile picker** (i.e., object assigning
-    a subset of all cells matching some criteria to the corresponding tissue
-    profile) subclasses.
+    Abstract base class of all **tissue profile picker** (i.e., object
+    assigning a subset of all cells matching some criteria to the corresponding
+    tissue profile) subclasses.
 
     Typical criteria for matching cells includes explicit cell indexing,
     randomized cell selection, and image-defined spatial cell location.
     '''
 
-    # ..................{ PICKERS                            }..................
+    # ..................{ PICKERS                           }..................
     @abstractmethod
     def pick_cells(
         self,
@@ -62,9 +63,10 @@ class TissuePickerABC(object, metaclass=ABCMeta):
         p:     'betse.science.parameters.Parameters',
     ) -> tuple:
         '''
-        2-tuple ``(cells_index, mems_index)`` of one-dimensional Numpy arrays of
-        the indices of both all cells *and* cell membranes in the passed cell
-        cluster selected by this tissue picker, ignoring extracellular spaces.
+        2-tuple ``(cells_index, mems_index)`` of one-dimensional Numpy arrays
+        of the indices of both all cells *and* cell membranes in the passed
+        cell cluster selected by this tissue picker, ignoring extracellular
+        spaces.
 
         By default, this method returns the array returned by the subclass
         implementation of the abstract :meth:`pick_cells` method, mapped from
@@ -95,13 +97,13 @@ class TissuePickerABC(object, metaclass=ABCMeta):
         #Unfortunately, the two-dimensional Numpy array "cells.cell_to_mems"
         #actually appears to be a one-dimensional array of lists -- which is a
         #bit bizarro-world. To compaund matters, this array's "dtype" is
-        #"object" (presumably, because it contains Python lists) rather than the
-        #"dtype" of "int" that one might expect. Since this is the case, it's
-        #infeasible to even coerce the temporary one-dimensional Numpy array
-        #"cells.cell_to_mems[cells_index]" into a two-dimensional array of ints
-        #by calling ndarray.astype(int). Frankly, it's all a bit beyond me;
-        #until this core issue is resolved, however, the current inelegant and
-        #inefficient approach remains.
+        #"object" (presumably, because it contains Python lists) rather than
+        #the "dtype" of "int" that one might expect. Since this is the case,
+        #it's infeasible to even coerce the temporary one-dimensional Numpy
+        #array "cells.cell_to_mems[cells_index]" into a two-dimensional array
+        #of ints by calling ndarray.astype(int). Frankly, it's all a bit beyond
+        #me; until this core issue is resolved, however, the current inelegant
+        #and inefficient approach remains.
 
         # One-dimensional Numpy array of the indices of subclass-selected cell
         # membranes mapped from the array of cell indices.
@@ -113,14 +115,14 @@ class TissuePickerABC(object, metaclass=ABCMeta):
         # Return these arrays.
         return cells_index, mems_index
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 class TissuePickerAll(TissuePickerABC):
     '''
     All-inclusive tissue picker, unconditionally matching *all* cells in the
     current cell cluster.
     '''
 
-    # ..................{ PICKERS                            }..................
+    # ..................{ PICKERS                           }..................
     @type_check
     def pick_cells(
         self,
@@ -142,7 +144,7 @@ class TissuePickerIndices(TissuePickerABC):
         Sequence of the indices of all cells to match.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(self, cells_index: SequenceTypes) -> None:
         '''
@@ -156,7 +158,7 @@ class TissuePickerIndices(TissuePickerABC):
 
         self.cells_index = cells_index
 
-    # ..................{ PICKERS                            }..................
+    # ..................{ PICKERS                           }..................
     @type_check
     def pick_cells(
         self,
@@ -169,17 +171,17 @@ class TissuePickerIndices(TissuePickerABC):
 
 class TissuePickerPercent(TissuePickerABC):
     '''
-    Randomized cell picker, randomly matching a given percentage of all cells in
-    the current cell cluster.
+    Randomized cell picker, randomly matching a given percentage of all cells
+    in the current cell cluster.
 
     Attributes
     ----------
     cells_percent : NumericSimpleTypes
-        **Percentage** (i.e., number in the range ``[0.0, 100.0]``) of the total
-        cell population to randomly match.
+        **Percentage** (i.e., number in the range ``[0.0, 100.0]``) of the
+        total cell population to randomly match.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(self, cells_percent: NumericSimpleTypes) -> None:
         '''
@@ -201,7 +203,7 @@ class TissuePickerPercent(TissuePickerABC):
         # Classify this parameter.
         self.cells_percent = cells_percent
 
-    # ..................{ PICKERS                            }..................
+    # ..................{ PICKERS                           }..................
     @type_check
     def pick_cells(
         self,

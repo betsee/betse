@@ -21,7 +21,7 @@ from betse.science.tissue.tisprofile import CutProfile, TissueProfile
 from betse.science.tissue.event.tisevecut import SimEventCut
 from betse.science.tissue.event.tisevevolt import SimEventPulseVoltage
 from betse.science.tissue.picker.tispickcls import (
-    TissuePickerAll, TissuePickerIndices, TissuePickerPercent)
+    TissuePickerABC, TissuePickerAll, TissuePickerIndices, TissuePickerPercent)
 from betse.science.tissue.picker.tispickimage import TissuePickerImage
 from betse.util.io.log import logs
 # from betse.util.type import types
@@ -780,7 +780,7 @@ class TissueHandler(object):
         if p.global_options['NaKATP_block'] != 0:
             sim.NaKATP_block = (1.0 - tb.pulse(t,self.tonNK,self.toffNK,self.trampNK))
 
-
+    # ..................{ FIRERS ~ tissue                   }..................
     @type_check
     def _fire_events_tissue(self, phase: SimPhase, t: float) -> None:
         '''
@@ -888,9 +888,9 @@ class TissueHandler(object):
 
                 cut_profile_picker = (
                     self.cut_name_to_profile[cut_profile_name].picker)
-                self.removeCells(cut_profile_picker, sim, cells, p)
+                self._cut_cells(phase=phase, tissue_picker=cut_profile_picker)
 
-            logs.log_info("Cutting event successful! Resuming simulation...")
+            logs.log_info('Cutting event successful! Resuming simulation...')
 
             # Redo main data length variable for this dynamics module with
             # updated world.
@@ -907,76 +907,29 @@ class TissueHandler(object):
         if self._event_voltage is not None:
             self._event_voltage.fire(phase=phase, time_step=t)
 
-    # ..................{ CHANNELS                          }..................
-    def stretchChannel(self,sim,cells,p,t):
-
-        dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
-
-        # calculate strain from displacement
-        eta = (dd/cells.R)
-
-        # # create a smooth bivariate spline to interpolate deformation data from cells:
-        # cellinterp_x = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_x, kx=1,
-        #                                      ky=1)
-        # cellinterp_y = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_y, kx=1,
-        #                                      ky=1)
-        #
-        # # calculate deformations wrt the ecm using the smooth bivariate spline:
-        # dmem_x = cellinterp_x.ev(cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1])
-        # dmem_y = cellinterp_y.ev(cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1])
-        #
-        # # obtain normal component to membrane
-        # dd = dmem_x*cells.mem_vects_flat[:,2] + dmem_y*cells.mem_vects_flat[:,3]
-        #
-        # # strain is the divergence of the displacement:
-        # eta = np.dot(cells.M_sum_mems, dd*cells.mem_sa)/cells.cell_vol
-
-        # self.active_NaStretch[self.targets_NaStretch] = tb.hill(sim.P_cells[cells.mem_to_cells][self.targets_NaStretch],
-        #         self.NaStretch_halfmax,self.NaStretch_n)
-
-        self.active_NaStretch[self.targets_NaStretch] = tb.hill(eta[cells.mem_to_cells][self.targets_NaStretch],
-                self.NaStretch_halfmax,self.NaStretch_n)
-
-        sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch
-        sim.Dm_stretch[sim.iK] = self.maxDmNaStretch*self.active_NaStretch
-
-
-    def makeAllChanges(self, sim) -> None:
-        '''
-        Add together all effects to finalize changes to cell membrane
-        permeabilities for the current time step.
-        '''
-
-        sim.Dm_cells = (
-            sim.Dm_scheduled +
-            sim.Dm_base
-        )
-
-        sim.P_cells = sim.P_mod + sim.P_base
-
 
     @type_check
-    def removeCells(
+    def _cut_cells(
         self,
-        tissue_picker,
-        sim:   'betse.science.sim.Simulator',
-        cells: 'betse.science.cells.Cells',
-        p:     'betse.science.parameters.Parameters',
+        phase: SimPhase,
+        tissue_picker: TissuePickerABC,
     ) -> None:
         '''
-        Permanently remove all cells selected by the passed tissue picker.
+        Permanently remove all cells selected by the passed tissue picker from
+        the cell cluster described by the passed simulation phase.
 
         Parameters
-        ---------------------------------
+        ----------
+        phase : SimPhase
+            Current simulation phase.
         tissue_picker : TissuePickerABC
             Object matching all cells to be removed.
-        sim : betse.science.sim.Simulation
-            Current simulation.
-        cells : betse.science.cells.Cells
-            Current cell cluster.
-        p : betse.science.parameters.Parameters
-            Current simulation configuration.
         '''
+
+        # Localize pertinent simulation phase objects for convenience.
+        cells = phase.cells
+        p = phase.p
+        sim = phase.sim
 
         # Redo environmental diffusion matrices by setting the environmental spaces
         # around cut world to the free value (True) or not (False)?
@@ -1051,8 +1004,9 @@ class TissueHandler(object):
         # Names of all attributes in the current "Simulation" object.
         sim_names = list(sim.__dict__.keys())
 
-        #FIXME: Redeclare as a "set" object, rename to "specials_names", and remove
-        #the duplicate declaration of that variable below. Jumpin' jallopies!
+        #FIXME: Consider redeclaring this list as a set instead, renaming that
+        #set to "specials_names", and removing the duplicate declaration of
+        #that variable below. Hot jumpin' jallopies!
 
         # Names of all such attributes to be repaired due to this cutting event.
         specials_list = [
@@ -1130,7 +1084,6 @@ class TissueHandler(object):
 
                 setattr(sim, name, super_data2)
 
-
             else:
                 data = getattr(sim, name)
 
@@ -1159,11 +1112,8 @@ class TissueHandler(object):
                         data2.append(data[index])
                         setattr(sim, name, data2)
 
-
-        if p.Ca_dyn is True and sim.endo_retic is not None:
-
+        if p.Ca_dyn and sim.endo_retic is not None:
             sim.endo_retic.remove_ers(sim, target_inds_cell)
-
 
     #-------------------------------Fix-up cell world ----------------------------------------------------------------------
         new_cell_centres = []
@@ -1210,9 +1160,8 @@ class TissueHandler(object):
         sim.mdl = len(cells.mem_mids_flat)  # mems-data-length
         sim.cdl = len(cells.cell_centres)  # cells-data-length
 
-        if p.is_ecm is True:  # set environnment data length
+        if p.is_ecm:  # set environnment data length
             sim.edl = len(cells.xypts)
-
         else:
             sim.edl = len(cells.mem_mids_flat)
 
@@ -1229,12 +1178,12 @@ class TissueHandler(object):
 
         # delete data from molecules objects:
         if p.molecules_enabled and sim.molecules is not None:
-
-            sim.molecules.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+            sim.molecules.core.mod_after_cut_event(
+                target_inds_cell, target_inds_mem, sim, cells, p)
 
         if p.grn_enabled and sim.grn is not None:
-
-            sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+            sim.grn.core.mod_after_cut_event(
+                target_inds_cell, target_inds_mem, sim, cells, p)
 
         # Save target inds so they can be used outside of the core simulator (i.e. dynamically in sim-grn)
         sim.target_inds_cell_o = target_inds_cell
@@ -1248,7 +1197,6 @@ class TissueHandler(object):
 
         if p.fluid_flow or p.deformation:
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-
             cells.deform_tools(p)
 
             if p.deformation:  # if user desires deformation:
@@ -1275,7 +1223,6 @@ class TissueHandler(object):
         self.targets_vgWound = mem_match_inds
 
         if p.break_TJ: # we need to redo the TJ barrier at the wound site:
-
             # first identify indices of exterior and interior extracellular grid sites corresponding to the wound TJ:
             cell_wound_inds = (sim.hurt_mask == 1.0).nonzero()
             neigh_to_wound_cells, _, _ = tb.flatten(cells.cell_nn[cell_wound_inds])
@@ -1289,7 +1236,6 @@ class TissueHandler(object):
             ecmtarg = np.hstack((ecmtarg_a, ecmtarg_b))
             # ecmtarg = ecmtarg_a
 
-
             Dw = np.copy(sim.D_env_weight.ravel())
 
             # assign the wound TJ to the user's requested value:
@@ -1300,10 +1246,8 @@ class TissueHandler(object):
 
             # furthermore, recalculate the individual ion diffusion maps:
             if p.is_ecm:
-
                 for i, dmat in enumerate(sim.D_env):
                     Denv_o = np.copy(dmat)
-
                     Denv_o[ecmtarg] = sim.D_free[i]*p.wound_TJ*sim.Dtj_rel[i]
 
                     # re-assign the ecm diffusion grid filled with the environmental values at wound site:
@@ -1330,3 +1274,50 @@ class TissueHandler(object):
         # If this is the fast BETSE solver, re-initialize this solver.
         if p.solver_type is SolverType.FAST:
             sim.fast_sim_init(cells, p)
+
+    # ..................{ CHANNELS                          }..................
+    def stretchChannel(self,sim,cells,p,t):
+
+        dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
+
+        # calculate strain from displacement
+        eta = (dd/cells.R)
+
+        # # create a smooth bivariate spline to interpolate deformation data from cells:
+        # cellinterp_x = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_x, kx=1,
+        #                                      ky=1)
+        # cellinterp_y = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_y, kx=1,
+        #                                      ky=1)
+        #
+        # # calculate deformations wrt the ecm using the smooth bivariate spline:
+        # dmem_x = cellinterp_x.ev(cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1])
+        # dmem_y = cellinterp_y.ev(cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1])
+        #
+        # # obtain normal component to membrane
+        # dd = dmem_x*cells.mem_vects_flat[:,2] + dmem_y*cells.mem_vects_flat[:,3]
+        #
+        # # strain is the divergence of the displacement:
+        # eta = np.dot(cells.M_sum_mems, dd*cells.mem_sa)/cells.cell_vol
+
+        # self.active_NaStretch[self.targets_NaStretch] = tb.hill(sim.P_cells[cells.mem_to_cells][self.targets_NaStretch],
+        #         self.NaStretch_halfmax,self.NaStretch_n)
+
+        self.active_NaStretch[self.targets_NaStretch] = tb.hill(eta[cells.mem_to_cells][self.targets_NaStretch],
+                self.NaStretch_halfmax,self.NaStretch_n)
+
+        sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch
+        sim.Dm_stretch[sim.iK] = self.maxDmNaStretch*self.active_NaStretch
+
+
+    def makeAllChanges(self, sim) -> None:
+        '''
+        Add together all effects to finalize changes to cell membrane
+        permeabilities for the current time step.
+        '''
+
+        sim.Dm_cells = (
+            sim.Dm_scheduled +
+            sim.Dm_base
+        )
+
+        sim.P_cells = sim.P_mod + sim.P_base

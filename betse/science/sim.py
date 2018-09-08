@@ -1987,38 +1987,56 @@ class Simulator(object):
             self.grn.core.report(self, phase.p)
 
 
-    def sim_info_report(self,cells,p):
+    #FIXME: This method is cells-specific and should thus probably be shifted
+    #into the "betse.science.cells.Cells" class. Humongous mongrels unite!
+    def sim_info_report(self, phase: SimPhase) -> None:
+        '''
+        Log a human-readable synopsis of this seeded cell cluster, the
+        surrounding extracellular matrix, and simulation features enabled by
+        the passed simulation phase.
 
-        logs.log_info('This world contains ' + str(cells.cell_number) + ' cells.')
-        logs.log_info('Each cell has an average of ' + str(round(cells.average_nn, 2)) + ' nearest-neighbours.')
+        Parameters
+        --------
+        phase : SimPhase
+            Current simulation phase.
+        '''
 
+        from betse.util.type.text import strs
+
+        logs.log_info('This world contains %d cells.', phase.cells.cell_number)
         logs.log_info(
-            'You are running the ion profile: %s', str(p.ion_profile).lower())
-        logs.log_info('Ions in this simulation: %s', str(self.ionlabel))
+            'Each cell has an average of %.2f nearest-neighbours.',
+            phase.cells.average_nn)
+        logs.log_info(
+            'The "%s" ion profile enables the %s ions.',
+            phase.p.ion_profile.name.lower(),
+            strs.join_as_conjunction_double_quoted(*phase.sim.ionlabel.values()))
         logs.log_info(
             'If you have selected features using other ions, '
             'they will be ignored.')
+        logs.log_info('Extracellular spaces enabled: %s', str(phase.p.is_ecm))
 
-        logs.log_info('Considering extracellular spaces: ' + str(p.is_ecm))
+        if phase.p.is_ecm:
+            logs.log_info(
+                'Cells per environmental grid square: %.2f', phase.cells.ratio_cell2ecm)
 
-        if p.is_ecm:
-            logs.log_info('Cells per env grid square ' + str(round(cells.ratio_cell2ecm, 2)))
-
-        logs.log_info('Electroosmotic fluid flow: ' + str(p.fluid_flow))
+        logs.log_info(
+            'Electroosmotic fluid flow: %s', str(phase.p.fluid_flow))
         # logs.log_info('Ion pump and channel electodiffusion in membrane: ' + str(p.sim_eosmosis))
-        logs.log_info('Force-induced cell deformation: ' + str(p.deformation))
-        logs.log_info('Osmotic pressure: ' + str(p.deform_osmo))
+        logs.log_info(
+            'Force-induced cell deformation: %s', str(phase.p.deformation))
+        logs.log_info(
+            'Osmotic pressure: %s', str(phase.p.deform_osmo))
         # logs.log_info('Electrostatic pressure: ' + str(p.deform_electro))
 
-        if p.molecules_enabled:
-            logs.log_info(
-                'Auxiliary molecules and properties are enabled from '
-                '"General Networks" section of main config file.')
+        if phase.p.molecules_enabled:
+            logs.log_info('Auxiliary molecules and properties are enabled from the')
+            logs.log_info('"General Networks" section of the main configuration file.')
 
-        if p.grn_enabled:
+        if phase.p.grn_enabled:
             logs.log_info(
-                'A gene regulatory network is being simulated using file: %s',
-                p.grn_config_filename)
+                'Gene regulatory network (GRN) configuration: %s',
+                phase.p.grn_config_filename)
 
     #.................{  DOOERs & GETTERS  }............................................
 
