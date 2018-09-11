@@ -3,6 +3,14 @@
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+'''
+Gene regulatory network (GRN) functionality.
+'''
+
+#FIXME: This file is so large that my sad-faced command-line editor has trouble
+#even viewing it. Would separating each of the classes defined below (e.g.,
+#"MasterOfNetworks", "Molecule", "Channel") into separate files be feasible?
+
 # ....................{ IMPORTS                           }....................
 import csv, math
 import matplotlib.pyplot as plt
@@ -18,26 +26,28 @@ from betse.science.channels import vg_k as vgk
 from betse.science.channels import vg_na as vgna
 from betse.science.channels import vg_morrislecar as vgml
 from betse.science.chemistry.netplot import plot_master_network, set_net_opts
-from betse.science.config.export.visual.confvisabc import SimConfVisualCellsNonYAML
+from betse.science.config.export.visual.confvisabc import (
+    SimConfVisualCellsNonYAML)
 from betse.science.math import finitediff as fd
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.phaseenum import SimPhaseKind
-from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
+from betse.science.visual.anim.anim import (
+    AnimFlatCellsTimeSeries, AnimEnvTimeSeries)
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from betse.util.type.mapping.mapcls import DynamicValue, DynamicValueDict
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, SequenceTypes
 from collections import OrderedDict
 from matplotlib import cm
 from matplotlib import colors
 from scipy.optimize import basinhopping
 
 # ....................{ CLASSES                           }....................
-# FIXME: if moving to have unpacked membrane concs, update transporters...
+#FIXME: if moving to have unpacked membrane concs, update transporters...
 class MasterOfNetworks(object):
     '''
     High-level object managing all low-level gene regulatory network (GRN)
@@ -293,20 +303,39 @@ class MasterOfNetworks(object):
             self.mit_concs = None
 
 
-    def tissue_init(self, sim, cells, config_substances, p):
+    @type_check
+    def tissue_init(
+        self,
+        phase: SimPhase,
+        config_substances: SequenceTypes,
+    ) -> None:
         '''
         Complete the initialization process of each molecule with additional
-        fields *without* modifying concentrations.
+        fields *without* modifying concentrations for the passed simulation
+        phase.
 
         This method also intelligently handles the edge case where the user
         changes configuration file settings *after* running an initiialization,
         ensuring that new parameters are updated.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+        config_substances : SequenceTypes
+            Sequence of dictionaries signifying each substance to be
+            initialized mapping from... we have no idea, actually.
         '''
 
-        logs.log_info("Initializing substances/reaction network...")
+        # Log this initialization.
+        logs.log_info('Initializing substances/reaction network...')
+
+        # Localize high-level phase objects for convenience.
+        cells = phase.cells
+        p     = phase.p
+        sim   = phase.sim
 
         if config_substances is not None:
-
             for q, mol_dic in enumerate(config_substances):
                 # get each user-defined name-filed in the dictionary:
                 name = str(mol_dic['name'])
@@ -417,10 +446,7 @@ class MasterOfNetworks(object):
                         mol.decay_activators_list,
                         mol.decay_inhibitors_list)
 
-
-
-
-                    mol.init_growth(sim, cells, p)
+                    mol.init_growth(phase)
 
                     # the modulator function, if requested, makes gad occur modulated by a function.
                     # Make this happen, if it's requested:
@@ -3843,30 +3869,29 @@ class MasterOfNetworks(object):
     def bal_charge(self, Q, sim, tag, p):
 
         if tag == 'cell':
-
-            if Q < 0 and np.abs(Q) <= sim.cc_cells[sim.iM].mean():  # if net charge is anionic
-
+            # If net charge is anionic...
+            if Q < 0 and np.abs(Q) <= sim.cc_cells[sim.iM].mean():
                 self.cell_concs['M'] = sim.cc_cells[sim.iM] - np.abs(Q)
-
             elif Q > 0 and np.abs(Q) <= sim.cc_cells[sim.iK].mean():
-
                 self.cell_concs['K'] = sim.cc_cells[sim.iK] - np.abs(Q)
-
-            elif Q < 0 and np.abs(Q) > sim.cc_at_mem[sim.iM].mean():  # if net charge is anionic
-                raise BetseSimConfException("You've defined way more anionic charge in "
-                                               "the extra substances (cell region) than we can "
-                                               "compensate for. Either turn 'substances "
-                                               "affect Vmem' off, or try again.")
+            elif Q < 0 and np.abs(Q) > sim.cc_at_mem[sim.iM].mean():
+                raise BetseSimConfException(
+                    'You have defined more anionic charge in '
+                    'the extra substances (cell region) than can be '
+                    'compensated for. Either disable "substances affect Vmem" '
+                    'or try again.'
+                )
             elif Q > 0 and np.abs(Q) > sim.cc_cells[sim.iK].mean():
-                raise BetseSimConfException("You've defined way more cationic charge in"
-                                               "the extra substances (cell region) than we can "
-                                               "compensate for. Either turn 'substances "
-                                               "affect Vmem' off, or try again.")
+                raise BetseSimConfException(
+                    'You have defined more cationic charge in '
+                    'the extra substances (cell region) than can be '
+                    'compensated for. Either disable "substances affect Vmem" '
+                    'or try again.'
+                )
 
             sim.extra_rho_cells = p.F*Q*np.ones(sim.cdl)
 
         elif tag == 'env':
-
             if Q < 0 and np.abs(Q) <= sim.cc_env[sim.iM].mean():  # if net charge is anionic
 
                 self.env_concs['M'] = sim.cc_env[sim.iM] - np.abs(Q)
@@ -3910,6 +3935,7 @@ class MasterOfNetworks(object):
 
             self.mit.extra_rho = p.F*Q*np.ones(sim.cdl)
 
+
     def get_rho_mem(self, cells, p):
 
         # FIXME add this to if substances affect charge loop!!
@@ -3917,39 +3943,73 @@ class MasterOfNetworks(object):
         self.rho_at_mem = np.zeros(len(cells.mem_mids_flat))
 
         for ind, mol in self.molecules.items():
-
             self.rho_at_mem += mol.z*p.F*mol.cc_at_mem*cells.diviterm[cells.mem_to_cells]
 
         self.rho_cells = np.dot(cells.M_sum_mems, self.rho_at_mem)/cells.num_mems
 
+
     def energy_charge(self, sim):
 
         if 'AMP' in self.molecules:
-
-            numo = (self.cell_concs['ATP'] + 0.5 * self.cell_concs['ADP'])
-            denomo = (self.cell_concs['ATP'] + self.cell_concs['ADP'] + self.cell_concs['AMP'])
+            numo = (
+                self.cell_concs['ATP'] +
+                0.5 * self.cell_concs['ADP']
+            )
+            denomo = (
+                self.cell_concs['ATP'] +
+                self.cell_concs['ADP'] +
+                self.cell_concs['AMP']
+            )
 
             self.chi = numo / denomo
 
         else:
-
             self.chi = np.zeros(sim.cdl)
 
-    def mod_after_cut_event(self, target_inds_cell, target_inds_mem, sim, cells, p, met_tag=False):
+    # ..................{ CUTTERS                           }..................
+    @type_check
+    def mod_after_cut_event(
+        self,
+        phase: SimPhase,
+        target_inds_cell: SequenceTypes,
+        target_inds_mem: SequenceTypes,
+    ):
+        '''
+        Modify this gene regulatory network (GRN) to account for the removal of
+        the passed cells and cell membranes from the current cell cluster in
+        the wake of a recent cutting event under the passed simulation phase.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+        target_inds_cell : SequenceTypes
+            One-dimensional Numpy array of the indices of all removed cells.
+        target_inds_mem : SequenceTypes
+            One-dimensional Numpy array of the indices of all removed cell
+            membranes.
+        '''
+
+        #FIXME: Do we genuinely require this anymore? This is probably
+        #vestigial much like my failing intellect. Dragons of the midday Sun!
+        met_tag = False
+
+        # Localize pertinent simulation phase objects for convenience.
+        cells = phase.cells
+        p     = phase.p
+        sim   = phase.sim
 
         self.extra_J_mem = np.zeros(sim.mdl)
 
-        # get the name of the specific substance:
+        # Get the name of the specific substance.
         for name in self.molecules:
-
             obj = self.molecules[name]
-
-            obj.remove_cells(target_inds_cell, target_inds_mem, sim, cells, p)
+            obj.remove_cells(phase, target_inds_cell, target_inds_mem)
 
         if self.mit_enabled:
             self.mit.remove_mits(sim, target_inds_cell)
 
-        if sim.met_concs is not None and met_tag is True:  # update metabolism object if it's being simulated
+        if sim.met_concs is not None and met_tag:  # update metabolism object if it's being simulated
             sim.met_concs = {'cATP': self.cell_concs['ATP'][cells.mem_to_cells],
                 'cADP': self.cell_concs['ADP'][cells.mem_to_cells],
                 'cPi': self.cell_concs['Pi'][cells.mem_to_cells]}
@@ -3961,31 +4021,35 @@ class MasterOfNetworks(object):
 
         for name in self.channels:
             obj = self.channels[name]
+            obj.init_channel(
+                obj.channel_class,
+                obj.channel_type,
+                obj.channelMax,
+                sim, cells, p)
 
-            obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, sim, cells, p)
 
     def redefine_dynamic_dics(self, sim, cells, p):
+        '''
+        Redefine dynamic dictionaries by re-using the old values from the
+        original networks object while recreating new mappings to a the passed
+        simulation phase.
 
-        """
-        This method redefines dynamic dictionaries re-using the old values from the original networks object,
-        but new maps to a new sim object. This is required for the special case of a sim-grn run on a pre-run
-        betse sim that has had a cutting event.
+        This is required for the special case of a ``sim-grn`` run on a pre-run
+        simulation that has had a cutting event.
+        '''
 
-        :param sim:
-        :param cells:
-        :param p:
-        :return:
-        """
+        # Log this redefinition.
+        logs.log_info(
+            'Redefining dynamic dictionaries to refer to new simulation...')
 
-
-
-        # Initialize dictionaries that will eventually hold dynamic values for cell, env and mit concentrations:
+        # Initialize dictionaries that will eventually hold dynamic values for
+        # cell, env and mit concentrations.
         cell_concs_mapping = {}
         mem_concs_mapping = {}
         env_concs_mapping = {}
         bound_concs_mapping = {}
 
-        # if mitochondria are enabled:
+        # If mitochondria are enabled...
         if self.mit_enabled:
             self.mit = Mito(sim, cells, p)
             mit_concs_mapping = {}
@@ -3993,11 +4057,9 @@ class MasterOfNetworks(object):
             self.mit = None
             mit_concs_mapping = None
 
-        # begin by adding all sim ions to the dynamic concentration mapping structures:
+        # Add all enabled ions to the dynamic concentration mapping structures.
         for k, val in p.ions_dict.items():
-
             if val == 1: # if the ion is used in the simulation
-
                 # get the numerical index from the short string label (i.e. 'Na', 'K', etc) of the ion:
                 ion_index = sim.get_ion(k)
 
@@ -5466,6 +5528,7 @@ class MasterOfNetworks(object):
 
         return alpha, alpha_tex, tex_list
 
+
 class Molecule(object):
     '''
     Low-level object aggregating all simulated properties for a single molecule
@@ -5531,12 +5594,12 @@ class Molecule(object):
 
         self.gating_mod = 1.0
 
+
     def transport(self, sim, cells, p):
-        """
-        Transports the molecule across the membrane,
-        through gap junctions, and if p.is_ecm is true,
-        through extracellular spaces and the environment.
-        """
+        '''
+        Transport this molecule across the membrane, through gap junctions, and
+        if p.is_ecm is true, through extracellular spaces and the environment.
+        '''
 
         self.c_env, self.c_cells, self.cc_at_mem, self.f_mem, self.f_gj, \
         self.fenvx, self.fenvy = stb.molecule_mover(
@@ -5564,15 +5627,16 @@ class Molecule(object):
             umt = self.u_mt,
         )
 
+
     def updateC(self, flux, sim, cells, p):
-        """
+        '''
+        Update both a flux defined on membranes *and* concentrations in cells
+        and environment.
+        '''
 
-        General updater for a flux defined on membranes and updating concentrations in
-        cells and environment.
-
-        """
         self.c_cells, self.cc_at_mem, self.c_env = stb.update_Co(sim, self.c_cells, self.cc_at_mem,
                                                                 self.c_env, flux, cells, p, ignoreECM=True)
+
 
     def update_intra(self, sim, cells, p):
 
@@ -5667,12 +5731,12 @@ class Molecule(object):
                 "Network concentration " + self.name + " on membrane below zero! Your simulation has"
                                                        " become unstable.")
 
-    def pump(self, sim, cells, p):
 
-        """
-        Defines a generic active transport pump that can be used to move
-        a general molecule (such as serotonin or glutamate)
-        into or out of the cell by active transport.
+    def pump(self, sim, cells, p):
+        '''
+        Define a generic active transport pump that can be used to move a
+        general molecule (such as serotonin or glutamate) into or out of the
+        cell by active transport.
 
         Works on the basic premise of enzymatic pumps defined elsewhere:
 
@@ -5683,8 +5747,7 @@ class Molecule(object):
         pump_out is False:
 
         cX_env + cATP  <------- cX_cell + cADP + cPi
-
-        """
+        '''
 
         if self.use_pumping:
 
@@ -5706,11 +5769,12 @@ class Molecule(object):
                     cells, p, Df=self.Do, z=self.z, pump_into_cell=self.pump_to_cell, alpha_max=self.pump_max_val,
                     Km_X=self.pump_Km, Keq= 1.0, ignoreECM = self.ignore_ECM_pump, rho = sim.rho_pump)
 
-    def gating(self, sim, cells, p):
-        """
-        Uses the molecule concentration to open an ion channel in the cell membranes.
 
-        """
+    def gating(self, sim, cells, p):
+        '''
+        Open an ion channel in cell membranes according to this molecule's
+        current concentration.
+        '''
 
         # update membrane permeability if dye targets an ion channel:
         if self.use_gating_ligand:
@@ -5734,60 +5798,76 @@ class Molecule(object):
                         Dm_mod_mol = self.gating_max_val * tb.hill(self.c_env[cells.map_mem2ecm],
                                                                    self.gating_Hill_K, self.gating_Hill_n)
 
-                # obtain concentration of ion inside and out of the cell, as well as its charge z:
+                # Obtain concentration of ion inside and out of the cell, as
+                # well as its charge z.
                 c_mem = sim.cc_cells[ion_tag][cells.mem_to_cells]
 
-                if p.is_ecm is True:
+                if p.is_ecm:
                     c_env = sim.cc_env[ion_tag][cells.map_mem2ecm]
-
                 else:
                     c_env = sim.cc_env[ion_tag]
 
                 IdM = np.ones(sim.mdl)
-
                 z_ion = sim.zs[ion_tag]*IdM
 
-                # membrane diffusion constant of the channel:
+                # Membrane diffusion constant of the channel.
                 Dchan = sim.rho_channel*Dm_mod_mol*self.gating_mod
 
-                # calculate specific ion flux contribution for this channel:
-                chan_flx = stb.electroflux(c_env, c_mem, Dchan, p.tm*IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
+                # Calculate specific ion flux contribution for this channel.
+                chan_flx = stb.electroflux(
+                    c_env,
+                    c_mem,
+                    Dchan,
+                    p.tm*IdM,
+                    z_ion,
+                    sim.vm,
+                    sim.T,
+                    p,
+                    rho=sim.rho_channel,
+                )
 
-                # update the sim flux keeper to ensure this contributes to net current:
+                # Update the sim flux keeper to ensure this contributes to net
+                # current.
                 sim.fluxes_mem[ion_tag] = sim.fluxes_mem[ion_tag] + chan_flx
 
-                # update ion concentrations in cell and ecm:
-                sim.cc_cells[ion_tag], sim.cc_at_mem[ion_tag], sim.cc_env[ion_tag] = stb.update_Co(sim,
-                                                                     sim.cc_cells[ion_tag], sim.cc_at_mem[ion_tag],
-                                                                      sim.cc_env[ion_tag], chan_flx, cells, p,
-                                                                      ignoreECM=False)
-
-    def init_growth(self, sim, cells, p):
-
-        if self.growth_profiles_list is not None and self.growth_profiles_list != 'all':
-
-            self.growth_targets_cell = []
-            self.growth_targets_mem = []
-
-            for profile in self.growth_profiles_list:
-                targets_cell = sim.dyna.cell_target_inds[profile]
-                self.growth_targets_cell.extend(targets_cell)
-
-                targets_mem = sim.dyna.tissue_target_inds[profile]
-                self.growth_targets_mem.extend(targets_mem)
+                # Update ion concentrations in cell and ecm.
+                sim.cc_cells[ion_tag], sim.cc_at_mem[ion_tag], sim.cc_env[ion_tag] = stb.update_Co(
+                    sim,
+                    sim.cc_cells[ion_tag],
+                    sim.cc_at_mem[ion_tag],
+                    sim.cc_env[ion_tag],
+                    chan_flx,
+                    cells, p,
+                    ignoreECM=False,
+                )
 
 
-        elif self.growth_profiles_list is None or self.growth_profiles_list == 'all':
+    @type_check
+    def remove_cells(
+        self,
+        phase: SimPhase,
+        target_inds_cell: SequenceTypes,
+        target_inds_mem: SequenceTypes,
+    ) -> None:
+        '''
+        Remove this molecule from the passed recently removed cells and cell
+        membranes following a cutting event under the passed simulation phase.
 
-            self.growth_targets_cell = cells.cell_i
-            self.growth_targets_mem = cells.mem_i
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+        target_inds_cell : SequenceTypes
+            One-dimensional Numpy array of the indices of all removed cells.
+        target_inds_mem : SequenceTypes
+            One-dimensional Numpy array of the indices of all removed cell
+            membranes.
+        '''
 
-    def remove_cells(self, target_inds_cell, target_inds_mem, sim, cells, p):
-        """
-        During a cutting event, removes the right cells from the simulation network,
-        while preserving additional information.
-
-        """
+        # Localize pertinent simulation phase objects for convenience.
+        cells = phase.cells
+        p     = phase.p
+        sim   = phase.sim
 
         # remove cells from the cell concentration list:
         ccells2 = np.delete(self.c_cells, target_inds_cell)
@@ -5819,28 +5899,55 @@ class Molecule(object):
         # # reassign the new data vector to the object:
         # self.c_mems = cmems2[:]
 
-        if self.simple_growth is True:
-
+        if self.simple_growth:
             gmfc = np.delete(self.growth_mod_function_cells, target_inds_cell)
             self.growth_mod_function_cells = gmfc[:]
 
             # if len(self.growth_mod_function_cells) == 0:
             #     self.growth_mod_function_cells = 1
 
-        sim.dyna.tissueProfiles(sim, cells, p)  # re-initialize all tissue profiles
-        self.init_growth(sim, cells, p)
+        # Re-initialize all tissue profiles.
+        phase.dyna.init_profiles(phase)
+        self.init_growth(phase)
 
-        if p.is_ecm is False:
-
+        if not p.is_ecm:
             cenv2 = np.delete(self.c_env, target_inds_mem)
             self.c_env = cenv2[:]
-
 
         if self.mit_enabled:
             # remove cells from the cell concentration list:
             cmit2 = np.delete(self.c_mit, target_inds_cell)
             # reassign the new data vector to the object:
             self.c_mit = cmit2[:]
+
+
+    #FIXME: Improve us up the documentation, please. A firestorm of apples!
+    @type_check
+    def init_growth(self, phase: SimPhase) -> None:
+        '''
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+        '''
+
+        if (
+            self.growth_profiles_list is not None and
+            self.growth_profiles_list != 'all'
+        ):
+            self.growth_targets_cell = []
+            self.growth_targets_mem = []
+
+            for profile in self.growth_profiles_list:
+                targets_cell = phase.dyna.cell_target_inds[profile]
+                self.growth_targets_cell.extend(targets_cell)
+
+                targets_mem = phase.dyna.tissue_target_inds[profile]
+                self.growth_targets_mem.extend(targets_mem)
+        else:
+            self.growth_targets_cell = phase.cells.cell_i
+            self.growth_targets_mem = phase.cells.mem_i
+
 
     def update_boundary(self, t, p):
         """
@@ -6061,13 +6168,14 @@ class Molecule(object):
                 'Skipping environmental plot of %s '
                 'due to 100%% null values!', self.name)
 
+
     #FIXME: Ideally, this method should be refactored to comply with the
     #new pipeline API.
     @type_check
     def anim_cells(self, phase: SimPhase) -> None:
-        """
+        '''
         Create 2D animation of cell concentration.
-        """
+        '''
 
         #FIXME: To support GUI modification, refactor this class to access the
         #underlying YAML-based subconfiguration.
@@ -6084,13 +6192,14 @@ class Molecule(object):
             figure_title='Cytosolic ' + self.name,
             colorbar_title='Concentration [mmol/L]')
 
+
     #FIXME: Ideally, this method should be refactored to comply with the
     #new pipeline API.
     @type_check
     def anim_env(self, phase: SimPhase) -> None:
-        """
-        Create 2D animation of env concentration.
-        """
+        '''
+        Create 2D animation of environmental concentration.
+        '''
 
         #FIXME: To support GUI modification, refactor this class to access the
         #underlying YAML-based subconfiguration.
@@ -6120,13 +6229,12 @@ class Molecule(object):
                 'Skipping environmental animation of %s '
                 'due to 100%% null values!', self.name)
 
+
 class Reaction(object):
 
     def __init__(self, sim, cells, p):
 
-
         # pre-populate the object with fields that will be assigned by MasterOfMolecules
-
         self.name = None
         self.reactants_list = None
         self.reactants_coeff = None
@@ -6175,6 +6283,7 @@ class Reaction(object):
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
+
 
 class Transporter(object):
 
@@ -6267,8 +6376,6 @@ class Transporter(object):
                 savename = saveImagePath + 'TransporterRate2D_' + self.name + '.png'
                 plt.savefig(savename, format='png', transparent=True)
 
-
-
             if len(self.flux_time[0]) == sim.cdl:
                 r_rate = [arr[p.plot_cell] for arr in self.flux_time]
             else:
@@ -6291,8 +6398,8 @@ class Transporter(object):
 
     def update_transporter(self, sim, cells, p):
 
-        # sim.dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
         self.init_reaction(sim, cells, p)
+
 
 class Channel(object):
 
@@ -6300,14 +6407,14 @@ class Channel(object):
 
         self.flux_time = []
 
+
     def init_channel(self, ion_string, type_string, max_val, sim, cells, p):
 
-        # asign maximum channel effective diffusion constant:
+        # Assign maximum channel effective diffusion constant.
         self.maxDm = max_val
 
-        # get targets for the reaction
+        # Get targets for the reaction.
         if self.channel_profiles_list is not None and self.channel_profiles_list != 'all':
-
             targets = []
 
             for profile in self.channel_profiles_list:
@@ -6387,13 +6494,14 @@ class Channel(object):
             savename = saveImagePath + 'ChannelFlux2D_' + self.name + '.png'
             plt.savefig(savename, format='png', transparent=True)
 
-class Modulator(object):
-    """
-    The modulator object allows a substance defined in MasterOfMolecules to
-    exert an activating or inhibiting influence over simulation-defined pumps
-    and/or gap junctions.
 
-    """
+class Modulator(object):
+    '''
+    The modulator object allows a substance defined in
+    :class:`MasterOfMolecules` to exert an activating or inhibiting influence
+    over simulation-defined pumps and/or gap junctions.
+    '''
+
     def __init__(self):
 
         self.target_label = None
@@ -6407,46 +6515,36 @@ class Modulator(object):
         self.modulator_inhibitors_Km = None
         self.modulator_inhibitors_n = None
 
+
     def init_modulator(self, sim, cells, p):
 
         if self.target_label == 'GJ':
-
             sim.gj_block_o = np.ones(sim.mdl)
-
         elif self.target_label == 'Na/K-ATPase':
-
             sim.NaKATP_block_o =  np.ones(sim.mdl)
-
         elif self.target_label == 'MT':
-
             sim.mtubes.modulator = np.ones(sim.mdl)
-
         elif self.target_label == 'TJ':
-
             # if tight junction modulation is requested, initialize the object by simply getting the ion index:
 
             if self.target_ion is None or self.target_ion == 'None':
-
                 self.ion_i = None
-
             else:
                 # get the sim object's index for this ion name:
                 self.ion_i = sim.get_ion(self.target_ion)
-
         else:
-
             raise BetseSimConfException("You have requested a "
                                            "sim modulator that is not "
                                            "available. Available choices "
                                            "are: 'GJ', 'Na/K-ATPase' and 'MT' ")
 
+# ....................{ CONVERTERS                        }....................
 def rgba2hex(rgb_col, alpha_val):
-    """
-    Convert an rgb tuple into a hex color
-    code, with a desired alpha value added.
+    '''
+    Convert an RGB tuple into a hex color code, with a desired alpha value
+    added.
 
-    The format of the returned hex color code
-    works with GraphViz.
+    The format of the returned hex color code works with GraphViz.
 
     Parameters
     -----------
@@ -6458,8 +6556,7 @@ def rgba2hex(rgb_col, alpha_val):
     hex_string   Hex color code with alpha value added.
                  Code string created for GraphViz color
                  specifications.
-
-    """
+    '''
 
     # convert the tuple into a list:
     rgb_col = list(rgb_col)
@@ -6478,13 +6575,12 @@ def rgba2hex(rgb_col, alpha_val):
 
     return hex_string
 
+
 def tex_val(v):
-    """
-    Checks a float value to see if
-    it needs to be written in decimal or
-    scientific notation, and returns
-    a string representing the float in
-    LaTeX math formalism.
+    '''
+    Check a float value to see if it needs to be written in decimal or
+    scientific notation, returning a string representing the float in LaTeX
+    math formalism.
 
     Parameters
     -------------
@@ -6493,22 +6589,16 @@ def tex_val(v):
     Returns
     --------
     v_str      String expressing float in normal or sci notation
-
-    """
+    '''
 
     if v != 0.0:
-
         v_check = int(math.log10(abs(v)))
-
     else:
         v_check = 0
 
     if v_check >= 3 or v_check <= -2:
-
         v_str = "%.2e" % (v)
-
     else:
-
         v_str = "%.2f" % (v)
 
     return v_str

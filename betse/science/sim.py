@@ -789,8 +789,8 @@ class Simulator(object):
         logs.log_info('Initializing tissue and boundary profiles...')
 
         # Localize frequently referenced phase variables for convenience.
-        p = phase.p
         cells = phase.cells
+        p     = phase.p
 
         # Smoothing weights for membrane and central values.
         nfrac = p.smooth_cells
@@ -820,7 +820,7 @@ class Simulator(object):
                     self.c_env_bound[ion_i] = p.cbnd[key]
 
         # Initialize all tissue profiles.
-        phase.dyna.tissueProfiles(self, cells, p)
+        phase.dyna.init_profiles(phase)
 
         if p.is_ecm:
             # create a copy-base of the environmental junctions diffusion constants:
@@ -852,79 +852,65 @@ class Simulator(object):
 
         self.Dm_cells[self.iK] = (p.channel_noise_level * self.channel_noise_factor + 1) * self.Dm_cells[self.iK]
 
-
         #--Blocks initialization--------------------
-
         if p.global_options['gj_block'] != 0:
-
             self.gj_block = np.ones(len(cells.mem_i))   # initialize the gap junction blocking vector to ones
-
         else:
-
             self.gj_block = 1
 
         # initialize dynamic pump blocking vectors:
-
         if p.global_options['NaKATP_block'] != 0:
-
             self.NaKATP_block = np.ones(self.mdl)  # initialize NaKATP blocking vector
-
         else:
             self.NaKATP_block = 1
 
         # initialize additional pump blocks:
         self.CaATP_block = np.ones(self.mdl)  # initialize CaATP blocking vector
 
-
         # initialize calcium dynamics if desired:
         if p.ions_dict['Ca'] == 1 and p.Ca_dyn is True:
             self.endo_retic = EndoRetic(self, cells, p)
-
         else:
             self.endo_retic = None
-
 
         # -----auxiliary molecules initialization -------------------------
 
         # create and initialize the auxiliary-molecules handler for this simulation:
         #(only do these initializations if they haven't been done yet)
-        if p.molecules_enabled and self.molecules is None:
+        if p.molecules_enabled:
+            if self.molecules is None:
+                logs.log_info("Initializing general network...")
 
-            logs.log_info("Initializing general network...")
+                # create an instance of the metabolism simulator
+                self.molecules = MasterOfMolecules(p)
+                # read in the configuration settings for the metabolism simulator:
+                self.molecules.read_mol_config(phase)
+            else:
+                logs.log_info("Reinitializing the general regulatory network for simulation...")
 
-            # create an instance of the metabolism simulator
-            self.molecules = MasterOfMolecules(p)
-            # read in the configuration settings for the metabolism simulator:
-            self.molecules.read_mol_config(self, cells, p)
-
-
-        elif p.molecules_enabled and self.molecules is not None:
-        # don't declare a whole new object, but re-read in parts that user may have changed:
-            logs.log_info("Reinitializing the general regulatory network for simulation...")
-
-            # re-read the config file again and reassign everything except for concentrations,
-            #  to capture any user updates:
-            self.molecules.reinitialize(self, cells, p)
-
+                # Avoid declaring a whole new object, but re-read in parts that
+                # user may have changed. Re-read the config file again and
+                # reassign everything except for concentrations to capture any
+                # user updates.
+                self.molecules.reinitialize(phase)
 
         #-----gene regulatory network initialization-------------------------
-        if p.grn_enabled and self.grn is None:
+        if p.grn_enabled:
+            if self.grn is None:
+                logs.log_info("Initializing gene regulatory network...")
 
-            logs.log_info("Initializing gene regulatory network...")
+                # create an instance of the gene network simulator
+                self.grn = MasterOfGenes(p)
+                # read in the configuration settings for the metabolism simulator:
+                self.grn.read_gene_config(phase)
+            else:
+                logs.log_info("Reinitializing the gene regulatory network for simulation...")
 
-            # create an instance of the gene network simulator
-            self.grn = MasterOfGenes(p)
-            # read in the configuration settings for the metabolism simulator:
-            self.grn.read_gene_config(self, cells, p)
-
-        elif p.grn_enabled and self.grn is not None:
-
-            logs.log_info("Reinitializing the gene regulatory network for simulation...")
-
-            # re-read the config file again and reassign everything except for concentrations,
-            #  to capture any user updates:
-            self.grn.reinitialize(self, cells, p)
-
+                # Avoid declaring a whole new object, but re-read in parts that
+                # user may have changed. Re-read the config file again and
+                # reassign everything except for concentrations to capture any
+                # user updates.
+                self.grn.reinitialize(phase)
 
         #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------
         if p.deform_osmo is True:

@@ -56,6 +56,24 @@ class TissuePickerABC(object, metaclass=ABCMeta):
         pass
 
 
+    #FIXME: Rather awkward. We actually end up passing the two Numpy arrays
+    #embedded in the tuple returned by this method together as separate
+    #parameters to other methods throughout the codebase (e.g., the
+    #mod_after_cut_event() and remove_cells() methods). Instead:
+    #
+    #* Define a new simple "TissuePicked" class at the top of this submodule
+    #  (e.g., via the betse.util.type.iterable.tuples.make_named_subclass()
+    #  class factory function).
+    #* This class should provide only the following public fields:
+    #  * "cells_index".
+    #  * "membs_index".
+    #* Refactor this method to create and return an instance of that class.
+    #* Refactor all other methods requiring this pair of Numpy arrays to accept
+    #  an instance of that class.
+    #* Refactor the following pair of instance variables into a single
+    #  instance variable whose value is an instance of this class:
+    #  * "Simulator.target_inds_cell_o".
+    #  * "Simulator.target_inds_mem_o".
     @type_check
     def pick_cells_and_mems(
         self,

@@ -342,7 +342,6 @@ class TissueHandler(object):
 
     #FIXME: Refactor as follows:
     #
-    #* Rename to simply init().
     #* Shift the body of the existing init_events() method into this method.
     #* Replace all calls to the init_events() method with calls to this method.
     #
@@ -352,14 +351,10 @@ class TissueHandler(object):
     #object after the cell cluster has been created. See the
     #SimPhase.__init__() method for further (albeit obsolete) discussion.
     @type_check
-    def tissueProfiles(
-        self,
-        sim:   'betse.science.sim.Simulator',
-        cells: 'betse.science.cells.Cells',
-        p:     'betse.science.parameters.Parameters',
-    ) -> None:
+    def init_profiles(self, phase: SimPhase) -> None:
         '''
-        Finalize the initialization of all events and tissue and cut profiles.
+        Finalize the initialization of all events and tissue and cut profiles
+        for the passed simulation phase.
 
         Specifically, this method:
 
@@ -368,10 +363,20 @@ class TissueHandler(object):
           (e.g., cells, cell membranes) in the cluster belonging to these
           tissues. This includes the :attr:`cell_target_inds`,
           :attr:`env_target_inds`, and :attr:`tissue_target_inds` dictionaries.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
         '''
 
         # Log this initialization.
         logs.log_debug('Mapping tissue, cut, and boundary profiles...')
+
+        # Localize pertinent simulation phase objects for convenience.
+        cells = phase.cells
+        p     = phase.p
+        sim   = phase.sim
 
         #FIXME: These three dictionaries are all indexed by tissue profile names
         #and hence should simply be folded into the "TissueProfile" class as
@@ -434,7 +439,7 @@ class TissueHandler(object):
     #should remain here is that which requires a fully seeded cell cluster --
     #notably, the logic initializing the "gj_block" event in the
     #_init_events_global() method. All other logic is simple and unconditional.
-    #FIXME: Shift what remains of this method into the tissueProfiles() method.
+    #FIXME: Shift what remains of this method into the init_profiles() method.
     #See that method's FIXME for further details.
     @type_check
     def init_events(self, phase: SimPhase) -> None:
@@ -465,38 +470,33 @@ class TissueHandler(object):
 
         # Localize pertinent simulation phase objects for convenience.
         cells = phase.cells
-        p = phase.p
+        p     = phase.p
 
         if p.global_options['K_env'] != 0:
-
             self.t_on_Kenv = p.global_options['K_env'][0]
             self.t_off_Kenv = p.global_options['K_env'][1]
             self.t_change_Kenv = p.global_options['K_env'][2]
             self.mem_mult_Kenv = p.global_options['K_env'][3]
 
         if p.global_options['Cl_env'] != 0:
-
             self.t_on_Clenv = p.global_options['Cl_env'][0]
             self.t_off_Clenv = p.global_options['Cl_env'][1]
             self.t_change_Clenv = p.global_options['Cl_env'][2]
             self.mem_mult_Clenv = p.global_options['Cl_env'][3]
 
         if p.global_options['Na_env'] != 0:
-
             self.t_on_Naenv = p.global_options['Na_env'][0]
             self.t_off_Naenv = p.global_options['Na_env'][1]
             self.t_change_Naenv = p.global_options['Na_env'][2]
             self.mem_mult_Naenv = p.global_options['Na_env'][3]
 
         if p.global_options['T_change'] != 0:
-
             self.tonT = p.global_options['T_change'][0]
             self.toffT = p.global_options['T_change'][1]
             self.trampT = p.global_options['T_change'][2]
             self.multT = p.global_options['T_change'][3]
 
         if p.global_options['gj_block'] != 0:
-
             self.tonGJ = p.global_options['gj_block'][0]
             self.toffGJ = p.global_options['gj_block'][1]
             self.trampGJ = p.global_options['gj_block'][2]
@@ -731,7 +731,7 @@ class TissueHandler(object):
         '''
 
         # Localize pertinent simulation phase objects for convenience.
-        p = phase.p
+        p   = phase.p
         sim = phase.sim
 
         if p.global_options['K_env'] != 0:
@@ -837,7 +837,7 @@ class TissueHandler(object):
 
         if p.scheduled_options['ecmJ'] != 0:
             if p.is_ecm:
-                for i, dmat in enumerate(sim.D_env):
+                for i, _ in enumerate(sim.D_env):
                     effector_ecmJ = self.mult_ecmJ*tb.pulse(
                         t,self.t_on_ecmJ,self.t_off_ecmJ,self.t_change_ecmJ)
 
@@ -896,8 +896,8 @@ class TissueHandler(object):
             # updated world.
             self.data_length = len(cells.mem_i)
 
-            self.tissueProfiles(sim, cells, p)
-            cells.redo_gj(self, p)
+            self.init_profiles(phase)
+            cells.redo_gj(phase)
             self.init_events(phase)
 
             # Avoid repeating this cutting event at subsequent time steps.
@@ -1170,7 +1170,8 @@ class TissueHandler(object):
 
         # if microtubules
         if sim.mtubes is not None:
-            sim.mtubes.remove_mtubes(target_inds_mem, target_inds_cell, cells, sim, p)
+            sim.mtubes.remove_mtubes(
+                target_inds_mem, target_inds_cell, cells, sim, p)
 
         # if running voltage gated gap junctions, reinnitialize them:
         if p.v_sensitive_gj and sim.gj_funk is not None:
@@ -1179,13 +1180,14 @@ class TissueHandler(object):
         # delete data from molecules objects:
         if p.molecules_enabled and sim.molecules is not None:
             sim.molecules.core.mod_after_cut_event(
-                target_inds_cell, target_inds_mem, sim, cells, p)
+                phase, target_inds_cell, target_inds_mem)
 
         if p.grn_enabled and sim.grn is not None:
             sim.grn.core.mod_after_cut_event(
-                target_inds_cell, target_inds_mem, sim, cells, p)
+                phase, target_inds_cell, target_inds_mem)
 
-        # Save target inds so they can be used outside of the core simulator (i.e. dynamically in sim-grn)
+        # Save target inds so they can be used outside of the core simulator
+        # (i.e. dynamically in "sim-grn").
         sim.target_inds_cell_o = target_inds_cell
         sim.target_inds_mem_o = target_inds_mem
 
@@ -1215,11 +1217,9 @@ class TissueHandler(object):
         #
         #         sim.move_pumps_channels.remove_data(target_inds_cell)
 
-        # calculate targets for wound channel:
+        # Calculate targets for wound channel.
         match_inds = (sim.hurt_mask == 1.0).nonzero()
-
         mem_match_inds = tb.flatten(cells.cell_to_mems[match_inds[0]])[0]
-
         self.targets_vgWound = mem_match_inds
 
         if p.break_TJ: # we need to redo the TJ barrier at the wound site:
@@ -1268,8 +1268,8 @@ class TissueHandler(object):
             #     sim.sigma_env = gaussian_filter(sim.sigma_env.reshape(cells.X.shape), 1).ravel()
 
         # need to also re-do tissue profiles and GJ
-        self.tissueProfiles(sim, cells, p)
-        cells.redo_gj(self, p)  # redo gap junctions to isolate different tissue types
+        self.init_profiles(phase)
+        cells.redo_gj(phase)  # redo gap junctions to isolate different tissue types
 
         # If this is the fast BETSE solver, re-initialize this solver.
         if p.solver_type is SolverType.FAST:

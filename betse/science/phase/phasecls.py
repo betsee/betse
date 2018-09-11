@@ -12,7 +12,7 @@ from betse.exceptions import BetseSimPhaseException
 from betse.science.phase import phasecallbacks
 from betse.science.phase.phasecallbacks import SimCallbacksBCOrNoneTypes
 from betse.science.phase.phaseenum import SimPhaseKind
-from betse.util.type.iterable import iterables
+# from betse.util.type.iterable import iterables
 from betse.util.type.text import strs
 from betse.util.type.types import type_check, NoneType
 
@@ -30,12 +30,19 @@ from betse.util.type.types import type_check, NoneType
 #  * For the sim phase, "cells_time" should be a list of the expected length
 #    (i.e., the number of simulation time steps), only the first of whose items
 #    is guaranteed to be a reference to "cells".
+#* Sadly, most of the existing "cache" object needs to be refactored away. We
+#  currently cache a large number of cell data structures under the assumption
+#  that the cell structure remains constant. Clearly, this is *NOT* the case;
+#  this was a bad assumption. Ergo, we need to dynamically recompute at each
+#  time step most of the data that we currently cache in the "cache" object on
+#  the first time step. (History is a collection of tragic mistakes.)
 #FIXME: While effectively mandatory, the above generalization opens up the
 #proverbial can of worms. In particular: pickling. We currently only pickle
 #"cells", "p", and "sim". That's an obvious problem. Fortunately, the
 #answer is simple (albeit arguably non-ideal): just define a new
 #"Simulator.cells_time" list in lieu of a "SimPhase.cells_time" list, but
 #otherwise defined exactly as above.
+
 class SimPhase(object):
     '''
     High-level simulation phase, encapsulating all lower-level objects required
@@ -154,7 +161,7 @@ class SimPhase(object):
         #FIXME: To ensure the "dyna" object is fully initialized, refactor the
         #"TissueHandler" class as follows:
         #
-        #* The TissueHandler.tissueProfiles() method should be refactored into a
+        #* The TissueHandler.init_profiles() method should be refactored into a
         #  private TissueHandler._map_tissues_to_cells() method having
         #  the following signature:
         #      @type_check
@@ -211,7 +218,8 @@ class SimPhase(object):
         #Praise be to the multifoliate rose!
         #FIXME: O.K.; thanks to intrepid obsessiveness, only one submodule
         #referencing "sim.dyna" exists in the codebase: the
-        #"betse.science.chemistry.networks" submodule. (You know what to do.)
+        #"betse.science.chemistry.networks" submodule. There currently exist
+        #only 6 references to "sim.dyna" in this submodule. (Make 'em vanish.)
         self.sim.dyna = self.dyna
 
         #FIXME: Eliminate this crude hack by refactoring all references to

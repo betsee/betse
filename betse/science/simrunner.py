@@ -145,11 +145,12 @@ class SimRunner(object):
         self._callbacks.progressed_next()
 
         # Define the tissue and boundary profiles for plotting.
-        phase.dyna.tissueProfiles(phase.sim, phase.cells, self._p)
-        self._callbacks.progressed_next()
+        phase.dyna.init_profiles(phase)
+        self._callbacks.progressed_next(
+            progress_status='Creating gap junction connection network...')
 
         # Redo gap junctions to isolate different tissue types.
-        phase.cells.redo_gj(phase.dyna, self._p)
+        phase.cells.redo_gj(phase)
         self._callbacks.progressed_next(
             progress_status='Creating cell network Poisson solver...')
 
@@ -429,7 +430,7 @@ class SimRunner(object):
             )
 
             # Reinitialize all profiles.
-            phase.dyna.tissueProfiles(sim, cells, self._p)
+            phase.dyna.init_profiles(phase)
             phase.dyna.init_events(phase)
 
         # If *NOT* restarting from a prior GRN run, start a new GRN.
@@ -439,7 +440,7 @@ class SimRunner(object):
 
             # Create and initialize an instance of master of metabolism.
             MoG = MasterOfGenes(self._p)
-            MoG.read_gene_config(sim, cells, self._p)
+            MoG.read_gene_config(phase)
         # Else, restart from a prior GRN run.
         else:
             # Log this restart.
@@ -485,7 +486,7 @@ class SimRunner(object):
                     'for reference to original cells...')
 
                 # Load the initialization from cache.
-                init, cells_old, _ = fh.loadSim(self._p.sim_pickle_filename)
+                sim_old, cells_old, _ = fh.loadSim(self._p.sim_pickle_filename)
 
                 #FIXME: This phase object would ideally be pickled to and
                 #from the "self._p.sim_pickle_filename" file loaded above, in
@@ -494,10 +495,14 @@ class SimRunner(object):
                 # Original simulation phase. To avoid caller confusion, the
                 # optional "callbacks" parameter is intentionally *NOT* passed.
                 phase_old = SimPhase(
-                    kind=phase_kind, cells=cells_old, p=self._p)
+                    kind=phase_kind,
+                    p=self._p,
+                    cells=cells_old,
+                    sim=sim_old,
+                )
 
                 # Initialize all tissue profiles on original cells.
-                phase_old.dyna.tissueProfiles(init, cells_old, self._p)
+                phase_old.dyna.init_profiles(phase_old)
 
                 for cut_profile_name in phase_old.p.event_cut_profile_names:
                     logs.log_info(
@@ -510,27 +515,18 @@ class SimRunner(object):
 
                     # One-dimensional Numpy arrays of the indices of all
                     # cells and cell membranes to be removed.
-                    target_inds_cell, target_inds_mem = (
+                    target_inds_cell, target_inds_mems = (
                         tissue_picker.pick_cells_and_mems(
                             cells=cells_old, p=self._p))
 
                     MoG.core.mod_after_cut_event(
-                        target_inds_cell,
-                        target_inds_mem,
-                        sim,
-                        cells,
-                        self._p,
-                    )
-
-                    logs.log_info(
-                        'Redefining dynamic dictionaries '
-                        'to refer to new simulation...')
+                        phase, target_inds_cell, target_inds_mems)
                     MoG.core.redefine_dynamic_dics(sim, cells, self._p)
 
                     logs.log_info(
                         'Reinitializing gene regulatory network '
                         'for simulation...')
-                    MoG.reinitialize(sim, cells, self._p)
+                    MoG.reinitialize(phase)
 
             #FIXME: Would you mind documenting this a bit, beautiful! Lovalo!
             if self._p.use_microtubules:
@@ -580,12 +576,13 @@ class SimRunner(object):
         phase = SimPhase(
             kind=SimPhaseKind.SEED,
             p=self._p,
+            cells=cells,
             callbacks=self._callbacks,
         )
 
         # Initialize core simulation data structures.
         phase.sim.init_core(phase)
-        phase.dyna.tissueProfiles(phase.sim, phase.cells, self._p)
+        phase.dyna.init_profiles(phase)
 
         #FIXME: Refactor into a seed-specific plot pipeline. Dreaming androids!
         if self._p.autosave:
@@ -738,11 +735,11 @@ class SimRunner(object):
             callbacks=self._callbacks,
         )
 
-        #FIXME: This... isn't the best. Ideally, the phase.dyna.tissueProfiles()
+        #FIXME: This... isn't the best. Ideally, the phase.dyna.init_profiles()
         #method would *ALWAYS* be implicitly called by the SimPhase.__init__()
         #method. Unfortunately, the non-trivial complexity of cell cluster
         #initialization requires we do so manually for now. Sad sandlion frowns!
-        phase.dyna.tissueProfiles(sim, cells, self._p)
+        phase.dyna.init_profiles(phase)
 
         # Display and/or save all initialization exports (e.g., animations).
         exppipe.pipeline(phase)
@@ -833,11 +830,11 @@ class SimRunner(object):
             callbacks=self._callbacks,
         )
 
-        #FIXME: This... isn't the best. Ideally, the phase.dyna.tissueProfiles()
+        #FIXME: This... isn't the best. Ideally, the phase.dyna.init_profiles()
         #method would *ALWAYS* be implicitly called by the SimPhase.__init__()
         #method. Unfortunately, the non-trivial complexity of cell cluster
         #initialization requires we do so manually for now. Sad sandlion frowns!
-        phase.dyna.tissueProfiles(sim, cells, self._p)
+        phase.dyna.init_profiles(phase)
 
         # Display and/or save all simulation exports (e.g., animations).
         exppipe.pipeline(phase)

@@ -17,9 +17,7 @@ from betse.science.config.confenum import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
 from betse.science.phase.phasecls import SimPhase
-from betse.science.phase.phaseenum import SimPhaseKind
 from betse.util.io.log import logs
-from betse.util.path import pathnames
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import (
     type_check, NumericOrSequenceTypes, SequenceTypes)
@@ -2257,16 +2255,21 @@ class Cells(object):
         # self.M_max_cap = M_max_cap
 
 
-    def redo_gj(self, dyna, p) -> None:
+    @type_check
+    def redo_gj(self, phase: SimPhase) -> None:
         '''
         (Re)create the gap junction connection network after assessing tissue
-        profile requests.
+        profile requests for the passed simulation phase.
 
         Parameters
         ----------
-        p : Parameters
-            Current simulation configuration.
+        phase : SimPhase
+            Current simulation phase.
         '''
+
+        # Localize frequently referenced phase variables for convenience.
+        dyna = phase.dyna
+        p    = phase.p
 
         flag_cell_nn = [ [] for x in range(0,len(self.cell_i))]
 
@@ -2291,13 +2294,10 @@ class Cells(object):
         new_cell_nn = [ [] for x in range(0,len(self.cell_i))]
 
         for i, flags in enumerate(flag_cell_nn):
-
             neighs = self.cell_nn[i]  # get a list of all current neighbours to this cell
 
             for cell in neighs:
-
                 if cell not in flags:  # if the cell is not in the removal list
-
                     new_cell_nn[i].append(cell)
 
         self.cell_nn_connected = np.asarray(new_cell_nn)
@@ -2309,21 +2309,16 @@ class Cells(object):
             self.num_nn.append(len(indices))
 
         self.average_nn = (sum(self.num_nn)/len(self.num_nn))
-
         self.num_nn = np.asarray(self.num_nn)
-
         self.gj_default_weights = np.ones(len(self.mem_i))
 
         for cell_i, nn_cell_i_set in enumerate(self.cell_nn_connected):
-
             mem_i_set = self.cell_to_mems[cell_i]  # get all the membranes for this cell
 
             for mem_i in mem_i_set:
-
                 mem_j = self.nn_i[mem_i]  # get the current neighbour mem and cell...
 
                 if mem_j != mem_i:  # if we're not on a boundary
-
                     cell_j = self.mem_to_cells[mem_j]
 
                     if cell_j not in nn_cell_i_set:  # if the partner cell is no longer listed as a nn...
@@ -2455,11 +2450,10 @@ class Cells(object):
         self.cell_to_nn_full = np.asarray(self.cell_to_nn_full)
 
 
-    # Avoid circular import dependencies.
     @type_check
     def save_cluster(self, phase: SimPhase) -> None:
         '''
-        Pickle (i.e., save) this cell cluster to the file described by the
+        Pickle (i.e., save) this cell cluster to the file configured by the
         passed seed simulation phase.
 
         Parameters

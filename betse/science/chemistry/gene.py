@@ -42,11 +42,18 @@ class MasterOfGenes(object):
     '''
 
     # ..................{ INITIALIZERS                      }..................
+    #FIXME: Let's try to remove this method altogether, if we can. Tree frogs!
     def __init__(self, p):
         pass
 
 
-    def reinitialize(self, sim, cells, p) -> None:
+    @type_check
+    def reinitialize(self, phase: SimPhase) -> None:
+
+        # Localize high-level phase objects for convenience.
+        cells = phase.cells
+        p     = phase.p
+        sim   = phase.sim
 
         # Previously loaded GRN-specific configuration file as a dictionary.
         config_dic = p.grn.conf
@@ -67,7 +74,7 @@ class MasterOfGenes(object):
         channels_config = config_dic.get('channels', None)
         modulators_config = config_dic.get('modulators', None)
 
-        self.core.tissue_init(sim, cells, substances_config, p)
+        self.core.tissue_init(phase, substances_config)
 
         if reactions_config is not None:
             # initialize the reactions of metabolism:
@@ -111,7 +118,13 @@ class MasterOfGenes(object):
             self.modulators = False
 
     # ..................{ READERS                           }..................
-    def read_gene_config(self, sim, cells, p):
+    @type_check
+    def read_gene_config(self, phase: SimPhase) -> None:
+
+        # Localize high-level phase objects for convenience.
+        cells = phase.cells
+        p     = phase.p
+        sim   = phase.sim
 
         # Previously loaded GRN-specific configuration file as a dictionary.
         config_dic = p.grn.conf
@@ -138,7 +151,7 @@ class MasterOfGenes(object):
 
         # read in substance properties from the config file, and initialize basic properties:
         self.core.read_substances(sim, cells, substances_config, p)
-        self.core.tissue_init(sim, cells, substances_config, p)
+        self.core.tissue_init(phase, substances_config)
 
         if reactions_config is not None:
             # initialize the reactions of metabolism:
@@ -197,7 +210,7 @@ class MasterOfGenes(object):
         if opti:
             logs.log_info('Analyzing gene network for optimal rates...')
             self.core.optimizer(sim, cells, p)
-            self.reinitialize(sim, cells, p)
+            self.reinitialize(phase)
 
     # ..................{ RUNNERS                           }..................
     @type_check
@@ -255,7 +268,7 @@ class MasterOfGenes(object):
             tsamples.add(tt[i])
 
         # if p.grn_runmodesim:
-        self.reinitialize(sim, cells, p)
+        self.reinitialize(phase)
 
         self.core.clear_cache()
         self.time = []
@@ -321,19 +334,15 @@ class MasterOfGenes(object):
                 if (phase.dyna.event_cut.is_fired and
                     not self.mod_after_cut):
                     self.core.mod_after_cut_event(
+                        phase,
                         sim.target_inds_cell_o,
                         sim.target_inds_mem_o,
-                        sim,
-                        cells,
-                        p,
                     )
-                    logs.log_info(
-                        "Redefining dynamic dictionaries to point to the new sim...")
                     self.core.redefine_dynamic_dics(sim, cells, p)
 
                     logs.log_info(
                         "Reinitializing the gene regulatory network for simulation...")
-                    self.reinitialize(sim, cells, p)
+                    self.reinitialize(phase)
                     # self.core.clear_cache()
                     sim.uxmt, self.uymt = sim.mtubes.mtubes_to_cell(cells, p)
 
