@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+# ....................{ IMPORTS                           }....................
 import numpy as np
-from betse.science import sim_toolbox as stb
-from scipy.ndimage.filters import gaussian_filter
+# from betse.science import sim_toolbox as stb
+# from scipy.ndimage.filters import gaussian_filter
 from betse.science.math import finitediff as fd
 
-
+# ....................{ GETTERS                           }....................
 def getFlow(sim, cells, p):
-    """
-    Calculate the electroosmotic fluid flow in the cell and extracellular
-    networks using Stokes-Equation
-
-    """
+    '''
+    Calculate electroosmotic fluid flow in both cells and extracellular
+    networks using the well-known Stokes-Equation.
+    '''
 
     # First do extracellular space electroosmotic flow--------------------------------------------------------------
 
-    if p.is_ecm is True:
+    if p.is_ecm:
 
         # Use Helmholtz-Smoluchowski equation:
         muFx = -p.eo*p.er*(1 / p.mu_water) * sim.E_env_x * sim.v_env.reshape(cells.X.shape) * sim.D_env_weight

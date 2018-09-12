@@ -14,13 +14,13 @@ displaying and/or saving plots produced after initialization and simulation).
 #
 #The issue is that whenever we call a plotutil.plot* function below (e.g.,
 #plotutil.plotSingleCellCData()), we localize the figure returned by that
-#function.  That figure will then be garbage collected on whichever of the
+#function. That figure will then be garbage collected on whichever of the
 #following occurs last: (A) the corresponding local variable goes out of scope
 #and (B) the corresponding plot window is closed by the user. Normally, neither
-#would be a problem. Except this function is 1,400 lines long, which means that
+#would be a problem. Except that function is 1,400 lines long, which means that
 #each figure's local variable effectively *NEVER* goes out of scope for the
-#duration of plotting. Thus, figures will only be garbage collected *AFTER* this
-#function terminates -- which is pretty much unacceptable.
+#duration of plotting. Thus, figures will only be garbage collected *AFTER*
+#this function terminates -- which is pretty much unacceptable.
 #
 #There are a couple solutions, thankfully. The simplest would simply be to stop
 #localizing figures returned by plotutil.plot*() functions for all unused figure
@@ -58,47 +58,47 @@ displaying and/or saving plots produced after initialization and simulation).
 #    subplot = fig.subplot()  # does this work? no idea.
 #
 #The obvious downside of the above approach, of course, is proper creation of
-#non-blocking plots -- which will probably require creation and use of some sort
-#of thread-safe cache. Assuming a one-to-one mapping is preserved between each
-#non-blocking plot and each thread, the simplest mechanism would be to simply
-#cache that plot's figure as an attribute of that thread. Sweet, no?
+#non-blocking plots -- which will probably require creation and use of some
+#sort of thread-safe cache. Assuming a one-to-one mapping is preserved between
+#each non-blocking plot and each thread, the simplest mechanism would be to
+#simply cache that plot's figure as an attribute of that thread. Sweet, no?
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import matplotlib
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.phase.pipe.pipeabc import SimPipeExportABC
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
-from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import type_check
 from matplotlib import pyplot as pyplot
 
-# ....................{ SUBCLASSES                         }....................
-class PlotPipeABC(SimPipeExportABC):
+# ....................{ SUBCLASSES                        }....................
+class SimPipeExportPlotABC(SimPipeExportABC):
     '''
-    Abstract base class of all **post-simulation plot pipelines** (i.e., objects
-    iteratively displaying and/or saving all plots produced after initialization
-    and simulation enabled by the current simulation configuration).
+    Abstract base class of all **post-simulation plot pipelines** (i.e.,
+    objects iteratively displaying and/or saving all plots produced after
+    initialization and simulation enabled by the current simulation
+    configuration).
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
-        # If saving post-simulation plots...
+        # If saving post-simulation plots, create the top-level directory
+        # containing these plots if needed.
         if self._phase.p.plot.is_after_sim_save:
-            # Create the top-level directory containing these plots if needed.
             dirs.make_unless_dir(self._phase.export_dirname)
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS                        }..................
     @property
     def is_enabled(self) -> bool:
         return self._phase.p.plot.is_after_sim
 
-    # ..................{ PRIVATE ~ preparers                }..................
+    # ..................{ PRIVATE ~ preparers               }..................
     def _export_prep(self) -> None:
         '''
         Prepare to export the current plot.
@@ -128,8 +128,8 @@ class PlotPipeABC(SimPipeExportABC):
     @type_check
     def _export(self, basename: str) -> None:
         '''
-        Export the current plot to the current screen if displaying plots and/or
-        to a file with the passed basename if saving plots.
+        Export the current plot to the current screen if displaying plots
+        and/or to a file with the passed basename if saving plots.
 
         Parameters
         -----------
@@ -153,8 +153,8 @@ class PlotPipeABC(SimPipeExportABC):
             #VisualCellsABC._show_frame(() method, which is also bad.
 
             # Temporarily yield the time slice for the smallest amount of time
-            # required by the current matplotlib backend to handle queued events
-            # in the GUI-specific event loop of the current process.
+            # required by the current matplotlib backend to handle queued
+            # events in the GUI-specific event loop of the current process.
             with mplutil.deprecations_ignored():
                 pyplot.pause(0.0001)
 

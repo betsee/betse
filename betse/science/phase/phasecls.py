@@ -149,7 +149,7 @@ class SimPhase(object):
         if cells is None:
             cells = Cells(p=p)
         if sim is None:
-            sim = Simulator(p=p)
+            sim = Simulator()
 
         # Classify all passed parameters.
         self.callbacks = callbacks

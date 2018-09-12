@@ -11,11 +11,11 @@ spreadsheets.
 
 # ....................{ IMPORTS                           }....................
 from betse.science.phase.phasecls import SimPhase
-from betse.science.phase.phaseenum import SimPhaseKind
+# from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.export.csv.csvpipe import SimPipeExportCSVs
-from betse.science.visual.anim.animpipe import AnimCellsPipe
-from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
-from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
+from betse.science.visual.anim.animpipe import SimPipeExportAnimCells
+from betse.science.visual.plot.pipe.plotpipecell import SimPipeExportPlotCell
+from betse.science.visual.plot.pipe.plotpipecells import SimPipeExportPlotCells
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
 
@@ -28,7 +28,7 @@ def pipeline(phase: SimPhase) -> None:
     phase by the current simulation configuration.
 
     Parameters
-    ----------------------------
+    ----------
     phase: SimPhase
         Current simulation phase.
     '''
@@ -66,14 +66,15 @@ def pipeline(phase: SimPhase) -> None:
     SimPipeExportCSVs(phase).run()
     phase.callbacks.progressed_next()
 
-    PlotCellPipe(phase).run()
+    SimPipeExportPlotCell(phase).run()
     phase.callbacks.progressed_next()
 
-    PlotCellsPipe(phase).run()
+    SimPipeExportPlotCells(phase).run()
     phase.callbacks.progressed_next()
 
-    AnimCellsPipe(phase).run()
+    SimPipeExportAnimCells(phase).run()
     phase.callbacks.progressed_last()
 
     # Log the directory to which all results were exported.
-    logs.log_info('Results exported to: %s', phase.export_dirname)
+    logs.log_info('Simulation results exported to:')
+    logs.log_info('\t%s', phase.export_dirname)

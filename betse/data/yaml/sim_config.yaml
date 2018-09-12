@@ -857,6 +857,10 @@ results options:
           #   Ignored if either full solver or deformation disabled.
           # * "ion_calcium" for single-cell calcium ion (Ca2+) concentration.
           #   Ignored if either full solver disabled or calcium ions disabled by ion profile.
+          # * "ion_calcium_er" for single-cell endoplasmic reticulum (ER) calcium ion (Ca2+)
+          #   concentration.
+          #   Ignored if full solver disabled, full calcium dynamics disabled, or calcium
+          #   ions disabled by ion profile.
           # * "ion_m_anion" for single-cell M anion (M-) concentration.
           #   Ignored if either full solver disabled or M anions disabled by ion profile.
           # * "ion_potassium" for single-cell potassium ion (K+) concentration.
@@ -871,8 +875,12 @@ results options:
           # * "pump_nakatpase" for single-cell Na-K-ATPase pump rate.
           #   Ignored if full solver disabled.
           # * "voltage_membrane" for single-cell transmembrane voltage (Vmem) average.
-          # * "voltage_membrane_fft" for single-cell transmembrane voltage (Vmem) finite Fourier
-          #   transform (FFT).
+          # * "voltage_membrane_er" for single-cell endoplasmic reticulum (ER) transmembrane
+          #   voltage (Vmem).
+          #   Ignored if full solver disabled, full calcium dynamics disabled, or calcium
+          #   ions disabled by ion profile.
+          # * "voltage_membrane_fft" for single-cell transmembrane voltage (Vmem) finite
+          #   Fourier transform (FFT).
           enabled: True   # Enable this plot?
         # Example single-cell transmembrane current density plot.
         - type: currents_membrane

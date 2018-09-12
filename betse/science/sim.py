@@ -62,20 +62,19 @@ class Simulator(object):
 
     get_current(cells,p)                    Calculates currents in cells and environment.
 
-    getFlow(cells,p)                        Calculates electroosmotic flows in cells and environment.
-
     eosmosis(cells,p)                       Calculates lateral movement of membrane pumps and channels via tangential
                                             forces exerted by endogenous electric fields and electroosmotic flows.
 
     Attributes (Counts)
     ----------
     cdl : int
-        Number of cells in this simulated cluster.
+        Number of cells in this simulated cell cluster.
     edl : int
-        Number of extracellular grid spaces in this simulated cluster if this
-        simulation enables extracellular spaces *or* :attr:`mdl` otherwise.
+        Number of extracellular grid spaces in this simulated cell cluster if
+        this simulation enables extracellular spaces *or* :attr:`mdl`
+        otherwise.
     mdl : int
-        Number of cell membranes in this simulated cluster.
+        Number of cell membranes in this simulated cell cluster.
 
     Attributes (Time)
     ----------
@@ -296,6 +295,13 @@ class Simulator(object):
         #. First dimension indexes each ion enabled by the current ion profile.
         #. Second dimension indexes each cell such that each item is the
            concentration of that ion in that cell.
+    cc_er : list
+        Two-dimensional list of all cellular endoplasmic reticulum ion
+        concentrations for the current time step, whose:
+
+        #. First dimension indexes each ion enabled by the current ion profile.
+        #. Second dimension indexes each cell such that each item is the
+           concentration of that ion in that cell's endoplasmic reticulum.
     cc_time : list
         Three-dimensional list of all cellular ion concentrations for all time
         steps, whose:
@@ -435,44 +441,27 @@ class Simulator(object):
     '''
 
     # ..................{ INITIALIZORS                      }..................
-    #FIXME: Refactor this method as follows:
-    #
-    #* Remove the optional "p" parameter, which is no longer (and should
-    #  ideally *NEVER*) be required here.
-    #* Refactor all calls to this method to avoid passing this parameter.
-
-    # Avoid circular import dependencies.
-    @type_check
-    def __init__(self, p: 'betse.science.parameters.Parameters') -> None:
+    #FIXME: Nullify all instance variables in this method for safety.
+    def __init__(self) -> None:
         '''
         Initialize this simulation.
-
-        Parameters
-        ----------
-        p : betse.science.parameters.Parameters
-            Current simulation configuration.
         '''
 
-        #FIXME: Default all other instance attributes as well.
-        #FIXME: Do we still need the "ignore_ecm" flag? It's never set
-        #elsewhere, which is a bit... awkward. Clarion winds of change, unveil!
-
-        # Default all remaining attributes.
-        self.ignore_ecm = True
+        pass
 
 
     @type_check
     def init_core(self, phase: SimPhase) -> None:
         '''
-        Prepare core data structures required by the passed phase in a
-        general-purpose manner applicable to *all* possible phases.
+        Create core data structures required by both the passed simulation
+        phase *and* all subsequent phases.
 
         This method initializes core computational matrices -- including those
         concerning intracellular and environmental concentrations, voltages,
         specific diffusion constants, and types of ions included in the
         simulation. This method is performed only once per seed (i.e., cell
-        cluster creation) and thus contains crucial parameters, which cannot be
-        changed after running an initialization.
+        cluster creation) and thus contains crucial parameters that *cannot* be
+        safely modified after running an initialization.
 
         Parameters
         --------
@@ -481,7 +470,7 @@ class Simulator(object):
         '''
 
         # Log this attempt.
-        logs.log_info('Initializing core simulation matrices...')
+        logs.log_info('Creating core computational matrices...')
 
         # Localize frequently referenced phase variables for convenience.
         p = phase.p
@@ -502,7 +491,8 @@ class Simulator(object):
         else:
             self.edl = self.mdl
 
-        # initialize extra arrays that allow additional substances (defined outside of sim) to affect Vmem:
+        # Initialize extra arrays that allow additional substances (defined
+        # outside of sim) to affect Vmem.
         self.extra_rho_cells = np.zeros(self.cdl)
         self.extra_rho_mems = np.zeros(self.mdl)
         self.extra_rho_env = np.zeros(self.edl)
@@ -514,7 +504,6 @@ class Simulator(object):
         self.extra_rho_cells_o = np.zeros(self.cdl)
 
         self.vgj = np.zeros(self.mdl)
-
 
         self.gj_block = 1 # will update this according to user preferences in self.init_dynamics()
 
@@ -671,7 +660,6 @@ class Simulator(object):
                 self.c_env_bound.append(p.env_concs[name])
 
                 if p.is_ecm:
-
                     self.z_array_env.append(vars(self)[str_z2])
                     self.D_env.append(vars(self)[str_Denv])
                     self.Dtj_rel.append(p.Dtj_rel[name])
@@ -867,8 +855,8 @@ class Simulator(object):
         # initialize additional pump blocks:
         self.CaATP_block = np.ones(self.mdl)  # initialize CaATP blocking vector
 
-        # initialize calcium dynamics if desired:
-        if p.ions_dict['Ca'] == 1 and p.Ca_dyn is True:
+        # Initialize calcium dynamics if desired.
+        if p.ions_dict['Ca'] == 1 and p.Ca_dyn:
             self.endo_retic = EndoRetic(self, cells, p)
         else:
             self.endo_retic = None
@@ -949,7 +937,7 @@ class Simulator(object):
             #so, can we better document why? If we do ultimately need this,
             #we'll probably want to privatize this attribute to the less
             #ambiguous name "_cells_deformed". External callers should never
-            #access or care about this.
+            #access or care about this. Ultimate sunrise of the free dreamer!
 
             # Deepy copy of the current cell cluster, to isolate deformations to
             # for visualization purposes only.
@@ -1273,7 +1261,6 @@ class Simulator(object):
 
             # shuffle(self.movingIons)
             for i in self.movingIons:
-
                 IdM = np.ones(self.mdl)
 
                 if p.is_ecm:
@@ -1354,14 +1341,22 @@ class Simulator(object):
             # dynamic noise handling-------------------------------------------
             if p.dynamic_noise == 1 and p.ions_dict['P'] == 1:
 
-                # add a random walk on protein concentration to generate dynamic noise:
-                self.protein_noise_flux = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
+                # Add a random walk on protein concentration to generate
+                # dynamic noise.
+                self.protein_noise_flux = (
+                    p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5))
 
-                # update the concentration of P in cells and environment:
-                self.cc_cells[self.iP], self.cc_at_mem[self.iP], self.cc_env[self.iP] = stb.update_Co(self,
-                                                        self.cc_cells[self.iP], self.cc_at_mem[self.iP],
-                                                        self.cc_env[self.iP], self.protein_noise_flux, cells,
-                                                        p, ignoreECM = self.ignore_ecm)
+                # Update the concentration of P in cells and environment.
+                self.cc_cells[self.iP], self.cc_at_mem[self.iP], self.cc_env[self.iP] = stb.update_Co(
+                    self,
+                    self.cc_cells[self.iP],
+                    self.cc_at_mem[self.iP],
+                    self.cc_env[self.iP],
+                    self.protein_noise_flux,
+                    cells,
+                    p,
+                    ignoreECM=False,
+                )
 
             #-----forces, fields, and flow-------------------------------------
             # calculate specific forces and pressures:
@@ -1382,7 +1377,7 @@ class Simulator(object):
                 else:
                     getDeformation(self,cells, t, p)
 
-            # Use fluxes to update all concentrations in the cells
+            # Use fluxes to update all concentrations in the cells.
             self.update_all_concs(cells, p)
 
             # recalculate the net, unbalanced charge and voltage in each cell:
@@ -2103,25 +2098,32 @@ class Simulator(object):
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt
 
-    def update_all_concs(self, cells, p):
+
+    def update_all_concs(self, cells, p) -> None:
+        '''
+        Update all concentrations in all cells via membrane fluxes.
+        '''
 
         for i in self.movingIons:
-
             f_mem_i = self.fluxes_mem[i]
-
             f_gj_i = self.fluxes_gj[i]
 
-            self.cc_cells[i], self.cc_at_mem[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
-                                                                                self.cc_at_mem[i],
-                                                                                self.cc_env[i], f_mem_i,
-                                                                                cells, p,
-                                                                                ignoreECM = self.ignore_ecm)
+            self.cc_cells[i], self.cc_at_mem[i], self.cc_env[i] = stb.update_Co(
+                self,
+                self.cc_cells[i],
+                self.cc_at_mem[i],
+                self.cc_env[i],
+                f_mem_i,
+                cells, p,
+                ignoreECM=False,
+            )
 
-            delta_cgj = np.dot(cells.M_sum_mems, -f_gj_i*cells.mem_sa) / cells.cell_vol
+            delta_cgj = np.dot(
+                cells.M_sum_mems, -f_gj_i*cells.mem_sa) / cells.cell_vol
 
             self.cc_cells[i] +=  p.dt*delta_cgj
 
-            # ensure no negative concentrations:
+            # Ensure no negative concentrations.
             stb.no_negs(self.cc_cells[i])
 
 

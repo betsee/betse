@@ -3130,23 +3130,30 @@ class MasterOfNetworks(object):
                     IdM = np.ones(sim.mdl)
 
                     if p.is_ecm:
-
                         f_ED = stb.electroflux(cenv[cells.map_mem2ecm], cmem,
                             DChan, IdM*p.tm, zzz*IdM, sim.vm, sim.T, p,
                             rho=sim.rho_channel)
-
                     else:
+                        f_ED = stb.electroflux(
+                            cenv,cmem,
+                            DChan,IdM*p.tm,
+                            zzz*IdM,
+                            sim.vm,
+                            sim.T,
+                            p,
+                            rho=sim.rho_channel,
+                        )
 
-                        f_ED = stb.electroflux(cenv,cmem, DChan,IdM*p.tm,zzz*IdM,
-                                               sim.vm,sim.T,p,rho=sim.rho_channel)
-
-
-                    self.cell_concs[ion], self.mem_concs[ion], self.env_concs[ion] = stb.update_Co(sim, ccell,
-                                                                                        cmem,
-                                                                                        cenv, f_ED,
-                                                                                        cells, p,
-                                                                                        ignoreECM = sim.ignore_ecm)
-
+                    self.cell_concs[ion], self.mem_concs[ion], self.env_concs[ion] = stb.update_Co(
+                        sim,
+                        ccell,
+                        cmem,
+                        cenv,
+                        f_ED,
+                        cells,
+                        p,
+                        ignoreECM=True,
+                    )
                     # print(name, f_ED[chan.channel_core.targets]*p.F)
 
                     # Add channel flux to the membrane fluxes data array:
@@ -6330,14 +6337,13 @@ class Transporter(object):
 
     def init_reaction(self, sim, cells, p):
 
-        if self.transporter_profiles_list is not None and self.transporter_profiles_list != 'all':
-
+        if (self.transporter_profiles_list is not None and
+            self.transporter_profiles_list != 'all'):
             self.transporter_targets_mem = []
             self.transporter_targets_cell = []
             self.transporter_targets_env = []
 
             for profile in self.transporter_profiles_list:
-
                 targets_cell = sim.dyna.cell_target_inds[profile]
                 self.transporter_targets_cell.extend(targets_cell)
 
@@ -6346,12 +6352,11 @@ class Transporter(object):
 
                 targets_env = sim.dyna.env_target_inds[profile]
                 self.transporter_targets_env.extend(targets_env)
-
-        elif self.transporter_profiles_list is None or self.transporter_profiles_list == 'all':
-
+        else:
             self.transporter_targets_mem = cells.mem_i
             self.transporter_targets_cell = cells.cell_i
             self.transporter_targets_env = cells.map_mem2ecm
+
 
     def plot_1D(self, sim, cells, p, saveImagePath):
 

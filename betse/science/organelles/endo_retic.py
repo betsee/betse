@@ -19,12 +19,30 @@ class EndoRetic(object):
     '''
     Endoplasmic reticulum (ER) modeller.
 
-    This modeller models all physical phenomena pertaining to the ER, including
+    This object models all physical phenomena pertaining to the ER, including
     ER-specific pumps, channels, and calcium dynamics (e.g., calcium-induced
     calcium release controlled by inositol-triphosphate). This modeller also
     contains the facilities to initialize, define the core computations for a
-    simulation loop, remove ER during a cutting event, save and report on data,
-    and plot.
+    simulation loop, remove the ER during a cutting event, and save and report
+    on relevant data.
+
+    Attributes
+    ----------
+    Ca_er_time : list
+        Two-dimensional list of all cellular endoplasmic reticulum calcium ion
+        concentrations for all time steps, whose:
+
+        #. First dimension indexes each sampled time step.
+        #. Second dimension indexes each cell such that each item is the
+           concentration of calcium ions in that cell's endoplasmic reticulum.
+    ver_time : list
+        Two-dimensional list of all cellular endoplasmic reticulum Vmems
+        (transmembrane voltages) for all time steps, whose:
+
+        #. First dimension indexes each sampled time step.
+        #. Second dimension indexes each cell such that each item is the
+           Vmem (transmembrane voltage) across that cell's endoplasmic
+           reticulum.
     '''
 
     # ..................{ INITIALIZERS                      }..................
@@ -33,7 +51,7 @@ class EndoRetic(object):
         # init basic fields
         self.er_vol = 0.1*cells.cell_vol     # er volume
         self.er_sa = 1.0*cells.cell_sa      # er surface areas
-        self.Ver = np.zeros(sim.cdl)   # initial trans-membrane voltage for er
+        self.Ver = np.zeros(sim.cdl)   # initial transmembrane voltage for er
         self.Q = np.zeros(sim.cdl)     # total charge in ER
         self.cm_er = p.cm    # ER membrane capacitance
 
@@ -41,9 +59,9 @@ class EndoRetic(object):
         sim.cc_er[sim.iCa][:] = 0.2                # initial concentration in the ER
         self.Dm_er = copy.deepcopy(sim.cc_cells)    # membrane permeability
 
+        # Membrane permeability altered so all are minimal.
         for arr in self.Dm_er:
-
-            arr[:] = 1.0e-18                 # membrane permeability altered so all are minimal
+            arr[:] = 1.0e-18
 
         self.Dm_er_base = copy.deepcopy(self.Dm_er)  # copies of Dm for ion channel dynamics
         self.Dm_channels = copy.deepcopy(self.Dm_er)
@@ -53,13 +71,25 @@ class EndoRetic(object):
         for i, arr in enumerate(self.zer):
             arr[:] = sim.zs[i]
 
-
+    # ..................{ GETTERS                           }..................
     def get_v(self, sim, p):
 
         self.Q = np.sum(self.zer*p.F*sim.cc_er, axis = 0)
         self.Ver = (1/self.cm_er)*self.Q*(self.er_vol/self.er_sa)
 
+    # ..................{ CACHERS                           }..................
+    def clear_cache(self):
 
+        self.ver_time = []
+        self.Ca_er_time = []
+
+
+    def write_cache(self, sim):
+
+        self.ver_time.append(1*self.Ver)
+        self.Ca_er_time.append(1*sim.cc_er[sim.iCa][:])
+
+    # ..................{ UPDATERS                          }..................
     def update(self, sim, cells, p):
 
         # if p.run_sim:
@@ -120,59 +150,6 @@ class EndoRetic(object):
 
         # print(sim.cc_er[sim.iCa][p.plot_cell], sim.cc_cells[sim.iCa][p.plot_cell],
         # sim.molecules.IP3.c_cells[p.plot_cell])
-
-
-    def clear_cache(self):
-
-        self.ver_time = []
-        self.Ca_er_time = []
-
-
-    def write_cache(self, sim):
-
-        self.ver_time.append(1*self.Ver)
-        self.Ca_er_time.append(1*sim.cc_er[sim.iCa][:])
-
-
-    def plot_er(self, sim, cells, p):
-
-        er_ca = [arr[p.plot_cell] for arr in self.Ca_er_time]
-
-        plt.figure()
-        plt.plot(sim.time, er_ca)
-
-        if p.autosave is True:
-            savename = self.imagePath + 'CaER_' + '.png'
-            plt.savefig(savename, format='png', transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
-
-        #-----------------------------------------------------
-        er_v = [arr[p.plot_cell] for arr in self.ver_time]
-
-        plt.figure()
-        plt.plot(sim.time, er_v)
-
-        if p.autosave is True:
-            savename = self.imagePath + 'VER_' + '.png'
-            plt.savefig(savename, format='png', transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
-
-
-    def init_saving(self, cells, p, plot_type = 'init', nested_folder_name = 'ER'):
-
-        # init files
-        if p.autosave:
-            if plot_type == 'sim':
-                self.resultsPath = pathnames.join(p.sim_export_dirname, nested_folder_name)
-            elif plot_type == 'init':
-                self.resultsPath = pathnames.join(p.init_export_dirname, nested_folder_name)
-
-            dirs.make_unless_dir(self.resultsPath)
-            self.imagePath = pathnames.join(self.resultsPath, 'fig_')
 
 
     def remove_ers(self, sim, target_inds_cell):

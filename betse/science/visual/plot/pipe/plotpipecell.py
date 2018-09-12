@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +8,7 @@
 simulated data of a single cell of the cell cluster).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.exceptions import BetseSimConfException
 from betse.science.config.export.visual.confvisabc import (
@@ -15,13 +16,12 @@ from betse.science.config.export.visual.confvisabc import (
 from betse.science.phase.pipe.piperun import piperunner
 from betse.science.phase.require import phasereqs
 from betse.science.visual.plot import plotutil
-from betse.science.visual.plot.pipe.plotpipeabc import PlotPipeABC
+from betse.science.visual.plot.pipe.plotpipeabc import SimPipeExportPlotABC
 from betse.util.type.types import IterableTypes
-from matplotlib import pyplot as pyplot
+from matplotlib import pyplot
 
-# ....................{ SUBCLASSES                         }....................
-#FIXME: Rename to "SimPipeExportPlotsCell" for disambiguity.
-class PlotCellPipe(PlotPipeABC):
+# ....................{ SUBCLASSES                        }....................
+class SimPipeExportPlotCell(SimPipeExportPlotABC):
     '''
     **Post-simulation single-cell plot pipeline** (i.e., object iteratively
     displaying and/or saving all plots specific to a single cell of the cell
@@ -29,11 +29,11 @@ class PlotCellPipe(PlotPipeABC):
     current simulation configuration).
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass with all passed parameters.
-        super().__init__(*args, label_singular='single-cell plot', **kwargs)
+        super().__init__(*args, **kwargs)
 
         # If this index is not that of an actual cell, raise an exception.
         if self._phase.p.plot_cell not in self._phase.cells.cell_i:
@@ -45,17 +45,22 @@ class PlotCellPipe(PlotPipeABC):
                     self._phase.cells.cell_i[-1],
                 ))
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS                        }..................
+    @property
+    def _label_singular(self) -> str:
+        return 'single-cell plot'
+
     @property
     def _runners_conf(self) -> IterableTypes:
         return self._phase.p.plot.plots_cell_after_sim
 
-    # ..................{ EXPORTERS ~ cell : current         }..................
+    # ..................{ EXPORTERS ~ cell : current        }..................
     @piperunner(
         categories=('Current Density', 'Transmembrane',),
         requirements=phasereqs.ELECTRIC_CURRENT_MEMBRANE,
     )
-    def export_currents_membrane(self, conf: SimConfVisualCellListItem) -> None:
+    def export_currents_membrane(
+        self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all transmembrane current densities for the single cell indexed by
         the current simulation configuration over all sampled time steps.
@@ -116,7 +121,7 @@ class PlotCellPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='Imem_time')
 
-    # ..................{ EXPORTERS ~ cell : deform          }..................
+    # ..................{ EXPORTERS ~ cell : deform         }..................
     @piperunner(
         categories=('Deformation', 'Total',),
         requirements=phasereqs.DEFORM,
@@ -148,42 +153,13 @@ class PlotCellPipe(PlotPipeABC):
         axD.plot(self._phase.sim.time, self._phase.p.um*disp)
         axD.set_xlabel('Time [s]')
         axD.set_ylabel('Displacement [um]')
-        axD.set_title('Displacement of cell {}'.format(self._phase.p.plot_cell))
+        axD.set_title('Displacement of cell {}'.format(
+            self._phase.p.plot_cell))
 
         # Export this plot to disk and/or display.
         self._export(basename='Displacement_time')
 
-    # ..................{ EXPORTERS ~ cell : ion             }..................
-    @piperunner(
-        categories=('Ion Concentration', 'Calcium'),
-        requirements=phasereqs.ION_CALCIUM,
-    )
-    def export_ion_calcium(self, conf: SimConfVisualCellListItem) -> None:
-        '''
-        Plot all calcium (i.e., Ca2+) ion concentrations for the single cell
-        indexed by the current simulation configuration over all sampled time steps.
-        '''
-
-        # Prepare to export the current plot.
-        self._export_prep()
-
-        figA, axA = plotutil.plotSingleCellCData(
-            self._phase.sim.cc_time,
-            self._phase.sim.time,
-            self._phase.sim.iCa,
-            self._phase.p.plot_cell,
-            fig=None,
-            ax=None,
-            lncolor='g',
-            ionname='Ca2+ cell',
-        )
-        axA.set_title('Cytosolic Ca2+ in cell {}'.format(
-            self._phase.p.plot_cell))
-
-        # Export this plot to disk and/or display.
-        self._export(basename='cytosol_Ca_time')
-
-
+    # ..................{ EXPORTERS ~ cell : ion            }..................
     @piperunner(
         categories=('Ion Concentration', 'M anion'),
         requirements=phasereqs.ION_M_ANION,
@@ -191,7 +167,8 @@ class PlotCellPipe(PlotPipeABC):
     def export_ion_m_anion(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all M anion (i.e., M-) ion concentrations for the single cell
-        indexed by the current simulation configuration over all sampled time steps.
+        indexed by the current simulation configuration over all sampled time
+        steps.
         '''
 
         # Prepare to export the current plot.
@@ -220,7 +197,8 @@ class PlotCellPipe(PlotPipeABC):
     def export_ion_potassium(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all potassium (i.e., K+) ion concentrations for the single cell
-        indexed by the current simulation configuration over all sampled time steps.
+        indexed by the current simulation configuration over all sampled time
+        steps.
         '''
 
         # Prepare to export the current plot.
@@ -250,7 +228,8 @@ class PlotCellPipe(PlotPipeABC):
     def export_ion_sodium(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all sodium (i.e., Na+) ion concentrations for the single cell
-        indexed by the current simulation configuration over all sampled time steps.
+        indexed by the current simulation configuration over all sampled time
+        steps.
         '''
 
         # Prepare to export the current plot.
@@ -273,7 +252,97 @@ class PlotCellPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='concNa_time')
 
-    # ..................{ EXPORTERS ~ pressure               }..................
+    # ..................{ EXPORTERS ~ cell : ion : calcium  }..................
+    @piperunner(
+        categories=('Ion Concentration', 'Calcium', 'Cellular',),
+        requirements=phasereqs.ION_CALCIUM,
+    )
+    def export_ion_calcium(self, conf: SimConfVisualCellListItem) -> None:
+        '''
+        Plot all calcium (i.e., Ca2+) ion concentrations for the single cell
+        indexed by the current simulation configuration over all sampled time
+        steps.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        figA, axA = plotutil.plotSingleCellCData(
+            self._phase.sim.cc_time,
+            self._phase.sim.time,
+            self._phase.sim.iCa,
+            self._phase.p.plot_cell,
+            fig=None,
+            ax=None,
+            lncolor='g',
+            ionname='Ca2+ cell',
+        )
+        axA.set_title('Cytosolic Ca2+ in cell {}'.format(
+            self._phase.p.plot_cell))
+
+        # Export this plot to disk and/or display.
+        self._export(basename='cytosol_Ca_time')
+
+
+    @piperunner(
+        categories=('Ion Concentration', 'Calcium', 'Endoplasmic Reticulum',),
+        requirements=phasereqs.ION_CALCIUM_DYNAMICS,
+    )
+    def export_ion_calcium_er(self, conf: SimConfVisualCellListItem) -> None:
+        '''
+        Plot all calcium (i.e., Ca2+) ion concentrations for the endoplasmic
+        reticulum of the single cell indexed by the current simulation
+        configuration over all sampled time steps.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        # One-dimensional Numpy array of all ion concentrations for the
+        # endoplasmic reticulum of this cell over all sampled time steps.
+        times_cell_ion_calcium_er = [
+            cells_ion_calcium_er[self._phase.p.plot_cell]
+            for cells_ion_calcium_er in self._phase.sim.endo_retic.Ca_er_time
+        ]
+
+        # Plot this array.
+        pyplot.figure()
+        pyplot.plot(self._phase.sim.time, times_cell_ion_calcium_er)
+
+        # Export this plot to disk and/or display.
+        self._export(basename='CaER')
+
+
+    @piperunner(
+        categories=('Voltage', 'Transmembrane', 'Endoplasmic Reticulum',),
+        requirements=phasereqs.ION_CALCIUM_DYNAMICS,
+    )
+    def export_voltage_membrane_er(
+        self, conf: SimConfVisualCellListItem) -> None:
+        '''
+        Plot all transmembrane voltages across the endoplasmic reticulum of the
+        single cell indexed by the current simulation configuration over all
+        sampled time steps.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        # One-dimensional Numpy array of all ion concentrations for the
+        # endoplasmic reticulum of this cell over all sampled time steps.
+        times_cell_vmem_er = [
+            cells_vmem_er[self._phase.p.plot_cell]
+            for cells_vmem_er in self._phase.sim.endo_retic.ver_time
+        ]
+
+        # Plot this array.
+        pyplot.figure()
+        pyplot.plot(self._phase.sim.time, times_cell_vmem_er)
+
+        # Export this plot to disk and/or display.
+        self._export(basename='VER')
+
+    # ..................{ EXPORTERS ~ pressure              }..................
     @piperunner(
         categories=('Pressure', 'Osmotic',),
         requirements=phasereqs.PRESSURE_OSMOTIC,
@@ -332,7 +401,7 @@ class PlotCellPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='P_time')
 
-    # ..................{ EXPORTERS ~ cell : pump            }..................
+    # ..................{ EXPORTERS ~ pump                  }..................
     #FIXME: Actually plot the average of these rates. Currently, this method
     #only plots rates for a single arbitrarily selected membrane of this cell.
     @piperunner(
@@ -373,14 +442,15 @@ class PlotCellPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='NaKATPase_rate')
 
-    # ..................{ EXPORTERS ~ cell : voltage         }..................
+    # ..................{ EXPORTERS ~ voltage               }..................
     #FIXME: Actually plot the average of these Vmems. Currently, this method
     #only plots Vmems for a single arbitrarily selected membrane of this cell.
     @piperunner(categories=('Voltage', 'Transmembrane', 'Average',))
     def export_voltage_membrane(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot the averages of all transmembrane voltages for the single cell
-        indexed by the current simulation configuration over all sampled time steps.
+        indexed by the current simulation configuration over all sampled time
+        steps.
         '''
 
         # Prepare to export the current plot.

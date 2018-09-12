@@ -371,7 +371,7 @@ class TissueHandler(object):
         '''
 
         # Log this initialization.
-        logs.log_debug('Mapping tissue, cut, and boundary profiles...')
+        logs.log_debug('Mapping tissue, surgery, and boundary profiles...')
 
         # Localize pertinent simulation phase objects for convenience.
         cells = phase.cells
@@ -1115,7 +1115,7 @@ class TissueHandler(object):
         if p.Ca_dyn and sim.endo_retic is not None:
             sim.endo_retic.remove_ers(sim, target_inds_cell)
 
-    #-------------------------------Fix-up cell world ----------------------------------------------------------------------
+        #------------------------------ Fix-up cell world ---------------------
         new_cell_centres = []
         new_ecm_verts = []
         removal_flags = np.zeros(len(cells.cell_i))

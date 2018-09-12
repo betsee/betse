@@ -14,8 +14,7 @@ from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirements, SimPhaseRequirementsOrNoneTypes)
 from betse.util.type.decorator.deccls import MethodDecoratorABC
 from betse.util.type.text import strs
-from betse.util.type.types import (
-    type_check, CallableTypes, SequenceTypes,)
+from betse.util.type.types import type_check, CallableTypes, SequenceTypes
 
 # ....................{ CLASSES                           }....................
 class SimPipeRunner(MethodDecoratorABC):

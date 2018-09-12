@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -17,10 +17,12 @@ instances of the :class:`SimPhaseRequirements` class.
 #usable. Currently, they require the current "phase" object be passed to their
 #is_satisfied() methods, which is cumbersome at best. To rectify this, first
 #note that whether or not a given phase satisfies a given requirement is a
-#constant that should *NEVER* change during that phase. Ergo, we can efficiently
+#constant that should *NEVER* change during that phase. Hence, we can optimally
 #associate a given phase with all of the following requirements as follows:
 #
 #* Define a new "SimPhaseRequirements" class in this submodule.
+#* Define a new "SimPhase.reqs" instance variable whose value is an instance of
+#  this "SimPhaseRequirements" class.
 #* Define a SimPhaseRequirements.__init__() method:
 #  * Accepting only the current "SimPhase" object.
 #  * For each requirement global defined below (e.g., "DEFORM"):
@@ -30,7 +32,7 @@ instances of the :class:`SimPhaseRequirements` class.
 #
 #For example, as a first-draft implementation:
 #
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 # #FIXME: Document us up.
 # class SimPhaseRequirements(object):
 #
@@ -43,12 +45,12 @@ instances of the :class:`SimPhaseRequirements` class.
 #less efficient. So, why bother? There are too many requirements to make doing
 #so worthwhile or sane. (Yay!)
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.science.phase.require import phasereqsmake
 from betse.science.phase.require.abc.phasereqset import SimPhaseRequirements
 from betse.science.config.confenum import SolverType
 
-# ....................{ REQUIREMENTS                       }....................
+# ....................{ REQUIREMENTS                      }....................
 NONE = SimPhaseRequirements()
 '''
 **Null requirements** (i.e., requirements unconditionally satisfied by all
@@ -83,14 +85,14 @@ MICROTUBULE = NONE
 Requirements that a simulation phase enable microtubules.
 '''
 
-# ....................{ REQUIREMENTS ~ bool                }....................
+# ....................{ REQUIREMENTS ~ bool               }....................
 # Requirements satisfied by enabling a requirement-specific boolean.
 
 ECM = phasereqsmake.make_requirements_bool_expr(
     name='extracellular spaces', bool_expr='phase.p.is_ecm')
 '''
-Requirements that a simulation phase enable the extracellular matrix (ECM), also
-referred to as "extracellular spaces."
+Requirements that a simulation phase enable the extracellular matrix (ECM),
+also referred to as "extracellular spaces."
 
 Note that this requirement does *not* itself require the full BETSE solver.
 While the equivalent circuit-based solver mostly ignores extracellular spaces,
@@ -98,16 +100,7 @@ gene regulatory networks (GRNs) supported by this solver explicitly support
 extracellular spaces. Ergo, this requirement is solver-agnostic.
 '''
 
-# ....................{ REQUIREMENTS ~ solver              }....................
-#FIXME: Add a new "FULL" requirement tracking which of the full or fast
-#variants of the simulator are enabled. Plots and animations assuming any of the
-#following simulation features should be skipped when this requirement is *NOT*
-#met: currents, fields, extracellular voltage, and voltage polarity.
-#
-#Additionally, we need to ensure that the following simulation features are
-#disabled when using the fast solver: fluid, deformation, osmosis, ion
-#concentrations, pressure.
-
+# ....................{ REQUIREMENTS ~ solver             }....................
 # This solver is internally referenced by solver classes instantiated below
 # (e.g., "SimPhaseRequirementsIon", "SimPhaseRequirementsSolverFullAnd") and
 # *MUST* thus be declared first -- before these classes are instantiated.
@@ -121,7 +114,7 @@ SOLVER_FULL = phasereqsmake.make_requirements_enum_expr(
 Requirements that a simulation phase enable the full BETSE solver.
 '''
 
-# ....................{ REQUIREMENTS ~ solver : equal      }....................
+# ....................{ REQUIREMENTS ~ solver : equal     }....................
 # Requirements satisfied by enabling only the full solver. Technically, these
 # requirements are currently identical to the previously defined "SOLVER_FULL"
 # requirement. This need *NOT* necessarily be the case, however. Theoretically,
@@ -134,8 +127,8 @@ ELECTRIC_CURRENT_EXTRA = SOLVER_FULL
 '''
 Requirements that a simulation phase enable extracellular electrical currents.
 
-Simulation phases satisfying this requirement necessarily enable the full solver
-but *not* extracellular spaces, which are *not* required to simulate
+Simulation phases satisfying this requirement necessarily enable the full
+solver but *not* extracellular spaces, which are *not* required to simulate
 extracellular electrical currents.
 '''
 
@@ -144,8 +137,8 @@ ELECTRIC_CURRENT_MEMBRANE = SOLVER_FULL
 '''
 Requirements that a simulation phase enable transmembrane electrical currents.
 
-Simulation phases satisfying this requirement necessarily enable the full solver
-but *not* extracellular spaces, which are *not* required to simulate
+Simulation phases satisfying this requirement necessarily enable the full
+solver but *not* extracellular spaces, which are *not* required to simulate
 transmembrane electrical currents.
 '''
 
@@ -155,7 +148,7 @@ PUMP_NAKATPASE = SOLVER_FULL
 Requirements that a simulation phase enable the Na-K-ATPase membrane pump.
 '''
 
-# ....................{ REQUIREMENTS ~ solver : equal      }....................
+# ....................{ REQUIREMENTS ~ solver : equal     }....................
 # Requirements satisfied by enabling only both the full solver *AND*
 # extracellular spaces. See above for comments.
 
@@ -169,8 +162,8 @@ solver able to fully simulate these spaces (e.g., the full BETSE solver).
 ELECTRIC_FIELD_EXTRA = SOLVER_FULL_ECM
 '''
 Requirements that a simulation phase enable extracellular electrical fields and
-hence both extracellular spaces *and* a solver capable of fully simulating these
-spaces (e.g., the full BETSE solver).
+hence both extracellular spaces *and* a solver capable of fully simulating
+these spaces (e.g., the full BETSE solver).
 '''
 
 
@@ -181,7 +174,7 @@ both extracellular spaces *and* a solver capable of fully simulating these
 spaces (e.g., the full BETSE solver).
 '''
 
-# ....................{ REQUIREMENTS ~ solver : bool       }....................
+# ....................{ REQUIREMENTS ~ solver : bool      }....................
 # Requirements satisfied by enabling only the full solver and a
 # requirement-specific boolean.
 
@@ -219,15 +212,17 @@ Requirements that a simulation phase enable osmotic pressure.
 
 
 VOLTAGE_MEMBRANE_GHK = SOLVER_FULL | phasereqsmake.make_requirements_bool_expr(
-    name='Goldman-Hodgkin-Katz (GHK) calculation', bool_expr='phase.p.GHK_calc')
+    name='Goldman-Hodgkin-Katz (GHK) calculation',
+    bool_expr='phase.p.GHK_calc')
 '''
 Requirements that a simulation phase enable alternative calculation of
 transmembrane voltages (Vmem) given the Goldman-Hodgkin-Katz (GHK) equation.
 '''
 
-# ....................{ REQUIREMENTS ~ solver : ion        }....................
+# ....................{ REQUIREMENTS ~ solver : ion       }....................
 # Requirements satisfied by enabling only the full solver and a
-# requirement-specific ion.
+# requirement-specific ion. Note that the requirement for the full solver is
+# guaranteed by the phasereqsmake.make_requirements_ion() factory function.
 
 ION_CALCIUM = phasereqsmake.make_requirements_ion(
     name='calcium ions (Ca2+)', ion_name='Ca')
@@ -263,7 +258,19 @@ ION_SODIUM = phasereqsmake.make_requirements_ion(
 Requirements that a simulation phase enable sodium ions (Na+).
 '''
 
-# ....................{ REQUIREMENTS ~ solver : lambda     }....................
+# ....................{ REQUIREMENTS ~ solver : ion : bool}....................
+# Requirements satisfied by enabling only the full solver, a
+# requirement-specific ion, and an additional requirement-specific boolean.
+
+ION_CALCIUM_DYNAMICS = ION_CALCIUM | phasereqsmake.make_requirements_bool_expr(
+    name='calcium ion (Ca2+) dynamics', bool_expr='phase.p.Ca_dyn')
+'''
+Requirements that a simulation phase enable calcium ions (Ca2+), complete
+calcium dynamics, *and* a solver capable of fully simulating these features
+(e.g., the full BETSE solver).
+'''
+
+# ....................{ REQUIREMENTS ~ solver : lambda    }....................
 # Requirements satisfied by enabling only the full solver and a pair of
 # requirement-specific lambda functions.
 
@@ -291,9 +298,9 @@ VOLTAGE_POLARITY = SOLVER_FULL | phasereqsmake.make_requirements_funcs(
 Requirements that a simulation phase enable cellular voltage polarizability.
 '''
 
-# ....................{ REQUIREMENTS ~ solver : ecm        }....................
-# Requirements satisfied by enabling only the full solver, extracellular spaces,
-# and a single arbitrary requirement.
+# ....................{ REQUIREMENTS ~ solver : ecm       }....................
+# Requirements satisfied by enabling only the full solver, extracellular
+# spaces, and a single arbitrary requirement.
 
 FLUID_EXTRA = FLUID | ECM
 '''

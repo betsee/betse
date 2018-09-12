@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +8,7 @@
 simulated data of all cells in the cell cluster).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.science.config.export.visual.confvisabc import (
     SimConfVisualCellsListItem)
@@ -15,18 +16,16 @@ from betse.science.export import expmath
 from betse.science.phase.pipe.piperun import piperunner
 from betse.science.phase.require import phasereqs
 from betse.science.visual.plot import plotutil
-from betse.science.visual.plot.pipe.plotpipeabc import PlotPipeABC
+from betse.science.visual.plot.pipe.plotpipeabc import SimPipeExportPlotABC
 from betse.util.io.log import logs
 from betse.util.type.iterable import iterables
 from betse.util.type.types import IterableTypes
 from collections import OrderedDict
-from matplotlib import pyplot as pyplot
+from matplotlib import pyplot
 from matplotlib.collections import LineCollection, PolyCollection
-# from scipy.ndimage.filters import gaussian_filter
 
-# ....................{ SUBCLASSES                         }....................
-#FIXME: Rename to "SimPipeExportPlotsCells" for disambiguity.
-class PlotCellsPipe(PlotPipeABC):
+# ....................{ SUBCLASSES                        }....................
+class SimPipeExportPlotCells(SimPipeExportPlotABC):
     '''
     **Post-simulation cell cluster plot pipeline** (i.e., object iteratively
     displaying and/or saving all plots depicting all cells of the cell cluster,
@@ -34,18 +33,16 @@ class PlotCellsPipe(PlotPipeABC):
     simulation configuration).
     '''
 
-    # ..................{ INITIALIZERS                       }..................
-    def __init__(self, *args, **kwargs) -> None:
+    # ..................{ SUPERCLASS                        }..................
+    @property
+    def _label_singular(self) -> str:
+        return 'cell cluster plot'
 
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, label_singular='cell cluster plot', **kwargs)
-
-    # ..................{ SUPERCLASS                         }..................
     @property
     def _runners_conf(self) -> IterableTypes:
         return self._phase.p.plot.plots_cells_after_sim
 
-    # ..................{ EXPORTERS ~ channel                }..................
+    # ..................{ EXPORTERS ~ channel               }..................
     # @piperunner(
     #     categories=('Ion Channel', 'Density Factor',),
     #     requirements={phasereqs.ELECTROOSMOSIS,},
@@ -72,7 +69,7 @@ class PlotCellsPipe(PlotPipeABC):
     #     # Export this plot to disk and/or display.
     #     self._export(basename='final_channels_2D')
 
-    # ..................{ EXPORTERS ~ cluster                }..................
+    # ..................{ EXPORTERS ~ cluster               }..................
     # This exporter is solver- and feature-agnostic.
 
     @piperunner(categories=('Cell Cluster', 'Mask',))
@@ -100,7 +97,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='cluster_mask')
 
-    # ..................{ EXPORTERS ~ cluster : tissue       }..................
+    # ..................{ EXPORTERS ~ cluster : tissue      }..................
     # This exporter is solver- and feature-agnostic.
     @piperunner(categories=('Cell Cluster', 'Tissue and Cut Profiles',))
     def export_tissue_cuts(self, conf: SimConfVisualCellsListItem) -> None:
@@ -127,14 +124,14 @@ class PlotCellsPipe(PlotPipeABC):
         cb_tick_labels = []
 
         # Ordered dictionary mapping from the name of each tissue and cut
-        # profile to a one-dimensional Numpy array of the 0-based indices of all
-        # cells owned by this profile.
+        # profile to a one-dimensional Numpy array of the 0-based indices of
+        # all cells owned by this profile.
         #
-        # Note that order is absolutely significant. The first tissue profile is
-        # a pseudo-tissue defining the cell cluster itself. If order were *NOT*
-        # preserved here, this tissue would be assigned an arbitrary z-order, in
-        # which case all tissues assigned smaller z-orders would be entirely
-        # obscured by that pseudo-tissue covering the cell cluster.
+        # Note that order is absolutely significant. The first tissue profile
+        # is a pseudo-tissue defining the cell cluster itself. If order were
+        # *NOT* preserved here, this tissue would be assigned an arbitrary
+        # z-order, in which case all tissues assigned smaller z-orders would be
+        # entirely obscured by that pseudo-tissue covering the cell cluster.
         profile_name_to_cells_index = OrderedDict()
 
         fig = pyplot.figure()
@@ -157,8 +154,8 @@ class PlotCellsPipe(PlotPipeABC):
         #FIXME: The "p.plot_cutlines" boolean is only ever leveraged here and
         #thus is arguably extraneous. Consider refactoring as follows:
         #
-        #* Remove the "p.plot_cutlines" boolean and corresponding YAML-formetted
-        #  default configuration option.
+        #* Remove the "p.plot_cutlines" boolean and corresponding
+        #  YAML-formetted default configuration option.
         #* Split the existing "tissue_cuts" plot type in the "cell cluster
         #  pipeline" into the following two types:
         #  * "tissue", unconditionally plotting *ONLY* tissue profiles.
@@ -181,7 +178,8 @@ class PlotCellsPipe(PlotPipeABC):
         #    )
         #* Implement export_tissue_cuts() similarly.
 
-        # If plotting cut profiles as well *AND* the cutting event is enabled...
+        # If plotting cut profiles as well *AND* the cutting event is
+        # enabled...
         if p.plot_cutlines and dyna.event_cut is not None:
             # For the name and object encapsulating each cut profile...
             for cut_name, cut_profile in dyna.cut_name_to_profile.items():
@@ -190,13 +188,13 @@ class PlotCellsPipe(PlotPipeABC):
                     cut_profile.picker.pick_cells(cells=cells, p=p))
 
         # Minimum and maximum 0-based integers uniquely identifying the first
-        # and last tissue and cut profile (respoctively), localized for ordering
-        # purposes in the colorbar legend.
+        # and last tissue and cut profile (respoctively), localized for
+        # ordering purposes in the colorbar legend.
         profile_zorder = 0
         profile_zorder_max = len(profile_name_to_cells_index)
 
-        # For the name and one-dimensional Numpy array of the 0-based indices of
-        # all cells in each tissue and/or cut profile...
+        # For the name and one-dimensional Numpy array of the 0-based indices
+        # of all cells in each tissue and/or cut profile...
         for profile_name, profile_cells_index in (
             profile_name_to_cells_index.items()):
             # logs.log_debug('Plotting tissue "%s"...', profile_name)
@@ -252,7 +250,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='cluster_mosaic')
 
-    # ..................{ EXPORTERS ~ current                }..................
+    # ..................{ EXPORTERS ~ current               }..................
     @piperunner(
         categories=('Current Density', 'Intracellular',),
         requirements=phasereqs.ELECTRIC_CURRENT,
@@ -294,8 +292,8 @@ class PlotCellsPipe(PlotPipeABC):
     )
     def export_currents_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Plot all extracellular current densities for the environment at the last
-        time step.
+        Plot all extracellular current densities for the environment at the
+        last time step.
         '''
 
         # Prepare to export the current plot.
@@ -322,7 +320,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='Final_Current_extracellular')
 
-    # ..................{ EXPORTERS ~ deform                 }..................
+    # ..................{ EXPORTERS ~ deform                }..................
     @piperunner(
         categories=('Deformation', 'Total',),
         requirements=phasereqs.DEFORM,
@@ -353,7 +351,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_displacement_2D')
 
-    # ..................{ EXPORTERS ~ diffusion              }..................
+    # ..................{ EXPORTERS ~ diffusion             }..................
     @piperunner(
         categories=('Diffusion Weights', 'Extracellular',),
         requirements=phasereqs.ECM,
@@ -389,7 +387,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='env_diffusion_weights')
 
-    # ..................{ EXPORTERS ~ electric               }..................
+    # ..................{ EXPORTERS ~ electric              }..................
     @piperunner(
         categories=('Electric Field', 'Intracellular',),
         requirements=phasereqs.ELECTRIC_FIELD,
@@ -449,7 +447,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='Final_Electric_Field_ECM')
 
-    # ..................{ EXPORTERS ~ fluid                  }..................
+    # ..................{ EXPORTERS ~ fluid                 }..................
     @piperunner(
         categories=('Fluid Flow', 'Intracellular',),
         requirements=phasereqs.FLUID,
@@ -485,8 +483,8 @@ class PlotCellsPipe(PlotPipeABC):
     )
     def export_fluid_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Plot all extracellular fluid flow field lines for the environment at the
-        last time step.
+        Plot all extracellular fluid flow field lines for the environment at
+        the last time step.
         '''
 
         # Prepare to export the current plot.
@@ -507,12 +505,13 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_vel_2D_env')
 
-    # ..................{ EXPORTERS ~ ion : calcium          }..................
+    # ..................{ EXPORTERS ~ ion : calcium         }..................
     @piperunner(
         categories=('Ion Concentration', 'Calcium', 'Intracellular',),
         requirements=phasereqs.ION_CALCIUM,
     )
-    def export_ion_calcium_intra(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_ion_calcium_intra(
+        self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all intracellular calcium (i.e., Ca2+) ion concentrations for the
         cell cluster at the last time step.
@@ -544,7 +543,8 @@ class PlotCellsPipe(PlotPipeABC):
         categories=('Ion Concentration', 'Calcium', 'Extracellular',),
         requirements=phasereqs.ION_CALCIUM_EXTRA,
     )
-    def export_ion_calcium_extra(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_ion_calcium_extra(
+        self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular calcium (i.e., Ca2+) ion concentrations for the
         environment at the last time step.
@@ -569,7 +569,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='Final_environmental_calcium')
 
-    # ..................{ EXPORTERS ~ gap junction           }..................
+    # ..................{ EXPORTERS ~ gap junction          }..................
     # These exporters are solver- and feature-agnostic.
 
     @piperunner(categories=('Gap Junction', 'Connectivity Network',))
@@ -646,7 +646,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_gjState')
 
-    # ..................{ EXPORTERS ~ microtubule            }..................
+    # ..................{ EXPORTERS ~ microtubule           }..................
     @piperunner(
         categories=('Microtubule', 'Coherence',),
         requirements=phasereqs.MICROTUBULE,
@@ -660,7 +660,8 @@ class PlotCellsPipe(PlotPipeABC):
         # Prepare to export the microtubules plot.
         self._export_prep()
 
-        umtx, umty = self._phase.sim.mtubes.mtubes_to_cell(self._phase.cells, self._phase.p)
+        umtx, umty = self._phase.sim.mtubes.mtubes_to_cell(
+            self._phase.cells, self._phase.p)
 
         pyplot.figure()
         ax = pyplot.subplot(111)
@@ -698,7 +699,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='Final_Microtubules')
 
-    # ..................{ EXPORTERS ~ pump                   }..................
+    # ..................{ EXPORTERS ~ pump                  }..................
     # @piperunner(
     #     categories=('Ion Pump', 'Density Factor',),
     #     requirements={phasereqs.ELECTROOSMOSIS,},
@@ -754,7 +755,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_NaKPump_2D')
 
-    # ..................{ EXPORTERS ~ pressure               }..................
+    # ..................{ EXPORTERS ~ pressure              }..................
     @piperunner(
         categories=('Pressure', 'Total',),
         requirements=phasereqs.PRESSURE_TOTAL,
@@ -787,7 +788,7 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_P_2D_gj')
 
-    # ..................{ EXPORTERS ~ voltage                }..................
+    # ..................{ EXPORTERS ~ voltage               }..................
     @piperunner(
         categories=('Voltage', 'Extracellular',),
         requirements=phasereqs.VOLTAGE_EXTRA,
@@ -868,9 +869,10 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='Final_Polarity')
 
-    # ..................{ EXPORTERS ~ voltage : vmem         }..................
+    # ..................{ EXPORTERS ~ voltage : vmem        }..................
     @piperunner(categories=('Voltage', 'Transmembrane', 'Actual',))
-    def export_voltage_membrane(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_voltage_membrane(
+        self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all transmembrane voltages (Vmem) for the cell cluster at the last
         time step.
@@ -964,7 +966,10 @@ class PlotCellsPipe(PlotPipeABC):
         )
 
         figV_ghk.suptitle(
-            'Final Vmem using Goldman Equation', fontsize=14, fontweight='bold')
+            'Final Vmem using Goldman Equation',
+            fontsize=14,
+            fontweight='bold',
+        )
         axV_ghk.set_xlabel('Spatial distance [um]')
         axV_ghk.set_ylabel('Spatial distance [um]')
         cbV_ghk.set_label('Voltage [mV]')

@@ -15,7 +15,7 @@ from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.config.confenum import GrnUnpicklePhaseType
 from betse.science.export import exppipe
 from betse.science.parameters import Parameters
-from betse.science.sim import Simulator
+# from betse.science.sim import Simulator
 from betse.science.phase import phasecallbacks
 from betse.science.phase.phasecallbacks import SimCallbacksBCOrNoneTypes
 from betse.science.phase.phasecls import SimPhase
@@ -135,27 +135,25 @@ class SimRunner(object):
         # Create the pseudo-randomized cell cluster.
         phase.cells.make_world(phase)
 
-        #FIXME: Pass status messages to all of the calls to this callback
-        #transitively performed by this method (e.g., by passing the optional
-        #"progress_status" parameter to each call to progressed_next()).
-        self._callbacks.progressed_next()
-
         # Initialize core simulation data structures.
+        self._callbacks.progressed_next(
+            progress_status='Creating core computational matrices...')
         phase.sim.init_core(phase)
-        self._callbacks.progressed_next()
 
         # Define the tissue and boundary profiles for plotting.
-        phase.dyna.init_profiles(phase)
         self._callbacks.progressed_next(
-            progress_status='Creating gap junction connection network...')
+            progress_status='Creating tissue, surgery, and boundary profiles...')
+        phase.dyna.init_profiles(phase)
 
         # Redo gap junctions to isolate different tissue types.
-        phase.cells.redo_gj(phase)
         self._callbacks.progressed_next(
-            progress_status='Creating cell network Poisson solver...')
+            progress_status='Creating gap junction connection network...')
+        phase.cells.redo_gj(phase)
 
         # Create a Laplacian and solver for discrete transfers on closed,
         # irregular cell network.
+        self._callbacks.progressed_next(
+            progress_status='Creating cell network Poisson solver...')
         phase.cells.graphLaplacian(self._p)
 
         #FIXME: Would shifting this logic into the cells.graphLaplacian() method
@@ -357,37 +355,36 @@ class SimRunner(object):
             logs.log_info('Running gene regulatory network on betse seed...')
             logs.log_info('Now using cell cluster to run initialization.')
 
-            # Simulator.
-            sim = Simulator(self._p)
-
             # Simulation phase.
             phase = SimPhase(
                 kind=phase_kind,
                 callbacks=self._callbacks,
                 cells=cells,
                 p=self._p,
-                sim=sim,
             )
 
             # Initialize core simulation data structures.
-            sim.init_core(phase)
-            sim.init_dynamics(phase)
+            phase.sim.init_core(phase)
+            phase.sim.init_dynamics(phase)
+
+            #FIXME: Shift the following assignments into a new public
+            #"Simulator" method -- say, Simulator.init_core_null().
 
             # Initialize other aspects required for piggyback of GRN on the
             # sim object.
-            sim.time = []
-            sim.vm = -50e-3 * np.ones(sim.mdl)
+            phase.sim.time = []
+            phase.sim.vm = -50e-3 * np.ones(phase.sim.mdl)
 
             # Initialize key fields of simulator required to interface
             # (dummy init).
-            sim.rho_pump = 1.0
-            sim.rho_channel = 1.0
-            sim.conc_J_x = np.zeros(sim.edl)
-            sim.conc_J_y = np.zeros(sim.edl)
-            sim.J_env_x = np.zeros(sim.edl)
-            sim.J_env_y = np.zeros(sim.edl)
-            sim.u_env_x = np.zeros(sim.edl)
-            sim.u_env_y = np.zeros(sim.edl)
+            phase.sim.rho_pump = 1.0
+            phase.sim.rho_channel = 1.0
+            phase.sim.conc_J_x = np.zeros(phase.sim.edl)
+            phase.sim.conc_J_y = np.zeros(phase.sim.edl)
+            phase.sim.J_env_x  = np.zeros(phase.sim.edl)
+            phase.sim.J_env_y  = np.zeros(phase.sim.edl)
+            phase.sim.u_env_x  = np.zeros(phase.sim.edl)
+            phase.sim.u_env_y  = np.zeros(phase.sim.edl)
         # Else if networking an initialized but unsimulated cell cluster...
         elif self._p.grn_unpickle_phase_type is GrnUnpicklePhaseType.INIT:
             if not files.is_file(self._p.init_pickle_filename):
@@ -774,12 +771,6 @@ class SimRunner(object):
             sim.grn.core.plot(sim, cells, self._p, message='GRN molecules')
             sim.grn.core.anim(phase=phase, message='GRN molecules')
 
-        #FIXME: Integrate into the plot pipeline.
-        if self._p.Ca_dyn and self._p.ions_dict['Ca'] == 1:
-            sim.endo_retic.init_saving(
-                cells, self._p, plot_type='init', nested_folder_name='ER')
-            sim.endo_retic.plot_er(sim, cells, self._p)
-
         # If displaying plots, block on all previously plots previously
         # displayed as non-blocking. If this is *NOT* done, these plots will
         # effectively *NEVER* displayed be on most systems.
@@ -860,12 +851,6 @@ class SimRunner(object):
             sim.grn.core.plot(sim, cells, self._p, message='GRN molecules')
             sim.grn.core.anim(phase=phase, message='GRN molecules')
 
-        #FIXME: Integrate into the plot pipeline.
-        if self._p.Ca_dyn and self._p.ions_dict['Ca'] == 1:
-            sim.endo_retic.init_saving(
-                cells, self._p, plot_type='sim', nested_folder_name='ER')
-            sim.endo_retic.plot_er(sim, cells, self._p)
-
         # If displaying plots, block on all previously plots previously
         # displayed as non-blocking. If this is *NOT* done, these plots will
         # effectively *NEVER* displayed be on most systems.
@@ -893,9 +878,6 @@ class SimRunner(object):
         # Simulation phase type.
         phase_kind = SimPhaseKind.INIT
 
-        # High-level simulation objects.
-        sim = Simulator(self._p)
-
         # MoG = MasterOfGenes(self._p)
         MoG, cells, _ = fh.loadSim(self._p.grn_pickle_filename)
 
@@ -904,24 +886,26 @@ class SimRunner(object):
             kind=phase_kind,
             cells=cells,
             p=self._p,
-            sim=sim,
             callbacks=self._callbacks,
         )
 
         # Initialize core simulation data structures.
-        sim.init_core(phase)
+        phase.sim.init_core(phase)
 
         # Initialize simulation data structures
         # sim.baseInit_all(cells, p)
 
         #FIXME: This... looks a bit hacky. That said, maybe it is good? Thunder
         #dragons unite!
-        sim.time = MoG.time
+        phase.sim.time = MoG.time
 
         MoG.core.plot_init(self._p.grn.conf, self._p)
-        MoG.core.init_saving(cells, self._p, plot_type='grn', nested_folder_name='RESULTS')
-        MoG.core.export_all_data(sim, cells, self._p, message='gene products')
-        MoG.core.plot(sim, cells, self._p, message='gene products')
+        MoG.core.init_saving(
+            cells, self._p, plot_type='grn', nested_folder_name='RESULTS')
+        MoG.core.export_all_data(
+            phase.sim, cells, self._p, message='gene products')
+        MoG.core.plot(
+            phase.sim, cells, self._p, message='gene products')
         MoG.core.anim(phase=phase, message='gene products')
 
         # If displaying plots, block on all previously plots previously

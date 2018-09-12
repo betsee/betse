@@ -674,7 +674,12 @@ class Parameters(YamlFileABC):
 
         # Calcium TissueHandler: Calcium Induced Calcium Release (CICR).....................................................
 
-        # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)?
+        #FIXME: This is a bit unfortunate. Are full calcium dynamics
+        #fundamentally broken? If not, perhaps we can define a new boolean in
+        #our YAML configuration file to permit users to enable this. Endor!
+
+        # Include full calcium dynamics in the situation (i.e. endoplasmic
+        # reticulum, etc)?
         self.Ca_dyn = False
 
         #--------------------------------------------------------------------------------------------------------------
@@ -915,7 +920,7 @@ class Parameters(YamlFileABC):
         self.enumerate_cells = ro['enumerate cells']
 
         # FIXME, let this be a list!
-        self.plot_cell = ro['plot cell index']             # State the cell index to use for single-cell time plots
+        self.plot_cell = ro['plot cell index'] # State the cell index to use for single-cell time plots
 
         self.plot_networks_single_cell = ro['plot networks single cell']
         self.showCells = ro['show cells']     # True = polygon patch plots, False = trimesh

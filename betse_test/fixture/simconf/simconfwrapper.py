@@ -35,9 +35,9 @@ from betse.science.phase.require import phasereqs
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirementsOrNoneTypes)
 from betse.science.export.csv.csvpipe import SimPipeExportCSVs
-from betse.science.visual.anim.animpipe import AnimCellsPipe
-from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
-from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
+from betse.science.visual.anim.animpipe import SimPipeExportAnimCells
+from betse.science.visual.plot.pipe.plotpipecell import SimPipeExportPlotCell
+from betse.science.visual.plot.pipe.plotpipecells import SimPipeExportPlotCells
 from betse.util.io.log import logs
 from betse.util.type.cls import classes
 from betse.util.type.types import type_check
@@ -724,7 +724,7 @@ class SimConfigTestWrapper(object):
 
         return (
             (SimPipeExportCSVs, self._p.csv.csvs_after_sim),
-            (PlotCellPipe,  self._p.plot.plots_cell_after_sim),
-            (PlotCellsPipe, self._p.plot.plots_cells_after_sim),
-            (AnimCellsPipe, self._p.anim.anims_after_sim),
+            (SimPipeExportPlotCell,  self._p.plot.plots_cell_after_sim),
+            (SimPipeExportPlotCells, self._p.plot.plots_cells_after_sim),
+            (SimPipeExportAnimCells, self._p.anim.anims_after_sim),
         )
