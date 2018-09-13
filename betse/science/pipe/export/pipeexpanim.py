@@ -16,9 +16,9 @@ exporting) post-simulation animations.
 from betse.science.config.export.visual.confvisabc import (
     SimConfVisualCellsListItem)
 from betse.science.math.vector.veccls import VectorCellsCache
-from betse.science.phase.pipe.pipeabc import SimPipeExportABC
-from betse.science.phase.pipe.piperun import piperunner
 from betse.science.phase.require import phasereqs
+from betse.science.pipe.export.pipeexpabc import SimPipeExportABC
+from betse.science.pipe.piperun import piperunner
 from betse.science.visual.anim.anim import (
     AnimGapJuncTimeSeries,
     # AnimMembraneTimeSeries,
@@ -39,7 +39,7 @@ from betse.science.visual.layer.vectorfield.lyrvecfldquiver import (
 )
 from betse.science.visual.layer.vectorfield.lyrvecfldstream import (
     LayerCellsFieldStream)
-from betse.util.type.types import type_check, IterableTypes
+from betse.util.type.types import IterableTypes  # type_check,
 
 # ....................{ SUBCLASSES                        }....................
 class SimPipeExportAnimCells(SimPipeExportABC):
@@ -51,11 +51,11 @@ class SimPipeExportAnimCells(SimPipeExportABC):
 
     # ..................{ SUPERCLASS                        }..................
     @property
-    def is_enabled(self) -> bool:
+    def _is_enabled(self) -> bool:
         return self._phase.p.anim.is_after_sim
 
     @property
-    def _label_singular(self) -> str:
+    def _noun_singular(self) -> str:
         return 'animation'
 
     @property

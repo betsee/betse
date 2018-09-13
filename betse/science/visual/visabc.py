@@ -20,7 +20,7 @@ from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_PATCH, ZORDER_STREAM
 from betse.lib.numpy import nparray
 from betse.science.config.export.visual.confvisabc import SimConfVisualCellsABC
-from betse.science.export import expmath
+from betse.science.math import mathunit
 from betse.science.phase.phasecls import SimPhase
 from betse.science.visual.layer.lyrabc import LayerCellsABC
 from betse.science.visual.layer.lyrtext import LayerCellsIndex
@@ -1376,7 +1376,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Cell vertices plotted as polygons.
         mosaic_plot = PolyCollection(
-            verts=expmath.upscale_coordinates(self._phase.cells.cell_verts),
+            verts=mathunit.upscale_coordinates(self._phase.cells.cell_verts),
             cmap=self._colormap,
             edgecolors='none',
         )

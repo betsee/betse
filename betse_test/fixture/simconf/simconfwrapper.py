@@ -34,13 +34,23 @@ from betse.science.config.confenum import IonProfileType, SolverType
 from betse.science.phase.require import phasereqs
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirementsOrNoneTypes)
-from betse.science.export.csv.csvpipe import SimPipeExportCSVs
-from betse.science.visual.anim.animpipe import SimPipeExportAnimCells
-from betse.science.visual.plot.pipe.plotpipecell import SimPipeExportPlotCell
-from betse.science.visual.plot.pipe.plotpipecells import SimPipeExportPlotCells
 from betse.util.io.log import logs
 from betse.util.type.cls import classes
 from betse.util.type.types import type_check
+
+#FIXME: Refactor away all explicit usage of individual pipeline subclasses.
+#Instead, we want this submodule to be able to generically query some master
+#singleton object or some such for the set of all currently enabled pipeline
+#runners -- which is all this submodule generally cares about. See also:
+#
+#* The "_pipes_type_exporters_enabled" property defined below.
+#* The _enable_exports() method leveraging this property.
+from betse.science.pipe.export.pipeexpcsv import SimPipeExportCSVs
+from betse.science.pipe.export.pipeexpanim import SimPipeExportAnimCells
+from betse.science.pipe.export.plot.pipeexpplotcell import (
+    SimPipeExportPlotCell)
+from betse.science.pipe.export.plot.pipeexpplotcells import (
+    SimPipeExportPlotCells)
 
 # ....................{ SUPERCLASSES                      }....................
 class SimConfigTestWrapper(object):
@@ -567,7 +577,7 @@ class SimConfigTestWrapper(object):
             possible exports are unconditionally enabled.
         '''
 
-        # If unpassed, default the set of requirements to omit to the empty set.
+        # Default the set of requirements to omit to the empty set.
         if requirements_omit is None:
             requirements_omit = phasereqs.NONE
 
@@ -575,10 +585,14 @@ class SimConfigTestWrapper(object):
         # all exporters enabled by this pipeline...
         for pipe_type, pipe_exporters_enabled in (
             self._pipes_type_exporters_enabled):
+            #FIXME: Replace with direct usage of the more human-readable
+            #"SimPipeABC.name" property. That said, that property requires this
+            #pipeline to have already been instantiated. *shrug*
+
             # Name of this pipeline for logging purposes.
             pipeline_name = classes.get_name(pipe_type)
 
-            # Set of the names of all such exporters, for subsequent lookup.
+            # Set of the names of all such exporters for subsequent lookup.
             pipe_exporters_enabled_name = frozenset(
                 pipe_exporter_enabled.name
                 for pipe_exporter_enabled in pipe_exporters_enabled)
@@ -586,16 +600,18 @@ class SimConfigTestWrapper(object):
             #     'Pipeline "%s" exporters enabled: %r',
             #     pipeline_name, pipe_exporters_enabled_name)
 
-            # For the name of each possible exporter supported by this pipeline,
-            # regardless of whether that exporter is currently enabled or not...
+            # For the name of each possible exporter supported by this
+            # pipeline, regardless of whether that exporter is currently
+            # enabled or not...
             for pipe_exporter_name, pipe_exporter in pipe_type.iter_runners():
                 # logs.log_debug(
                 #     'Considering pipeline "%s" exporter "%s"...',
                 #     pipeline_name, pipe_exporter_name)
 
                 #FIXME: Insufficient. If this exporter is already enabled *BUT*
-                #unsatisfied, this exporter *MUST* be manually removed from this
-                #pipeline. Trivial, but we need to actually do it.
+                #unsatisfied, this exporter *MUST* be manually removed from
+                #the "pipe_exporters_enabled" sequence. Trivial, but we need
+                #to actually do it.
 
                 # If this exporter is already enabled by this pipeline...
                 if pipe_exporter_name in pipe_exporters_enabled_name:
@@ -607,8 +623,8 @@ class SimConfigTestWrapper(object):
 
                     # Continue to the next possible exporter.
                     continue
-                # Else if this exporter requires one or more simulation features
-                # explicitly excluded by the caller...
+                # Else if this exporter requires one or more simulation
+                # features explicitly excluded by the caller...
                 elif pipe_exporter.requirements.isintersection(
                     requirements_omit):
                     # Log this exclusion.
@@ -709,7 +725,6 @@ class SimConfigTestWrapper(object):
         results['overlay currents'] = True
 
     # ..................{ PRIVOTE ~ iterators               }..................
-    #FIXME: Add the CSV export pipeline, once completed, to this tuple.
     @property
     def _pipes_type_exporters_enabled(self) -> tuple:
         '''

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,18 +7,18 @@
 Low-level integer facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseIntException
 from betse.util.type import types
 from betse.util.type.types import type_check
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 BITS_PER_BYTE = 8
 '''
 Number of bits per byte.
 '''
 
-# ....................{ CONSTANTS ~ max                    }....................
+# ....................{ CONSTANTS ~ max                   }....................
 BYTE_VALUE_MAX = 255
 '''
 Maximum value of unsigned bytes.
@@ -34,7 +34,7 @@ This value is suitable for comparison with :attr:`sys.maxsize`, the maximum
 value of these variables on the current system.
 '''
 
-# ....................{ CONSTANTS ~ units ~ size           }....................
+# ....................{ CONSTANTS ~ units ~ size          }....................
 # Size denominations in base 2 rather than base 10, for mild efficiency.
 
 KiB = 1 << 10
@@ -60,31 +60,7 @@ TiB = 1 << 40
 Number of bytes in one tebibyte (i.e., ``2**40``).
 '''
 
-# ....................{ CONSTANTS ~ units ~ inverse        }....................
-INVERSE_CENTI = 1e2
-'''
-Inverse of the centi- unit prefix (i.e., ``10**−2``), typically used as a
-multiplicative factor for upscaling quantities from centi-prefixed units to
-unprefixed units.
-'''
-
-
-INVERSE_MILLI = 1e3
-'''
-Inverse of the milli- unit prefix (i.e., ``10**−3``), typically used as a
-multiplicative factor for upscaling quantities from milli-prefixed units to
-unprefixed units.
-'''
-
-
-INVERSE_MICRO = 1e6
-'''
-Inverse of the micro- unit prefix (i.e., ``10**−6``), typically used as a
-multiplicative factor for upscaling quantities from micro-prefixed units to
-unprefixed units.
-'''
-
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_unless(*objects) -> None:
     '''
     Raise an exception unless all passed objects are integers.
@@ -105,7 +81,7 @@ def die_unless(*objects) -> None:
             raise BetseIntException(
                 'Object "{}" not an integer.'.format(obj))
 
-# ....................{ TESTERS ~ range                    }....................
+# ....................{ TESTERS ~ range                   }....................
 @type_check
 def die_unless_positive(*numbers: int, label: str = 'Integer') -> None:
     '''
@@ -117,8 +93,8 @@ def die_unless_positive(*numbers: int, label: str = 'Integer') -> None:
     numbers : tuple
         Tuple of all integers to be validated.
     label : optional[str]
-        Human-readable label prefixing exception messages raised by this method.
-        Defaults to a rather sensible string.
+        Human-readable label prefixing exception messages raised by this
+        method. Defaults to a sensible string.
 
     Raises
     ----------
@@ -133,7 +109,7 @@ def die_unless_positive(*numbers: int, label: str = 'Integer') -> None:
             raise BetseIntException(
                 '{} "{}" not positive.'.format(label.capitalize(), number))
 
-# ....................{ TESTERS ~ size                     }....................
+# ....................{ TESTERS ~ size                    }....................
 @type_check
 def die_unless_byte(*numbers: int, label: str = 'Integer') -> None:
     '''
@@ -145,8 +121,8 @@ def die_unless_byte(*numbers: int, label: str = 'Integer') -> None:
     numbers : tuple
         Tuple of all integers to be validated.
     label : optional[str]
-        Human-readable label prefixing exception messages raised by this method.
-        Defaults to a rather sensible string.
+        Human-readable label prefixing exception messages raised by this
+        method. Defaults to a sensible string.
 
     Raises
     ----------
@@ -162,7 +138,7 @@ def die_unless_byte(*numbers: int, label: str = 'Integer') -> None:
                 '{} "{}" not a byte (i.e., not in the range [0, 255]).'.format(
                     label.capitalize(), number))
 
-# ....................{ TESTERS ~ parity                   }....................
+# ....................{ TESTERS ~ parity                  }....................
 @type_check
 def is_even(number: int) -> bool:
     '''
@@ -180,7 +156,7 @@ def is_odd(number: int) -> bool:
 
     return number % 2 == 1
 
-# ....................{ TESTERS ~ size                     }....................
+# ....................{ TESTERS ~ size                    }....................
 @type_check
 def is_byte(number: int) -> bool:
     '''

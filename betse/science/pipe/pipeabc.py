@@ -4,8 +4,8 @@
 # See "LICENSE" for further details.
 
 '''
-High-level **simulation pipeline** (i.e., sequence of similar simulation
-activities to be iteratively run) functionality.
+High-level **simulation pipeline** (i.e., container of related, albeit
+isolated, simulation actions to be run iteratively) functionality.
 '''
 
 # ....................{ IMPORTS                           }....................
@@ -13,8 +13,8 @@ from abc import ABCMeta
 from betse.exceptions import (
     BetseSimPipeException, BetseSimPipeRunnerUnsatisfiedException)
 from betse.lib.yaml.abc.yamllistabc import YamlListItemTypedABC
-from betse.science.phase.pipe.piperun import SimPipeRunner
 from betse.science.phase.phasecls import SimPhase
+from betse.science.pipe.piperun import SimPipeRunner
 from betse.util.io.log import logs
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.obj import objects
@@ -22,6 +22,7 @@ from betse.util.type.text import strs
 from betse.util.type.types import type_check, GeneratorType, IterableTypes
 
 # ....................{ SUPERCLASSES                      }....................
+#FIXME: Revise docstring to account for the recent large-scale class redesign.
 class SimPipeABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all subclasses running a **simulation pipeline**
@@ -63,18 +64,20 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
     Attributes (Private)
     ----------
-    _phase : SimPhase
-        Current simulation phase.
+    _phase : SimPhaseOrNoneTypes
+        Current simulation phase if this pipeline is currently running (i.e.,
+        if the :meth:`run` method is currently being called) *or* ``None``
+        otherwise.
 
     Attributes (Private: Labels)
     ----------
-    _label_singular_lowercase : str
+    _noun_singular_lowercase : str
         Human-readable lowercase singular noun synopsizing the type of runners
         implemented by this subclass (e.g., ``animation``, ``plot``).
-    _label_singular_uppercase : str
+    _noun_singular_uppercase : str
         Human-readable singular noun whose first character is uppercase and all
         remaining characters lowercase (e.g., ``Animation``, ``Plot``).
-    _label_plural_lowercase : str
+    _noun_plural_lowercase : str
         Human-readable lowercase plural noun synopsizing the type of runners
         implemented by this subclass (e.g., ``animations``, ``plots``).
     '''
@@ -86,6 +89,8 @@ class SimPipeABC(object, metaclass=ABCMeta):
     #intermediary metaclasses. Ergo, refactor the "_RUNNER_METHOD_NAME_PREFIX"
     #class variable into a comparable _runner_method_name_prefix() class
     #property decorated by the @classproperty_readonly decorator. Thunderstorm!
+    #FIXME: Actually, just refactor this into a normal instance property after
+    #refactoring the iter_runners() class method into a normal method as well.
 
     # Ideally, the following class constants would instead be implemented as
     # class properties. Unfortunately, there exists no @classproperty decorator
@@ -103,6 +108,9 @@ class SimPipeABC(object, metaclass=ABCMeta):
     '''
 
     # ..................{ STATIC ~ iterators                }..................
+    #FIXME: Refactor this class method into a normal method. Note that doing so
+    #well require patching the _enable_exports() fixture method (defined
+    #elsewhere) to actually instantiate an instance of this subclass.
     @classmethod
     def iter_runners(cls) -> GeneratorType:
         '''
@@ -138,52 +146,48 @@ class SimPipeABC(object, metaclass=ABCMeta):
                 ),
                 runner
             )
+
+            #FIXME: Define a new objects.iter_instances_of_type() function
+            #performing this logic on our behalf.
+
             # For each such runner's method name and instance.
             for runner_method_name, runner in objects.iter_attrs_matching(
                 obj=cls, predicate=lambda attr_name, attr_value: (
-                    isinstance(attr_value, SimPipeRunner))))
+                    isinstance(attr_value, SimPipeRunner)))
+        )
 
     # ..................{ INITIALIZERS                      }..................
     @type_check
-    def __init__(self, phase: SimPhase) -> None:
+    def __init__(self) -> None:
         '''
-        Initialize this pipeline for the passed simulation phase.
-
-        Parameters
-        ----------
-        phase : SimPhase
-            Current simulation phase.
+        Initialize this pipeline.
         '''
 
         # Classify all passed parameters.
-        self._phase = phase
-        self._label_singular_lowercase = self._label_singular
-        self._label_singular_uppercase = strs.uppercase_char_first(
-            self._label_singular)
-        self._label_plural_lowercase = self._label_plural
+        self._noun_singular_lowercase = self._noun_singular
+        self._noun_singular_uppercase = strs.uppercase_char_first(
+            self._noun_singular)
+        self._noun_plural_lowercase = self._noun_plural
 
-    # ..................{ PROPERTIES ~ bool                 }..................
-    @property
-    def is_enabled(self) -> bool:
+        # Nullify all remaining instance variables for safety.
+        self._phase = None
+
+
+    def _init_run(self) -> None:
         '''
-        ``True`` only if the :meth:`run` method should run this pipeline.
+        Initialize this pipeline for the current call to the :meth:`run`
+        method, which calls this method *before* performing subsequent logic.
 
-        Specifically, if this boolean is:
-
-        * ``False``, the :meth:`run` method reduces to a noop.
-        * ``True``, this method behaves as expected (i.e., calls all currently
-          enabled runner methods).
-
-        Defaults to ``True``. Pipeline subclasses typically override this
-        property to return a boolean derived from the simulation configuration
-        file associated with the current phase.
+        Defaults to a noop. Pipeline subclasses may override this method to
+        guarantee state assumed by subsequently run pipeline runners (e.g., to
+        create external directories required by these runners).
         '''
 
-        return True
+        pass
 
-    # ..................{ PROPERTIES ~ str                  }..................
+    # ..................{ SUBCLASS ~ properties             }..................
     @abstractproperty
-    def _label_singular(self) -> str:
+    def _noun_singular(self) -> str:
         '''
         Human-readable singular noun synopsizing the type of runners
         implemented by this subclass (e.g., ``animation``, ``plot``), ideally
@@ -193,34 +197,6 @@ class SimPipeABC(object, metaclass=ABCMeta):
         pass
 
 
-    @property
-    def _label_plural(self) -> str:
-        '''
-        Human-readable plural noun synopsizing the type of runners implemented
-        by this subclass (e.g., ``animations``, ``plots``), ideally but *not*
-        necessarily lowercase. Defaults to the passed ``label_singular``
-        parameter suffixed by an ``s`` character.
-
-        Defaults to suffixing the noun returned by the :meth:`_label_singular`
-        property by ``s``.
-        '''
-
-        return self._label_singular + 's'
-
-
-    @property
-    def _label_verb(self) -> str:
-        '''
-        Human-readable verb synopsizing the type of action performed by runners
-        implemented by this subclass (e.g., ``Saving``), ideally but *not*
-        necessarily capitalized.
-
-        Defaults to ``Running``.
-        '''
-
-        return 'Running'
-
-    # ..................{ PROPERTIES ~ iterable             }..................
     @abstractproperty
     def _runners_conf(self) -> IterableTypes:
         '''
@@ -235,15 +211,75 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
         pass
 
-    # ..................{ RUNNERS                           }..................
-    def run(self) -> None:
+    # ..................{ PROPERTIES                        }..................
+    @property
+    def name(self) -> str:
         '''
-        Run all currently enabled pipeline runners if this pipeline itself is
-        currently enabled *or* noop otherwise.
+        Human-readable name of this pipeline, intended principally for display
+        (e.g., logging) purposes.
+
+        Defaults to suffixing :meth:`_noun_singular` by `` pipeline``.
+        '''
+
+        return '{} pipeline'.format(self._noun_singular)
+
+    # ..................{ PROPERTIES ~ private              }..................
+    @property
+    def _is_enabled(self) -> bool:
+        '''
+        ``True`` only if the currently called :meth:`run` method should run
+        this pipeline.
+
+        Specifically, if this boolean is:
+
+        * ``False``, the :meth:`run` method reduces to a noop.
+        * ``True``, this method behaves as expected (i.e., calls all currently
+          enabled runner methods).
+
+        Defaults to ``True``. Pipeline subclasses typically override this
+        property to return a boolean derived from the simulation configuration
+        file associated with the current phase.
+        '''
+
+        return True
+
+    # ..................{ PROPERTIES ~ private : str        }..................
+    @property
+    def _noun_plural(self) -> str:
+        '''
+        Human-readable plural noun synopsizing the type of runners implemented
+        by this subclass (e.g., ``animations``, ``plots``), ideally but *not*
+        necessarily lowercase.
+
+        Defaults to suffixing :meth:`_noun_singular` by ``s``.
+        '''
+
+        return self._noun_singular + 's'
+
+
+    @property
+    def _verb_continuous(self) -> str:
+        '''
+        Human-readable verb in the continuous tense synopsizing the type of
+        action performed by runners implemented by this subclass (e.g.,
+        ``Saving``), ideally but *not* necessarily capitalized.
+
+        Defaults to ``Running``.
+        '''
+
+        return 'Running'
+
+    # ..................{ RUNNERS                           }..................
+    @type_check
+    def run(self, phase: SimPhase) -> None:
+        '''
+        Run all currently enabled pipeline runners for the passed simulation
+        phase if this pipeline is currently enabled in this phase *or* noop
+        otherwise.
 
         Specifically:
 
-        * If the :meth:`is_enabled` property is ``True`` (implying this
+        * If the :meth:`_is_enabled` property is ``True`` (implying this
           pipeline to be currently enabled):
 
           * For each :class:`YamlListItemTypedABC` instance (corresponding to
@@ -258,17 +294,29 @@ class SimPipeABC(object, metaclass=ABCMeta):
               non-fatal warning.
 
         * Else, log an informative message and return immediately.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
         '''
 
+        # Temporarily classify the passed phase.
+        self._phase = phase
+
+        # Initialize this pipeline for the current call to this method *AFTER*
+        # classifying this phase, as the former typically requires the latter.
+        self._init_run()
+
         # If this pipeline is disabled, log this fact and return immediately.
-        if not self.is_enabled:
-            logs.log_info('Excluding %s...', self._label_plural_lowercase)
+        if not self._is_enabled:
+            logs.log_info('Excluding %s...', self._noun_plural_lowercase)
             return
         # Else, this pipeline is enabled.
 
         # Log this pipeline run.
         logs.log_info(
-            '%s %s...', self._label_verb, self._label_plural_lowercase)
+            '%s %s...', self._verb_continuous, self._noun_plural_lowercase)
 
         # For the object encapsulating all input arguments to be passed to each
         # currently enabled runner in this pipeline...
@@ -283,7 +331,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
             if not runner_conf.is_enabled:
                 logs.log_debug(
                     'Ignoring disabled %s "%s"...',
-                    self._label_singular_lowercase,
+                    self._noun_singular_lowercase,
                     runner_conf.name)
                 continue
             # Else, this runner is enabled.
@@ -301,7 +349,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
             if runner_method is None:
                 raise BetseSimPipeException(
                     '{} "{}" unrecognized.'.format(
-                        self._label_singular_uppercase, runner_conf.name))
+                        self._noun_singular_uppercase, runner_conf.name))
             # Else, this runner is recognized.
 
             # Attempt to pass this runner these arguments.
@@ -313,9 +361,12 @@ class SimPipeABC(object, metaclass=ABCMeta):
             except BetseSimPipeRunnerUnsatisfiedException as exception:
                 logs.log_warning(
                     'Excluding %s "%s", as %s.',
-                    self._label_singular_lowercase,
+                    self._noun_singular_lowercase,
                     runner_conf.name,
                     exception.reason)
+
+        # Declassify the passed phase for safety.
+        self._phase = None
 
     # ..................{ EXCEPTIONS                        }..................
     @type_check
@@ -351,7 +402,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
             if not requirement.is_satisfied(phase=self._phase):
                 raise BetseSimPipeRunnerUnsatisfiedException(
                     result='{} "{}" requirement unsatisfied'.format(
-                        self._label_singular_uppercase, runner_name),
+                        self._noun_singular_uppercase, runner_name),
                     reason='{} disabled'.format(requirement.name),
                 )
         # Else, all runner requirements are satisfied.
@@ -359,23 +410,4 @@ class SimPipeABC(object, metaclass=ABCMeta):
         # Log the subsequent attempt to run this runner.
         logs.log_info(
             '%s %s "%s"...',
-            self._label_verb, self._label_singular_lowercase, runner_name)
-
-# ....................{ SUBCLASSES                        }....................
-class SimPipeExportABC(SimPipeABC):
-    '''
-    Abstract base class of all **simulation export pipelines** (i.e.,
-    subclasses iteritavely exporting all variations on a single type of
-    simulation export, either in parallel *or* in series).
-    '''
-
-    # ..................{ SUPERCLASS ~ constants            }..................
-    _RUNNER_METHOD_NAME_PREFIX = 'export_'
-    '''
-    Substring prefixing the name of each runner defined by this pipeline.
-    '''
-
-    # ..................{ SUPERCLASS                        }..................
-    @property
-    def _label_verb(self) -> str:
-        return 'Exporting'
+            self._verb_continuous, self._noun_singular_lowercase, runner_name)

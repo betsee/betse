@@ -10,7 +10,7 @@ High-level vector subcache functionality.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimVectorException
-from betse.science.export import expmath
+from betse.science.math import mathunit
 from betse.science.math.cache.cacheabc import SimPhaseCacheABC
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.util.type.decorator.decmemo import property_cached
@@ -100,7 +100,7 @@ class SimPhaseCacheVectorCells(SimPhaseCacheABC):
         # detailed above.
         return VectorCellsCache(
             phase=self._phase,
-            times_grids_centre=expmath.upscale_units_milli(
+            times_grids_centre=mathunit.upscale_units_milli(
                 self._phase.sim.venv_time).reshape(voltage_extra_shape))
 
 
@@ -118,7 +118,7 @@ class SimPhaseCacheVectorCells(SimPhaseCacheABC):
 
         return VectorCellsCache(
             phase=self._phase,
-            times_membranes_midpoint=expmath.upscale_units_milli(
+            times_membranes_midpoint=mathunit.upscale_units_milli(
                 self._phase.sim.vm_time))
 
     # ..................{ PRIVATE ~ ions                     }..................
@@ -155,6 +155,6 @@ class SimPhaseCacheVectorCells(SimPhaseCacheABC):
         # Create and return this cache.
         return VectorCellsCache(
             phase=self._phase,
-            times_cells_centre=expmath.upscale_units_micro(
+            times_cells_centre=mathunit.upscale_units_micro(
                 ions_concentration[ion_index]
                 for ions_concentration in self._phase.sim.cc_time))

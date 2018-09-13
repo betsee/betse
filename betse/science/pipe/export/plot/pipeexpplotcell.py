@@ -13,10 +13,10 @@ import numpy as np
 from betse.exceptions import BetseSimConfException
 from betse.science.config.export.visual.confvisabc import (
     SimConfVisualCellListItem)
-from betse.science.phase.pipe.piperun import piperunner
+from betse.science.pipe.export.plot.pipeexpplotabc import SimPipeExportPlotABC
 from betse.science.phase.require import phasereqs
+from betse.science.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
-from betse.science.visual.plot.pipe.plotpipeabc import SimPipeExportPlotABC
 from betse.util.type.types import IterableTypes
 from matplotlib import pyplot
 
@@ -30,10 +30,10 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
     '''
 
     # ..................{ INITIALIZERS                      }..................
-    def __init__(self, *args, **kwargs) -> None:
+    def _init_run(self) -> None:
 
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, **kwargs)
+        # Initialize our superclass for the current call to the _run() method.
+        super()._init_run()
 
         # If this index is not that of an actual cell, raise an exception.
         if self._phase.p.plot_cell not in self._phase.cells.cell_i:
@@ -47,7 +47,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
 
     # ..................{ SUPERCLASS                        }..................
     @property
-    def _label_singular(self) -> str:
+    def _noun_singular(self) -> str:
         return 'single-cell plot'
 
     @property

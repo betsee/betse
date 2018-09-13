@@ -13,11 +13,11 @@ spreadsheets in comma-separated value (CSV) format.
 import numpy as np
 from betse.lib.numpy import nparray, npcsv
 from betse.science.config.export.confcsv import SimConfExportCSV
-from betse.science.export import expmath
+from betse.science.math import mathunit
 from betse.science.phase.phaseenum import SimPhaseKind
-from betse.science.phase.pipe.pipeabc import SimPipeExportABC
-from betse.science.phase.pipe.piperun import piperunner
 from betse.science.phase.require import phasereqs
+from betse.science.pipe.export.pipeexpabc import SimPipeExportABC
+from betse.science.pipe.piperun import piperunner
 from betse.science.visual.plot.plotutil import cell_ave
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
@@ -36,11 +36,11 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
     # ..................{ SUPERCLASS                        }..................
     @property
-    def is_enabled(self) -> bool:
+    def _is_enabled(self) -> bool:
         return self._phase.p.csv.is_after_sim_save
 
     @property
-    def _label_singular(self) -> str:
+    def _noun_singular(self) -> str:
         return 'CSV file'
 
     @property
@@ -84,7 +84,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
         # ................{ VMEM ~ goldman                  }..................
         if self._phase.p.GHK_calc:
-            vm_goldman = expmath.upscale_units_milli([
+            vm_goldman = mathunit.upscale_units_milli([
                 vm_GHK_time_cells[cell_index]
                 for vm_GHK_time_cells in self._phase.sim.vm_GHK_time])
         else:
@@ -165,7 +165,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
                 arr[cell_index] for arr in self._phase.sim.dy_cell_time])
 
             # Get the total magnitude.
-            disp = expmath.upscale_coordinates(np.sqrt(dx ** 2 + dy ** 2))
+            disp = mathunit.upscale_coordinates(np.sqrt(dx ** 2 + dy ** 2))
         else:
             disp = column_data_empty
 
@@ -218,8 +218,8 @@ class SimPipeExportCSVs(SimPipeExportABC):
         #a complex array: np.absolute(). The following math reduces to simply:
         #    fft_data = np.absolute(fft_data_o)
         fft_data = np.sqrt(np.real(fft_data_o)**2 + np.imag(fft_data_o)**2)
-        print('f_axis: {}'.format(f_axis))
-        print('fft_data: {}'.format(fft_data))
+        # print('f_axis: {}'.format(f_axis))
+        # print('fft_data: {}'.format(fft_data))
 
         # Ordered dictionary mapping from CSV column names to data arrays.
         csv_column_name_to_values = OrderedArgsDict(
@@ -243,7 +243,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
         '''
 
         # Two-dimensional Numpy array of all transmembrane voltages.
-        cells_times_vmems = expmath.upscale_units_milli(
+        cells_times_vmems = mathunit.upscale_units_milli(
             self._phase.sim.vm_ave_time)
 
         # Export this data to this CSV file.
@@ -341,9 +341,9 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
         # One-dimensional Numpy arrays of the X and Y coordinates
         # (respectively) of the centres of all cells.
-        cell_centres_x = expmath.upscale_coordinates(
+        cell_centres_x = mathunit.upscale_coordinates(
             self._phase.cells.cell_centres[:,0])
-        cell_centres_y = expmath.upscale_coordinates(
+        cell_centres_y = mathunit.upscale_coordinates(
             self._phase.cells.cell_centres[:,1])
 
         # For the 0-based index of each sampled time step...
@@ -386,11 +386,11 @@ class SimPipeExportCSVs(SimPipeExportABC):
         if self._phase.p.is_ecm:
             cell_times_vmems = []
             for vm_at_mem in self._phase.sim.vm_time:
-                vm_t = expmath.upscale_units_milli(
+                vm_t = mathunit.upscale_units_milli(
                     cell_ave(self._phase.cells,vm_at_mem)[cell_index])
                 cell_times_vmems.append(vm_t)
         else:
-            cell_times_vmems = expmath.upscale_units_milli(
+            cell_times_vmems = mathunit.upscale_units_milli(
                 self._phase.sim.vm_time)
 
         return nparray.from_iterable(cell_times_vmems)

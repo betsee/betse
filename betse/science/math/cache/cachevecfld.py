@@ -9,7 +9,7 @@ High-level vector field subcache functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.lib.numpy import nparray
-from betse.science.export import expmath
+from betse.science.math import mathunit
 from betse.science.math.cache.cacheabc import SimPhaseCacheABC
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.math.vector.vecfldcls import VectorFieldCellsCache
@@ -39,11 +39,11 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
         return VectorFieldCellsCache(
             x=VectorCellsCache(
                 phase=self._phase,
-                times_cells_centre=expmath.upscale_units_centi(
+                times_cells_centre=mathunit.upscale_units_centi(
                     self._phase.sim.I_cell_x_time)),
             y=VectorCellsCache(
                 phase=self._phase,
-                times_cells_centre=expmath.upscale_units_centi(
+                times_cells_centre=mathunit.upscale_units_centi(
                     self._phase.sim.I_cell_y_time)),
         )
 
@@ -63,11 +63,11 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
         return VectorFieldCellsCache(
             x=VectorCellsCache(
                 phase=self._phase,
-                times_grids_centre=expmath.upscale_units_centi(
+                times_grids_centre=mathunit.upscale_units_centi(
                     self._phase.sim.I_tot_x_time)),
             y=VectorCellsCache(
                 phase=self._phase,
-                times_grids_centre=expmath.upscale_units_centi(
+                times_grids_centre=mathunit.upscale_units_centi(
                     self._phase.sim.I_tot_y_time)),
         )
 
@@ -91,11 +91,11 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
         return VectorFieldCellsCache(
             x=VectorCellsCache(
                 phase=self._phase,
-                times_cells_centre=expmath.upscale_coordinates(
+                times_cells_centre=mathunit.upscale_coordinates(
                     self._phase.sim.dx_cell_time)),
             y=VectorCellsCache(
                 phase=self._phase,
-                times_cells_centre=expmath.upscale_coordinates(
+                times_cells_centre=mathunit.upscale_coordinates(
                     self._phase.sim.dy_cell_time)),
         )
 

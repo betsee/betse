@@ -7,7 +7,7 @@ Layer subclasses spatially shading the cell cluster as a continuous surface.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.export import expmath
+from betse.science.math import mathunit
 from betse.science.visual.layer.vector.lyrvecabc import (
     LayerCellsVectorColorfulABC)
 from betse.util.type.types import type_check, IterableTypes, SequenceOrNoneTypes
@@ -119,9 +119,9 @@ class LayerCellsVectorSmoothRegions(LayerCellsVectorColorfulABC):
     def _layer_first_color_mappables(self) -> IterableTypes:
 
         # X and Y coordinates of all cell membrane midpoints.
-        membranes_midpoint_x = expmath.upscale_coordinates(
+        membranes_midpoint_x = mathunit.upscale_coordinates(
             self._phase.cells.mem_mids_flat[:,0])
-        membranes_midpoint_y = expmath.upscale_coordinates(
+        membranes_midpoint_y = mathunit.upscale_coordinates(
             self._phase.cells.mem_mids_flat[:,1])
 
         # Membrane midpoint-centred data for this time step.

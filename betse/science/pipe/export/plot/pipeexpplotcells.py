@@ -12,11 +12,11 @@ simulated data of all cells in the cell cluster).
 import numpy as np
 from betse.science.config.export.visual.confvisabc import (
     SimConfVisualCellsListItem)
-from betse.science.export import expmath
-from betse.science.phase.pipe.piperun import piperunner
+from betse.science.math import mathunit
+from betse.science.pipe.export.plot.pipeexpplotabc import SimPipeExportPlotABC
 from betse.science.phase.require import phasereqs
+from betse.science.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
-from betse.science.visual.plot.pipe.plotpipeabc import SimPipeExportPlotABC
 from betse.util.io.log import logs
 from betse.util.type.iterable import iterables
 from betse.util.type.types import IterableTypes
@@ -35,7 +35,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
 
     # ..................{ SUPERCLASS                        }..................
     @property
-    def _label_singular(self) -> str:
+    def _noun_singular(self) -> str:
         return 'cell cluster plot'
 
     @property
@@ -200,7 +200,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
             # logs.log_debug('Plotting tissue "%s"...', profile_name)
             profile_zorder += 1
 
-            profile_points = expmath.upscale_coordinates(
+            profile_points = mathunit.upscale_coordinates(
                 cells.cell_verts[profile_cells_index])
 
             z = np.zeros(len(profile_points))
@@ -376,7 +376,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         )
         pyplot.colorbar()
 
-        cell_edges_flat = expmath.upscale_coordinates(
+        cell_edges_flat = mathunit.upscale_coordinates(
             self._phase.cells.mem_edges_flat)
         coll = LineCollection(cell_edges_flat, colors='k')
         coll.set_alpha(1.0)
@@ -588,14 +588,14 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         ax_x = pyplot.subplot(111)
 
         if self._phase.p.showCells:
-            base_points = expmath.upscale_coordinates(
+            base_points = mathunit.upscale_coordinates(
                 self._phase.cells.cell_verts)
             col_cells = PolyCollection(
                 base_points, facecolors='k', edgecolors='none')
             col_cells.set_alpha(0.3)
             ax_x.add_collection(col_cells)
 
-        connects = expmath.upscale_coordinates(self._phase.cells.nn_edges)
+        connects = mathunit.upscale_coordinates(self._phase.cells.nn_edges)
         collection = LineCollection(connects, linewidths=1.0, color='b')
         ax_x.add_collection(collection)
         pyplot.axis('equal')

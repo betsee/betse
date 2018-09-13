@@ -7,7 +7,7 @@ Layer subclasses printing text over the current cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.export import expmath
+from betse.science.math import mathunit
 from betse.science.visual.layer.lyrabc import LayerCellsABC
 
 # ....................{ CLASSES                            }....................
@@ -29,8 +29,8 @@ class LayerCellsIndex(LayerCellsABC):
                 s=cell_index,
 
                 # X and Y coordinates to display this text at.
-                x=expmath.upscale_coordinates(cell_center[0]),
-                y=expmath.upscale_coordinates(cell_center[1]),
+                x=mathunit.upscale_coordinates(cell_center[0]),
+                y=mathunit.upscale_coordinates(cell_center[1]),
 
                 # Alignment of this text at these coordinates.
                 horizontalalignment='center',

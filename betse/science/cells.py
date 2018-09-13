@@ -394,7 +394,7 @@ class Cells(object):
     # ..................{ MAKERS                            }..................
     MAKE_WORLD_PROGRESS_TOTAL = 5
     '''
-    Cuumulative number of times that each call of the :meth:`make_world` method
+    Cumulative number of times that each call of the :meth:`make_world` method
     calls either the :meth:`SimCallbacksBC.progressed` callback or
     higher-level callbacks calling that callback (e.g.,
     :meth:`SimCallbacksBC.progressed_next`).

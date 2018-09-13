@@ -112,7 +112,7 @@ class SimPipeRunner(MethodDecoratorABC):
 
         # To avoid circular import dependencies, this is validated as a
         # fully-qualified class name resolved at runtime.
-        pipeline: 'betse.science.phase.pipe.pipeabc.SimPipeABC',
+        pipeline: 'betse.science.pipe.pipeabc.SimPipeABC',
         *args,
         **kwargs
     ) -> object:

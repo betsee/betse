@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes for **post-simulation plot pipelining** (i.e., iteratively
-displaying and/or saving plots produced after initialization and simulation).
+**Post-simulation plot pipelining** (i.e., iteratively displaying and/or saving
+plots produced after initialization and simulation) abstract base classes.
 '''
 
 #FIXME: I believe I've finally tracked down the issue relating to the following
@@ -67,11 +68,11 @@ displaying and/or saving plots produced after initialization and simulation).
 import matplotlib
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.science.phase.pipe.pipeabc import SimPipeExportABC
+from betse.science.pipe.export.pipeexpabc import SimPipeExportABC
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from betse.util.type.types import type_check
-from matplotlib import pyplot as pyplot
+from matplotlib import pyplot
 
 # ....................{ SUBCLASSES                        }....................
 class SimPipeExportPlotABC(SimPipeExportABC):
@@ -83,10 +84,10 @@ class SimPipeExportPlotABC(SimPipeExportABC):
     '''
 
     # ..................{ INITIALIZERS                      }..................
-    def __init__(self, *args, **kwargs) -> None:
+    def _init_run(self) -> None:
 
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, **kwargs)
+        # Initialize our superclass for the current call to the _run() method.
+        super()._init_run()
 
         # If saving post-simulation plots, create the top-level directory
         # containing these plots if needed.
@@ -95,7 +96,7 @@ class SimPipeExportPlotABC(SimPipeExportABC):
 
     # ..................{ SUPERCLASS                        }..................
     @property
-    def is_enabled(self) -> bool:
+    def _is_enabled(self) -> bool:
         return self._phase.p.plot.is_after_sim
 
     # ..................{ PRIVATE ~ preparers               }..................

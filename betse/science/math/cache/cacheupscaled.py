@@ -9,7 +9,7 @@ High-level upscaled object subcache functionality.
 
 # ....................{ IMPORTS                            }....................
 from numpy import ndarray
-from betse.science.export import expmath
+from betse.science.math import mathunit
 from betse.science.math.cache.cacheabc import SimPhaseCacheABC
 from betse.util.type.decorator.decmemo import property_cached
 
@@ -43,7 +43,7 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
         #. This grid's upscaled maximum Y coordinate.
         '''
 
-        return expmath.upscale_coordinates_tuple(
+        return mathunit.upscale_coordinates_tuple(
             self._phase.cells.xmin,
             self._phase.cells.xmax,
             self._phase.cells.ymin,
@@ -64,7 +64,7 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
             Further details.
         '''
 
-        return expmath.upscale_coordinates(
+        return mathunit.upscale_coordinates(
             self._phase.sim.cell_verts_time)
 
 
@@ -82,7 +82,7 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
             Further details.
         '''
 
-        return expmath.upscale_coordinates(self._phase.cells.cell_verts)
+        return mathunit.upscale_coordinates(self._phase.cells.cell_verts)
 
     # ..................{ PROPERTIES ~ cells : centre        }..................
     @property_cached
@@ -92,7 +92,7 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
         centres for this cell cluster.
         '''
 
-        return expmath.upscale_coordinates(
+        return mathunit.upscale_coordinates(
             self._phase.cells.cell_centres[:, 0])
 
 
@@ -103,7 +103,7 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
         centres for this cell cluster.
         '''
 
-        return expmath.upscale_coordinates(
+        return mathunit.upscale_coordinates(
             self._phase.cells.cell_centres[:, 1])
 
     # ..................{ PROPERTIES ~ grids : centre        }..................
@@ -114,7 +114,7 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
         environmental grid space centres for this cell cluster.
         '''
 
-        return expmath.upscale_coordinates(self._phase.cells.xypts[:, 0])
+        return mathunit.upscale_coordinates(self._phase.cells.xypts[:, 0])
 
 
     @property_cached
@@ -124,4 +124,4 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
         environmental grid space centres for this cell cluster.
         '''
 
-        return expmath.upscale_coordinates(self._phase.cells.xypts[:, 1])
+        return mathunit.upscale_coordinates(self._phase.cells.xypts[:, 1])

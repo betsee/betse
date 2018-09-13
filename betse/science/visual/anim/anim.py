@@ -31,7 +31,7 @@ Matplotlib-based animation classes.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.lib.numpy import nparray
-from betse.science.export import expmath
+from betse.science.math import mathunit
 from betse.science.visual.anim.animafter import (
     AnimCellsAfterSolving, AnimVelocity)
 from betse.science.visual.plot.plotutil import cell_mosaic, cell_mesh
@@ -221,7 +221,7 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         # Gap junction data series for the first frame plotted as lines.
         self._gapjunc_plot = LineCollection(
-            expmath.upscale_coordinates(self._phase.cells.nn_edges),
+            mathunit.upscale_coordinates(self._phase.cells.nn_edges),
             array=self._time_series[0],
             cmap=self._phase.p.gj_cm,
             linewidths=2.0,

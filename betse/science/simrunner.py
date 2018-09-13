@@ -6,16 +6,14 @@
 # ....................{ IMPORTS                           }....................
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.collections import LineCollection, PolyCollection
 from betse.exceptions import BetseSimException, BetseSimConfException
 from betse.lib.pickle import pickles
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.config.confenum import GrnUnpicklePhaseType
-from betse.science.export import exppipe
+from betse.science.pipe.export import pipeexp
 from betse.science.parameters import Parameters
-# from betse.science.sim import Simulator
 from betse.science.phase import phasecallbacks
 from betse.science.phase.phasecallbacks import SimCallbacksBCOrNoneTypes
 from betse.science.phase.phasecls import SimPhase
@@ -26,6 +24,7 @@ from betse.util.type.decorator.decorators import deprecated
 from betse.util.type.decorator.decprof import log_time_seconds
 from betse.util.type.text import strs
 from betse.util.type.types import type_check
+from matplotlib.collections import LineCollection, PolyCollection
 
 # ....................{ CLASSES                           }....................
 class SimRunner(object):
@@ -109,7 +108,7 @@ class SimRunner(object):
         # Log this attempt.
         logs.log_info('Seeding simulation...')
 
-        # Cuumulative number of times that each call of this subcommand calls
+        # Cumulative number of times that each call of this subcommand calls
         # the SimCallbacksBC.progressed() callback or a callback calling that
         # callback (e.g., SimCallbacksBC.progressed_next()).
         #
@@ -739,7 +738,7 @@ class SimRunner(object):
         phase.dyna.init_profiles(phase)
 
         # Display and/or save all initialization exports (e.g., animations).
-        exppipe.pipeline(phase)
+        pipeexp.pipeline(phase)
 
         #FIXME: All of the following crash if image saving is not turned on, but
         #due to whatever way this is set up, it's not possible to readily fix
@@ -828,7 +827,7 @@ class SimRunner(object):
         phase.dyna.init_profiles(phase)
 
         # Display and/or save all simulation exports (e.g., animations).
-        exppipe.pipeline(phase)
+        pipeexp.pipeline(phase)
 
         #FIXME: Split each of the following blocks performing both plotting and
         #animating into their appropriate plotpipe.pipeline() or

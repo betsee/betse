@@ -25,7 +25,7 @@ current cell cluster.
 
 # ....................{ IMPORTS                           }....................
 import numpy as np
-from betse.science.export import expmath
+from betse.science.math import mathunit
 from betse.science.visual.layer.vectorfield.lyrvecfldabc import (
     LayerCellsFieldColorlessABC)
 # from betse.util.type.types import type_check
@@ -70,8 +70,8 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
         '''
 
         # Arrays of the upscaled X and Y coordinates of all grid spaces.
-        grid_x = expmath.upscale_coordinates(self._phase.cells.X)
-        grid_y = expmath.upscale_coordinates(self._phase.cells.Y)
+        grid_x = mathunit.upscale_coordinates(self._phase.cells.X)
+        grid_y = mathunit.upscale_coordinates(self._phase.cells.Y)
 
         # Vector field whose X and Y components are spatially situated at grid
         # space centres.
