@@ -13,13 +13,14 @@ import numpy as np
 from betse.science.config.export.visual.confvisabc import (
     SimConfVisualCellsListItem)
 from betse.science.math import mathunit
-from betse.science.pipe.export.plot.pipeexpplotabc import SimPipeExportPlotABC
+from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require import phasereqs
+from betse.science.pipe.export.plot.pipeexpplotabc import SimPipeExportPlotABC
 from betse.science.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
 from betse.util.io.log import logs
 from betse.util.type.iterable import iterables
-from betse.util.type.types import IterableTypes
+from betse.util.type.types import type_check, IterableTypes
 from collections import OrderedDict
 from matplotlib import pyplot
 from matplotlib.collections import LineCollection, PolyCollection
@@ -34,13 +35,13 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
     '''
 
     # ..................{ SUPERCLASS                        }..................
+    @type_check
+    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+        return phase.p.plot.plots_cells_after_sim
+
     @property
     def _noun_singular(self) -> str:
         return 'cell cluster plot'
-
-    @property
-    def _runners_conf(self) -> IterableTypes:
-        return self._phase.p.plot.plots_cells_after_sim
 
     # ..................{ EXPORTERS ~ channel               }..................
     # @piperunner(

@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-CLI-specific functional tests exercising the equivalent circuit-based simulation
-solver.
+CLI-specific functional tests exercising the equivalent circuit-based
+simulation solver.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 # from betse_test.util.mark.fail import xfail
 
-# ....................{ TESTS                              }....................
-def test_cli_sim_circuit(betse_cli_sim: 'CLISimTester') -> None:
+# ....................{ TESTS                             }....................
+def test_cli_sim_fast(betse_cli_sim: 'CLISimTester') -> None:
     '''
     Functional test exporting all available exports (e.g., CSVs, plots,
     animations) with all simulation features required by these exports,

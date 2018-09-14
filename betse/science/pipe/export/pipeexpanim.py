@@ -16,6 +16,7 @@ exporting) post-simulation animations.
 from betse.science.config.export.visual.confvisabc import (
     SimConfVisualCellsListItem)
 from betse.science.math.vector.veccls import VectorCellsCache
+from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require import phasereqs
 from betse.science.pipe.export.pipeexpabc import SimPipeExportABC
 from betse.science.pipe.piperun import piperunner
@@ -39,7 +40,7 @@ from betse.science.visual.layer.vectorfield.lyrvecfldquiver import (
 )
 from betse.science.visual.layer.vectorfield.lyrvecfldstream import (
     LayerCellsFieldStream)
-from betse.util.type.types import IterableTypes  # type_check,
+from betse.util.type.types import type_check, IterableTypes
 
 # ....................{ SUBCLASSES                        }....................
 class SimPipeExportAnimCells(SimPipeExportABC):
@@ -50,6 +51,10 @@ class SimPipeExportAnimCells(SimPipeExportABC):
     '''
 
     # ..................{ SUPERCLASS                        }..................
+    @type_check
+    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+        return phase.p.anim.anims_after_sim
+
     @property
     def _is_enabled(self) -> bool:
         return self._phase.p.anim.is_after_sim
@@ -57,10 +62,6 @@ class SimPipeExportAnimCells(SimPipeExportABC):
     @property
     def _noun_singular(self) -> str:
         return 'animation'
-
-    @property
-    def _runners_conf(self) -> IterableTypes:
-        return self._phase.p.anim.anims_after_sim
 
     # ..................{ EXPORTERS ~ current               }..................
     @piperunner(

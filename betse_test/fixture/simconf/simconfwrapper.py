@@ -31,26 +31,14 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 # *AFTER* test collection, this submodule is intentionally segregated.
 from betse.science.config import confio
 from betse.science.config.confenum import IonProfileType, SolverType
+from betse.science.phase.phasecls import SimPhase
+from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.phase.require import phasereqs
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirementsOrNoneTypes)
+from betse.science.pipe.export.pipeexps import SimPipesExport
 from betse.util.io.log import logs
-from betse.util.type.cls import classes
 from betse.util.type.types import type_check
-
-#FIXME: Refactor away all explicit usage of individual pipeline subclasses.
-#Instead, we want this submodule to be able to generically query some master
-#singleton object or some such for the set of all currently enabled pipeline
-#runners -- which is all this submodule generally cares about. See also:
-#
-#* The "_pipes_type_exporters_enabled" property defined below.
-#* The _enable_exports() method leveraging this property.
-from betse.science.pipe.export.pipeexpcsv import SimPipeExportCSVs
-from betse.science.pipe.export.pipeexpanim import SimPipeExportAnimCells
-from betse.science.pipe.export.plot.pipeexpplotcell import (
-    SimPipeExportPlotCell)
-from betse.science.pipe.export.plot.pipeexpplotcells import (
-    SimPipeExportPlotCells)
 
 # ....................{ SUPERCLASSES                      }....................
 class SimConfigTestWrapper(object):
@@ -76,12 +64,16 @@ class SimConfigTestWrapper(object):
     ----------
     _p : Parameters
         High-level simulation configuration encapsulated by this test wrapper.
+    _phase : SimPhase
+        Simulation phase encapsulating this configuration. Since this phase
+        *only* serves as a thin wrapper around this configuration, the type of
+        this phase is irrelevant; ergo, this type arbitrarily defaults to the
+        first phase type: seed.
     '''
 
     # ..................{ MAKERS                            }..................
-    #FIXME: Rename to simply make_default().
     @classmethod
-    def wrap_new_default(cls, filename: str) -> None:
+    def make_default(cls, filename: str) -> None:
         '''
         Write the default YAML-formatted simulation configuration to the passed
         path, recursively copy all external resources (e.g., geometry masks)
@@ -136,6 +128,12 @@ class SimConfigTestWrapper(object):
 
         # In-memory simulation configuration deserialized from this file.
         self._p = Parameters().load(filename)
+
+        # Simulation phase encapsulating this configuration. Since this phase
+        # *ONLY* serves as a thin wrapper around this configuration, the type
+        # of phase is irrelevant; ergo, this type arbitrarily defaults to the
+        # first phase type: seed.
+        self._phase = SimPhase(kind=SimPhaseKind.SEED, p=self._p)
 
     # ..................{ PROPERTIES                        }..................
     # For safety, these properties lack setters and hence are read-only.
@@ -581,16 +579,10 @@ class SimConfigTestWrapper(object):
         if requirements_omit is None:
             requirements_omit = phasereqs.NONE
 
-        # For each type of export pipeline to be exercised *AND* a sequence of
-        # all exporters enabled by this pipeline...
-        for pipe_type, pipe_exporters_enabled in (
-            self._pipes_type_exporters_enabled):
-            #FIXME: Replace with direct usage of the more human-readable
-            #"SimPipeABC.name" property. That said, that property requires this
-            #pipeline to have already been instantiated. *shrug*
-
-            # Name of this pipeline for logging purposes.
-            pipeline_name = classes.get_name(pipe_type)
+        # For each export pipeline...
+        for pipe_export in SimPipesExport().PIPES_EXPORT:
+            # Sequence of all exporters enabled by this pipeline.
+            pipe_exporters_enabled = pipe_export.iter_runners_conf(self._phase)
 
             # Set of the names of all such exporters for subsequent lookup.
             pipe_exporters_enabled_name = frozenset(
@@ -600,10 +592,10 @@ class SimConfigTestWrapper(object):
             #     'Pipeline "%s" exporters enabled: %r',
             #     pipeline_name, pipe_exporters_enabled_name)
 
-            # For the name of each possible exporter supported by this
-            # pipeline, regardless of whether that exporter is currently
-            # enabled or not...
-            for pipe_exporter_name, pipe_exporter in pipe_type.iter_runners():
+            # For the name of each exporter supported by this pipeline,
+            # including those currently disabled...
+            for pipe_exporter_name, pipe_exporter in (
+                pipe_export.iter_runners()):
                 # logs.log_debug(
                 #     'Considering pipeline "%s" exporter "%s"...',
                 #     pipeline_name, pipe_exporter_name)
@@ -619,7 +611,7 @@ class SimConfigTestWrapper(object):
                     logs.log_debug(
                         'Ignoring pipeline "%s" exporter "%s", '
                         'as already enabled...',
-                        pipeline_name, pipe_exporter_name)
+                        pipe_export.name, pipe_exporter_name)
 
                     # Continue to the next possible exporter.
                     continue
@@ -631,7 +623,7 @@ class SimConfigTestWrapper(object):
                     logs.log_debug(
                         'Excluding pipeline "%s" exporter "%s", '
                         'as test requirements unsatsified...',
-                        pipeline_name, pipe_exporter_name)
+                        pipe_export.name, pipe_exporter_name)
 
                     # Continue to the next possible exporter.
                     continue
@@ -641,7 +633,7 @@ class SimConfigTestWrapper(object):
                 # Log this inclusion.
                 logs.log_debug(
                     'Including pipeline "%s" exporter "%s"...',
-                    pipeline_name, pipe_exporter_name)
+                    pipe_export.name, pipe_exporter_name)
 
                 # New default export of this type appended to this pipeline.
                 pipe_exporter_conf = pipe_exporters_enabled.append_default()
@@ -685,19 +677,32 @@ class SimConfigTestWrapper(object):
         * Current overlays, displaying current density streamlines.
         * All ion concentration plots and animations (e.g., calcium (Ca+),
           hydrogen (H+; pH)) by enabling:
+
           * The mammalian ion profile (i.e., ``animal``), enabling all ions.
+
         * The deformation plot and animation by enabling:
+
           * Galvanotaxis (i.e., deformations).
+
         * The ``fluid_intra`` plot and animation by enabling:
+
           * Fluid flow.
+
         * The ``pressure_mechanical`` plot and animation by enabling:
+
           * The mechanical pressure event.
         * The ``pressure_osmotic`` plot and animation by enabling:
+
           * Osmotic pressure.
+
         * The ``pump_density`` plot and animation by enabling:
+
           * Channel electroosmosis.
+
         * The ``voltage_polarity`` plot and animation by enabling:
+
           * Cell polarizability.
+
         * All other plots and animations *not* requiring extracellular spaces.
         '''
 
@@ -723,23 +728,3 @@ class SimConfigTestWrapper(object):
         # Enable all optional settings supported by these exports.
         results['enumerate cells'] = True
         results['overlay currents'] = True
-
-    # ..................{ PRIVOTE ~ iterators               }..................
-    @property
-    def _pipes_type_exporters_enabled(self) -> tuple:
-        '''
-        Tuple of 2-tuples ``(pipe_type, pipe_exporters_enabled)``, describing
-        each export pipeline to be exercised, where:
-
-        * ``pipe_type`` is the subclass of the :class:`SimPipeABC` superclass
-          implementing this pipeline in the codebase.
-        * ``pipe_exporters_enabled`` is an instance of the :class:`YamlList`
-          class listing all currently enabled exporters in this pipeline.
-        '''
-
-        return (
-            (SimPipeExportCSVs, self._p.csv.csvs_after_sim),
-            (SimPipeExportPlotCell,  self._p.plot.plots_cell_after_sim),
-            (SimPipeExportPlotCells, self._p.plot.plots_cells_after_sim),
-            (SimPipeExportAnimCells, self._p.anim.anims_after_sim),
-        )

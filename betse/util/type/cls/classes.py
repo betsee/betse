@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +7,7 @@
 Low-level class facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseTypeException
 from betse.util.type.types import (
     type_check,
@@ -15,10 +15,12 @@ from betse.util.type.types import (
     ClassType,
     GeneratorType,
     MappingType,
+    MappingOrNoneTypes,
     SequenceTypes,
+    SequenceOrNoneTypes,
 )
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_unless_subclass(subclass: ClassType, superclass: ClassType) -> None:
     '''
@@ -38,7 +40,7 @@ def die_unless_subclass(subclass: ClassType, superclass: ClassType) -> None:
             'Class {!r} not a subclass of class {!r}'.format(
                 subclass, superclass))
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get_module_name(cls: ClassType) -> str:
     '''
@@ -67,7 +69,7 @@ def get_module_name(cls: ClassType) -> str:
     # Defer to this existing function, which suffices.
     return objects.get_class_module_name(cls)
 
-# ....................{ GETTERS ~ name                     }....................
+# ....................{ GETTERS ~ name                    }....................
 @type_check
 def get_name(cls: ClassType) -> str:
     '''
@@ -114,7 +116,7 @@ def get_name_snakecase(cls: ClassType) -> str:
     # Can it be? But it can.
     return pyident.convert_camelcase_to_snakecase(name_camelcase)
 
-# ....................{ GETTERS ~ method                   }....................
+# ....................{ GETTERS ~ method                  }....................
 @type_check
 def get_method(cls: ClassType, method_name: str) -> CallableTypes:
     '''
@@ -151,7 +153,7 @@ def get_method(cls: ClassType, method_name: str) -> CallableTypes:
     # It's so simple, my eyes bleed.
     return objects.get_method(obj=cls, method_name=method_name)
 
-# ....................{ ITERATORS                          }....................
+# ....................{ ITERATORS                         }....................
 @type_check
 def iter_methods(cls: ClassType) -> GeneratorType:
     '''
@@ -222,15 +224,15 @@ def iter_methods_matching(
     # Well, isn't that special?
     yield from objects.iter_methods_matching(obj=cls, predicate=predicate)
 
-# ....................{ DEFINERS                           }....................
+# ....................{ DEFINERS                          }....................
 @type_check
 def define_class(
     # Mandatory parameters.
     class_name: str,
 
     # Optional parameters.
-    class_attr_name_to_value: MappingType = {},
-    base_classes: SequenceTypes = (),
+    class_attr_name_to_value: MappingOrNoneTypes = None,
+    base_classes: SequenceOrNoneTypes = None,
 ) -> ClassType:
     '''
     Dynamically define a new class with the passed name subclassing all passed
@@ -248,8 +250,8 @@ def define_class(
         the trivial body ``pass``.
     base_classes : optional[SequenceTypes]
         Sequence of all base classes to subclass this class from. Defaults to
-        the empty tuple, equivalent to the 1-tuple ``(object,)`` containing only
-        the root base class of all classes.
+        the empty tuple, equivalent to the 1-tuple ``(object,)`` containing
+        only the root base class of all classes.
 
     Returns
     ----------
@@ -257,6 +259,11 @@ def define_class(
         Class dynamically defined with this name from these base classes and
         class attributes.
     '''
+
+    if class_attr_name_to_value is None:
+        class_attr_name_to_value = {}
+    if base_classes is None:
+        base_classes = ()
 
     # Thank you, bizarre 3-parameter variant of the type.__init__() method.
     return type(class_name, base_classes, class_attr_name_to_value)

@@ -18,6 +18,7 @@ from betse.util.type.types import (
     CallableOrNoneTypes,
     ClassType,
     GeneratorType,
+    MethodType,
     TestableTypes,
 )
 
@@ -573,6 +574,28 @@ def get_method_or_none(obj: object, method_name: str) -> CallableOrNoneTypes:
 
 # ....................{ ITERATORS ~ attrs                 }....................
 @type_check
+def iter_attrs(obj: object) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each attribute bound
+    to the passed object (in ascending lexicographic order of attribute name).
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all matching attributes of.
+
+    Yields
+    ----------
+    (attr_name : str, attr_value : object)
+        2-tuple of the name and value of each matching attribute bound to this
+        object (in ascending lexicographic order of attribute name).
+    '''
+
+    # Defer to this iterator.
+    yield from iter_attrs_matching(obj=obj, predicate=noop_attr_predicate)
+
+
+@type_check
 def iter_attrs_matching(
     obj: object, predicate: CallableTypes) -> GeneratorType:
     '''
@@ -583,7 +606,7 @@ def iter_attrs_matching(
     Parameters
     ----------
     obj : object
-        Object to yield all matching attribute of.
+        Object to yield all matching attributes of.
     predicate : CallableTypes
         Callable iteratively passed both the name and value of each attribute
         bound to this object, returning ``True`` only if that name and/or value
@@ -591,10 +614,9 @@ def iter_attrs_matching(
 
     Yields
     ----------
-    (str, object)
-        2-tuple ``(attr_name, attr_value)`` of the name and value of each
-        matching attribute bound to this object (in ascending lexicographic
-        order of attribute name).
+    (attr_name : str, attr_value : object)
+        2-tuple of the name and value of each matching attribute bound to this
+        object (in ascending lexicographic order of attribute name).
     '''
 
     # Return a generator comprehension...
@@ -607,8 +629,59 @@ def iter_attrs_matching(
         if predicate(attr_name, attr_value)
     )
 
+
+@type_check
+def iter_attrs_instance_of(obj: object, cls: TestableTypes) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each attribute bound
+    to the passed object whose value is an instance of the passed class or
+    tuple of classes (in ascending lexicographic order of attribute name).
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all matching attributes of.
+    cls : TestableTypes
+        Class or tuple of classes to yield all instances of.
+
+    Yields
+    ----------
+    (attr_name : str, attr_value : object)
+        2-tuple of the name and value of each matching attribute bound to this
+        object (in ascending lexicographic order of attribute name).
+    '''
+
+    # Defer to this iterator.
+    yield from iter_attrs_matching(
+        obj=obj, predicate=lambda attr_name, attr_value: (
+            isinstance(attr_value, cls)))
+
+# ....................{ GETTERS : method                  }....................
+@type_check
+def iter_attr_names(obj: object) -> GeneratorType:
+    '''
+    Generator yielding the name of each attribute bound to the passed object
+    (in ascending lexicographic order of attribute name).
+
+    Parameters
+    ----------
+    obj : object
+        Object to iterate the attribute names of.
+
+    Yields
+    ----------
+    attr_name : str
+        Name of each attribute bound to this object (in ascending lexicographic
+        order of attribute name).
+    '''
+
+    # Defer to this iterator.
+    return (
+        attr_name
+        for attr_name, attr_value in iter_attrs(obj)
+    )
+
 # ....................{ ITERATORS ~ methods               }....................
-#FIXME: Reimplement in terms of iter_attrs_matching().
 def iter_methods(obj: object) -> GeneratorType:
     '''
     Generator yielding a 2-tuple of the name and value of each method bound to
@@ -652,15 +725,9 @@ def iter_methods(obj: object) -> GeneratorType:
         :func:`iter_methods_custom_simple` generator excluding all properties.
     '''
 
-    # Return a generator comprehension...
-    return (
-        # Yielding this method's name and definition...
-        (attr_name, attr_value)
-        # For the name and value of each attribute of this object...
-        for attr_name, attr_value in inspect.getmembers(obj)
-        # If this attribute is a method.
-        if callable(attr_value)
-    )
+    # Defer to this iterator.
+    yield from iter_attrs_matching(
+        obj=obj, predicate=lambda attr_name, attr_value: callable(attr_value))
 
 
 #FIXME: Reimplement in terms of iter_attrs_matching().
@@ -734,7 +801,6 @@ def iter_methods_custom(obj: object) -> GeneratorType:
             method_name.startswith('__') and method_name.endswith('__')))
 
 # ....................{ ITERATORS ~ vars                  }....................
-#FIXME: Reimplement in terms of iter_attrs_matching().
 def iter_vars(obj: object) -> GeneratorType:
     '''
     Generator yielding a 2-tuple of the name and value of each variable bound
@@ -764,7 +830,7 @@ def iter_vars(obj: object) -> GeneratorType:
 
     Yields
     ----------
-    (var_name, var_value)
+    (var_name : str, var_value : object)
         2-tuple of the name and value of each variable bound to this object (in
         ascending lexicographic order of variable name).
 
@@ -777,18 +843,31 @@ def iter_vars(obj: object) -> GeneratorType:
         :func:`iter_vars_custom_simple` generator excluding all properties.
     '''
 
-    # Return a generator comprehension...
-    return (
-        # Yielding this variable's name and definition...
-        (var_name, var_value)
-        # For the name and value of each attribute of this object...
-        for var_name, var_value in inspect.getmembers(obj)
-        # If this attribute is *NOT* a method, yield this name and value.
-        if not callable(var_value)
-    )
+    #FIXME: While satisfactory, the current approach fails to return the full
+    #set of all instance variables in the edge case that the values of one or
+    #more instance variables of the passed object are themselves methods.
+    #
+    #A more general-purpose (albeit currently untested) approach might be to
+    #define the set of all instance variables as the set difference between the
+    #set of all object attributes minus the set of all object class attributes.
+    #In optimistic theory, the resulting set *SHOULD* be that desired. That
+    #said, this is sufficiently fragile that we need to guarantee this with one
+    #or ideally more unit tests. A preliminary implementation might resemble:
+    #
+    #    obj_type_attr_names = set(iter_attr_names(type(obj)))
+    #
+    #    yield from iter_attrs_matching(
+    #        obj=obj, predicate=lambda attr_name, attr_value: (
+    #            not callable(attr_value) or
+    #            attr_name not in obj_type_attr_names)))
+
+    # Defer to this iterator.
+    yield from iter_attrs_matching(
+        obj=obj, predicate=lambda attr_name, attr_value: (
+            not callable(attr_value)))
 
 
-#FIXME: Reimplement in terms of iter_attrs_matching().
+#FIXME: Reimplement in terms of iter_vars_matching().
 def iter_vars_custom(obj: object) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin
@@ -803,7 +882,7 @@ def iter_vars_custom(obj: object) -> GeneratorType:
 
     Yields
     ----------
-    (var_name, var_value)
+    (var_name : str, var_value : object)
         2-tuple of the name and value of each non-builtin variable bound to
         this object (in ascending lexicographic order of variable name).
 

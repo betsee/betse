@@ -43,22 +43,21 @@ human-readable type of that class, ignoring low-level implementation details
 '''
 
 # ....................{ TESTERS                           }....................
-@type_check
-def is_function(func: CallableTypes) -> bool:
+def is_function(obj) -> bool:
     '''
-    ``True`` only if the passed callable is a function.
-    '''
-
-    return isinstance(func, FunctionTypes)
-
-
-@type_check
-def is_method(func: CallableTypes) -> bool:
-    '''
-    ``True`` only if the passed callable is a method.
+    ``True`` only if the passed object is a function.
     '''
 
-    return isinstance(func, MethodTypes)
+    return isinstance(obj, FunctionTypes)
+
+
+def is_method(obj) -> bool:
+    '''
+    ``True`` only if the passed object is a **method** (i.e., either a built-in
+    or user-defined function bound at instantiation time to a specific object).
+    '''
+
+    return isinstance(obj, MethodTypes)
 
 # ....................{ GETTERS                           }....................
 @type_check

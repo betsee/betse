@@ -16,7 +16,7 @@ from betse.lib.yaml.abc.yamllistabc import YamlListItemTypedABC
 from betse.science.phase.phasecls import SimPhase
 from betse.science.pipe.piperun import SimPipeRunner
 from betse.util.io.log import logs
-from betse.util.type.decorator.deccls import abstractproperty
+from betse.util.type.decorator.deccls import abstractmethod, abstractproperty
 from betse.util.type.obj import objects
 from betse.util.type.text import strs
 from betse.util.type.types import type_check, GeneratorType, IterableTypes
@@ -54,12 +54,12 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
       * Return nothing (i.e.,``None``).
 
-    * The abstract :meth:`_runners_conf` property returning a sequence of the
+    * The abstract :meth:`iter_runners_conf` method returning a sequence of the
       names of all runners currently enabled by this pipeline (e.g.,
       ``['voltage_intra', 'ion_hydrogen', 'electric_total']``).
 
     The :meth:`run` method defined by this base class then dynamically
-    implements this pipeline by iterating over the :meth:`_runners_conf`
+    implements this pipeline by iterating over the :meth:`iter_runners_conf`
     property and, for each enabled runner, calling that runner's method.
 
     Attributes (Private)
@@ -107,55 +107,6 @@ class SimPipeABC(object, metaclass=ABCMeta):
     less ambiguous prefix (e.g., ``export_`` for export pipelines).
     '''
 
-    # ..................{ STATIC ~ iterators                }..................
-    #FIXME: Refactor this class method into a normal method. Note that doing so
-    #well require patching the _enable_exports() fixture method (defined
-    #elsewhere) to actually instantiate an instance of this subclass.
-    @classmethod
-    def iter_runners(cls) -> GeneratorType:
-        '''
-        Generator yielding the 2-tuple ``(runner_name, runner)`` for each
-        **runner** (i.e., :class:`SimPipeRunner` instance produced by the
-        :func:`piperunner` decorator decorating this runner's method) defined
-        by this pipeline subclass.
-
-        This generator excludes all methods defined by this pipeline subclass
-        *not* decorated by this decorator.
-
-        Yields
-        ----------
-        (str, SimPipeRunner)
-            2-tuple ``(runner_name, runner)`` where:
-
-            * ``runner_name`` is the name of this runner's underlying method
-              excluding the substring :attr:`_RUNNER_METHOD_NAME_PREFIX`
-              prefixing this name.
-            * ``runner`` is each runner's :class:`SimPipeRunner` instance.
-        '''
-
-        # Return a generator comprehension...
-        return (
-            # Yielding a 2-tuple of:
-            #
-            # * The name of this runner's method excluding runner prefix.
-            # * Each "SimPipeRunner" instance defined on this class.
-            (
-                strs.remove_prefix(
-                    text=runner_method_name,
-                    prefix=cls._RUNNER_METHOD_NAME_PREFIX,
-                ),
-                runner
-            )
-
-            #FIXME: Define a new objects.iter_instances_of_type() function
-            #performing this logic on our behalf.
-
-            # For each such runner's method name and instance.
-            for runner_method_name, runner in objects.iter_attrs_matching(
-                obj=cls, predicate=lambda attr_name, attr_value: (
-                    isinstance(attr_value, SimPipeRunner)))
-        )
-
     # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(self) -> None:
@@ -185,6 +136,27 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
         pass
 
+    # ..................{ SUBCLASS ~ methods                }..................
+    @abstractmethod
+    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+        '''
+        Iterable of all **runner configurations** (i.e.,
+        :class:`YamlListItemTypedABC` instances encapsulating all input
+        parameters to be passed to the corresponding pipeline runner) for the
+        passed simulation phase.
+
+        Pipeline subclasses typically implement this property to return an
+        instance of the :class:``YamlList`` class listing all runners listed
+        by the simulation configuration file configuring this phase.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+        '''
+
+        pass
+
     # ..................{ SUBCLASS ~ properties             }..................
     @abstractproperty
     def _noun_singular(self) -> str:
@@ -192,21 +164,6 @@ class SimPipeABC(object, metaclass=ABCMeta):
         Human-readable singular noun synopsizing the type of runners
         implemented by this subclass (e.g., ``animation``, ``plot``), ideally
         but *not* necessarily lowercase.
-        '''
-
-        pass
-
-
-    @abstractproperty
-    def _runners_conf(self) -> IterableTypes:
-        '''
-        Iterable of all :class:`YamlListItemTypedABC` instances for the current
-        pipeline, each encapsulating all input parameters to be passed to the
-        method implementing a runner currently contained in this pipeline.
-
-        Pipeline subclasses typically implement this property to return an
-        instance of the :class:``YamlList`` class listing all runners listed
-        by the simulation configuration file associated with the current phase.
         '''
 
         pass
@@ -284,7 +241,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
           * For each :class:`YamlListItemTypedABC` instance (corresponding to
             the subconfiguration of a currently enabled pipeline runner) in the
-            sequence of these instances listed by the :meth:`_runners_conf`
+            sequence of these instances listed by the :meth:`iter_runners_conf`
             property:
 
             * Call this method, passed this configuration.
@@ -320,10 +277,10 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
         # For the object encapsulating all input arguments to be passed to each
         # currently enabled runner in this pipeline...
-        for runner_conf in self._runners_conf:
+        for runner_conf in self.iter_runners_conf(self._phase):
             if not isinstance(runner_conf, YamlListItemTypedABC):
                 raise BetseSimPipeException(
-                    '_runners_conf() item {!r} '
+                    'iter_runners_conf() item {!r} '
                     'not instance of "YamlListItemTypedABC".'.format(
                         runner_conf))
 
@@ -411,3 +368,45 @@ class SimPipeABC(object, metaclass=ABCMeta):
         logs.log_info(
             '%s %s "%s"...',
             self._verb_continuous, self._noun_singular_lowercase, runner_name)
+
+    # ..................{ ITERATORS                         }..................
+    def iter_runners(self) -> GeneratorType:
+        '''
+        Generator yielding the 2-tuple ``(runner_name, runner)`` for each
+        **runner** (i.e., :class:`SimPipeRunner` instance produced by the
+        :func:`piperunner` decorator decorating that runner's method) defined
+        by this pipeline subclass.
+
+        This generator excludes all methods defined by this pipeline subclass
+        *not* decorated by that decorator.
+
+        Yields
+        ----------
+        (str, SimPipeRunner)
+            2-tuple ``(runner_name, runner)`` where:
+
+            * ``runner_name`` is the name of the method underlying this runner,
+              excluding the substring :attr:`_RUNNER_METHOD_NAME_PREFIX`
+              prefixing this name.
+            * ``runner`` is the :class:`SimPipeRunner` instance defining this
+              runner.
+        '''
+
+        # Return a generator comprehension...
+        return (
+            # Iteratively yielding a 2-tuple of:
+            #
+            # * The name of this runner's method excluding runner prefix.
+            # * Each "SimPipeRunner" instance defined on this class.
+            (
+                strs.remove_prefix(
+                    text=runner_method_name,
+                    prefix=self._RUNNER_METHOD_NAME_PREFIX,
+                ),
+                runner
+            )
+
+            # For each such runner's method name and value.
+            for runner_method_name, runner in objects.iter_attrs_instance_of(
+                obj=self, cls=SimPipeRunner)
+        )

@@ -12,7 +12,7 @@ from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.config.confenum import GrnUnpicklePhaseType
-from betse.science.pipe.export import pipeexp
+from betse.science.pipe.export.pipeexps import SimPipesExport
 from betse.science.parameters import Parameters
 from betse.science.phase import phasecallbacks
 from betse.science.phase.phasecallbacks import SimCallbacksBCOrNoneTypes
@@ -738,7 +738,7 @@ class SimRunner(object):
         phase.dyna.init_profiles(phase)
 
         # Display and/or save all initialization exports (e.g., animations).
-        pipeexp.pipeline(phase)
+        SimPipesExport().export(phase)
 
         #FIXME: All of the following crash if image saving is not turned on, but
         #due to whatever way this is set up, it's not possible to readily fix
@@ -827,7 +827,7 @@ class SimRunner(object):
         phase.dyna.init_profiles(phase)
 
         # Display and/or save all simulation exports (e.g., animations).
-        pipeexp.pipeline(phase)
+        SimPipesExport().export(phase)
 
         #FIXME: Split each of the following blocks performing both plotting and
         #animating into their appropriate plotpipe.pipeline() or

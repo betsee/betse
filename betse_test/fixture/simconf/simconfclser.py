@@ -187,7 +187,7 @@ class SimConfTestInternal(SimConfTestABC):
 
         # Configuration deserialized from this file, reducing this filename
         # from a high-level "py.path.local" instance to a low-level string.
-        self.config = SimConfigTestWrapper.wrap_new_default(
+        self.config = SimConfigTestWrapper.make_default(
             filename=self.conf_filename)
 
         # Sanitize this configuration for all child fixtures and tests.

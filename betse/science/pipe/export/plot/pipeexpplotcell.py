@@ -13,11 +13,12 @@ import numpy as np
 from betse.exceptions import BetseSimConfException
 from betse.science.config.export.visual.confvisabc import (
     SimConfVisualCellListItem)
-from betse.science.pipe.export.plot.pipeexpplotabc import SimPipeExportPlotABC
+from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require import phasereqs
+from betse.science.pipe.export.plot.pipeexpplotabc import SimPipeExportPlotABC
 from betse.science.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
-from betse.util.type.types import IterableTypes
+from betse.util.type.types import type_check, IterableTypes
 from matplotlib import pyplot
 
 # ....................{ SUBCLASSES                        }....................
@@ -46,13 +47,13 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
                 ))
 
     # ..................{ SUPERCLASS                        }..................
+    @type_check
+    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+        return phase.p.plot.plots_cell_after_sim
+
     @property
     def _noun_singular(self) -> str:
         return 'single-cell plot'
-
-    @property
-    def _runners_conf(self) -> IterableTypes:
-        return self._phase.p.plot.plots_cell_after_sim
 
     # ..................{ EXPORTERS ~ cell : current        }..................
     @piperunner(

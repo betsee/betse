@@ -14,6 +14,7 @@ import numpy as np
 from betse.lib.numpy import nparray, npcsv
 from betse.science.config.export.confcsv import SimConfExportCSV
 from betse.science.math import mathunit
+from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.phase.require import phasereqs
 from betse.science.pipe.export.pipeexpabc import SimPipeExportABC
@@ -35,6 +36,9 @@ class SimPipeExportCSVs(SimPipeExportABC):
     '''
 
     # ..................{ SUPERCLASS                        }..................
+    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+        return phase.p.csv.csvs_after_sim
+
     @property
     def _is_enabled(self) -> bool:
         return self._phase.p.csv.is_after_sim_save
@@ -42,10 +46,6 @@ class SimPipeExportCSVs(SimPipeExportABC):
     @property
     def _noun_singular(self) -> str:
         return 'CSV file'
-
-    @property
-    def _runners_conf(self) -> IterableTypes:
-        return self._phase.p.csv.csvs_after_sim
 
     # ..................{ EXPORTERS ~ cell                  }..................
     #FIXME: The requirements list should (arguably) be refined from the
