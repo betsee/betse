@@ -12,7 +12,7 @@ validate application backward compatibility).
 # ....................{ IMPORTS                            }....................
 import pytest
 from betse_test.util import requests
-from betse_test.util.mark.skip import skip_if
+from betse_test.util.mark.pytskip import skip_if
 
 # ....................{ OPTIONS                            }....................
 EXPORT_SIM_CONF_DIRNAME = pytest.config.option.export_sim_conf_dirname

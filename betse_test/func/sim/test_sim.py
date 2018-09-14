@@ -11,8 +11,8 @@ complete BETSE solver *and* the "fast" equivalent circuit solver).
 
 # ....................{ IMPORTS                           }....................
 import pytest
-from betse_test.util.mark.fail import xfail
-from betse_test.util.mark.skip import (
+from betse_test.util.mark.pytfail import xfail
+from betse_test.util.mark.pytskip import (
     skip_unless_matplotlib_anim_writer, skip_unless_requirement)
 
 # ....................{ TESTS                             }....................
@@ -113,22 +113,28 @@ def test_cli_sim_default(betse_cli_sim_default: 'CLISimTester') -> None:
 # parametrization decorator shipped with py.test itself.
 @pytest.mark.parametrize(
     ('writer_name', 'filetype'), (
-        skip_unless_matplotlib_anim_writer('avconv')(('avconv', 'mp4',)),
-        skip_unless_matplotlib_anim_writer('ffmpeg')(('ffmpeg', 'mkv',)),
+        pytest.param(
+            'avconv', 'mp4',
+            marks=skip_unless_matplotlib_anim_writer('avconv')),
+        pytest.param(
+            'ffmpeg', 'mkv',
+            marks=skip_unless_matplotlib_anim_writer('ffmpeg')),
 
         #FIXME: Research this deeper, please. Are all Mencoder-based writers
         #genuinely broken (doubtful), is this our fault (very possible), or is
         #this a platform- or version-specific issue and hence mostly not our
         #fault (also very possible)?
         # skip_unless_matplotlib_anim_writer('mencoder')(('mencoder', 'avi')),
-        xfail(reason='Mencoder-based writers fail with obscure errors.')(
-            ('mencoder', 'avi',)),
+        pytest.param(
+            'mencoder', 'avi', marks=xfail(
+                reason='Mencoder-based writers fail with obscure errors.')),
 
         # ImageMagick only supports encoding animated GIFs and hence is
         # effectively a joke writer. Since it remains supported, however, we
         # test it with a reasonable facsimile of a straight face.
-        skip_unless_matplotlib_anim_writer('imagemagick')(
-            ('imagemagick', 'gif',)),
+        pytest.param(
+            'imagemagick', 'gif',
+            marks=skip_unless_matplotlib_anim_writer('imagemagick')),
     ),
 )
 def test_cli_sim_video(

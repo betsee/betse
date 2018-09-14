@@ -9,7 +9,7 @@ Unit tests for the :mod:`betse.util.path.archives` submodule.
 
 # ....................{ IMPORTS                            }....................
 import pytest
-from betse_test.util.mark.skip import skip_unless_module
+from betse_test.util.mark.pytskip import skip_unless_module
 
 # ....................{ CONSTANTS                          }....................
 # Ideally, the existing

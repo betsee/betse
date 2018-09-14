@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,11 +8,11 @@ CLI-specific functional tests exercising all miscellaneous subcommands (e.g.,
 `betse info`), thus excluding those specific to networks and simulations.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import pytest
-from betse_test.util.mark.skip import skip_unless_lib_runtime_optional
+from betse_test.util.mark.pytskip import skip_unless_lib_runtime_optional
 
-# ....................{ TESTS                              }....................
+# ....................{ TESTS                             }....................
 def test_cli_no_arg(betse_cli: 'CLITester') -> None:
     '''
     Test the ``betse`` command passed no arguments.
@@ -60,7 +60,8 @@ def test_cli_config(
     betse_cli : CLITester
         Object encapsulating the BETSE CLI.
     betse_temp_dir : LocalPath
-        Object encapsulating a temporary directory isolated to the current test.
+        Object encapsulating a temporary directory isolated to the current
+        test.
     '''
 
     # Absolute path of this configuration file in this temporary directory.
@@ -73,7 +74,7 @@ def test_cli_config(
     # Assert this file to have been created.
     assert sim_config_filepath.check(file=1)
 
-# ....................{ TESTS ~ parametrized               }....................
+# ....................{ TESTS ~ parametrized              }....................
 @pytest.mark.parametrize(
     ('profile_type',), (
         # Profile types leveraging stdlib functionality guaranteed to exist.
@@ -81,7 +82,8 @@ def test_cli_config(
         ('call',),
 
         # Profile types leveraging third-party packages necessitating checking.
-        skip_unless_lib_runtime_optional('pympler')(('size',)),
+        pytest.param(
+            'size', marks=skip_unless_lib_runtime_optional('pympler')),
     ),
 )
 def test_cli_profile(
@@ -98,9 +100,11 @@ def test_cli_profile(
     betse_cli : CLITester
         Object encapsulating the BETSE CLI.
     betse_temp_dir : LocalPath
-        Object encapsulating a temporary directory isolated to the current test.
+        Object encapsulating a temporary directory isolated to the current
+        test.
     profile_type : str
         Type of profiling to perform -- either:
+
         * ``none``, performing no profiling.
         * ``call``, performing call-granularity profiling.
         * ``size``, performing memory profiling.
@@ -122,7 +126,7 @@ def test_cli_profile(
         # temporary directory output by the following command.
         profile_filepath = betse_temp_dir.join('profile.prof')
 
-        # Profile the basic "betse" command to both the logfile *AND* this file.
+        # Profile the basic "betse" command to the logfile *AND* this file.
         betse_cli.run(
             profile_type_option, '--profile-file={}'.format(profile_filepath))
 

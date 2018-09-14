@@ -94,7 +94,7 @@ def parametrize_test_setwise(
     Examples
     ----------
     >>> from pytest import fixture
-    >>> from betse_test.util.mark.param import parametrize_test_setwise
+    >>> from betse_test.util.mark.pytparam import parametrize_test_setwise
     >>> @fixture
     ... def feathered_serpent(serpent_name: str) -> str:
     ...     if serpent_name == 'Hualpa'
@@ -328,7 +328,7 @@ def parametrize_test_paramwise(
     Examples
     ----------
     >>> from pytest import fixture
-    >>> from betse_test.util.mark.param import parametrize_test_setwise
+    >>> from betse_test.util.mark.pytparam import parametrize_test_setwise
     >>> @fixture
     ... def feathered_serpent(serpent_name: str) -> str:
     ...     if serpent_name == 'Hualpa'

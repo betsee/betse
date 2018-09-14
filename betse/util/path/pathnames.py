@@ -268,11 +268,12 @@ def is_absolute(pathname: str) -> bool:
     '''
     ``True`` only if the passed path is absolute.
 
-    The definition of "absolute" depends on the current operating system. Under:
+    The definition of "absolute" depends on the current operating system.
+    Specifically, under:
 
     * POSIX-compatible systems, absolute paths are prefixed by ``/``.
     * Microsoft Windows, absolute paths are prefixed by an optional drive
-      indicator (e.g., ``C:``) followed by ``\``.
+      indicator (e.g., ``C:``) followed by ``\\``.
     '''
 
     return os_path.isabs(pathname)
@@ -282,11 +283,12 @@ def is_relative(pathname: str) -> bool:
     '''
     ``True`` only if the passed path is relative.
 
-    The definition of "relative" depends on the current operating system. Under:
+    The definition of "relative" depends on the current operating system.
+    Specifically, under:
 
     * POSIX-compatible systems, relative paths are *not* prefixed by ``/``.
     * Microsoft Windows, relative paths are *not* prefixed by an optional drive
-      indicator (e.g., ``C:``) followed by ``\``.
+      indicator (e.g., ``C:``) followed by ``\\``.
     '''
 
     return not is_absolute(pathname)

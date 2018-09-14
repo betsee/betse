@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -11,7 +11,7 @@ on whether the conditions signified by the passed parameters are satisfied
 (e.g., the importability of the passed module name).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import pytest
 from betse.util.type.types import (
     type_check,
@@ -20,12 +20,13 @@ from betse.util.type.types import (
     SequenceOrNoneTypes,
     MappingOrNoneTypes,
 )
+from betse_test.util.mark import pytmark
 
-# ....................{ IMPORTS ~ private                  }....................
+# ....................{ IMPORTS ~ private                 }....................
 # Sadly, the following imports require private modules and packages.
 from _pytest.runner import Skipped
 
-# ....................{ SKIP                               }....................
+# ....................{ SKIP                              }....................
 skip_if = pytest.mark.skipif
 '''
 Conditionally skip the decorated test with the passed human-readable
@@ -52,8 +53,8 @@ def skip(reason: str):
     * :func:`pytest.skip`, intended to be called only directly as a function.
       Attempting to call this function indirectly as a decorator produces
       extraneous ignorable messages on standard output resembling
-      ``"SKIP [1] betse_test/unit/test_import.py:66: could not import 'xdist'"``,
-      for unknown (and probably uninteresting) reasons.
+      ``"SKIP [1] betse_test/unit/test_import.py:66: could not import
+      'xdist'"``, for unknown (and probably uninteresting) reasons.
     * :func:`pytest.mark.skip`, intended to be called only indirectly as a
       decorator. Attempting to call this decorator directly as a function
       reduces to a noop, for unknown (and probably uninteresting) reasons.
@@ -66,7 +67,7 @@ def skip(reason: str):
 
     return skip_if(True, reason=reason)
 
-# ....................{ SKIP ~ command                     }....................
+# ....................{ SKIP ~ command                    }....................
 @type_check
 def skip_unless_command(pathname: str):
     '''
@@ -83,7 +84,8 @@ def skip_unless_command(pathname: str):
     Parameters
     ----------
     pathname : str
-        Basename or absolute or relative path of the executable file to inspect.
+        Basename or absolute or relative path of the executable file to
+        inspect.
 
     Returns
     ----------
@@ -94,16 +96,15 @@ def skip_unless_command(pathname: str):
 
     # Defer heavyweight imports.
     from betse.util.path.command import cmds
-    from betse.util.type.decorator.decorators import decorator_identity
 
     # If this command exists, reduce this decoration to a noop.
     if cmds.is_command(pathname):
-        return decorator_identity
+        return pytmark.noop
     # Else, skip this test with a human-readable justification.
     else:
         return skip('Command "{}" not found.'.format(pathname))
 
-# ....................{ SKIP ~ lib                         }....................
+# ....................{ SKIP ~ lib                        }....................
 @type_check
 def skip_unless_matplotlib_anim_writer(writer_name: str):
     '''
@@ -126,25 +127,24 @@ def skip_unless_matplotlib_anim_writer(writer_name: str):
 
     # Defer heavyweight imports.
     from betse.lib.matplotlib.writer import mplvideo
-    from betse.util.type.decorator.decorators import decorator_identity
 
     # If this command exists, reduce this decoration to a noop.
     if mplvideo.is_writer(writer_name):
-        return decorator_identity
+        return pytmark.noop
     # Else, skip this test with a human-readable justification.
     else:
         return skip(
             'Matplotlib animation writer "{}" either not found or '
             'unrecognized by BETSE.'.format(writer_name))
 
-# ....................{ SKIP ~ module : setuptools         }....................
-#FIXME: Code duplication is bad. Let's stop replicating this structure.
+# ....................{ SKIP ~ module : setuptools        }....................
 @type_check
 def skip_unless_lib_runtime_optional(*lib_names: str):
     '''
     Skip the decorated test if one or more of the optional runtime dependencies
-    of this application with the passed :mod:`setuptools`-specific project names
-    are **unsatisfiable** (i.e., unimportable *or* of unsatisfactory version).
+    of this application with the passed :mod:`setuptools`-specific project
+    names are **unsatisfiable** (i.e., unimportable *or* of unsatisfactory
+    version).
 
     Parameters
     ----------
@@ -174,9 +174,9 @@ def skip_unless_lib_runtime_optional(*lib_names: str):
 @type_check
 def skip_unless_requirement(*requirement_strs: str):
     '''
-    Skip the decorated test if one or more of the dependencies identified by the
-    passed :mod:`setuptools`-formatted requirement strings are **unsatisfiable**
-    (i.e., unimportable *or* of unsatisfactory version).
+    Skip the decorated test if one or more of the dependencies identified by
+    the passed :mod:`setuptools`-formatted requirement strings are
+    **unsatisfiable** (i.e., unimportable *or* of unsatisfactory version).
 
     Parameters
     ----------
@@ -202,7 +202,7 @@ def skip_unless_requirement(*requirement_strs: str):
         args=requirement_strs,
     )
 
-# ....................{ SKIP ~ module : importlib          }....................
+# ....................{ SKIP ~ module : importlib         }....................
 @type_check
 def skip_unless_module(module_name: str, minimum_version: str = None):
     '''
@@ -227,19 +227,16 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
     ----------
     :func:`skip_unless_lib_runtime_optional`
         Higher-level decorator skipping the decorated test if the passed
-        optional runtime dependency is .
-
-        Higher-level decorator skipping the decorated test if one or more passed
-        requirement strings are unsatisfiable.
+        optional runtime dependency is unsatisfiable.
 
     Parameters
     ----------
     module_name : str
         Fully-qualified name of the module to be tested for.
     minversion : optional[str]
-        Optional minimum version of this module as a dot-delimited string (e.g.,
-        ``0.4.0``) to be tested for if any *or* ``None`` otherwise, in which
-        case any version is acceptable. Defaults to ``None``.
+        Optional minimum version of this module as a dot-delimited string
+        (e.g., ``0.4.0``) to be tested for if any *or* ``None`` otherwise, in
+        which case any version is acceptable. Defaults to ``None``.
 
     Returns
     ----------
@@ -254,29 +251,29 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
         args=(module_name, minimum_version),
     )
 
-# ....................{ SKIP ~ plugin                      }....................
+# ....................{ SKIP ~ plugin                     }....................
 def skip_unless_plugin_xdist():
     '''
     Skip the decorated test if the ``pytest-xdist`` plugin is *not* installed.
 
-    This decorator is typically applied to tests requiring **process isolation**
-    (i.e., isolating tests to dedicated subprocesses of the current test
-    session).  While this plugin provides such isolation out-of-the-box, vanilla
-    :mod:`pytest` does not. Hence, these tests *must* be skipped in the absence
-    of this plugin.
+    This decorator is typically applied to tests requiring **process
+    isolation** (i.e., isolating tests to dedicated subprocesses of the current
+    test session).  While this plugin provides such isolation out-of-the-box,
+    vanilla :mod:`pytest` does not. Hence, these tests *must* be skipped in the
+    absence of this plugin.
 
     Examples of tests requiring process isolation include:
 
-    * Unit tests testing importability. Since Python caches imports performed by
-      the active Python interpreter (e.g., via :attr:`sys.modules`) *and* since
-      the order in which :mod:`pytest` runs tests should be assumed to be
+    * Unit tests testing importability. Since Python caches imports performed
+      by the active Python interpreter (e.g., via :attr:`sys.modules`) *and*
+      since the order in which :mod:`pytest` runs tests should be assumed to be
       non-deterministic, importability *cannot* be reliably tested within a
       single Python process.
     '''
 
     return skip_unless_module('xdist')
 
-# ....................{ PRIVATE ~ skip                     }....................
+# ....................{ PRIVATE ~ skip                    }....................
 @type_check
 def _skip_if_callable_raises_exception(
     # Mandatory parameters.
@@ -312,12 +309,9 @@ def _skip_if_callable_raises_exception(
     Returns
     ----------
     pytest.skipif
-        Decorator skipping this test if this callable raises this exception *or*
-        the identity decorator reducing to a noop otherwise.
+        Decorator skipping this test if this callable raises this exception
+        *or* the identity decorator reducing to a noop otherwise.
     '''
-
-    # Defer heavyweight imports.
-    from betse.util.type.decorator.decorators import decorator_identity
 
     # Default all unpassed arguments to sane values.
     if args is None:
@@ -342,6 +336,6 @@ def _skip_if_callable_raises_exception(
         #
         # # Skip this test with this exception's message.
         # return skip(str(exception))
-    # Else, this callable raised no exception. Reduce this decoration to a noop.
+    # Else, this callable raised no exception. Silently reduce to a noop.
     else:
-        return decorator_identity
+        return pytmark.noop

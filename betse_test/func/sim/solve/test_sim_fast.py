@@ -9,7 +9,7 @@ simulation solver.
 '''
 
 # ....................{ IMPORTS                           }....................
-# from betse_test.util.mark.fail import xfail
+# from betse_test.util.mark.pytfail import xfail
 
 # ....................{ TESTS                             }....................
 def test_cli_sim_fast(betse_cli_sim: 'CLISimTester') -> None:

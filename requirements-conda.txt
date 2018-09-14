@@ -63,4 +63,4 @@ six >=1.5.2
 # ....................{ DEPENDENCIES ~ test                }....................
 # All mandatory test dependencies of this application, manually converted from
 # the "betse.metadata.TESTTIME_MANDATORY" global.
-pytest
+pytest >=3.1.0

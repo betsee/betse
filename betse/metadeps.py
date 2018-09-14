@@ -206,7 +206,15 @@ TESTING_MANDATORY = {
     # testing on local machines. While our setuptools-driven testing regime
     # optionally leverages third-party py.test plugins (e.g., "pytest-xdist"),
     # these plugins are *NOT* required for simple testing.
-    'pytest': '>= 2.5.0',
+    #
+    # A relatively modern version of py.test is required. Specifically, our
+    # test suite requires:
+    #
+    # * At least version 3.1.0 or newer, which introduces the pytest.param()
+    #   function required to avoid deprecation warnings when marking
+    #   parametrized tests by the @pytest.mark.parametrize decorator. See also:
+    #       https://docs.pytest.org/en/latest/changelog.html
+    'pytest': '>= 3.1.0',
 }
 '''
 Dictionary mapping from the :mod:`setuptools`-specific project name of each
