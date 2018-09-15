@@ -38,9 +38,9 @@ class SimPipeABC(object, metaclass=ABCMeta):
     Each subclass is expected to define:
 
     * One or more public methods with names prefixed by the subclass-specific
-      substring :attr:`_RUNNER_METHOD_NAME_PREFIX`, defaulting to ``run_``
-      (e.g., ``run_voltage_intra``). For each such method, the name of that
-      method excluding that prefix is the name of that method's runner (e.g.,
+      :attr:`_runner_method_name_prefix`, defaulting to ``run_`` (e.g.,
+      ``run_voltage_intra``). For each such method, the name of that method
+      excluding that prefix is the name of that method's runner (e.g.,
       ``voltage_intra`` for the method name ``run_voltage_intra``). Each such
       method should:
 
@@ -54,12 +54,12 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
       * Return nothing (i.e.,``None``).
 
-    * The abstract :meth:`iter_runners_conf` method returning a sequence of the
+    * The abstract :meth:`get_runners_conf` method returning a sequence of the
       names of all runners currently enabled by this pipeline (e.g.,
       ``['voltage_intra', 'ion_hydrogen', 'electric_total']``).
 
     The :meth:`run` method defined by this base class then dynamically
-    implements this pipeline by iterating over the :meth:`iter_runners_conf`
+    implements this pipeline by iterating over the :meth:`get_runners_conf`
     property and, for each enabled runner, calling that runner's method.
 
     Attributes (Private)
@@ -80,31 +80,6 @@ class SimPipeABC(object, metaclass=ABCMeta):
     _noun_plural_lowercase : str
         Human-readable lowercase plural noun synopsizing the type of runners
         implemented by this subclass (e.g., ``animations``, ``plots``).
-    '''
-
-    # ..................{ CONSTANTS                         }..................
-    #FIXME: Actually, the paragraph below no longer strictly applies. Our newly
-    #defined @classproperty_readonly decorator now permits read-only class
-    #properties to be trivially (and entirely safely) defined with no need for
-    #intermediary metaclasses. Ergo, refactor the "_RUNNER_METHOD_NAME_PREFIX"
-    #class variable into a comparable _runner_method_name_prefix() class
-    #property decorated by the @classproperty_readonly decorator. Thunderstorm!
-    #FIXME: Actually, just refactor this into a normal instance property after
-    #refactoring the iter_runners() class method into a normal method as well.
-
-    # Ideally, the following class constants would instead be implemented as
-    # class properties. Unfortunately, there exists no @classproperty decorator
-    # and no feasible means of implementing that decorator due to subtle
-    # idiosyncracies in the design of Python's data descriptor protocol. While
-    # class properties can technically be manually implemented by a metaclass
-    # defining these properties, doing so is cumbersome and quite discouraged.
-
-    _RUNNER_METHOD_NAME_PREFIX = 'run_'
-    '''
-    Substring prefixing the name of each runner defined by this pipeline.
-
-    This class variable is intended to be overridden by subclasses desiring a
-    less ambiguous prefix (e.g., ``export_`` for export pipelines).
     '''
 
     # ..................{ INITIALIZERS                      }..................
@@ -138,7 +113,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
     # ..................{ SUBCLASS ~ methods                }..................
     @abstractmethod
-    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    def get_runners_conf(self, phase: SimPhase) -> IterableTypes:
         '''
         Iterable of all **runner configurations** (i.e.,
         :class:`YamlListItemTypedABC` instances encapsulating all input
@@ -148,6 +123,14 @@ class SimPipeABC(object, metaclass=ABCMeta):
         Pipeline subclasses typically implement this property to return an
         instance of the :class:``YamlList`` class listing all runners listed
         by the simulation configuration file configuring this phase.
+
+        Caveats
+        ----------
+        The existence of a runner configuration does *not* imply the
+        corresponding pipeline runner to be unconditionally enabled. Instead,
+        the :attr:`YamlListItemTypedABC.is_enabled` data descriptor defined by
+        all runner configurations returned by this method specifies whether or
+        not that runner is to be enabled or disabled.
 
         Parameters
         ----------
@@ -202,6 +185,17 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
     # ..................{ PROPERTIES ~ private : str        }..................
     @property
+    def _runner_method_name_prefix(self) -> str:
+        '''
+        Substring prefixing the name of each runner defined by this pipeline.
+
+        Defaults to ``run_``.
+        '''
+
+        return  'run_'
+
+    # ..................{ PROPERTIES ~ private : str : word }..................
+    @property
     def _noun_plural(self) -> str:
         '''
         Human-readable plural noun synopsizing the type of runners implemented
@@ -241,7 +235,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
           * For each :class:`YamlListItemTypedABC` instance (corresponding to
             the subconfiguration of a currently enabled pipeline runner) in the
-            sequence of these instances listed by the :meth:`iter_runners_conf`
+            sequence of these instances listed by the :meth:`get_runners_conf`
             property:
 
             * Call this method, passed this configuration.
@@ -277,10 +271,10 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
         # For the object encapsulating all input arguments to be passed to each
         # currently enabled runner in this pipeline...
-        for runner_conf in self.iter_runners_conf(self._phase):
+        for runner_conf in self.get_runners_conf(self._phase):
             if not isinstance(runner_conf, YamlListItemTypedABC):
                 raise BetseSimPipeException(
-                    'iter_runners_conf() item {!r} '
+                    'get_runners_conf() item {!r} '
                     'not instance of "YamlListItemTypedABC".'.format(
                         runner_conf))
 
@@ -295,7 +289,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
             # Name of the method implementing this runner.
             runner_method_name = (
-                self._RUNNER_METHOD_NAME_PREFIX + runner_conf.name)
+                self._runner_method_name_prefix + runner_conf.name)
 
             # Method implementing this runner *OR* None if this runner is
             # unrecognized.
@@ -349,10 +343,10 @@ class SimPipeABC(object, metaclass=ABCMeta):
         # exception if this name has no such prefix.
         runner_name = strs.remove_prefix(
             text=runner.method_name,
-            prefix=self._RUNNER_METHOD_NAME_PREFIX,
+            prefix=self._runner_method_name_prefix,
             exception_message=(
                 'Runner method name "{}" not prefixed by "{}".'.format(
-                    runner.method_name, self._RUNNER_METHOD_NAME_PREFIX)))
+                    runner.method_name, self._runner_method_name_prefix)))
 
         # If any runner requirement is unsatisfied, raise an exception.
         for requirement in runner.requirements:
@@ -386,7 +380,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
             2-tuple ``(runner_name, runner)`` where:
 
             * ``runner_name`` is the name of the method underlying this runner,
-              excluding the substring :attr:`_RUNNER_METHOD_NAME_PREFIX`
+              excluding the substring :attr:`_runner_method_name_prefix`
               prefixing this name.
             * ``runner`` is the :class:`SimPipeRunner` instance defining this
               runner.
@@ -401,7 +395,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
             (
                 strs.remove_prefix(
                     text=runner_method_name,
-                    prefix=self._RUNNER_METHOD_NAME_PREFIX,
+                    prefix=self._runner_method_name_prefix,
                 ),
                 runner
             )

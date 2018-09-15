@@ -196,7 +196,6 @@ class SimConfTestInternal(SimConfTestABC):
     # ..................{ SUPERCLASS                        }..................
     @property
     def p(self) -> 'betse.science.parameters.Parameters':
-
         return self.config.p
 
 
@@ -226,10 +225,9 @@ class SimConfTestExternal(SimConfTestABC):
         super().__init__(*args, **kwargs)
 
         # In-memory simulation configuration deserialized from this file.
-        self._p = Parameters().load(self.conf_filename)
+        self._p = Parameters.make(conf_filename=self.conf_filename)
 
     # ..................{ SUPERCLASS                        }..................
     @property
     def p(self) -> 'betse.science.parameters.Parameters':
-
         return self._p

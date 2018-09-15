@@ -19,13 +19,12 @@ class SimPipeExportABC(SimPipeABC):
     simulation export, either in parallel *or* in series).
     '''
 
-    # ..................{ SUPERCLASS ~ constants            }..................
-    _RUNNER_METHOD_NAME_PREFIX = 'export_'
-    '''
-    Substring prefixing the name of each runner defined by this pipeline.
-    '''
-
     # ..................{ SUPERCLASS                        }..................
+    @property
+    def _runner_method_name_prefix(self) -> str:
+        return  'export_'
+
+
     @property
     def _verb_continuous(self) -> str:
         return 'Exporting'

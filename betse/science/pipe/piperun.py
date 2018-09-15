@@ -137,7 +137,7 @@ def piperunner(
     '''
     Decorator annotating simulation pipeline **runners** (i.e., methods of
     :class:`SimPipeABC` subclasses with names prefixed by
-    :attr:`SimPipeABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
+    :attr:`SimPipeABC._runner_method_name_prefix`) with custom metadata.
 
     All methods decorated by this decorator are guaranteed to be instances of
     the :class:`SimPipeRunner` class, which provides all metadata passed to

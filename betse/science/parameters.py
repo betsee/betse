@@ -428,8 +428,7 @@ class Parameters(YamlFileABC):
     # ..................{ LOADERS                           }..................
     #FIXME: Convert all or most of the variables parsed by this method into
     #aliases of the above form. Brainy rainbows!
-    @type_check
-    def load(self, *args, **kwargs) -> YamlFileABC:
+    def load(self, *args, **kwargs) -> None:
 
         # Avoid circular import dependencies.
         from betse.science.compat import compatconf
@@ -1045,9 +1044,6 @@ class Parameters(YamlFileABC):
 
         # Initialize the ion profile specified by this configuration.
         self._load_ion_profile()
-
-        # Return this configuration for convenience.
-        return self
 
 
     #FIXME: Ideally, this method should be private. Unfortunately, external

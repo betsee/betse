@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,19 +7,20 @@
 Unit tests for the :mod:`betse.util.path.archives` submodule.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import pytest
 from betse_test.util.mark.pytskip import skip_unless_module
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 # Ideally, the existing
 # "betse.util.path.archives._ARCHIVE_FILETYPE_TO_MODULE_NAME" dictionary would
 # be leveraged to populate this parametrization. Unfortunately, doing so would
-# necessitate unsafely importing the "betse.util.path.archives" submodule above,
-# ensuring failure of the entire test suite on the inability to import this
-# submodule -- absurd and frankly unacceptable test-time fragility. Instead, the
-# set of all archive filetypes is redefined in test-oriented manner ignoring
-# filetypes whose corresponding optional stdlib modules are unavailable.
+# necessitate unsafely importing the "betse.util.path.archives" submodule
+# above, ensuring failure of the entire test suite on the inability to import
+# this submodule -- absurd and frankly unacceptable test-time fragility.
+# Instead, the set of all archive filetypes is redefined in test-oriented
+# manner ignoring filetypes whose corresponding optional stdlib modules are
+# unavailable.
 #
 # See the "_ARCHIVE_FILETYPE_TO_MODULE_NAME" dictionary for further details.
 ARCHIVE_FILETYPES = (
@@ -29,18 +30,18 @@ ARCHIVE_FILETYPES = (
     # addition to the "betse.metadata.RUNTIME_OPTIONAL" dictionary,
     # these modules are pre-packaged with Python itself rather than installed
     # via setuptools. Since these modules declare no "__version__" attribute,
-    # there exists no means of validating the satisfiability of these modules as
-    # with customary setuptools-installed optional dependencies.
+    # there exists no means of validating the satisfiability of these modules
+    # as with customary setuptools-installed optional dependencies.
     #
     # The lower-level skip_unless_module() decorator is thus applicable here.
-    skip_unless_module('bz2')(('bz2',)),
-    skip_unless_module('gzip')(('gz',)),
-    skip_unless_module('lzma')(('xz',)),
+    pytest.param('bz2', marks=skip_unless_module('bz2')),
+    pytest.param('gz',  marks=skip_unless_module('gzip')),
+    pytest.param('xz',  marks=skip_unless_module('lzma')),
 )
 '''
 Tuple of all supported archive filetypes, ignoring those whose corresponding
-optional stdlib modules are unimportable under the active Python interpreter and
-hence *not* installed at Python installation time.
+optional stdlib modules are unimportable under the active Python interpreter
+and hence *not* installed at Python installation time.
 '''
 
 
@@ -57,19 +58,21 @@ ARCHIVE_BYTES = bytes(
 Arbitrary sequence of bytes to be archived.
 '''
 
-# ....................{ TESTS                              }....................
+# ....................{ TESTS                             }....................
 @pytest.mark.parametrize(('filetype',), ARCHIVE_FILETYPES,)
 def test_archives_read_write_bytes(
     betse_temp_dir: 'LocalPath', filetype: str) -> None:
     '''
-    Unit test both the :func:`reading_bytes` and :func:`writing_bytes` functions of
-    the :mod:`betse.util.path.archives` submodule for the passed archive
-    filetype guaranteed to be supported by the active Python interpreter.
+    Unit test both the :func:`reading_bytes` and :func:`writing_bytes`
+    functions of the :mod:`betse.util.path.archives` submodule for the passed
+    archive filetype guaranteed to be supported by the active Python
+    interpreter.
 
     Parameters
     ----------
     betse_temp_dir : LocalPath
-        Object encapsulating a temporary directory isolated to the current test.
+        Object encapsulating a temporary directory isolated to the current
+        test.
     filetype : str
         Filetype of the archive format to be tested (e.g., "bz2", "gz", "zip").
     '''

@@ -52,7 +52,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
 
     # ..................{ SUPERCLASS                        }..................
     @type_check
-    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    def get_runners_conf(self, phase: SimPhase) -> IterableTypes:
         return phase.p.anim.anims_after_sim
 
     @property

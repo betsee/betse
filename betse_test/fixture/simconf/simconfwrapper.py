@@ -127,7 +127,7 @@ class SimConfigTestWrapper(object):
         from betse.science.parameters import Parameters
 
         # In-memory simulation configuration deserialized from this file.
-        self._p = Parameters().load(filename)
+        self._p = Parameters.make(conf_filename=filename)
 
         # Simulation phase encapsulating this configuration. Since this phase
         # *ONLY* serves as a thin wrapper around this configuration, the type
@@ -582,7 +582,7 @@ class SimConfigTestWrapper(object):
         # For each export pipeline...
         for pipe_export in SimPipesExport().PIPES_EXPORT:
             # Sequence of all exporters enabled by this pipeline.
-            pipe_exporters_enabled = pipe_export.iter_runners_conf(self._phase)
+            pipe_exporters_enabled = pipe_export.get_runners_conf(self._phase)
 
             # Set of the names of all such exporters for subsequent lookup.
             pipe_exporters_enabled_name = frozenset(
@@ -622,7 +622,7 @@ class SimConfigTestWrapper(object):
                     # Log this exclusion.
                     logs.log_debug(
                         'Excluding pipeline "%s" exporter "%s", '
-                        'as test requirements unsatsified...',
+                        'as test requirements unsatisfied...',
                         pipe_export.name, pipe_exporter_name)
 
                     # Continue to the next possible exporter.

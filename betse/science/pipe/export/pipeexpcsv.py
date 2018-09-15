@@ -36,7 +36,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
     '''
 
     # ..................{ SUPERCLASS                        }..................
-    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    def get_runners_conf(self, phase: SimPhase) -> IterableTypes:
         return phase.p.csv.csvs_after_sim
 
     @property

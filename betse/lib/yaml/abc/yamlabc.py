@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +8,7 @@ Abstract base classes of all YAML-backed simulation configuration subclasses as
 well as functionality pertaining to such classes.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta
 from betse.exceptions import BetseYamlException
 from betse.lib.yaml import yamls
@@ -22,7 +23,7 @@ from betse.util.type.types import (
     NoneType,
 )
 
-# ....................{ SUPERCLASSES                       }....................
+# ....................{ SUPERCLASSES                      }....................
 class YamlABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **YAML wrapper** (i.e., high-level object
@@ -37,7 +38,7 @@ class YamlABC(object, metaclass=ABCMeta):
         method has been called *or* ``None`` otherwise.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(self) -> None:
         '''
@@ -46,7 +47,7 @@ class YamlABC(object, metaclass=ABCMeta):
 
         self._conf = None
 
-    # ..................{ PROPERTIES ~ read-only             }..................
+    # ..................{ PROPERTIES ~ read-only            }..................
     # Read-only properties, preventing callers from resetting these attributes.
 
     @property
@@ -82,7 +83,7 @@ class YamlABC(object, metaclass=ABCMeta):
         # Else, this property is a container. Return this container.
         return self._conf
 
-    # ..................{ EXCEPTIONS                         }..................
+    # ..................{ EXCEPTIONS                        }..................
     def die_unless_loaded(self) -> None:
         '''
         Raise an exception unless this configuration is in the loaded state.
@@ -106,10 +107,9 @@ class YamlABC(object, metaclass=ABCMeta):
                 'YAML configuration not loaded '
                 '(i.e., load() method not called yet).')
 
-    # ..................{ LOADERS                            }..................
+    # ..................{ LOADERS                           }..................
     @type_check
-    def load(self, conf: MappingOrSequenceTypes) -> (
-        'betse.lib.yaml.abc.yamlabc.YamlABC'):
+    def load(self, conf: MappingOrSequenceTypes) -> None:
         '''
         Associate this configuration with the passed YAML-backed container.
 
@@ -118,18 +118,10 @@ class YamlABC(object, metaclass=ABCMeta):
         conf : MappingOrSequenceTypes
             Low-level container of related configuration settings loaded from
             and saved back to a YAML-formatted configuration file.
-
-        Returns
-        ----------
-        YamlABC
-            This YAML wrapper, returned for caller convenience.
         '''
 
         # Classify this container.
         self._conf = conf
-
-        # Return this configuration for convenience.
-        return self
 
 
     def unload(self) -> None:
@@ -144,7 +136,7 @@ class YamlABC(object, metaclass=ABCMeta):
 
         self._conf = None
 
-# ....................{ SUPERCLASSES ~ file                }....................
+# ....................{ SUPERCLASSES ~ file               }....................
 class YamlFileABC(YamlABC):
     '''
     Abstract base class of all **YAML file wrapper** (i.e., high-level object
@@ -170,15 +162,15 @@ class YamlFileABC(YamlABC):
         Basename of :attr:`_conf_filename` if non-``None`` *or* ``None``
         otherwise.
     _conf_dirname : StrOrNoneTypes
-        Absolute dirname of :attr:`_conf_filename` if non-``None`` *or* ``None``
-        otherwise.
+        Absolute dirname of :attr:`_conf_filename` if non-``None`` *or*
+        ``None`` otherwise.
     _conf_filename : StrOrNoneTypes
         Absolute filename of the low-level YAML-formatted configuration file
         from which this object was most recently deserialized if any *or*
         ``None`` otherwise.
     '''
 
-    # ..................{ MAKERS                             }..................
+    # ..................{ MAKERS                            }..................
     @classmethod
     @type_check
     def make(cls, conf_filename: str, *args, **kwargs) -> (
@@ -191,7 +183,8 @@ class YamlFileABC(YamlABC):
         Parameters
         ----------
         conf_filename : str
-            Absolute or relative filename of the source file to be deserialized.
+            Absolute or relative filename of the source file to be
+            deserialized.
 
         All other parameters are passed as is to the :meth:`__init__` method.
 
@@ -201,9 +194,16 @@ class YamlFileABC(YamlABC):
             This configuration, returned for convenience chaining in callers.
         '''
 
-        return cls(*args, **kwargs).load(conf_filename)
+        # Instance of this subclass, passed all passed variadic parameters.
+        yaml_file_conf = cls(*args, **kwargs)
 
-    # ..................{ INITIALIZERS                       }..................
+        # Deserialize the passed file into this instance.
+        yaml_file_conf.load(conf_filename)
+
+        # Return this instance.
+        return yaml_file_conf
+
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(self) -> None:
         '''
@@ -214,13 +214,13 @@ class YamlFileABC(YamlABC):
         # Initialize our superclass.
         super().__init__()
 
-        # Initialize this simulation configuration in the unload state. To avoid
-        # extraneous logging, the unload() method body is duplicated here.
+        # Initialize this simulation configuration in the unload state. To
+        # avoid extraneous logging, the unload() method body is repeated here.
         self._conf_basename = None
         self._conf_dirname = None
         self._conf_filename = None
 
-    # ..................{ PROPERTIES ~ read-only             }..................
+    # ..................{ PROPERTIES ~ read-only            }..................
     # Read-only properties, preventing callers from resetting these attributes.
 
     @property
@@ -282,14 +282,9 @@ class YamlFileABC(YamlABC):
         # Return this property.
         return self._conf_dirname
 
-    # ..................{ LOADERS                            }..................
-    #FIXME: Given the existence of the make() class method, we no longer need
-    #either this or the superclass or any subclass methods to return themselves
-    #anymore. That's a good thing, as the need to "return self" from each such
-    #method has been the repeated source of issues throughout the codebase.
+    # ..................{ LOADERS                           }..................
     @type_check
-    def load(self, conf_filename: str) -> (
-        'betse.lib.yaml.abc.yamlabc.YamlFileABC'):
+    def load(self, conf_filename: str) -> None:
         '''
         Deserialize the passed YAML-formatted file into a low-level mapping or
         sequence internally persisted in this wrapper.
@@ -307,12 +302,8 @@ class YamlFileABC(YamlABC):
         Parameters
         ----------
         conf_filename : str
-            Absolute or relative filename of the source file to be deserialized.
-
-        Returns
-        ----------
-        YamlFileABC
-            This YAML file wrapper, returned for caller convenience.
+            Absolute or relative filename of the source file to be
+            deserialized.
         '''
 
         # If a file is already loaded, unload this file for safety. While doing
@@ -336,9 +327,6 @@ class YamlFileABC(YamlABC):
         # deserializing this file.
         self._set_conf_filename(conf_filename)
 
-        # Return this configuration for convenience.
-        return self
-
 
     def unload(self) -> None:
 
@@ -354,13 +342,13 @@ class YamlFileABC(YamlABC):
         self._conf_dirname = None
         self._conf_filename = None
 
-    # ..................{ SAVERS                             }..................
+    # ..................{ SAVERS                            }..................
     @type_check
     def save(self, conf_filename: str) -> None:
         '''
         Serialize the low-level dictionary internally stored in this object to
         the passed YAML-formatted simulation configuration file, replacing the
-        prior contents of this file, *and* associate this object with this file.
+        prior contents of this file, and associate this object with this file.
 
         This method effectively implements the "Save As..." GUI metaphor.
 
@@ -410,8 +398,8 @@ class YamlFileABC(YamlABC):
     def save_inplace(self) -> None:
         '''
         Serialize the low-level dictionary internally stored in this object to
-        the current YAML-formatted simulation configuration file associated with
-        this object, replacing the prior contents of this file.
+        the current YAML-formatted simulation configuration file associated
+        with this object, replacing the prior contents of this file.
 
         This method effectively implements the "Save" GUI metaphor.
         '''
@@ -426,7 +414,7 @@ class YamlFileABC(YamlABC):
             is_overwritable=True,
         )
 
-    # ..................{ SETTERS                            }..................
+    # ..................{ SETTERS                           }..................
     @type_check
     def _set_conf_filename(self, conf_filename: str) -> None:
         '''
@@ -435,9 +423,9 @@ class YamlFileABC(YamlABC):
 
         Design
         ----------
-        To prevent external callers from unsafely setting this path, this setter
-        is intentionally implemented as an manual setter rather than a more
-        preferable :meth:`conf_filename` property setter.
+        To prevent external callers from unsafely setting this path, this
+        setter is intentionally implemented as an manual setter rather than a
+        more preferable :meth:`conf_filename` property setter.
         '''
 
         # Unique absolute filename of this file assigned *BEFORE* this file's
@@ -450,13 +438,13 @@ class YamlFileABC(YamlABC):
         # Unique absolute dirname of the parent directory of this file.
         self._conf_dirname = pathnames.get_dirname(self._conf_filename)
 
-    # ..................{ SUBCLASS ~ optional                }..................
+    # ..................{ SUBCLASS ~ optional               }..................
     # Methods intended to be optionally overriden by subclasses.
 
     def _iter_conf_subdirnames(self) -> IterableTypes:
         '''
-        Generator yielding the pathname of each requisite direct subdirectory of
-        the parent directory of the YAML-formatted file currently associated
+        Generator yielding the pathname of each requisite direct subdirectory
+        of the parent directory of the YAML-formatted file currently associated
         with this configuration, where "requisite" means internally referenced
         and hence required by this file.
 
@@ -477,10 +465,10 @@ class YamlFileABC(YamlABC):
         # Default to the empty iterator.
         return empty_iterator()
 
-# ....................{ TYPES                              }....................
+# ....................{ TYPES                             }....................
 # Intended for use in callable type validation.
 YamlABCOrNoneTypes = (YamlABC, NoneType)
 '''
-Tuple of both the YAML-backed configuration type *and* the type of the singleton
-``None`` object.
+Tuple of both the YAML-backed configuration type *and* the type of the
+singleton ``None`` object.
 '''
