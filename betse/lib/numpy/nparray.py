@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,7 +8,7 @@ Low-level **Numpy type conversion** (i.e., functions converting Numpy arrays to
 and from various types) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import numpy as np
 # from betse.util.io.log import logs
 from betse.util.type.iterable import sequences
@@ -16,10 +16,10 @@ from betse.util.type.types import (
     type_check, ClassType, IterableTypes, NumpyArrayType,)
 from numpy import ndarray
 
-# ....................{ GLOBALS                            }....................
+# ....................{ GLOBALS                           }....................
 DTYPE_UNSIGNED_TO_SIGNED = {
-     np.uint0:  np.int8,
-     np.uint8: np.int16,
+    np.uint0:  np.int8,
+    np.uint8:  np.int16,
     np.uint16: np.int32,
     np.uint32: np.int64,
 }
@@ -35,7 +35,15 @@ See Also
     Further discussion.
 '''
 
-# ....................{ CONVERTERS ~ iterable              }....................
+# ....................{ TESTERS                           }....................
+def is_array(obj: object) -> bool:
+    '''
+    ``True`` only if the passed object is a Numpy array.
+    '''
+
+    return isinstance(obj, NumpyArrayType)
+
+# ....................{ CONVERTERS ~ iterable             }....................
 @type_check
 def from_iterable(iterable: IterableTypes) -> NumpyArrayType:
     '''
@@ -51,7 +59,7 @@ def from_iterable(iterable: IterableTypes) -> NumpyArrayType:
 
     Caveats
     ----------
-    **This high-level function should always be called in lieue of the low-level
+    **This high-level function should always be called in lieue of the
     :func:`np.asarray` function,** which is fundamentally unsafe and should
     *never* be called directly. Unlike this function, the :func:`np.asarray`
     function unsafely converts *any* arbitrary non-sequence into a Numpy array.
@@ -118,7 +126,7 @@ def to_iterable(array: NumpyArrayType, cls: ClassType) -> IterableTypes:
     '''
 
     # If the iterable to be returned is a Numpy array, return this array as is.
-    if cls is ndarray:
+    if cls is NumpyArrayType:
         return array
 
     # List converted from this array.
@@ -131,7 +139,7 @@ def to_iterable(array: NumpyArrayType, cls: ClassType) -> IterableTypes:
     # Else, return an iterable converted from this list.
     return cls(array_list)
 
-# ....................{ CONVERTERS ~ signed                }....................
+# ....................{ CONVERTERS ~ signed               }....................
 @type_check
 def to_signed(array: NumpyArrayType) -> NumpyArrayType:
     '''
@@ -140,8 +148,8 @@ def to_signed(array: NumpyArrayType) -> NumpyArrayType:
 
     If this array's data type is:
 
-    * Already signed (e.g., :attr:`np.int32`, :attr:`np.float64`), this array is
-      returned unmodified.
+    * Already signed (e.g., :attr:`np.int32`, :attr:`np.float64`), this array
+      is returned unmodified.
     * Unsigned (e.g., :attr:`np.uint8`), a new signed array preserving the
       contents of this array is returned.
 
@@ -158,8 +166,8 @@ def to_signed(array: NumpyArrayType) -> NumpyArrayType:
     * :attr:`np.int32`, covering the integer range
       ``[−2147483648, 2147483647]``.
 
-    If the data type of the passed array is :attr:`np.uint16`, this implies that
-    only a data type of :attr:`np.int32` or wider (e.g., :attr:`np.int64`)
+    If the data type of the passed array is :attr:`np.uint16`, this implies
+    that only a data type of :attr:`np.int32` or wider (e.g., :attr:`np.int64`)
     suffices to preserve the contents of this array. Coercing these contents
     into an array of data type :attr:`np.int16` would destroy (e.g, truncate,
     wrap) *all* array elements in the integer range ``[32768, 65535]``.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,11 +7,11 @@
 Low-level **character** (i.e., string of length 1) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseCharException
 from betse.util.type.types import type_check
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_unless_char(text: str) -> None:
     '''
@@ -37,7 +37,7 @@ def die_unless_char(text: str) -> None:
             'String "{}" not a character '
             '(i.e., either empty or of length >= 2).'.format(text))
 
-# ....................{ TESTERS ~ case                     }....................
+# ....................{ TESTERS ~ case                    }....................
 @type_check
 def is_char(text: str) -> bool:
     '''

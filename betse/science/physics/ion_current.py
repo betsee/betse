@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
+# ....................{ LICENSE                           }....................
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+# ....................{ IMPORTS                           }....................
 import numpy as np
-from scipy.ndimage.filters import gaussian_filter
 from betse.science import sim_toolbox as stb
 from betse.science.math import finitediff as fd
+from scipy.ndimage.filters import gaussian_filter
 
-
-def get_current(sim, cells, p):
+# ....................{ GETTERS                           }....................
+def get_current(sim, cells, p) -> None:
+    '''
+    Calculate currents in both cells and the environment.
+    '''
 
     # calculate the net charge in cells:
     sim.rho_cells = np.dot(sim.zs * p.F, sim.cc_cells) + sim.extra_rho_cells
@@ -106,9 +111,7 @@ def get_current(sim, cells, p):
         sim.Eme = (sim.E_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
                sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
-
     else:
-
         # divergence of current across membranes:
         vc = sim.vm/2
 
@@ -137,7 +140,6 @@ def get_current(sim, cells, p):
         Jxo = sim.sigma * sim.E_env_x * sim.D_env_weight
         Jyo = sim.sigma * sim.E_env_y * sim.D_env_weight
 
-
         BB, sim.J_env_x, sim.J_env_y, _, Ja, Jb = stb.HH_Decomp(Jxo, Jyo, cells)
 
         # since it was incidentally calculated, store the B-component of magnetic field:
@@ -153,7 +155,6 @@ def get_current(sim, cells, p):
 
         # assign environmental voltage:
         sim.v_env =  (Phi).ravel()
-
 
 # WASTELANDS (Options)--------------------------------------------------------------------------------------------------
 
@@ -378,29 +379,3 @@ def get_current(sim, cells, p):
     #            sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
     #
     # sim.Phi_env = Phi_env * 1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

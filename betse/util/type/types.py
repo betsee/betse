@@ -1420,37 +1420,6 @@ def _check_type_annotation(
 #@type_check decorator defined above provides a substantially superior
 #solution to this decidedly... unsavoury approach.
 
-def is_bool(obj: object) -> bool:
-    '''
-    ``True`` only if the passed object is **boolean** (i.e., either `True` or
-    `False`).
-    '''
-    return isinstance(obj, bool)
-
-
-def is_char(obj: object) -> bool:
-    '''
-    ``True`` only if the passed object is a **character** (i.e., string of length
-    1).
-    '''
-    return is_str(obj) and len(obj) == 1
-
-
-def is_nonnone(obj: object) -> bool:
-    '''
-    ``True`` only if the passed object is _not_ `None`.
-    '''
-    return obj is not None
-
-# ....................{ TESTERS ~ callable                 }....................
-def is_callable(obj: object) -> bool:
-    '''
-    ``True`` only if the passed object is **callable** (e.g., function, method,
-    class defining the special `__call__()` method).
-    '''
-
-    return callable(obj)
-
 # ....................{ TESTERS ~ class                    }....................
 def is_class(obj: object) -> bool:
     '''

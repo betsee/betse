@@ -60,8 +60,6 @@ class Simulator(object):
 
     get_Bfield(cells,p)                     Calculates magnetic fields in cells and environment.
 
-    get_current(cells,p)                    Calculates currents in cells and environment.
-
     eosmosis(cells,p)                       Calculates lateral movement of membrane pumps and channels via tangential
                                             forces exerted by endogenous electric fields and electroosmotic flows.
 

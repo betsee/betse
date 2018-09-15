@@ -205,13 +205,13 @@ class Parameters(YamlFileABC):
     init_time_step : float
         Duration in seconds of each time step (including both sampled and
         unsampled) for the initialization phase.
-    init_tsteps : float
+    init_tsteps : int
         Total number of all time steps (including both sampled and unsampled)
         for the initialization phase.
     sim_time_step : float
         Duration in seconds of each time step (including both sampled and
         unsampled) for the simulation phase.
-    sim_tsteps : float
+    sim_tsteps : int
         Total number of all time steps (including both sampled and unsampled)
         for the simulation phase.
 
@@ -465,8 +465,10 @@ class Parameters(YamlFileABC):
         self.autoInit = self._conf['automatically run initialization']
         self.plot_grid_size = 50
 
-        self.init_tsteps = self.init_time_total / self.init_time_step
-        self. sim_tsteps = self. sim_time_total / self. sim_time_step
+        # Total number of time steps for the initialization and simulation
+        # phases, rounding down to the nearest time step to preserve sanity.
+        self.init_tsteps = int(self.init_time_total / self.init_time_step)
+        self. sim_tsteps = int(self. sim_time_total / self. sim_time_step)
 
         #----------------------------------------------------------------------
         # WORLD OPTIONS
