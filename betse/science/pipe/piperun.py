@@ -9,22 +9,21 @@ iteratively run by its parent pipeline) functionality.
 '''
 
 # ....................{ IMPORTS                           }....................
+import functools
 from betse.exceptions import BetseSimPipeException
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirements, SimPhaseRequirementsOrNoneTypes)
-from betse.util.type.decorator.deccls import MethodDecoratorABC
 from betse.util.type.text import strs
 from betse.util.type.types import type_check, CallableTypes, SequenceTypes
 
 # ....................{ CLASSES                           }....................
-class SimPipeRunner(MethodDecoratorABC):
+class SimPipeRunnerMetadata(object):
     '''
-    Class decorator annotating simulation pipeline runners with custom
-    metadata.
+    **Simulation pipeline runner** (i.e., method of a :class:`SimPipeABC`
+    subclass decorated by the :func:`piperunner` decorator) metadata.
 
-    All such runners decorated by the :func:`piperunner` decorator are
-    guaranteed to be instances of this class, which provides all metadata
-    passed to that decorator as instance variables of the same name.
+    This metadata is available via the ``metadata`` instance variable of each
+    such runner.
 
     Attributes
     ----------
@@ -51,23 +50,27 @@ class SimPipeRunner(MethodDecoratorABC):
     @type_check
     def __init__(
         self,
+
+        # Mandatory parameters.
         method: CallableTypes,
         categories: SequenceTypes,
-        requirements: SimPhaseRequirementsOrNoneTypes,
+
+        # Optional parameters.
+        requirements: SimPhaseRequirementsOrNoneTypes = None,
     ) -> None:
         '''
-        Initialize this class decorator.
+        Initialize this metadata.
 
         Parameters
         ----------
         method: CallableTypes
-            Unbound method (i.e., function) to be decorated.
+            Unbound method (i.e., function) associated with this metadata.
         categories : SequenceTypes
             Sequence of one or more human-readable category names.
         requirements : SimPhaseRequirementsOrNoneTypes
             Immutable set of zero or more :class:`SimPhaseRequirement`
             instances *or* ``None``, in which case this parameter defaults to
-            the empty immutable set of such instances.
+            the empty set of such instances.
 
         Raises
         ----------
@@ -76,7 +79,7 @@ class SimPipeRunner(MethodDecoratorABC):
         '''
 
         # Initialize our superclass with the passed method.
-        super().__init__(method)
+        super().__init__()
 
         # Default all unpassed parameters to sane defaults.
         if requirements is None:
@@ -95,7 +98,8 @@ class SimPipeRunner(MethodDecoratorABC):
         # If this docstring is empty, raise an exception.
         if not self.description:
             raise BetseSimPipeException(
-                'Runner method {}() has no docstring.'.format(method.__name__))
+                'Pipeline runner method {}() docstring undefined.'.format(
+                    method.__name__))
         # Else, this docstring is non-empty.
 
         # Transform this docstring into a description by...
@@ -105,25 +109,13 @@ class SimPipeRunner(MethodDecoratorABC):
             # Reducing from a (possibly) multi- to single-line string.
             strs.unwrap(self.description)))
 
-    # ..................{ CALLERS                           }..................
-    @type_check
-    def __call__(
-        self,
-
-        # To avoid circular import dependencies, this is validated as a
-        # fully-qualified class name resolved at runtime.
-        pipeline: 'betse.science.pipe.pipeabc.SimPipeABC',
-        *args,
-        **kwargs
-    ) -> object:
-
-        # If this runner is unsatisfied, raise an exception.
-        pipeline.die_unless_runner_satisfied(self)
-        # Else, this runner is satisfied. Since the prior call already logged
-        # the attempt to run this runner, avoid redoing so here.
-
-        # Defer to the superclass implementation to run this runner.
-        return super().__call__(pipeline, *args, **kwargs)
+        # Expose the metadata associated with this runner to callers. Due to
+        # Python constraints on class decorators, *ONLY* the bound
+        # SimPipeRunner.__call__() method returned by this method below is
+        # accessible to callers. Notably, this "SimPipeRunner" instance is not
+        # accessible to callers. Ergo, attaching this method to this method is
+        # the only means of exposing this metadata to callers. *shrug*
+        method.metadata = self
 
 # ....................{ DECORATORS                        }....................
 @type_check
@@ -135,8 +127,8 @@ def piperunner(
     requirements: SimPhaseRequirementsOrNoneTypes = None,
 ) -> CallableTypes:
     '''
-    Decorator annotating simulation pipeline **runners** (i.e., methods of
-    :class:`SimPipeABC` subclasses with names prefixed by
+    Decorator annotating **simulation pipeline runners** (i.e.,
+    :meth:`SimPipeRunner.__call__` subclasses with names prefixed by
     :attr:`SimPipeABC._runner_method_name_prefix`) with custom metadata.
 
     All methods decorated by this decorator are guaranteed to be instances of
@@ -164,6 +156,7 @@ def piperunner(
         of hierarchical taxonomy). Categories are arbitrary labels accessed
         *only* by external interfaces and are otherwise ignored by the core
         codebase. Specifically:
+
         * The first string in this sequence names an arbitrary **root
           category** (e.g., root node in a tree view), intended to be shared
           between multiple runners. This string is typically a broadly
@@ -180,18 +173,21 @@ def piperunner(
         specifying all simulation features required by this runner. This
         decorator then decorates this runner by performing the following logic
         immediately *before* calling this runner:
+
         * For each requirement in this set...
+
           * If this requirement is unsatisfied by the current simulation phase
             (e.g., as the configuration for this phase disables extracellular
             spaces), this requirement (and hence this runner) is unsatisfied.
             Since this constitutes a fatal error, an
             :class:`BetseSimPipeRunnerUnsatisfiedException` is raised.
           * Else, this runner is run.
+
         Defaults to ``None``, in which case no such decoration is applied.
     '''
 
     @type_check
-    def _piperunner_closure(method: CallableTypes) -> SimPipeRunner:
+    def _piperunner_method_factory(method: CallableTypes) -> CallableTypes:
         '''
         Closure both type-checking *and* annotating the passed simulation
         pipeline runner method with the metadata passed to the outer decorator
@@ -202,6 +198,7 @@ def piperunner(
         ----------
         method : CallableTypes
             Unbound method (i.e., function) to be decorated by (in order):
+
             #. The :func:`@type_check` decorator, type checking this method.
                For efficiency, callers should ensure this method is *not*
                externally decorated by this decorator.
@@ -214,13 +211,40 @@ def piperunner(
             Further details.
         '''
 
-        # Return an instance of the class decorator exposing this metadata.
-        return SimPipeRunner(
-            # As a caller convenience, ensure this method is type-checked.
-            method=type_check(method),
+        # As a caller convenience, ensure this method is type-checked.
+        method_typed = type_check(method)
+
+        @functools.wraps(method_typed)
+        @type_check
+        def _piperunner_method(
+            # To avoid circular import dependencies, this is validated as a
+            # fully-qualified class name resolved at runtime.
+            #
+            # For clarity, this parameter has been renamed from the customary
+            # "self" nomenclature for a bound method.
+            self_pipeline: 'betse.science.pipe.pipeabc.SimPipeABC',
+            *args, **kwargs
+        ) -> object:
+
+            # If this runner is unsatisfied by this pipeline, raise an exception.
+            self_pipeline.die_unless_runner_satisfied(
+                runner_metadata=_piperunner_method.metadata)
+
+            # Else, this runner is satisfied. Since the prior call already
+            # logged the attempt to run this runner, avoid redoing so here.
+            #
+            # Simply call this method to run this runner.
+            return method_typed(self_pipeline, *args, **kwargs)
+
+        # Expose this metadata as an instance variable of this method closure.
+        _piperunner_method.metadata = SimPipeRunnerMetadata(
+            method=method_typed,
             categories=categories,
             requirements=requirements,
         )
 
-    # Return the closure accepting the method to be decorated.
-    return _piperunner_closure
+        # Return this method closure.
+        return _piperunner_method
+
+    # Return this method factory closure.
+    return _piperunner_method_factory

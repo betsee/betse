@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +7,7 @@
 YAML-backed simulation subconfiguration classes for tissue and cut profiles.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta
 from betse.lib.yaml.yamlalias import (
     yaml_alias,
@@ -21,22 +21,22 @@ from betse.science.config.confenum import CellsPickerType
 # from betse.util.io.log import logs
 from betse.util.type.types import type_check, SequenceTypes
 
-# ....................{ SUPERCLASSES ~ tissue              }....................
+# ....................{ SUPERCLASSES ~ tissue             }....................
 class SimConfTissueABC(object, metaclass=ABCMeta):
     '''
     Abstract mixin generalizing implementation common to all YAML-backed tissue
     profile subconfiguration subclasses.
 
-    This mixin encapsulates configuration of a single tissue profile parsed from
-    the current YAML-formatted simulation configuration file. For generality,
-    this mixin provides no support for the YAML ``name`` key or the suite of
-    YAML keys pertaining to tissue pickers.
+    This mixin encapsulates configuration of a single tissue profile parsed
+    from the current YAML-formatted simulation configuration file. For
+    generality, this mixin provides no support for the YAML ``name`` key or the
+    suite of YAML keys pertaining to tissue pickers.
 
     Attributes
     ----------
     name : str
-        Arbitrary string uniquely identifying this tissue profile in the list of
-        all tissue profiles for this simulation.
+        Arbitrary string uniquely identifying this tissue profile in the list
+        of all tissue profiles for this simulation.
 
     Attributes (Membrane Diffusion)
     ----------
@@ -54,10 +54,10 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
         Protein (P-) membrane diffusion constant in m2/s.
     '''
 
-    # ..................{ ALIASES                            }..................
+    # ..................{ ALIASES                           }..................
     name = yaml_alias("['name']", str)
 
-    # ..................{ ALIASES ~ diffusion                }..................
+    # ..................{ ALIASES ~ diffusion               }..................
     Dm_Na = yaml_alias_float_nonnegative("['diffusion constants']['Dm_Na']")
     Dm_K  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_K']")
     Dm_Cl = yaml_alias_float_nonnegative("['diffusion constants']['Dm_Cl']")
@@ -66,7 +66,7 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
     Dm_M  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_M']")
     Dm_P  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_P']")
 
-# ....................{ SUBCLASSES ~ tissue                }....................
+# ....................{ SUBCLASSES ~ tissue               }....................
 class SimConfTissueDefault(SimConfTissueABC, YamlABC):
     '''
     YAML-backed default tissue profile subconfiguration, encapsulating the
@@ -83,7 +83,7 @@ class SimConfTissueDefault(SimConfTissueABC, YamlABC):
         details.
     '''
 
-    # ..................{ ALIASES ~ picker                   }..................
+    # ..................{ ALIASES ~ picker                  }..................
     picker_image_filename = yaml_alias("['image']", str)
 
 
@@ -97,8 +97,8 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     ----------
     is_gj_insular : bool
         ``True`` only if gap junctions originating at cells in this tissue are
-        **insular** (i.e., prevented from connecting to cells in other tissues),
-        implying these gap junctions to be strictly intra-tissue.
+        **insular** (i.e., prevented from connecting to cells in other
+        tissues), implying these gap junctions to be strictly intra-tissue.
 
     Attributes (Cell Picker)
     ----------
@@ -116,17 +116,19 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     picker_image_filename : str
         Absolute or relative filename of the image mask whose pure-black pixels
         (i.e., pixels whose red, green, and blue color components are all 0)
-        define the region of the cell cluster whose cells are all to be assigned
-        to this tissue. This image *must*:
+        define the region of the cell cluster whose cells are all to be
+        assigned to this tissue. This image *must*:
+
         * Be square (i.e., have equal width and height).
         * Contain no alpha transparency layer.
+
         Ignored unless :attr:`picker_type` is :attr:`CellsPickerType.IMAGE`.
     '''
 
-    # ..................{ ALIASES                            }..................
+    # ..................{ ALIASES                           }..................
     is_gj_insular = yaml_alias("['insular']", bool)
 
-    # ..................{ ALIASES ~ picker                   }..................
+    # ..................{ ALIASES ~ picker                  }..................
     picker_type = yaml_enum_alias("['cell targets']['type']", CellsPickerType)
     picker_cells_index = yaml_alias(
         "['cell targets']['indices']", SequenceTypes)
@@ -135,7 +137,7 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     picker_image_filename = yaml_alias(
         "['cell targets']['image']", str)
 
-    # ..................{ CLASS                              }..................
+    # ..................{ CLASS                             }..................
     @classmethod
     @type_check
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
@@ -144,9 +146,10 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
         tissue_name = yaml_list.get_item_name_unique(
             name_format='tissue ({{}})')
 
-        # Create and return the equivalent YAML-backed tissue profile list item,
-        # duplicating the first such item in our default YAML file.
-        return SimConfTissueListItem().load(conf={
+        # Create and return the equivalent YAML-backed tissue profile list
+        # item, duplicating the first such item in our default YAML file.
+        yaml_list_item = SimConfTissueListItem()
+        yaml_list_item.load(conf={
             'name': tissue_name,
             'insular': True,
             'diffusion constants': {
@@ -165,8 +168,9 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
                 'percent': 50,
             },
         })
+        return yaml_list_item
 
-# ....................{ SUBCLASSES ~ cut                   }....................
+# ....................{ SUBCLASSES ~ cut                  }....................
 class SimConfCutListItem(YamlListItemABC):
     '''
     YAML-backed cut profile list item subconfiguration, encapsulating the
@@ -185,11 +189,11 @@ class SimConfCutListItem(YamlListItemABC):
         details.
     '''
 
-    # ..................{ ALIASES                            }..................
+    # ..................{ ALIASES                           }..................
     name = yaml_alias("['name']", str)
     picker_image_filename = yaml_alias("['image']", str)
 
-    # ..................{ CLASS                              }..................
+    # ..................{ CLASS                             }..................
     @classmethod
     @type_check
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
@@ -199,7 +203,9 @@ class SimConfCutListItem(YamlListItemABC):
 
         # Create and return the equivalent YAML-backed cut profile list item,
         # duplicating the first such item in our default YAML file.
-        return SimConfTissueListItem().load(conf={
+        yaml_list_item = SimConfTissueListItem()
+        yaml_list_item.load(conf={
             'name': cut_name,
             'image': 'geo/circle/wedge.png',
         })
+        return yaml_list_item

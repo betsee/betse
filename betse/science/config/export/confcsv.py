@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,7 +8,7 @@ YAML-backed simulation subconfigurations for exporting comma-separated value
 (CSV) files.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import (
@@ -16,11 +16,12 @@ from betse.lib.yaml.abc.yamllistabc import (
 from betse.util.type.types import type_check
 # from betse.util.type.types import type_check, MappingType, SequenceTypes
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 class SimConfExportCSVs(YamlABC):
     '''
-    YAML-backed subconfiguration for exporting *all* comma-separated value (CSV)
-    files enabled by the current YAML-formatted simulation configuration file.
+    YAML-backed subconfiguration for exporting *all* comma-separated value
+    (CSV) files enabled by the current YAML-formatted simulation configuration
+    file.
 
     Attributes (After Solving)
     ----------
@@ -37,15 +38,15 @@ class SimConfExportCSVs(YamlABC):
         :attr:`is_after_sim_save` is ``False``.
     '''
 
-    # ..................{ ALIASES ~ after                    }..................
+    # ..................{ ALIASES ~ after                   }..................
     is_after_sim_save = yaml_alias(
         "['results options']['after solving']['csvs']['save']", bool)
 
-    # ..................{ ALIASES ~ save                     }..................
+    # ..................{ ALIASES ~ save                    }..................
     filetype = yaml_alias(
         "['results options']['save']['csvs']['filetype']", str)
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass with all passed parameters.
@@ -54,7 +55,7 @@ class SimConfExportCSVs(YamlABC):
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
         self.csvs_after_sim = SimConfExportCSV.make_list()
 
-    # ..................{ LOADERS                            }..................
+    # ..................{ LOADERS                           }..................
     def load(self, *args, **kwargs) -> None:
 
         # Load our superclass with all passed arguments.
@@ -73,21 +74,23 @@ class SimConfExportCSVs(YamlABC):
         # Unload all subconfigurations of this configuration.
         self.csvs_after_sim.unload()
 
-# ....................{ SUBCLASSES : item                  }....................
+# ....................{ SUBCLASSES : item                 }....................
 class SimConfExportCSV(YamlListItemTypedABC):
     '''
-    YAML-backed subconfiguration list item for exporting a comma-separated value
-    (CSV) file enabled by a list of these exports in the current YAML-formatted
-    simulation configuration file.
+    YAML-backed subconfiguration list item for exporting a comma-separated
+    value (CSV) file enabled by a list of these exports in the current
+    YAML-formatted simulation configuration file.
     '''
 
-    # ..................{ MAKERS                             }..................
+    # ..................{ MAKERS                            }..................
     @classmethod
     @type_check
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Duplicate the default CSV file listed first in our default YAML file.
-        return SimConfExportCSV().load(conf={
+        yaml_list_item = SimConfExportCSV()
+        yaml_list_item.load(conf={
             'type': 'cell_Series',
             'enabled': True,
         })
+        return yaml_list_item

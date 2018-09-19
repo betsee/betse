@@ -712,7 +712,7 @@ def iter_methods(obj: object) -> GeneratorType:
 
     Yields
     ----------
-    (method_name, method_value)
+    (method_name : str, method : MethodType)
         2-tuple of the name and value of each method bound to this object (in
         ascending lexicographic order of method name).
 
@@ -726,32 +726,29 @@ def iter_methods(obj: object) -> GeneratorType:
     '''
 
     # Defer to this iterator.
-    yield from iter_attrs_matching(
-        obj=obj, predicate=lambda attr_name, attr_value: callable(attr_value))
+    yield from iter_methods_matching(obj=obj, predicate=noop_attr_predicate)
 
 
-#FIXME: Reimplement in terms of iter_attrs_matching().
-#FIXME: Generalize the passed predicate to accept two rather than one
-#parameters, as with the predicate accepted by iter_attrs_matching().
 @type_check
 def iter_methods_matching(
     obj: object, predicate: CallableTypes) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each method bound to
-    the passed object whose method name matches the passed predicate (in
-    ascending lexicographic order of method name).
+    the passed object whose method name and value matches the passed predicate
+    (in ascending lexicographic order of method name).
 
     Parameters
     ----------
     obj : object
         Object to yield all matching methods of.
     predicate : CallableTypes
-        Callable iteratively passed the name of each method bound to this
-        object, returning ``True`` only if that name matches this predicate.
+        Callable iteratively passed the name of each method and that method
+        bound to this object, returning ``True`` only if that name matches this
+        predicate.
 
     Yields
     ----------
-    (method_name, method_value)
+    (method_name : str, method : MethodType)
         2-tuple of the name and value of each matching method bound to this
         object (in ascending lexicographic order of method name).
 
@@ -761,15 +758,15 @@ def iter_methods_matching(
         Further details.
     '''
 
-    # Return a generator comprehension...
-    return (
-        # Yielding this method's name and definition...
-        (method_name, method)
-        # For the name and definition of each method bound to this object...
-        for method_name, method in iter_methods(obj)
-        # If this method matches this predicate.
-        if predicate(method_name)
-    )
+    # Defer to this iterator.
+    yield from iter_attrs_matching(
+        # For the name and definition of each attribute bound to this object,
+        # exclude this attribute from consideration unless...
+        obj=obj, predicate=lambda attr_name, attr_value: (
+            # This attribute is a method (rather than variable) *AND*...
+            callable(attr_value) and
+            # This variable satisfies the passed predicate.
+            predicate(attr_name, attr_value)))
 
 
 def iter_methods_custom(obj: object) -> GeneratorType:
@@ -786,7 +783,7 @@ def iter_methods_custom(obj: object) -> GeneratorType:
 
     Yields
     ----------
-    (method_name, method_value)
+    (method_name : str, method : MethodType)
         2-tuple of the name and value of each non-builtin method bound to this
         object (in ascending lexicographic order of method name).
 
@@ -796,9 +793,36 @@ def iter_methods_custom(obj: object) -> GeneratorType:
         Further details.
     '''
 
+    # Defer to this iterator.
     yield from iter_methods_matching(
-        obj=obj, predicate=lambda method_name: not (
+        obj=obj, predicate=lambda method_name, method: not (
             method_name.startswith('__') and method_name.endswith('__')))
+
+
+def iter_methods_prefixed(obj: object, prefix: str) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each method bound to
+    the passed object whose method name is prefixed by the passed substring (in
+    ascending lexicographic order of method name).
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all prefixed methods of.
+    prefix : str
+        Substring prefixing the names of all such methods.
+
+    Yields
+    ----------
+    (method_name : str, method_value : object)
+        2-tuple of the name and value of each prefixed method bound to this
+        object (in ascending lexicographic order of method name).
+    '''
+
+    # Defer to this iterator.
+    yield from iter_methods_matching(
+        obj=obj, predicate=lambda method_name, method_value: (
+            method_name.startswith(prefix)))
 
 # ....................{ ITERATORS ~ vars                  }....................
 def iter_vars(obj: object) -> GeneratorType:
@@ -843,6 +867,34 @@ def iter_vars(obj: object) -> GeneratorType:
         :func:`iter_vars_custom_simple` generator excluding all properties.
     '''
 
+    # Defer to this iterator.
+    yield from iter_vars_matching(obj=obj, predicate=noop_attr_predicate)
+
+
+@type_check
+def iter_vars_matching(
+    obj: object, predicate: CallableTypes) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each variable bound
+    to the passed object whose name and/or value matches the passed predicate
+    (in ascending lexicographic order of attribute name).
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all matching variables of.
+    predicate : CallableTypes
+        Callable iteratively passed both the name and value of each variables
+        bound to this object, returning ``True`` only if that name and/or value
+        matches this predicate.
+
+    Yields
+    ----------
+    (var_name : str, var_value : object)
+        2-tuple of the name and value of each matching variable bound to this
+        object (in ascending lexicographic order of variable name).
+    '''
+
     #FIXME: While satisfactory, the current approach fails to return the full
     #set of all instance variables in the edge case that the values of one or
     #more instance variables of the passed object are themselves methods.
@@ -858,16 +910,21 @@ def iter_vars(obj: object) -> GeneratorType:
     #
     #    yield from iter_attrs_matching(
     #        obj=obj, predicate=lambda attr_name, attr_value: (
-    #            not callable(attr_value) or
-    #            attr_name not in obj_type_attr_names)))
+    #            (not callable(attr_value) or
+    #             attr_name not in obj_type_attr_names)) and
+    #           predicate(attr_name, attr_value))
 
     # Defer to this iterator.
     yield from iter_attrs_matching(
+        # For the name and definition of each attribute bound to this object,
+        # exclude this attribute from consideration unless...
         obj=obj, predicate=lambda attr_name, attr_value: (
-            not callable(attr_value)))
+            # This attribute is *NOT* a method and hence is a variable *AND*...
+            not callable(attr_value) and
+            # This variable satisfies the passed predicate.
+            predicate(attr_name, attr_value)))
 
 
-#FIXME: Reimplement in terms of iter_vars_matching().
 def iter_vars_custom(obj: object) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin
@@ -892,11 +949,10 @@ def iter_vars_custom(obj: object) -> GeneratorType:
         Further details.
     '''
 
-    # For the name and value of each variable of this object...
-    for var_name, var_value in iter_vars(obj):
-        # If this variable is *NOT* builtin, yield this name and value.
-        if not (var_name.startswith('__') and var_name.endswith('__')):
-            yield var_name, var_value
+    # Defer to this iterator.
+    yield from iter_vars_matching(
+        obj=obj, predicate=lambda var_name, var_value: (
+            not (var_name.startswith('__') and var_name.endswith('__'))))
 
 # ....................{ ITERATORS ~ vars : custom simple  }....................
 def iter_vars_custom_simple(obj: object) -> GeneratorType:
@@ -919,7 +975,7 @@ def iter_vars_custom_simple(obj: object) -> GeneratorType:
 
     Yields
     ----------
-    (var_name, var_value)
+    (var_name : str, var_value : object)
         2-tuple of the name and value of each non-builtin non-property variable
         bound to this object (in ascending lexicographic order of variable
         name).
@@ -955,7 +1011,7 @@ def iter_vars_custom_simple_prefixed(
 
     Yields
     ----------
-    (var_name, var_value)
+    (var_name : str, var_value : object)
         2-tuple of the name and value of each non-builtin non-property prefixed
         variable bound to this object (in ascending lexicographic order of
         variable name).
@@ -994,7 +1050,7 @@ def iter_vars_custom_simple_matching(
 
     Yields
     ----------
-    (var_name, var_value)
+    (var_name : str, var_value : object)
         2-tuple of the name and value of each matching non-builtin non-property
         variable bound to this object (in ascending lexicographic order of
         variable name).

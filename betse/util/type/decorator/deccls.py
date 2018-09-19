@@ -69,36 +69,37 @@ class MethodDecoratorABC(object, metaclass=ABCMeta):
 
         # If this descriptor is accessed as a class rather than instance
         # variable, return this low-level descriptor rather than the high-level
-        # value to which this expression evaluates.
+        # value to which this descriptor evaluates.
         if obj is None:
             return self
 
         # Unique identifier associated with this object.
         obj_id = id(obj)
 
-        # Attempt to return the previously bound decorated method.
+        # Attempt to access the previously bound decorated method.
         try:
-            return self._obj_id_to_method_bound[obj_id]
-        # If this method has yet to be bound...
+            self._obj_id_to_method_bound[obj_id]
+        # If this method has yet to be bound, create and cache this bound
+        # method. While superficially trivial, doing so is surprisingly
+        # non-trivial when examined. In the following assignment:
+        #
+        # * Accessing "self.__call__" implicitly creates a new method from the
+        #   __call__() function bound to the current instance of this class
+        #   with the signature:
+        #       def __call__bound(obj, *args, **kwargs)
+        # * Instantiating "MethodType" implicitly creates a new method from the
+        #   __call__bound() method bound to the passed instance of the parent
+        #   class with the signature:
+        #       def __call__bound_bound(*args, **kwargs)
+        #
+        # Hence, this bound method is actually a bound bound method (i.e., a
+        # function bound to two class instances).
         except KeyError:
-            # Create and cache this bound method. While superficially trivial,
-            # doing so is surprisingly non-trivial when examined. In the
-            # following assignment:
-            #
-            # * Accessing "self.__call__" implicitly creates a new method from
-            #   the __call__() function bound to the current instance of this
-            #   class with the signature:
-            #       def __call__bound(obj, *args, **kwargs)
-            # * Instantiating "MethodType" implicitly creates a new method from
-            #   the __call__bound() method bound to the passed instance of the
-            #   parent class with the signature:
-            #       def __call__bound_bound(*args, **kwargs)
-            #
-            # Hence, this bound method is actually a bound bound method (i.e.,
-            # a function bound to two class instances).
-            method_bound = self._obj_id_to_method_bound[obj_id] = MethodType(
+            self._obj_id_to_method_bound[obj_id] = MethodType(
                 self.__call__, obj)
-            return method_bound
+
+        # Return this bound method.
+        return self._obj_id_to_method_bound[obj_id]
 
     # ..................{ CALLERS                           }..................
     def __call__(self, obj, *args, **kwargs) -> object:

@@ -26,7 +26,7 @@ def test_cli_sim_fast(betse_cli_sim: 'CLISimTester') -> None:
     '''
 
     # Enable all exports and features required by these exports.
-    betse_cli_sim.sim_state.config.enable_solver_circuit_exports()
+    betse_cli_sim.sim_state.config.enable_solver_fast_exports()
 
     # Test all default simulation-specific subcommands with this configuration.
     betse_cli_sim.run_subcommands_try()

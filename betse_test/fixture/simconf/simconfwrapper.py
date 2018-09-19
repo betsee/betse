@@ -405,16 +405,8 @@ class SimConfigTestWrapper(object):
         self._p.anim.is_after_sim_save = True
         self._p.plot.is_after_sim_save = True
 
-    # ..................{ ENABLERS ~ solver                 }..................
-    def enable_solver_full(self) -> None:
-        '''
-        Enable the complete BETSE solver.
-        '''
-
-        self._p.solver_type = SolverType.FULL
-
-
-    def enable_solver_circuit(self) -> None:
+    # ..................{ ENABLERS ~ solver : fast          }..................
+    def _enable_solver_fast(self) -> None:
         '''
         Enable the equivalent circuit-based BETSE solver *and* disable all
         simulation features unsupported by this solver.
@@ -422,8 +414,8 @@ class SimConfigTestWrapper(object):
 
         self._p.solver_type = SolverType.FAST
 
-    # ..................{ ENABLERS ~ solver : circuit       }..................
-    def enable_solver_circuit_exports(self) -> None:
+
+    def enable_solver_fast_exports(self) -> None:
         '''
         Enable all possible exports (e.g., CSVs, plots, animations) supported
         by the equivalent circuit-based BETSE solver excluding those requiring
@@ -434,7 +426,7 @@ class SimConfigTestWrapper(object):
 
         # Enable all simulation features, including the full BETSE solver but
         # excluding extracellular spaces.
-        self._enable_solver_circuit_features()
+        self._enable_solver_fast_features()
 
         # Disable extracellular spaces.
         self._p.is_ecm = False
@@ -443,7 +435,36 @@ class SimConfigTestWrapper(object):
         # solver.
         self._enable_exports(requirements_omit=phasereqs.SOLVER_FULL)
 
+
+    def _enable_solver_fast_features(self) -> None:
+        '''
+        Enable all simulation features required by all exports (e.g., CSVs,
+        plots, animations) supported by the equivalent circuit-based BETSE
+        solver, excluding extracellular spaces.
+
+        This method additionally enables optional settings improving test
+        coverage but *not* explicitly required by these exports. Specifically,
+        this method enables:
+
+        * The full BETSE solver.
+        * Saving of all visual exports.
+        '''
+
+        # Enable the equivalent circuit-based solver.
+        self._enable_solver_fast()
+
+        # Enable saving of these exports.
+        self.enable_visuals_save()
+
     # ..................{ ENABLERS ~ solver : full          }..................
+    def _enable_solver_full(self) -> None:
+        '''
+        Enable the complete BETSE solver.
+        '''
+
+        self._p.solver_type = SolverType.FULL
+
+
     def enable_solver_full_vg_ions(self) -> None:
         '''
         Enable all voltage-gated ion channels (e.g., sodium, potassium) *and*
@@ -472,7 +493,7 @@ class SimConfigTestWrapper(object):
         self.disable_visuals()
 
         # Enable all features required by these channels.
-        self.enable_solver_full()
+        self._enable_solver_full()
         self._p.is_ecm = True
         self._p.ion_profile = IonProfileType.MAMMAL
 
@@ -575,92 +596,68 @@ class SimConfigTestWrapper(object):
             possible exports are unconditionally enabled.
         '''
 
+        # Log this action.
+        logs.log_debug('Analyzing pipeline exporters...')
+
         # Default the set of requirements to omit to the empty set.
         if requirements_omit is None:
             requirements_omit = phasereqs.NONE
 
+        #FIXME: For each export pipeline, refactor the following iteration to:
+        #clear the existing sequence of all exporters configured for this
+        #pipeline first. Investigate whether or not a YamlListABC.clear()
+        #method has already been defined for doing so.
+
         # For each export pipeline...
         for pipe_export in SimPipesExport().PIPES_EXPORT:
-            # Sequence of all exporters enabled by this pipeline.
-            pipe_exporters_enabled = pipe_export.get_runners_conf(self._phase)
+            # Log this pipeline.
+            logs.log_debug(
+                'Analyzing pipeline "%s" exporters...',
+                pipe_export.name)
 
-            # Set of the names of all such exporters for subsequent lookup.
-            pipe_exporters_enabled_name = frozenset(
-                pipe_exporter_enabled.name
-                for pipe_exporter_enabled in pipe_exporters_enabled)
-            # logs.log_debug(
-            #     'Pipeline "%s" exporters enabled: %r',
-            #     pipeline_name, pipe_exporters_enabled_name)
+            # Sequence of all exporter configurations for this pipeline.
+            pipe_exporters_conf = pipe_export.get_runners_conf(self._phase)
+
+            # Remove all exporter configurations from this sequence, permitting
+            # newly test-specific configurations to be added to this sequence
+            # below without needless concern over conflicts and redundancy.
+            pipe_exporters_conf.clear()
 
             # For the name of each exporter supported by this pipeline,
             # including those currently disabled...
-            for pipe_exporter_name, pipe_exporter in (
-                pipe_export.iter_runners()):
-                # logs.log_debug(
-                #     'Considering pipeline "%s" exporter "%s"...',
-                #     pipeline_name, pipe_exporter_name)
+            for pipe_exporter_name, pipe_exporter_metadata in (
+                pipe_export.iter_runners_metadata()):
+                # Log this pipeline exporter.
+                logs.log_debug(
+                    'Analyzing pipeline "%s" exporter "%s"...',
+                    pipe_export.name, pipe_exporter_name)
 
-                #FIXME: Insufficient. If this exporter is already enabled *BUT*
-                #unsatisfied, this exporter *MUST* be manually removed from
-                #the "pipe_exporters_enabled" sequence. Trivial, but we need
-                #to actually do it.
-
-                # If this exporter is already enabled by this pipeline...
-                if pipe_exporter_name in pipe_exporters_enabled_name:
-                    # Log this continuation.
-                    logs.log_debug(
-                        'Ignoring pipeline "%s" exporter "%s", '
-                        'as already enabled...',
-                        pipe_export.name, pipe_exporter_name)
-
-                    # Continue to the next possible exporter.
-                    continue
-                # Else if this exporter requires one or more simulation
-                # features explicitly excluded by the caller...
-                elif pipe_exporter.requirements.isintersection(
+                # If this exporter requires one or more simulation features
+                # omitted by the caller...
+                if pipe_exporter_metadata.requirements.isintersection(
                     requirements_omit):
                     # Log this exclusion.
                     logs.log_debug(
                         'Excluding pipeline "%s" exporter "%s", '
-                        'as test requirements unsatisfied...',
+                        'due to unsatisfied test requirements...',
                         pipe_export.name, pipe_exporter_name)
 
                     # Continue to the next possible exporter.
                     continue
-                # Else, this exporter is *NOT* already enabled by this pipeline
-                # and does *NOT* require omitted simulation features.
+                # Else, this exporter requires no omitted simulation features.
 
                 # Log this inclusion.
                 logs.log_debug(
                     'Including pipeline "%s" exporter "%s"...',
                     pipe_export.name, pipe_exporter_name)
 
-                # New default export of this type appended to this pipeline.
-                pipe_exporter_conf = pipe_exporters_enabled.append_default()
+                # Create and append a new exporter configuration with sane
+                # defaults to the sequence of such configurations for this
+                # pipeline.
+                pipe_exporter_conf = pipe_exporters_conf.append_default()
                 pipe_exporter_conf.name = pipe_exporter_name
 
     # ..................{ PRIVATE ~ enablers : solver       }..................
-    def _enable_solver_circuit_features(self) -> None:
-        '''
-        Enable all simulation features required by all exports (e.g., CSVs,
-        plots, animations) supported by the equivalent circuit-based BETSE
-        solver, excluding extracellular spaces.
-
-        This method additionally enables optional settings improving test
-        coverage but *not* explicitly required by these exports. Specifically,
-        this method enables:
-
-        * The full BETSE solver.
-        * Saving of all visual exports.
-        '''
-
-        # Enable the equivalent circuit-based solver.
-        self.enable_solver_circuit()
-
-        # Enable saving of these exports.
-        self.enable_visuals_save()
-
-
     def _enable_solver_full_features(self) -> None:
         '''
         Enable all simulation features required by all exports (e.g., CSVs,
@@ -707,7 +704,7 @@ class SimConfigTestWrapper(object):
         '''
 
         # Enable the full solver.
-        self.enable_solver_full()
+        self._enable_solver_full()
 
         # Enable saving of these exports.
         self.enable_visuals_save()

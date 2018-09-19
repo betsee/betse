@@ -24,6 +24,14 @@ from betse.util.type.types import (
 )
 
 # ....................{ SUPERCLASSES                      }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# CAUTION: To avoid diamond inheritance issues in the "YamlListABC" subclass,
+# neither this subclass nor subclasses of this subclass should define any
+# methods already defined by the "MutableSequence" API. This includes but is
+# *NOT* limited to the following "MutableSequence" methods: append(), clear(),
+# count(), extend(), index(), insert(), mro(), pop(), register(), remove(), and
+# reverse().
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 class YamlABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **YAML wrapper** (i.e., high-level object

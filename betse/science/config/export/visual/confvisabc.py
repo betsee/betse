@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,7 +8,7 @@ YAML-backed simulation subconfiguration classes for exporting visuals (e.g.,
 plots, animations).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
@@ -18,7 +18,7 @@ from betse.lib.yaml.abc.yamllistabc import (
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import type_check, NumericSimpleTypes
 
-# ....................{ SUPERCLASSES                       }....................
+# ....................{ SUPERCLASSES                      }....................
 #FIXME: Non-ideal. Ideally, all networks subconfigurations should be refactored
 #to leverage the YAML format specified by "SimConfVisualCellsYAMLMixin".
 class SimConfVisualCellsABC(object, metaclass=ABCMeta):
@@ -37,11 +37,11 @@ class SimConfVisualCellsABC(object, metaclass=ABCMeta):
     is_color_autoscaled : bool
         ``True`` if dynamically setting the minimum and maximum colorbar values
         for this visual to the minimum and maximum values flattened from
-        the corresponding time series *or* ``False`` if statically setting these
-        values to :attr:`color_min` and :attr:`color_max`.
+        the corresponding time series *or* ``False`` if statically setting
+        these values to :attr:`color_min` and :attr:`color_max`.
     '''
 
-    # ..................{ PROPERTIES                         }..................
+    # ..................{ PROPERTIES                        }..................
     @abstractproperty
     def is_color_autoscaled(self) -> bool:
         pass
@@ -66,12 +66,12 @@ class SimConfVisualCellsYAMLMixin(SimConfVisualCellsABC):
     support for a YAML ``type`` key or corresponding :attr:`name` property.
     '''
 
-    # ..................{ ALIASES ~ colorbar                 }..................
+    # ..................{ ALIASES ~ colorbar                }..................
     is_color_autoscaled = yaml_alias("['colorbar']['autoscale']", bool)
     color_min = yaml_alias("['colorbar']['minimum']", NumericSimpleTypes)
     color_max = yaml_alias("['colorbar']['maximum']", NumericSimpleTypes)
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 #FIXME: Eliminate this subclass. For serializability, all configuration classes
 #should be YAML-backed.
 class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
@@ -85,7 +85,7 @@ class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
     descriptors. Subconfiguration changes are *not* propagated back to disk.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(
         self,
@@ -98,7 +98,7 @@ class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
         self._color_min = color_min
         self._color_max = color_max
 
-    # ..................{ PROPERTIES                         }..................
+    # ..................{ PROPERTIES                        }..................
     @property
     def is_color_autoscaled(self) -> bool:
         return self._is_color_autoscaled
@@ -111,7 +111,7 @@ class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
     def color_max(self) -> NumericSimpleTypes:
         return self._color_max
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
     '''
     YAML-backed cell cluster visual subconfiguration, configuring a single
@@ -125,22 +125,24 @@ class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
 
     pass
 
-# ....................{ SUBCLASSES : item                  }....................
+# ....................{ SUBCLASSES : item                 }....................
 class SimConfVisualCellsListItem(
     SimConfVisualCellsYAMLMixin, YamlListItemTypedABC):
     '''
     YAML-backed cell cluster visual subconfiguration list item, configuring a
-    single visual applicable to all cells parsed from a list of these visuals in
-    the current YAML-formatted simulation configuration file.
+    single visual applicable to all cells parsed from a list of these visuals
+    in the current YAML-formatted simulation configuration file.
     '''
 
-    # ..................{ MAKERS                             }..................
+    # ..................{ MAKERS                            }..................
     @classmethod
     @type_check
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
-        # Duplicate the default animation listed first in our default YAML file.
-        return SimConfVisualCellsListItem().load(conf={
+        # Duplicate the default animation listed first in our default YAML
+        # configuration file.
+        yaml_list_item = SimConfVisualCellsListItem()
+        yaml_list_item.load(conf={
             'type': 'voltage_membrane',
             'enabled': True,
             'colorbar': {
@@ -149,6 +151,7 @@ class SimConfVisualCellsListItem(
                 'maximum':  10.0,
             },
         })
+        return yaml_list_item
 
 
 class SimConfVisualCellListItem(YamlListItemTypedABC):
@@ -159,13 +162,16 @@ class SimConfVisualCellListItem(YamlListItemTypedABC):
     YAML-formatted simulation configuration file.
     '''
 
-    # ..................{ MAKERS                             }..................
+    # ..................{ MAKERS                            }..................
     @classmethod
     @type_check
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
-        # Duplicate the default animation listed first in our default YAML file.
-        return SimConfVisualCellListItem().load(conf={
+        # Duplicate the default animation listed first in our default YAML
+        # configuration file.
+        yaml_list_item = SimConfVisualCellListItem()
+        yaml_list_item.load(conf={
             'type': 'voltage_membrane',
             'enabled': True,
         })
+        return yaml_list_item

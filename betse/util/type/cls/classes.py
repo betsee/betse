@@ -167,6 +167,7 @@ def iter_methods(cls: ClassType) -> GeneratorType:
     * Builtin methods, whose names are both prefixed and suffixed by ``__``.
     * Custom methods, whose names are *not* prefixed and suffixed by ``__``,
       including:
+
       * Custom standard methods.
       * Custom property methods (i.e., methods decorated by the builtin
         :func:`property` decorator).
@@ -178,7 +179,7 @@ def iter_methods(cls: ClassType) -> GeneratorType:
 
     Yields
     ----------
-    (method_name, method_value)
+    (method_name : str, method : MethodType)
         2-tuple of the name and value of each method bound to this object (in
         ascending lexicographic order of method name).
     '''
@@ -203,12 +204,13 @@ def iter_methods_matching(
     cls: ClassType
         Class to yield all matching methods of.
     predicate : CallableTypes
-        Callable iteratively passed the name of each method bound to this
-        object, returning ``True`` only if that name matches this predicate.
+        Callable iteratively passed the name of each method and that method
+        bound to this object, returning ``True`` only if that name matches this
+        predicate.
 
     Yields
     ----------
-    (method_name, method_value)
+    (method_name : str, method : MethodType)
         2-tuple of the name and value of each matching method bound to this
         object (in ascending lexicographic order of method name).
 

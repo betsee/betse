@@ -14,7 +14,7 @@ from betse.exceptions import (
     BetseSimPipeException, BetseSimPipeRunnerUnsatisfiedException)
 from betse.lib.yaml.abc.yamllistabc import YamlListItemTypedABC
 from betse.science.phase.phasecls import SimPhase
-from betse.science.pipe.piperun import SimPipeRunner
+from betse.science.pipe.piperun import SimPipeRunnerMetadata
 from betse.util.io.log import logs
 from betse.util.type.decorator.deccls import abstractmethod, abstractproperty
 from betse.util.type.obj import objects
@@ -272,11 +272,9 @@ class SimPipeABC(object, metaclass=ABCMeta):
         # For the object encapsulating all input arguments to be passed to each
         # currently enabled runner in this pipeline...
         for runner_conf in self.get_runners_conf(self._phase):
-            if not isinstance(runner_conf, YamlListItemTypedABC):
-                raise BetseSimPipeException(
-                    'get_runners_conf() item {!r} '
-                    'not instance of "YamlListItemTypedABC".'.format(
-                        runner_conf))
+            # If this runner is *NOT* YAML-backed, raise an exception.
+            objects.die_unless_instance(
+                obj=runner_conf, cls=YamlListItemTypedABC)
 
             # If this runner is disabled, log this fact and ignore this runner.
             if not runner_conf.is_enabled:
@@ -321,7 +319,8 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
     # ..................{ EXCEPTIONS                        }..................
     @type_check
-    def die_unless_runner_satisfied(self, runner: SimPipeRunner) -> None:
+    def die_unless_runner_satisfied(
+        self, runner_metadata: SimPipeRunnerMetadata) -> None:
         '''
         Raise an exception if the passed runner is **unsatisfied** (i.e.,
         requires one or more simulation features disabled for the current
@@ -329,8 +328,8 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        runner : SimPipeRunner
-            Simulation pipeline runner to be tested.
+        runner_metadata : SimPipeRunnerMetadata
+            Simulation pipeline runner metadata to be validated.
 
         Raises
         ----------
@@ -342,14 +341,15 @@ class SimPipeABC(object, metaclass=ABCMeta):
         # "export_" from "export_voltage_total"), raising a human-readable
         # exception if this name has no such prefix.
         runner_name = strs.remove_prefix(
-            text=runner.method_name,
+            text=runner_metadata.method_name,
             prefix=self._runner_method_name_prefix,
             exception_message=(
                 'Runner method name "{}" not prefixed by "{}".'.format(
-                    runner.method_name, self._runner_method_name_prefix)))
+                    runner_metadata.method_name,
+                    self._runner_method_name_prefix)))
 
         # If any runner requirement is unsatisfied, raise an exception.
-        for requirement in runner.requirements:
+        for requirement in runner_metadata.requirements:
             if not requirement.is_satisfied(phase=self._phase):
                 raise BetseSimPipeRunnerUnsatisfiedException(
                     result='{} "{}" requirement unsatisfied'.format(
@@ -364,43 +364,43 @@ class SimPipeABC(object, metaclass=ABCMeta):
             self._verb_continuous, self._noun_singular_lowercase, runner_name)
 
     # ..................{ ITERATORS                         }..................
-    def iter_runners(self) -> GeneratorType:
+    def iter_runners_metadata(self) -> GeneratorType:
         '''
-        Generator yielding the 2-tuple ``(runner_name, runner)`` for each
-        **runner** (i.e., :class:`SimPipeRunner` instance produced by the
-        :func:`piperunner` decorator decorating that runner's method) defined
-        by this pipeline subclass.
+        Generator yielding the name and metadata of each **simulation pipeline
+        runner** (i.e., method bound to this pipeline decorated by the
+        :func:`piperunner` decorator).
 
         This generator excludes all methods defined by this pipeline subclass
         *not* decorated by that decorator.
 
         Yields
         ----------
-        (str, SimPipeRunner)
-            2-tuple ``(runner_name, runner)`` where:
+        (runner_name : str, runner_metadata : SimPipeRunnerMetadata)
+            2-tuple where:
 
             * ``runner_name`` is the name of the method underlying this runner,
               excluding the substring :attr:`_runner_method_name_prefix`
               prefixing this name.
-            * ``runner`` is the :class:`SimPipeRunner` instance defining this
-              runner.
+            * ``runner_metadata`` is the :class:`SimPipeRunnerMetadata`
+              instance collecting all metadata for this runner.
         '''
 
         # Return a generator comprehension...
         return (
             # Iteratively yielding a 2-tuple of:
             #
-            # * The name of this runner's method excluding runner prefix.
-            # * Each "SimPipeRunner" instance defined on this class.
+            # * The name of this method excluding the runner prefix.
+            # * The metadata associated with This method.
             (
                 strs.remove_prefix(
                     text=runner_method_name,
-                    prefix=self._runner_method_name_prefix,
-                ),
-                runner
+                    prefix=self._runner_method_name_prefix),
+                runner_method.metadata
             )
 
-            # For each such runner's method name and value.
-            for runner_method_name, runner in objects.iter_attrs_instance_of(
-                obj=self, cls=SimPipeRunner)
+            # For the name of each runner method and that method defined by
+            # this pipeline subclass...
+            for runner_method_name, runner_method in (
+                objects.iter_methods_prefixed(
+                    obj=self, prefix=self._runner_method_name_prefix))
         )

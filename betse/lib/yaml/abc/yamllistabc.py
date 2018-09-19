@@ -95,14 +95,6 @@ class YamlListItemTypedABC(YamlListItemABC):
     name       = yaml_alias("['type']", str)
 
 # ....................{ SUPERCLASSES ~ list               }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# CAUTION: To avoid diamond inheritance issues, neither this subclass nor any
-# application-specific superclasses of this subclass (e.g., "YamlABC") should
-# override any methods already defined by the "MutableSequence" superclass.
-# This includes but is *NOT* limited to the public "MutableSequence" methods:
-# append(), clear(), count(), extend(), index(), insert(), mro(), pop(),
-# register(), remove(), and reverse().
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 class YamlList(YamlABC, MutableSequence):
     '''
     YAML-backed list subconfiguration both loaded from and saved back into a
@@ -114,11 +106,23 @@ class YamlList(YamlABC, MutableSequence):
     typically encapsulates a YAML dictionary of related key-value pairs (e.g.,
     animation settings, tissue profile).
 
+    Design
+    ----------
+    This list conforms to the :class:`MutableSequence` API and hence defines
+    all public methods mandated by that API, including the familiar
+    :meth:`append`, :meth:`clear`, :meth:`count`, :meth:`extend`,
+    :meth:`index`, :meth:`insert`, :meth:`pop`, :meth:`register`,
+    :meth:`remove`, and :meth:`reverse` methods.
+
     Attributes
     ----------
+    _conf : SequenceTypes
+        Low-level sequence of related configuration settings loaded from and
+        saved back to a YAML-formatted configuration file if the :meth:`load`
+        method has been called *or* ``None`` otherwise.
     _confs_wrap : list
         High-level list of each instance of the :attr:`_item_type` subclass
-        encapsulating each dictionary in the low-level :attr:`_conf` list.
+        encapsulating each dictionary in the low-level :attr:`_conf` sequence.
     _item_type : ClassType
         Subclass of the :class:`YamlListItemABC` abstract base class with
         which to instantiate each wrapper in the high-level :attr:`_confs_wrap`
@@ -185,7 +189,7 @@ class YamlList(YamlABC, MutableSequence):
         # Nullify this high-level list of high-level wrappers.
         self._confs_wrap = None
 
-    # ..................{ SUPERCLASS ~ MutableSequence      }..................
+    # ..................{ SUPERCLASS ~ mutable : abstract   }..................
     # Abstract methods required by our MutableSequence superclass.
 
     def __len__(self):
@@ -241,6 +245,20 @@ class YamlList(YamlABC, MutableSequence):
         # Insert this object's underlying YAML-backed dictionary *BEFORE* the
         # low-level list item with this index.
         self._conf.insert(index, value.conf)
+
+    # ..................{ SUPERCLASS ~ mutable : concrete   }..................
+    # Concrete methods defined by our MutableSequence superclass and overridden
+    # here for dubious reasons (e.g., premature optimization).
+
+    def clear(self) -> None:
+        '''
+        Remove all YAML-backed list items from this list, reducing this list to
+        to the empty list.
+        '''
+
+        # Clear both the low- and high-level sequences wrapped by this object.
+        self._conf.clear()
+        self._confs_wrap.clear()
 
     # ..................{ APPENDERS                         }..................
     def append_default(self) -> YamlListItemABC:
