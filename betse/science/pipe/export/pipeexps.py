@@ -46,20 +46,21 @@ responsiveness for end users:
 # ....................{ CLASSES                           }....................
 class SimPipesExport(object):
     '''
-    High-level **export pipeline container** (i.e., container transparently
-    aggregating runners defined by all available export pipelines).
+    High-level **simulation export pipeline container** (i.e., container
+    transparently aggregating each pipeline runner defined by each available
+    simulation export pipeline).
 
     Attributes
     ----------
     _PIPES_EXPORT: IterableTypes
-        Iterable of all available export pipelines.
+        Iterable of all available simulation export pipelines.
     '''
 
     # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(self) -> None:
         '''
-        Initialize this export pipeline container.
+        Initialize this simulation export pipeline container.
         '''
 
         # Iterable of all available export pipelines. To avoid dynamically (and
@@ -78,10 +79,38 @@ class SimPipesExport(object):
     @property
     def PIPES_EXPORT(self) -> IterableTypes:
         '''
-        Iterable of all available export pipelines.
+        Iterable of all available simulation export pipelines.
         '''
 
         return self._PIPES_EXPORT
+
+    # ..................{ GETTERS                           }..................
+    @type_check
+    def get_runners_enabled_count(self, phase: SimPhase) -> int:
+        '''
+        Number of all **enabled simulation pipeline runners** (i.e., methods
+        bound to each available simulation export pipeline decorated by the
+        :func:`piperunner` decorator *and* enabled by this simulation
+        configuration) for the passed simulation phase.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+
+        Returns
+        ----------
+        int
+            Number of all enabled simulation pipeline runners for this phase.
+        '''
+
+        # Return the cumulative summation of...
+        return sum(
+            # The number of all enabled pipeline runners...
+            pipe_export.get_runners_enabled_count(phase)
+            # For each available export pipeline.
+            for pipe_export in self._PIPES_EXPORT
+        )
 
     # ..................{ EXPORTERS                         }..................
     @type_check
@@ -95,6 +124,27 @@ class SimPipesExport(object):
         phase: SimPhase
             Current simulation phase.
         '''
+
+        #FIXME: Leverage this in place of "len(self._PIPES_EXPORT)" below.
+        #FIXME: Naturally, doing so sanely will also necessitate calling the
+        #phase.callbacks.progressed_next() callable after successfully
+        #exporting each export. The optimal means of doing so would appear to
+        #be the following:
+        #
+        #* Define a new iter_runners_enabled() method of this class, ideally by
+        #  simply chaining together the generators produced by each
+        #  SimPipeABC.iter_runners_enabled() method. (Ideally, trivial.)
+        #* Replace the iteration performed below by the iteration performed by
+        #  the SimPipeABC.run() method.
+        #* Excise the SimPipeABC.run() method.
+        #FIXME: Since the get_runners_enabled_count() is extremely
+        #computationally expensive, this method should *ONLY* be called if
+        #actually required: namely, if the "phase.callbacks" object is *NOT* an
+        #instance of the noop callbacks class. If this object is such an
+        #instance, we should avoid performing *ANY* callbacks logic here.
+
+        # Total number of all enabled runners for all export pipelines.
+        runners_enabled_count = self.get_runners_enabled_count(phase)
 
         #FIXME: Improve this extremely coarse-grained measure of export progress.
         #Rather than merely hard-coding this to a small magic number, this range of

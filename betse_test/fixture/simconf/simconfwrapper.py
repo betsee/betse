@@ -612,11 +612,10 @@ class SimConfigTestWrapper(object):
         for pipe_export in SimPipesExport().PIPES_EXPORT:
             # Log this pipeline.
             logs.log_debug(
-                'Analyzing pipeline "%s" exporters...',
-                pipe_export.name)
+                'Analyzing pipeline "%s" exporters...', pipe_export.name)
 
             # Sequence of all exporter configurations for this pipeline.
-            pipe_exporters_conf = pipe_export.get_runners_conf(self._phase)
+            pipe_exporters_conf = pipe_export.iter_runners_conf(self._phase)
 
             # Remove all exporter configurations from this sequence, permitting
             # newly test-specific configurations to be added to this sequence

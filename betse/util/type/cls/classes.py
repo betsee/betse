@@ -14,9 +14,7 @@ from betse.util.type.types import (
     CallableTypes,
     ClassType,
     GeneratorType,
-    MappingType,
     MappingOrNoneTypes,
-    SequenceTypes,
     SequenceOrNoneTypes,
 )
 

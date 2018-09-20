@@ -31,24 +31,24 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
     '''
 
     # ..................{ INITIALIZERS                      }..................
-    def _init_run(self) -> None:
+    @type_check
+    def _init_run(self, phase: SimPhase) -> None:
 
         # Initialize our superclass for the current call to the _run() method.
-        super()._init_run()
+        super()._init_run(phase)
 
         # If this index is not that of an actual cell, raise an exception.
-        if self._phase.p.plot_cell not in self._phase.cells.cell_i:
+        if phase.p.plot_cell not in phase.cells.cell_i:
             raise BetseSimConfException(
                 'Plot cell index {} invalid '
                 '(i.e., not in range [{}, {}]).'.format(
-                    self._phase.p.plot_cell,
-                    self._phase.cells.cell_i[0],
-                    self._phase.cells.cell_i[-1],
-                ))
+                    phase.p.plot_cell,
+                    phase.cells.cell_i[0],
+                    phase.cells.cell_i[-1]))
 
     # ..................{ SUPERCLASS                        }..................
     @type_check
-    def get_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
         return phase.p.plot.plots_cell_after_sim
 
     @property

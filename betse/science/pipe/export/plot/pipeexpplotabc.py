@@ -68,6 +68,7 @@ plots produced after initialization and simulation) abstract base classes.
 import matplotlib
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
+from betse.science.phase.phasecls import SimPhase
 from betse.science.pipe.export.pipeexpabc import SimPipeExportABC
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
@@ -84,20 +85,21 @@ class SimPipeExportPlotABC(SimPipeExportABC):
     '''
 
     # ..................{ INITIALIZERS                      }..................
-    def _init_run(self) -> None:
+    @type_check
+    def _init_run(self, phase: SimPhase) -> None:
 
         # Initialize our superclass for the current call to the _run() method.
-        super()._init_run()
+        super()._init_run(phase)
 
         # If saving post-simulation plots, create the top-level directory
         # containing these plots if needed.
-        if self._phase.p.plot.is_after_sim_save:
-            dirs.make_unless_dir(self._phase.export_dirname)
+        if phase.p.plot.is_after_sim_save:
+            dirs.make_unless_dir(phase.export_dirname)
 
     # ..................{ SUPERCLASS                        }..................
-    @property
-    def _is_enabled(self) -> bool:
-        return self._phase.p.plot.is_after_sim
+    @type_check
+    def _is_enabled(self, phase: SimPhase) -> bool:
+        return phase.p.plot.is_after_sim
 
     # ..................{ PRIVATE ~ preparers               }..................
     def _export_prep(self) -> None:

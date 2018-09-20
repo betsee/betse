@@ -17,6 +17,7 @@ from betse.science.phase.phasecls import SimPhase
 from betse.science.pipe.piperun import SimPipeRunnerMetadata
 from betse.util.io.log import logs
 from betse.util.type.decorator.deccls import abstractmethod, abstractproperty
+from betse.util.type.iterable import generators
 from betse.util.type.obj import objects
 from betse.util.type.text import strs
 from betse.util.type.types import type_check, GeneratorType, IterableTypes
@@ -54,12 +55,12 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
       * Return nothing (i.e.,``None``).
 
-    * The abstract :meth:`get_runners_conf` method returning a sequence of the
+    * The abstract :meth:`iter_runners_conf` method returning a sequence of the
       names of all runners currently enabled by this pipeline (e.g.,
       ``['voltage_intra', 'ion_hydrogen', 'electric_total']``).
 
     The :meth:`run` method defined by this base class then dynamically
-    implements this pipeline by iterating over the :meth:`get_runners_conf`
+    implements this pipeline by iterating over the :meth:`iter_runners_conf`
     property and, for each enabled runner, calling that runner's method.
 
     Attributes (Private)
@@ -99,21 +100,26 @@ class SimPipeABC(object, metaclass=ABCMeta):
         self._phase = None
 
 
-    def _init_run(self) -> None:
+    @type_check
+    def _init_run(self, phase: SimPhase) -> None:
         '''
-        Initialize this pipeline for the current call to the :meth:`run`
-        method, which calls this method *before* performing subsequent logic.
+        Initialize this pipeline for the passed simulation phase.
 
         Defaults to a noop. Pipeline subclasses may override this method to
         guarantee state assumed by subsequently run pipeline runners (e.g., to
         create external directories required by these runners).
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
         '''
 
         pass
 
     # ..................{ SUBCLASS ~ methods                }..................
     @abstractmethod
-    def get_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
         '''
         Iterable of all **runner configurations** (i.e.,
         :class:`YamlListItemTypedABC` instances encapsulating all input
@@ -164,21 +170,26 @@ class SimPipeABC(object, metaclass=ABCMeta):
         return '{} pipeline'.format(self._noun_singular)
 
     # ..................{ PROPERTIES ~ private              }..................
-    @property
-    def _is_enabled(self) -> bool:
+    @type_check
+    def _is_enabled(self, phase: SimPhase) -> bool:
         '''
-        ``True`` only if the currently called :meth:`run` method should run
-        this pipeline.
+        ``True`` only if this pipeline is enabled for the passed simulation
+        phase.
 
         Specifically, if this boolean is:
 
         * ``False``, the :meth:`run` method reduces to a noop.
-        * ``True``, this method behaves as expected (i.e., calls all currently
+        * ``True``, that method behaves as expected (i.e., calls all currently
           enabled runner methods).
 
         Defaults to ``True``. Pipeline subclasses typically override this
         property to return a boolean derived from the simulation configuration
-        file associated with the current phase.
+        file associated with the passed phase.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
         '''
 
         return True
@@ -219,103 +230,6 @@ class SimPipeABC(object, metaclass=ABCMeta):
         '''
 
         return 'Running'
-
-    # ..................{ RUNNERS                           }..................
-    @type_check
-    def run(self, phase: SimPhase) -> None:
-        '''
-        Run all currently enabled pipeline runners for the passed simulation
-        phase if this pipeline is currently enabled in this phase *or* noop
-        otherwise.
-
-        Specifically:
-
-        * If the :meth:`_is_enabled` property is ``True`` (implying this
-          pipeline to be currently enabled):
-
-          * For each :class:`YamlListItemTypedABC` instance (corresponding to
-            the subconfiguration of a currently enabled pipeline runner) in the
-            sequence of these instances listed by the :meth:`get_runners_conf`
-            property:
-
-            * Call this method, passed this configuration.
-            * If this method reports this runner's requirements to be
-              unsatisfied (e.g., due to the current simulation configuration
-              disabling extracellular spaces), this runner is ignored with a
-              non-fatal warning.
-
-        * Else, log an informative message and return immediately.
-
-        Parameters
-        ----------
-        phase : SimPhase
-            Current simulation phase.
-        '''
-
-        # Temporarily classify the passed phase.
-        self._phase = phase
-
-        # Initialize this pipeline for the current call to this method *AFTER*
-        # classifying this phase, as the former typically requires the latter.
-        self._init_run()
-
-        # If this pipeline is disabled, log this fact and return immediately.
-        if not self._is_enabled:
-            logs.log_info('Excluding %s...', self._noun_plural_lowercase)
-            return
-        # Else, this pipeline is enabled.
-
-        # Log this pipeline run.
-        logs.log_info(
-            '%s %s...', self._verb_continuous, self._noun_plural_lowercase)
-
-        # For the object encapsulating all input arguments to be passed to each
-        # currently enabled runner in this pipeline...
-        for runner_conf in self.get_runners_conf(self._phase):
-            # If this runner is *NOT* YAML-backed, raise an exception.
-            objects.die_unless_instance(
-                obj=runner_conf, cls=YamlListItemTypedABC)
-
-            # If this runner is disabled, log this fact and ignore this runner.
-            if not runner_conf.is_enabled:
-                logs.log_debug(
-                    'Ignoring disabled %s "%s"...',
-                    self._noun_singular_lowercase,
-                    runner_conf.name)
-                continue
-            # Else, this runner is enabled.
-
-            # Name of the method implementing this runner.
-            runner_method_name = (
-                self._runner_method_name_prefix + runner_conf.name)
-
-            # Method implementing this runner *OR* None if this runner is
-            # unrecognized.
-            runner_method = objects.get_method_or_none(
-                obj=self, method_name=runner_method_name)
-
-            # If this runner is unrecognized, raise an exception.
-            if runner_method is None:
-                raise BetseSimPipeException(
-                    '{} "{}" unrecognized.'.format(
-                        self._noun_singular_uppercase, runner_conf.name))
-            # Else, this runner is recognized.
-
-            # Attempt to pass this runner these arguments.
-            try:
-                runner_method(runner_conf)
-            # If this runner's requirements are unsatisfied (e.g., due to the
-            # current simulation configuration disabling extracellular spaces),
-            # ignore this runner with a non-fatal warning and continue.
-            except BetseSimPipeRunnerUnsatisfiedException as exception:
-                logs.log_warning(
-                    'Excluding %s "%s", as %s.',
-                    self._noun_singular_lowercase,
-                    runner_conf.name,
-                    exception.reason)
-
-        # Declassify the passed phase for safety.
-        self._phase = None
 
     # ..................{ EXCEPTIONS                        }..................
     @type_check
@@ -363,7 +277,124 @@ class SimPipeABC(object, metaclass=ABCMeta):
             '%s %s "%s"...',
             self._verb_continuous, self._noun_singular_lowercase, runner_name)
 
+    # ..................{ GETTERS                           }..................
+    @type_check
+    def get_runners_enabled_count(self, phase: SimPhase) -> int:
+        '''
+        Number of all **enabled simulation pipeline runners** (i.e., methods
+        bound to this pipeline decorated by the :func:`piperunner` decorator
+        *and* enabled by this simulation configuration) for the passed
+        simulation phase.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+
+        Returns
+        ----------
+        int
+            Number of all enabled simulation pipeline runners for this phase.
+        '''
+
+        # Some things are easier done than said.
+        return generators.get_length(self.iter_runners_enabled(phase))
+
     # ..................{ ITERATORS                         }..................
+    @type_check
+    def iter_runners_enabled(self, phase: SimPhase) -> GeneratorType:
+        '''
+        Generator yielding the method and simulation configuration of each
+        **enabled simulation pipeline runner** (i.e., method bound to this
+        pipeline decorated by the :func:`piperunner` decorator *and* enabled by
+        this simulation configuration) for the passed simulation phase.
+
+        If this simulation phase disables this pipeline, this generator reduces
+        to the empty generator (i.e., yields no values); else, this generator
+        excludes:
+
+        * All methods defined by this pipeline subclass *not* decorated by the
+          :func:`piperunner` decorator.
+        * All methods defined by this pipeline subclass decorated by that
+          decorator currently disabled by their simulation configuration (e.g.,
+          such that the YAML-backed value of the ``enabled`` key in this
+          configuration evaluates to ``False``).
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+
+        Yields
+        ----------
+        (runner_method : MethodType, runner_conf : YamlListItemTypedABC)
+            2-tuple where:
+
+            * ``runner_method`` is the method implementing this runner, whose
+              method name is guaranteed to be prefixed by the substring
+              :attr:`_runner_method_name_prefix`. Note that this method object
+              defines the following custom instance variables:
+
+              * ``metadata``, whose value is an instance of the
+                :class:`SimPipeRunnerMetadata` class.
+
+            * ``runner_conf`` is the YAML-backed list item configuring this
+              runner, derived from the YAML-formatted simulation configuration
+              file associated with the passed simulation phase.
+
+        Raises
+        ----------
+        BetseSimPipeException
+            If any simulation runner configured for this pipeline by the passed
+            simulation phase is **unrecognized** (i.e., if this pipeline
+            defines no corresponding method).
+        '''
+
+        # If this pipeline is disabled, log this fact and return immediately.
+        if not self._is_enabled(phase):
+            logs.log_debug(
+                'Ignoring disabled %s...', self._noun_plural_lowercase)
+            return
+        # Else, this pipeline is enabled.
+
+        # For each runner configuration specified for this pipeline...
+        for runner_conf in self.iter_runners_conf(phase):
+            # If this configuration is *NOT* YAML-backed, raise an exception.
+            objects.die_unless_instance(
+                obj=runner_conf, cls=YamlListItemTypedABC)
+
+            # If this runner is disabled, log this fact and ignore this runner.
+            if not runner_conf.is_enabled:
+                logs.log_debug(
+                    'Ignoring disabled %s "%s"...',
+                    self._noun_singular_lowercase,
+                    runner_conf.name)
+                continue
+            # Else, this runner is enabled.
+
+            # Name of the pipeline method implementing this runner.
+            runner_method_name = (
+                self._runner_method_name_prefix + runner_conf.name)
+
+            # Method running this runner if recognized *OR* "None" otherwise.
+            runner_method = objects.get_method_or_none(
+                obj=self, method_name=runner_method_name)
+
+            # If this runner is unrecognized, raise an exception.
+            if runner_method is None:
+                raise BetseSimPipeException(
+                    '{} "{}" unrecognized '
+                    '(i.e., method {}.{}() not found).'.format(
+                        self._noun_singular_uppercase,
+                        runner_conf.name,
+                        objects.get_class_name(self),
+                        runner_method_name))
+            # Else, this runner is recognized.
+
+            # Yield a 2-tuple of this runner's method and configuration.
+            yield runner_method, runner_conf
+
+
     def iter_runners_metadata(self) -> GeneratorType:
         '''
         Generator yielding the name and metadata of each **simulation pipeline
@@ -404,3 +435,73 @@ class SimPipeABC(object, metaclass=ABCMeta):
                 objects.iter_methods_prefixed(
                     obj=self, prefix=self._runner_method_name_prefix))
         )
+
+    # ..................{ RUNNERS                           }..................
+    @type_check
+    def run(self, phase: SimPhase) -> None:
+        '''
+        Run all currently enabled pipeline runners for the passed simulation
+        phase if this pipeline is currently enabled in this phase *or* noop
+        otherwise.
+
+        Specifically:
+
+        * If the :meth:`_is_enabled` property is ``True`` (implying this
+          pipeline to be currently enabled):
+
+          * For each :class:`YamlListItemTypedABC` instance (corresponding to
+            the subconfiguration of a currently enabled pipeline runner) in the
+            sequence of these instances listed by the :meth:`iter_runners_conf`
+            property:
+
+            * Call this method, passed this configuration.
+            * If this method reports this runner's requirements to be
+              unsatisfied (e.g., due to the current simulation configuration
+              disabling extracellular spaces), this runner is ignored with a
+              non-fatal warning.
+
+        * Else, log an informative message and return immediately.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
+        '''
+
+        # Initialize this pipeline for the current call to this method *AFTER*
+        # classifying this phase, as the former usually assumes the latter.
+        self._init_run(phase)
+
+        # Log this pipeline run.
+        logs.log_info(
+            '%s %s...', self._verb_continuous, self._noun_plural_lowercase)
+
+        #FIXME: This is a rather poor idea. Undo this by requiring that *ALL*
+        #runner methods accept as their first parameter a passed "phase"
+        #object. After doing so, excise this instance variable entirely.
+        #
+        #Note, however, that doing so could prove fairly... arduous. The
+        #die_unless_runner_satisfied() method, for example, assumes the
+        #existence of this instance variable in a non-trivial manner. *shrug*
+
+        # Temporarily classify the passed phase.
+        self._phase = phase
+
+        # For the method and simulation configuration underlying each runner
+        # enabled by this pipeline...
+        for runner_method, runner_conf in self.iter_runners_enabled(phase):
+            # Attempt to pass this runner this configuration.
+            try:
+                runner_method(runner_conf)
+            # If this runner's requirements are unsatisfied (e.g., due to the
+            # current simulation configuration disabling extracellular spaces),
+            # ignore this runner with a non-fatal warning and continue.
+            except BetseSimPipeRunnerUnsatisfiedException as exception:
+                logs.log_warning(
+                    'Excluding %s "%s", as %s.',
+                    self._noun_singular_lowercase,
+                    runner_conf.name,
+                    exception.reason)
+
+        # Declassify the passed phase for safety.
+        self._phase = None

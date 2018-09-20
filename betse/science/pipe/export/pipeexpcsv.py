@@ -36,12 +36,13 @@ class SimPipeExportCSVs(SimPipeExportABC):
     '''
 
     # ..................{ SUPERCLASS                        }..................
-    def get_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    @type_check
+    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
         return phase.p.csv.csvs_after_sim
 
-    @property
-    def _is_enabled(self) -> bool:
-        return self._phase.p.csv.is_after_sim_save
+    @type_check
+    def _is_enabled(self, phase: SimPhase) -> bool:
+        return phase.p.csv.is_after_sim_save
 
     @property
     def _noun_singular(self) -> str:

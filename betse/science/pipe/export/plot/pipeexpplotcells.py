@@ -36,7 +36,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
 
     # ..................{ SUPERCLASS                        }..................
     @type_check
-    def get_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
         return phase.p.plot.plots_cells_after_sim
 
     @property
