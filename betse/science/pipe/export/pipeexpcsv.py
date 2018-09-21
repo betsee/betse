@@ -22,7 +22,6 @@ from betse.science.pipe.piperun import piperunner
 from betse.science.visual.plot.plotutil import cell_ave
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
-from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.types import (
     type_check, IterableTypes, NumpyArrayType, SequenceTypes, StrOrNoneTypes,)
@@ -56,7 +55,8 @@ class SimPipeExportCSVs(SimPipeExportABC):
         categories=('Single Cell', 'Time Series'),
         requirements=phasereqs.SOLVER_FULL,
     )
-    def export_cell_series(self, conf: SimConfExportCSV) -> None:
+    def export_cell_series(
+        self, phase: SimPhase, conf: SimConfExportCSV) -> None:
         '''
         Save a plaintext file in comma-separated value (CSV) format containing
         several cell-specific time series (e.g., ion concentrations, membrane
@@ -65,7 +65,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
         '''
 
         # 0-based index of the cell to serialize time data for.
-        cell_index = self._phase.p.plot_cell
+        cell_index = phase.p.plot_cell
 
         # Sequence of key-value pairs containing all simulation data to be
         # exported for this cell, suitable for passing to the
@@ -75,80 +75,81 @@ class SimPipeExportCSVs(SimPipeExportABC):
         # One-dimensional Numpy array of null data of the required length,
         # suitable for use as CSV column data for columns whose corresponding
         # simulation feature (e.g., deformations) is disabled.
-        column_data_empty = np.zeros(len(self._phase.sim.time))
+        column_data_empty = np.zeros(len(phase.sim.time))
 
         # ................{ TIME STEPS                      }..................
-        csv_column_name_values.extend(('time_s', self._phase.sim.time))
+        csv_column_name_values.extend(('time_s', phase.sim.time))
 
         # ................{ VMEM                            }..................
-        csv_column_name_values.extend(('Vmem_mV', self._cell_times_vmems))
+        csv_column_name_values.extend(
+            ('Vmem_mV', self._get_cell_times_vmems(phase)))
 
         # ................{ VMEM ~ goldman                  }..................
-        if self._phase.p.GHK_calc:
+        if phase.p.GHK_calc:
             vm_goldman = mathunit.upscale_units_milli([
                 vm_GHK_time_cells[cell_index]
-                for vm_GHK_time_cells in self._phase.sim.vm_GHK_time])
+                for vm_GHK_time_cells in phase.sim.vm_GHK_time])
         else:
             vm_goldman = column_data_empty
 
         csv_column_name_values.extend(('Goldman_Vmem_mV', vm_goldman))
 
         # ................{ Na K PUMP RATE                  }..................
-        if self._phase.p.is_ecm:
+        if phase.p.is_ecm:
             pump_rate = [
-                pump_array[self._phase.cells.cell_to_mems[cell_index][0]]
-                for pump_array in self._phase.sim.rate_NaKATP_time]
+                pump_array[phase.cells.cell_to_mems[cell_index][0]]
+                for pump_array in phase.sim.rate_NaKATP_time]
         else:
             pump_rate = [
                 pump_array[cell_index]
-                for pump_array in self._phase.sim.rate_NaKATP_time]
+                for pump_array in phase.sim.rate_NaKATP_time]
 
         csv_column_name_values.extend((
             'NaK-ATPase_Rate_mol/m2s', pump_rate))
 
         # ................{ ION CONCENTRATIONS              }..................
         # Create the header starting with cell concentrations.
-        for i in range(len(self._phase.sim.ionlabel)):
+        for i in range(len(phase.sim.ionlabel)):
             csv_column_name = 'cell_{}_mmol/L'.format(
-                self._phase.sim.ionlabel[i])
-            cc_m = [arr[i][cell_index] for arr in self._phase.sim.cc_time]
+                phase.sim.ionlabel[i])
+            cc_m = [arr[i][cell_index] for arr in phase.sim.cc_time]
             csv_column_name_values.extend((csv_column_name, cc_m))
 
         # ................{ MEMBRANE PERMEABILITIES         }..................
         # Create the header starting with membrane permeabilities.
-        for i in range(len(self._phase.sim.ionlabel)):
-            if self._phase.p.is_ecm:
+        for i in range(len(phase.sim.ionlabel)):
+            if phase.p.is_ecm:
                 dd_m = [
-                    arr[i][self._phase.cells.cell_to_mems[cell_index][0]]
-                    for arr in self._phase.sim.dd_time
+                    arr[i][phase.cells.cell_to_mems[cell_index][0]]
+                    for arr in phase.sim.dd_time
                 ]
             else:
-                dd_m = [arr[i][cell_index] for arr in self._phase.sim.dd_time]
+                dd_m = [arr[i][cell_index] for arr in phase.sim.dd_time]
 
-            csv_column_name = 'Dm_{}_m2/s'.format(self._phase.sim.ionlabel[i])
+            csv_column_name = 'Dm_{}_m2/s'.format(phase.sim.ionlabel[i])
             csv_column_name_values.extend((csv_column_name, dd_m))
 
         # ................{ TRANSMEMBRANE CURRENTS          }..................
-        if self._phase.p.is_ecm:
+        if phase.p.is_ecm:
             Imem = [
-                memArray[self._phase.cells.cell_to_mems[cell_index][0]]
-                for memArray in self._phase.sim.I_mem_time]
+                memArray[phase.cells.cell_to_mems[cell_index][0]]
+                for memArray in phase.sim.I_mem_time]
         else:
             Imem = [
                 memArray[cell_index]
-                for memArray in self._phase.sim.I_mem_time
+                for memArray in phase.sim.I_mem_time
             ]
 
         csv_column_name_values.extend(('I_A/m2', Imem))
 
         # ................{ HYDROSTATIC PRESSURE            }..................
-        p_hydro = [arr[cell_index] for arr in self._phase.sim.P_cells_time]
+        p_hydro = [arr[cell_index] for arr in phase.sim.P_cells_time]
         csv_column_name_values.extend(('HydroP_Pa', p_hydro))
 
         # ................{ OSMOTIC PRESSURE                }..................
-        if self._phase.p.deform_osmo:
+        if phase.p.deform_osmo:
             p_osmo = [
-                arr[cell_index] for arr in self._phase.sim.osmo_P_delta_time]
+                arr[cell_index] for arr in phase.sim.osmo_P_delta_time]
         else:
             p_osmo = column_data_empty
 
@@ -156,14 +157,14 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
         # ................{ DEFORMATION                     }..................
         if (
-            self._phase.p.deformation and
-            self._phase.kind is SimPhaseKind.SIM
+            phase.p.deformation and
+            phase.kind is SimPhaseKind.SIM
         ):
             # Extract time-series deformation data for the plot cell:
             dx = nparray.from_iterable([
-                arr[cell_index] for arr in self._phase.sim.dx_cell_time])
+                arr[cell_index] for arr in phase.sim.dx_cell_time])
             dy = nparray.from_iterable([
-                arr[cell_index] for arr in self._phase.sim.dy_cell_time])
+                arr[cell_index] for arr in phase.sim.dy_cell_time])
 
             # Get the total magnitude.
             disp = mathunit.upscale_coordinates(np.sqrt(dx ** 2 + dy ** 2))
@@ -178,8 +179,10 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
         # Export this data to this CSV file.
         npcsv.write_csv(
-            filename=self._get_csv_filename('ExportedData'),
-            column_name_to_values=csv_column_name_to_values)
+            filename=self._get_csv_filename(
+                phase=phase, basename_sans_filetype='ExportedData'),
+            column_name_to_values=csv_column_name_to_values,
+        )
 
     # ..................{ EXPORTERS ~ cell : vmem           }..................
     #FIXME: This exporter appears to currently be broken for the non-ECM
@@ -193,7 +196,8 @@ class SimPipeExportCSVs(SimPipeExportABC):
         #FIXME: Eliminate this requirement after resolving the above issue.
         requirements=phasereqs.VOLTAGE_EXTRA,
     )
-    def export_cell_vmem_fft(self, conf: SimConfExportCSV) -> None:
+    def export_cell_vmem_fft(
+        self, phase: SimPhase, conf: SimConfExportCSV) -> None:
         '''
         Save a plaintext file in comma-separated value (CSV) format containing
         the finite Fourier transform (FFT) of all transmembrane voltages for
@@ -203,13 +207,18 @@ class SimPipeExportCSVs(SimPipeExportABC):
         '''
 
         # Number of sampled time steps.
-        sample_size = len(self._phase.sim.time)
+        sample_size = len(phase.sim.time)
 
         # Time in seconds between each sampled time step.
-        sample_spacing = self._phase.sim.time[1] - self._phase.sim.time[0]
+        sample_spacing = phase.sim.time[1] - phase.sim.time[0]
+
+        # One-dimensional Numpy array of all transmembrane voltages (Vmems) for
+        # each sampled time step spatially situated at the centre of the single
+        # cell indexed by the "plot cell index" entry for the passed phase.
+        cell_times_vmems = self._get_cell_times_vmems(phase)
 
         cell_data = (1/sample_size) * (
-            self._cell_times_vmems - np.mean(self._cell_times_vmems))
+            cell_times_vmems - np.mean(cell_times_vmems))
 
         # FFT of voltage.
         f_axis = np.fft.rfftfreq(sample_size, d=sample_spacing)
@@ -230,12 +239,15 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
         # Export this data to this CSV file.
         npcsv.write_csv(
-            filename=self._get_csv_filename('ExportedData_FFT'),
-            column_name_to_values=csv_column_name_to_values)
+            filename=self._get_csv_filename(
+                phase=phase, basename_sans_filetype='ExportedData_FFT'),
+            column_name_to_values=csv_column_name_to_values,
+        )
 
     # ..................{ EXPORTERS ~ cells : vmem          }..................
     @piperunner(categories=('Cell Cluster', 'Transmembrane Voltages'))
-    def export_cells_vmem(self, conf: SimConfExportCSV) -> None:
+    def export_cells_vmem(
+        self, phase: SimPhase, conf: SimConfExportCSV) -> None:
         '''
         Save one plaintext file in comma-separated value (CSV) format
         containing all transmembrane voltages (Vmem) upscaled and averaged from
@@ -245,10 +257,11 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
         # Two-dimensional Numpy array of all transmembrane voltages.
         cells_times_vmems = mathunit.upscale_units_milli(
-            self._phase.sim.vm_ave_time)
+            phase.sim.vm_ave_time)
 
         # Export this data to this CSV file.
         self._export_cells_times_data(
+            phase=phase,
             cells_times_data=cells_times_vmems,
             csv_column_name='Vmem [mV]',
             csv_dir_basename='Vmem2D_TextExport',
@@ -261,6 +274,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
         self,
 
         # Mandatory parameters.
+        phase: SimPhase,
         basename_sans_filetype: str,
 
         # Optional parameters.
@@ -274,6 +288,8 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
         Parameters
         ----------
+        phase : SimPhase
+            Current simulation phase.
         basename_sans_filetype : str
             Basename (excluding suffixing ``.``-prefixed filetype) of this
             file.
@@ -293,14 +309,14 @@ class SimPipeExportCSVs(SimPipeExportABC):
         # If unpassed, default this directory to the top-level directory
         # containing all CSV files exported for this simulation phase.
         if dirname is None:
-            dirname = self._phase.export_dirname
+            dirname = phase.export_dirname
 
         # Create this directory if needed.
         dirs.make_unless_dir(dirname)
 
         # Basename of this file.
         basename = '{}.{}'.format(
-            basename_sans_filetype, self._phase.p.csv.filetype)
+            basename_sans_filetype, phase.p.csv.filetype)
 
         # Create and return the absolute filename of this file.
         return pathnames.join(dirname, basename)
@@ -309,6 +325,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
     @type_check
     def _export_cells_times_data(
         self,
+        phase: SimPhase,
         cells_times_data: SequenceTypes,
         csv_column_name: str,
         csv_dir_basename: str,
@@ -321,6 +338,8 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
         Parameters
         ----------
+        phase : SimPhase
+            Current simulation phase.
         cells_times_data : ndarray
             Two-dimensional Numpy array of arbitrary simulation data spatially
             situated at the centres of all cells for all sampled time steps.
@@ -338,17 +357,17 @@ class SimPipeExportCSVs(SimPipeExportABC):
         # Absolute pathname of the directory containing all CSV files
         # specifically exported by this method.
         csv_dirname = pathnames.join(
-            self._phase.export_dirname, csv_dir_basename)
+            phase.export_dirname, csv_dir_basename)
 
         # One-dimensional Numpy arrays of the X and Y coordinates
         # (respectively) of the centres of all cells.
         cell_centres_x = mathunit.upscale_coordinates(
-            self._phase.cells.cell_centres[:,0])
+            phase.cells.cell_centres[:,0])
         cell_centres_y = mathunit.upscale_coordinates(
-            self._phase.cells.cell_centres[:,1])
+            phase.cells.cell_centres[:,1])
 
         # For the 0-based index of each sampled time step...
-        for time_step in range(len(self._phase.sim.time)):
+        for time_step in range(len(phase.sim.time)):
             # Basename of the CSV-formatted file exported for this time step,
             # excluding suffixing "."-prefixed filetype.
             csv_basename_sans_filetype = '{}{}'.format(
@@ -356,8 +375,10 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
             # Absolute filename of this CSV file.
             csv_filename = self._get_csv_filename(
+                phase=phase,
                 basename_sans_filetype=csv_basename_sans_filetype,
-                dirname=csv_dirname)
+                dirname=csv_dirname,
+            )
 
             # Ordered dictionary mapping from CSV column names to data arrays.
             csv_column_name_to_values = OrderedArgsDict(
@@ -372,26 +393,31 @@ class SimPipeExportCSVs(SimPipeExportABC):
                 column_name_to_values=csv_column_name_to_values)
 
     # ..................{ PRIVATE ~ properties              }..................
-    @property_cached
-    def _cell_times_vmems(self) -> NumpyArrayType:
+    @type_check
+    def _get_cell_times_vmems(self, phase: SimPhase) -> NumpyArrayType:
         '''
         One-dimensional Numpy array of all transmembrane voltages for each
         sampled time step spatially situated at the centre of the single cell
-        indexed by the ``plot cell index`` entry for the current simulation
-        configuration.
+        indexed by the ``plot cell index`` entry specified by the passed
+        simulation phase.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
         '''
 
         # 0-based index of the cell to serialize time data for.
-        cell_index = self._phase.p.plot_cell
+        cell_index = phase.p.plot_cell
 
-        if self._phase.p.is_ecm:
+        if phase.p.is_ecm:
             cell_times_vmems = []
-            for vm_at_mem in self._phase.sim.vm_time:
+            for vm_at_mem in phase.sim.vm_time:
                 vm_t = mathunit.upscale_units_milli(
-                    cell_ave(self._phase.cells,vm_at_mem)[cell_index])
+                    cell_ave(phase.cells,vm_at_mem)[cell_index])
                 cell_times_vmems.append(vm_t)
         else:
             cell_times_vmems = mathunit.upscale_units_milli(
-                self._phase.sim.vm_time)
+                phase.sim.vm_time)
 
         return nparray.from_iterable(cell_times_vmems)

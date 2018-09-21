@@ -9,21 +9,16 @@ aggregating runners defined by all available export pipelines) facilities.
 '''
 
 # ....................{ IMPORTS                           }....................
+from betse.exceptions import BetseSimPipeRunnerUnsatisfiedException
 from betse.science.phase.phasecls import SimPhase
-from betse.util.io.log import logs
-from betse.util.type.types import type_check, IterableTypes
-
-#FIXME: Refactor away all explicit usage of individual pipeline subclasses.
-#Instead, we want this submodule to be able to generically query some master
-#singleton object or some such for the set of all currently enabled pipeline
-#runners -- which is all this submodule generally cares about. See also similar
-#commentary in the "betse_test.fixture.simconf.simconfwrapper" submodule.
 from betse.science.pipe.export.pipeexpcsv import SimPipeExportCSVs
 from betse.science.pipe.export.pipeexpanim import SimPipeExportAnimCells
 from betse.science.pipe.export.plot.pipeexpplotcell import (
     SimPipeExportPlotCell)
 from betse.science.pipe.export.plot.pipeexpplotcells import (
     SimPipeExportPlotCells)
+from betse.util.io.log import logs
+from betse.util.type.types import type_check, IterableTypes
 
 # ....................{ CONSTANTS                         }....................
 _PIPES_EXPORT_TYPE = (
@@ -84,40 +79,32 @@ class SimPipesExport(object):
 
         return self._PIPES_EXPORT
 
-    # ..................{ GETTERS                           }..................
-    @type_check
-    def get_runners_enabled_count(self, phase: SimPhase) -> int:
-        '''
-        Number of all **enabled simulation pipeline runners** (i.e., methods
-        bound to each available simulation export pipeline decorated by the
-        :func:`piperunner` decorator *and* enabled by this simulation
-        configuration) for the passed simulation phase.
-
-        Parameters
-        ----------
-        phase : SimPhase
-            Current simulation phase.
-
-        Returns
-        ----------
-        int
-            Number of all enabled simulation pipeline runners for this phase.
-        '''
-
-        # Return the cumulative summation of...
-        return sum(
-            # The number of all enabled pipeline runners...
-            pipe_export.get_runners_enabled_count(phase)
-            # For each available export pipeline.
-            for pipe_export in self._PIPES_EXPORT
-        )
-
     # ..................{ EXPORTERS                         }..................
     @type_check
     def export(self, phase: SimPhase) -> None:
         '''
-        Export (e.g., display, save) all available exports enabled by the
-        passed simulation phase.
+        Export (e.g., interactively display, non-interactively save) all
+        exports enabled for all export pipelines enabled by the passed
+        simulation phase.
+
+        Specifically, for each such pipeline:
+
+        * If that pipeline is enabled (i.e., the :meth:`SimPipeABC.is_enabled`
+          method for that pipeline returns ``True`` when passed that phase):
+
+          * For each **pipeline runner subconfiguration** (i.e.,
+            :class:`YamlListItemTypedABC` instance in the sequence of these
+            instances listed by the :meth:`iter_runners_enabled` method for
+            that pipeline):
+
+            * Call the method defined by that pipeline implementing this
+              runner, passed both this phase and configuration.
+            * If that method reports this runner's requirements to be
+              unsatisfied (e.g., due to the current simulation configuration
+              disabling extracellular spaces), this runner is ignored with a
+              non-fatal warning.
+
+        * Else, log an informative message and ignore that pipeline.
 
         Parameters
         ----------
@@ -125,43 +112,51 @@ class SimPipesExport(object):
             Current simulation phase.
         '''
 
-        #FIXME: Leverage this in place of "len(self._PIPES_EXPORT)" below.
-        #FIXME: Naturally, doing so sanely will also necessitate calling the
-        #phase.callbacks.progressed_next() callable after successfully
-        #exporting each export. The optimal means of doing so would appear to
-        #be the following:
-        #
-        #* Define a new iter_runners_enabled() method of this class, ideally by
-        #  simply chaining together the generators produced by each
-        #  SimPipeABC.iter_runners_enabled() method. (Ideally, trivial.)
-        #* Replace the iteration performed below by the iteration performed by
-        #  the SimPipeABC.run() method.
-        #* Excise the SimPipeABC.run() method.
-        #FIXME: Since the get_runners_enabled_count() is extremely
-        #computationally expensive, this method should *ONLY* be called if
-        #actually required: namely, if the "phase.callbacks" object is *NOT* an
-        #instance of the noop callbacks class. If this object is such an
-        #instance, we should avoid performing *ANY* callbacks logic here.
+        # List of 2-tuples "(runner_method, runner_conf)" yielding the method
+        # and configuration of each enabled pipeline runner for each export
+        # pipeline for this phase, aggregating the 2-tuples yielded by each
+        # SimPipeABC.iter_runners_enabled() generator.
+        runners_enabled = []
 
-        # Total number of all enabled runners for all export pipelines.
-        runners_enabled_count = self.get_runners_enabled_count(phase)
+        # For each available export pipeline...
+        for pipe_export in self._PIPES_EXPORT:
+            # Initialize this pipeline for this phase.
+            pipe_export.init(phase)
 
-        #FIXME: Improve this extremely coarse-grained measure of export progress.
-        #Rather than merely hard-coding this to a small magic number, this range of
-        #progress should instead be dynamically computed as the total number of
-        #CSV files, plots, and animations to be exported by the current collection
-        #of export pipelines.
+            # Append all pipeline runners enabled for this pipeline and phase.
+            runners_enabled.extend(pipe_export.iter_runners_enabled(phase))
 
         # Notify the caller of the range of work performed by this subcommand.
         # namely, notify the caller of the total number of times that this
         # method calls the SimCallbacksBC.progressed() callback or a callback
         # calling that callback (e.g., SimCallbacksBC.progressed_next()).
-        phase.callbacks.progress_ranged(progress_max=len(self._PIPES_EXPORT))
+        phase.callbacks.progress_ranged(progress_max=len(runners_enabled))
 
-        # For each export pipeline...
-        for pipe_export in self._PIPES_EXPORT:
-            # Display and/or save all exports enabled by this phase.
-            pipe_export.run(phase)
+        # For the method and configuration of each enabled pipeline runner...
+        for runner_method, runner_conf in runners_enabled:
+            # Attempt to pass this runner this configuration.
+            try:
+                runner_method(phase, runner_conf)
+            # If this runner's requirements are unsatisfied (e.g., due to the
+            # current simulation configuration disabling extracellular spaces),
+            # ignore this runner with a non-fatal warning and continue.
+            except BetseSimPipeRunnerUnsatisfiedException as exception:
+                #FIXME: Consider resurrecting this. The difficulty, of course,
+                #is that we have no access to the "pipe_export" providing the
+                #parent export pipeline of the current runner. That said, we'll
+                #presumably need some means of associating the two, given that
+                #the GUI requires the type of each runner be displayed as that
+                #runner is... running.
+                # logs.log_warning(
+                #     'Excluding %s "%s", as %s.',
+                #     pipe_export._noun_singular_lowercase,
+                #     runner_conf.name,
+                #     exception.reason)
+
+                logs.log_warning(
+                    'Excluding export "%s", as %s.',
+                    runner_conf.name,
+                    exception.reason)
 
             # Notify of the caller of the completion of these exports.
             phase.callbacks.progressed_next()

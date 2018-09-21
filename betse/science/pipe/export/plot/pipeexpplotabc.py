@@ -86,10 +86,10 @@ class SimPipeExportPlotABC(SimPipeExportABC):
 
     # ..................{ INITIALIZERS                      }..................
     @type_check
-    def _init_run(self, phase: SimPhase) -> None:
+    def init(self, phase: SimPhase) -> None:
 
         # Initialize our superclass for the current call to the _run() method.
-        super()._init_run(phase)
+        super().init(phase)
 
         # If saving post-simulation plots, create the top-level directory
         # containing these plots if needed.
@@ -102,9 +102,15 @@ class SimPipeExportPlotABC(SimPipeExportABC):
         return phase.p.plot.is_after_sim
 
     # ..................{ PRIVATE ~ preparers               }..................
-    def _export_prep(self) -> None:
+    @type_check
+    def _export_prep(self, phase: SimPhase) -> None:
         '''
-        Prepare to export the current plot.
+        Prepare to export the current plot for the passed simulation phase.
+
+        Parameters
+        ----------
+        phase : SimPhase
+            Current simulation phase.
         '''
 
         #FIXME: DRY. This functionality perfectly duplicates the
@@ -115,7 +121,7 @@ class SimPipeExportPlotABC(SimPipeExportABC):
         #* Refactor all plots to subclass that superclass.
 
         # Id displaying this plot, do so in a non-blocking manner.
-        if self._phase.p.plot.is_after_sim_show:
+        if phase.p.plot.is_after_sim_show:
             # If the current matplotlib backend supports "true" non-blocking
             # behavior, prefer this non-deprecated approach.
             if mpl_config.is_backend_current_nonblockable():
@@ -129,13 +135,15 @@ class SimPipeExportPlotABC(SimPipeExportABC):
 
 
     @type_check
-    def _export(self, basename: str) -> None:
+    def _export(self, phase: SimPhase, basename: str) -> None:
         '''
         Export the current plot to the current screen if displaying plots
         and/or to a file with the passed basename if saving plots.
 
         Parameters
         -----------
+        phase : SimPhase
+            Current simulation phase.
         basename : str
             Basename excluding filetype of the plot to be exported. For
             convenience, this method internally prepends this basename by the
@@ -147,7 +155,7 @@ class SimPipeExportPlotABC(SimPipeExportABC):
 
         # Id displaying this plot *AND* the current matplotlib backend fails to
         # support "true" non-blocking behavior...
-        if (self._phase.p.plot.is_after_sim_show and
+        if (phase.p.plot.is_after_sim_show and
             not mpl_config.is_backend_current_nonblockable()):
             # Update all artists displayed by this plot.
             pyplot.draw()
@@ -166,13 +174,13 @@ class SimPipeExportPlotABC(SimPipeExportABC):
             matplotlib.interactive(False)
 
         # If saving this plot...
-        if self._phase.p.plot.is_after_sim_save:
+        if phase.p.plot.is_after_sim_save:
             # Filetype and basename of the file to be saved.
-            filetype = self._phase.p.plot.image_filetype
+            filetype = phase.p.plot.image_filetype
             basename = 'fig_{}.{}'.format(basename, filetype)
 
             # Absolute path of the file to be saved.
-            filename = pathnames.join(self._phase.export_dirname, basename)
+            filename = pathnames.join(phase.export_dirname, basename)
 
             # Log this saving attempt.
             logs.log_debug('Saving plot: %s', filename)
@@ -180,7 +188,7 @@ class SimPipeExportPlotABC(SimPipeExportABC):
             # Save this plot to this file.
             pyplot.savefig(
                 filename,
-                dpi=self._phase.p.plot.image_dpi,
+                dpi=phase.p.plot.image_dpi,
                 format=filetype,
                 transparent=True,
             )
@@ -191,5 +199,5 @@ class SimPipeExportPlotABC(SimPipeExportABC):
         #by the VisualCellsABC.close() method.
 
         # If *NOT* displaying this plot, close this plot to conserve resources.
-        if not self._phase.p.plot.is_after_sim_show:
+        if not phase.p.plot.is_after_sim_show:
             pyplot.close()

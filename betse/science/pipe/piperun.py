@@ -11,6 +11,7 @@ iteratively run by its parent pipeline) functionality.
 # ....................{ IMPORTS                           }....................
 import functools
 from betse.exceptions import BetseSimPipeException
+from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirements, SimPhaseRequirementsOrNoneTypes)
 from betse.util.type.text import strs
@@ -129,7 +130,7 @@ def piperunner(
     '''
     Decorator annotating **simulation pipeline runners** (i.e.,
     :meth:`SimPipeRunner.__call__` subclasses with names prefixed by
-    :attr:`SimPipeABC._runner_method_name_prefix`) with custom metadata.
+    :attr:`SimPipeABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
 
     All methods decorated by this decorator are guaranteed to be instances of
     the :class:`SimPipeRunner` class, which provides all metadata passed to
@@ -223,18 +224,42 @@ def piperunner(
             # For clarity, this parameter has been renamed from the customary
             # "self" nomenclature for a bound method.
             self_pipeline: 'betse.science.pipe.pipeabc.SimPipeABC',
+            phase: SimPhase,
             *args, **kwargs
         ) -> object:
+            '''
+            Closure validating this simulation pipeline runner to be satisfied
+            by the passed simulation pipeline and phase *before* running that
+            runner by calling the method passed to the outer decorator defining
+            this closure with the metadata passed to the same decorator,
+            returning the values returned by that method call.
+
+            Parameters
+            ----------
+            self_pipeline : SimPipeABC
+                Current simulation pipeline.
+            phase : SimPhase
+                Current simulation phase.
+
+            All remaining parameters are passed as is to the method passed to
+            the outer decorator defining this closure.
+
+            See Also
+            ----------
+            :func:`piperunner`
+                Further details.
+            '''
 
             # If this runner is unsatisfied by this pipeline, raise an exception.
             self_pipeline.die_unless_runner_satisfied(
+                phase=phase,
                 runner_metadata=_piperunner_method.metadata)
 
             # Else, this runner is satisfied. Since the prior call already
             # logged the attempt to run this runner, avoid redoing so here.
             #
             # Simply call this method to run this runner.
-            return method_typed(self_pipeline, *args, **kwargs)
+            return method_typed(self_pipeline, phase, *args, **kwargs)
 
         # Expose this metadata as an instance variable of this method closure.
         _piperunner_method.metadata = SimPipeRunnerMetadata(

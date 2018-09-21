@@ -17,14 +17,81 @@ from betse.science.phase.phasecls import SimPhase
 from betse.science.pipe.piperun import SimPipeRunnerMetadata
 from betse.util.io.log import logs
 from betse.util.type.decorator.deccls import abstractmethod, abstractproperty
-from betse.util.type.iterable import generators
+from betse.util.type.descriptor.descs import classproperty_readonly
 from betse.util.type.obj import objects
 from betse.util.type.text import strs
-from betse.util.type.types import type_check, GeneratorType, IterableTypes
+from betse.util.type.types import (
+    type_check,
+    ClassType,
+    GeneratorType,
+    IterableTypes,
+    MappingType,
+)
+
+# ....................{ METACLASSES                       }....................
+class SimPipeABCMeta(ABCMeta):
+    '''
+    Metaclass of the abstract :class:`SimPipeABC` base class and all concrete
+    subclasses thereof.
+
+    This metaclass dynamically annotates each **simulation pipeline runner**
+    (i.e., method decorated by the :func:`piperunner` decorator) on the initial
+    definition of each concrete subclass of the :class:`SimPipeABC` superclass
+    with metadata pertaining to that subclass, augmenting the core
+    runner-specific metadata already annotated on that runner by that
+    decorator. (The metadata annotated by this metaclass requires access to the
+    class declaring that runner, which the :func:`piperunner` decorator has no
+    means of accessing under conventional semantics of method declaration.)
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/47371003/2809027
+        StackOverflow answer mildly inspiring this class.
+    '''
+
+    # ..................{ CONSTRUCTORS                      }..................
+    def __new__(
+        metacls: ClassType,
+        class_name: str,
+        class_base_classes: IterableTypes,
+        class_attrs: MappingType,
+        **kwargs
+    ) -> ClassType:
+        '''
+        Annotate each simulation pipeline runner defined by the passed
+        simulation pipeline subclass with metadata pertaining to that subclass.
+        '''
+
+        # Unsanitized "SimPipeABC" subclass.
+        subclass = super().__new__(
+            metacls, class_name, class_base_classes, class_attrs)
+
+        #FIXME: Iteratively annotate each pipeline runner method with
+        #additional subclass-specific metadata. To do so:
+        #
+        #* Refactor the "_noun*" and "_verb_*" family of properties to be
+        #  class properties instead. Consider also uppercasing their property
+        #  names on doing so.
+        #* Improve the "piperun.SimPipeRunnerMetadata" class with additional
+        #  instance variables (defaulting to "None") describing that runner's
+        #  relation to its parent pipeline. These might include:
+        #  * "name", the unprefixed name of this runner.
+        #  * "pipe_noun_singular", equivalent to "subclass.NOUN_SINGULAR".
+        #* Perform iteration here resembling:
+        #    for runner_method_name, runner_method in subclass.iter_runners_method():
+        #        # Assign subclass-specific metadata here.
+
+        # For the name of each such method...
+        # for creation_method_name in CREATION_METHOD_NAMES:
+        #     metacls._sanitize_creation_method(
+        #         frozenset_subclass, creation_method_name)
+
+        # Return this sanitized "FrozenSetSubclassable" subclass.
+        return subclass
 
 # ....................{ SUPERCLASSES                      }....................
 #FIXME: Revise docstring to account for the recent large-scale class redesign.
-class SimPipeABC(object, metaclass=ABCMeta):
+class SimPipeABC(object, metaclass=SimPipeABCMeta):
     '''
     Abstract base class of all subclasses running a **simulation pipeline**
     (i.e., sequence of similar simulation activities to be iteratively run).
@@ -39,7 +106,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
     Each subclass is expected to define:
 
     * One or more public methods with names prefixed by the subclass-specific
-      :attr:`_runner_method_name_prefix`, defaulting to ``run_`` (e.g.,
+      :attr:`_RUNNER_METHOD_NAME_PREFIX`, defaulting to ``run_`` (e.g.,
       ``run_voltage_intra``). For each such method, the name of that method
       excluding that prefix is the name of that method's runner (e.g.,
       ``voltage_intra`` for the method name ``run_voltage_intra``). Each such
@@ -63,13 +130,6 @@ class SimPipeABC(object, metaclass=ABCMeta):
     implements this pipeline by iterating over the :meth:`iter_runners_conf`
     property and, for each enabled runner, calling that runner's method.
 
-    Attributes (Private)
-    ----------
-    _phase : SimPhaseOrNoneTypes
-        Current simulation phase if this pipeline is currently running (i.e.,
-        if the :meth:`run` method is currently being called) *or* ``None``
-        otherwise.
-
     Attributes (Private: Labels)
     ----------
     _noun_singular_lowercase : str
@@ -82,6 +142,83 @@ class SimPipeABC(object, metaclass=ABCMeta):
         Human-readable lowercase plural noun synopsizing the type of runners
         implemented by this subclass (e.g., ``animations``, ``plots``).
     '''
+
+    # ..................{ CLASS ~ properties : private      }..................
+    @classproperty_readonly
+    def _RUNNER_METHOD_NAME_PREFIX(self) -> str:
+        '''
+        Substring prefixing the name of each runner defined by this pipeline.
+
+        Defaults to ``run_``.
+        '''
+
+        return  'run_'
+
+    # ..................{ CLASS ~ iterators                 }..................
+    @classmethod
+    def iter_runners_metadata(cls) -> GeneratorType:
+        '''
+        Generator yielding the name and metadata of each **simulation pipeline
+        runner** (i.e., method bound to this pipeline decorated by the
+        :func:`piperunner` decorator).
+
+        This generator excludes all methods defined by this pipeline subclass
+        *not* decorated by that decorator.
+
+        Yields
+        ----------
+        (runner_method_name : str, runner_metadata : SimPipeRunnerMetadata)
+            2-tuple where:
+
+            * ``runner_name`` is the name of the method underlying this runner,
+              excluding the substring :attr:`_RUNNER_METHOD_NAME_PREFIX`
+              prefixing this name.
+            * ``runner_metadata`` is the :class:`SimPipeRunnerMetadata`
+              instance collecting all metadata for this runner.
+        '''
+
+        # Return a generator comprehension...
+        return (
+            # Iteratively yielding a 2-tuple of:
+            #
+            # * The name of this method excluding the runner prefix.
+            # * The metadata associated with This method.
+            (
+                strs.remove_prefix(
+                    text=runner_method_name,
+                    prefix=cls._RUNNER_METHOD_NAME_PREFIX),
+                runner_method.metadata
+            )
+
+            # For the name of each runner method and that method defined by
+            # this pipeline subclass...
+            for runner_method_name, runner_method in cls.iter_runners_method()
+        )
+
+
+    @classmethod
+    def iter_runners_method(cls) -> GeneratorType:
+        '''
+        Generator yielding the method name and method of each **simulation
+        pipeline runner** (i.e., method bound to this pipeline decorated by the
+        :func:`piperunner` decorator).
+
+        This generator excludes all methods defined by this pipeline subclass
+        *not* decorated by that decorator.
+
+        Yields
+        ----------
+        (runner_method_name : str, runner_method : MethodType)
+            2-tuple where:
+
+            * ``runner_method_name`` is the name of the method underlying this
+              runner, identical to the ``runner_method.__name__`` attribute.
+            * ``runner_method`` is this method.
+        '''
+
+        # Defer to this generator.
+        yield from objects.iter_methods_prefixed(
+            obj=cls, prefix=cls._RUNNER_METHOD_NAME_PREFIX)
 
     # ..................{ INITIALIZERS                      }..................
     @type_check
@@ -96,18 +233,15 @@ class SimPipeABC(object, metaclass=ABCMeta):
             self._noun_singular)
         self._noun_plural_lowercase = self._noun_plural
 
-        # Nullify all remaining instance variables for safety.
-        self._phase = None
-
 
     @type_check
-    def _init_run(self, phase: SimPhase) -> None:
+    def init(self, phase: SimPhase) -> None:
         '''
         Initialize this pipeline for the passed simulation phase.
 
         Defaults to a noop. Pipeline subclasses may override this method to
         guarantee state assumed by subsequently run pipeline runners (e.g., to
-        create external directories required by these runners).
+        create external directories required by these runners for this phase).
 
         Parameters
         ----------
@@ -194,17 +328,6 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
         return True
 
-    # ..................{ PROPERTIES ~ private : str        }..................
-    @property
-    def _runner_method_name_prefix(self) -> str:
-        '''
-        Substring prefixing the name of each runner defined by this pipeline.
-
-        Defaults to ``run_``.
-        '''
-
-        return  'run_'
-
     # ..................{ PROPERTIES ~ private : str : word }..................
     @property
     def _noun_plural(self) -> str:
@@ -234,14 +357,19 @@ class SimPipeABC(object, metaclass=ABCMeta):
     # ..................{ EXCEPTIONS                        }..................
     @type_check
     def die_unless_runner_satisfied(
-        self, runner_metadata: SimPipeRunnerMetadata) -> None:
+        self,
+        phase: SimPhase,
+        runner_metadata: SimPipeRunnerMetadata,
+    ) -> None:
         '''
         Raise an exception if the passed runner is **unsatisfied** (i.e.,
-        requires one or more simulation features disabled for the current
+        requires one or more simulation features disabled for the passed
         simulation phase) *or* log an attempt to run this runner otherwise.
 
         Parameters
         ----------
+        phase : SimPhase
+            Current simulation phase.
         runner_metadata : SimPipeRunnerMetadata
             Simulation pipeline runner metadata to be validated.
 
@@ -256,15 +384,15 @@ class SimPipeABC(object, metaclass=ABCMeta):
         # exception if this name has no such prefix.
         runner_name = strs.remove_prefix(
             text=runner_metadata.method_name,
-            prefix=self._runner_method_name_prefix,
+            prefix=self._RUNNER_METHOD_NAME_PREFIX,
             exception_message=(
                 'Runner method name "{}" not prefixed by "{}".'.format(
                     runner_metadata.method_name,
-                    self._runner_method_name_prefix)))
+                    self._RUNNER_METHOD_NAME_PREFIX)))
 
         # If any runner requirement is unsatisfied, raise an exception.
         for requirement in runner_metadata.requirements:
-            if not requirement.is_satisfied(phase=self._phase):
+            if not requirement.is_satisfied(phase):
                 raise BetseSimPipeRunnerUnsatisfiedException(
                     result='{} "{}" requirement unsatisfied'.format(
                         self._noun_singular_uppercase, runner_name),
@@ -276,29 +404,6 @@ class SimPipeABC(object, metaclass=ABCMeta):
         logs.log_info(
             '%s %s "%s"...',
             self._verb_continuous, self._noun_singular_lowercase, runner_name)
-
-    # ..................{ GETTERS                           }..................
-    @type_check
-    def get_runners_enabled_count(self, phase: SimPhase) -> int:
-        '''
-        Number of all **enabled simulation pipeline runners** (i.e., methods
-        bound to this pipeline decorated by the :func:`piperunner` decorator
-        *and* enabled by this simulation configuration) for the passed
-        simulation phase.
-
-        Parameters
-        ----------
-        phase : SimPhase
-            Current simulation phase.
-
-        Returns
-        ----------
-        int
-            Number of all enabled simulation pipeline runners for this phase.
-        '''
-
-        # Some things are easier done than said.
-        return generators.get_length(self.iter_runners_enabled(phase))
 
     # ..................{ ITERATORS                         }..................
     @type_check
@@ -332,7 +437,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
             * ``runner_method`` is the method implementing this runner, whose
               method name is guaranteed to be prefixed by the substring
-              :attr:`_runner_method_name_prefix`. Note that this method object
+              :attr:`_RUNNER_METHOD_NAME_PREFIX`. Note that this method object
               defines the following custom instance variables:
 
               * ``metadata``, whose value is an instance of the
@@ -374,7 +479,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
             # Name of the pipeline method implementing this runner.
             runner_method_name = (
-                self._runner_method_name_prefix + runner_conf.name)
+                self._RUNNER_METHOD_NAME_PREFIX + runner_conf.name)
 
             # Method running this runner if recognized *OR* "None" otherwise.
             runner_method = objects.get_method_or_none(
@@ -393,115 +498,3 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
             # Yield a 2-tuple of this runner's method and configuration.
             yield runner_method, runner_conf
-
-
-    def iter_runners_metadata(self) -> GeneratorType:
-        '''
-        Generator yielding the name and metadata of each **simulation pipeline
-        runner** (i.e., method bound to this pipeline decorated by the
-        :func:`piperunner` decorator).
-
-        This generator excludes all methods defined by this pipeline subclass
-        *not* decorated by that decorator.
-
-        Yields
-        ----------
-        (runner_name : str, runner_metadata : SimPipeRunnerMetadata)
-            2-tuple where:
-
-            * ``runner_name`` is the name of the method underlying this runner,
-              excluding the substring :attr:`_runner_method_name_prefix`
-              prefixing this name.
-            * ``runner_metadata`` is the :class:`SimPipeRunnerMetadata`
-              instance collecting all metadata for this runner.
-        '''
-
-        # Return a generator comprehension...
-        return (
-            # Iteratively yielding a 2-tuple of:
-            #
-            # * The name of this method excluding the runner prefix.
-            # * The metadata associated with This method.
-            (
-                strs.remove_prefix(
-                    text=runner_method_name,
-                    prefix=self._runner_method_name_prefix),
-                runner_method.metadata
-            )
-
-            # For the name of each runner method and that method defined by
-            # this pipeline subclass...
-            for runner_method_name, runner_method in (
-                objects.iter_methods_prefixed(
-                    obj=self, prefix=self._runner_method_name_prefix))
-        )
-
-    # ..................{ RUNNERS                           }..................
-    @type_check
-    def run(self, phase: SimPhase) -> None:
-        '''
-        Run all currently enabled pipeline runners for the passed simulation
-        phase if this pipeline is currently enabled in this phase *or* noop
-        otherwise.
-
-        Specifically:
-
-        * If the :meth:`_is_enabled` property is ``True`` (implying this
-          pipeline to be currently enabled):
-
-          * For each :class:`YamlListItemTypedABC` instance (corresponding to
-            the subconfiguration of a currently enabled pipeline runner) in the
-            sequence of these instances listed by the :meth:`iter_runners_conf`
-            property:
-
-            * Call this method, passed this configuration.
-            * If this method reports this runner's requirements to be
-              unsatisfied (e.g., due to the current simulation configuration
-              disabling extracellular spaces), this runner is ignored with a
-              non-fatal warning.
-
-        * Else, log an informative message and return immediately.
-
-        Parameters
-        ----------
-        phase : SimPhase
-            Current simulation phase.
-        '''
-
-        # Initialize this pipeline for the current call to this method *AFTER*
-        # classifying this phase, as the former usually assumes the latter.
-        self._init_run(phase)
-
-        # Log this pipeline run.
-        logs.log_info(
-            '%s %s...', self._verb_continuous, self._noun_plural_lowercase)
-
-        #FIXME: This is a rather poor idea. Undo this by requiring that *ALL*
-        #runner methods accept as their first parameter a passed "phase"
-        #object. After doing so, excise this instance variable entirely.
-        #
-        #Note, however, that doing so could prove fairly... arduous. The
-        #die_unless_runner_satisfied() method, for example, assumes the
-        #existence of this instance variable in a non-trivial manner. *shrug*
-
-        # Temporarily classify the passed phase.
-        self._phase = phase
-
-        # For the method and simulation configuration underlying each runner
-        # enabled by this pipeline...
-        for runner_method, runner_conf in self.iter_runners_enabled(phase):
-            # Attempt to pass this runner this configuration.
-            try:
-                runner_method(runner_conf)
-            # If this runner's requirements are unsatisfied (e.g., due to the
-            # current simulation configuration disabling extracellular spaces),
-            # ignore this runner with a non-fatal warning and continue.
-            except BetseSimPipeRunnerUnsatisfiedException as exception:
-                logs.log_warning(
-                    'Excluding %s "%s", as %s.',
-                    self._noun_singular_lowercase,
-                    runner_conf.name,
-                    exception.reason)
-
-        # Declassify the passed phase for safety.
-        self._phase = None

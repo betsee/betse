@@ -18,7 +18,6 @@ from betse.util.type.types import (
     CallableOrNoneTypes,
     ClassType,
     GeneratorType,
-    MethodType,
     TestableTypes,
 )
 
@@ -591,7 +590,7 @@ def iter_attrs(obj: object) -> GeneratorType:
         object (in ascending lexicographic order of attribute name).
     '''
 
-    # Defer to this iterator.
+    # Defer to this generator.
     yield from iter_attrs_matching(obj=obj, predicate=noop_attr_predicate)
 
 
@@ -651,7 +650,7 @@ def iter_attrs_instance_of(obj: object, cls: TestableTypes) -> GeneratorType:
         object (in ascending lexicographic order of attribute name).
     '''
 
-    # Defer to this iterator.
+    # Defer to this generator.
     yield from iter_attrs_matching(
         obj=obj, predicate=lambda attr_name, attr_value: (
             isinstance(attr_value, cls)))
@@ -675,7 +674,7 @@ def iter_attr_names(obj: object) -> GeneratorType:
         order of attribute name).
     '''
 
-    # Defer to this iterator.
+    # Defer to this generator.
     return (
         attr_name
         for attr_name, attr_value in iter_attrs(obj)
@@ -725,7 +724,7 @@ def iter_methods(obj: object) -> GeneratorType:
         :func:`iter_methods_custom_simple` generator excluding all properties.
     '''
 
-    # Defer to this iterator.
+    # Defer to this generator.
     yield from iter_methods_matching(obj=obj, predicate=noop_attr_predicate)
 
 
@@ -758,7 +757,7 @@ def iter_methods_matching(
         Further details.
     '''
 
-    # Defer to this iterator.
+    # Defer to this generator.
     yield from iter_attrs_matching(
         # For the name and definition of each attribute bound to this object,
         # exclude this attribute from consideration unless...
@@ -793,7 +792,7 @@ def iter_methods_custom(obj: object) -> GeneratorType:
         Further details.
     '''
 
-    # Defer to this iterator.
+    # Defer to this generator.
     yield from iter_methods_matching(
         obj=obj, predicate=lambda method_name, method: not (
             method_name.startswith('__') and method_name.endswith('__')))
@@ -819,7 +818,7 @@ def iter_methods_prefixed(obj: object, prefix: str) -> GeneratorType:
         object (in ascending lexicographic order of method name).
     '''
 
-    # Defer to this iterator.
+    # Defer to this generator.
     yield from iter_methods_matching(
         obj=obj, predicate=lambda method_name, method_value: (
             method_name.startswith(prefix)))
@@ -867,7 +866,7 @@ def iter_vars(obj: object) -> GeneratorType:
         :func:`iter_vars_custom_simple` generator excluding all properties.
     '''
 
-    # Defer to this iterator.
+    # Defer to this generator.
     yield from iter_vars_matching(obj=obj, predicate=noop_attr_predicate)
 
 
@@ -914,7 +913,7 @@ def iter_vars_matching(
     #             attr_name not in obj_type_attr_names)) and
     #           predicate(attr_name, attr_value))
 
-    # Defer to this iterator.
+    # Defer to this generator.
     yield from iter_attrs_matching(
         # For the name and definition of each attribute bound to this object,
         # exclude this attribute from consideration unless...
@@ -949,7 +948,7 @@ def iter_vars_custom(obj: object) -> GeneratorType:
         Further details.
     '''
 
-    # Defer to this iterator.
+    # Defer to this generator.
     yield from iter_vars_matching(
         obj=obj, predicate=lambda var_name, var_value: (
             not (var_name.startswith('__') and var_name.endswith('__'))))
@@ -981,7 +980,7 @@ def iter_vars_custom_simple(obj: object) -> GeneratorType:
         name).
     '''
 
-    # Defer to this iterator with the null predicate unconditionally accepting
+    # Defer to this generator with the null predicate unconditionally accepting
     # all such variables regardless of name or value.
     yield from iter_vars_custom_simple_matching(
         obj=obj, predicate=noop_attr_predicate)
@@ -1017,7 +1016,7 @@ def iter_vars_custom_simple_prefixed(
         variable name).
     '''
 
-    # Defer to this iterator.
+    # Defer to this generator.
     yield from iter_vars_custom_simple_matching(
         obj=obj, predicate=lambda var_name, var_value: (
             var_name.startswith(prefix)))

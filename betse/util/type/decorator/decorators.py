@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,13 +8,13 @@ Low-level **decorator** (i.e., callables dynamically wrapping arbitrary other
 callables) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.util.io.log import logs
 from betse.util.type.types import (
     type_check, CallableTypes, DecoratorTypes)
 from functools import wraps
 
-# ....................{ DECORATORS                         }....................
+# ....................{ DECORATORS                        }....................
 # While type-checking these types would probably be advisable, this decorator
 # is currently passed non-callables by "py.test". While resolving that issue
 # would itself probably be advisable, we simply cannot be bothered. Hence,
@@ -26,7 +26,7 @@ def decorator_identity(func: CallableTypes) -> CallableTypes:
 
     return func
 
-# ....................{ DECORATORS                         }....................
+# ....................{ DECORATORS                        }....................
 @type_check
 def deprecated(func: CallableTypes) -> CallableTypes:
     '''
@@ -60,7 +60,7 @@ def deprecated(func: CallableTypes) -> CallableTypes:
     # Return this callable decorated to log this deprecating warning.
     return _deprecated_inner
 
-# ....................{ CHAINERS                           }....................
+# ....................{ CHAINERS                          }....................
 @type_check
 def decorator_chain(*decorators: DecoratorTypes) -> CallableTypes:
     '''
@@ -97,8 +97,8 @@ def decorator_chain(*decorators: DecoratorTypes) -> CallableTypes:
     #     return lambda x: reduce(lambda y, f: f(y), decs, x)
     #
     # For maistainability, readability, and sanity, this function is instead
-    # implemented with a traditional nested closure. Efficiency is irrelevant in
-    # this context; moreover, the above one-liner is unlikely to yield
+    # implemented with a traditional nested closure. Efficiency is irrelevant
+    # in this context; moreover, the above one-liner is unlikely to yield
     # demonstrable efficiency gains.
     @type_check
     def _decorator_chain(func: CallableTypes) -> object:
@@ -115,13 +115,13 @@ def decorator_chain(*decorators: DecoratorTypes) -> CallableTypes:
         Returns
         ----------
         object
-            Callable object decorating the input callable with these decorators.
-            While this object is typically a callable (i.e., instance of
-            :class:`CallableTypes`), this is *not* necessarily the case. For
-            example, the :class:`property` decorator converts the passed unbound
-            method into a data descriptor; strictly speaking, descriptors do
-            *not* define the special ``__call__`` method and hence are *not*
-            explicitly callable.
+            Callable object decorating the input callable with these
+            decorators.  While this object is typically a callable (i.e.,
+            instance of :class:`CallableTypes`), this is *not* necessarily the
+            case. For example, the :class:`property` decorator converts the
+            passed unbound method into a data descriptor; strictly speaking,
+            descriptors do *not* define the special ``__call__`` method and
+            hence are *not* explicitly callable.
         '''
 
         # For each passed decorator (in reverse order)...

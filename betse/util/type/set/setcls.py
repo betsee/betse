@@ -74,7 +74,7 @@ class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
 
     # ..................{ CONSTRUCTORS                      }..................
     def __new__(
-        metacls,
+        metacls: ClassType,
         class_name: str,
         class_base_classes: IterableTypes,
         class_attrs: MappingType,
@@ -177,8 +177,7 @@ class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
         setattr(frozenset_subclass, method_name, sanitized_creation_method)
 
 # ....................{ SUPERCLASSES                      }....................
-class FrozenSetSubclassable(
-    frozenset, metaclass=FrozenSetSubclassableMeta):
+class FrozenSetSubclassable(frozenset, metaclass=FrozenSetSubclassableMeta):
     '''
     Safely subclassable immutable set.
 

@@ -58,10 +58,10 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
     #     self._export_prep()
     #
     #     plotutil.plotMemData(
-    #         self._phase.cells,
-    #         self._phase.p,
-    #         zdata=self._phase.sim.rho_channel,
-    #         clrmap=self._phase.p.default_cm,
+    #         phase.cells,
+    #         phase.p,
+    #         zdata=phase.sim.rho_channel,
+    #         clrmap=phase.p.default_cm,
     #     )
     #     pyplot.xlabel('Spatial Dimension [um]')
     #     pyplot.ylabel('Spatial Dimension [um]')
@@ -74,7 +74,8 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
     # This exporter is solver- and feature-agnostic.
 
     @piperunner(categories=('Cell Cluster', 'Mask',))
-    def export_cluster_mask(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_cluster_mask(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot the **cell cluster image mask** (i.e., user-defined image whose
         pure-black pixels exactly correspond to the shape of the cell cluster).
@@ -83,25 +84,26 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         fig = pyplot.figure()
         pyplot.imshow(
-            self._phase.cells.maskM,
+            phase.cells.maskM,
             origin='lower',
-            extent=self._phase.cache.upscaled.extent,
-            cmap=self._phase.p.background_cm,
+            extent=phase.cache.upscaled.extent,
+            cmap=phase.p.background_cm,
         )
         pyplot.colorbar()
         pyplot.title('Cluster Masking Matrix')
 
         # Export this plot to disk and/or display.
-        self._export(basename='cluster_mask')
+        self._export(phase=phase, basename='cluster_mask')
 
     # ..................{ EXPORTERS ~ cluster : tissue      }..................
     # This exporter is solver- and feature-agnostic.
     @piperunner(categories=('Cell Cluster', 'Tissue and Cut Profiles',))
-    def export_tissue_cuts(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_tissue_cuts(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot a **tissue and cut profile tessellation** (i.e., tiled mosaic of
         all cells spatially subdivided into tissue and cut profile regions such
@@ -112,13 +114,13 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         # Localize frequently accessed fields for convenience.
-        p = self._phase.p
-        dyna = self._phase.dyna
-        cells = self._phase.cells
-        colormap = self._phase.p.background_cm
+        p = phase.p
+        dyna = phase.dyna
+        cells = phase.cells
+        colormap = phase.p.background_cm
 
         col_dic = {}
         cb_ticks = []
@@ -246,30 +248,31 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         ax.set_title('Cell Cluster')
 
         ax.axis('equal')
-        ax.axis(self._phase.cache.upscaled.extent)
+        ax.axis(phase.cache.upscaled.extent)
 
         # Export this plot to disk and/or display.
-        self._export(basename='cluster_mosaic')
+        self._export(phase=phase, basename='cluster_mosaic')
 
     # ..................{ EXPORTERS ~ current               }..................
     @piperunner(
         categories=('Current Density', 'Intracellular',),
         requirements=phasereqs.ELECTRIC_CURRENT,
     )
-    def export_currents_intra(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_currents_intra(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all intracellular current densities for the cell cluster at the
         last time step.
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         figI, axI, cbI = plotutil.plotStreamField(
-            100*self._phase.sim.J_cell_x,
-            100*self._phase.sim.J_cell_y,
-            self._phase.cells,
-            self._phase.p,
+            100*phase.sim.J_cell_x,
+            100*phase.sim.J_cell_y,
+            phase.cells,
+            phase.p,
             plot_ecm=False,
             title='Intracellular Current Density',
             cb_title='Current Density [uA/cm2]',
@@ -284,27 +287,28 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         cbI.set_label('Current Density [uA/cm2]')
 
         # Export this plot to disk and/or display.
-        self._export(basename='Final_Current_gj')
+        self._export(phase=phase, basename='Final_Current_gj')
 
 
     @piperunner(
         categories=('Current Density', 'Extracellular',),
         requirements=phasereqs.ELECTRIC_CURRENT_EXTRA,
     )
-    def export_currents_extra(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_currents_extra(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular current densities for the environment at the
         last time step.
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         figI2, axI2, cbI2 = plotutil.plotStreamField(
-            100*self._phase.sim.J_env_x,
-            100*self._phase.sim.J_env_y,
-            self._phase.cells,
-            self._phase.p,
+            100*phase.sim.J_env_x,
+            100*phase.sim.J_env_y,
+            phase.cells,
+            phase.p,
             plot_ecm=True,
             title='Extracellular Current Density',
             cb_title='Current Density [uA/cm2]',
@@ -319,14 +323,15 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         cbI2.set_label('Extracellular Current Density [uA/cm2]')
 
         # Export this plot to disk and/or display.
-        self._export(basename='Final_Current_extracellular')
+        self._export(phase=phase, basename='Final_Current_extracellular')
 
     # ..................{ EXPORTERS ~ deform                }..................
     @piperunner(
         categories=('Deformation', 'Total',),
         requirements=phasereqs.DEFORM,
     )
-    def export_deform_total(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_deform_total(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all **total cellular displacements** (i.e., summations of all
         cellular deformations due to galvanotropic and osmotic pressure body
@@ -334,51 +339,52 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         plotutil.plotStreamField(
-            self._phase.p.um*self._phase.sim.dx_cell_time[-1],
-            self._phase.p.um*self._phase.sim.dy_cell_time[-1],
-            self._phase.cells, self._phase.p,
+            phase.p.um*phase.sim.dx_cell_time[-1],
+            phase.p.um*phase.sim.dy_cell_time[-1],
+            phase.cells, phase.p,
             plot_ecm=False,
             title='Final Displacement of Cell Collective',
             cb_title='Displacement [um]',
-            show_cells=self._phase.p.showCells,
+            show_cells=phase.p.showCells,
             colorAutoscale=conf.is_color_autoscaled,
             minColor=conf.color_min,
             maxColor=conf.color_max,
         )
 
         # Export this plot to disk and/or display.
-        self._export(basename='final_displacement_2D')
+        self._export(phase=phase, basename='final_displacement_2D')
 
     # ..................{ EXPORTERS ~ diffusion             }..................
     @piperunner(
         categories=('Diffusion Weights', 'Extracellular',),
         requirements=phasereqs.ECM,
     )
-    def export_diffusion_extra(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_diffusion_extra(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all logarithm-scaled extracellular diffusion weights for the
         environment at the last time step.
         '''
 
         # Prepare to export the electric plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         fig = pyplot.figure()
         ax99 = pyplot.subplot(111)
         pyplot.imshow(
-            np.log10(self._phase.sim.D_env_weight.reshape(
-                self._phase.cells.X.shape)),
+            np.log10(phase.sim.D_env_weight.reshape(
+                phase.cells.X.shape)),
             origin='lower',
-            extent=self._phase.cache.upscaled.extent,
-            cmap=self._phase.p.background_cm,
+            extent=phase.cache.upscaled.extent,
+            cmap=phase.p.background_cm,
         )
         pyplot.colorbar()
 
         cell_edges_flat = mathunit.upscale_coordinates(
-            self._phase.cells.mem_edges_flat)
+            phase.cells.mem_edges_flat)
         coll = LineCollection(cell_edges_flat, colors='k')
         coll.set_alpha(1.0)
         ax99.add_collection(coll)
@@ -386,27 +392,28 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         pyplot.title('Logarithm of Environmental Diffusion Weight Matrix')
 
         # Export this plot to disk and/or display.
-        self._export(basename='env_diffusion_weights')
+        self._export(phase=phase, basename='env_diffusion_weights')
 
     # ..................{ EXPORTERS ~ electric              }..................
     @piperunner(
         categories=('Electric Field', 'Intracellular',),
         requirements=phasereqs.ELECTRIC_FIELD,
     )
-    def export_electric_intra(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_electric_intra(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all intracellular electric field lines for the cell cluster at the
         last time step.
         '''
 
         # Prepare to export the electric plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         plotutil.plotVectField(
-            self._phase.sim.E_cell_x,
-            self._phase.sim.E_cell_y,
-            self._phase.cells,
-            self._phase.p,
+            phase.sim.E_cell_x,
+            phase.sim.E_cell_y,
+            phase.cells,
+            phase.p,
             plot_ecm=False,
             title='Final Electric Field',
             cb_title='Electric Field [V/m]',
@@ -416,27 +423,28 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         )
 
         # Export this plot to disk and/or display.
-        self._export(basename='Final_Electric_Field_GJ')
+        self._export(phase=phase, basename='Final_Electric_Field_GJ')
 
 
     @piperunner(
         categories=('Electric Field', 'Extracellular',),
         requirements=phasereqs.ELECTRIC_FIELD_EXTRA,
     )
-    def export_electric_extra(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_electric_extra(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular electric field lines for the environment at the
         last time step.
         '''
 
         # Prepare to export the electric plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         plotutil.plotVectField(
-            self._phase.sim.E_env_x,
-            self._phase.sim.E_env_y,
-            self._phase.cells,
-            self._phase.p,
+            phase.sim.E_env_x,
+            phase.sim.E_env_y,
+            phase.cells,
+            phase.p,
             plot_ecm=True,
             title='Final Electric Field',
             cb_title='Electric Field [V/m]',
@@ -446,26 +454,27 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         )
 
         # Export this plot to disk and/or display.
-        self._export(basename='Final_Electric_Field_ECM')
+        self._export(phase=phase, basename='Final_Electric_Field_ECM')
 
     # ..................{ EXPORTERS ~ fluid                 }..................
     @piperunner(
         categories=('Fluid Flow', 'Intracellular',),
         requirements=phasereqs.FLUID,
     )
-    def export_fluid_intra(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_fluid_intra(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all intracellular fluid flow field lines for the cell cluster at
         the last time step.
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         plotutil.plotStreamField(
-            1e6*self._phase.sim.u_cells_x,
-            1e6*self._phase.sim.u_cells_y,
-            self._phase.cells, self._phase.p,
+            1e6*phase.sim.u_cells_x,
+            1e6*phase.sim.u_cells_y,
+            phase.cells, phase.p,
             plot_ecm=False,
             title='Final Fluid Velocity in Cell Collective',
             cb_title='Velocity [um/s]',
@@ -475,26 +484,27 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         )
 
         # Export this plot to disk and/or display.
-        self._export(basename='final_vel_2D_gj')
+        self._export(phase=phase, basename='final_vel_2D_gj')
 
 
     @piperunner(
         categories=('Fluid Flow', 'Extracellular',),
         requirements=phasereqs.FLUID_EXTRA,
     )
-    def export_fluid_extra(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_fluid_extra(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular fluid flow field lines for the environment at
         the last time step.
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         plotutil.plotStreamField(
-            1e9*self._phase.sim.u_env_x,
-            1e9*self._phase.sim.u_env_y,
-            self._phase.cells, self._phase.p,
+            1e9*phase.sim.u_env_x,
+            1e9*phase.sim.u_env_y,
+            phase.cells, phase.p,
             plot_ecm=True,
             title='Final Fluid Velocity in Environment',
             cb_title='Velocity [nm/s]',
@@ -504,7 +514,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         )
 
         # Export this plot to disk and/or display.
-        self._export(basename='final_vel_2D_env')
+        self._export(phase=phase, basename='final_vel_2D_env')
 
     # ..................{ EXPORTERS ~ ion : calcium         }..................
     @piperunner(
@@ -512,20 +522,20 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         requirements=phasereqs.ION_CALCIUM,
     )
     def export_ion_calcium_intra(
-        self, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all intracellular calcium (i.e., Ca2+) ion concentrations for the
         cell cluster at the last time step.
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         figCa, axCa, cbCa = plotutil.plotPolyData(
-            self._phase.sim, self._phase.cells, self._phase.p,
-            zdata=self._phase.sim.cc_time[-1][self._phase.sim.iCa]*1e6,
-            number_cells=self._phase.p.enumerate_cells,
-            clrmap=self._phase.p.default_cm,
+            phase.sim, phase.cells, phase.p,
+            zdata=phase.sim.cc_time[-1][phase.sim.iCa]*1e6,
+            number_cells=phase.p.enumerate_cells,
+            clrmap=phase.p.default_cm,
             clrAutoscale=conf.is_color_autoscaled,
             clrMin=conf.color_min,
             clrMax=conf.color_max,
@@ -537,7 +547,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         cbCa.set_label('Concentration nmol/L')
 
         # Export this plot to disk and/or display.
-        self._export(basename='final_Ca_2D')
+        self._export(phase=phase, basename='final_Ca_2D')
 
 
     @piperunner(
@@ -545,36 +555,37 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         requirements=phasereqs.ION_CALCIUM_EXTRA,
     )
     def export_ion_calcium_extra(
-        self, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular calcium (i.e., Ca2+) ion concentrations for the
         environment at the last time step.
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
-        cc_Ca = self._phase.sim.cc_env[self._phase.sim.iCa].reshape(
-            self._phase.cells.X.shape)
+        cc_Ca = phase.sim.cc_env[phase.sim.iCa].reshape(
+            phase.cells.X.shape)
 
         pyplot.figure()
         pyplot.imshow(
             cc_Ca,
             origin='lower',
-            extent=self._phase.cache.upscaled.extent,
-            cmap=self._phase.p.default_cm,
+            extent=phase.cache.upscaled.extent,
+            cmap=phase.p.default_cm,
         )
         pyplot.colorbar()
         pyplot.title('Environmental Calcium [mmol/L]')
 
         # Export this plot to disk and/or display.
-        self._export(basename='Final_environmental_calcium')
+        self._export(phase=phase, basename='Final_environmental_calcium')
 
     # ..................{ EXPORTERS ~ gap junction          }..................
     # These exporters are solver- and feature-agnostic.
 
     @piperunner(categories=('Gap Junction', 'Connectivity Network',))
-    def export_gj_connectivity(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_gj_connectivity(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot the **gap junction connectivity network** (i.e., graph of all gap
         junctions connecting cell membranes) for the cell cluster.
@@ -583,35 +594,36 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         fig = pyplot.figure()
         ax_x = pyplot.subplot(111)
 
-        if self._phase.p.showCells:
+        if phase.p.showCells:
             base_points = mathunit.upscale_coordinates(
-                self._phase.cells.cell_verts)
+                phase.cells.cell_verts)
             col_cells = PolyCollection(
                 base_points, facecolors='k', edgecolors='none')
             col_cells.set_alpha(0.3)
             ax_x.add_collection(col_cells)
 
-        connects = mathunit.upscale_coordinates(self._phase.cells.nn_edges)
+        connects = mathunit.upscale_coordinates(phase.cells.nn_edges)
         collection = LineCollection(connects, linewidths=1.0, color='b')
         ax_x.add_collection(collection)
         pyplot.axis('equal')
-        pyplot.axis(self._phase.cache.upscaled.extent)
+        pyplot.axis(phase.cache.upscaled.extent)
 
         ax_x.set_xlabel('Spatial x [um]')
         ax_x.set_ylabel('Spatial y [um')
         ax_x.set_title('Cell Connectivity Network')
 
         # Export this plot to disk and/or display.
-        self._export(basename='gj_connectivity_network')
+        self._export(phase=phase, basename='gj_connectivity_network')
 
 
     @piperunner(categories=('Gap Junction', 'Relative Permeability',))
-    def export_gj_permeability(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_gj_permeability(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all **gap junction connectivity states** (i.e., relative
         permeabilities of all gap junctions connecting cell membranes) for the
@@ -619,17 +631,17 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         fig_x = pyplot.figure()
         ax_x = pyplot.subplot(111)
 
-        con_segs = self._phase.cells.nn_edges
-        connects = self._phase.p.um*np.asarray(con_segs)
+        con_segs = phase.cells.nn_edges
+        connects = phase.p.um*np.asarray(con_segs)
         collection = LineCollection(
             connects,
-            array=self._phase.sim.gjopen,
-            cmap=self._phase.p.background_cm,
+            array=phase.sim.gjopen,
+            cmap=phase.p.background_cm,
             linewidths=2.0,
         )
         # collection.set_clim(0, 1)
@@ -637,7 +649,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         ax_x.add_collection(collection)
         cb = fig_x.colorbar(collection)
         pyplot.axis('equal')
-        pyplot.axis(self._phase.cache.upscaled.extent)
+        pyplot.axis(phase.cache.upscaled.extent)
 
         cb.set_label('Relative Permeability')
         ax_x.set_xlabel('Spatial x [um]')
@@ -645,24 +657,25 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         ax_x.set_title('Final Gap Junction Relative Permeability')
 
         # Export this plot to disk and/or display.
-        self._export(basename='final_gjState')
+        self._export(phase=phase, basename='final_gjState')
 
     # ..................{ EXPORTERS ~ microtubule           }..................
     @piperunner(
         categories=('Microtubule', 'Coherence',),
         requirements=phasereqs.MICROTUBULE,
     )
-    def export_microtubule(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_microtubule(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot the coherence of all cellular microtubules for the cell cluster at
         the last time step.
         '''
 
         # Prepare to export the microtubules plot.
-        self._export_prep()
+        self._export_prep(phase)
 
-        umtx, umty = self._phase.sim.mtubes.mtubes_to_cell(
-            self._phase.cells, self._phase.p)
+        umtx, umty = phase.sim.mtubes.mtubes_to_cell(
+            phase.cells, phase.p)
 
         pyplot.figure()
         ax = pyplot.subplot(111)
@@ -670,8 +683,8 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         plotutil.plotVectField(
             umtx,
             umty,
-            self._phase.cells,
-            self._phase.p,
+            phase.cells,
+            phase.p,
             plot_ecm=False,
             title='Final Microtubule Alignment Field',
             cb_title='Aligned MT Fraction',
@@ -682,15 +695,15 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
 
         # pyplot.figure()
         # ax = pyplot.subplot(111)
-        # umtx, umty = self._phase.sim.mtubes.mtubes_to_cell(self._phase.cells, self._phase.p)
-        # plotutil.cell_quiver(umtx, umty, ax, self._phase.cells, self._phase.p)
+        # umtx, umty = phase.sim.mtubes.mtubes_to_cell(phase.cells, phase.p)
+        # plotutil.cell_quiver(umtx, umty, ax, phase.cells, phase.p)
 
         # plotutil.mem_quiver(
-        #     self._phase.sim.mtubes.mtubes_x,
-        #     self._phase.sim.mtubes.mtubes_y,
+        #     phase.sim.mtubes.mtubes_x,
+        #     phase.sim.mtubes.mtubes_y,
         #     ax,
-        #     self._phase.cells,
-        #     self._phase.p,
+        #     phase.cells,
+        #     phase.p,
         # )
 
         ax.set_xlabel('X-Distance [um]')
@@ -698,7 +711,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         ax.set_title('Net microtubule alignment in cells')
 
         # Export this plot to disk and/or display.
-        self._export(basename='Final_Microtubules')
+        self._export(phase=phase, basename='Final_Microtubules')
 
     # ..................{ EXPORTERS ~ pump                  }..................
     # @piperunner(
@@ -715,9 +728,9 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
     #     self._export_prep()
     #
     #     plotutil.plotMemData(
-    #         self._phase.cells, self._phase.p,
-    #         zdata=self._phase.sim.rho_pump,
-    #         clrmap=self._phase.p.default_cm,
+    #         phase.cells, phase.p,
+    #         zdata=phase.sim.rho_pump,
+    #         clrmap=phase.p.default_cm,
     #     )
     #     pyplot.xlabel('Spatial Dimension [um]')
     #     pyplot.ylabel('Spatial Dimension [um]')
@@ -730,22 +743,23 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         categories=('Ion Pump', 'Pump Rate', 'Na-K-ATPase',),
         requirements=phasereqs.PUMP_NAKATPASE,
     )
-    def export_pump_nakatpase(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_pump_nakatpase(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all cell membrane Na-K-ATPase pump rates for the cell cluster at
         the last time step.
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
-        pumpData = self._phase.sim.rate_NaKATP*1e9
+        pumpData = phase.sim.rate_NaKATP*1e9
 
         figPump, axPump, cbPump = plotutil.plotPrettyPolyData(
             pumpData,
-            self._phase.sim, self._phase.cells, self._phase.p,
-            number_cells=self._phase.p.enumerate_cells,
-            clrmap=self._phase.p.default_cm,
+            phase.sim, phase.cells, phase.p,
+            number_cells=phase.p.enumerate_cells,
+            clrmap=phase.p.default_cm,
         )
 
         axPump.set_title('Final Na/K-ATPase Pump Rate')
@@ -754,14 +768,15 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         cbPump.set_label('Pump Na+ Flux (nmol/m2*s)')
 
         # Export this plot to disk and/or display.
-        self._export(basename='final_NaKPump_2D')
+        self._export(phase=phase, basename='final_NaKPump_2D')
 
     # ..................{ EXPORTERS ~ pressure              }..................
     @piperunner(
         categories=('Pressure', 'Total',),
         requirements=phasereqs.PRESSURE_TOTAL,
     )
-    def export_pressure_total(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_pressure_total(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all **cellular pressure totals** (i.e., summations of all cellular
         mechanical and osmotic pressures) for the cell cluster at the last time
@@ -769,13 +784,13 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         figP, axP, cbP = plotutil.plotPolyData(
-            self._phase.sim, self._phase.cells, self._phase.p,
-            zdata=self._phase.sim.P_cells,
-            number_cells=self._phase.p.enumerate_cells,
-            clrmap=self._phase.p.default_cm,
+            phase.sim, phase.cells, phase.p,
+            zdata=phase.sim.P_cells,
+            number_cells=phase.p.enumerate_cells,
+            clrmap=phase.p.default_cm,
             clrAutoscale=conf.is_color_autoscaled,
             clrMin=conf.color_min,
             clrMax=conf.color_max,
@@ -787,36 +802,37 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         cbP.set_label('Pressure [Pa]')
 
         # Export this plot to disk and/or display.
-        self._export(basename='final_P_2D_gj')
+        self._export(phase=phase, basename='final_P_2D_gj')
 
     # ..................{ EXPORTERS ~ voltage               }..................
     @piperunner(
         categories=('Voltage', 'Extracellular',),
         requirements=phasereqs.VOLTAGE_EXTRA,
     )
-    def export_voltage_extra(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_voltage_extra(
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular voltages for the environment at the last time
         step.
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
-        vv = self._phase.sim.v_env.reshape(self._phase.cells.X.shape)
+        vv = phase.sim.v_env.reshape(phase.cells.X.shape)
 
         pyplot.figure()
         pyplot.imshow(
             1e3*vv,
             origin='lower',
-            extent=self._phase.cache.upscaled.extent,
-            cmap=self._phase.p.default_cm,
+            extent=phase.cache.upscaled.extent,
+            cmap=phase.p.default_cm,
         )
         pyplot.colorbar()
         pyplot.title('Environmental Voltage [mV]')
 
         # Export this plot to disk and/or display.
-        self._export(basename='Final_environmental_V')
+        self._export(phase=phase, basename='Final_environmental_V')
 
 
     @piperunner(
@@ -824,71 +840,71 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         requirements=phasereqs.VOLTAGE_POLARITY,
     )
     def export_voltage_polarity(
-        self, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all cellular voltage polarities for the cell cluster at the last
         time step.
         '''
 
         # Prepare to export the polarization plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         pyplot.figure()
 
         # Plot a background Vmem mesh.
         fig, ax, cb = plotutil.plotPrettyPolyData(
-            1000*self._phase.sim.vm_time[-1],
-            self._phase.sim, self._phase.cells, self._phase.p,
-            number_cells=self._phase.p.enumerate_cells,
+            1000*phase.sim.vm_time[-1],
+            phase.sim, phase.cells, phase.p,
+            number_cells=phase.p.enumerate_cells,
             current_overlay=False,
-            plotIecm=self._phase.p.IecmPlot,
-            clrmap=self._phase.p.default_cm,
+            plotIecm=phase.p.IecmPlot,
+            clrmap=phase.p.default_cm,
             clrAutoscale=conf.is_color_autoscaled,
             clrMin=conf.color_min,
             clrMax=conf.color_max,
         )
 
         # Calculate the Vmem polarity vectors.
-        polm = self._phase.sim.vm - (
-            self._phase.sim.vm_ave_time[-1][self._phase.cells.mem_to_cells])
-        polx = polm*self._phase.cells.mem_vects_flat[:,2]
-        poly = polm*self._phase.cells.mem_vects_flat[:,3]
+        polm = phase.sim.vm - (
+            phase.sim.vm_ave_time[-1][phase.cells.mem_to_cells])
+        polx = polm*phase.cells.mem_vects_flat[:,2]
+        poly = polm*phase.cells.mem_vects_flat[:,3]
 
         pcx = np.dot(
-            self._phase.cells.M_sum_mems,
-            polx*self._phase.cells.mem_sa) / self._phase.cells.cell_sa
+            phase.cells.M_sum_mems,
+            polx*phase.cells.mem_sa) / phase.cells.cell_sa
         pcy = np.dot(
-            self._phase.cells.M_sum_mems,
-            poly*self._phase.cells.mem_sa) / self._phase.cells.cell_sa
+            phase.cells.M_sum_mems,
+            poly*phase.cells.mem_sa) / phase.cells.cell_sa
 
-        plotutil.cell_quiver(pcx, pcy, ax, self._phase.cells, self._phase.p)
+        plotutil.cell_quiver(pcx, pcy, ax, phase.cells, phase.p)
 
         ax.set_xlabel('X-Distance [um]')
         ax.set_ylabel('Y-Distance [um]')
         ax.set_title('Cell Vmem polarity')
 
         # Export this plot to disk and/or display.
-        self._export(basename='Final_Polarity')
+        self._export(phase=phase, basename='Final_Polarity')
 
     # ..................{ EXPORTERS ~ voltage : vmem        }..................
     @piperunner(categories=('Voltage', 'Transmembrane', 'Actual',))
     def export_voltage_membrane(
-        self, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all transmembrane voltages (Vmem) for the cell cluster at the last
         time step.
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         figV, axV, cbV = plotutil.plotPrettyPolyData(
-            1000*self._phase.sim.vm_time[-1],
-            self._phase.sim, self._phase.cells, self._phase.p,
-            number_cells=self._phase.p.enumerate_cells,
+            1000*phase.sim.vm_time[-1],
+            phase.sim, phase.cells, phase.p,
+            number_cells=phase.p.enumerate_cells,
             current_overlay=False,
-            plotIecm=self._phase.p.IecmPlot,
-            clrmap=self._phase.p.default_cm,
+            plotIecm=phase.p.IecmPlot,
+            clrmap=phase.p.default_cm,
             clrAutoscale=conf.is_color_autoscaled,
             clrMin=conf.color_min,
             clrMax=conf.color_max,
@@ -900,27 +916,27 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         cbV.set_label('Voltage mV')
 
         # Export this plot to disk and/or display.
-        self._export(basename='final_Vmem_2D')
+        self._export(phase=phase, basename='final_Vmem_2D')
 
 
     @piperunner(categories=('Voltage', 'Transmembrane', 'Average',))
     def export_voltage_membrane_average(
-        self, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot the averages of all transmembrane voltages (Vmem) for the cell
         cluster at the last time step.
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         figVa, axVa, cbVa = plotutil.plotPolyData(
-            self._phase.sim, self._phase.cells, self._phase.p,
-            zdata=1000*self._phase.sim.vm_ave,
-            number_cells=self._phase.p.enumerate_cells,
+            phase.sim, phase.cells, phase.p,
+            zdata=1000*phase.sim.vm_ave,
+            number_cells=phase.p.enumerate_cells,
             current_overlay=False,
-            plotIecm=self._phase.p.IecmPlot,
-            clrmap=self._phase.p.default_cm,
+            plotIecm=phase.p.IecmPlot,
+            clrmap=phase.p.default_cm,
             clrAutoscale=conf.is_color_autoscaled,
             clrMin=conf.color_min,
             clrMax=conf.color_max,
@@ -936,7 +952,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         cbVa.set_label('Voltage [mV]')
 
         # Export this plot to disk and/or display.
-        self._export(basename='final_AverageVmem_2D')
+        self._export(phase=phase, basename='final_AverageVmem_2D')
 
 
     @piperunner(
@@ -944,7 +960,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         requirements=phasereqs.VOLTAGE_MEMBRANE_GHK,
     )
     def export_voltage_membrane_ghk(
-        self, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all transmembrane voltages (Vmem) calculated by the
         Goldman-Hodgkin-Katz (GHK) equation for the cell cluster at the last
@@ -952,15 +968,15 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         '''
 
         # Prepare to export the current plot.
-        self._export_prep()
+        self._export_prep(phase)
 
         figV_ghk, axV_ghk, cbV_ghk = plotutil.plotPolyData(
-            self._phase.sim, self._phase.cells, self._phase.p,
-            zdata=1000*self._phase.sim.vm_GHK_time[-1],
-            number_cells=self._phase.p.enumerate_cells,
+            phase.sim, phase.cells, phase.p,
+            zdata=1000*phase.sim.vm_GHK_time[-1],
+            number_cells=phase.p.enumerate_cells,
             current_overlay=False,
-            plotIecm=self._phase.p.IecmPlot,
-            clrmap=self._phase.p.default_cm,
+            plotIecm=phase.p.IecmPlot,
+            clrmap=phase.p.default_cm,
             clrAutoscale=conf.is_color_autoscaled,
             clrMin=conf.color_min,
             clrMax=conf.color_max,
@@ -976,4 +992,4 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         cbV_ghk.set_label('Voltage [mV]')
 
         # Export this plot to disk and/or display.
-        self._export(basename='final_Vmem_GHK_2D')
+        self._export(phase=phase, basename='final_Vmem_GHK_2D')

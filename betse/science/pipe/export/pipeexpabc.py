@@ -10,6 +10,7 @@ isolated, simulation export actions to be run iteratively) functionality.
 
 # ....................{ IMPORTS                           }....................
 from betse.science.pipe.pipeabc import SimPipeABC
+from betse.util.type.descriptor.descs import classproperty_readonly
 
 # ....................{ SUPERCLASSES                      }....................
 class SimPipeExportABC(SimPipeABC):
@@ -20,8 +21,8 @@ class SimPipeExportABC(SimPipeABC):
     '''
 
     # ..................{ SUPERCLASS                        }..................
-    @property
-    def _runner_method_name_prefix(self) -> str:
+    @classproperty_readonly
+    def _RUNNER_METHOD_NAME_PREFIX(self) -> str:
         return  'export_'
 
 
