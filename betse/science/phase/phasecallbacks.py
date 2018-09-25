@@ -12,7 +12,7 @@ periodically called while simulating one or more phases) class hierarchy.
 from betse.util.io.log import logs
 from betse.util.py import pys
 from betse.util.type.call.callbacks import CallbacksBC
-from betse.util.type.types import NoneType  #type_check
+from betse.util.type.types import NoneType, StrOrNoneTypes
 
 # ....................{ SUPERCLASSES                      }....................
 # This subclass is currently an empty placeholder but will be subsequently
@@ -68,10 +68,10 @@ class SimCallbacksNoop(SimCallbacksBC):
     def progressed(self, progress: int) -> None:
         pass
 
-    def progressed_last(self) -> None:
+    def progressed_last(self, progress_status: StrOrNoneTypes = None) -> None:
         pass
 
-    def progressed_next(self) -> None:
+    def progressed_next(self, progress_status: StrOrNoneTypes = None) -> None:
         pass
 
 # ....................{ MAKERS                            }....................
