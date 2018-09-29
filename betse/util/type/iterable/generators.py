@@ -24,6 +24,15 @@ def empty_generator() -> GeneratorType:
 
     yield from ()
 
+# ....................{ TESTERS                           }....................
+def is_generator(obj: object) -> bool:
+    '''
+    ``True`` only if the passed object is a generator.
+    '''
+
+    # Best things in life are free.
+    return isinstance(obj, GeneratorType)
+
 # ....................{ GETTERS                           }....................
 @type_check
 def get_length(generator: GeneratorType) -> int:

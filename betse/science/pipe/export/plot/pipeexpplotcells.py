@@ -20,6 +20,7 @@ from betse.science.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
 from betse.util.io.log import logs
 from betse.util.type.iterable import iterables
+from betse.util.type.descriptor.descs import classproperty_readonly
 from betse.util.type.types import type_check, IterableTypes
 from collections import OrderedDict
 from matplotlib import pyplot
@@ -34,14 +35,15 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
     simulation configuration).
     '''
 
+    # ..................{ SUPERCLASS ~ properties           }..................
+    @classproperty_readonly
+    def _NOUN_SINGULAR(cls) -> str:
+        return 'cell cluster plot'
+
     # ..................{ SUPERCLASS                        }..................
     @type_check
     def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
         return phase.p.plot.plots_cells_after_sim
-
-    @property
-    def _noun_singular(self) -> str:
-        return 'cell cluster plot'
 
     # ..................{ EXPORTERS ~ channel               }..................
     # @piperunner(

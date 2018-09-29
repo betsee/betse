@@ -808,57 +808,35 @@ class MplConfig(object):
         matplotlib-specific backends (e.g.,
         ``['gtk3agg', 'tkagg', 'qt4agg']``).
 
-        While matplotlib provides the canonical lists
-        :attr:`matplotlib.rcsetup.interactive_bk`,
-        :attr:`matplotlib.rcsetup.non_interactive_bk`, and
-        :attr:`matplotlib.rcsetup.all_backends`, even the latter typically
-        fails to list all possible backends (e.g., `mixed` tends to be
-        missing). For completeness, this function instead iteratively inspects
-        the current filesystem.
-
-        This property is efficiently created and cached on the first access.
+        This property effectively yields the contents of the canonical
+        :attr:`matplotlib.rcsetup.all_backends` sequence such that all items
+        are both lowercased and lexicographically sorted.
         '''
 
-        # Importing such module has side effects and hence is deferred.
-        from matplotlib import backends
+        # Importing this submodule may have side effects and is thus deferred.
+        #
+        # "all_backends" is the canonical sequence of all publicly supported
+        # backends, defined as the concatenation of these subsidiary sequences:
+        #
+        # * "interactive_bk", listing all supported interative backends.
+        # * "non_interactive_bk", listing all supported non-interative
+        #   backends.
+        #
+        # Note that this sequence excludes numerous privately supported
+        # backends residing in the "matplotlib.backends" subpackage (e.g.,
+        # "matplotlib.backends.backend_webagg_core"). Obsolete versions of
+        # Matplotlib permitted callers to enable these backends; ergo, this
+        # property was previously implemented to dynamically introspect the
+        # local filesystem to collect the set of all backend names from the set
+        # of all "backend_"-prefixed submodules residing in this subpackage.
+        # Modern versions of Matplotlib prohibit callers from enabling these
+        # backends; ergo, this property now defers to this sequence.
+        from matplotlib.rcsetup import all_backends
 
-        # Absolute path of the directory containing all backends for the
-        # currently imported "matplotlib".
-        backends_dir = pymodule.get_dirname(backends)
-
-        # If this directory exists, find all backends in this directory.
-        if dirs.is_dir(backends_dir):
-            # String prefixing the basenames of backend-specific modules.
-            BACKEND_BASENAME_PREFIX = 'backend_'
-
-            # Return and cache a list of these names, discovered by:
-            #
-            # * Filtering all basenames in this directory for modules.
-            # * Converting the remaining basenames to backend names.
-            # * Sorting these names in ascending lexicographic order for
-            #   readability (e.g., in the "info" subcommand).
-            return iterables.sort_ascending([
-                pathnames.get_pathname_sans_filetype(
-                    strs.remove_prefix_if_found(
-                        backend_basename, BACKEND_BASENAME_PREFIX))
-                for backend_basename in dirs.iter_basenames(backends_dir)
-                if strs.is_prefix(
-                    backend_basename, BACKEND_BASENAME_PREFIX) and
-                   pathnames.is_filetype_equals(backend_basename, 'py')
-            ])
-        # Else, this directory does *NOT* exist.
-        else:
-            # If the active Python interpreter is frozen, this is expected
-            # and hence ignorable; else, this is unexpected, in which case a
-            # non-fatal warning is logged and such list is cleared.
-            if not pyfreeze.is_frozen():
-                logs.log_warning(
-                    'Directory "{}" not found. '
-                    'Matplotlib backends not queryable.'.format(
-                        backends_dir))
-
-            # In either case, return and cache the empty list.
-            return []
+        # Return a new sequence containing all items from "all_backends"
+        # lowercased and lexicographically sorted.
+        return iterables.sort_ascending(
+            backend_name.lower() for backend_name in all_backends)
 
     # ..................{ PROPERTIES ~ backend : names: pri }..................
     @property_cached

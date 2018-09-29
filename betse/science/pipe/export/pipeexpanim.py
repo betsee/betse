@@ -40,6 +40,7 @@ from betse.science.visual.layer.vectorfield.lyrvecfldquiver import (
 )
 from betse.science.visual.layer.vectorfield.lyrvecfldstream import (
     LayerCellsFieldStream)
+from betse.util.type.descriptor.descs import classproperty_readonly
 from betse.util.type.types import type_check, IterableTypes
 
 # ....................{ SUBCLASSES                        }....................
@@ -50,7 +51,12 @@ class SimPipeExportAnimCells(SimPipeExportABC):
     configuration).
     '''
 
-    # ..................{ SUPERCLASS                        }..................
+    # ..................{ SUPERCLASS ~ properties           }..................
+    @classproperty_readonly
+    def _NOUN_SINGULAR(cls) -> str:
+        return 'animation'
+
+    # ..................{ SUPERCLASS ~ methods              }..................
     @type_check
     def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
         return phase.p.anim.anims_after_sim
@@ -58,10 +64,6 @@ class SimPipeExportAnimCells(SimPipeExportABC):
     @type_check
     def _is_enabled(self, phase: SimPhase) -> bool:
         return phase.p.anim.is_after_sim
-
-    @property
-    def _noun_singular(self) -> str:
-        return 'animation'
 
     # ..................{ EXPORTERS ~ current               }..................
     @piperunner(

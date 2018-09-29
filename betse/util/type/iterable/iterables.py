@@ -1067,15 +1067,28 @@ def sort_ascending(iterable: IterableTypes) -> IterableTypes:
     '''
     Iterable sorted from the passed iterable in ascending order.
 
-    Each element of this iterable is compared to each other element of this
-    iterable via the ``<`` operator, implicitly calling the ``__le__()``
-    special method of these elements. Each element is ideally but *not*
-    necessarily of the same type. If each element is:
+    Each item of this iterable is compared to each other item of this iterable
+    under the ``<`` operator, thus implicitly calling the ``__le__()`` special
+    method of each such item. Each item should ideally but *not* necessarily be
+    of the same type. If each item is:
 
     * A string, these strings are sorted in **ascending lexicographic order**
       (i.e., traditional order of dead-tree dictionaries and encyclopedias).
     * A number (i.e., integer or a float), these numbers are sorted in
       **ascending numeric order.**
+
+    Caveats
+    ----------
+    If the passed iterable is a generator, this function:
+
+    * Internally coerces this generator into a tuple *before* attempting to
+      sort the items yielded by this generator.
+    * Externally returns a new tuple rather than a new generator.
+
+    This constraint is mandated by the :func:`sorted` builtin, which raises the
+    following exception on receiving a generator:
+
+       TypeError: cannot create 'generator' instances
 
     Parameters
     ----------
@@ -1092,12 +1105,21 @@ def sort_ascending(iterable: IterableTypes) -> IterableTypes:
         *must* define an ``__init__()`` method accepting a list.
     '''
 
-    # Type of the passed iterable.
-    iterable_type = type(iterable)
+    # Avoid circular import dependencies.
+    from betse.util.type.iterable import generators
+
+    # Input iterable to be sorted. If the passed iterable is a generator,
+    # coerce this iterable into a tuple; else, reuse this iterable as is.
+    # Generators are *NOT* safely sortable as is. (See above for details.)
+    iterable_sortable = (
+        tuple(iterable) if generators.is_generator(iterable) else iterable)
+
+    # Type of this iterable.
+    iterable_type = type(iterable_sortable)
 
     # Return an iterable of the same type, converted from the sorted list
     # returned by the sorted() builtin.
-    return iterable_type(sorted(iterable))
+    return iterable_type(sorted(iterable_sortable))
 
 
 @type_check

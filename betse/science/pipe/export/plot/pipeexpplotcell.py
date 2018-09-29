@@ -18,6 +18,7 @@ from betse.science.phase.require import phasereqs
 from betse.science.pipe.export.plot.pipeexpplotabc import SimPipeExportPlotABC
 from betse.science.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
+from betse.util.type.descriptor.descs import classproperty_readonly
 from betse.util.type.types import type_check, IterableTypes
 from matplotlib import pyplot
 
@@ -29,6 +30,11 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
     cluster, produced after initialization and simulation as specified by the
     current simulation configuration).
     '''
+
+    # ..................{ SUPERCLASS ~ properties           }..................
+    @classproperty_readonly
+    def _NOUN_SINGULAR(cls) -> str:
+        return 'single-cell plot'
 
     # ..................{ INITIALIZERS                      }..................
     @type_check
@@ -50,10 +56,6 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
     @type_check
     def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
         return phase.p.plot.plots_cell_after_sim
-
-    @property
-    def _noun_singular(self) -> str:
-        return 'single-cell plot'
 
     # ..................{ EXPORTERS ~ cell : current        }..................
     @piperunner(

@@ -22,6 +22,7 @@ from betse.science.pipe.piperun import piperunner
 from betse.science.visual.plot.plotutil import cell_ave
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
+from betse.util.type.descriptor.descs import classproperty_readonly
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.types import (
     type_check, IterableTypes, NumpyArrayType, SequenceTypes, StrOrNoneTypes,)
@@ -34,6 +35,11 @@ class SimPipeExportCSVs(SimPipeExportABC):
     format requested by the current simulation configuration).
     '''
 
+    # ..................{ SUPERCLASS ~ properties           }..................
+    @classproperty_readonly
+    def _NOUN_SINGULAR(cls) -> str:
+        return 'CSV file'
+
     # ..................{ SUPERCLASS                        }..................
     @type_check
     def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
@@ -42,10 +48,6 @@ class SimPipeExportCSVs(SimPipeExportABC):
     @type_check
     def _is_enabled(self, phase: SimPhase) -> bool:
         return phase.p.csv.is_after_sim_save
-
-    @property
-    def _noun_singular(self) -> str:
-        return 'CSV file'
 
     # ..................{ EXPORTERS ~ cell                  }..................
     #FIXME: The requirements list should (arguably) be refined from the

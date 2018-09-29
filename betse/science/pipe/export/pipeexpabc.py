@@ -26,6 +26,6 @@ class SimPipeExportABC(SimPipeABC):
         return  'export_'
 
 
-    @property
-    def _verb_continuous(self) -> str:
+    @classproperty_readonly
+    def _VERB_CONTINUOUS(cls) -> str:
         return 'Exporting'

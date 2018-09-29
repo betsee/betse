@@ -17,7 +17,8 @@ from betse.science.phase.phasecls import SimPhase
 from betse.science.pipe.piperun import SimPipeRunnerMetadata
 from betse.util.io.log import logs
 from betse.util.type.decorator.deccls import abstractmethod, abstractproperty
-from betse.util.type.descriptor.descs import classproperty_readonly
+from betse.util.type.descriptor.descs import (
+    abstractclassproperty_readonly, classproperty_readonly)
 from betse.util.type.obj import objects
 from betse.util.type.text import strs
 from betse.util.type.types import (
@@ -143,9 +144,46 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         implemented by this subclass (e.g., ``animations``, ``plots``).
     '''
 
-    # ..................{ CLASS ~ properties : private      }..................
+    # ..................{ SUBCLASS ~ properties : private   }..................
+    @abstractclassproperty_readonly
+    def _NOUN_SINGULAR(cls) -> str:
+        '''
+        Human-readable singular noun synopsizing the type of runners
+        implemented by this subclass (e.g., ``animation``, ``plot``), ideally
+        but *not* necessarily lowercase.
+        '''
+
+        pass
+
+    # ..................{ CLASS ~ properties : concrete     }..................
     @classproperty_readonly
-    def _RUNNER_METHOD_NAME_PREFIX(self) -> str:
+    def _NOUN_PLURAL(cls) -> str:
+        '''
+        Human-readable plural noun synopsizing the type of runners implemented
+        by this subclass (e.g., ``animations``, ``plots``), ideally but *not*
+        necessarily lowercase.
+
+        Defaults to suffixing :meth:`_NOUN_SINGULAR` by ``s``.
+        '''
+
+        return cls._NOUN_SINGULAR + 's'
+
+
+    @classproperty_readonly
+    def _VERB_CONTINUOUS(cls) -> str:
+        '''
+        Human-readable verb in the continuous tense synopsizing the type of
+        action performed by runners implemented by this subclass (e.g.,
+        ``Saving``), ideally but *not* necessarily capitalized.
+
+        Defaults to ``Running``.
+        '''
+
+        return 'Running'
+
+
+    @classproperty_readonly
+    def _RUNNER_METHOD_NAME_PREFIX(cls) -> str:
         '''
         Substring prefixing the name of each runner defined by this pipeline.
 
@@ -228,10 +266,10 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         '''
 
         # Classify all passed parameters.
-        self._noun_singular_lowercase = self._noun_singular
+        self._noun_singular_lowercase = self._NOUN_SINGULAR
         self._noun_singular_uppercase = strs.uppercase_char_first(
-            self._noun_singular)
-        self._noun_plural_lowercase = self._noun_plural
+            self._NOUN_SINGULAR)
+        self._noun_plural_lowercase = self._NOUN_PLURAL
 
 
     @type_check
@@ -280,17 +318,6 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
 
         pass
 
-    # ..................{ SUBCLASS ~ properties             }..................
-    @abstractproperty
-    def _noun_singular(self) -> str:
-        '''
-        Human-readable singular noun synopsizing the type of runners
-        implemented by this subclass (e.g., ``animation``, ``plot``), ideally
-        but *not* necessarily lowercase.
-        '''
-
-        pass
-
     # ..................{ PROPERTIES                        }..................
     @property
     def name(self) -> str:
@@ -298,10 +325,10 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         Human-readable name of this pipeline, intended principally for display
         (e.g., logging) purposes.
 
-        Defaults to suffixing :meth:`_noun_singular` by `` pipeline``.
+        Defaults to suffixing :meth:`_NOUN_SINGULAR` by `` pipeline``.
         '''
 
-        return '{} pipeline'.format(self._noun_singular)
+        return '{} pipeline'.format(self._NOUN_SINGULAR)
 
     # ..................{ PROPERTIES ~ private              }..................
     @type_check
@@ -327,32 +354,6 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         '''
 
         return True
-
-    # ..................{ PROPERTIES ~ private : str : word }..................
-    @property
-    def _noun_plural(self) -> str:
-        '''
-        Human-readable plural noun synopsizing the type of runners implemented
-        by this subclass (e.g., ``animations``, ``plots``), ideally but *not*
-        necessarily lowercase.
-
-        Defaults to suffixing :meth:`_noun_singular` by ``s``.
-        '''
-
-        return self._noun_singular + 's'
-
-
-    @property
-    def _verb_continuous(self) -> str:
-        '''
-        Human-readable verb in the continuous tense synopsizing the type of
-        action performed by runners implemented by this subclass (e.g.,
-        ``Saving``), ideally but *not* necessarily capitalized.
-
-        Defaults to ``Running``.
-        '''
-
-        return 'Running'
 
     # ..................{ EXCEPTIONS                        }..................
     @type_check
@@ -403,7 +404,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         # Log the subsequent attempt to run this runner.
         logs.log_info(
             '%s %s "%s"...',
-            self._verb_continuous, self._noun_singular_lowercase, runner_name)
+            self._VERB_CONTINUOUS, self._noun_singular_lowercase, runner_name)
 
     # ..................{ ITERATORS                         }..................
     @type_check
