@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -10,16 +10,16 @@ High-level operating system (OS)-specific display facilities.
 #FIXME: Submit a Stackoverflow answer encapsulating this logic. The
 #osx.is_aqua() function in particular would be useful to a wide audience.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 
-# ....................{ TESTERS ~ head                     }....................
+# ....................{ TESTERS ~ head                    }....................
 @func_cached
 def is_headfull() -> bool:
     '''
-    `True` only if the active Python interpreter is running **headfull** (i.e.,
-    with access to a GUI display, the common case when running under a
+    ``True`` only if the active Python interpreter is running **headfull**
+    (i.e., with access to a GUI display, the common case when running under a
     conventional desktop, laptop, or tablet device).
     '''
 
@@ -32,9 +32,10 @@ def is_headfull() -> bool:
     return (
         # This is Windows, the current process is *ALMOST* certainly headfull.
         # While certain server-specific variants of Windows can and often are
-        # run headless (e.g., Windows Nano Server), there appears to be no known
-        # means of reliably distinguishing a headless from headfull Windows
-        # environment in pure Python. For simplicity, the latter is assumed.
+        # run headless (e.g., Windows Nano Server), there appears to be no
+        # known means of reliably distinguishing a headless from headfull
+        # Windows environment in pure Python. For simplicity, the latter is
+        # assumed.
         oses.is_windows() or
 
         # Else, this is a POSIX-compatible platform.
@@ -55,7 +56,8 @@ def is_headfull() -> bool:
         #
         # Ergo, the current process is headfull if and only if one of these
         # variables is inherited from the parent shell environment.
-        (oses.is_linux() and shellenv.is_var('MIR_SOCKET', 'WAYLAND_DISPLAY', )) or
+        (oses.is_linux() and
+         shellenv.is_var('MIR_SOCKET', 'WAYLAND_DISPLAY', )) or
 
         # If this is OS X, the only remaining display server is Aqua.
         (oses.is_macos() and macos.is_aqua())
@@ -67,27 +69,28 @@ def is_headfull() -> bool:
 
 def is_headless() -> bool:
     '''
-    `True` only if the active Python interpreter is running **headless** (i.e.,
-    with _no_ access to a GUI display, often due to running remotely over an
-    SSH-encrypted connection supporting only CLI input and output).
+    ``True`` only if the active Python interpreter is running **headless**
+    (i.e., with *no* access to a GUI display, often due to running remotely
+    over an SSH-encrypted connection supporting only CLI input and output).
     '''
 
     return not is_headfull()    # Makes sense.
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
+#FIXME: Shift into the "betse.util.os.brand.linux" submodule.
 @func_cached
 def is_linux_wayland() -> bool:
     '''
-    `True` only if the active Python interpreter is running under a Wayland
+    ``True`` only if the active Python interpreter is running under a Wayland
     compositor-enabled Linux distribution.
 
     Caveats
     ----------
     For sanity, this function incorrectly assumes *all* Wayland compositors to
     comply with the X Desktop Group (XDG) standard by exporting the
-    ``${XDG_SESSION_TYPE}`` environment variable with a value of ``wayland``. As
-    this is *not* necessarily the case, this function may return false negatives
-    for edge-case Wayland compositors.
+    ``${XDG_SESSION_TYPE}`` environment variable with a value of ``wayland``.
+    As this is *not* necessarily the case, this function may return false
+    negatives for edge-case Wayland compositors.
     '''
 
     # Avoid circular import dependencies.
@@ -106,7 +109,7 @@ def is_linux_wayland() -> bool:
     # Return True only if this value is that of a Wayland compositor.
     return xdg_session_type == 'wayland'
 
-# ....................{ GETTERS ~ metadata                 }....................
+# ....................{ GETTERS ~ metadata                }....................
 def get_metadata() -> OrderedArgsDict:
     '''
     Ordered dictionary synopsizing the current display.

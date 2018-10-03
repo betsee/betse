@@ -33,7 +33,16 @@ class SimPipeRunnerMetadata(object):
         arbitrary categories to which this runner belongs (in descending order
         of hierarchical taxonomy).
     method_name : str
-        Name of the method implementing this runner.
+        Machine-readable name of the method implementing this runner.
+    name : str
+        Machine-readable name of this runner, equivalent to :attr:`method_name`
+        excluding the :attr:`SimPipeABC._RUNNER_METHOD_NAME_PREFIX` substring
+        required by the parent pipeline of this runner.
+    pipe_noun_singular : str
+        Human-readable singular noun synopsizing this type of runner (e.g.,
+        ``animation``, ``plot``), equivalent to the
+        :attr:`SimPipeABC.subclass.NOUN_SINGULAR` constant defined by the
+        parent pipeline of this runner.
     requirements : SimPhaseRequirements
         Immutable set of zero or more :class:`SimPhaseRequirement` instances
         specifying all simulation features required by this runner.
@@ -88,10 +97,14 @@ class SimPipeRunnerMetadata(object):
 
         # Classify all passed parameters.
         self.requirements = requirements
-
-        # Classify all remaining passed parameters.
         self.categories = categories
         self.method_name = method.__name__
+
+        # Nullify all remaining instance variables, subsequently defined by the
+        # "SimPipeABCMeta" metaclass at "SimPipeABC" subclass definition time
+        # following the definition of this runner method.
+        self.name = None
+        self.pipe_noun_singular = None
 
         # Default this runner's description to its docstring.
         self.description = method.__doc__

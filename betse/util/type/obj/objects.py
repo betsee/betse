@@ -572,6 +572,9 @@ def get_method_or_none(obj: object, method_name: str) -> CallableOrNoneTypes:
     return method if method is not SENTINEL and callable(method) else None
 
 # ....................{ ITERATORS ~ attrs                 }....................
+#FIXME: Shift all of the following "iter_"-prefixed functions into a new
+#"betse.util.type.obj.objiter" submodule. This submodule is overly long, sadly.
+
 @type_check
 def iter_attrs(obj: object) -> GeneratorType:
     '''
@@ -591,42 +594,7 @@ def iter_attrs(obj: object) -> GeneratorType:
     '''
 
     # Defer to this generator.
-    yield from iter_attrs_matching(obj=obj, predicate=noop_attr_predicate)
-
-
-@type_check
-def iter_attrs_matching(
-    obj: object, predicate: CallableTypes) -> GeneratorType:
-    '''
-    Generator yielding 2-tuples of the name and value of each attribute bound
-    to the passed object whose name and/or value matches the passed predicate
-    (in ascending lexicographic order of attribute name).
-
-    Parameters
-    ----------
-    obj : object
-        Object to yield all matching attributes of.
-    predicate : CallableTypes
-        Callable iteratively passed both the name and value of each attribute
-        bound to this object, returning ``True`` only if that name and/or value
-        matches this predicate.
-
-    Yields
-    ----------
-    (attr_name : str, attr_value : object)
-        2-tuple of the name and value of each matching attribute bound to this
-        object (in ascending lexicographic order of attribute name).
-    '''
-
-    # Return a generator comprehension...
-    return (
-        # Yielding this attribute's name and value...
-        (attr_name, attr_value)
-        # For the name and definition of each attribute bound to this object...
-        for attr_name, attr_value in inspect.getmembers(obj)
-        # If this attribute matches this predicate.
-        if predicate(attr_name, attr_value)
-    )
+    yield from iter_attrs_implicit_matching(obj=obj, predicate=noop_attr_predicate)
 
 
 @type_check
@@ -651,9 +619,152 @@ def iter_attrs_instance_of(obj: object, cls: TestableTypes) -> GeneratorType:
     '''
 
     # Defer to this generator.
-    yield from iter_attrs_matching(
+    yield from iter_attrs_implicit_matching(
         obj=obj, predicate=lambda attr_name, attr_value: (
             isinstance(attr_value, cls)))
+
+# ....................{ ITERATORS ~ attrs : matching      }....................
+@type_check
+def iter_attrs_implicit_matching(
+    obj: object, predicate: CallableTypes) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and **implicit value** (i.e., value
+    retrieved by implicitly calling the ``@property``-decorated method
+    implementing this attribute if this attribute is a property *or* the value
+    of this attribute as is otherwise) of each attribute bound to the passed
+    object whose name and/or value matches the passed predicate (in ascending
+    lexicographic order of attribute name).
+
+    Specifically, for each such attribute, the value of this attribute yielded
+    by this generator is:
+
+    * If this attribute is a **property** (i.e., method decorated by the
+      standard ``@property`` decorator),  the high-level value returned by
+      implicitly querying the low-level data descriptor underlying this
+      property rather than that data descriptor.
+    * Else, the value of this attribute as is.
+
+    Caveats
+    ----------
+    This generator is substantially more dangerous than the comparable
+    :func:`iter_attrs_simple_matching` generator. Whereas this generator
+    implicitly calls the low-level method implementing each high-level property
+    of the passed object and hence raises exceptions if any such method raises
+    exceptions, that generator *never* raises unexpected exceptions. Unless
+    properties are of interest, callers are strongly encouraged to call that
+    rather than this generator.
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all matching attributes of.
+    predicate : CallableTypes
+        Callable iteratively passed both the name and value of each attribute
+        bound to this object, returning ``True`` only if that name and/or value
+        matches this predicate.
+
+    Yields
+    ----------
+    (attr_name : str, attr_value : object)
+        2-tuple of the name and value of each matching attribute bound to this
+        object (in ascending lexicographic order of attribute name).
+    '''
+
+    # Return a generator comprehension...
+    return (
+        # Yielding this attribute's name and implicit value...
+        (attr_name, attr_value)
+        # For the name and definition of each attribute bound to this object...
+        for attr_name, attr_value in inspect.getmembers(obj)
+        # If this attribute matches this predicate.
+        if predicate(attr_name, attr_value)
+    )
+
+
+@type_check
+def iter_attrs_explicit_matching(
+    obj: object, predicate: CallableTypes) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and **explicit value** (i.e., value
+    retrieved *without* implicitly calling the ``@property``-decorated method
+    implementing this attribute if this attribute is a property) of each
+    attribute bound to the passed object whose name and/or value also matches
+    the passed predicate (in ascending lexicographic order of variable name).
+
+    Specifically, for each such attribute, the value of this attribute yielded
+    by this generator is:
+
+    * If this attribute is a **property** (i.e., method decorated by the
+      standard ``@property`` decorator), the low-level data descriptor
+      underlying this property rather than the high-level value returned by
+      implicitly querying that data descriptor.
+    * Else, the value of this attribute as is.
+
+    Caveats
+    ----------
+    This generator is substantially safer than the comparable
+    :func:`iter_attrs_implicit_matching` generator, which implicitly calls the
+    low-level method implementing each high-level property of the passed object
+    and hence raises exceptions if any such method raises exceptions. By
+    compare, this generator *never* raises unexpected exceptions. Unless
+    properties are of interest, callers are strongly encouraged to call this
+    rather than that generator.
+
+    Only variables statically registered in this object's internal dictionary
+    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables
+    dynamically defined by this object's ``__getattr__()`` method or related
+    runtime magic are simply ignored.
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all matching non-property attributes of.
+    predicate : CallableTypes
+        Callable iteratively passed both the name and value of each attribute
+        bound to this object, returning ``True`` only if that name and/or value
+        matches this predicate.
+
+    Yields
+    ----------
+    (var_name : str, var_value : object)
+        2-tuple of the name and value of each matching non-property attribute
+        bound to this object (in ascending lexicographic order of attribute
+        name).
+    '''
+
+    # Ideally, this function would be reimplemented in terms of the
+    # iter_attrs_implicit_matching() function calling the canonical
+    # inspect.getmembers() function. Dynamic inspection is surprisingly
+    # non-trivial in the general case, particularly when virtual base classes
+    # rear their diamond-studded faces. Moreover, doing so would support
+    # edge-case attributes when passed class objects, including:
+    #
+    # * Metaclass attributes of the passed class.
+    # * Attributes decorated by "@DynamicClassAttribute" of the passed class.
+    #
+    # Sadly, inspect.getmembers() internally accesses attributes via the
+    # dangerous getattr() builtin rather than the safe inspect.getattr_static()
+    # function. This function explicitly requires the latter and hence *MUST*
+    # reimplement rather than defer to inspect.getmembers(). (Sadness reigns.)
+    #
+    # For the same reason, the unsafe vars() builtin cannot be called either.
+    # Since that builtin fails for builtin containers (e.g., "dict", "list"),
+    # this is not altogether a bad thing.
+    for attr_name in dir(obj):
+        # Value of this attribute guaranteed to be statically rather than
+        # dynamically retrieved. The getattr() builtin performs the latter,
+        # dynamically calling this attribute's getter if this attribute is
+        # a property. Since that call could conceivably raise unwanted
+        # exceptions *AND* since this function explicitly ignores
+        # properties, static attribute retrievable is unavoidable.
+        attr_value = inspect.getattr_static(obj, attr_name)
+
+        # If this attribute matches this predicate...
+        if predicate(attr_name, attr_value):
+            # Yield this attribute's name and explicit value. Note that, due to
+            # the above assignment, this iteration *CANNOT* reasonably be
+            # optimized into a generator comprehension.
+            yield attr_name, attr_value
 
 # ....................{ GETTERS : method                  }....................
 @type_check
@@ -758,7 +869,7 @@ def iter_methods_matching(
     '''
 
     # Defer to this generator.
-    yield from iter_attrs_matching(
+    yield from iter_attrs_explicit_matching(
         # For the name and definition of each attribute bound to this object,
         # exclude this attribute from consideration unless...
         obj=obj, predicate=lambda attr_name, attr_value: (
@@ -907,14 +1018,14 @@ def iter_vars_matching(
     #
     #    obj_type_attr_names = set(iter_attr_names(type(obj)))
     #
-    #    yield from iter_attrs_matching(
+    #    yield from iter_attrs_implicit_matching(
     #        obj=obj, predicate=lambda attr_name, attr_value: (
     #            (not callable(attr_value) or
     #             attr_name not in obj_type_attr_names)) and
     #           predicate(attr_name, attr_value))
 
     # Defer to this generator.
-    yield from iter_attrs_matching(
+    yield from iter_attrs_implicit_matching(
         # For the name and definition of each attribute bound to this object,
         # exclude this attribute from consideration unless...
         obj=obj, predicate=lambda attr_name, attr_value: (
@@ -1022,6 +1133,8 @@ def iter_vars_custom_simple_prefixed(
             var_name.startswith(prefix)))
 
 
+#FIXME: Reimplement in terms of the newly defined
+#iter_attrs_explicit_matching() generator.
 @type_check
 def iter_vars_custom_simple_matching(
     obj: object, predicate: CallableTypes) -> GeneratorType:
@@ -1056,7 +1169,7 @@ def iter_vars_custom_simple_matching(
     '''
 
     # Ideally, this function would be reimplemented in terms of the
-    # iter_attrs_matching() function calling the canonical inspect.getmembers()
+    # iter_attrs_implicit_matching() function calling the canonical inspect.getmembers()
     # function. Dynamic inspection is surprisingly non-trivial in the general
     # case, particularly when virtual base classes rear their diamond-studded
     # faces. Moreover, doing so would support edge-case attributes when passed
@@ -1107,7 +1220,7 @@ def noop_attr_predicate(attr_name: object, attr_value: object) -> bool:
     Null attribute predicate unconditionally returning ``True`` for all passed
     attribute name and value combinations, suitable for passing as the value of
     the ``predicate`` parameter accepted by attribute iterators in this
-    submodule (e.g., :func:`iter_attrs_matching`).
+    submodule (e.g., :func:`iter_attrs_implicit_matching`).
     '''
 
     # ...our work is done here, folks.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -11,13 +11,28 @@ memory profiling of Python applications.
 #FIXME: Consider donating the get_size_profile() function back to Pympler, which
 #could *REALLY* benefit from a human-readable CLI-based object graph profile.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.util.type import types
 from betse.util.type.types import type_check, NumericSimpleTypes
 
-# ....................{ GETTERS                            }....................
+# ....................{ FORMATTERS                        }....................
+_SIZE_FORMATTER = r'{:.04f} MiB'
+'''
+Format specifier converting the size in bytes interpolated into this string
+with the :func:`format` builtin into a human-readable string.
+'''
+
+
+_TYPE_FORMATTER = r'<{.__class__.__name__}>: '
+'''
+Format specifier converting an object type interpolated into this string with
+the :func:`format` builtin into a human-readable string.
+'''
+
+# ....................{ GETTERS                           }....................
 @type_check
-def get_size(obj: object, size_divisor: NumericSimpleTypes = 1) -> NumericSimpleTypes:
+def get_size(obj: object, size_divisor: NumericSimpleTypes = 1) -> (
+    NumericSimpleTypes):
     '''
     Recursive in-memory size of the passed object, calculated with the external
     :mod:`pympler` package if importable _or_ raising an exception otherwise.
@@ -25,27 +40,32 @@ def get_size(obj: object, size_divisor: NumericSimpleTypes = 1) -> NumericSimple
     This size is formally defined as the sum of:
 
     * The flat size of this object, defined as either:
+
       * If the type of this object provides the `__sizeof__()` special method,
         the return value of the :func:`sys.getsizeof` function passed this
         object.
       * Else, the sum of:
+
         * The basic size of this object, defined as the value of the
           undocumented `__basicsize__` attribute of the type of this object.
-          Although undocumented, this appears to be the size of this object when
-          **empty** (i.e., when this object contains no elements). For
+          Although undocumented, this appears to be the size of this object
+          when **empty** (i.e., when this object contains no elements). For
           garbage-collected objects, this size "...includes the overhead for
           Python’s garbage collector (GC) as well as the space needed for
           refcounts (used only in certain Python builds)."
         * The item size of this object, defined as the value of the
           undocumented `__itemsize__` attribute of the type of this object.
           Although undocumented, this size appears to be:
+
           * If this object is a container, the sum of the sizes of the
             references referring to all objects contained by this object but
             _not_ the sizes of these objects themselves.
           * If this object is _not_ a container, 0.
+
     * The recursive size of each **referent** (i.e., object referred to by an
       instance variable) of this object, visited recursively up to some finite
       recursion depth. The size of a referent:
+
       * Visitable only by recursion exceeding this depth is silently ignored.
       * Visited multiple times is incorporated only once. Each subsequent
         visitation of this referent is silently ignored.
@@ -58,9 +78,9 @@ def get_size(obj: object, size_divisor: NumericSimpleTypes = 1) -> NumericSimple
     sizes in a cross-platform and -interpreter portable manner generically
     applicable to _all_ possible objects is highly non-trivial. Since the only
     function defined by the stdlib to calculate object sizes (i.e.,
-    :func:`sys.getsizeof`) behaves non-recursively, recursively calculating such
-    sizes would effectively require wrapping that low-level function with a
-    brute-force depth- or breadth-first search (DFS).
+    :func:`sys.getsizeof`) behaves non-recursively, recursively calculating
+    these sizes would effectively require wrapping that low-level function with
+    a brute-force depth- or breadth-first search (DFS).
 
     Doing so would effectively reimplement the majority of the
     :mod:`pympler.asizeof` submodule, a lamentable time waste violating the
@@ -114,11 +134,11 @@ def get_size(obj: object, size_divisor: NumericSimpleTypes = 1) -> NumericSimple
 def get_sizes_vars(obj: object, *args, **kwargs) -> tuple:
     '''
     2-tuple `(obj_size, vars_custom_size)` of this object's total recurusive
-    size _and_ sequence of 2-tuples of the name and total recursive size of each
-    **non-builtin variable** (i.e., variable whose name is _not_ both prefixed
-    and suffixed by `__`) bound to the passed object (_in descending order of
-    size_), calculated with the external :mod:`pympler` package if importable
-    _or_ raising an exception otherwise.
+    size _and_ sequence of 2-tuples of the name and total recursive size of
+    each **non-builtin variable** (i.e., variable whose name is *not* both
+    prefixed and suffixed by `__`) bound to the passed object (in descending
+    order of size), calculated with the external :mod:`pympler` package if
+    importable *or* raising an exception otherwise.
 
     Parameters
     ----------
@@ -132,12 +152,13 @@ def get_sizes_vars(obj: object, *args, **kwargs) -> tuple:
     ----------
     (int, SequenceTypes)
         2-tuple `(obj_size, vars_custom_size)`, where
+
         * `obj_size` is this object's **total recursive size** (i.e., summation
-          of the total non-recursive sizes of all non-builtin variables bound to
-          this object).
-        * `vars_custom_size` is a sequence of 2-tuples `(var_name, var_size)` of
-          the name and recursive in-memory size of each variable bound to this
-          object (_in descending order of size_).
+          of the total non-recursive sizes of all non-builtin variables bound
+          to this object).
+        * `vars_custom_size` is a sequence of 2-tuples `(var_name, var_size)`
+          of the name and recursive in-memory size of each variable bound to
+          this object (_in descending order of size_).
 
     Raises
     ----------
@@ -156,7 +177,7 @@ def get_sizes_vars(obj: object, *args, **kwargs) -> tuple:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.iterable import iterables
+    from betse.util.type.iterable import itersort
     from betse.util.type.numeric import numerics
     from betse.util.type.obj import objects
 
@@ -178,31 +199,14 @@ def get_sizes_vars(obj: object, *args, **kwargs) -> tuple:
 
     # This list sorted on the second element of each such 2-tuple (i.e., each
     # variable's size) in descending order.
-    vars_size_sorted = iterables.sort_by_index_descending(
+    vars_size_sorted = itersort.sort_by_index_descending(
         iterable=vars_size, subiterable_index=1)
 
     # Return the expected 2-tuple.
     return obj_size, vars_size_sorted
 
-# ....................{ GETTERS ~ profile                  }....................
-#FIXME: Shift above.
-
-_SIZE_FORMATTER = r'{:.04f} MiB'
-'''
-Format specifier converting the size in bytes interpolated into this string with
-the :func:`format` builtin into a human-readable string.
-'''
-
-
-_TYPE_FORMATTER = r'<{.__class__.__name__}>: '
-'''
-Format specifier converting an object type interpolated into this string with
-the :func:`format` builtin into a human-readable string.
-'''
-
-
+# ....................{ GETTERS ~ profile                 }....................
 #FIXME: Revise docstring, removing reference to get_sizes_vars() in particular.
-
 @type_check
 def get_size_profile(
     obj: object,
@@ -222,55 +226,57 @@ def get_size_profile(
 
     * The total recursive in-memory size in mebibytes of this object.
     * The names and total recursive in-memory sizes in mebibytes of all
-      **non-builtin variables** (i.e., variables whose names are _not_ both
-      prefixed and suffixed by `__`) bound to this object (_in descending order
-      of size_).
+      **non-builtin variables** (i.e., variables whose names are *not* both
+      prefixed and suffixed by `__`) bound to this object (in descending order
+      of size).
 
     Motivation
     ----------
-    Although Pympler _does_ define numerous classes and callables for profiling
+    Although Pympler does define numerous classes and callables for profiling
     arbitrary objects, the resulting output is non-human-readable in the best
     case and ambiguous in the worst case. In either case, such output is mostly
     unusable. For example:
 
-    >>> from betse.util.type.obj import objsizes
-    >>> from pympler.asizeof import asizesof
-    >>> class ObjectLessons(object):
-    ...     def __init__(self):
-    ...         self.lessons = [
-    ...             'Easter Island', 'St. Matthew Island', 'Greenland Norse',]
-    ...         self.lesson_count = len(self.lessons)
-    >>> object_lessons = ObjectLessons()
-    >>> asizesof(object_lessons, stats=2.0)
-     592 bytes:  <__main__.ObjectLessons object at 0x7fe937595208>
-     592 bytes
-       8 byte aligned
-       8 byte sizeof(void*)
-       1 object given
-      10 objects sized
-      10 objects seen
-       3 recursion depth
+        >>> from betse.util.type.obj import objsizes
+        >>> from pympler.asizeof import asizesof
+        >>> class ObjectLessons(object):
+        ...     def __init__(self):
+        ...         self.lessons = [
+        ...             'Easter Island', 'St. Matthew Island', 'Greenland Norse',]
+        ...         self.lesson_count = len(self.lessons)
+        >>> object_lessons = ObjectLessons()
+        >>> asizesof(object_lessons, stats=2.0)
+        592 bytes:  <__main__.ObjectLessons object at 0x7fe937595208>
+        592 bytes
+        8 byte aligned
+        8 byte sizeof(void*)
+        1 object given
+        10 objects sized
+        10 objects seen
+        3 recursion depth
 
-       5 profiles:  total (% of grand total), average, and largest flat size:  largest object
-       5 class str objects:  320 (54%), 64, 72:  'St. Matthew Island' leng 19!
-       1 class dict object:  96 (16%), 96, 96:  {'lesson_count': 3, 'lessons': ['Easte..... Matthew Island', 'Greenland Norse']} leng 0
-       1 class list object:  88 (15%), 88, 88:  ['Easter Island', 'St. Matthew Island', 'Greenland Norse'] leng 7!
-       1 class __main__.ObjectLessons object:  56 (9%), 56, 56:  <__main__.ObjectLessons object at 0x7fe937595208>
-       1 class int object:  32 (5%), 32, 32:  3 leng 1!
+        5 profiles:  total (% of grand total), average, and largest flat size:  largest object
+        5 class str objects:  320 (54%), 64, 72:  'St. Matthew Island' leng 19!
+        1 class dict object:  96 (16%), 96, 96:  {'lesson_count': 3, 'lessons': ['Easte..... Matthew Island', 'Greenland Norse']} leng 0
+        1 class list object:  88 (15%), 88, 88:  ['Easter Island', 'St. Matthew Island', 'Greenland Norse'] leng 7!
+        1 class __main__.ObjectLessons object:  56 (9%), 56, 56:  <__main__.ObjectLessons object at 0x7fe937595208>
+        1 class int object:  32 (5%), 32, 32:  3 leng 1!
 
     Critically, note that:
 
     * The total size of the `ObjectLessons.lessons` list is actually 288 bytes
       rather than the significantly smaller 88 bytes reported above.
       Specifically:
+
       * The flat size of this list is 88 bytes, which Pympler erroneously
         reports to be the total size of this list.
       * The total flat size of all strings contained in this list is 200 bytes.
         Ergo, the total size of this list is 288 bytes -- as verified by
         explictly passing this list to the
         :func:`pympler.asizeof.asizeof` function, which then returns 288.
+
     * The total size of each variable of the passed `ObjectLessons` instance is
-      _not_ reported. Only the total flat size of each type of object
+      *not* reported. Only the total flat size of each type of object
       recursively visitable from this instance is reported, which is useless.
 
     Until Pympler addresses both concerns, this function profiles the memory
@@ -287,9 +293,10 @@ def get_size_profile(
     vars_depth: optional[int]
         Maximum depth of the recursion tree induced by calling this function.
         If this depth is:
+
         * Zero, a single-line synopsis of the total size of this object is
-          returned _without_ totalling the sizes of any variables bound to this
-          object.  This depth is appropriate for C-based objects (i.e., objects
+          returned *without* totalling the sizes of any variables bound to this
+          object. This depth is appropriate for C-based objects (i.e., objects
           whose classes are either primitive builtins or defined by external C
           extensions), whose details are usually inconsequential when profiling
           the space consumed by pure-Python objects. Since depth is necessarily
@@ -298,18 +305,20 @@ def get_size_profile(
           appended by the total sizes of all variables bound to this object is
           recursively returned. Specifically, for each such variable, this
           function recursively calls itself with:
+
           * `obj` parameter equal to the value of that variable.
           * `line_indent` parameter appended by two spaces.
           * `vars_depth` parameter decremented by one.
           * `vars_max` parameter divided by the total number of variables bound
             to this object.
-        Defaults to 1, in which case a single-line synopsis of the total size of
-        this object appended by the total sizes of all variables directly bound
-        to this object is non-recursively returned.
+
+        Defaults to 1, in which case a single-line synopsis of the total size
+        of this object appended by the total sizes of all variables directly
+        bound to this object is non-recursively returned.
     vars_max : optional[int]
         Maximum number of the largest non-builtin variables bound to this object
         to synopsize the sizes of. Defaults to `None`, in which case this
-        function unconditionally synopsizes the sizes of _all_ non-builtin
+        function unconditionally synopsizes the sizes of *all* non-builtin
         variables bound to this object (regardless of size).
 
     All remaining positional and keyword arguments are passed as is to the
@@ -335,7 +344,7 @@ def get_size_profile(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.iterable import iterables
+    from betse.util.type.iterable import itersort
     from betse.util.type.text import strs
     from betse.util.type.numeric.ints import MiB
     from betse.util.type.obj import objects
@@ -365,16 +374,16 @@ def get_size_profile(
         '''
         Human-readable synopsis of the size of the passed object with all
         remaining arguments passed as is to the :func:`get_sizes_vars` function,
-        calculated with the external :mod:`pympler` package if importable _or_
+        calculated with the external :mod:`pympler` package if importable *or*
         raising an exception otherwise.
 
         Specifically, this function returns a string tabulating:
 
         * The total recursive in-memory size in mebibytes of this object.
         * The names and total recursive in-memory sizes in mebibytes of all
-          **non-builtin variables** (i.e., variables whose names are _not_ both
-          prefixed and suffixed by `__`) bound to this object (_in descending
-          order of size_).
+          **non-builtin variables** (i.e., variables whose names are *not* both
+          prefixed and suffixed by `__`) bound to this object (in descending
+          order of size).
 
         Parameters
         ----------
@@ -385,12 +394,13 @@ def get_size_profile(
         ----------
         (str, NumericOrNoneTypes)
             2-tuple `(obj_size_profile, obj_size)`, where:
+
             * `obj_size_profile` is a recursive size profile of this object.
             * `obj_size` is the total recursive size of this object in bytes if
-              this object has _not_ already been passed to a prior recursive
-              call of this closure or `None` otherwise. Note that, in this case,
-              `obj_size_profile` is a relevant human-readable string indicating
-              this circularity in the object graph.
+              this object has *not* already been passed to a prior recursive
+              call of this closure or ``None`` otherwise. Note that, in this
+              case, ``obj_size_profile`` is a relevant human-readable string
+              indicating this circularity in the object graph.
         '''
 
         # If this object has already been passed to a prior recursive call of
@@ -435,8 +445,8 @@ def get_size_profile(
         # inefficient, however, and hence best avoided if feasible. It is
         # feasible, so it is.
         #
-        # If this object is C-based, recursively introspecting this object would
-        # be trivially feasible. Python code makes no distinction between
+        # If this object is C-based, recursively introspecting this object
+        # would be trivially feasible. Python code makes no distinction between
         # pure-Python and C-based objects. Indeed, differentiating between the
         # two with Python code is non-trivial! That said, recursively
         # introspecting C-based objects would be largely pointless; size
@@ -498,8 +508,8 @@ def get_size_profile(
         # available variables, rounding down to the nearest integer.
         #
         # Note that, if the number of such variables is larger than this
-        # maximum, this maximum will be reduced to zero. This valid edge case is
-        # explicitly handled by the conditional above.
+        # maximum, this maximum will be reduced to zero. This valid edge case
+        # is explicitly handled by the conditional above.
         if var_vars_max is not None:
             var_vars_max = round(vars_max / vars_count)
 
@@ -542,13 +552,13 @@ def get_size_profile(
 
         # This list sorted on the second element of each such 2-tuple (i.e.,
         # each variable's size) in descending order.
-        vars_size_profile_sorted = iterables.sort_by_index_descending(
+        vars_size_profile_sorted = itersort.sort_by_index_descending(
             iterable=vars_size_profile, subiterable_index=1)
 
         # If a maximum number of the largest variables is requested *AND* the
         # number of variables bound to this object exceeds this maximum, ignore
-        # all variables of smaller size. To ensure the synopsis suffix set below
-        # has the proper indentation, do so *AFTER* increasing this level.
+        # all variables of smaller size. To ensure the synopsis suffix set
+        # below has proper indentation, do so *AFTER* increasing this level.
         if vars_max is not None and vars_count > vars_max:
             # print('!!Truncating!!')
             # Validate this number to be a positive integer.

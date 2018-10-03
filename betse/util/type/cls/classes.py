@@ -8,6 +8,7 @@ Low-level class facilities.
 '''
 
 # ....................{ IMPORTS                           }....................
+import inspect
 from betse.exceptions import BetseTypeException
 from betse.util.type.types import (
     type_check,
@@ -37,6 +38,29 @@ def die_unless_subclass(subclass: ClassType, superclass: ClassType) -> None:
         raise BetseTypeException(
             'Class {!r} not a subclass of class {!r}'.format(
                 subclass, superclass))
+
+# ....................{ TESTERS                           }....................
+@type_check
+def is_abstract(cls: ClassType) -> bool:
+    '''
+    ``True`` only if the passed class is an **abstract base class** (i.e., a
+    class whose metaclass is :class:`abc.ABCMeta` such that at least one
+    abstract method decorated by the :func:`abc.abstractmethod` decorator
+    remains unimplemented).
+
+    Parameters
+    ----------
+    cls : ClassType
+        Class to be tested.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this class is an abstract base class (ABC).
+    '''
+
+    # One-liners for ponderous victory.
+    return inspect.isabstract(cls)
 
 # ....................{ GETTERS                           }....................
 @type_check

@@ -16,7 +16,7 @@ from betse.lib.yaml.abc.yamllistabc import YamlListItemTypedABC
 from betse.science.phase.phasecls import SimPhase
 from betse.science.pipe.piperun import SimPipeRunnerMetadata
 from betse.util.io.log import logs
-from betse.util.type.decorator.deccls import abstractmethod, abstractproperty
+from betse.util.type.decorator.deccls import abstractmethod #, abstractproperty
 from betse.util.type.descriptor.descs import (
     abstractclassproperty_readonly, classproperty_readonly)
 from betse.util.type.obj import objects
@@ -64,31 +64,22 @@ class SimPipeABCMeta(ABCMeta):
         '''
 
         # Unsanitized "SimPipeABC" subclass.
-        subclass = super().__new__(
+        subcls = super().__new__(
             metacls, class_name, class_base_classes, class_attrs)
 
-        #FIXME: Iteratively annotate each pipeline runner method with
-        #additional subclass-specific metadata. To do so:
-        #
-        #* Refactor the "_noun*" and "_verb_*" family of properties to be
-        #  class properties instead. Consider also uppercasing their property
-        #  names on doing so.
-        #* Improve the "piperun.SimPipeRunnerMetadata" class with additional
-        #  instance variables (defaulting to "None") describing that runner's
-        #  relation to its parent pipeline. These might include:
-        #  * "name", the unprefixed name of this runner.
-        #  * "pipe_noun_singular", equivalent to "subclass.NOUN_SINGULAR".
-        #* Perform iteration here resembling:
-        #    for runner_method_name, runner_method in subclass.iter_runners_method():
-        #        # Assign subclass-specific metadata here.
+        # For the method name and method of each runner in this pipeline...
+        for runner_method_name, runner_method in subcls.iter_runners_method():
+            # Set this runner's name to be this method name excluding this
+            # pipeline's runner prefix.
+            runner_method.metadata.name = strs.remove_prefix(
+                text=runner_method_name,
+                prefix=subcls._RUNNER_METHOD_NAME_PREFIX)
 
-        # For the name of each such method...
-        # for creation_method_name in CREATION_METHOD_NAMES:
-        #     metacls._sanitize_creation_method(
-        #         frozenset_subclass, creation_method_name)
+            # Set this runner's human-readable type to that of this pipeline.
+            runner_method.metadata.pipe_noun_singular = subcls._NOUN_SINGULAR
 
-        # Return this sanitized "FrozenSetSubclassable" subclass.
-        return subclass
+        # Return this sanitized "SimPipeABC" subclass.
+        return subcls
 
 # ....................{ SUPERCLASSES                      }....................
 #FIXME: Revise docstring to account for the recent large-scale class redesign.

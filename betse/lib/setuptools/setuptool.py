@@ -14,7 +14,7 @@ from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
 from betse.util.py import pymodule
 from betse.util.py.pymodule import DISTUTILS_PROJECT_NAME_TO_MODULE_NAME
-from betse.util.type.iterable import iterables
+from betse.util.type.iterable import itersort
 from betse.util.type.types import (
     type_check,
     DistributionOrNoneTypes,
@@ -783,7 +783,7 @@ def get_requirements_str_synopsis(*requirements_str: str) -> OrderedDict:
     '''
 
     # Lexicographically sorted tuple of these strings.
-    requirement_strs_sorted = iterables.sort_ascending(requirements_str)
+    requirement_strs_sorted = itersort.sort_ascending(requirements_str)
 
     # List of all requirement objects parsed from these requirement strings.
     requirements = iter_requirements_str(*requirement_strs_sorted)

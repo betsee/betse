@@ -44,7 +44,7 @@ from betse.util.io.log import logs
 from betse.util.os import dlls, oses
 from betse.util.path import dirs, files, pathnames
 from betse.util.py import pymodule
-from betse.util.type.iterable import iterables
+from betse.util.type.iterable import itersort
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.text import regexes, strs
 from betse.util.type.types import BoolOrNoneTypes
@@ -629,7 +629,7 @@ def get_blas_metadata() -> OrderedArgsDict:
 
     # Set of all keys of the dictionary global synopsizing this metadata,
     # sorted in ascending lexicographic order for readability.
-    blas_opt_info_keys = iterables.sort_ascending(
+    blas_opt_info_keys = itersort.sort_ascending(
         tuple(numpy_config.blas_opt_info.keys()))
 
     # For each such key...

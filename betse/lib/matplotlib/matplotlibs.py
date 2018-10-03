@@ -68,9 +68,9 @@ from betse.util.io.error import errexception
 from betse.util.io.log import logconfig, logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.os import displays, kernels, oses
-from betse.util.path import dirs, pathnames
-from betse.util.py import pyfreeze, pymodule
-from betse.util.type.iterable import iterables
+from betse.util.path import dirs
+from betse.util.py import pymodule
+from betse.util.type.iterable import iterables, itersort
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.numeric import versions
@@ -440,8 +440,7 @@ class MplConfig(object):
                 'Platform "{}" unsupported.'.format(kernel_name))
 
         # Log this iteration.
-        logs.log_debug(
-            'Finding usable backend in: %r', backend_names)
+        logs.log_debug('Finding usable backend in: %r', backend_names)
 
         #FIXME: If this is Matplotlib >= 2.0.0 and the only available backend
         #is "TkAgg", a non-fatal warning should be logged instructing the user
@@ -835,7 +834,7 @@ class MplConfig(object):
 
         # Return a new sequence containing all items from "all_backends"
         # lowercased and lexicographically sorted.
-        return iterables.sort_ascending(
+        return itersort.sort_ascending(
             backend_name.lower() for backend_name in all_backends)
 
     # ..................{ PROPERTIES ~ backend : names: pri }..................
@@ -853,19 +852,19 @@ class MplConfig(object):
 
         These backends include:
 
-        * `Gtk3Agg`, which emits the following non-fatal warning when enabled:
+        * ``Gtk3Agg``, emitting the following non-fatal warning when enabled:
 
             UserWarning: The Gtk3Agg backend is not known to work on Python
             3.x.
 
-        * `Gtk3cairo`, which, despite claiming to be a GTK+ 3.x-specific
+        * ``Gtk3cairo``, which, despite claiming to be a GTK+ 3.x-specific
           backend, appears to attempt to dynamically load GTK+ 2.x-specific
-          shared libraries -- inducing the fatal segmentation fault above.
-        * All GTK+ 2.x-specific backends (e.g., `Gtk`, `Gtkagg`), conflicting
-          with GTK+ 3.x-specific backends (e.g., `Gtk3`, `Gtk3agg`). Attempting
-          to switch to the latter after having already switched to the former
-          typically induces the following fatal segmentation fault immediately
-          halting the current process:
+          shared libraries -- inducing the same segmentation fault as above.
+        * All GTK+ 2.x-specific backends (e.g., ``Gtk`, ``Gtkagg``),
+          conflicting with GTK+ 3.x-specific backends (e.g., ``Gtk3``,
+          ``Gtk3agg``). Attempting to switch to the latter after having already
+          switched to the former typically induces the following fatal
+          segmentation fault immediately halting the current process:
 
             (betse:5000): Gtk-ERROR **: GTK+ 2.x symbols detected. Using GTK+
             2.x and GTK+ 3 in the same process is not supported
@@ -874,17 +873,32 @@ class MplConfig(object):
           This is *not* a high-level Python exception and hence cannot be
           caught from within Python. This is a POSIX-level process signal.
 
+        * If the active Python interpreter is running **headless** (i.e., with
+          *no* access to a GUI display, often due to running remotely over an
+          SSH-encrypted connection supporting only CLI input and output):
+
+          * ``Qt5Agg``, silently terminating the current process in obscure
+            edge cases (e.g., on Ubuntu >= 18.04 when running tests).
+
         Sometimes, the only winning move is not to play at all.
         '''
 
-        # Blacklist:
-        return {
-            # All GTK+ 2.x-specific backends.
+        # Set of all backends to be unconditionally blacklisted.
+        backend_names_blacklist = {
+            # Blacklist all GTK+ 2.x-specific backends.
             'gtk', 'gtkagg', 'gtkcairo',
 
-            # All GTK+ 2.x-specific backends.
+            # Blacklist all GTK+ 2.x-specific backends.
             'gtk3', 'gtk3agg', 'gtk3cairo',
         }
+
+        # If headless, blacklist the "Qt5Agg" backend known to silently
+        # terminate the current process under obscure edge cases.
+        if displays.is_headless():
+            backend_names_blacklist.add('qt5agg')
+
+        # Return this set.
+        return backend_names_blacklist
 
 
     @property_cached
