@@ -179,14 +179,14 @@ def get_sizes_vars(obj: object, *args, **kwargs) -> tuple:
     # Avoid circular import dependencies.
     from betse.util.type.iterable import itersort
     from betse.util.type.numeric import numerics
-    from betse.util.type.obj import objects
+    from betse.util.type.obj import objiter
 
     # List of all 2-tuples to be returned.
     vars_size = []
 
     # For the name and value of each non-builtin variable of this object (in
     # arbitrary order)...
-    for var_name, var_value in objects.iter_vars_custom(obj):
+    for var_name, var_value in objiter.iter_vars_custom(obj):
         # Recursive in-memory size of this object.
         var_size = get_size(obj=var_value, *args, **kwargs)
 
@@ -237,7 +237,7 @@ def get_size_profile(
     case and ambiguous in the worst case. In either case, such output is mostly
     unusable. For example:
 
-        >>> from betse.util.type.obj import objsizes
+        >>> from betse.util.type.obj import objsize
         >>> from pympler.asizeof import asizesof
         >>> class ObjectLessons(object):
         ...     def __init__(self):
@@ -347,7 +347,7 @@ def get_size_profile(
     from betse.util.type.iterable import itersort
     from betse.util.type.text import strs
     from betse.util.type.numeric.ints import MiB
-    from betse.util.type.obj import objects
+    from betse.util.type.obj import objects, objiter
 
     #FIXME: Convert the current "kwargs['size_divisor']" into a human-readable
     #denomenation (e.g., "GiB", "KiB", "B"). Since this is both non-trivial and
@@ -465,7 +465,7 @@ def get_size_profile(
             # For efficiency, this inefficient operation is performed only if
             # this function is possibly recursively calling itself below. If
             # this function is *NOT* doing so, this operation is avoided.
-            vars_name_value = tuple(objects.iter_vars_custom(obj))
+            vars_name_value = tuple(objiter.iter_vars_custom(obj))
 
             # Number of such variables.
             vars_count = len(vars_name_value)

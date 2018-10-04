@@ -139,7 +139,7 @@ class CallbacksBC(object):
 
 
     @type_check
-    def progress_stated(self, progress_status: str) -> None:
+    def progress_stated(self, status: str) -> None:
         '''
         Callback passed the current state of progress for work performed by the
         source callable as an arbitrary human-readable string.
@@ -171,7 +171,7 @@ class CallbacksBC(object):
 
         Parameters
         ----------
-        progress_status : str
+        status : str
             Current state of progress for work performed by the source
             callable as an arbitrary human-readable string. To enable the sink
             callable to safely embed this string in size-constrained regions,
@@ -188,7 +188,7 @@ class CallbacksBC(object):
         '''
 
         # Log this string as an informational message.
-        logs.log_info(progress_status)
+        logs.log_info(status)
 
     # ..................{ CALLBACKS ~ progressed            }..................
     @type_check
@@ -260,7 +260,7 @@ class CallbacksBC(object):
             self._clear_progress()
 
     # ..................{ CALLBACKS ~ progress : next       }..................
-    def progressed_next(self, progress_status: StrOrNoneTypes = None) -> None:
+    def progressed_next(self, status: StrOrNoneTypes = None) -> None:
         '''
         Higher-level callback wrapping the lower-level :meth:`progressed` and
         :meth:`progress_stated` callbacks by automatically passing the next
@@ -307,7 +307,7 @@ class CallbacksBC(object):
 
         Parameters
         ----------
-        progress_status : StrOrNoneTypes
+        status : StrOrNoneTypes
             Current state of progress for work performed by the source
             callable as an arbitrary human-readable string. To enable the sink
             callable to safely embed this string in size-constrained regions,
@@ -339,8 +339,8 @@ class CallbacksBC(object):
             self._progress_next += 1
 
         # If passed status, notify the sink callback of this status.
-        if progress_status is not None:
-            self.progress_stated(progress_status)
+        if status is not None:
+            self.progress_stated(status)
 
 
     def progressed_last(self, *args, **kwargs) -> None:

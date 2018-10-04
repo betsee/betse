@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -13,7 +14,7 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
+from abc import ABCMeta
 from betse.exceptions import BetseSimVisualException
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
@@ -28,7 +29,7 @@ from betse.util.io.log import logs
 from betse.util.py import pyref
 from betse.util.type import types
 from betse.util.type.iterable import iterables
-from betse.util.type.obj import objects
+from betse.util.type.obj import objiter
 from betse.util.type.types import (
     type_check,
     IterableTypes,
@@ -394,7 +395,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             pyplot.close(self._figure)
 
         # For each name and value of a field bound to this object...
-        for field_name, field_value in objects.iter_vars_custom_simple(self):
+        for field_name, field_value in objiter.iter_vars_custom_simple(self):
             # If this field itself contains a "figure" attribute, explicitly
             # nullify the latter to break this figure's circular references in a
             # manner ignoring "AttributeError: can't set attribute" exceptions.

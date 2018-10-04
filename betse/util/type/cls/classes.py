@@ -207,10 +207,10 @@ def iter_methods(cls: ClassType) -> GeneratorType:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.obj import objects
+    from betse.util.type.obj import objiter
 
     # Well, isn't that special?
-    yield from objects.iter_methods(obj=cls)
+    yield from objiter.iter_methods(obj=cls)
 
 
 @type_check
@@ -243,10 +243,10 @@ def iter_methods_matching(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.obj import objects
+    from betse.util.type.obj import objiter
 
     # Well, isn't that special?
-    yield from objects.iter_methods_matching(obj=cls, predicate=predicate)
+    yield from objiter.iter_methods_matching(obj=cls, predicate=predicate)
 
 # ....................{ DEFINERS                          }....................
 @type_check

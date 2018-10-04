@@ -136,23 +136,23 @@ class SimRunner(object):
 
         # Initialize core simulation data structures.
         self._callbacks.progressed_next(
-            progress_status='Creating core computational matrices...')
+            status='Creating core computational matrices...')
         phase.sim.init_core(phase)
 
         # Define the tissue and boundary profiles for plotting.
         self._callbacks.progressed_next(
-            progress_status='Creating tissue, surgery, and boundary profiles...')
+            status='Creating tissue, surgery, and boundary profiles...')
         phase.dyna.init_profiles(phase)
 
         # Redo gap junctions to isolate different tissue types.
         self._callbacks.progressed_next(
-            progress_status='Creating gap junction connection network...')
+            status='Creating gap junction connection network...')
         phase.cells.redo_gj(phase)
 
         # Create a Laplacian and solver for discrete transfers on closed,
         # irregular cell network.
         self._callbacks.progressed_next(
-            progress_status='Creating cell network Poisson solver...')
+            status='Creating cell network Poisson solver...')
         phase.cells.graphLaplacian(self._p)
 
         #FIXME: Would shifting this logic into the cells.graphLaplacian() method
@@ -170,7 +170,7 @@ class SimRunner(object):
 
         # Pickle this cell cluster to disk.
         self._callbacks.progressed_next(
-            progress_status='Saving seeded cell cluster...')
+            status='Saving seeded cell cluster...')
         phase.cells.save_cluster(phase)
 
         # Log the completion of this phase.

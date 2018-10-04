@@ -62,16 +62,16 @@ class SimCallbacksNoop(SimCallbacksBC):
         self, progress_max: int, progress_min: int = 0) -> None:
         pass
 
-    def progress_stated(self, progress_status: str) -> None:
+    def progress_stated(self, status: str) -> None:
         pass
 
     def progressed(self, progress: int) -> None:
         pass
 
-    def progressed_last(self, progress_status: StrOrNoneTypes = None) -> None:
+    def progressed_last(self, status: StrOrNoneTypes = None) -> None:
         pass
 
-    def progressed_next(self, progress_status: StrOrNoneTypes = None) -> None:
+    def progressed_next(self, status: StrOrNoneTypes = None) -> None:
         pass
 
 # ....................{ MAKERS                            }....................

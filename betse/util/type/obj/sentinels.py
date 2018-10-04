@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,7 +8,7 @@
 distinguish edge-case results from the standard ``None`` singleton) facilities.
 '''
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 class Sentinel(object):
     '''
     Class encapsulating sentinel objects of arbitrary (albeit unique) value.
@@ -27,12 +27,12 @@ class Sentinel(object):
 
         return 'Sentinel()'
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 SENTINEL = Sentinel()
 '''
 Sentinel object of arbitrary value.
 
 This object is internally leveraged by various utility functions (e.g.,
-:func:`betse.util.type.iterable.iterables.zip_isometric`) to identify erroneous and
-edge-case input (e.g., iterables of insufficient length).
+:func:`betse.util.type.iterable.iterables.zip_isometric`) to identify erroneous
+and edge-case input (e.g., iterables of insufficient length).
 '''

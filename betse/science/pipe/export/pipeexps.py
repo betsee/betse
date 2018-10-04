@@ -134,6 +134,9 @@ class SimPipesExport(object):
 
         # For the method and configuration of each enabled pipeline runner...
         for runner_method, runner_conf in runners_enabled:
+            # Metadata associated with this runner.
+            runner_metadata = runner_method.metadata
+
             # Attempt to pass this runner this configuration.
             try:
                 runner_method(phase, runner_conf)
@@ -141,25 +144,23 @@ class SimPipesExport(object):
             # current simulation configuration disabling extracellular spaces),
             # ignore this runner with a non-fatal warning and continue.
             except BetseSimPipeRunnerUnsatisfiedException as exception:
-                #FIXME: Consider resurrecting this. The difficulty, of course,
-                #is that we have no access to the "pipe_export" providing the
-                #parent export pipeline of the current runner. That said, we'll
-                #presumably need some means of associating the two, given that
-                #the GUI requires the type of each runner be displayed as that
-                #runner is... running.
-                # logs.log_warning(
-                #     'Excluding %s "%s", as %s.',
-                #     pipe_export._noun_singular_lowercase,
-                #     runner_conf.name,
-                #     exception.reason)
-
                 logs.log_warning(
-                    'Excluding export "%s", as %s.',
-                    runner_conf.name,
+                    'Excluding %s "%s", as %s.',
+                    runner_metadata.noun_singular_lowercase,
+                    runner_metadata.name,
                     exception.reason)
 
+            #FIXME: Refactor this low-level kludge from the BETSE codebase into
+            #a high-level implementation in the BETSEE codebase. See the
+            #prominent "FIXME" comment in the "pipeabc" submodule for
+            #preliminary work required to begin doing so. For now, this
+            #tragically suffices.
+
             # Notify of the caller of the completion of these exports.
-            phase.callbacks.progressed_next()
+            phase.callbacks.progressed_next(
+                status='Exported {} "{}".'.format(
+                    runner_metadata.noun_singular_lowercase,
+                    runner_metadata.name))
 
         # Log the directory to which all results were exported.
         logs.log_info('Simulation results exported to:')

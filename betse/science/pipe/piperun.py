@@ -10,10 +10,12 @@ iteratively run by its parent pipeline) functionality.
 
 # ....................{ IMPORTS                           }....................
 import functools
-from betse.exceptions import BetseSimPipeException
+from betse.exceptions import (
+    BetseSimPipeException, BetseSimPipeRunnerUnsatisfiedException)
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirements, SimPhaseRequirementsOrNoneTypes)
+from betse.util.io.log import logs
 from betse.util.type.text import strs
 from betse.util.type.types import type_check, CallableTypes, SequenceTypes
 
@@ -26,7 +28,25 @@ class SimPipeRunnerMetadata(object):
     This metadata is available via the ``metadata`` instance variable of each
     such runner.
 
-    Attributes
+    Attributes (Pipeline)
+    ----------
+    noun_singular_lowercase : str
+        Human-readable lowercase singular noun synopsizing this type of runner
+        (e.g., ``animation``, ``plot``), equivalent to the
+        :attr:`SimPipeABC.subclass._noun_singular_lowercase` constant defined
+        by the parent pipeline of this runner.
+    noun_singular_uppercase : str
+        Human-readable uppercase singular noun synopsizing this type of runner
+        (e.g., ``animation``, ``plot``), equivalent to the
+        :attr:`SimPipeABC.subclass._noun_singular_uppercase` constant defined
+        by the parent pipeline of this runner.
+    verb_continuous : str
+        Human-readable verb in the continuous tense synopsizing the type of
+        action performed by this type of runner (e.g., ``Saving``), equivalent
+        to the :attr:`SimPipeABC.subclass._VERB_CONTINUOUS` constant defined by
+        the parent pipeline of this runner.
+
+    Attributes (Runner)
     ----------
     categories : SequenceTypes
         Sequence of one or more human-readable strings iteratively naming all
@@ -38,11 +58,6 @@ class SimPipeRunnerMetadata(object):
         Machine-readable name of this runner, equivalent to :attr:`method_name`
         excluding the :attr:`SimPipeABC._RUNNER_METHOD_NAME_PREFIX` substring
         required by the parent pipeline of this runner.
-    pipe_noun_singular : str
-        Human-readable singular noun synopsizing this type of runner (e.g.,
-        ``animation``, ``plot``), equivalent to the
-        :attr:`SimPipeABC.subclass.NOUN_SINGULAR` constant defined by the
-        parent pipeline of this runner.
     requirements : SimPhaseRequirements
         Immutable set of zero or more :class:`SimPhaseRequirement` instances
         specifying all simulation features required by this runner.
@@ -104,7 +119,9 @@ class SimPipeRunnerMetadata(object):
         # "SimPipeABCMeta" metaclass at "SimPipeABC" subclass definition time
         # following the definition of this runner method.
         self.name = None
-        self.pipe_noun_singular = None
+        self.noun_singular_lowercase = None
+        self.noun_singular_uppercase = None
+        self.verb_continuous = None
 
         # Default this runner's description to its docstring.
         self.description = method.__doc__
@@ -113,7 +130,7 @@ class SimPipeRunnerMetadata(object):
         if not self.description:
             raise BetseSimPipeException(
                 'Pipeline runner method {}() docstring undefined.'.format(
-                    method.__name__))
+                    self.method_name))
         # Else, this docstring is non-empty.
 
         # Transform this docstring into a description by...
@@ -247,6 +264,13 @@ def piperunner(
             this closure with the metadata passed to the same decorator,
             returning the values returned by that method call.
 
+            Specifically, this closure either:
+
+            * If this runner is **unsatisfied** (i.e., requires one or more
+              simulation features disabled by the user-defined simulation
+              configuration for this phase), raises an exception.
+            * Else, logs an attempt to run this runner.
+
             Parameters
             ----------
             self_pipeline : SimPipeABC
@@ -257,16 +281,37 @@ def piperunner(
             All remaining parameters are passed as is to the method passed to
             the outer decorator defining this closure.
 
+            Raises
+            ----------
+            BetseSimVisualUnsatisfiedException
+                If this runner is unsatisfied.
+
             See Also
             ----------
             :func:`piperunner`
                 Further details.
             '''
 
-            # If this runner is unsatisfied by this pipeline, raise an exception.
-            self_pipeline.die_unless_runner_satisfied(
-                phase=phase,
-                runner_metadata=_piperunner_method.metadata)
+            # Metadata associated with this runner.
+            runner_metadata = _piperunner_method.metadata
+
+            # If any runner requirement is unsatisfied, raise an exception.
+            for requirement in runner_metadata.requirements:
+                if not requirement.is_satisfied(phase):
+                    raise BetseSimPipeRunnerUnsatisfiedException(
+                        result='{} "{}" requirement unsatisfied'.format(
+                            runner_metadata.noun_singular_uppercase,
+                            runner_metadata.name),
+                        reason='{} disabled'.format(requirement.name),
+                    )
+            # Else, all runner requirements are satisfied.
+
+            # Log the subsequent attempt to run this runner.
+            logs.log_info(
+                '%s %s "%s"...',
+                runner_metadata.verb_continuous,
+                runner_metadata.noun_singular_lowercase,
+                runner_metadata.name)
 
             # Else, this runner is satisfied. Since the prior call already
             # logged the attempt to run this runner, avoid redoing so here.

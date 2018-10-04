@@ -8,18 +8,49 @@ High-level **simulation pipeline** (i.e., container of related, albeit
 isolated, simulation actions to be run iteratively) functionality.
 '''
 
+#FIXME: Metadata duplication between pipeline and pipeline runner classes has
+#reached Corinthian heights of inanity. To address both this and the BETSEE
+#export substatus issue (i.e., that substatus for exports is currently kludged
+#at the BETSE layer and hence untranslateable), consider:
+#
+#* Define a new "betse.util.type.call.callbacks.CallbacksMetadataABC" abstract
+#  base class whose body reduces to simply "pass".
+#* Refactor the "betse.util.type.call.callbacks.CallbacksBC" class as follows:
+#  * Define a new progress_metadated() method accepting a mandatory
+#    "metadata : CallbacksMetadataABC" parameter.
+#  * Improve the progressed_next() method to accept an optional parameter of
+#    the same type.
+#* Define a new "SimPipeMetadataABC" abstract base class in this submodule,
+#  subclassing "CallbacksMetadataABC" for improved generality.
+#  Shift all of the following "SimPipeABC" class properties into
+#  "SimPipeMetadataABC" *INSTANCE* (i.e., standard non-class) properties:
+#  * "_NOUN_SINGULAR", renamed to "noun_singular_lower".
+#  * "_VERB_CONTINUOUS", renamed to "verb_continuous".
+#  * Lastly, define a new "noun_singular_upper" property.
+#* Define a new SimPipeABC.metadata() abstract class property. All "SimPipeABC"
+#  subclasses should redefine this property by:
+#  * Defining a new "SimPipeMetadataABC" concrete subclass.
+#  * Overriding SimPipeABC.metadata() to return an instance of that subclass.
+#* Remove the SimPipeRunnerMetadata.noun* and verb* instance variables.
+#* Define a new "SimPipeRunnerMetadata.pipe" instance variable.
+#* Refactor the SimPipeABCMeta.__new__() method to set this variable on each
+#  pipeline runner.
+#* Refactor the SimPipesExport.export() method to pass the optional "metadata"
+#  parameter to the call to phase.callbacks.progressed_next(): e.g.,
+#      phase.callbacks.progressed_next(metadata=runner_metadata.pipe)
+#
+#Voila! Frankly trivial, but fairly involved. A real-world dichotomy in action.
+
 # ....................{ IMPORTS                           }....................
 from abc import ABCMeta
-from betse.exceptions import (
-    BetseSimPipeException, BetseSimPipeRunnerUnsatisfiedException)
+from betse.exceptions import BetseSimPipeException
 from betse.lib.yaml.abc.yamllistabc import YamlListItemTypedABC
 from betse.science.phase.phasecls import SimPhase
-from betse.science.pipe.piperun import SimPipeRunnerMetadata
 from betse.util.io.log import logs
 from betse.util.type.decorator.deccls import abstractmethod #, abstractproperty
 from betse.util.type.descriptor.descs import (
     abstractclassproperty_readonly, classproperty_readonly)
-from betse.util.type.obj import objects
+from betse.util.type.obj import objects, objiter
 from betse.util.type.text import strs
 from betse.util.type.types import (
     type_check,
@@ -69,14 +100,20 @@ class SimPipeABCMeta(ABCMeta):
 
         # For the method name and method of each runner in this pipeline...
         for runner_method_name, runner_method in subcls.iter_runners_method():
+            # Metadata associated with this runner.
+            runner_metadata = runner_method.metadata
+
             # Set this runner's name to be this method name excluding this
             # pipeline's runner prefix.
-            runner_method.metadata.name = strs.remove_prefix(
+            runner_metadata.name = strs.remove_prefix(
                 text=runner_method_name,
                 prefix=subcls._RUNNER_METHOD_NAME_PREFIX)
 
             # Set this runner's human-readable type to that of this pipeline.
-            runner_method.metadata.pipe_noun_singular = subcls._NOUN_SINGULAR
+            runner_metadata.noun_singular_lowercase = subcls._NOUN_SINGULAR
+            runner_metadata.noun_singular_uppercase = (
+                subcls._NOUN_SINGULAR.upper())
+            runner_metadata.verb_continuous = subcls._VERB_CONTINUOUS
 
         # Return this sanitized "SimPipeABC" subclass.
         return subcls
@@ -211,7 +248,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
             # Iteratively yielding a 2-tuple of:
             #
             # * The name of this method excluding the runner prefix.
-            # * The metadata associated with This method.
+            # * The metadata associated with this method.
             (
                 strs.remove_prefix(
                     text=runner_method_name,
@@ -246,7 +283,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         '''
 
         # Defer to this generator.
-        yield from objects.iter_methods_prefixed(
+        yield from objiter.iter_methods_prefixed(
             obj=cls, prefix=cls._RUNNER_METHOD_NAME_PREFIX)
 
     # ..................{ INITIALIZERS                      }..................
@@ -345,57 +382,6 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         '''
 
         return True
-
-    # ..................{ EXCEPTIONS                        }..................
-    @type_check
-    def die_unless_runner_satisfied(
-        self,
-        phase: SimPhase,
-        runner_metadata: SimPipeRunnerMetadata,
-    ) -> None:
-        '''
-        Raise an exception if the passed runner is **unsatisfied** (i.e.,
-        requires one or more simulation features disabled for the passed
-        simulation phase) *or* log an attempt to run this runner otherwise.
-
-        Parameters
-        ----------
-        phase : SimPhase
-            Current simulation phase.
-        runner_metadata : SimPipeRunnerMetadata
-            Simulation pipeline runner metadata to be validated.
-
-        Raises
-        ----------
-        BetseSimVisualUnsatisfiedException
-            If this runner is unsatisfied.
-        '''
-
-        # Strip the prefixing verb from the name of this runner's method (e.g.,
-        # "export_" from "export_voltage_total"), raising a human-readable
-        # exception if this name has no such prefix.
-        runner_name = strs.remove_prefix(
-            text=runner_metadata.method_name,
-            prefix=self._RUNNER_METHOD_NAME_PREFIX,
-            exception_message=(
-                'Runner method name "{}" not prefixed by "{}".'.format(
-                    runner_metadata.method_name,
-                    self._RUNNER_METHOD_NAME_PREFIX)))
-
-        # If any runner requirement is unsatisfied, raise an exception.
-        for requirement in runner_metadata.requirements:
-            if not requirement.is_satisfied(phase):
-                raise BetseSimPipeRunnerUnsatisfiedException(
-                    result='{} "{}" requirement unsatisfied'.format(
-                        self._noun_singular_uppercase, runner_name),
-                    reason='{} disabled'.format(requirement.name),
-                )
-        # Else, all runner requirements are satisfied.
-
-        # Log the subsequent attempt to run this runner.
-        logs.log_info(
-            '%s %s "%s"...',
-            self._VERB_CONTINUOUS, self._noun_singular_lowercase, runner_name)
 
     # ..................{ ITERATORS                         }..................
     @type_check

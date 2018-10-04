@@ -449,7 +449,7 @@ class Cells(object):
 
         # Notify the sink callback of the current state of progress.
         phase.callbacks.progressed_next(
-            progress_status='Calculating geometric cell properties...')
+            status='Calculating geometric cell properties...')
 
         # Create individual cell polygon vertices.
         self.cellVerts(phase.p)
@@ -459,7 +459,7 @@ class Cells(object):
 
         # Notify the sink callback of the current state of progress.
         phase.callbacks.progressed_next(
-            progress_status='Calculating geometric cell volumes...')
+            status='Calculating geometric cell volumes...')
 
         # Calculate the volume of each cell and its internal regions.
         self.cell_vols(phase.p)
@@ -476,7 +476,7 @@ class Cells(object):
 
         # Notify the sink callback of the current state of progress.
         phase.callbacks.progressed_next(
-            progress_status='Creating extracellular matrix (ECM) grid...')
+            status='Creating extracellular matrix (ECM) grid...')
 
         # Create the ECM grid.
         self.makeECM(phase.p)
@@ -489,7 +489,7 @@ class Cells(object):
 
         # Notify the sink callback of the current state of progress.
         phase.callbacks.progressed_next(
-            progress_status='Creating environmental voltage Poisson solver...')
+            status='Creating environmental voltage Poisson solver...')
 
         # Avoid storing the non-inverse matrix, which only consumes memory.
         bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
@@ -497,7 +497,7 @@ class Cells(object):
 
         # Notify the sink callback of the current state of progress.
         phase.callbacks.progressed_next(
-            progress_status='Creating environmental current Poisson solver...')
+            status='Creating environmental current Poisson solver...')
 
         # Avoid storing the non-inverse matrix, which only consumes memory.
         bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
