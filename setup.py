@@ -62,6 +62,23 @@ of the :doc:`/README.rst` file. When submitting this application package to
 PyPI, this description is used verbatim as this package's front matter.
 '''
 
+_PACKAGES_NAME = None
+'''
+List of the fully-qualified names of all Python packages (i.e., directories
+containing zero or more Python modules) to be installed.
+
+This includes the :mod:`betse` package and all subpackages of this package,
+thus excluding:
+
+* The top-level test package and all subpackages of this package, test
+  functionality *not* intended to be installed with this application.
+* The top-level setup package and all subpackages of this package, setuptools
+  functionality required only for application installation.
+* ``build``, caching both setuptools metadata and a complete copy of this
+  package, required only by a prior application installation.
+* ``freeze``, providing PyInstaller-specific functionality required only
+  for application freezing (i.e., conversion into an executable binary).
+'''
 
 # ....................{ METADATA ~ seo                    }....................
 _KEYWORDS = ['biology', 'multiphysics', 'science', 'simulator',]
@@ -120,7 +137,36 @@ def _init() -> None:
     '''
 
     # Global variables assigned to below.
-    global _DESCRIPTION
+    global _DESCRIPTION, _PACKAGES_NAME
+
+    # List of the fully-qualified names of all Python packages (i.e.,
+    # directories containing zero or more Python modules) to be installed.
+    # Currently, this includes the "betse" package and all subpackages of this
+    # package excluding:
+    #
+    # * The top-level test package and all subpackages of this package, test
+    #   functionality *NOT* intended to be installed with this application.
+    # * The top-level setup package and all subpackages of this package,
+    #   setuptools functionality required only for application installation.
+    # * "build", caching both setuptools metadata and a complete copy of this
+    #   package, required only by a prior application installation.
+    # * "freeze", providing PyInstaller-specific functionality required only
+    #   for application freezing (i.e., conversion into an executable binary).
+    #
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # WARNING: This inspection intentionally omits subdirectories containing no
+    # "__init__.py" file, despite the remainder of the Python ecosystem
+    # commonly accepting such subdirectories as subpackages.
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    _PACKAGES_NAME = setuptools.find_packages(exclude=(
+        metadata.PACKAGE_NAME + '_test',
+        metadata.PACKAGE_NAME + '_test.*',
+        metadata.PACKAGE_NAME + '_setup',
+        metadata.PACKAGE_NAME + '_setup.*',
+        'build',
+        'freeze',
+    ))
+    # print('packages: {}'.format(_PACKAGES_NAME))
 
     # Major version of Python required by this application.
     PYTHON_VERSION_MAJOR = metadata.PYTHON_VERSION_MIN_PARTS[0]
@@ -199,26 +245,8 @@ _setup_options = {
     'tests_require': libs.get_testing_mandatory_tuple(),
 
     # ..................{ PACKAGES                          }..................
-    # List of all Python packages (i.e., directories containing zero or more
-    # Python modules) to be installed. Currently, this includes the "betse"
-    # package and all subpackages of this package excluding:
-    #
-    # * The top-level test package and all subpackages of this package, test
-    #   functionality *NOT* intended to be installed with this application.
-    # * The top-level setup package and all subpackages of this package,
-    #   setuptools functionality required only for application installation.
-    # * "build", caching both setuptools metadata and a complete copy of this
-    #   package, required only by a prior application installation.
-    # * "freeze", providing PyInstaller-specific functionality required only
-    #   for application freezing (i.e., conversion into an executable binary).
-    'packages': setuptools.find_packages(exclude=(
-        metadata.PACKAGE_NAME + '_test',
-        metadata.PACKAGE_NAME + '_test.*',
-        metadata.PACKAGE_NAME + '_setup',
-        metadata.PACKAGE_NAME + '_setup.*',
-        'build',
-        'freeze',
-    )),
+    # List of the fully-qualified names of all Python packages to be installed.
+    'packages': _PACKAGES_NAME,
 
     # ..................{ PATHS                             }..................
     # Cross-platform script wrappers dynamically created at installation time.

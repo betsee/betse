@@ -159,6 +159,7 @@ BETSE is releasable to all supported platforms as follows:
 
          .. code-block:: console
 
+            $ /tmp/betse-sdist/bin/pip3 install wheel
             $ /tmp/betse-sdist/bin/pip3 install dist/betse-${version}.tar.gz
 
       #. **Test this release from this venv.**

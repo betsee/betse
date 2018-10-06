@@ -129,10 +129,40 @@ def die_unless_parent_dir(pathname: str) -> None:
 @type_check
 def is_dir(dirname: str) -> bool:
     '''
-    ``True`` only if the directory with the passed path exists.
+    ``True`` only if the directory with the passed dirname exists.
     '''
 
     return os_path.isdir(dirname)
+
+
+@type_check
+def is_empty(dirname: str) -> bool:
+    '''
+    ``True`` only if the directory with the passed dirname is **empty** (i.e.,
+    contains no files or subdirectories).
+
+    Parameters
+    -----------
+    dirname : str
+        Directory to be tested for emptiness.
+
+    Returns
+    -----------
+    bool
+        ``True`` only if this directory is empty.
+
+    Raises
+    -----------
+    BetseDirException
+        If the passed dirname either is not an existing path *or* is but is not
+        a directory.
+    '''
+
+    # If this path is *NOT* a directory, raise an exception.
+    die_unless_dir(dirname)
+
+    # Return true only if this directory contains no child paths.
+    return not os.listdir(dirname)
 
 # ....................{ GETTERS                           }....................
 @type_check
@@ -715,7 +745,7 @@ def iter_basenames(dirname: str) -> SequenceTypes:
     Parameters
     -----------
     dirname : str
-        Absolute or relative path of the parent directory to inspect.
+        Absolute or relative dirname of the parent directory to inspect.
 
     Returns
     -----------
@@ -733,13 +763,13 @@ def iter_basenames(dirname: str) -> SequenceTypes:
 @type_check
 def iter_subdirnames(dirname: str) -> GeneratorType:
     '''
-    Generator yielding the pathname of each direct subdirectory of the passed
-    parent directory.
+    Generator non-recursively yielding the dirname of each direct subdirectory
+    of the passed parent directory.
 
     Parameters
     -----------
     dirname : str
-        Absolute or relative path of the parent directory to inspect.
+        Absolute or relative dirname of the parent directory to inspect.
 
     Returns
     -----------
@@ -749,8 +779,9 @@ def iter_subdirnames(dirname: str) -> GeneratorType:
     Yields
     -----------
     str
-        Absolute or relative path of each direct subdirectory of this
-        directory.
+        Absolute or relative dirname of each direct subdirectory of this
+        directory, depending on whether the passed dirname is itself either
+        absolute or relative.
 
     See Also
     -----------
@@ -789,7 +820,7 @@ def iter_subdir_basenames(dirname: str) -> SequenceTypes:
     Parameters
     -----------
     dirname : str
-        Absolute or relative path of the parent directory to inspect.
+        Absolute or relative dirname of the parent directory to inspect.
 
     Returns
     -----------
@@ -803,6 +834,38 @@ def iter_subdir_basenames(dirname: str) -> SequenceTypes:
 
     # Return this sequence of basenames as is.
     return subdir_basenames
+
+# ....................{ RECURSORS ~ subdir                }....................
+@type_check
+def recurse_subdirnames(dirname: str) -> GeneratorType:
+    '''
+    Generator recursively yielding the dirname of the passed parent directory
+    and each direct *and* transitive subdirectory of that directory.
+
+    To preserve recursive guarantees, the first dirname yielded by this
+    generator is guaranteed to be the passed dirname as is.
+
+    Parameters
+    -----------
+    dirname : str
+        Absolute or relative dirname of the parent directory to inspect.
+
+    Returns
+    -----------
+    GeneratorType
+        Generator yielding direct *and* transitive subdirectory dirnames.
+
+    Yields
+    -----------
+    str
+        Absolute or relative dirname of each direct *and* transitive
+        subdirectory of this directory, depending on whether the passed dirname
+        is itself either absolute or relative.
+    '''
+
+    # Return a generator comprehension trivially yielding the absolute or
+    # relative dirname of each subdirectory of this directory.
+    return (subdirname for subdirname, _, _ in _walk(dirname))
 
 # ....................{ PRIVATE ~ raisers                 }....................
 @type_check

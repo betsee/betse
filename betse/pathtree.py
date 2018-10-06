@@ -158,7 +158,7 @@ def get_dot_dirname() -> str:
 @func_cached
 def get_data_dirname() -> str:
     '''
-    Absolute pathname of this application's top-level data directory if found
+    Absolute dirname of this application's top-level data directory if found
     *or* raise an exception otherwise (i.e., if this directory is *not* found).
 
     This directory contains application-internal resources (e.g., media files)

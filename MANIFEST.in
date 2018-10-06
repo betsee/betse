@@ -1,9 +1,40 @@
-# --------------------( LICENSE                            )--------------------
-# Copyright 2015-2017 by Alexis Pietak & Cecil Curry
+# --------------------( LICENSE                           )--------------------
+# Copyright 2015-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 #
-# --------------------( SYNOPSIS                           )--------------------
-# Template with which setuptools generates the "MANIFEST" file for this project.
+# --------------------( SYNOPSIS                          )--------------------
+# Template with which setuptools generates this project's "MANIFEST" file.
 
-# ....................{ MAIN                               }....................
+# ....................{ INCLUDE                           }....................
+# Include all requisite top-level installation-time files.
+include LICENSE
+include MANIFEST.in
+include README.rst
+include conftest.py
+include pyproject.toml
+include pytest.ini
+include setup.cfg
+include setup.py
+include test
+
+# ....................{ INCLUDE ~ recursive               }....................
+# Include all requisite data (i.e., external non-Python files internally
+# required by one or more Python subpackages).
 recursive-include betse/data *
+
+# Include all requisite project-specific py.test and setuptools subpackages.
+#
+# Note that these subpackages are *ONLY* required at installation time and
+# hence omitted from the "packages" key passed to the setup() function by
+# "setup.py". Welcome to Setuptools Hell, dear friend.
+recursive-include betse_setup *
+recursive-include betse_test *
+
+# Include all optional documentation.
+recursive-include doc *
+
+# ....................{ EXCLUDE                           }....................
+# Exclude all ignorable cache files.
+recursive-exclude * __pycache__
+recursive-exclude * *.pyc
+recursive-exclude * *.pyo
