@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +8,7 @@
 *after* solving a simulation) subclasses.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import matplotlib
 import numpy as np
 from betse.lib.matplotlib.matplotlibs import mpl_config
@@ -17,7 +18,7 @@ from betse.science.visual.anim.animabc import AnimCellsABC
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import pyplot
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 #FIXME: Rename "_cell_data_plot" to "_cell_body_plot".
 #FIXME: Rename "_cell_edges_plot" to "_cell_edge_plot".
 
@@ -31,11 +32,12 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
     Caveats
     ----------
-    This animation *must* be the target clause of a ``with`` statement, ensuring
-    safe setup and teardown of this animation's non-blocking behavior. Likewise,
-    this animation's :meth:`plot_frame` method *must* be called within the body
-    of this ``with`` statement after producing for each sampled time step the
-    cell data visualized by this animation for the corresponding frame.
+    This animation *must* be the target clause of a ``with`` statement,
+    ensuring safe setup and teardown of this animation's non-blocking behavior.
+    Likewise, this animation's :meth:`plot_frame` method *must* be called
+    within the body of this ``with`` statement after producing for each sampled
+    time step the cell data visualized by this animation for the corresponding
+    frame.
 
     Attributes
     ----------
@@ -60,7 +62,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
         ``is_color_autoscaled`` is ``False``), this will be ignored.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(
         self,
@@ -72,8 +74,8 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
         #FIXME: Permit this option to be configured via a new configuration
         #option in the YAML file.
-        #FIXME: Actually, just excise this everywhere. Ally dislikes this effect
-        #and I certainly never require it; ergo, remove.
+        #FIXME: Actually, just excise this everywhere. Ally dislikes this
+        #effect and I certainly never require it; ergo, remove.
 
         is_colorbar_autoscaling_telescoped: bool = False,
         *args, **kwargs
@@ -86,14 +88,14 @@ class AnimCellsWhileSolving(AnimCellsABC):
         phase: SimPhase
             Current simulation phase.
         is_colorbar_autoscaling_telescoped : optional[bool]
-            `True` if colorbar autoscaling is permitted to increase but _not_
-            decrease the colorbar range _or_ `False` otherwise (i.e., if
+            ``True`` only if colorbar autoscaling is permitted to increase but
+            not decrease the colorbar range *or* ``False`` otherwise (i.e., if
             colorbar autoscaling is permitted to both increase and decrease the
             colorbar range). Such telescoping assists in emphasizing stable
             long-term patterns in cell data at a cost of deemphasizing unstable
             short-term patterns. If colorbar autoscaling is disabled (i.e.,
-            `is_color_autoscaled` is `False`), this will be ignored. Defaults
-            to `False`.
+            ``is_color_autoscaled`` is ``False``), this will be ignored.
+            Defaults to ``False``.
 
         See the superclass method for all remaining parameters.
         '''
@@ -137,10 +139,9 @@ class AnimCellsWhileSolving(AnimCellsABC):
         #FIXME: Refactor to call the new
         #Cells.map_membranes_midpoint_to_cells_centre() method instead.
 
-        # average the voltage to the cell centre
-        vm_o = np.dot(
-            self._phase.cells.M_sum_mems, self._phase.sim.vm) / (
-                self._phase.cells.num_mems)
+        # Vmem averaged over cell centres.
+        vm_o = np.dot(self._phase.cells.M_sum_mems, self._phase.sim.vm) / (
+            self._phase.cells.num_mems)
 
         # self._cell_time_series = self.sim.vm_time
         self._cell_time_series = self._phase.sim.vm_ave_time
@@ -165,15 +166,15 @@ class AnimCellsWhileSolving(AnimCellsABC):
             color_data=cell_data,
         )
 
-    # ..................{ CONTEXTS                           }..................
+    # ..................{ CONTEXTS                          }..................
     def __enter__(self) -> 'AnimCellsWhileSolving':
         '''
         Enter the runtime context for this context manager, returning the same
         context manager as the value bound to the identifier in the ``as``
         clause of the ``with`` block using this context manager.
 
-        This special method temporarily enables non-blocking matplotlib behavior
-        for the duration of this plot or animation.
+        This special method temporarily enables non-blocking matplotlib
+        behavior for the duration of this plot or animation.
         '''
 
         # If displaying this animation, do so in a non-blocking manner.
@@ -196,8 +197,8 @@ class AnimCellsWhileSolving(AnimCellsABC):
         '''
         Exit the runtime context for this context manager given the passed
         exception metadata for an exception raised by the body of the ``with``
-        block using this context manager if any, returning ``True`` only if that
-        exception should be suppressed by this ``with`` block.
+        block using this context manager if any, returning ``True`` only if
+        that exception should be suppressed by this ``with`` block.
 
         This special method (in order):
 
@@ -218,7 +219,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
         # Avoid suppressing exceptions raised by this "with" block.
         return False
 
-    # ..................{ PLOTTERS                           }..................
+    # ..................{ PLOTTERS                          }..................
     def _plot_frame_figure(self) -> None:
 
         # Upscaled cell data for the current time step.
@@ -274,7 +275,8 @@ class AnimCellsWhileSolving(AnimCellsABC):
         # If displaying this frame...
         if self._is_show:
             # If the current event loop is idle, draw this frame; else, noop.
-            # This is the OO-style equivalent to calling pyplot.draw().
+            # As detailed by the pyplot.draw() docstring, this is the
+            # object-oriented equivalent to calling pyplot.draw().
             self._figure.canvas.draw_idle()
             # self._figure.canvas.draw()
 

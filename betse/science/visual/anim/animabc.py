@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -93,11 +94,12 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 #
 #    https://stackoverflow.com/questions/21099121/python-matplotlib-unable-to-call-funcanimation-from-inside-a-function
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseSimConfException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
-from betse.lib.matplotlib.writer.mplcls import ImageMovieWriter, NoopMovieWriter
+from betse.lib.matplotlib.writer.mplcls import (
+    ImageMovieWriter, NoopMovieWriter)
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.visual.layer.vectorfield.lyrvecfldabc import (
     LayerCellsFieldColorlessABC)
@@ -111,7 +113,7 @@ from betse.util.type.types import type_check, BoolOrNoneTypes, IntOrNoneTypes
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
 
-# ....................{ BASE                               }....................
+# ....................{ BASE                              }....................
 class AnimCellsABC(VisualCellsABC):
     '''
     Abstract base class of all animation subclasses.
@@ -132,7 +134,7 @@ class AnimCellsABC(VisualCellsABC):
         Number of frames to be plotted.
     _time_step_last : int
         0-based index of the last frame to be plotted, exactly equivalent to
-        `self._time_step_count - 1`.
+        ``self._time_step_count - 1``.
     _time_step : int
         0-based index of the current frame being plotted, corresponding to the
         0-based sampled time step currently being simulated.
@@ -166,7 +168,7 @@ class AnimCellsABC(VisualCellsABC):
         is ``True``).
     '''
 
-    # ..................{ LIFECYCLE                          }..................
+    # ..................{ LIFECYCLE                         }..................
     @type_check
     def __init__(
         self,
@@ -217,19 +219,20 @@ class AnimCellsABC(VisualCellsABC):
             animation's frames will be saved when requested by the current
             simulation configuration.
         is_current_overlayable : optional[bool]
-            ``True`` only if overlaying either electric current or concentration
-            flux streamlines on this animation when requested by the current
-            simulation configuration (as governed by the
+            ``True`` only if overlaying either electric current or
+            concentration flux streamlines on this animation when requested by
+            the current simulation configuration (as governed by the
             ``p.anim.is_overlay_current`` parameter). All subclasses except
             those already plotting streamlines (e.g., by calling the superclass
             :meth:`_plot_stream` method) should unconditionally enable this
             boolean.
         is_current_overlay_only_gj : optional[bool]
             ``True`` if only overlaying intracellular current *or* ``False`` if
-            overlaying both intra- and extracellular current. Ignored if current
-            is _not_ being overlayed at all (i.e., if
+            overlaying both intra- and extracellular current. Ignored if
+            current is _not_ being overlayed at all (i.e., if
             :attr:`_is_current_overlay` is ``False``). If ``None``, defaults to
             the following state:
+
             * ``False`` if extracellular spaces are enabled _and_ both
                intracellular and extracellular current is being animated.
             * ``True`` if either extracellular spaces are disabled _or_ are
@@ -427,7 +430,7 @@ class AnimCellsABC(VisualCellsABC):
                     dpi=anim_config.video_dpi,
                 )
 
-    # ..................{ PROPERTIES                         }..................
+    # ..................{ PROPERTIES                        }..................
     # Read-only properties, preventing callers from resetting these attributes.
 
     @property
@@ -439,7 +442,7 @@ class AnimCellsABC(VisualCellsABC):
 
         return self._time_step
 
-    # ..................{ PREPARERS                          }..................
+    # ..................{ PREPARERS                         }..................
     # This method has been overridden to support subclasses that manually
     # handle animations rather than calling the _animate() method (e.g., the
     # "AnimCellsWhileSolving" subclass).
@@ -505,7 +508,7 @@ class AnimCellsABC(VisualCellsABC):
         # Append a layer overlaying this field.
         self._append_layer(LayerCellsFieldStream(field=field))
 
-    # ..................{ ANIMATORS                          }..................
+    # ..................{ ANIMATORS                         }..................
     @type_check
     def _animate(self, *args, **kwargs) -> None:
         '''
@@ -671,9 +674,9 @@ class AnimCellsABC(VisualCellsABC):
                     # Note that, since "NoopMovieWriter" maintains no state, a
                     # singleton "NoopMovieWriter" instance could technically be
                     # shared amongst all animation classes. However, since
-                    # "NoopMovieWriter" construction is trivially fast, there are no
-                    # demonstrable advantages and arguable disadvantages to
-                    # doing so (e.g., code complexity, space consumption).
+                    # "NoopMovieWriter" construction is trivially fast, there
+                    # are no demonstrable advantages and arguable disadvantages
+                    # to doing so (e.g., code complexity, space consumption).
                     writer=NoopMovieWriter(),
 
                     # Pass an ignorable filename. To guarantee that an
@@ -698,7 +701,7 @@ class AnimCellsABC(VisualCellsABC):
             else:
                 raise
 
-    # ..................{ CLOSERS                            }..................
+    # ..................{ CLOSERS                           }..................
     def close(self) -> None:
         '''
         Finalize displaying and/or saving this non-blocking animation.

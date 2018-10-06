@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,13 +9,13 @@ Matplotlib-specific classes writing animations as frames.
 
 #FIXME: Consider contributing most or all of this submodule back to matplotlib.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from matplotlib.animation import writers, MovieWriter
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 @writers.register('noop')
 class NoopMovieWriter(MovieWriter):
     '''
@@ -28,16 +28,17 @@ class NoopMovieWriter(MovieWriter):
 
     * Manually handling writing (e.g., by manually instantiating and calling
       methods of :class:`MovieWriter` subclasses).
-    * Calling the :meth:`Animation.save` method, which obstructs manual handling
-      of writing by:
+    * Calling the :meth:`Animation.save` method, which obstructs manual
+      handling of writing by:
+
       * Mandating that a writer be passed.
       * Automatically writing with that writer.
 
-    Such callers may continue to manually handle writing by passing instances of
-    this subclass to the :meth:`Animation.save` method.
+    Such callers may continue to manually handle writing by passing instances
+    of this subclass to the :meth:`Animation.save` method.
     '''
 
-    # ..................{ PUBLIC ~ static                    }..................
+    # ..................{ SUPERCLASS ~ class                }..................
     @classmethod
     def isAvailable(cls):
         '''
@@ -47,7 +48,7 @@ class NoopMovieWriter(MovieWriter):
 
         return True
 
-    # ..................{ PUBLIC                             }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, *args, **kwargs) -> None:
         '''
         Initialize this writer.
@@ -64,25 +65,28 @@ class NoopMovieWriter(MovieWriter):
         kwargs['extra_args'] = list()
         super().__init__(*args, **kwargs)
 
-    # ..................{ IGNORE                             }..................
+    # ..................{ SUPERCLASS                        }..................
     def grab_frame(self, **kwargs) -> None:
         '''
-        Prevent the superclass :meth:`grab_frame` method from writing this frame
-        to the current sink for this writer.
+        Prevent the superclass :meth:`grab_frame` method from writing this
+        frame to the current sink for this writer.
 
         This writer fails to redefine the :meth:`_frame_sink` method and hence
         defaults to the sink provided by the superclass: stdin. Since stdin is
         typically an unsafe sink, this method circumvents the need to define a
         safe sink by reducing this method to a noop.
         '''
+
         pass
 
 
     def cleanup(self):
         '''
-        Prevent the superclass :meth:`cleanup` method from attempting to capture
-        output from an external process no longer forked by this subclass.
+        Prevent the superclass :meth:`cleanup` method from attempting to
+        capture output from an external process no longer forked by this
+        subclass.
         '''
+
         pass
 
 
@@ -91,6 +95,7 @@ class NoopMovieWriter(MovieWriter):
         Prevent the superclass :meth:`_run` method from attempting to fork an
         external process running a non-existent video encoding command.
         '''
+
         pass
 
 
@@ -113,13 +118,13 @@ class ImageMovieWriter(NoopMovieWriter):
         0-based index of the next frame to be written.
     '''
 
-
+    # ..................{ SUPERCLASS                        }..................
     def setup(self, *args, **kwargs) -> None:
         '''
         Prepare to write animation frames.
 
-        This method is implicitly called by the superclass :meth:`saving` method
-        implicitly called by the :meth:`Anim.save` method. Note that,
+        This method is implicitly called by the superclass :meth:`saving`
+        method implicitly called by the :meth:`Anim.save` method. Note that,
         unfortunately, the design of both methods prohibits this method from
         accepting subclass-specific parameters.
 
@@ -129,6 +134,7 @@ class ImageMovieWriter(NoopMovieWriter):
             :meth:`str.format`-formatted template describing the filenames of
             the resulting frame images. This template is subject to the
             following :meth:`str.format` formatting:
+
             * The first ``{``- and ``}``-delimited substring (e.g., ``{:07d}``)
               will be replaced by the 0-based index of the current frame. If
               this substring does *not* exist, an exception is raised.
@@ -181,8 +187,8 @@ class ImageMovieWriter(NoopMovieWriter):
 
     def grab_frame(self, **kwargs) -> None:
         '''
-        Write the next frame for the current figure to the image file defined by
-        the current filename template.
+        Write the next frame for the current figure to the image file defined
+        by the current filename template.
 
         The high-level :meth:`Animation.save` method unpacks and passes all
         key-value pairs of the optional ``savefig_kwargs`` dictionary argument
@@ -192,12 +198,13 @@ class ImageMovieWriter(NoopMovieWriter):
 
         # Leverage similar code as our superclass with exception of:
         #
-        # * *NOT* catching and logging exceptions. The superclass implementation
-        #   catches and logs exceptions by deferring to the output of an
-        #   external process no longer forked by this subclass.
+        # * *NOT* catching and logging exceptions. The superclass
+        #   implementation catches and logs exceptions by deferring to the
+        #   output of an external process no longer forked by this subclass.
         # * Passing a filename rather than open file handle to the
-        #   self.fig.savefig() method. While we could reimplement the superclass
-        #   _frame_sink() method to do so, this seems simpler and more reliable.
+        #   self.fig.savefig() method. While we could reimplement the
+        #   superclass _frame_sink() method to do so, this seems simpler and
+        #   more reliable.
 
         # Filename of the current frame to be written.
         frame_filename = self.outfile.format(self._frame_number)

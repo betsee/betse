@@ -137,30 +137,35 @@ class SimPipesExport(object):
             # Metadata associated with this runner.
             runner_metadata = runner_method.metadata
 
-            # Attempt to pass this runner this configuration.
+            # Attempt to...
             try:
+                # Run this runner with this phase and configuration.
                 runner_method(phase, runner_conf)
+
+                #FIXME: Refactor this low-level kludge from the BETSE codebase
+                #into a high-level implementation in the BETSEE codebase. See
+                #the prominent "FIXME" comment in the "pipeabc" submodule for
+                #preliminary work required to begin doing so. For now, this
+                #tragically suffices.
+
+                # Notify the caller of the successful completion of this
+                # runner. Since the prior call failed to raise an exception,
+                # this runner necessarily succeeded.
+                phase.callbacks.progressed_next(
+                    status='Exported {} "{}".'.format(
+                        runner_metadata.noun_singular_lowercase,
+                        runner_metadata.name))
             # If this runner's requirements are unsatisfied (e.g., due to the
-            # current simulation configuration disabling extracellular spaces),
-            # ignore this runner with a non-fatal warning and continue.
+            # current simulation configuration disabling fluid flow), notify
+            # the caller of this non-fatal condition and continue.
             except BetseSimPipeRunnerUnsatisfiedException as exception:
-                logs.log_warning(
-                    'Excluding %s "%s", as %s.',
-                    runner_metadata.noun_singular_lowercase,
-                    runner_metadata.name,
-                    exception.reason)
-
-            #FIXME: Refactor this low-level kludge from the BETSE codebase into
-            #a high-level implementation in the BETSEE codebase. See the
-            #prominent "FIXME" comment in the "pipeabc" submodule for
-            #preliminary work required to begin doing so. For now, this
-            #tragically suffices.
-
-            # Notify of the caller of the completion of these exports.
-            phase.callbacks.progressed_next(
-                status='Exported {} "{}".'.format(
-                    runner_metadata.noun_singular_lowercase,
-                    runner_metadata.name))
+                phase.callbacks.progressed_next(
+                    status='Excluding {} "{}", as {}.'.format(
+                        runner_metadata.noun_singular_lowercase,
+                        runner_metadata.name,
+                        exception.reason))
+            # Else if this runner raises any other exception, permit this
+            # exception to propagate up the callstack without intervention.
 
         # Log the directory to which all results were exported.
         logs.log_info('Simulation results exported to:')

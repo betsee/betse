@@ -1,4 +1,4 @@
-.. # ------------------( SYNOPSIS                            )------------------
+.. # ------------------( SYNOPSIS                           )------------------
 
 =========
 Releasing
@@ -15,7 +15,7 @@ While technically optional, this procedure reduces the likelihood of
 installation and usage woes by downstream consumers (\ *e.g.,* end users,
 package maintainers) and is thus effectively mandatory.
 
-.. # ------------------( TABLE OF CONTENTS                   )------------------
+.. # ------------------( TABLE OF CONTENTS                  )------------------
 .. # Blank line. By default, Docutils appears to only separate the subsequent
 .. # table of contents heading from the prior paragraph by less than a single
 .. # blank line, hampering this table's readability and aesthetic comeliness.
@@ -37,10 +37,10 @@ Procedure
 
 BETSE is releasable to all supported platforms as follows:
 
-#. **Install** wheel_, a third-party pure-Python package permitting this release
-   to be packaged into a cross-platform pre-compiled binary distribution
-   supported by both PyPI_ and `pip`. This mandatory dependency augments
-   setuptools with the ``bdist_wheel`` subcommand invoked below.
+#. **Install** wheel_, a third-party pure-Python package permitting this
+   release to be packaged into a cross-platform pre-compiled binary
+   distribution supported by both PyPI_ and `pip`. This mandatory dependency
+   augments setuptools with the ``bdist_wheel`` subcommand invoked below.
 
    .. code-block:: console
 
@@ -72,16 +72,17 @@ BETSE is releasable to all supported platforms as follows:
 
          $ python3 setup.py checkdocs
 
-   #. After submitting this release to PyPI via ``twine`` below, manually browse
-      to `the PyPI-hosted page <PyPI BETSE_>`__ for this project and verify by
-      cursory inspection that this project's description is rendered as HTML.
+   #. After submitting this release to PyPI via ``twine`` below, manually
+      browse to `the PyPI-hosted page <PyPI BETSE_>`__ for this project and
+      verify by cursory inspection that this project's description is rendered
+      as HTML.
 
 #. (\ *Optional*\ ) **Bump release metadata.** Assuming the prior release
    followed these instructions, release metadata has already been bumped in
    preparation for the next (i.e., this) release. If another bump is required
-   (e.g., to upgrade this release from a patch to a minor or even major update),
-   this bump should be performed *before* tagging this release. For details, see
-   see the eponymous *"Bump release metadata."* instructions below.
+   (e.g., to upgrade this release from a patch to a minor or even major
+   update), this bump should be performed *before* tagging this release. For
+   details, see the eponymous *"Bump release metadata."* instructions below.
 #. (\ *Optional*\ ) **List all existing tags.** For reference, listing all
    previously created tags *before* creating new tags is often advisable.
 
@@ -100,7 +101,8 @@ BETSE is releasable to all supported platforms as follows:
        global.
 
    * Remaining lines are a changelog synopsizing the most significant changes
-     implemented by this release – ideally in the enumerated format given below.
+     implemented by this release – ideally in the enumerated format given
+     below.
 
    For example::
 
@@ -212,9 +214,9 @@ BETSE is releasable to all supported platforms as follows:
      version of BETSE. To guarantee this, the external
      ``betsee.guimetadata.VERSION`` string variable of the former should be
      bumped to reflect the latter. For maintainability, note that bumping that
-     variable also automatically bumps the version of BETSE required by BETSEE_.
-     For example, setting ``betsee.guimetadata.VERSION = '0.8.4.0'`` also bumps
-     the version of BETSE required by BETSEE_ to ``0.8.4``.
+     variable also automatically bumps the version of BETSE required by
+     BETSEE_. For example, setting ``betsee.guimetadata.VERSION = '0.8.4.0'``
+     also bumps the version of BETSE required by BETSEE_ to ``0.8.4``.
 
 #. **Create another announcement commit.** This commit should have a message
    whose first line is of the format ``"BETSE {version} ({codename})
@@ -233,8 +235,8 @@ BETSE is releasable to all supported platforms as follows:
 #. **Push this tagged commit.** After doing so, Gitlab will automatically
    publish source tarballs in various formats (e.g., ``.zip``, ``.tar.bz2``)
    containing the contents of this repository at this tagged commit in this
-   project's `source tarball archive <tarballs_>`__. No further work is required
-   to distribute source tarballs via Gitlab.
+   project's `source tarball archive <tarballs_>`__. No further work is
+   required to distribute source tarballs via Gitlab.
 
    .. code-block:: console
 
@@ -300,10 +302,10 @@ BETSE is releasable to all supported platforms as follows:
       upload (and hence creation) for this project.
    #. **Create a** ``~/.pypirc`` **dotfile,** ideally by following the
       `official instructions <Test PyPI instructions_>`__ for doing so.
-   #. **Upload this source tarball and binary wheel to** `PyPI`_. If this is the
-      first such upload for this project, a `PyPI`_-hosted project page will be
-      implicitly created by this upload. `PyPI` neither requires, recommends,
-      nor supports end user intervention in this process.
+   #. **Upload this source tarball and binary wheel to** `PyPI`_. If this is
+      the first such upload for this project, a `PyPI`_-hosted project page
+      will be implicitly created by this upload. `PyPI` neither requires,
+      recommends, nor supports end user intervention in this process.
 
       .. code-block:: console
 
@@ -420,9 +422,9 @@ three ``.``-delimited integers ``{major}.{minor}.{patch}``, where:
     The public API of this application is its configuration file format rather
     than the public subset of its codebase (e.g., public submodules or classes).
     No codebase change can be considered to break backward compatibility unless
-    also changing the simulation configuration file format in a manner rendering
-    existing files in the prior format unusable. Note that doing so is
-    unequivocally bad and hence *much* discouraged.
+    also changing the simulation configuration file format in a manner
+    rendering existing files in the prior format unusable. Note that doing so
+    is unequivocally bad and hence *much* discouraged.
   * **Implementing headline-worthy functionality** (e.g., a GUI). Technically,
     this condition breaks the `Semantic Versioning`_ schema, which stipulates
     that *only* changes breaking backward compatibility warrant major bumps.
@@ -432,8 +434,8 @@ three ``.``-delimited integers ``{major}.{minor}.{patch}``, where:
   In either case, the minor and patch versions both reset to 0.
 
 * ``{minor}`` is the **minor version,** incremented only when implementing
-  customary functionality in a manner preserving backward compatibility. In this
-  case, only the patch version resets to 0.
+  customary functionality in a manner preserving backward compatibility. In
+  this case, only the patch version resets to 0.
 * ``{patch}`` is the **patch version,** incremented only when correcting
   outstanding issues in a manner preserving backward compatibility.
 
@@ -449,15 +451,15 @@ schema`_. Each code name *must* consist of two capitalized English words
 
 * ``{adjective}`` is an arbitrary adjective whose first letter is the same as
   that of the first character of the subsequent ``{bioelectrician}``.
-* ``{bioelectrician}`` is the last name of an arbitrary academic associated with
-  the long-standing field of bioelectricity.
+* ``{bioelectrician}`` is the last name of an arbitrary academic associated
+  with the long-standing field of bioelectricity.
 
 Unlike the `Ubuntu code name schema`_, the first letter of the code name for
 each version need *not* succeed the first letter of the code name for the prior
 version. For our insignificant purposes, preserving alphabetization across code
 names is a fruitless and hence worthless goal.
 
-.. # ------------------( LINKS ~ betse                       )------------------
+.. # ------------------( LINKS ~ betse                      )------------------
 .. _readme:
    https://gitlab.com/betse/betse/blob/master/README.rst
 .. _tarballs:
@@ -465,13 +467,13 @@ names is a fruitless and hence worthless goal.
 .. _PyPI BETSE:
    https://pypi.python.org/pypi/betse
 
-.. # ------------------( LINKS ~ betse : gentoo              )------------------
+.. # ------------------( LINKS ~ betse : gentoo             )------------------
 .. _Gentoo Linux ebuild:
    https://github.com/leycec/raiagent/tree/master/sci-biology/betse
 .. _raiagent overlay:
    https://github.com/leycec/raiagent
 
-.. # ------------------( LINKS ~ betse : conda               )------------------
+.. # ------------------( LINKS ~ betse : conda              )------------------
 .. _Anaconda package:
    https://anaconda.org/conda-forge/betse
 .. _conda recipe:
@@ -480,7 +482,7 @@ names is a fruitless and hence worthless goal.
 .. _feedstock repository:
    https://github.com/leycec/betse-feedstock
 
-.. # ------------------( LINKS ~ betsee                      )------------------
+.. # ------------------( LINKS ~ betsee                     )------------------
 .. _BETSEE:
    https://gitlab.com/betse/betsee
 

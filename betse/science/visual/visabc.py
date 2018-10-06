@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -12,7 +12,7 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 #"LayerCellsABC" base class defined elsewhere.
 #Ultimate power fights the dark deceit!
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import numpy as np
 from abc import ABCMeta
 from betse.exceptions import BetseSimVisualException
@@ -49,7 +49,7 @@ from matplotlib.image import AxesImage
 from matplotlib.patches import FancyArrowPatch
 from matplotlib.streamplot import StreamplotSet
 
-# ....................{ SUPERCLASSES                       }....................
+# ....................{ SUPERCLASSES                      }....................
 class VisualCellsABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **cell cluster visual** (i.e., plot or animation
@@ -71,7 +71,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         YAML-backed simulation configuration file for this phase.
     _label : str
         Basename of the subdirectory in the phase-specific results directory
-        to which all files exported for this visual are saved _and_
+        to which all files exported for this visual are saved *and*
         the basename prefix of these files.
     _layers : list
         List of all :class:`LayerCellsABC` instances collectively composing
@@ -93,8 +93,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     _axes_title : str
         Text displayed above the figure axes. If a non-``None`` value for the
         ``axes_title`` parameter is passed to the :meth:`__init__` method, this
-        is that value; else, this is the value of the ``figure_title`` parameter
-        passed to that method.
+        is that value; else, this is the value of the ``figure_title``
+        parameter passed to that method.
     _axes_x_label : str
         Text displayed below the figure's X axis.
     _axes_y_label : str
@@ -110,7 +110,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         animation. Due to matplotlib constraints, only the first mappable in
         this iterable is associated with this colorbar.
     _colorbar_title: StrOrNoneTypes
-        Text displayed above the figure colorbar if any *or* ``None`` otherwise.
+        Text displayed above the figure colorbar if any *or* ``None``
+        otherwise.
     _color_max : NumericSimpleTypes
         Maximum color value to be displayed by the colorbar.
     _color_min : NumericSimpleTypes
@@ -124,6 +125,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         Dictionary of all keyword arguments to be passed to the
         :meth:`Figure.savefig` method called to save each visual frame for
         both still images and animated video. By default, this dictionary:
+
         * Enables the ``transparent`` argument, painting frame backgrounds
           transparently rather than as a solid color (usually, white).
 
@@ -134,7 +136,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         currently being plotted.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(
         self,
@@ -194,8 +196,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             `None`, in which case a general-purpose string is defaulted to.
         colorbar_title: optional[str]
             Text displayed above the figure colorbar if any *or* ``None``
-            otherwise. If this parameter is ``None`` *and* at least one layer in
-            the passed ``layers`` parameter is an instance of the
+            otherwise. If this parameter is ``None`` *and* at least one layer
+            in the passed ``layers`` parameter is an instance of the
             :class:`LayerCellsColorfulABC` base class, an exception is raised.
         colormap : optional[Colormap]
             Matplotlib colormap to be used by default for all animation artists
@@ -237,10 +239,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         self._layers = []
         self._append_layer(*layers)
 
-        # If autoscaling colors, ignore the passed minimum and maximum. To avoid
-        # propagating these changes back to the underlying configuration file,
-        # these changes are isolated to new instance variables; the passed
-        # "conf.color_max" and "conf.color_min" variables remain unchanged.
+        # If autoscaling colors, ignore the passed minimum and maximum. To
+        # avoid propagating these changes back to the underlying configuration
+        # file, these changes are isolated to new instance variables; the
+        # passed "conf.color_max" and "conf.color_min" variables are unchanged.
         if self._conf.is_color_autoscaled:
             self._color_max = None
             self._color_min = None
@@ -266,7 +268,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Initialize this plot's figure *AFTER* defining all attributes.
         self._init_figure()
 
-    # ..................{ INITIALIZERS ~ figure              }..................
+    # ..................{ INITIALIZERS ~ figure             }..................
     def _init_figure(self) -> None:
         '''
         Initialize this plot's figure.
@@ -277,13 +279,26 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         Likewise, the colorbar title is added to this figure's colorbar.
         '''
 
-        # Figure encapsulating this animation as a weak rather than strong (the
+        # Figure encapsulating this visual as a weak rather than strong (the
         # default) reference, avoiding circular references and complications
         # thereof (e.g., memory overhead). Figures created by the "pyplot" API
         # are internally retained in Matplotlib's "Gcf" figure cache until
         # explicitly closed -- either non-interactively by a close() call or
         # interactively by the corresponding GUI window being closed. Hence,
         # strong figure references should typically *NOT* be retained.
+        #
+        # Note that this is the only remaining "pyplot" function which has no
+        # object-oriented analogue in the Matplotlib API. Ideally, we would
+        # simply instantiate this figure directly: e.g.,
+        #
+        #     self._figure = Figure()
+        #
+        # Sadly, doing so is complicated by the fact that a figure requires a
+        # backend-specific canvas, which the low-level
+        # pyplot.new_figure_manager() function called by the high-level
+        # pyplot.figure() function instantiates here on our behalf. Attempting
+        # to manually perform such logic in a forward-compatible manner
+        # effectively remains infeasible. So, we necessarily defer to "pyplot".
         self._figure = pyref.proxy_weak(pyplot.figure())
 
         # Figure axes scaled to the extent of the current 2D environment as a
@@ -291,7 +306,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # circular references and complications thereof (e.g., memory
         # overhead). Since figures already contain their axes as a strong
         # reference, we need *NOT* do so as well here.
-        self._axes = pyref.proxy_weak(pyplot.subplot(111))
+        self._axes = self._figure.add_subplot(111)
 
         # If this object was initialized with both a figure and axes title,
         # display the former above the latter.
@@ -341,7 +356,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Reinitialize these axes.
         self._init_figure_axes()
 
-    # ..................{ PREPARERS ~ figure                 }..................
+    # ..................{ PREPARERS ~ figure                }..................
     #FIXME: This method should no longer accept any parameters. All parameters
     #currently accepted by this method are obsolete and hence remain
     #undocumented. They should *ALL* be removed as soon as feasible.
@@ -360,7 +375,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         if 'color_data' in kwargs:
             self._prep_colors_obsolete(*args, **kwargs)
 
-    # ..................{ DEINITIALIZERS                     }..................
+    # ..................{ DEINITIALIZERS                    }..................
     def close(self) -> None:
         '''
         Deallocate all resources associated with this visual.
@@ -383,6 +398,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
           animation may be safely deallocated only *after* the end user closes
           the corresponding GUI widget or window.
         * As the last action of either:
+
           * The current caller.
           * The visual subclass.
 
@@ -397,12 +413,13 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # For each name and value of a field bound to this object...
         for field_name, field_value in objiter.iter_vars_custom_simple(self):
             # If this field itself contains a "figure" attribute, explicitly
-            # nullify the latter to break this figure's circular references in a
-            # manner ignoring "AttributeError: can't set attribute" exceptions.
+            # nullify the latter to break this figure's circular references in
+            # a manner ignoring "AttributeError: can't set attribute"
+            # exceptions.
             #
             # Note that this probably fails to break all such references, as
             # doing so appears to be infeasible in a general-purpose manner.
-            # These references are baked into the Matplotlib API at a low level!
+            # These references are baked into the low-level Matplotlib API!
             try:
                 if  hasattr(field_value, 'figure'):
                     setattr(field_value, 'figure', None)
@@ -436,7 +453,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Explicitly garbage collect.
         # gc.collect()
 
-    # ..................{ PROPERTIES ~ read-only             }..................
+    # ..................{ PROPERTIES ~ read-only            }..................
     # Read-only properties, preventing callers from resetting these attributes.
 
     @property
@@ -467,7 +484,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         return self._label
 
-    # ..................{ PROPERTIES ~ read-only : mpl       }..................
+    # ..................{ PROPERTIES ~ read-only : mpl      }..................
     @property
     def figure(self) -> Figure:
         '''
@@ -489,7 +506,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         return self._axes
 
-    # ..................{ PROPERTIES ~ read-only : color     }..................
+    # ..................{ PROPERTIES ~ read-only : color    }..................
     #FIXME: Obsolete. Remove after adopting layers everywhere.
     @property
     def color_min(self) -> float:
@@ -522,7 +539,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         return self._colormap
 
-    # ..................{ MAKERS                             }..................
+    # ..................{ MAKERS                            }..................
     @type_check
     def make_colorbar(self, color_mappable: ScalarMappable) -> None:
         '''
@@ -543,7 +560,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         colorbar = self._figure.colorbar(color_mappable)
         colorbar.set_label(self._colorbar_title)
 
-    # ..................{ LAYERS                             }..................
+    # ..................{ LAYERS                            }..................
     @type_check
     def _append_layer(self, *layers: LayerCellsABC) -> None:
         '''
@@ -611,7 +628,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         for layer in self._layers:
             layer.layer()
 
-    # ..................{ COLORS                             }..................
+    # ..................{ COLORS                            }..................
     #FIXME: All methods in this subsection including this method are obsolete.
     #Remove after adopting layers everywhere. All other "FIXME:" comments below
     #are now ignorable, as this functionality should all go away.
@@ -635,8 +652,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         #sequence of mappables: e.g.,
         #   color_mappables: IterableOrNoneTypes = None,
         #FIXME: Actually, this entire method is awful and should be refactored
-        #away once layers are used everywhere. For backward compatilibility with
-        #old-style animations, this is currently preserved as is.
+        #away once layers are used everywhere. For backward compatilibility
+        #with old-style animations, this is currently preserved as is.
 
         color_mappables: (ScalarMappable,) + IterableTypes,
     ) -> None:
@@ -655,25 +672,30 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             :class:`AxesImage`, :class:`ContourSet`) to associate with this
             visual's colorbar. For convenience, this parameter may
             be either:
+
             * A single mappable, in which case this colorbar will be associated
               with this mappable as is.
             * A non-string iterable (e.g., :class:`list`, :class:`set`) of one
               or more mappables, in which case this colorbar will be
               arbitrarily associated with the first mappable in this iterable.
-            Defaults to `None`, in which case this parameter defaults to the
+
+            Defaults to ``None``, in which case this parameter defaults to the
             iterable of all mappables provided by the topmost and hence last
             mappable layer in the current layer sequence (i.e., the
             :meth:`LayerCellsColorfulABC.color_mappables` property of the
             last instance of the :class:`LayerCellsColorfulABC` subclass in
             the :attr:`_layers` attribute).
         color_data : optional[SequenceTypes]
-            Multi-dimensional sequence of all color values to be plotted _or_
-            `None` if calculating these values on initialization is impractical
-            (e.g., due to space or time constraints). Defaults to `None`. If
-            colorbar autoscaling is enabled _and_ this parameter is:
-            * Non-`None`, the colorbar is clipped to the minimum and maximum
+            Multi-dimensional sequence of all color values to be plotted *or*
+            ``None`` if calculating these values on initialization is
+            impractical (e.g., due to space or time constraints). If colorbar
+            autoscaling is enabled *and* this parameter is:
+
+            * Non-``None``, the colorbar is clipped to the minimum and maximum
               scalar values unravelled from this array.
-            * `None`, the subclass is responsible for colorbar autoscaling.
+            * ``None``, the subclass is responsible for colorbar autoscaling.
+
+            Defaults to `None`.
         '''
 
         # If a single mappable rather than a sequence of mappables was passed,
@@ -704,7 +726,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         ----------
         color_data : SequenceOrNoneTypes
             Multi-dimensional sequence of all color values to be plotted *or*
-            `None` if calculating these values on initialization is
+            ``None`` if calculating these values on initialization is
             impractical. See the :meth:`_prep_figure` method for further
             details.
         '''
@@ -776,7 +798,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
                 types.assert_not_matplotlib_mappable(color_mappable))
             color_mappable.set_clim(self._color_min, self._color_max)
 
-    # ..................{ PLOTTERS                           }..................
+    # ..................{ PLOTTERS                          }..................
     #FIXME: For generality, rename this method to visualize_time_step().
     #FIXME: For "PlotAfterSolving"-style plots, the first frame is uselessly
     #plotted twice. Investigate up this insanity, please. We might consider
@@ -799,10 +821,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         Specifically, this method (in order):
 
-        . Calls the subclass :meth:`_plot_frame_figure` method to update the
-          current figure with this frame's data.
-        . Updates the current figure's axes title with the current time.
-        . Optionally writes this frame to disk if desired.
+        #. Calls the subclass :meth:`_plot_frame_figure` method to update the
+           current figure with this frame's data.
+        #. Updates the current figure's axes title with the current time.
+        #. Optionally writes this frame to disk if desired.
 
         Parameters
         ----------
@@ -1027,7 +1049,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
                 'Finalizing animation "%s" saving...', self._label)
             self._close_writers()
 
-    # ..................{ SUBCLASS                           }..................
+    # ..................{ SUBCLASS                          }..................
     def _plot_frame_figure(self) -> None:
         '''
         Update this visual's figure (and typically axes) content to reflect the
@@ -1040,7 +1062,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         pass
 
-    # ..................{ PLOTTERS ~ image                   }..................
+    # ..................{ PLOTTERS ~ image                  }..................
     #FIXME: Merge the useful docstring for this method into the
     #"betse.science.visual.layer.field.layerfieldsurface.LayerCellsFieldSurface"
     #class; then, excise this method.
@@ -1064,15 +1086,17 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             Array of pixel data defining the image to be plotted, whose first
             two dimensions index the X and Y components of this axes. If this
             array is:
+
             * Two-dimensional, a greyscale image mapped onto the passed
               colormap will be plotted.
             * Three-dimensional, an RGB image *not* mapped onto the passed
               colormap will be plotted.
             * Four-dimensional, an RGBa image *not* mapped onto the passed
               colormap will be plotted.
+
         colormap : matplotlib.cm.Colormap
             Optional colormap with which to map the passed pixel data when
-            greyscale (and ignored otherwise) _or_ `None`, in which case the
+            greyscale (and ignored otherwise) *or* ``None``, in which case the
             default colormap will be used.
 
         Returns
@@ -1196,7 +1220,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             zorder=ZORDER_STREAM,
         )
 
-    # ..................{ PLOTTERS ~ cell                    }..................
+    # ..................{ PLOTTERS ~ cell                   }..................
     #FIXME: Pretty intense, and obviously better refactored two distinct
     #"LayerCellsABC" subclasses. This will probably prove pivotal to
     #implementing deformations sanely.
@@ -1209,12 +1233,13 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         transmembrane cell voltages for the current time step) onto the current
         figure's axes.
 
-        The type of plot returned is defined by this simulation's configuration.
-        Specifically:
+        The type of plot returned is defined by this simulation's
+        configuration. Specifically:
 
-        * If this configuration requests that individual cells be plotted (i.e.,
-          `show cells` is `True`), a mosaic plot of this simulation's cell
-          cluster will be returned. See the `_plot_cell_mosaic()` method.
+        * If this configuration requests that individual cells be plotted
+          (i.e., ``show cells`` is ``True``), a mosaic plot of this
+          simulation's cell cluster will be returned. See the
+          :meth:`_plot_cell_mosaic` method.
         * Else, a mesh plot interpolating the individual cells of this
           simulation's cell cluster will be returned. See the
           `_plot_cell_mesh()` method.
@@ -1253,13 +1278,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         Parameters
         -----------
         cell_plot : Collection
-            Cell plot previously returned by either the `_plot_cells_sans_ecm()`
-            _or_ `_revive_cell_plot_sans_ecm()` method.
+            Cell plot previously returned by either the
+            :meth:`_plot_cells_sans_ecm` *or*
+            :meth:`_revive_cell_plot_sans_ecm` method.
         cell_data : np.ndarray
             Arbitrary cell data defined on an environmental grid to be plotted.
 
         All other passed parameters will be passed as is to the underlying plot
-        method called by this method (e.g., `_plot_cell_mosaic()`).
+        method called by this method (e.g., :meth:`_plot_cell_mosaic`).
         '''
         assert types.is_sequence_nonstr(cell_data), (
             types.assert_not_sequence_nonstr(cell_data))
@@ -1300,27 +1326,30 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         Specifically:
 
         * If this configuration requests that individual cells be plotted (i.e.,
-          `show cells` is `True`), the passed plot _must_ be a mosaic plot
-          previously returned by the `_plot_cell_mesh()` method. This plot will
-          be updated in-place and returned as is without creating a new plot.
+          ``show cells`` is ``True``), the passed plot _must_ be a mosaic plot
+          previously returned by the :meth:`_plot_cell_mesh` method. This plot
+          will be updated in-place and returned as is without creating a new
+          plot.
         * Else, the passed plot _must_ be a mesh plot previously returned by the
-          `_plot_cell_mesh()` method -- specifically, a `TriMesh` object. Since
-          the `TriMesh` API currently provides no public means of updating such
-          plots in-place, this method (in order):
-          . Removes the passed mesh plot from this figure's axes.
-          . Creates a new mesh plot and adds that plot to this figure's axes.
-          . Returns that plot.
+          :meth:`_plot_cell_mesh` method -- specifically, a :class:`TriMesh`
+          object. Since the :class:`TriMesh` API currently provides no public
+          means of updating such plots in-place, this method (in order):
+
+          #. Removes the passed mesh plot from this figure's axes.
+          #. Creates a new mesh plot and adds that plot to this figure's axes.
+          #. Returns that plot.
 
         Parameters
         -----------
         cell_plot : Collection
-            Cell plot previously returned by either the `_plot_cells_sans_ecm()` _or_
-            `_revive_cell_plots_sans_ecm()` method.
+            Cell plot previously returned by either the
+            :meth:`_plot_cells_sans_ecm` *or*
+            :meth:`_revive_cell_plots_sans_ecm` method.
         cell_data : np.ndarray
             Arbitrary cell data defined on an environmental grid to be plotted.
 
         All other passed parameters will be passed as is to the underlying plot
-        method called by this method (e.g., `_plot_cell_mosaic()`).
+        method called by this method (e.g., :meth:`_plot_cell_mosaic`).
 
         Returns
         --------
@@ -1330,8 +1359,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         assert types.is_sequence_nonstr(cell_data), (
             types.assert_not_sequence_nonstr(cell_data))
 
-        # If plotting individual cells, the passed cell plot *MUST* be a polygon
-        # collection previously returned by the _plot_cell_mosaic() method.
+        # If plotting individual cells, the passed cell plot *MUST* be a
+        # polygon collection previously returned by the _plot_cell_mosaic()
+        # method.
         if self._phase.p.showCells:
             assert types.is_matplotlib_polycollection(cell_plot), (
                 types.assert_not_matplotlib_polycollection(cell_plot))
@@ -1401,7 +1431,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         '''
         Plot and return a mesh plot of all cells with colours corresponding to
         the passed vector of arbitrary cell data (e.g., transmembrane voltages
-        for all cells for the current time step) onto the current figure's axes.
+        for all cells for the current time step) onto the current figure's
+        axes.
 
         The returned plot will be an unstructured triangular grid interpolating
         each cell of this simulation's cell cluster into a smooth continuum.
@@ -1419,8 +1450,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         assert types.is_sequence_nonstr(cell_data), (
             types.assert_not_sequence_nonstr(cell_data))
 
-        # If the passed cell data is defined on membrane midpoints, average that
-        # to correspond to cell centres instead.
+        # If the passed cell data is defined on membrane midpoints, average
+        # that to correspond to cell centres instead.
         if len(cell_data) == len(self._phase.cells.mem_i):
             # cell_data = np.dot(
             #     self._phase.cells.M_sum_mems, cell_data) / self._phase.cells.num_mems

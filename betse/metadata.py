@@ -145,8 +145,8 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
         'is only Python {}. We feel deep sadness for you.'.format(
             NAME, PYTHON_VERSION_MIN, PYTHON_VERSION))
 
-# ....................{ METADATA ~ version                 }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ METADATA ~ version                }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: When modifying the current version of this application below,
 # consider adhering to the Semantic Versioning schema. Specifically, the version
 # should consist of three "."-delimited integers "{major}.{minor}.{patch}",
@@ -172,7 +172,7 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 #
 # When in doubt, increment only the minor version and reset the patch version.
 # For further details, see http://semver.org.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 VERSION = '0.8.5'
 '''
@@ -186,8 +186,8 @@ Human-readable code name associated with the current version of this
 application.
 
 This code name consists of an arbitrary adjective followed by the last name of
-an arbitrary academic associated with field of bioelectricity whose first letter
-is the same as the first letter of that adjective.
+an arbitrary academic associated with field of bioelectricity whose first
+letter is the same as the first letter of that adjective.
 
 See Also
 ----------
@@ -201,7 +201,7 @@ VERSION_PARTS = _convert_version_str_to_tuple(VERSION)
 Machine-readable application version as a tuple of integers.
 '''
 
-# ....................{ METADATA ~ tag                     }....................
+# ....................{ METADATA ~ tag                    }....................
 GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.5.2'
 '''
 Oldest Git tag for which this application guarantees backward compatibility.
@@ -220,7 +220,7 @@ See Also
     compatibility with this older version.
 '''
 
-# ....................{ METADATA ~ synopsis                }....................
+# ....................{ METADATA ~ synopsis               }....................
 # Note that a human-readable multiline description is exposed via the top-level
 # "setup.py" script. This description is inefficiently culled from the contents
 # of the top-level "README.rst" file and hence omitted here. (Doing so here
@@ -244,12 +244,12 @@ DESCRIPTION = (
 Human-readable multiline description of this application.
 
 By :mod:`argparse` design, this string may (and typically should) span both
-multiple lines and paragraphs. Note that this string is *not* published to PyPI,
-which accepts reStructuredText (rst) and is thus passed the contents of the
-top-level :doc:`/README` file instead.
+multiple lines and paragraphs. Note that this string is *not* published to
+PyPI, which accepts reStructuredText (rst) and is thus passed the contents of
+the top-level :doc:`/README` file instead.
 '''
 
-# ....................{ METADATA ~ authors                 }....................
+# ....................{ METADATA ~ authors                }....................
 AUTHORS = 'Alexis Pietak, Cecil Curry, et al.'
 '''
 Human-readable list of all principal authors of this application as a
@@ -267,7 +267,7 @@ Email address of the principal corresponding author (i.e., the principal author
 responding to public correspondence).
 '''
 
-# ....................{ METADATA ~ urls                    }....................
+# ....................{ METADATA ~ urls                   }....................
 URL_HOMEPAGE = 'https://gitlab.com/betse/betse'
 '''
 URL of this application's homepage.
@@ -289,7 +289,7 @@ have yet to be stabilized and hence tagged. Hence, this URL is typically valid
 *only* for previously released (rather than live) versions of this application.
 '''
 
-# ....................{ METADATA ~ python                  }....................
+# ....................{ METADATA ~ python                 }....................
 PACKAGE_NAME = NAME.lower()
 '''
 Fully-qualified name of the top-level Python package implementing this
@@ -303,7 +303,7 @@ Basename of the CLI-specific Python script wrapper created by :mod:`setuptools`
 installation.
 '''
 
-# ....................{ METADATA ~ private                 }....................
+# ....................{ METADATA ~ private                }....................
 _IS_TESTING = False
 '''
 ``True`` only if the active Python interpreter is running a test session (e.g.,

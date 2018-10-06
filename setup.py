@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -12,37 +12,37 @@ tasks (e.g., installation, freezing, test running) for this application.
 #Windows installers bundling Python applications complete with a Python
 #interpreter and requisite packages.
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from packages guaranteed to exist at the start of
 # installation. This includes all standard Python and application packages but
 # *NOT* third-party dependencies, which if currently uninstalled will only be
 # installed at some later time in the installation.
 #
-# Technically, this script may import from all subpackages and submodules of the
-# this application's eponymous package. By Python mandate, the first element of
-# the "sys.path" list is guaranteed to be the directory containing this script.
-# Python necessarily searches this directory for imports from the local version
-# of this application *BEFORE* any other directories (including system
-# directories containing older versions of this application). To quote:
+# Technically, this script may import from all subpackages and submodules of
+# the this application's eponymous package. By Python mandate, the first
+# element of the "sys.path" list is guaranteed to be the directory containing
+# this script.  Python necessarily searches this directory for imports from the
+# local version of this application *BEFORE* any other directories (including
+# system directories containing older versions of this application). To quote:
 #
 #     "As initialized upon program startup, the first item of this list,
 #      path[0], is the directory containing the script that was used to invoke
 #      the Python interpreter."
 #
 # See also: https://stackoverflow.com/a/10097543/2809027
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import setuptools
 from betse import metadata
 from betse.lib import libs
 from betse_setup import build, freeze, symlink, test, buputil
 
-# ....................{ METADATA                           }....................
+# ....................{ METADATA                          }....................
 # PyPI-specific metadata declared here rather than in the "betse.metadata"
-# submodule, reducing space and time complexity during application startup. This
-# metadata is relevant only to setuptools and hence irrelevant to the main
+# submodule, reducing space and time complexity during application startup.
+# This metadata is relevant only to setuptools and hence irrelevant to the main
 # codebase.
 
 _PYTHON_VERSION_MINOR_MAX = 7
@@ -63,7 +63,7 @@ PyPI, this description is used verbatim as this package's front matter.
 '''
 
 
-# ....................{ METADATA ~ seo                     }....................
+# ....................{ METADATA ~ seo                    }....................
 _KEYWORDS = ['biology', 'multiphysics', 'science', 'simulator',]
 '''
 List of all lowercase alphabetic keywords synopsising this application.
@@ -74,8 +74,8 @@ engine optimization (SEO). In actuality, they do absolutely nothing.
 
 
 # To minimize desynchronization woes, all
-# "Programming Language :: Python :: "-prefixed strings are dynamically appended
-# to this list by the init() function below.
+# "Programming Language :: Python :: "-prefixed strings are dynamically
+# appended to this list by the init() function below.
 _CLASSIFIERS = [
     #FIXME: Replace with the following after the "1.0.0" release:
     #    'Development Status :: 5 - Production/Stable',
@@ -98,7 +98,8 @@ _CLASSIFIERS = [
     'Topic :: Scientific/Engineering :: Bio-Informatics',
 ]
 '''
-List of all PyPI-specific trove classifier strings synopsizing this application.
+List of all PyPI-specific trove classifier strings synopsizing this
+application.
 
 Each such string *must* be contain either two or three `` :: `` substrings
 delimiting human-readable capitalized English words formally recognized by the
@@ -110,7 +111,7 @@ https://pypi.python.org/pypi?%3Aaction=list_classifiers
     Plaintext list of all trove classifier strings recognized by PyPI.
 '''
 
-# ....................{ INITIALIZERS                       }....................
+# ....................{ INITIALIZERS                      }....................
 #FIXME: Replace this entire function with the considerably more succinct and
 #hence saner approach taken by BETSEE.
 def _init() -> None:
@@ -150,15 +151,15 @@ def _init() -> None:
             'Description file "{}" not found or not readable:\n{}'.format(
                 DESCRIPTION_FILENAME, exception))
 
-# ....................{ INITIALIZERS ~ main                }....................
+# ....................{ INITIALIZERS ~ main               }....................
 # Finalize the definition of all globals declared by this module.
 _init()
 
-# ....................{ OPTIONS                            }....................
+# ....................{ OPTIONS                           }....................
 # Setuptools-specific options. Keywords not explicitly recognized by either
 # setuptools or distutils must be added to the above dictionary instead.
 _setup_options = {
-    # ..................{ CORE                               }..................
+    # ..................{ CORE                              }..................
     # Self-explanatory metadata.
     'name':             metadata.PACKAGE_NAME,
     'version':          metadata.VERSION,
@@ -171,13 +172,13 @@ _setup_options = {
     'url':              metadata.URL_HOMEPAGE,
     'download_url':     metadata.URL_DOWNLOAD,
 
-    # ..................{ PYPI                               }..................
+    # ..................{ PYPI                              }..................
     # PyPi-specific metadata.
     'classifiers': _CLASSIFIERS,
     'keywords':    _KEYWORDS,
     'license':     metadata.LICENSE,
 
-    # ..................{ DEPENDENCIES                       }..................
+    # ..................{ DEPENDENCIES                      }..................
     # Mandatory runtime dependencies.
     'install_requires': libs.get_runtime_mandatory_tuple(),
 
@@ -197,7 +198,7 @@ _setup_options = {
     # Mandatory testing dependencies.
     'tests_require': libs.get_testing_mandatory_tuple(),
 
-    # ..................{ PACKAGES                           }..................
+    # ..................{ PACKAGES                          }..................
     # List of all Python packages (i.e., directories containing zero or more
     # Python modules) to be installed. Currently, this includes the "betse"
     # package and all subpackages of this package excluding:
@@ -208,8 +209,8 @@ _setup_options = {
     #   setuptools functionality required only for application installation.
     # * "build", caching both setuptools metadata and a complete copy of this
     #   package, required only by a prior application installation.
-    # * "freeze", providing PyInstaller-specific functionality required only for
-    #   application freezing (i.e., conversion into an executable binary).
+    # * "freeze", providing PyInstaller-specific functionality required only
+    #   for application freezing (i.e., conversion into an executable binary).
     'packages': setuptools.find_packages(exclude=(
         metadata.PACKAGE_NAME + '_test',
         metadata.PACKAGE_NAME + '_test.*',
@@ -219,7 +220,7 @@ _setup_options = {
         'freeze',
     )),
 
-    # ..................{ PATHS                              }..................
+    # ..................{ PATHS                             }..................
     # Cross-platform script wrappers dynamically created at installation time.
     'entry_points': {
         # CLI-specific scripts.
@@ -253,11 +254,11 @@ _setup_options = {
     # Data files are *NOT* Python modules and hence should *NOT* be embedded in
     # the Python package tree. Sadly, the "data_files" key supported by
     # setuptools for this purpose is *NOT* cross-platform-portable and is thus
-    # inherently broken. Why? Because this key either requires usage of absolute
-    # paths *OR* relative paths relative to absolute paths defined by
+    # inherently broken. Why? Because this key either requires usage of
+    # absolute paths *OR* relative paths relative to absolute paths defined by
     # "setup.cfg"; in either case, these paths are absolute. While the current
-    # platform could be detected and the corresponding absolute path embedded in
-    # 'data_files', that implementation would be inherently fragile. (That's
+    # platform could be detected and the corresponding absolute path embedded
+    # in 'data_files', that implementation would be inherently fragile. (That's
     # bad.) In lieu of sane setuptools support, we defer to the methodology
     # employed by everyone. Setuptools, your death is coming.
     'include_package_data': True,
@@ -273,11 +274,11 @@ _setup_options = {
     # due to preemptive SIGKILLs), compressed archives are inherently fragile.
     'zip_safe': False,
 
-    # ..................{ COMMANDS                           }..................
+    # ..................{ COMMANDS                          }..................
     # Set of all custom setuptools subcommands specific to this makefile (e.g.,
     # "sudo python3 setup.py symlink"), defaulting to the empty set. Each
-    # subsequent call to the add_setup_commands() function iteratively performed
-    # below adds one or more such subcommands to this set.
+    # subsequent call to the add_setup_commands() function iteratively
+    # performed below adds one or more such subcommands to this set.
     'cmdclass': {},
 }
 '''
@@ -303,10 +304,10 @@ contains unrecognized keys. For safety, these keys are added to this dictionary
 instead.
 '''
 
-# ....................{ COMMANDS                           }....................
+# ....................{ COMMANDS                          }....................
 # Define all application-specific setuptools commands.
 for setup_module in (build, freeze, symlink, test):
     setup_module.add_setup_commands(_setup_options_custom, _setup_options)
 
-# ....................{ SETUP                              }....................
+# ....................{ SETUP                             }....................
 setuptools.setup(**_setup_options)
