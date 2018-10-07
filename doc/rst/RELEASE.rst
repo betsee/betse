@@ -39,7 +39,7 @@ BETSE is releasable to all supported platforms as follows:
 
 #. **Install** wheel_, a third-party pure-Python package permitting this
    release to be packaged into a cross-platform pre-compiled binary
-   distribution supported by both PyPI_ and `pip`. This mandatory dependency
+   distribution supported by both PyPI_ and ``pip``. This mandatory dependency
    augments setuptools with the ``bdist_wheel`` subcommand invoked below.
 
    .. code-block:: console
@@ -50,7 +50,14 @@ BETSE is releasable to all supported platforms as follows:
    simplifying remote communication with both `PyPI itself <PyPI_>`__ and
    `Test PyPI`_. While optional, securely registering and uploading PyPI
    distributions *without* twine_ is typically non-trivial, banal, and tedious.
-   :sup:`Your mileage may vary.`
+   :sup:`Your mileage may vary.` **Do not attempt to install twine via the
+   Debian-based package manager "apt", as doing so typically produces a subtly
+   broken "twine" installation.** Instead, *always* install twine_ via ``pip``.
+
+   .. code-block:: console
+
+      $ sudo pip3 install twine
+
 #. (\ *Optional*\ ) **Validate reStructuredText (reST) rendering.** The
    human-readable description for this release derives directly from `the
    top-level README.rst file <readme_>`__ for this project. Sadly, PyPI's reST
@@ -72,10 +79,9 @@ BETSE is releasable to all supported platforms as follows:
 
          $ python3 setup.py checkdocs
 
-   #. After submitting this release to PyPI via ``twine`` below, manually
-      browse to `the PyPI-hosted page <PyPI BETSE_>`__ for this project and
-      verify by cursory inspection that this project's description is rendered
-      as HTML.
+   #. After submitting this release to PyPI via twine_ below, manually browse
+      to `the PyPI-hosted page <PyPI BETSE_>`__ for this project and verify by
+      cursory inspection that this project's description is rendered as HTML.
 
 #. (\ *Optional*\ ) **Bump release metadata.** Assuming the prior release
    followed these instructions, release metadata has already been bumped in
@@ -263,7 +269,7 @@ BETSE is releasable to all supported platforms as follows:
 
          https://testpypi.python.org/pypi/betse
 
-      #. **Upload this source tarball and binary wheel to**  `Test PyPI`_.
+      #. **Upload this source tarball and binary wheel to** `Test PyPI`_.
 
          .. code-block:: console
 

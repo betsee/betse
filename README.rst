@@ -322,7 +322,7 @@ Also note that our sister project BETSEE_ installs the ``betsee`` command, a
 high-level graphical user interface (GUI) designed for *all* users – regardless
 of prior experience or familiarity with the command line.
 
-Advanced
+Expert
 --------
 
 BETSE provides a variety of command-line options and subcommands in addition to
