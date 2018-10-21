@@ -1266,7 +1266,6 @@ class Cells(object):
         self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
         self.cell_vols(p)   # calculate the volume of cell and its internal regions
 
-
     def cell_index(self, p) -> None:
         '''
         (Re)define the array of all cell centres (i.e., :attr:`cell_centres`)
@@ -1286,7 +1285,6 @@ class Cells(object):
             self.cell_centres = np.vstack((self.cell_centres,aa))
 
         self.cell_centres = np.delete(self.cell_centres, 0, 0)
-
 
     def cellVerts(self,p):
         """
@@ -1589,7 +1587,6 @@ class Cells(object):
 
         self.cell_sa = np.asarray(self.cell_sa)
 
-
     def cellMatrices(self, p) -> None:
         '''
         Create the main matrices used in routine calculations on the Cell Grid.
@@ -1652,7 +1649,6 @@ class Cells(object):
             # self.aveTheta[mem_i, mem_i] = 1/2
             # self.aveTheta[mem_i, mem_io] = 1/2
 
-
     def memLaplacian(self):
 
         # matrix for computing divergence of a property defined on a membrane of each cell patch:
@@ -1672,7 +1668,6 @@ class Cells(object):
                 lapGJmem[j, memjj] = -(1/num_mems)*(self.mem_sa[memjj]/self.mem_vol[memjj])
 
         self.lapGJmem_inv = np.linalg.pinv(lapGJmem)
-
 
     def cell_vols(self, p) -> None:
         '''
@@ -1707,7 +1702,6 @@ class Cells(object):
 
         # Finally, create an easy divergence inverse term for cells
         self.diviterm = (self.cell_vol / self.cell_sa)
-
 
     def mem_processing(self, p) -> None:
         '''
@@ -2068,7 +2062,6 @@ class Cells(object):
             self.M_divmap_mem2ecm[ecm_i, mem_i] += (mem_sa)
             # self.M_divmap_mem2ecm[ecm_i, mem_i] += (mem_sa) / (p.cell_height*(self.delta**2))
 
-
     def graphLaplacian(self, p) -> None:
         '''
         Define an abstract inverse Laplacian used to solve Poisson's equation
@@ -2254,7 +2247,6 @@ class Cells(object):
         self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
         # self.M_max_cap = M_max_cap
 
-
     @type_check
     def redo_gj(self, phase: SimPhase) -> None:
         '''
@@ -2331,7 +2323,6 @@ class Cells(object):
 
         # calculate gap junction vectors
         self.calc_gj_vects(p)
-
 
     def calc_gj_vects(self,p):
 
@@ -2449,7 +2440,6 @@ class Cells(object):
 
         self.cell_to_nn_full = np.asarray(self.cell_to_nn_full)
 
-
     @type_check
     def save_cluster(self, phase: SimPhase) -> None:
         '''
@@ -2469,7 +2459,6 @@ class Cells(object):
         # Pickle this cell cluster.
         datadump = [self, phase.p]
         fh.saveSim(phase.p.seed_pickle_filename, datadump)
-
 
     def voronoiGrid(self, p) -> None:
         """
@@ -2523,7 +2512,6 @@ class Cells(object):
         # define a mapping between the voronoi cell centres and the cluster cell centres:
         vertTree = cKDTree(self.voronoi_centres)
         _, self.cell_to_grid = vertTree.query(self.cell_centres)
-
 
     def make_maskM(self,p):
         """
@@ -3028,15 +3016,7 @@ class Cells(object):
         ``m`` containing membrane-specific data by this matrix yields another
         Numpy vector of size ``n`` containing membrane vertex-specific data
         interpolated from these membranes over these vertices, where ``m`` and
-        ``n`` are as defined above. Technically, the dot product of a vector by
-        a matrix is undefined. To facilitate this otherwise invalid operation,
-        Numpy implicitly converts:
-
-        * The input vector of size ``m`` into a matrix of size ``1 x m``.
-        * The output matrix of size ``n x 1`` into an output vector of size
-          ``n``.
-
-        This matrix is cached *only* on the first access of this property.
+        ``n`` are as defined above.
         '''
 
         # Zero this matrix to the expected dimensions.
