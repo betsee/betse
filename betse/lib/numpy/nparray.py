@@ -43,6 +43,54 @@ def is_array(obj: object) -> bool:
 
     return isinstance(obj, NumpyArrayType)
 
+# ....................{ GETTERS                           }....................
+#FIXME: Shift elsewhere, as this function does no conversions and hence has no
+#commonality with the remainder of this submodule -- say, into a new
+#"betse.lib.numpy.npindex" submodule.
+@type_check
+def get_subarray_indices(
+    superarray: NumpyArrayType, subarray: NumpyArrayType) -> NumpyArrayType:
+    '''
+    One-dimensional Numpy array of the indices of the first passed Numpy array
+    of all items also found in the second passed Numpy array.
+
+    Parameters
+    ----------
+    superarray : NumpyArrayType
+        Numpy array to return a subset of the indices of.
+    subarray : NumpyArrayType
+        Numpy array to find the items of in the first passed Numpy array.
+
+    Parameters
+    ----------
+    NumpyArrayType
+        One-dimensional Numpy array of the indices of the superarray of all
+        items also found in the subarray.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/8251757/2809027
+        StackOverflow answer strongly inspiring this implementation.
+    '''
+
+    superarray_sorted_indices = np.argsort(superarray)
+    superarray_sorted = superarray[superarray_sorted_indices]
+    superarray_sorted_subarray_indices = np.searchsorted(
+        superarray_sorted, subarray)
+
+    superarray_sorted_subarray_extant_indices = np.take(
+        superarray_sorted_indices,
+        superarray_sorted_subarray_indices,
+        mode="clip")
+    superarray_subarray_mask = (
+        superarray[superarray_sorted_subarray_extant_indices] != subarray)
+    superarray_subarray_mask_indices = np.ma.array(
+        superarray_sorted_subarray_extant_indices,
+        mask=superarray_subarray_mask)
+
+    # Return a non-masked rather than masked array for generality.
+    return superarray_subarray_mask_indices.data
+
 # ....................{ CONVERTERS ~ iterable             }....................
 @type_check
 def from_iterable(iterable: IterableTypes) -> NumpyArrayType:

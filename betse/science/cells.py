@@ -1714,7 +1714,7 @@ class Cells(object):
         logs.log_info('Creating gap junctions... ')
 
         #-- find nearest neighbour cell-cell junctions via adjacent membranes-------------------------------------------
-        sc = 2.2*(1-p.scale_cell)*p.cell_radius
+        sc = 3.0*(1-p.scale_cell)*p.cell_radius
         memTree = cKDTree(self.mem_mids_flat)
 
         mem_nn_o = memTree.query_ball_point(self.mem_mids_flat, sc)

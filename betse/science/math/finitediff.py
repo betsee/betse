@@ -331,7 +331,6 @@ class FiniteDiffSolver(object):
                     k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
                     k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
 
-
                     A[k, k_i_jp1] = 1
                     A[k, k_ip1_j] = 1
                     A[k, k_in1_j] = 1
