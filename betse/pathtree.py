@@ -244,7 +244,7 @@ def get_package_dirname() -> str:
 @func_cached
 def get_git_worktree_dirname() -> str:
     '''
-    Absolute pathname of this application's Git-based **working tree** (i.e.,
+    Absolute dirname of this application's Git-based **working tree** (i.e.,
     top-level directory containing this application's ``.git`` subdirectory and
     ``setup.py`` install script) if this application was installed in a
     developer manner *or* raise an exception otherwise (i.e., if this directory
@@ -273,7 +273,7 @@ def get_git_worktree_dirname() -> str:
 @func_cached
 def get_git_worktree_dirname_or_none() -> StrOrNoneTypes:
     '''
-    Absolute pathname of this application's Git-based **working tree** (i.e.,
+    Absolute dirname of this application's Git-based **working tree** (i.e.,
     top-level directory containing this application's ``.git`` subdirectory and
     ``setup.py`` install script) if this application was installed in a
     developer manner *or* ``None`` otherwise.
@@ -281,35 +281,27 @@ def get_git_worktree_dirname_or_none() -> StrOrNoneTypes:
     Returns
     ----------
     StrOrNoneTypes
-        Specifically, this function returns either:
-        * A pathname if this application was installed in a developer manner,
-          typically either via:
+        Either:
+
+        * The absolute dirname of this application's Git working tree if this
+          application was installed in a developer manner: e.g., by
+
           * ``python3 setup.py develop``.
           * ``python3 setup.py symlink``.
-        * ``None`` if this application was installed in a non-developer manner,
-          typically either via:
+
+        * ``None`` if this application was installed in a non-developer manner:
+          e.g., by
+
           * ``pip3 install``.
           * ``python3 setup.py develop``.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import dirs, pathnames
+    import betse
+    from betse.util.path import gits
 
-    # Absolute pathname of the directory offering the top-level "betse"
-    # package, canonicalized into a directory rather than symbolic link to
-    # increase the likelihood of obtaining the actual parent directory of this
-    # package.
-    package_dirname = pathnames.canonicalize(get_package_dirname())
-
-    # Absolute pathname of the parent directory of this directory.
-    worktree_dirname = pathnames.get_dirname(package_dirname)
-
-    # Absolute pathname of the ".git" subdirectory of this parent directory.
-    git_subdirname = pathnames.join(worktree_dirname, '.git')
-
-    # Return this parent directory's absolute pathname if this subdirectory
-    # exists *OR* "None" otherwise.
-    return worktree_dirname if dirs.is_dir(git_subdirname) else None
+    # Behold! It is a one-liner.
+    return gits.get_package_worktree_dirname_or_none(betse)
 
 # ....................{ GETTERS ~ file                    }....................
 @func_cached

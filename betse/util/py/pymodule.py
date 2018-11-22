@@ -228,36 +228,6 @@ def is_c_extension(module: ModuleOrStrTypes) -> bool:
     return module_filetype in EXTENSION_SUFFIXES
 
 # ....................{ GETTERS ~ path                    }....................
-@type_check
-def get_dirname(module: ModuleOrStrTypes) -> str:
-    '''
-    Absolute path of the directory containing the passed module.
-
-    If this module is a non-namespace package, this is the directory containing
-    this package's top-level ``__init__`` submodule.
-
-    Parameters
-    ----------
-    module : ModuleOrStrTypes
-        Either:
-
-        * The fully-qualified name of this module, in which case this function
-          dynamically imports this module.
-        * A previously imported module object.
-
-    Returns
-    ----------
-    str
-        Absolute path of this directory.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.path import pathnames
-
-    # Return this dirname.
-    return pathnames.get_dirname(get_filename(module))
-
-
 #FIXME: The current approach is trivial and therefore terrible, breaking down
 #under commonplace real-world conditions (e.g., modules embedded within
 #egg-like archives). Consider generalizing this approach via the new
@@ -265,7 +235,7 @@ def get_dirname(module: ModuleOrStrTypes) -> str:
 @type_check
 def get_filename(module: ModuleOrStrTypes) -> str:
     '''
-    Absolute path of the file providing the passed module or package.
+    Absolute filename of the file providing the passed module or package.
 
     If the passed object signifies:
 
@@ -297,7 +267,7 @@ def get_filename(module: ModuleOrStrTypes) -> str:
     Returns
     ----------
     str
-        Absolute path of this file.
+        Absolute filename of this file providing this module or package.
 
     Raises
     ----------
@@ -317,6 +287,76 @@ def get_filename(module: ModuleOrStrTypes) -> str:
 
     # Else, return this attribute's value.
     return module.__file__
+
+# ....................{ GETTERS ~ path : dir              }....................
+@type_check
+def get_dirname(module: ModuleOrStrTypes) -> str:
+    '''
+    Absolute dirname of the directory providing the passed module or package.
+
+    If this module is a non-namespace package, this is the directory containing
+    this package's top-level ``__init__`` submodule.
+
+    Caveats
+    ----------
+    **This dirname is not guaranteed to be canonical.** Since this function
+    does *not* resolve symbolic links in this dirname, one or more directory
+    components of this dirname may be symbolic links. Consider calling the
+    :func:`get_dirname_canonical` function instead if this is undesirable.
+
+    Parameters
+    ----------
+    module : ModuleOrStrTypes
+        Either:
+
+        * The fully-qualified name of this module, in which case this function
+          dynamically imports this module as a non-optional side effect.
+        * A previously imported module object.
+
+    Returns
+    ----------
+    str
+        Absolute dirname of the directory providing this module or package.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import pathnames
+
+    # Return this dirname. Note that get_filename() returns the absolute
+    # filename of the "__init__.py" file if this module is a package.
+    return pathnames.get_dirname(get_filename(module))
+
+
+@type_check
+def get_dirname_canonical(module: ModuleOrStrTypes) -> str:
+    '''
+    **Absolute canonical dirname** (i.e., absolute dirname after resolving
+    symbolic links) of the directory providing the passed module or package.
+
+    If this module is a non-namespace package, this is the directory containing
+    this package's top-level ``__init__`` submodule.
+
+    Parameters
+    ----------
+    module : ModuleOrStrTypes
+        Either:
+
+        * The fully-qualified name of this module, in which case this function
+          dynamically imports this module as a non-optional side effect.
+        * A previously imported module object.
+
+    Returns
+    ----------
+    str
+        Absolute canonical dirname of the directory providing this module or
+        package.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import pathnames
+
+    # Return this dirname canonicalized.
+    return pathnames.canonicalize(get_dirname(module))
 
 # ....................{ GETTERS ~ global                  }....................
 @type_check

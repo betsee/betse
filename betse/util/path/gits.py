@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,12 +8,12 @@ Low-level **Git** (i.e., third-party version control system remotely tracking
 all changes to this application) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseGitException
-from betse.util.io.log.logenum import LogLevel
-from betse.util.type.types import type_check
+# from betse.util.io.log.logenum import LogLevel
+from betse.util.type.types import type_check, ModuleType, StrOrNoneTypes
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_unless_worktree(dirname: str) -> None:
     '''
@@ -42,12 +42,12 @@ def die_unless_worktree(dirname: str) -> None:
             'Directory "{}" not a Git working tree '
             '(i.e., contains no ".git" subdirectory).'.format(dirname))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_worktree(dirname: str) -> bool:
     '''
-    `True` only if the directory with the passed pathname is a **Git
-    working tree** (i.e., contains a ``.git`` subdirectory).
+    ``True`` only if the directory with the passed pathname is a **Git working
+    tree** (i.e., contains a ``.git`` subdirectory).
 
     Parameters
     ----------
@@ -57,7 +57,7 @@ def is_worktree(dirname: str) -> bool:
     Returns
     ----------
     bool
-        `True` only if this directory is a Git working tree.
+        ``True`` only if this directory is a Git working tree.
     '''
 
     # Avoid circular import dependencies.
@@ -69,7 +69,69 @@ def is_worktree(dirname: str) -> bool:
     # Return True only if this subdirectory exists.
     return dirs.is_dir(git_subdirname)
 
-# ....................{ IO                                 }....................
+# ....................{ GETTERS                           }....................
+@type_check
+def get_package_worktree_dirname_or_none(
+    package: ModuleType) -> StrOrNoneTypes:
+    '''
+    **Absolute canonical dirname** (i.e., absolute dirname after resolving
+    symbolic links) of the Git-based **working tree** (i.e., top-level
+    directory containing the canonical ``.git`` subdirectory) governing the
+    passed top-level Python package if that package was installed in a
+    developer manner *or* ``None`` otherwise.
+
+    Caveats
+    ----------
+    For both safety and efficiency, this function does *not* recursively search
+    the filesystem up from the directory providing this package for a ``.git``
+    subdirectory; rather, this function only directly searches that directory
+    itself for such a subdirectory. For that reason, this function typically
+    returns ``None`` for *all* modules except top-level packages installed in a
+    developer manner (e.g., by running ``sudo python3 setup.py develop``).
+
+    Parameters
+    ----------
+    package : ModuleType
+        Top-level Python package to be queried.
+
+    Returns
+    ----------
+    StrOrNoneTypes
+        Either:
+
+        * The absolute canonical dirname of that package's Git working tree if
+          that package was installed in a developer manner: e.g., by
+
+          * ``python3 setup.py develop``.
+          * ``python3 setup.py symlink``.
+
+        * ``None`` if that package was installed in a non-developer manner:
+          e.g., by
+
+          * ``pip3 install``.
+          * ``python3 setup.py develop``.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs, pathnames
+    from betse.util.py import pymodule
+
+    # Absolute canonical dirname of the directory providing this package,
+    # canonicalized into a directory rather than symbolic link to increase the
+    # likelihood of obtaining the actual parent directory of this package
+    package_dirname = pymodule.get_dirname_canonical(package)
+
+    # Absolute dirname of the parent directory of this directory.
+    worktree_dirname = pathnames.get_dirname(package_dirname)
+
+    # Absolute dirname of the ".git" subdirectory of this parent directory.
+    git_subdirname = pathnames.join(worktree_dirname, '.git')
+
+    # Return this parent directory's absolute dirname if this subdirectory
+    # exists *OR* "None" otherwise.
+    return worktree_dirname if dirs.is_dir(git_subdirname) else None
+
+# ....................{ CLONERS                           }....................
 @type_check
 def clone_worktree_shallow(
     branch_or_tag_name: str,
@@ -77,13 +139,14 @@ def clone_worktree_shallow(
     trg_dirname: str,
 ) -> None:
     '''
-    **Shallowly clone** (i.e., recursively copy without commit history) from the
-    the passed branch or tag name of the source Git working tree with the passed
-    dirname into the target non-existing directory.
+    **Shallowly clone** (i.e., recursively copy without commit history) from
+    the passed branch or tag name of the source Git working tree with the
+    passed dirname into the target non-existing directory.
 
     For space efficiency, the target directory will *not* be a Git working tree
-    (i.e., will *not* contain a ``.git`` subdirectory). This directory will only
-    contain the contents of the source Git working tree isolated at either:
+    (i.e., will *not* contain a ``.git`` subdirectory). This directory will
+    only contain the contents of the source Git working tree isolated at
+    either:
 
     * The ``HEAD`` of the branch with the passed name.
     * The commit referenced by the tag with the passed name.
@@ -118,7 +181,8 @@ def clone_worktree_shallow(
     ----------
     https://stackoverflow.com/questions/26135216/why-isnt-there-a-git-clone-specific-commit-option
         StackOverflow question entitled "Why Isn't There A Git Clone Specific
-        Commit Option?", detailing Git's current omission of such functionality.
+        Commit Option?", detailing Git's current omission of such
+        functionality.
     '''
 
     # Avoid circular import dependencies.
