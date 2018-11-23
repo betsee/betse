@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +7,7 @@
 Low-level pathname (e.g., basename, dirname, filetype) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import errno, os
 from betse.exceptions import BetsePathnameException
 from betse.util.io.log import logs
@@ -15,7 +15,7 @@ from betse.util.type.types import (
     type_check, ContainerType, ModuleType, StrOrNoneTypes)
 from os import path as os_path
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 INVALID_PATHNAME = '\0'
 '''
 Pathname guaranteed to be invalid on all supported platforms.
@@ -28,7 +28,7 @@ these errors into raised exceptions. Under Linux, for example, a
 :class:`TypeError` exception of message ``"embedded NUL character"`` is raised.
 '''
 
-# ....................{ EXCEPTIONS ~ absolute              }....................
+# ....................{ EXCEPTIONS ~ absolute             }....................
 def die_if_absolute(*pathnames: str) -> None:
     '''
     Raise an exception if any passed path is absolute (i.e., unless all passed
@@ -43,7 +43,8 @@ def die_if_absolute(*pathnames: str) -> None:
     for pathname in pathnames:
         if is_absolute(pathname):
             raise BetsePathnameException(
-                'Pathname "{}" absolute rather than relative.'.format(pathname))
+                'Pathname "{}" absolute rather than relative.'.format(
+                    pathname))
 
 
 def die_if_relative(*pathnames: str) -> None:
@@ -60,9 +61,10 @@ def die_if_relative(*pathnames: str) -> None:
     for pathname in pathnames:
         if is_relative(pathname):
             raise BetsePathnameException(
-                'Pathname "{}" relative rather than absolute.'.format(pathname))
+                'Pathname "{}" relative rather than absolute.'.format(
+                    pathname))
 
-# ....................{ EXCEPTIONS ~ basename              }....................
+# ....................{ EXCEPTIONS ~ basename             }....................
 def die_if_basename(pathname: str) -> None:
     '''
     Raise an exception if the passed path contains no directory separators.
@@ -95,7 +97,7 @@ def die_unless_basename(pathname: str) -> None:
             'Pathname "{}" contains one or more directory separators'
             "(i.e., '{}' characters).".format(pathname, os_path.sep))
 
-# ....................{ EXCEPTIONS ~ parent                }....................
+# ....................{ EXCEPTIONS ~ parent               }....................
 def die_unless_parent(parent_dirname: str, child_pathname: str) -> bool:
     '''
     Raise an exception unless the second passed pathname is a child of (i.e.,
@@ -119,7 +121,7 @@ def die_unless_parent(parent_dirname: str, child_pathname: str) -> bool:
             'Pathname "{}" not in dirname "{}".'.format(
                 child_pathname, parent_dirname,))
 
-# ....................{ EXCEPTIONS ~ filetype              }....................
+# ....................{ EXCEPTIONS ~ filetype             }....................
 def die_unless_filetype_equals(pathname: str, filetype: str) -> None:
     '''
     Raise an exception unless the passed path has the passed filetype.
@@ -134,7 +136,7 @@ def die_unless_filetype_equals(pathname: str, filetype: str) -> None:
         raise BetsePathnameException(
             'Pathname "{}" filetype not "{}".'.format(pathname, filetype))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_pathname(pathname: str) -> bool:
     '''
@@ -144,16 +146,22 @@ def is_pathname(pathname: str) -> bool:
     Under:
 
     * POSIX-compatible OSes:
+
       * Valid pathnames are non-empty strings containing:
+
         * No null byte characters.
-        * No `/`-delimited path component longer than 255 characters.
-      * The root filesystem is the filesystem mounted to the root directory `/`.
+        * No ``/``-delimited path component longer than 255 characters.
+
+      * The root filesystem is the filesystem mounted to the root directory
+        ``/``.
+
     * Microsoft OSes:
+
       * Valid pathnames are non-empty strings satisfying `various constraints
         <https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx>`_
         too numerous to document here.
       * The root filesystem is the filesystem to which this instance of Windows
-        was installed, also given by the `%HOMEDRIVE%` environment variable.
+        was installed, also given by the ``%HOMEDRIVE%`` environment variable.
     '''
 
     # Avoid circular import dependencies.
@@ -201,9 +209,9 @@ def is_pathname(pathname: str) -> bool:
         #       exception. Why? Because that pathname resides in an
         #       existing directory. Circular logic is circular.
         #
-        # Is there a directory guaranteed to exist? There is, but typically only
-        # one: the root directory for the current filesystem. Passing pathnames
-        # residing in any other directories to os.stat() or os.lstat() invites
+        # Is a directory guaranteed to exist? Yes, but typically only one: the
+        # root directory for the current filesystem. Passing pathnames residing
+        # in any other directories to os.stat() or os.lstat() invites
         # mind-flaying race conditions, even for directories previously tested
         # to exist. External processes cannot be prevented from concurrently
         # removing those directories after those tests have been performed but
@@ -220,8 +228,8 @@ def is_pathname(pathname: str) -> bool:
                 os.lstat(root_dirname + pathname_part)
             # If an OS-specific exception is raised, its error code indicates
             # whether this pathname is valid or not. Unless this is the case,
-            # this exception implies an ignorable kernel or filesystem complaint
-            # (e.g., path not found or inaccessible).
+            # this exception implies an ignorable kernel or filesystem
+            # complaint (e.g., path not found or inaccessible).
             #
             # Only the following exceptions indicate invalid pathnames:
             #
@@ -262,7 +270,7 @@ def is_pathname(pathname: str) -> bool:
     # If any other exception was raised, this is an unrelated fatal issue
     # (e.g., a bug). Permit this exception to unwind the call stack.
 
-# ....................{ TESTERS ~ absolute                 }....................
+# ....................{ TESTERS ~ absolute                }....................
 @type_check
 def is_absolute(pathname: str) -> bool:
     '''
@@ -293,7 +301,7 @@ def is_relative(pathname: str) -> bool:
 
     return not is_absolute(pathname)
 
-# ....................{ TESTERS ~ basename                 }....................
+# ....................{ TESTERS ~ basename                }....................
 @type_check
 def is_basename(pathname: str) -> bool:
     '''
@@ -303,7 +311,7 @@ def is_basename(pathname: str) -> bool:
 
     return os_path.sep not in pathname
 
-# ....................{ TESTERS ~ parent                   }....................
+# ....................{ TESTERS ~ parent                  }....................
 @type_check
 def is_parent(parent_dirname: str, child_pathname: str) -> bool:
     '''
@@ -335,7 +343,7 @@ def is_parent(parent_dirname: str, child_pathname: str) -> bool:
     # Return true only if this child pathname is suffixed by this dirname.
     return strs.is_prefix(text=child_pathname, prefix=parent_dirname_suffixed)
 
-# ....................{ TESTERS ~ filetype                 }....................
+# ....................{ TESTERS ~ filetype                }....................
 @type_check
 def is_filetype_equals(pathname: str, filetype: str) -> bool:
     '''
@@ -343,9 +351,9 @@ def is_filetype_equals(pathname: str, filetype: str) -> bool:
     filetype** (i.e., last ``.``-prefixed substring of the basename) of this
     pathname is the passed filetype.
 
-    The passed filetype may contain arbitrarily many ``.`` characters, including
-    an optional prefixing ``.``. In all cases, this function behaves as
-    expected.
+    The passed filetype may contain arbitrarily many ``.`` characters,
+    including an optional prefixing ``.``. In all cases, this function behaves
+    as expected.
 
     Parameters
     ----------
@@ -391,8 +399,8 @@ def is_filetype_undotted_in(
     Returns
     ----------
     bool
-        ``True`` only if this pathname has a filetype *and* the last filetype of
-        this pathname is an element of this container.
+        ``True`` only if this pathname has a filetype *and* the last filetype
+        of this pathname is an element of this container.
     '''
 
     # Undotted filetype of this filename if any or None otherwise
@@ -406,7 +414,7 @@ def is_filetype_undotted_in(
         filetype_undotted in filetypes_undotted
     )
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get_basename(pathname: str) -> str:
     '''
@@ -415,74 +423,7 @@ def get_basename(pathname: str) -> str:
 
     return os_path.basename(pathname)
 
-# ....................{ GETTERS ~ app                      }....................
-@type_check
-def get_app_pathname(package: ModuleType, pathname: str) -> str:
-    '''
-    Absolute path of the passed pathname relative to the absolute path of the
-    directory providing the passed top-level package for this application.
-
-    Specifically, this function returns:
-
-    * If this application is a PyInstaller-frozen executable binary, the
-      concatenation of (in order):
-
-      #. The absolute path of the temporary directory containing all application
-         data resources extracted from this binary by this executable's
-         bootloader, as specified by the PyInstaller-specific private attribute
-         ``_MEIPASS`` injected into the canonical :mod:`sys` module by the
-         PyInstaller bootloader embedded in this binary. "And it's turtles all
-         the way down."
-      #. The passed relative pathname.
-
-    * If this application is a :mod:`setuptools`-installed script wrapper, the
-      result of querying :mod:`setuptools` for the absolute path of the passed
-      relative pathname. In this case, this path will have been preserved as is
-      in the :mod:`setuptools`-installed copy of this application in the package
-      tree for the active Python interpreter.
-    * Else, the concatenation of (in order):
-
-      #. The absolute path of the directory providing this application package.
-      #. The passed relative pathname.
-
-      In this case, this application is typically either a
-      :mod:`setuptools`-symlinked script wrapper *or* was invoked via the
-      secretive ``python3 -m {package.__name__}`` command.
-
-    Parameters
-    ----------
-    pathname : str
-        Relative pathname of the path to be canonicalized.
-    package : ModuleType
-        Top-level package for this application.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import resources
-    from betse.util.py import pyfreeze
-
-    # If this application is frozen by PyInstaller, canonicalize this path
-    # relative to the directory to which this application is unfrozen.
-    if pyfreeze.is_frozen_pyinstaller():
-        app_pathname = join(
-            pyfreeze.get_app_dirname_pyinstaller(), pathname)
-    # Else if this application is a setuptools-installed script wrapper,
-    # canonicalize this path by deferring to the setuptools resource API.
-    elif resources.is_dir(
-        module_name=package.__name__, dirname=pathname):
-        app_pathname = resources.get_pathname(
-            module_name=package.__name__, pathname=pathname)
-    # Else, the current application is either a setuptools-symlinked script
-    # wrapper *OR* was invoked via the secretive "python3 -m betse" command. In
-    # either case, this directory's path is directly obtainable relative to the
-    # absolute path of the passed package.
-    else:
-        app_pathname = join(package.__path__, pathname)
-
-    # Return this pathname.
-    return app_pathname
-
-# ....................{ GETTERS ~ dirname                  }....................
+# ....................{ GETTERS ~ dirname                 }....................
 def get_dirname(pathname: str) -> str:
     '''
     **Dirname** (i.e., parent directory) of the passed path if this path has a
@@ -523,7 +464,7 @@ def get_dirname_or_empty(pathname: str) -> str:
 
     return os_path.dirname(pathname)
 
-# ....................{ GETTERS ~ filetype                 }....................
+# ....................{ GETTERS ~ filetype                }....................
 def get_pathname_sans_filetypes(pathname: str) -> str:
     '''
     Passed path without all suffixing ``.``-prefixed filetypes (including these
@@ -554,19 +495,19 @@ def get_pathname_sans_filetypes(pathname: str) -> str:
 @type_check
 def get_pathname_sans_filetype(pathname: str) -> str:
     '''
-    Passed path without the last ``.``-prefixed filetype (including this prefix)
-    if this path has a filetype *or* this path as is otherwise.
+    Passed path without the last ``.``-prefixed filetype (including this
+    prefix) if this path has a filetype *or* this path as is otherwise.
     '''
 
     return os_path.splitext(pathname)[0]
 
-# ....................{ GETTERS ~ filetype : undotted      }....................
+# ....................{ GETTERS ~ filetype : undotted     }....................
 @type_check
 def get_filetype_dotted_or_none(pathname: str) -> StrOrNoneTypes:
     '''
-    ``.``-prefixed **last filetype** (i.e., last ``.``-prefixed substring of the
-    basename) of the passed pathname if this pathname is suffixed by a filetype
-    *or* ``None`` otherwise.
+    ``.``-prefixed **last filetype** (i.e., last ``.``-prefixed substring of
+    the basename) of the passed pathname if this pathname is suffixed by a
+    filetype *or* ``None`` otherwise.
 
     If this pathname is suffixed by two or more filetypes (e.g.,
     ``odium.reigns.tar.gz``), only the last such filetype is returned.
@@ -612,8 +553,8 @@ def get_filetype_undotted(pathname: str) -> str:
 def get_filetype_undotted_or_none(pathname: str) -> StrOrNoneTypes:
     '''
     **Last filetype** (i.e., last ``.``-prefixed substring of the basename
-    excluding this ``.``) of the passed pathname if this pathname is suffixed by
-    a filetype *or* ``None`` otherwise.
+    excluding this ``.``) of the passed pathname if this pathname is suffixed
+    by a filetype *or* ``None`` otherwise.
 
     See Also
     ----------
@@ -628,7 +569,7 @@ def get_filetype_undotted_or_none(pathname: str) -> StrOrNoneTypes:
     # otherwise.
     return filetype[1:] if filetype is not None else None
 
-# ....................{ DOTTERS                            }....................
+# ....................{ DOTTERS                           }....................
 @type_check
 def dot_filetype(filetype: str) -> str:
     '''
@@ -667,6 +608,7 @@ def undot_filetype(filetype: str) -> str:
     ----------
     str
         Either:
+
         * If this filetype is prefixed by a ``.`` character, this filetype
           stripped of this prefix.
         * Else, this filetype unmodified.
@@ -722,7 +664,7 @@ def canonicalize(pathname: str) -> str:
 
     return os_path.realpath(os_path.expanduser(pathname))
 
-# ....................{ JOINERS                            }....................
+# ....................{ JOINERS                           }....................
 @type_check
 def join(*partnames: str) -> str:
     '''
@@ -768,12 +710,12 @@ def join(*partnames: str) -> str:
     # Return the concatenation of these partnames.
     return os_path.join(*partnames)
 
-# ....................{ RELATIVIZERS                       }....................
+# ....................{ RELATIVIZERS                      }....................
 @type_check
 def relativize(src_dirname: str, trg_pathname: str) -> str:
     '''
-    Relative pathname of the second passed pathname relative to the first passed
-    dirname.
+    Relative pathname of the second passed pathname relative to the first
+    passed dirname.
 
     Parameters
     ----------

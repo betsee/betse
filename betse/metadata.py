@@ -33,6 +33,14 @@ Note that Python < 3.4.0:
   3 interpreters, this *should* impose no hardship.
 * Fails to provide the :mod:`enum` module introduced by Python 3.4, which both
   standardizes and simplifies enumeration implementations.
+
+Design
+----------
+Metadata constants defined by this submodule are intentionally *not* defined as
+metadata properties of the :class:`betse.util.meta.metaappabc` abstract base
+class. Why? Because doing so would prevent their use from the top-level
+``setup.py`` scripts defined by downstream consumers (e.g., BETSEE GUI), which
+would render these constants effectively useless for their principal use case.
 '''
 
 # ....................{ IMPORTS                           }....................
@@ -148,16 +156,16 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 # ....................{ METADATA ~ version                }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: When modifying the current version of this application below,
-# consider adhering to the Semantic Versioning schema. Specifically, the version
-# should consist of three "."-delimited integers "{major}.{minor}.{patch}",
-# where:
+# consider adhering to the Semantic Versioning schema. Specifically, the
+# version should consist of three "."-delimited integers
+# "{major}.{minor}.{patch}", where:
 #
 # * "{major}" specifies the major version, incremented only when either:
 #   * Breaking configuration file backward compatibility. Since this
 #     application's public API is its configuration file format rather than a
-#     subset of the code itself (e.g., public subpackages, submodules, classes),
-#     no change to the code itself can be considered to break backward
-#     compatibility unless that change breaks the configuration file format.
+#     subset of the code itself (e.g., public submodules, classes), no change
+#     to the code itself can be considered to break backward compatibility
+#     unless that change breaks the configuration file format.
 #   * Implementing headline-worthy functionality (e.g., a GUI). Technically,
 #     this condition breaks the Semantic Versioning schema, which stipulates
 #     that *ONLY* changes breaking backward compatibility warrant major bumps.

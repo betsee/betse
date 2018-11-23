@@ -667,6 +667,8 @@ class CLIABC(object, metaclass=ABCMeta):
         pass
 
 
+    #FIXME: Excise this property entirely in favour of the corresponding
+    #property within the new "betse.metaapp" submodule.
     @abstractproperty
     def _module_ignition(self) -> ModuleType:
         '''
@@ -679,6 +681,8 @@ class CLIABC(object, metaclass=ABCMeta):
         pass
 
 
+    #FIXME: Excise this property entirely in favour of the corresponding
+    #property within the new "betse.metaapp" submodule.
     @abstractproperty
     def _module_metadata(self) -> ModuleType:
         '''

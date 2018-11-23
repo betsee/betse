@@ -84,14 +84,11 @@ def test_dirs_recurse_subdirnames() -> None:
 
     # Defer heavyweight imports.
     import betse, betse_setup, betse_test
-    from betse import pathtree
+    from betse.metaapp import app_meta
     from betse.util.io.log import logs
     from betse.util.py import pymodule
     from betse.util.path import dirs, files, pathnames
     from betse.util.type.text import strs
-
-    # Absolute dirname of this application's top-level data directory.
-    DATA_DIRNAME = pathtree.get_data_dirname()
 
     # Tuple of all top-level packages.
     PACKAGES = (betse, betse_setup, betse_test)
@@ -120,7 +117,8 @@ def test_dirs_recurse_subdirnames() -> None:
             # and hence be safely ignorable.
             if (
                 pathnames.get_basename(package_subdirname) == '__pycache__' or
-                strs.is_prefix(text=package_subdirname, prefix=DATA_DIRNAME) or
+                strs.is_prefix(
+                    text=package_subdirname, prefix=app_meta.data_dirname) or
                 dirs.is_empty(package_subdirname)
             ):
                 # Log this exclusion.

@@ -14,20 +14,8 @@ be sane under insane installation environments -- including PyInstaller-frozen
 executables and :mod:`setuptools`-installed script wrappers.
 '''
 
-#FIXME: The current globals-based approach is inefficient in the case of BETSE
-#being installed as a compressed EGG rather than an uncompressed directory. In
-#the former case, the current approach (namely, the call to
-#resources.get_pathname() performed below) silently extracts the entirety of
-#this egg to a temporary setuptools-specific cache directory. That's bad. To
-#circumvent this, we'll need to refactor the codebase to directly require only
-#"file"-like objects rather than indirectly requiring the absolute paths of
-#data resources that are then opened as "file"-like objects.
-#
-#Specifically, whenever we require a "file"-like object for a codebase
-#resource, we'll need to call the setuptools-specific
-#pkg_resources.resource_stream() function rather than attempting to open the
-#path given by a global below.  Ultimately, *ALL* of the codebase-specific
-#globals declared below (e.g., "DATA_DIRNAME") should go away.
+#FIXME: Refactor the remainder of this submodule into the newly annointed
+#"betse.util.meta.metaappabc" submodule.
 
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -39,9 +27,10 @@ executables and :mod:`setuptools`-installed script wrappers.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 import os
 from betse import metadata
+from betse.metaapp import app_meta
 from betse.exceptions import BetseModuleException
 from betse.util.type.decorator.decmemo import func_cached
-from betse.util.type.types import type_check, StrOrNoneTypes
+from betse.util.type.types import type_check
 
 # ....................{ GETTERS ~ dir                     }....................
 @func_cached
@@ -156,35 +145,6 @@ def get_dot_dirname() -> str:
 
 # ....................{ GETTERS ~ dir : data              }....................
 @func_cached
-def get_data_dirname() -> str:
-    '''
-    Absolute dirname of this application's top-level data directory if found
-    *or* raise an exception otherwise (i.e., if this directory is *not* found).
-
-    This directory contains application-internal resources (e.g., media files)
-    required at application runtime.
-
-    Raises
-    ----------
-    BetseDirException
-        If this directory does *not* exist.
-    '''
-
-    # Avoid circular import dependencies.
-    import betse
-    from betse.util.path import dirs, pathnames
-
-    # Absolute path of this directory.
-    data_dirname = pathnames.get_app_pathname(package=betse, pathname='data')
-
-    # If this directory is not found, raise an exception.
-    dirs.die_unless_dir(data_dirname)
-
-    # Return the absolute path of this directory.
-    return data_dirname
-
-
-@func_cached
 def get_data_yaml_dirname() -> str:
     '''
     Absolute pathname of this application's data subdirectory containing
@@ -206,7 +166,7 @@ def get_data_yaml_dirname() -> str:
     from betse.util.path import dirs
 
     # Return this dirname if this directory exists or raise an exception.
-    return dirs.join_and_die_unless_dir(get_data_dirname(), 'yaml')
+    return dirs.join_and_die_unless_dir(app_meta.data_dirname, 'yaml')
 
 # ....................{ GETTERS ~ dir : package           }....................
 @func_cached
@@ -239,69 +199,6 @@ def get_package_dirname() -> str:
 
     # Return this directory's pathname.
     return package_dirname
-
-# ....................{ GETTERS ~ dir : git               }....................
-@func_cached
-def get_git_worktree_dirname() -> str:
-    '''
-    Absolute dirname of this application's Git-based **working tree** (i.e.,
-    top-level directory containing this application's ``.git`` subdirectory and
-    ``setup.py`` install script) if this application was installed in a
-    developer manner *or* raise an exception otherwise (i.e., if this directory
-    is *not* found).
-
-    Raises
-    ----------
-    BetseDirException
-        If this directory does *not* exist.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.path import dirs
-
-    # Absolute pathname of this application's Git-based working tree if this
-    # application was installed in a developer manner or "None" otherwise.
-    git_worktree_dirname = get_git_worktree_dirname_or_none()
-
-    # If this directory is not found, fail.
-    dirs.die_unless_dir(git_worktree_dirname)
-
-    # Return this directory's pathname.
-    return git_worktree_dirname
-
-
-@func_cached
-def get_git_worktree_dirname_or_none() -> StrOrNoneTypes:
-    '''
-    Absolute dirname of this application's Git-based **working tree** (i.e.,
-    top-level directory containing this application's ``.git`` subdirectory and
-    ``setup.py`` install script) if this application was installed in a
-    developer manner *or* ``None`` otherwise.
-
-    Returns
-    ----------
-    StrOrNoneTypes
-        Either:
-
-        * The absolute dirname of this application's Git working tree if this
-          application was installed in a developer manner: e.g., by
-
-          * ``python3 setup.py develop``.
-          * ``python3 setup.py symlink``.
-
-        * ``None`` if this application was installed in a non-developer manner:
-          e.g., by
-
-          * ``pip3 install``.
-          * ``python3 setup.py develop``.
-    '''
-
-    # Avoid circular import dependencies.
-    import betse
-    from betse.util.path import gits
-
-    # Behold! It is a one-liner.
-    return gits.get_package_worktree_dirname_or_none(betse)
 
 # ....................{ GETTERS ~ file                    }....................
 @func_cached

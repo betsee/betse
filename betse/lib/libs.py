@@ -14,7 +14,73 @@ any such dependencies.
 
 #FIXME: Ideally eliminate the boilerplate repeated across the equivalent of
 #this submodule in BETSE, BETSEE, and now NIMME by generalizing this
-#functionality. To do so, see "nimme.lib.nimlib" for detailed commentary.
+#functionality. To do so, we might consider:
+#
+#* Define a new "betse.util.py.abc.pylibabc" submodule (...or some such).
+#* Define a new "LibResolverABC" abstract base class in this submodule.
+#* Define a new "_metadeps" abstract property of this class, returning an
+#  actual imported module of type "ModuleType".
+#* For each top-level public function defined by this "nimlib" submodule,
+#  define a corresponding *CONCRETE* public method of the same name in this
+#  class. The implementation of each such method should defer to the
+#  aforementioned "_metadeps" abstract property of this class.
+#* Define a new "NimmeLibResolver(LibResolverABC)" subclass in this submodule.
+#  Ideally, the only attribute defined by this subclass should be the
+#  "_metadeps" attribute.
+#* Instantiate a public singleton instance of this class in this submodule.
+#* Rewrite all external import statements referencing this submodule to
+#  instead reference that instance.
+#* Remove all top-level public functions defined from this "nimlib" submodule.
+#
+#As a succinct example:
+#
+#    # In "betse.util.py.abc.pylibabc".
+#    class LibResolverABC(metaclass=ABCMeta):
+#        ...
+#
+#        @abstractproperty
+#        def _metadeps(self) -> ModuleType:
+#            pass
+#
+#
+#        def die_unless_runtime_mandatory_all(self) -> None:
+#            '''
+#            Raise an exception unless all mandatory runtime dependencies of this
+#            application are **satisfiable** (i.e., both importable and of a
+#            satisfactory version) *and* all external commands required by these
+#            dependencies (e.g., GraphViz's ``dot`` command) reside in the current
+#            ``${PATH}``.
+#
+#            Raises
+#            ----------
+#            BetseLibException
+#                If at least one mandatory runtime dependency is unsatisfiable.
+#
+#            See Also
+#            ----------
+#            :func:`betse_libs.die_unless_runtime_mandatory_all`
+#                Further details.
+#            '''
+#
+#            betse_libs.die_unless_requirements_dict(
+#                self._metadeps.RUNTIME_MANDATORY)
+#
+#        ...
+#
+#
+#    # In this submodule.
+#    from nimme import nimmetadeps
+#
+#    class NimmeLibResolver(LibResolverABC):
+#        @property
+#        def _metadeps(self) -> ModuleType:
+#            return nimmetadeps
+#
+#    lib_resolver = NimmeLibResolver()
+#
+#Ergo, given the above structure, we'd replace all import statements of the
+#form "from nimme.lib import nimlib" to
+#"from nimme.lib.nimlib import lib_resolver".
 
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

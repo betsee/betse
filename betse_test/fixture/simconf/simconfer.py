@@ -158,7 +158,8 @@ def betse_sim_conf_compat(
     '''
 
     # Defer heavyweight imports.
-    from betse import metadata, pathtree
+    from betse import metadata
+    from betse.metaapp import app_meta
     from betse.util.io.log import logs
     from betse.util.os.shell import shelldir
     from betse.util.path import gits
@@ -178,7 +179,7 @@ def betse_sim_conf_compat(
     # Absolute pathname of this application's Git-based working tree. Since
     # this test suite should only every be run from within a working tree, this
     # retrieval should *ALWAYS* succeed.
-    git_worktree_dirname = pathtree.get_git_worktree_dirname_or_none()
+    git_worktree_dirname = app_meta.git_worktree_dirname
 
     # Absolute path of a temporary non-existing directory isolated to this test
     # to clone the older version of this application into.

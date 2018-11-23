@@ -17,11 +17,7 @@ from betse.util.path import dirs, pathnames
 from betse.util.path.dirs import DirOverwritePolicy
 from betse.util.type.iterable.iterators import empty_iterator
 from betse.util.type.types import (
-    type_check,
-    IterableTypes,
-    MappingOrSequenceTypes,
-    NoneType,
-)
+    type_check, IterableTypes, MappingOrSequenceTypes, NoneType)
 
 # ....................{ SUPERCLASSES                      }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -47,7 +43,6 @@ class YamlABC(object, metaclass=ABCMeta):
     '''
 
     # ..................{ INITIALIZERS                      }..................
-    @type_check
     def __init__(self) -> None:
         '''
         Initialize this YAML wrapper.
@@ -212,7 +207,6 @@ class YamlFileABC(YamlABC):
         return yaml_file_conf
 
     # ..................{ INITIALIZERS                      }..................
-    @type_check
     def __init__(self) -> None:
         '''
         Initialize this YAML file wrapper in the **unload state** (i.e.,
@@ -402,7 +396,6 @@ class YamlFileABC(YamlABC):
         self._set_conf_filename(conf_filename)
 
 
-    @type_check
     def save_inplace(self) -> None:
         '''
         Serialize the low-level dictionary internally stored in this object to

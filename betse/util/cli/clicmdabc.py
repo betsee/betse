@@ -16,7 +16,6 @@ Top-level abstract base class of all **subcommandable command line interface
 # * Never raise exceptions on importation (e.g., due to module-level logic).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from abc import abstractmethod
 from betse.util.cli.cliabc import CLIABC
 from betse.util.cli.clicmd import CLISubcommander, CLISubcommandParent
 from betse.util.py import pyident
