@@ -37,17 +37,18 @@ def get_metadata() -> OrderedArgsDict:
     # Defer heavyweight imports.
     from betse import pathtree
     from betse.metaapp import app_meta
+    from betse.util.path import pathnames
     from betse.util.path.command import cmds
 
     # Return this dictionary.
     return OrderedArgsDict(
         'basename', cmds.get_current_basename(),
-        'version', metadata.VERSION,
+        'version',  metadata.VERSION,
         'codename', metadata.CODENAME,
-        'authors', metadata.AUTHORS,
-        'license', metadata.LICENSE,
-        'home directory', pathtree.get_home_dirname(),
-        'dot directory', pathtree.get_dot_dirname(),
+        'authors',  metadata.AUTHORS,
+        'license',  metadata.LICENSE,
+        'home directory', pathnames.get_home_dirname(),
+        'dot directory',  app_meta.dot_dirname,
         'data directory', app_meta.data_dirname,
     )
 

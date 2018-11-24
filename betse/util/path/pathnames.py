@@ -11,8 +11,8 @@ Low-level pathname (e.g., basename, dirname, filetype) facilities.
 import errno, os
 from betse.exceptions import BetsePathnameException
 from betse.util.io.log import logs
-from betse.util.type.types import (
-    type_check, ContainerType, ModuleType, StrOrNoneTypes)
+from betse.util.type.decorator.decmemo import func_cached
+from betse.util.type.types import type_check, ContainerType, StrOrNoneTypes
 from os import path as os_path
 
 # ....................{ CONSTANTS                         }....................
@@ -165,7 +165,6 @@ def is_pathname(pathname: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse import pathtree
     from betse.util.os.brand import windows
     from betse.util.os.brand.windows import WindowsErrorType
 
@@ -218,7 +217,7 @@ def is_pathname(pathname: str) -> bool:
         # before those pathnames are passed to os.stat() or os.lstat().
         #
         # Did we mention this should be shipped with Python already?
-        root_dirname = pathtree.get_root_dirname()
+        root_dirname = get_root_dirname()
         assert os_path.isdir(root_dirname)   # ...Murphy and her dumb Law
 
         # Test whether each path component split from this pathname is valid
@@ -463,6 +462,56 @@ def get_dirname_or_empty(pathname: str) -> str:
     '''
 
     return os_path.dirname(pathname)
+
+# ....................{ GETTERS ~ dirname : system        }....................
+@func_cached
+def get_root_dirname() -> str:
+    '''
+    Absolute dirname of the root directory suffixed by a directory separator.
+
+    The definition of "root directory" conditionally depends on the current
+    platform. Specifically, if this platform is:
+
+    * POSIX-compatible (e.g., Linux, OS X), this is simply ``/``.
+    * Microsoft Windows, this is the value of the ``%HOMEDRIVE%`` environment
+      variable. This is the ``:``-suffixed letter of the drive to which Windows
+      was originally installed -- typically but *not* necessarily ``C:\\``.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.os import oses
+    from betse.util.os.shell import shellenv
+
+    # Return this dirname.
+    if oses.is_windows_vanilla():
+        return shellenv.get_var_or_default('HOMEDRIVE', 'C:') + os_path.sep
+    else:
+        return os_path.sep
+
+
+@func_cached
+def get_home_dirname() -> str:
+    '''
+    Absolute dirname of the home directory of the current user if found *or*
+    raise an exception otherwise (i.e., if this directory is *not* found).
+
+    Raises
+    ----------
+    :exc:`BetseDirException`
+        If this user has no home directory.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs
+
+    # Absolute path of this directory.
+    home_dirname = canonicalize('~')
+
+    # If this directory is not found, fail.
+    dirs.die_unless_dir(home_dirname)
+
+    # Return this directory's path.
+    return home_dirname
 
 # ....................{ GETTERS ~ filetype                }....................
 def get_pathname_sans_filetypes(pathname: str) -> str:

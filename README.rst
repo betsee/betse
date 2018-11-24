@@ -15,18 +15,19 @@
 BETSE
 =====
 
-**BETSE** (**B**\ io\ **E**\ lectric **T**\ issue **S**\ imulation **E**\ ngine)
-is an open-source cross-platform `finite volume`_ simulator for 2D computational
-multiphysics problems in the life sciences – including electrodiffusion_,
-electro-osmosis_, galvanotaxis_, `voltage-gated ion channels`_, `gene regulatory
-networks`_, and `biochemical reaction networks`_ (e.g., metabolism). BETSE is
-associated with the `Paul Allen Discovery Center`_ at `Tufts University`_ and
-supported by a `Paul Allen Discovery Center award`_ from the `Paul G. Allen
-Frontiers Group`_.
+**BETSE** (**B**\ io\ **E**\ lectric **T**\ issue **S**\ imulation **E**\
+ngine) is an open-source cross-platform `finite volume`_ simulator for 2D
+computational multiphysics problems in the life sciences – including
+electrodiffusion_, electro-osmosis_, galvanotaxis_, `voltage-gated ion
+channels`_, `gene regulatory networks`_, and `biochemical reaction networks`_
+(e.g., metabolism). BETSE is associated with the `Paul Allen Discovery Center`_
+at `Tufts University`_ and supported by a `Paul Allen Discovery Center award`_
+from the `Paul G. Allen Frontiers Group`_.
 
-BETSE is `portably implemented <codebase_>`__ in pure `Python 3`_, `continuously
-stress-tested <testing_>`__ with GitLab-CI_ **×** Appveyor_ **+** py.test_, and
-`permissively distributed <License_>`__ under the `BSD 2-clause license`_.
+BETSE is `portably implemented <codebase_>`__ in pure `Python 3`_,
+`continuously stress-tested <testing_>`__ with GitLab-CI_ **×** Appveyor_ **+**
+py.test_, and `permissively distributed <License_>`__ under the `BSD 2-clause
+license`_.
 
 ======
 BETSEE

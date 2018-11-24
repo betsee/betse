@@ -8,6 +8,21 @@ High-level **application metadata singleton** (i.e., application-wide object
 synopsizing application metadata via read-only properties) hierarchy.
 '''
 
+#FIXME: The current approach is inefficient in the case of BETSE being
+#installed as a compressed EGG rather than an uncompressed directory. In the
+#former case, the current approach (namely, the call to
+#resources.get_pathname() performed below) silently extracts the entirety of
+#this egg to a temporary setuptools-specific cache directory. That's bad. To
+#circumvent this, we'll need to refactor the codebase to directly require only
+#"file"-like objects rather than indirectly requiring the absolute paths of
+#data resources that are then opened as "file"-like objects.
+#
+#Specifically, whenever we require a "file"-like object for a codebase
+#resource, we'll need to call the setuptools-specific
+#pkg_resources.resource_stream() function rather than attempting to open the
+#path given by a global below. Ultimately, *ALL* of the codebase-specific
+#globals declared below (e.g., "DATA_DIRNAME") should go away.
+
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
@@ -26,21 +41,6 @@ from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import (
     type_check, ModuleType, StrOrNoneTypes)
-
-#FIXME: The current approach is inefficient in the case of BETSE being
-#installed as a compressed EGG rather than an uncompressed directory. In the
-#former case, the current approach (namely, the call to
-#resources.get_pathname() performed below) silently extracts the entirety of
-#this egg to a temporary setuptools-specific cache directory. That's bad. To
-#circumvent this, we'll need to refactor the codebase to directly require only
-#"file"-like objects rather than indirectly requiring the absolute paths of
-#data resources that are then opened as "file"-like objects.
-#
-#Specifically, whenever we require a "file"-like object for a codebase
-#resource, we'll need to call the setuptools-specific
-#pkg_resources.resource_stream() function rather than attempting to open the
-#path given by a global below. Ultimately, *ALL* of the codebase-specific
-#globals declared below (e.g., "DATA_DIRNAME") should go away.
 
 # ....................{ SUPERCLASSES                      }....................
 class MetaAppABC(object, metaclass=ABCMeta):
@@ -92,7 +92,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
         return self.package.__name__
 
-    # ..................{ PROPERTIES ~ dir : git            }..................
+    # ..................{ PROPERTIES ~ dir                  }..................
     @property_cached
     def package_dirname(self) -> str:
         '''
@@ -122,6 +122,77 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
         # Return this directory's pathname.
         return package_dirname
+
+
+    @property_cached
+    def dot_dirname(self) -> str:
+        '''
+        Absolute dirname of this application's top-level dot directory in the
+        home directory of the current user, silently creating this directory if
+        *not* already found.
+
+        This directory contains user-specific files (e.g., logfiles, profile
+        files) both read from and written to at application runtime. These are
+        typically plaintext files consumable by external users and third-party
+        utilities.
+
+        Locations
+        ----------
+        Denote:
+
+        * ``{package_name}`` the value of the :meth:`package_name` property for
+          this application (e.g., ``betse`` for BETSE).
+        * ``{username}`` the name of the current user (e.g., ``leycec``).
+
+        Then the dirname returned by this property is:
+
+        * Under Linux, ``~/.{package_name}/``. This property intentionally does
+          *not* currently comply with the `XDG Base Directory Specification`_
+          (e.g., ``~/.local/share/betse``), which the authors regard as
+          `unhelpful if not blatantly harmful <xkcd Standards_>`__.
+        * Under OS X, ``~/Library/Application Support/{package_name}``.
+        * Under Windows,
+          ``C:\\Documents and Settings\\{username}\\Application Data\\{package_name}``.
+
+        .. _XDG Base Directory Specification:
+            http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
+        .. _xkcd Standards:
+            https://xkcd.com/927
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.os import oses
+        from betse.util.os.shell import shellenv
+        from betse.util.path import dirs, pathnames
+
+        # Absolute path of this directory.
+        dot_dirname = None
+
+        # If the current platform is macOS, return the appropriate directory.
+        if oses.is_macos():
+            dot_dirname = pathnames.join(
+                pathnames.get_home_dirname(),
+                'Library',
+                'Application Support',
+                self.package_name,
+            )
+        # If the current platform is Windows, return the appropriate directory.
+        elif oses.is_windows():
+            dot_dirname = pathnames.join(
+                shellenv.get_var('APPDATA'), self.package_name)
+        # Else, assume the current platform to be POSIX-compatible.
+        else:
+            #FIXME: Explicitly assert POSIX compatibility here. To do so, we'll
+            #want to define and call a new betse.util.os.oses.die_unless_posix()
+            #function here.
+            dot_dirname = pathnames.join(
+                pathnames.get_home_dirname(), '.' + self.package_name)
+
+        # Create this directory if not found.
+        dirs.make_unless_dir(dot_dirname)
+
+        # Return this directory's path.
+        return dot_dirname
 
     # ..................{ PROPERTIES ~ dir : git            }..................
     @property_cached

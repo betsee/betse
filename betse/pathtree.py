@@ -25,123 +25,12 @@ executables and :mod:`setuptools`-installed script wrappers.
 # avoid circular import dependencies, the top-level of this module should avoid
 # importing application packages except where explicitly required.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-import os
+
 from betse import metadata
 from betse.metaapp import app_meta
 from betse.exceptions import BetseModuleException
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import type_check
-
-# ....................{ GETTERS ~ dir                     }....................
-@func_cached
-def get_root_dirname() -> str:
-    '''
-    Absolute pathname of the root directory suffixed by a directory separator.
-
-    The definition of "root directory" conditionally depends on the current
-    platform. If this platform is:
-
-    * POSIX-compatible (e.g., Linux, OS X), this is simply ``/``.
-    * Microsoft Windows, this is the value of the ``%HOMEDRIVE%`` environment
-      variable. This is the ``:``-suffixed letter of the drive to which Windows
-      was originally installed -- typically but *not* necessarily ``C:\\``.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.os import oses
-    from betse.util.os.shell import shellenv
-
-    # Return this dirname.
-    if oses.is_windows_vanilla():
-        return shellenv.get_var_or_default('HOMEDRIVE', 'C:') + os.path.sep
-    else:
-        return os.path.sep
-
-
-@func_cached
-def get_home_dirname() -> str:
-    '''
-    Absolute pathname of the home directory of the current user if found *or*
-    raise an exception otherwise (i.e., if this directory is *not* found).
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.path import dirs, pathnames
-
-    # Absolute path of this directory.
-    home_dirname = pathnames.canonicalize('~')
-
-    # If this directory is not found, fail.
-    dirs.die_unless_dir(home_dirname)
-
-    # Return this directory's path.
-    return home_dirname
-
-# ....................{ GETTERS ~ dir : app               }....................
-@func_cached
-def get_dot_dirname() -> str:
-    '''
-    Absolute pathname of this application's top-level dot directory in the home
-    directory of the current user, silently creating this directory if *not*
-    already found.
-
-    This directory contains user-specific files (e.g., logfiles, profile files)
-    both read from and written to at application runtime. These are typically
-    plaintext files consumable by external users and third-party utilities.
-
-    Locations
-    ----------
-    Specifically, this path is:
-
-    * Under Linux, ``~/.betse/``. BETSE does *not* currently comply with the
-      _XDG Base Directory Specification (e.g., ``~/.local/share/betse``), which
-      the principal authors of BETSE regard as unuseful (if not harmful).
-    * Under OS X, ``~/Library/Application Support/betse``.
-    * Under Windows,
-      ``C:\\Documents and Settings\\${User}\\Application Data\\betse``.
-
-    .. _XDG Base Directory Specification:
-        http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
-
-    Raises
-    ----------
-    BetseDirException
-        If this directory does *not* exist.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.os import oses
-    from betse.util.os.shell import shellenv
-    from betse.util.path import dirs, pathnames
-
-    # Absolute path of this directory.
-    dot_dirname = None
-
-    # If the current platform is macOS, return the appropriate directory.
-    if oses.is_macos():
-        dot_dirname = pathnames.join(
-            get_home_dirname(),
-            'Library',
-            'Application Support',
-            metadata.SCRIPT_BASENAME,
-        )
-    # If the current platform is Windows, return the appropriate directory.
-    elif oses.is_windows():
-        dot_dirname = pathnames.join(
-            shellenv.get_var('APPDATA'), metadata.NAME)
-    # Else, assume the current platform to be POSIX-compatible.
-    else:
-        #FIXME: Explicitly assert POSIX compatibility here. To do so, we'll
-        #want to define and call a new betse.util.os.oses.die_unless_posix()
-        #function here.
-        dot_dirname = pathnames.join(
-            get_home_dirname(), '.' + metadata.SCRIPT_BASENAME)
-
-    # Create this directory if not found.
-    dirs.make_unless_dir(dot_dirname)
-
-    # Return this directory's path.
-    return dot_dirname
 
 # ....................{ GETTERS ~ dir : data              }....................
 @func_cached
@@ -204,7 +93,7 @@ def get_package_dirname() -> str:
 @func_cached
 def get_log_default_filename() -> str:
     '''
-    Absolute pathname of this application's default user-specific logfile.
+    Absolute filename of this application's default user-specific logfile.
 
     This is the plaintext file to which all messages are logged by default.
     '''
@@ -213,13 +102,14 @@ def get_log_default_filename() -> str:
     from betse.util.path import pathnames
 
     # Return the absolute path of this file.
-    return pathnames.join(get_dot_dirname(), metadata.SCRIPT_BASENAME + '.log')
+    return pathnames.join(
+        app_meta.dot_dirname, metadata.SCRIPT_BASENAME + '.log')
 
 
 @func_cached
 def get_profile_default_filename() -> str:
     '''
-    Absolute pathname of this application's default user-specific profile
+    Absolute filename of this application's default user-specific profile
     dumpfile.
 
     This is the binary file to which profiled statistics are saved by default.
@@ -230,7 +120,7 @@ def get_profile_default_filename() -> str:
 
     # Return the absolute path of this file.
     return pathnames.join(
-        get_dot_dirname(), metadata.SCRIPT_BASENAME + '.prof')
+        app_meta.dot_dirname, metadata.SCRIPT_BASENAME + '.prof')
 
 
 @func_cached
@@ -286,13 +176,10 @@ def get_repl_history_filename(repl_module_name: str) -> dict:
     # Avoid circular import dependencies.
     from betse.util.path import pathnames
 
-    # Absolute path of this application's user-specific dot directory.
-    DOT_DIRNAME = get_dot_dirname()
-
     # Dictionary mapping each REPL module name to its history filename.
     REPL_MODULE_NAME_TO_HISTORY_FILENAME = {
-        'ptpython': pathnames.join(DOT_DIRNAME, 'ptpython.hist'),
-        'readline': pathnames.join(DOT_DIRNAME, 'readline.hist'),
+        'ptpython': pathnames.join(app_meta.dot_dirname, 'ptpython.hist'),
+        'readline': pathnames.join(app_meta.dot_dirname, 'readline.hist'),
     }
 
     # If this REPL module name is unrecognized, fail.
