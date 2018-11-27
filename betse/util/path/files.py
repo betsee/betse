@@ -20,6 +20,7 @@ from betse.util.type.types import type_check
 from os import path as os_path
 
 # ....................{ EXCEPTIONS                        }....................
+@type_check
 def die_if_file(pathname: str) -> None:
     '''
     Raise an exception if the passed path is an existing non-directory file
@@ -47,6 +48,7 @@ def die_if_file(pathname: str) -> None:
                 pathname, paths.get_type_label(pathname)))
 
 
+@type_check
 def die_unless_file(*pathnames: str) -> None:
     '''
     Raise an exception unless all passed paths are existing non-directory files
@@ -73,6 +75,7 @@ def die_unless_file(*pathnames: str) -> None:
                     'File "{}" not found or unreadable.'.format(pathname))
 
 
+@type_check
 def join_and_die_unless_file(*pathnames: str) -> str:
     '''
     Pathname of the file produced by joining (i.e., concatenating) the passed
@@ -100,6 +103,7 @@ def join_and_die_unless_file(*pathnames: str) -> str:
     return filename
 
 # ....................{ EXCEPTIONS ~ writable             }....................
+@type_check
 def die_unless_exists_writable(pathname: str) -> None:
     '''
     Raise an exception unless the passed path is an existing writable
@@ -171,6 +175,7 @@ def is_file(*pathnames: str) -> bool:
     )
 
 
+@type_check
 def is_executable(pathname: str) -> bool:
     '''
     ``True`` only if the passed path is an **executable non-directory file**
@@ -183,6 +188,7 @@ def is_executable(pathname: str) -> bool:
     return is_file(pathname) and os.access(pathname, os.X_OK)
 
 
+@type_check
 def is_exists_writable(pathname: str) -> bool:
     '''
     ``True`` only if the passed path is an **existing writable non-directory
@@ -192,12 +198,10 @@ def is_exists_writable(pathname: str) -> bool:
     For generality, this function does *not* raise an exception if this path
     does not exist or does but is an existing directory.
 
-    Caveats
+    See Also
     ----------
-    For disambiguity, this function is intentionally *not* named
-    ``is_writable()``. Why? Because this function returns ``False`` when this
-    path does *not* currently exist but the current user has sufficient
-    permissions to create and hence write this file.
+    :func:`paths.is_writable`
+        Similar tester omitting the existence requirement.
     '''
 
     return is_file(pathname) and os.access(pathname, os.W_OK)

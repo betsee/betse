@@ -49,6 +49,16 @@ class MetaAppABC(object, metaclass=ABCMeta):
     application-wide object synopsizing application metadata via read-only
     properties) subclasses.
 
+    Pathnames
+    ----------
+    This superclass details the structure of this application on the local
+    filesystem with properties providing the absolute pathnames of
+    application-specific files and directories. These pathnames are intended
+    for use by both this application and downstream consumers (e.g., BETSEE).
+    For portability, these pathnames intentionally support standard and
+    non-standard runtime environments -- including :mod:`setuptools`-installed
+    script wrappers *and* PyInstaller-frozen executables.
+
     Caveats
     ----------
     **Neither this superclass nor any subclass of this superclass may be safely
@@ -114,14 +124,11 @@ class MetaAppABC(object, metaclass=ABCMeta):
         from betse.util.path import dirs
         from betse.util.py import pymodule
 
-        # Absolute pathname of the directory yielding the top-level "betse" package.
+        # Absolute pathname of the directory yielding our top-level package.
         package_dirname = pymodule.get_dirname(self.package)
 
-        # If this directory is not found, fail.
-        dirs.die_unless_dir(package_dirname)
-
-        # Return this directory's pathname.
-        return package_dirname
+        # If this directory is not found, fail; else, return this directory.
+        return dirs.dir_or_die(package_dirname)
 
 
     @property_cached
@@ -194,7 +201,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
         # Return this directory's path.
         return dot_dirname
 
-    # ..................{ PROPERTIES ~ dir : git            }..................
+    # ..................{ PROPERTIES ~ dir : data           }..................
     @property_cached
     def data_dirname(self) -> str:
         '''
@@ -217,11 +224,8 @@ class MetaAppABC(object, metaclass=ABCMeta):
         # Absolute path of this directory.
         data_dirname = self.get_pathname('data')
 
-        # If this directory is not found, raise an exception.
-        dirs.die_unless_dir(data_dirname)
-
-        # Return the absolute path of this directory.
-        return data_dirname
+        # If this directory is not found, fail; else, return this directory.
+        return dirs.dir_or_die(data_dirname)
 
     # ..................{ PROPERTIES ~ dir : git            }..................
     @property_cached
@@ -255,11 +259,8 @@ class MetaAppABC(object, metaclass=ABCMeta):
                 'Package "{}" not under Git-based development.'.format(
                     self.package_name))
 
-        # If this directory is not found, fail.
-        dirs.die_unless_dir(git_worktree_dirname)
-
-        # Return this directory's pathname.
-        return git_worktree_dirname
+        # If this directory is not found, fail; else, return this directory.
+        return dirs.dir_or_die(git_worktree_dirname)
 
 
     @property_cached
@@ -293,6 +294,36 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
         # Behold! It is a one-liner.
         return gits.get_package_worktree_dirname_or_none(self.package)
+
+    # ..................{ PROPERTIES ~ file                 }..................
+    @property_cached
+    def log_default_filename(self) -> str:
+        '''
+        Absolute filename of this application's **default logfile** (i.e.,
+        plaintext user-specific file to which all messages, warnings, errors,
+        and exceptions are logged by default).
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.path import pathnames
+
+        # Return the absolute path of this file.
+        return pathnames.join(self.dot_dirname, self.package_name + '.log')
+
+
+    @property_cached
+    def profile_default_filename(self) -> str:
+        '''
+        Absolute filename of this application's **default profile dumpfile**
+        (i.e., user-specific binary file to which profiled statistics are saved
+        by default).
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.path import pathnames
+
+        # Return the absolute path of this file.
+        return pathnames.join(self.dot_dirname, self.package_name + '.prof')
 
     # ..................{ PROPERTIES ~ private              }..................
 

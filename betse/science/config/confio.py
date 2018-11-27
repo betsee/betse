@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,14 +9,14 @@ Simulation configuration file input and output (I/O) facilities.
 
 #FIXME: Validate the versions of loaded configuration files.
 
-# ....................{ IMPORTS                            }....................
-from betse import pathtree
+# ....................{ IMPORTS                           }....................
+from betse.metaapp import app_meta
 from betse.util.io.log import logs
 from betse.util.path import dirs, files, pathnames
 from betse.util.path.dirs import DirOverwritePolicy
 from betse.util.type.types import type_check  #, GeneratorType
 
-# ....................{ WRITERS                            }....................
+# ....................{ WRITERS                           }....................
 #FIXME: It should be feasible to replace this entire function (and hence remove
 #this entire submodule) by:
 #
@@ -41,8 +41,7 @@ from betse.util.type.types import type_check  #, GeneratorType
 #  we'll need to grep all calls to this method and explicitly pass the desired
 #  parameters. Presumably, BETSEE already performs at least one such call.
 #* Instantiating a "Parameters" object as follows:
-#    p = Parameters().load(
-#        conf_filename=pathtree.get_sim_config_default_filename())
+#    p = Parameters().load(conf_filename=app_meta.sim_conf_default_filename)
 #* Calling the save() method of this object.
 #
 #That's pretty obvious, frankly. Tragic that we didn't concoct it until now.
@@ -96,25 +95,27 @@ def write_default(
     # Announce the ugly shape of things to come.
     logs.log_info('Writing default simulation configuration...')
 
+    # Source directory and file providing the default simulation configuration.
+    src_dirname  = app_meta.data_yaml_dirname
+    src_filename = app_meta.sim_conf_default_filename
+
+    # Target directory and file to be copied into, defined to be either the
+    # parent directory of the passed path if this path has a dirname or the
+    # current working directory otherwise.
+    trg_dirname = pathnames.get_dirname_or_cwd(conf_filename)
+    trg_filename = conf_filename
+
     # Copy the default source simulation configuration file to this target file.
     files.copy(
-        src_filename=pathtree.get_sim_config_default_filename(),
-        trg_filename=conf_filename,
+        src_filename=src_filename,
+        trg_filename=trg_filename,
         is_overwritable=is_conf_overwritable,
     )
 
-    # Source directory containing the default simulation configuration.
-    src_dirname = pathtree.get_data_yaml_dirname()
-
-    # Target directory to be copied into, defined to be either the parent
-    # directory of the passed path if this path has a dirname or the current
-    # working directory otherwise.
-    trg_dirname = pathnames.get_dirname_or_cwd(conf_filename)
-
-    # Note that the simple solution of recursively copying this source directory
-    # into the parent directory of the passed target file (e.g., by calling
-    # "dirs.copy(src_dirname, pathnames.get_dirname(conf_filename))") fails
-    # for the following subtle reasons:
+    # Note that the simple solution of recursively copying this source
+    # directory into the parent directory of the passed target file (e.g., by
+    # calling "dirs.copy(src_dirname, pathnames.get_dirname(conf_filename))")
+    # fails for the following subtle reasons:
     #
     # * This target directory may be already exist, which dirs.copy() prohibits
     #   even if the directory is empty.
@@ -129,9 +130,9 @@ def write_default(
             src_dirname=src_subdirname,
             trg_dirname=trg_dirname,
 
-            # Ignore (i.e., skip) each target resource of this subdirectory that
-            # already exists with a non-fatal warning. This is purely a caller
-            # convenience, permitting multiple configuration files with
+            # Ignore (i.e., skip) each target resource of this subdirectory
+            # that already exists with a non-fatal warning. This is purely a
+            # caller convenience, permitting multiple configuration files with
             # different basenames to be created in the same parent directory
             # *WITHOUT* either raising exceptions on or silently overwriting
             # duplicate target resources.

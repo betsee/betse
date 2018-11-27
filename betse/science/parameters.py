@@ -5,11 +5,11 @@
 
 # ....................{ IMPORTS                           }....................
 import numpy as np
-from betse import pathtree
 from betse.exceptions import BetseSimConfException
 from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
+from betse.metaapp import app_meta
 from betse.science.config.confenum import (
     CellLatticeType, GrnUnpicklePhaseType, IonProfileType, SolverType)
 from betse.science.config.export.confcsv import SimConfExportCSVs
@@ -18,12 +18,9 @@ from betse.science.config.export.visual.confplot import SimConfPlotAll
 from betse.science.config.grn.confgrn import SimConfGrnFile
 from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
-# from betse.science.phase.phaseenum import SimPhaseKind
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
-# from betse.util.type.decorator.decmemo import property_cached
-from betse.util.type.types import (
-    type_check, IterableTypes, SequenceTypes, StrOrNoneTypes)
+from betse.util.type.types import IterableTypes, SequenceTypes, StrOrNoneTypes
 
 # ....................{ SUBCLASSES                        }....................
 class Parameters(YamlFileABC):
@@ -1440,7 +1437,7 @@ class Parameters(YamlFileABC):
         # Default to the basenames of all direct subdirectories of the parent
         # directory containing the default simulation configuration file, which
         # are guaranteed to be required by this file.
-        return dirs.iter_subdir_basenames(pathtree.get_data_yaml_dirname())
+        return dirs.iter_subdir_basenames(app_meta.data_yaml_dirname)
 
 # ....................{ HELPERS                           }....................
 def _balance_charge(concentrations: SequenceTypes, zs: SequenceTypes) -> tuple:

@@ -66,6 +66,7 @@ Specifically, under:
 '''
 
 # ....................{ EXCEPTIONS                        }....................
+@type_check
 def die_if_dir(*dirnames: str) -> None:
     '''
     Raise an exception if any of the passed directories exist.
@@ -77,6 +78,7 @@ def die_if_dir(*dirnames: str) -> None:
                 'Directory "{}" already exists.'.format(dirname))
 
 
+@type_check
 def die_unless_dir(*dirnames: str) -> None:
     '''
     Raise an exception unless all passed directories exist.
@@ -88,6 +90,37 @@ def die_unless_dir(*dirnames: str) -> None:
                 'Directory "{}" not found or unreadable.'.format(dirname))
 
 
+@type_check
+def dir_or_die(pathname: str) -> str:
+    '''
+    Passed dirname if a directory with this dirname exists *or* raise an
+    exception otherwise (i.e., if this directory does *not* exist).
+
+    Parameters
+    ----------
+    pathname : str
+        Absolute or relative dirname of the directory to be inspected.
+
+    Returns
+    ----------
+    str
+        Passed dirname if this directory exists.
+
+    Raises
+    ----------
+    BetseDirException
+        If this directory does *not* exist.
+    '''
+
+    # If this directory is not found, fail.
+    die_unless_dir(pathname)
+
+    # Return this directory's pathname.
+    return pathname
+
+
+#FIXME: Rename to join_or_die().
+@type_check
 def join_and_die_unless_dir(*pathnames: str) -> str:
     '''
     Pathname of the directory produced by joining (i.e., concatenating) the
@@ -113,6 +146,7 @@ def join_and_die_unless_dir(*pathnames: str) -> str:
     return dirname
 
 # ....................{ EXCEPTIONS ~ parent               }....................
+@type_check
 def die_unless_parent_dir(pathname: str) -> None:
     '''
     Raise an exception unless the parent directory of the passed path exists.

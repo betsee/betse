@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
 Dependency-specific REPL facilities.
 
-This module defines functions specific to both official and optional third-party
-REPL packages (e.g., :mod:`code`, :mod:`ptpython`).
+This module defines functions specific to both official and optional
+third-party REPL packages (e.g., :mod:`code`, :mod:`ptpython`).
 '''
 
-# ....................{ IMPORTS                            }....................
-from betse import pathtree
+# ....................{ IMPORTS                           }....................
+from betse.metaapp import app_meta
 from betse.cli.repl import replenv
 from betse.lib import libs
 from betse.util.io.log import logs
@@ -20,7 +20,7 @@ from betse.util.path.command import cmdexit
 from betse.util.type.enums import make_enum
 from betse.util.type.types import type_check
 
-# ....................{ ENUMS                              }....................
+# ....................{ ENUMS                             }....................
 # One-liners are happy liners.
 ReplType = make_enum(
     class_name='ReplType',
@@ -30,7 +30,7 @@ ReplType = make_enum(
 Enumeration of all possible REPLs currently supported by this submodule.
 '''
 
-# ....................{ FUNCTIONS                          }....................
+# ....................{ FUNCTIONS                         }....................
 @type_check
 def start_repl(repl_type: ReplType = ReplType.first_available) -> None:
     '''
@@ -40,9 +40,9 @@ def start_repl(repl_type: ReplType = ReplType.first_available) -> None:
     ----------
     repl_type : optional[ReplType]
         Type of REPL to prefer. If :data:`ReplType.first_available`, the set of
-        all possible REPLs is iteratively searched for the first available REPL;
-        else if this REPL is unavailable, the first available REPL is used.
-        Defaults to :data:`ReplType.first_available`.
+        all possible REPLs is iteratively searched for the first available
+        REPL; else if this REPL is unavailable, the first available REPL is
+        used. Defaults to :data:`ReplType.first_available`.
     '''
 
     if repl_type is ReplType.first_available:
@@ -99,7 +99,7 @@ def start_ptpython_repl() -> None:
     # If the "ptpython" key is missing from the dictionary of history
     # filenames, then default to no history file. This prevents the readline
     # history files being corrupted by ptpython's unique format.
-    history_filename = pathtree.get_repl_history_filename('ptpython')
+    history_filename = app_meta.get_repl_history_filename('ptpython')
 
     # Run this REPL.
     try:
@@ -131,7 +131,7 @@ def start_code_repl() -> None:
 
     # Absolute path of the file persisting a REPL-specific history of commands.
     # Note this REPL leverages a "readline"-style history file format.
-    history_filename = pathtree.get_repl_history_filename('readline')
+    history_filename = app_meta.get_repl_history_filename('readline')
     readline.set_history_length(1000)
 
     # If this file exists, deserialize this REPL's history from this file.

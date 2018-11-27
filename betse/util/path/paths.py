@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,14 +8,14 @@ Low-level path facilities general to all path types -- namely, both directories
 and non-directory files.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import os, shutil
 from betse.exceptions import BetsePathException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, IterableTypes, NumericSimpleTypes
 from os import path as os_path
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_if_path(*pathnames: str) -> None:
     '''
     Raise an exception if any of the paths with the passed pathnames exist.
@@ -57,7 +57,7 @@ def die_unless_path(*pathnames: str) -> None:
             raise BetsePathException(
                 'Path "{}" not found or unreadable.'.format(pathname))
 
-# ....................{ EXCEPTIONS ~ special               }....................
+# ....................{ EXCEPTIONS ~ special              }....................
 def die_if_special(pathname: str) -> None:
     '''
     Raise an exception if the passed path is an existing special file.
@@ -79,7 +79,7 @@ def die_if_special(pathname: str) -> None:
             'Path "{}" already an existing {}.'.format(
                 pathname, get_type_label(pathname)))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_path(pathname: str) -> bool:
     '''
@@ -91,21 +91,12 @@ def is_path(pathname: str) -> bool:
     symbolic link), this function still returns ``True``.
     '''
 
-    # Call path.lexists() rather than path.exists(), as the latter returns False
-    # for dangling symbolic links -- which is entirely irrelevant for most
-    # contexts. Under POSIX semantics, dangling symbolic links are essential to
-    # common usage patterns and should *NOT* be discriminated against here.
+    # Call path.lexists() rather than path.exists(), as the latter returns
+    # False for dangling symbolic links -- which is entirely irrelevant for
+    # most contexts. Under POSIX semantics, dangling symbolic links are
+    # essential to common usage patterns and should *NOT* be discriminated
+    # against here.
     return os_path.lexists(pathname)
-
-
-@type_check
-def is_readable(pathname: str) -> bool:
-    '''
-    ``True`` only if the passed path both exists *and* is readable by the
-    current user.
-    '''
-
-    return is_path(pathname) and os.access(pathname, os.R_OK)
 
 
 def is_special(pathname: str) -> bool:
@@ -126,6 +117,48 @@ def is_special(pathname: str) -> bool:
         # this file to *NOT* be a symbolic link, thus reducing this test to:
         # "...is either a symbolic link *OR* not a regular file."
         files.is_symlink(pathname) or not os_path.isfile(pathname))
+
+# ....................{ TESTERS ~ mtime : permissions     }....................
+@type_check
+def is_readable(pathname: str) -> bool:
+    '''
+    ``True`` only if the passed path both exists *and* is readable by the
+    current user.
+    '''
+
+    return is_path(pathname) and os.access(pathname, os.R_OK)
+
+
+@type_check
+def is_writable(pathname: str) -> bool:
+    '''
+    ``True`` only if the passed pathname is **writable** (i.e., either an
+    existing path with the write bit enabled for the current user or user group
+    *or* a non-existing path whose parent directory has that bit enabled)
+    *after* following symbolic links.
+
+    For generality, this function does *not* raise an exception if this path
+    does not exist or does but is an existing directory.
+
+    See Also
+    ----------
+    :func:`files.is_exists_writable`
+        Similar tester adding a file-specific existence requirement.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs, pathnames
+
+    # If this path exists, return true only if this path is writable.
+    if is_path(pathname):
+        return os.access(pathname, os.W_OK)
+    # Else, this path does *NOT* exist. In this case...
+    else:
+        # Absolute or relative dirname of this path's parent directory.
+        dirname = pathnames.get_dirname(pathname)
+
+        # Return true only if this directory both exists and is writable.
+        return dirs.is_dir(dirname) and os.access(dirname, os.W_OK)
 
 # ....................{ TESTERS ~ mtime : recursive        }....................
 @type_check

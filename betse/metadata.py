@@ -298,6 +298,9 @@ have yet to be stabilized and hence tagged. Hence, this URL is typically valid
 '''
 
 # ....................{ METADATA ~ python                 }....................
+#FIXME: Replace all references to this global with
+#"betse.metaapp.app_meta.package_name", which supports both BETSE and BETSEE;
+#then excise this global.
 PACKAGE_NAME = NAME.lower()
 '''
 Fully-qualified name of the top-level Python package implementing this
@@ -305,6 +308,9 @@ application.
 '''
 
 
+#FIXME: Replace all references to this global with
+#"betse.metaapp.app_meta.package_name", which supports both BETSE and BETSEE;
+#then excise this global.
 SCRIPT_BASENAME = PACKAGE_NAME
 '''
 Basename of the CLI-specific Python script wrapper created by :mod:`setuptools`
