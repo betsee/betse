@@ -137,6 +137,55 @@ class BetseMetaApp(MetaAppABC):
         return REPL_MODULE_NAME_TO_HISTORY_FILENAME[repl_module_name]
 
 # ....................{ SINGLETONS                        }....................
+#FIXME: Sadly insufficient. Downstream consumers should be trivially permitted
+#to supply their own "app_meta" object overriding this default. To do so:
+#
+#* Preserve the assignment below. It's essential that *SOME* "app_meta"
+#  attribute exist early in application startup, even if the "app_meta" object
+#  in question isn't quite what the downstream consumer might expect for a
+#  brief temporary period of early startup logic. (Document this, please.)
+#* Define a new set_app_meta() function of this submodule with this signature:
+#    def set_app_meta(app_meta: BetseMetaApp) -> None:
+#  #FIXME: Actually, the above might be overkill. See the next next item.
+#* Refactor the external "betsee.guimetaapp" submodule as follows:
+#  * Subclass "BetseeMetaApp" from "BetseMetaApp" instead.
+#  * Refactor the following line:
+#    # ...from this:
+#    app_meta = BetseeMetaApp()
+#
+#    #FIXME: Actually, this might be overkill. See the next item.
+#    # ...into this:
+#    from betse import metaapp
+#
+#    def init() -> None:
+#        app_meta = BetseeMetaApp()
+#        metaapp.set_app_meta(app_meta)
+#* Call the betsee.guimetaapp.init() function *AS EARLY AS FEASIBLE* --
+#  ideally, prior to the first call to the betse.ignition.init() function.
+#  *ALTERNATELY,* we might avoid all of the above boilerplate as follows:
+#  * Privatize the "betse.metaapp.app_meta" global to "_app_meta".
+#  * Define a new betse.metaapp.get_app_meta() function that:
+#    * Raises an exception if "_app_meta" is None.
+#    * Otherwise returns "_app_meta".
+#  * Refactor all references to "betse.metaapp.app_meta" to instead call
+#    betse.metaapp.get_app_meta().
+#  * Define a new betse.metaapp.init() function with the signature:
+#      def init(app_meta: BetseMetaApp) -> None:
+#          global _app_meta
+#          _app_meta = app_meta
+#  * Default "_app_meta" to None rather than "BetseMetaApp".
+#  * Refactor the betse.ignition.init() function to have this signature:
+#    def init(app_meta: BetseMetaAppOrNoneTypes) -> None:
+#  * At the very start of that function:
+#    * If "app_meta" is None, default that local to a new "BetseMetaApp()"
+#      instance.
+#    * Perform the following:
+#        from betse import metaapp
+#        metaapp.init(app_meta)
+#* Refactor the call to the betse.ignition.init() function from the BETSEE
+#  codebase to pass an instance of "BetseeMetaApp".
+#* Replace all references to "betsee.guimetaapp.app_meta" with calls to
+#  betse.metaapp.get_app_meta() instead; then excise the former global.
 app_meta = BetseMetaApp()
 '''
 **Application metadata singleton** (i.e., application-wide object synopsizing
