@@ -17,9 +17,10 @@ synopsizing application metadata via read-only properties).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import betse
+from betse.exceptions import BetseMetaAppException
 from betse.util.meta.metaappabc import MetaAppABC
 from betse.util.type.decorator.decmemo import property_cached
-from betse.util.type.types import type_check, ModuleType
+from betse.util.type.types import type_check, ModuleType, NoneType
 
 # ....................{ SUBCLASSES                        }....................
 class BetseMetaApp(MetaAppABC):
@@ -66,7 +67,7 @@ class BetseMetaApp(MetaAppABC):
         from betse.util.path import dirs
 
         # Return this dirname if this directory exists or raise an exception.
-        return dirs.join_and_die_unless_dir(self.data_dirname, 'yaml')
+        return dirs.join_or_die(self.data_dirname, 'yaml')
 
     # ..................{ PROPERTIES ~ file                 }..................
     @property_cached
@@ -87,8 +88,7 @@ class BetseMetaApp(MetaAppABC):
         from betse.util.path import files
 
         # Return this dirname if this directory exists or raise an exception.
-        return files.join_and_die_unless_file(
-            self.data_yaml_dirname, 'sim_config.yaml')
+        return files.join_or_die(self.data_yaml_dirname, 'sim_config.yaml')
 
     # ..................{ GETTERS                           }..................
     @type_check
@@ -136,58 +136,77 @@ class BetseMetaApp(MetaAppABC):
         # Else, return the history filename for this REPL.
         return REPL_MODULE_NAME_TO_HISTORY_FILENAME[repl_module_name]
 
-# ....................{ SINGLETONS                        }....................
-#FIXME: Sadly insufficient. Downstream consumers should be trivially permitted
-#to supply their own "app_meta" object overriding this default. To do so:
-#
-#* Preserve the assignment below. It's essential that *SOME* "app_meta"
-#  attribute exist early in application startup, even if the "app_meta" object
-#  in question isn't quite what the downstream consumer might expect for a
-#  brief temporary period of early startup logic. (Document this, please.)
-#* Define a new set_app_meta() function of this submodule with this signature:
-#    def set_app_meta(app_meta: BetseMetaApp) -> None:
-#  #FIXME: Actually, the above might be overkill. See the next next item.
-#* Refactor the external "betsee.guimetaapp" submodule as follows:
-#  * Subclass "BetseeMetaApp" from "BetseMetaApp" instead.
-#  * Refactor the following line:
-#    # ...from this:
-#    app_meta = BetseeMetaApp()
-#
-#    #FIXME: Actually, this might be overkill. See the next item.
-#    # ...into this:
-#    from betse import metaapp
-#
-#    def init() -> None:
-#        app_meta = BetseeMetaApp()
-#        metaapp.set_app_meta(app_meta)
-#* Call the betsee.guimetaapp.init() function *AS EARLY AS FEASIBLE* --
-#  ideally, prior to the first call to the betse.ignition.init() function.
-#  *ALTERNATELY,* we might avoid all of the above boilerplate as follows:
-#  * Privatize the "betse.metaapp.app_meta" global to "_app_meta".
-#  * Define a new betse.metaapp.get_app_meta() function that:
-#    * Raises an exception if "_app_meta" is None.
-#    * Otherwise returns "_app_meta".
-#  * Refactor all references to "betse.metaapp.app_meta" to instead call
-#    betse.metaapp.get_app_meta().
-#  * Define a new betse.metaapp.init() function with the signature:
-#      def init(app_meta: BetseMetaApp) -> None:
-#          global _app_meta
-#          _app_meta = app_meta
-#  * Default "_app_meta" to None rather than "BetseMetaApp".
-#  * Refactor the betse.ignition.init() function to have this signature:
-#    def init(app_meta: BetseMetaAppOrNoneTypes) -> None:
-#  * At the very start of that function:
-#    * If "app_meta" is None, default that local to a new "BetseMetaApp()"
-#      instance.
-#    * Perform the following:
-#        from betse import metaapp
-#        metaapp.init(app_meta)
-#* Refactor the call to the betse.ignition.init() function from the BETSEE
-#  codebase to pass an instance of "BetseeMetaApp".
-#* Replace all references to "betsee.guimetaapp.app_meta" with calls to
-#  betse.metaapp.get_app_meta() instead; then excise the former global.
-app_meta = BetseMetaApp()
+# ....................{ TYPES                             }....................
+BetseMetaAppOrNoneTypes = (BetseMetaApp, NoneType)
+'''
+Tuple of the types of both the application metadata *and* ``None``  singletons.
+'''
+
+# ....................{ GLOBALS                           }....................
+_app_meta = None
 '''
 **Application metadata singleton** (i.e., application-wide object synopsizing
 application metadata via read-only properties).
+
+Caveats
+----------
+For safety, callers are advised to call the :func:`get_app_meta` getter safely
+returning this private singleton rather than directly accessing this private
+singleton unsafely.
 '''
+
+# ....................{ GETTERS                           }....................
+def get_app_meta() -> BetseMetaApp:
+    '''
+    **Application metadata singleton** (i.e., application-wide object
+    synopsizing application metadata via read-only properties) if this
+    singleton has already been instantiated by a prior call to the :func:`init`
+    function *or* raise an exception otherwise (i.eg., if that function has yet
+    to be called).
+
+    Returns
+    ----------
+    BetseMetaApp
+        Application metadata singleton defined by the most recent call to the
+        :func:`init` function.
+
+    Raises
+    ----------
+    BetseMetaAppException
+        If the :func:`init` function has yet to be called.
+    '''
+
+    # If no application metadata singleton exists, raise an exception.
+    if not _app_meta:
+        raise BetseMetaAppException(
+            'Application metadata singleton undefined '
+            '(e.g., as betse.metaapp.init() not called).')
+
+    # Else, an application metadata singleton exists; return it, please.
+    return _app_meta
+
+# ....................{ INITIALIZERS                      }....................
+@type_check
+def init(app_meta: BetseMetaAppOrNoneTypes = None) -> None:
+    '''
+    Initialize this submodule with either the passed application metadata
+    singleton if non-``None`` *or* a new instance of the :class:`BetseMetaApp`
+    subclass otherwise (i.e., if no such singleton is passed).
+
+    Parameters
+    ----------
+    app_meta : BetseMetaAppOrNoneTypes
+        Caller-specific application metadata singleton (i.e., instance of the
+        :class:`BetseMetaApp` subclass). Defaults to ``None``, in which case
+        this parameter defaults to a vanilla instance of that subclass.
+    '''
+
+    # Enable this singleton global to be overwritten be the passed parameter.
+    global _app_meta
+
+    # If passed no caller-specific singleton, default to a generic singleton.
+    if app_meta is None:
+        app_meta = BetseMetaApp()
+
+    # Set this singleton global to this caller-specific singleton.
+    _app_meta = app_meta

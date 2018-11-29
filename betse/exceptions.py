@@ -28,6 +28,7 @@ class BetseException(Exception, metaclass=ABCMeta):
     pass
 
 
+#FIXME: Rename to merely "BetseAttrException".
 class BetseAttributeException(BetseException):
     '''
     **Attribute** (i.e., variable or method bound to an object)-specific
@@ -40,6 +41,16 @@ class BetseAttributeException(BetseException):
 class BetseLogException(BetseException):
     '''
     Logging-specific exception.
+    '''
+
+    pass
+
+
+class BetseMetaAppException(BetseException):
+    '''
+    **Application metadata singleton** (i.e., application-wide object
+    synopsizing application metadata via read-only properties)-specific
+    exception.
     '''
 
     pass

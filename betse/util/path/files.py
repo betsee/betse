@@ -76,7 +76,7 @@ def die_unless_file(*pathnames: str) -> None:
 
 
 @type_check
-def join_and_die_unless_file(*pathnames: str) -> str:
+def join_or_die(*pathnames: str) -> str:
     '''
     Pathname of the file produced by joining (i.e., concatenating) the passed
     pathnames with the directory separator specific to the current platform if

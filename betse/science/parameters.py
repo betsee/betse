@@ -5,11 +5,11 @@
 
 # ....................{ IMPORTS                           }....................
 import numpy as np
+from betse import metaapp
 from betse.exceptions import BetseSimConfException
 from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
-from betse.metaapp import app_meta
 from betse.science.config.confenum import (
     CellLatticeType, GrnUnpicklePhaseType, IonProfileType, SolverType)
 from betse.science.config.export.confcsv import SimConfExportCSVs
@@ -1434,10 +1434,14 @@ class Parameters(YamlFileABC):
         # If no YAML file has been loaded yet, raise an exception.
         self.die_unless_loaded()
 
-        # Default to the basenames of all direct subdirectories of the parent
-        # directory containing the default simulation configuration file, which
-        # are guaranteed to be required by this file.
-        return dirs.iter_subdir_basenames(app_meta.data_yaml_dirname)
+        # Absolute dirname of the directory containing the default
+        # YAML-formatted simulation configuration file.
+        DATA_YAML_DIRNAME = metaapp.get_app_meta().data_yaml_dirname
+
+        # Default to the basenames of all direct subdirectories of the
+        # directory containing this file, which are guaranteed to be required
+        # by this file.
+        return dirs.iter_subdir_basenames(DATA_YAML_DIRNAME)
 
 # ....................{ HELPERS                           }....................
 def _balance_charge(concentrations: SequenceTypes, zs: SequenceTypes) -> tuple:

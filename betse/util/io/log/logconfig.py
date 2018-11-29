@@ -102,14 +102,14 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.metaapp import app_meta
+        from betse import metaapp
 
         # Initialize the superclass.
         super().__init__()
 
         # Initialize all non-property attributes to sane defaults. To avoid
         # chicken-and-egg issues, properties should *NOT* be set here.
-        self._filename = app_meta.log_default_filename
+        self._filename = metaapp.get_app_meta().log_default_filename
         self._logger_root = None
         self._logger_root_handler_file = None
         self._logger_root_handler_stderr = None
@@ -137,14 +137,14 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.metaapp import app_meta
+        from betse import metaapp
 
         # Root logger.
         self._logger_root = logging.getLogger()
 
         # For uniqueness, change the name of the root logger to that of our
         # top-level package "betse" from its ambiguous default "root".
-        self._logger_root.name = app_meta.package_name
+        self._logger_root.name = metaapp.get_app_meta().package_name
 
         # Instruct this logger to entertain all log requests, ensuring these
         # requests will be delegated to the handlers defined below. By default,

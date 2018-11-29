@@ -102,6 +102,18 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
         return self.package.__name__
 
+    # ..................{ PROPERTIES ~ bool                 }..................
+    @property_cached
+    def is_git_worktree(self) -> bool:
+        '''
+        ``True`` only if this application has a Git-based **working tree**
+        (i.e., top-level directory containing this application's ``.git``
+        subdirectory and ``setup.py`` install script), typically due to this
+        application having been installed for developer usage.
+        '''
+
+        return self.git_worktree_dirname_or_none is not None
+
     # ..................{ PROPERTIES ~ dir                  }..................
     @property_cached
     def package_dirname(self) -> str:

@@ -10,7 +10,7 @@ Simulation configuration file input and output (I/O) facilities.
 #FIXME: Validate the versions of loaded configuration files.
 
 # ....................{ IMPORTS                           }....................
-from betse.metaapp import app_meta
+from betse import metaapp
 from betse.util.io.log import logs
 from betse.util.path import dirs, files, pathnames
 from betse.util.path.dirs import DirOverwritePolicy
@@ -94,6 +94,9 @@ def write_default(
 
     # Announce the ugly shape of things to come.
     logs.log_info('Writing default simulation configuration...')
+
+    # Application metadata singleton.
+    app_meta = metaapp.get_app_meta()
 
     # Source directory and file providing the default simulation configuration.
     src_dirname  = app_meta.data_yaml_dirname

@@ -17,9 +17,9 @@ Top-level abstract base class of all command line interface (CLI) subclasses.
 
 import sys
 from abc import ABCMeta, abstractmethod
+from betse import metaapp
 from betse import metadata as betse_metadata
 from betse.lib import libs
-from betse.metaapp import app_meta
 from betse.util.cli.cliarg import SemicolonAwareHelpFormatter
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logenum import LogLevel
@@ -456,7 +456,7 @@ class CLIABC(object, metaclass=ABCMeta):
                     '(defaults to "{default}")'
                 ),
                 var_name='profile_filename',
-                default_value=app_meta.profile_default_filename,
+                default_value=metaapp.get_app_meta().profile_default_filename,
             ),
         ]
 

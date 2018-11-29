@@ -66,7 +66,7 @@ def ignite() -> None:
     libs.init()
 
 # ....................{ INITIALIZERS                      }....................
-def reinit() -> None:
+def reinit(*args, **kwargs) -> None:
     '''
     (Re-)initialize this application -- but *not* mandatory third-party
     dependencies of this application, which requires external resources (e.g.,
@@ -79,6 +79,10 @@ def reinit() -> None:
     * Else, this application has already been initialized under the active
       Python process. In this case, this application will be re-initilialized.
 
+    Parameters
+    ----------
+    All passed parameters are passed as is to the :func:`init` function.
+
     See Also
     ----------
     :func:`betse.lib.libs.reinit`
@@ -89,11 +93,14 @@ def reinit() -> None:
     global _IS_INITTED
     _IS_INITTED = False
 
-    # Reinitialize this application.
-    init()
+    # Reinitialize this application with all passed parameters.
+    init(*args, **kwargs)
 
 
-def init() -> None:
+# To defer heavyweight and possibly circular imports, type-checking of this
+# function parameter is deferred to the subsequent call to the
+# betse.metaapp.init() function performed internally by this function.
+def init(app_meta = None) -> None:
     '''
     Initialize the current application if this application has not already been
     initialized under the active Python process *or* noop otherwise.
@@ -101,6 +108,7 @@ def init() -> None:
     Specifically, this function (in order):
 
     #. Enables Python's standard handler for segmentation faults.
+    #. Globalizes the passed application metadata singleton.
     #. Enables this application's default logging configuration.
     #. Validates (but does *not* initialize) all mandatory third-party
        dependencies of this application, which the :func:`betsee.lib.libs.init`
@@ -116,6 +124,14 @@ def init() -> None:
     To support caller-specific error handling, this function is intended to be
     called immediately *after* this application begins catching otherwise
     uncaught exceptions.
+
+    Parameters
+    ----------
+    app_meta : BetseMetaAppOrNoneTypes
+        Caller-specific application metadata singleton (i.e., instance of the
+        :class:`betse.metaapp.BetseMetaApp` subclass). Defaults to ``None``, in
+        which case this parameter defaults to a vanilla instance of that
+        subclass.
     '''
 
     # If this function has already been called, noop.
@@ -124,6 +140,7 @@ def init() -> None:
         return
 
     # Defer heavyweight and possibly circular imports.
+    from betse import metaapp
     from betse.lib import libs
     from betse.util.io.error import errfault
     from betse.util.io.log import logconfig
@@ -134,6 +151,11 @@ def init() -> None:
     # performing any further logic, any of which could conceivably trigger a
     # segmentation fault and hence process termination.
     errfault.handle_faults()
+
+    # Globalizes the passed application metadata singleton *BEFORE* performing
+    # any further logic, any of which could conceivably require this singleton.
+    # Indeed, the subsequent logconfig.init() call does exactly that.
+    metaapp.init(app_meta)
 
     # Enable the default logging configuration for the current Python process
     # *BEFORE* performing any validation, thus logging any exceptions raised by

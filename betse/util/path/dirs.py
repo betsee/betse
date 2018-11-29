@@ -119,9 +119,8 @@ def dir_or_die(pathname: str) -> str:
     return pathname
 
 
-#FIXME: Rename to join_or_die().
 @type_check
-def join_and_die_unless_dir(*pathnames: str) -> str:
+def join_or_die(*pathnames: str) -> str:
     '''
     Pathname of the directory produced by joining (i.e., concatenating) the
     passed pathnames with the directory separator specific to the current
