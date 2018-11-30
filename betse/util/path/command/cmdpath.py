@@ -27,8 +27,8 @@ def is_pathable(command_basename: str) -> bool:
     filetype -- especially, a Windows-specific filetype. On that platform, this
     function iteratively appends this basename by each filetype associated with
     executable files listed by the ``%PATHEXT%`` environment variable (e.g.,
-    ``.bat``, ``.cmd``, ``.com``, ``.exe``) until the resulting basename is that
-    of an executable file in the current ``%PATH%``.
+    ``.bat``, ``.cmd``, ``.com``, ``.exe``) until the resulting basename is
+    that of an executable file in the current ``%PATH%``.
 
     Parameters
     ----------
@@ -43,7 +43,7 @@ def is_pathable(command_basename: str) -> bool:
 
     See Also
     ----------
-    :func:`betse.util.path.command.commands.is_command`
+    :func:`betse.util.path.command.cmds.is_command`
         A more general-purpose and hence generally useful tester returning
         whether a command with the passed path (regardless of whether that
         path is a basename) exists.

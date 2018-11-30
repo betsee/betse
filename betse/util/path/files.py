@@ -176,6 +176,19 @@ def is_file(*pathnames: str) -> bool:
 
 
 @type_check
+def is_empty(pathname: str) -> bool:
+    '''
+    ``True`` only if the passed path is an **empty non-directory file**
+    (i.e., zero-byte file) *after* following symbolic links.
+
+    For generality, this function does *not* raise an exception if this path
+    does not exist or does but is an existing directory.
+    '''
+
+    return is_file(pathname) and get_size(pathname) == 0
+
+
+@type_check
 def is_executable(pathname: str) -> bool:
     '''
     ``True`` only if the passed path is an **executable non-directory file**
@@ -250,6 +263,26 @@ def get_size(filename: str) -> int:
 
 # ....................{ COPIERS                           }....................
 @type_check
+def copy_overwritable(src_filename: str, trg_filename: str) -> None:
+    '''
+    Copy the passed source file to the passed target file or directory,
+    silently overwriting that target file if that file already exists.
+
+    See Also
+    ----------
+    :func:`copy`
+        Lower-level function wrapped by this higher-level function.
+    '''
+
+    # Glory be unto the one-liner for it is beneficent in its pale grandeur!
+    return copy(
+        src_filename=src_filename,
+        trg_filename=trg_filename,
+        is_overwritable=True,
+    )
+
+
+@type_check
 def copy(
     # Mandatory parameters.
     src_filename: str,
@@ -259,15 +292,26 @@ def copy(
     is_overwritable: bool = False,
 ) -> None:
     '''
-    Copy the passed source file to the passed target file or directory.
+    Copy the passed source file to the passed target file or directory,
+    raising an exception if that target file already exists unless the
+    ``is_overwritable`` parameter is explicitly passed as ``True``.
 
-    If the source file is a symbolic link, this link (rather than its
-    transitive target) will be copied and hence preserved.
+    If the:
 
-    The target file will be copied in a manner maximally preserving metadata
-    (e.g., owner, group, permissions, times, extended file system attributes).
-    If the target file is a directory, the basename of the source file will be
-    appended to this directory -- much like the standard ``cp`` POSIX command.
+    * Source file is a symbolic link, this link (rather than its transitive
+      target) will be copied and hence preserved.
+    * Target file is a directory, the basename of the source file will be
+      appended to this directory -- much like the standard ``cp`` POSIX
+      command.
+
+    For safety, the target file is:
+
+    * Copied in a manner maximally preserving *all* existing metadata of the
+      source file. This includes owner, group, permissions, times (e.g.,
+      access, creation, modification), and extended attributes (if any).
+    * *Not* overwritten by default. If this file already exists, an exception
+      is raised unless the ``is_overwritable`` parameter is explicitly passed
+      as ``True``. For brevity, consider calling the :func:`copy_overwritable`.
 
     Parameters
     ----------
@@ -283,8 +327,16 @@ def copy(
     Raises
     ----------
     BetseFileException
-        If either the source file does not exist *or* the target file already
-        exists.
+        If either the:
+
+        * Source file does not exist.
+        * Target file already exists *and* ``is_overwritable`` is ``False``.
+
+    See Also
+    ----------
+    :func:`copy_overwritable`
+        Higher-level function wrapping this lower-level function by
+        unconditionally passing ``is_overwritable`` parameter as ``True``.
     '''
 
     # Avoid circular import dependencies.

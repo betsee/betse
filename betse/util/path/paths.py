@@ -57,7 +57,7 @@ def die_unless_path(*pathnames: str) -> None:
             raise BetsePathException(
                 'Path "{}" not found or unreadable.'.format(pathname))
 
-# ....................{ EXCEPTIONS ~ special              }....................
+
 def die_if_special(pathname: str) -> None:
     '''
     Raise an exception if the passed path is an existing special file.
@@ -78,6 +78,27 @@ def die_if_special(pathname: str) -> None:
         raise BetsePathException(
             'Path "{}" already an existing {}.'.format(
                 pathname, get_type_label(pathname)))
+
+# ....................{ EXCEPTIONS ~ permissions          }....................
+def die_unless_writable(pathname: str) -> None:
+    '''
+    Raise an exception unless the passed path is writable by the current user.
+
+    Raises
+    ----------
+    BetsePathException
+        If this path is *not* writable by this user.
+
+    See Also
+    ----------
+    :func:`is_special`
+        Further details.
+    '''
+
+    # If this path is unwritable, raise a human-readable exception.
+    if not is_writable(pathname):
+        raise BetsePathException(
+            'Path "{}" unwritable by current user.'.format(pathname))
 
 # ....................{ TESTERS                           }....................
 @type_check
@@ -118,7 +139,7 @@ def is_special(pathname: str) -> bool:
         # "...is either a symbolic link *OR* not a regular file."
         files.is_symlink(pathname) or not os_path.isfile(pathname))
 
-# ....................{ TESTERS ~ mtime : permissions     }....................
+# ....................{ TESTERS ~ permissions             }....................
 @type_check
 def is_readable(pathname: str) -> bool:
     '''
