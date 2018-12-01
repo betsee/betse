@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +7,7 @@
 Low-level **regex** (i.e., Python-compatible regular expression) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import re
 from betse.exceptions import BetseRegexException
 from betse.util.type.types import (
@@ -23,24 +23,24 @@ from betse.util.type.types import (
     SequenceOrNoneTypes,
 )
 
-# ....................{ FLAGS                              }....................
+# ....................{ FLAGS                             }....................
 FLAG_MULTILINE = re.MULTILINE
 '''
 When specified, the pattern character:
 
-* `^` matches both at the beginning of the subject string _and_ at the beginning
-  of each line (immediately following each newline) of this string.
-* `$` matches both at the end of the subject string _and_ at the end of each
+* ``^`` matches both at the beginning of the subject string *and* at the
+  beginning of each line (immediately following each newline) of this string.
+* ``$`` matches both at the end of the subject string _and_ at the end of each
   line (immediately preceding each newline) of this string.
 
 By default:
 
-* `^` matches only at the beginning of the subject string.
-* `$` matches only at the end of the subject string and immediately before the
-  newline (if any) at the end of this string.
+* ``^`` matches only at the beginning of the subject string.
+* ``$`` matches only at the end of the subject string and immediately before
+  the newline (if any) at the end of this string.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_unless_replace_substrs_line(
     text: str,
@@ -65,12 +65,15 @@ def die_unless_replace_substrs_line(
         Further details.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.type.text import strs
+
     # If this subject string fails to match this regex, raise an exception.
     #
-    # Sadly, the re.sub() function called by the replace_substrs_line() function
-    # called below fails to return metadata detailing the number of replacements
-    # performed or even whether any replacements were performed. Hence, this
-    # validation *MUST* be performed manually beforehand.
+    # Sadly, the re.sub() function called by the replace_substrs_line()
+    # function called below fails to return metadata detailing the number of
+    # replacements performed or even whether any replacements were performed.
+    # Hence, this validation *MUST* be performed manually beforehand.
     if not is_match_line(text=text, regex=regex, **kwargs):
         raise BetseRegexException(
             'Subject string "{}" not matched by '
@@ -85,7 +88,7 @@ def die_unless_replace_substrs_line(
         **kwargs
     )
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 def is_match(text: str, regex: RegexTypes, **kwargs) -> bool:
     '''
     ``True`` only if zero or more characters anchored to the beginning of the
@@ -97,6 +100,7 @@ def is_match(text: str, regex: RegexTypes, **kwargs) -> bool:
         String to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -123,6 +127,7 @@ def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
         Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -142,19 +147,20 @@ def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
 
     return get_match_line_first_or_none(text, regex, **kwargs) is not None
 
-# ....................{ MATCHERS ~ group : named           }....................
+# ....................{ MATCHERS ~ group : named          }....................
 def get_match_groups_named(
     text: str, regex: RegexTypes, **kwargs) -> MappingType:
     '''
-    Dictionary mapping explicitly named groups to substrings matched anchored to
-    the beginning of the passed string against the passed regular expression if
-    a match exists or raise an exception otherwise.
+    Dictionary mapping explicitly named groups to substrings matched anchored
+    to the beginning of the passed string against the passed regular expression
+    if a match exists or raise an exception otherwise.
 
     For each capture group of the form ``(?P<group_name>...)`` in this regular
     expression, this dictionary contains a key-value pair whose:
 
     * Key is this named group's ``group_name``.
     * Value is either:
+
       * ``None`` if this group is unmatched by this string.
       * The matched substring otherwise.
 
@@ -174,6 +180,7 @@ def get_match_groups_named(
         String to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -198,7 +205,7 @@ def get_match_groups_named(
 
     return get_match(text, regex, **kwargs).groupdict()
 
-# ....................{ MATCHERS ~ group : numbered        }....................
+# ....................{ MATCHERS ~ group : numbered       }....................
 def get_match_groups_numbered(
     text: str, regex: RegexTypes, **kwargs) -> SequenceTypes:
     '''
@@ -215,6 +222,7 @@ def get_match_groups_numbered(
         Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -256,6 +264,7 @@ def get_match_groups_numbered_or_none(
         Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -279,7 +288,7 @@ def get_match_groups_numbered_or_none(
     match = get_match_or_none(text, regex, **kwargs)
     return match.groups() if match is not None else None
 
-# ....................{ MATCHERS ~ full : first            }....................
+# ....................{ MATCHERS ~ full : first           }....................
 def get_match_full_first_or_none(
     text: str, regex: RegexTypes, **kwargs) -> SequenceOrNoneTypes:
     '''
@@ -293,6 +302,7 @@ def get_match_full_first_or_none(
         Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -303,6 +313,7 @@ def get_match_full_first_or_none(
     ----------
     SequenceOrNoneTypes
         Either:
+
         * If this string matches this regular expression, the first complete
           substring matched from this string.
         * Else, ``None``.
@@ -316,12 +327,12 @@ def get_match_full_first_or_none(
     match = get_match_or_none(text, regex, **kwargs)
     return match.group(0) if match is not None else None
 
-# ....................{ MATCHERS ~ obj                     }....................
+# ....................{ MATCHERS ~ obj                    }....................
 def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
     '''
     Match object obtained by matching zero or more characters anchored to the
-    beginning of the passed subject string against the passed regular expression
-    if any match exists *or* raise an exception otherwise.
+    beginning of the passed subject string against the passed regular
+    expression if any match exists *or* raise an exception otherwise.
 
     Parameters
     ----------
@@ -329,6 +340,7 @@ def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
         Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -355,8 +367,8 @@ def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
     match = get_match_or_none(text, regex, **kwargs)
 
     # If no match was found, convert the non-fatal "None" returned by the
-    # re.match() function into a fatal exception. By design, no callables in the
-    # "re" module raise exceptions.
+    # re.match() function into a fatal exception. By design, no callables in
+    # the "re" module raise exceptions.
     if match is None:
         raise BetseRegexException(
             'Subject string "{}" not matched by '
@@ -371,8 +383,8 @@ def get_match_or_none(
     text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
     '''
     Match object obtained by matching zero or more characters anchored to the
-    beginning of the passed subject string against the passed regular expression
-    if any match exists *or* ``None`` otherwise.
+    beginning of the passed subject string against the passed regular
+    expression if any match exists *or* ``None`` otherwise.
 
     Parameters
     ----------
@@ -380,6 +392,7 @@ def get_match_or_none(
         Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -411,7 +424,7 @@ def get_match_or_none(
     # Return the only object matching this string against this expression.
     return re.match(regex, text, **kwargs)
 
-# ....................{ MATCHERS ~ obj : first             }....................
+# ....................{ MATCHERS ~ obj : first            }....................
 @type_check
 def get_match_first_or_none(
     text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
@@ -425,6 +438,7 @@ def get_match_first_or_none(
         Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -456,7 +470,7 @@ def get_match_first_or_none(
     # Return the first object matching this string against this expression.
     return re.search(regex, text, **kwargs)
 
-# ....................{ MATCHERS ~ obj : line : first      }....................
+# ....................{ MATCHERS ~ obj : line : first     }....................
 @type_check
 def get_match_line_first_or_none(
     text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
@@ -465,10 +479,10 @@ def get_match_line_first_or_none(
     the passed regular expression in a line-oriented manner if any such match
     exists *or* ``None`` otherwise.
 
-    To ensure that only single lines are matched, this regular expression should
-    typically be prefixed by the ``^`` special character and/or suffixed by the
-    ``$`` special character, anchoring matches to the start and/or end of this
-    subject string as a whole and each line of this string.
+    To ensure that only single lines are matched, this regular expression
+    should typically be prefixed by the ``^`` special character and/or suffixed
+    by the ``$`` special character, anchoring matches to the start and/or end
+    of this subject string as a whole and each line of this string.
 
     Parameters
     ----------
@@ -476,6 +490,7 @@ def get_match_line_first_or_none(
         Subject string to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -508,12 +523,13 @@ def get_match_line_first_or_none(
     # Return the first object matching this string against this expression.
     return re.search(regex, text, **kwargs)
 
-# ....................{ ITERATORS                          }....................
+# ....................{ ITERATORS                         }....................
 @type_check
 def iter_matches(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     '''
-    Generator iteratively yielding each non-overlapping match at any position of
-    the passed string against the passed regular expression as a match object.
+    Generator iteratively yielding each non-overlapping match at any position
+    of the passed string against the passed regular expression as a match
+    object.
 
     If no such match exists, this function successfully returns the empty
     generator rather than raising a fatal exception.
@@ -524,6 +540,7 @@ def iter_matches(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
         Subject string to match on.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -559,17 +576,17 @@ def iter_matches(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
 @type_check
 def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     '''
-    Generator iteratively yielding each non-overlapping match at any position of
-    the passed string against the passed regular expression in a line-oriented
-    manner as a match object.
+    Generator iteratively yielding each non-overlapping match at any position
+    of the passed string against the passed regular expression in a
+    line-oriented manner as a match object.
 
     If no such match exists, this function successfully returns the empty
     generator rather than raising a fatal exception.
 
-    To ensure that only single lines are matched, this regular expression should
-    typically be prefixed by the `^` special character and/or suffixed by the
-    `$` special character, thus anchoring matches to the start and/or end of
-    this string as a whole and each line of this string.
+    To ensure that only single lines are matched, this regular expression
+    should typically be prefixed by the `^` special character and/or suffixed
+    by the `$` special character, thus anchoring matches to the start and/or
+    end of this string as a whole and each line of this string.
 
     Match Flags
     ----------
@@ -586,6 +603,7 @@ def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
         Subject string to match on.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -595,7 +613,8 @@ def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     Returns
     ----------
     IterableTypes
-        Generator yielding match objects (i.e., instances of `re.SRE_Match`).
+        Generator yielding match objects (i.e., instances of
+        :class:`re.SRE_Match`).
     '''
 
     # Sanitize the passed match flags for line-oriented matching.
@@ -604,7 +623,7 @@ def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     # Return this generator.
     return re.finditer(regex, text, **kwargs)
 
-# ....................{ REMOVERS                           }....................
+# ....................{ REMOVERS                          }....................
 def remove_substrs(text: str, regex: RegexTypes, **kwargs) -> str:
     '''
     Remove all substrings in the passed string matching the passed regular
@@ -614,6 +633,7 @@ def remove_substrs(text: str, regex: RegexTypes, **kwargs) -> str:
     ----------
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
 
@@ -633,7 +653,7 @@ def remove_substrs(text: str, regex: RegexTypes, **kwargs) -> str:
 
     return replace_substrs(text=text, regex=regex, replacement='', **kwargs)
 
-# ....................{ REPLACERS                          }....................
+# ....................{ REPLACERS                         }....................
 @type_check
 def replace_substrs(
     text: str,
@@ -660,10 +680,12 @@ def replace_substrs(
         Subject string to replace these substrings of.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
     replacement : CallableOrStrTypes
         Substitution to be performed, either a:
+
         * String.
         * Callable (e.g., function, lambda, method).
 
@@ -688,7 +710,7 @@ def replace_substrs(
     # Substitute, if you please.
     return re.sub(regex, replacement, text, **kwargs)
 
-# ....................{ REPLACERS : line                   }....................
+# ....................{ REPLACERS : line                  }....................
 @type_check
 def replace_substrs_line(
     text: str,
@@ -719,10 +741,12 @@ def replace_substrs_line(
         Subject string to replace these substrings of.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
+
         * :class:`str`, signifying an uncompiled regular expression.
         * :class:`Pattern`, signifying a compiled regular expression object.
     replacement : CallableOrStrTypes
         Substitution to be performed, either a:
+
         * String.
         * Callable (e.g., function, lambda, method).
 
@@ -747,7 +771,7 @@ def replace_substrs_line(
     # Substitute, if you please.
     return re.sub(regex, replacement, text, **kwargs)
 
-# ....................{ COMPILERS                          }....................
+# ....................{ COMPILERS                         }....................
 @type_check
 def compile_regex(regex: str, **kwargs) -> RegexCompiledType:
     '''
@@ -770,7 +794,7 @@ def compile_regex(regex: str, **kwargs) -> RegexCompiledType:
     # Return this regular expression compiled.
     return re.compile(regex, **kwargs)
 
-# ....................{ SUBSTITUTERS                       }....................
+# ....................{ SUBSTITUTERS                      }....................
 @type_check
 def _init_kwargs_flags_nonline(regex: RegexTypes, kwargs: MappingType) -> None:
     '''
@@ -787,8 +811,8 @@ def _init_kwargs_flags_nonline(regex: RegexTypes, kwargs: MappingType) -> None:
     if isinstance(regex, RegexCompiledType):
         return
 
-    # Else, this regular expression is uncompiled. In this case, these flags are
-    # safely modifiable as required.
+    # Else, this regular expression is uncompiled. In this case, these flags
+    # are safely modifiable as required.
     kwargs['flags'] = kwargs.get('flags', 0) | re.DOTALL
 
 
@@ -799,8 +823,8 @@ def _init_kwargs_flags_line(regex: RegexTypes, kwargs: MappingType) -> None:
     matching.
 
     Specifically, this function adds the :data:`re.MULTILINE` flag to the
-    integer value of the ``flags`` key of this dictionary (defaulting to zero if
-    currently unset).
+    integer value of the ``flags`` key of this dictionary (defaulting to zero
+    if currently unset).
     '''
 
     # If this regular expression is already compiled, reduce to a noop. Why?

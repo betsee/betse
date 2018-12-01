@@ -3,23 +3,6 @@
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-#FIXME: Error messages should be prefixed by strings uniquely identifying the
-#sources of those messages. Specifically:
-#
-#* Warnings should be prefixed by "<Warning> {source_module_basename}".
-#* Errors should be prefixed by "<Error> {source_module_basename}".
-#
-#See the following stackoveflow question for details on how to implement this:
-#    https://stackoverflow.com/questions/14844970/modifying-logging-message-format-based-on-message-logging-level-in-python3
-
-#FIXME: The following blog post provides useful instructions on deserializing
-#logging settings from a YAML-formatted configuration file. Leveraging such
-#instructions, we could permit users to setup logging as they see fit (e.g.,
-#configuring the logging file and level). This is probably the preferable means
-#of doing so, rather than providing a gamut of CLI options:
-#
-#    http://victorlin.me/posts/2012/08/26/good-logging-practice-in-python
-
 '''
 Low-level logging facilities.
 
@@ -39,6 +22,23 @@ effectively reducing child loggers to symbolic names; assuming all loggers
 except the root logger to be unconfigured, messages will be logged *only* by
 the root logger.
 '''
+
+#FIXME: Error messages should be prefixed by strings uniquely identifying the
+#sources of those messages. Specifically:
+#
+#* Warnings should be prefixed by "<Warning> {source_module_basename}".
+#* Errors should be prefixed by "<Error> {source_module_basename}".
+#
+#See the following stackoveflow question for details on how to implement this:
+#    https://stackoverflow.com/questions/14844970/modifying-logging-message-format-based-on-message-logging-level-in-python3
+
+#FIXME: The following blog post provides useful instructions on deserializing
+#logging settings from a YAML-formatted configuration file. Leveraging such
+#instructions, we could permit users to setup logging as they see fit (e.g.,
+#configuring the logging file and level). This is probably the preferable means
+#of doing so, rather than providing a gamut of CLI options:
+#
+#    http://victorlin.me/posts/2012/08/26/good-logging-practice-in-python
 
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

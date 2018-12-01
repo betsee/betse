@@ -697,7 +697,60 @@ def uppercase_char_first(text: str) -> str:
 
     return text[0].upper() + text[1:] if text else ''
 
+# ....................{ TRUNCATERS                        }....................
+@type_check
+def truncate(text: str, replacement: str = '...', max_len: int = 80) -> str:
+    '''
+    Truncate the passed string to the passed maximum length by replacing the
+    substring of this string exceeding that length with the passed replacement.
+
+    Parameters
+    ----------
+    text : str
+        String to be truncated.
+    replacement : str
+        Substring to replace the truncated portion of this string with.
+        Defaults to an ASCII ellipses (i.e., ``...``).
+    max_len : int
+        Maximum number of characters to truncate this string to. Defaults to
+        the standard UNIX terminal line length (i.e., 80).
+    '''
+
+    # If this string does *NOT* exceed this maximum, return this string as is.
+    if len(text) <= max_len:
+        return text
+    # Else, this string exceeds this maximum. In this case...
+    else:
+        # Number of characters to truncate from the end of this string.
+        # Dismantled, this is:
+        #
+        # * "len(text) - max_len", the number of characters that this string
+        #   exceeds this maximum length by.
+        # * "... + len(replacement)", truncating an additional number of
+        #   characters equal to the length of this replacement so as to make
+        #   sufficient room for this replacement at the end of this string
+        #   without exceeding this maximum length.
+        #
+        # Note that this number is guaranteed to be non-negative (i.e., greater
+        # than zero), as "len(text) > max_len" and "len(replacement) >= 0".
+        truncate_chars_count = len(text) - max_len + len(replacement)
+
+        # If more characters are to be truncated from this string than exist in
+        # this string, then it can be shown by trivial algebraic equivalency
+        # that "len(replacement) > max_len" (i.e., the length of the
+        # replacement substring exceeds the maximum length). In this uncommon
+        # edge case, return the replacement truncated to this maximum.
+        if truncate_chars_count > len(text):
+            return replacement[:max_len]
+        # Else, fewer characters are to be truncated from this string than
+        # exist in this string. This is the common case.
+
+        # Return this string truncated to this number of characters appended by
+        # this replacement substring.
+        return text[:-truncate_chars_count] + replacement
+
 # ....................{ WRAPPERS                          }....................
+@type_check
 def wrap_lines(lines: IterableTypes, **kwargs) -> str:
     '''
     Wrap the passed iterable of lines to the passed line width, prefixing each
