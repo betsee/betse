@@ -11,7 +11,8 @@ Low-level string facilities.
 import textwrap
 from betse.exceptions import BetseStrException
 from betse.util.type import types
-from betse.util.type.types import type_check, IterableTypes, StrOrNoneTypes
+from betse.util.type.types import (
+    type_check, IntOrNoneTypes, IterableTypes, StrOrNoneTypes)
 from textwrap import TextWrapper
 
 # For convenience, permit callers to import the general-purpose trim() function
@@ -55,7 +56,7 @@ def die_if_empty(text: str, exception_message: StrOrNoneTypes = None) -> None:
     if not text:
         # If no exception message was passed, synthesize one.
         if not exception_message:
-            exception_message = 'Text empty.'.format()
+            exception_message = 'String empty.'.format()
 
         # Raise this exception.
         raise BetseStrException(exception_message)
@@ -89,7 +90,7 @@ def die_unless_prefix(
     if not is_prefix(text, prefix):
         # If no exception message was passed, synthesize one from this name.
         if not exception_message:
-            exception_message = 'Text "{}" not prefixed by "{}".'.format(
+            exception_message = 'String "{}" not prefixed by "{}".'.format(
                 text, prefix)
 
         # Raise this exception.
@@ -156,6 +157,33 @@ def is_suffix(text: str, suffix: str) -> bool:
 
     return text.endswith(suffix)
 
+# ....................{ GETTERS                           }....................
+@type_check
+def get_substr_index_or_none(text: str, substr: str) -> IntOrNoneTypes:
+    '''
+    0-based index of the passed substring in the passed string if any *or*
+    ``None`` otherwise (i.e., if this string does *not* contain this
+    substring).
+
+    Parameters
+    ----------
+    text : str
+        String to be inspected.
+    substr : str
+        Substring to inspect this string for.
+
+    Returns
+    ----------
+    IntOrNoneTypes
+        Either:
+
+        * If this string contains this substring, the 0-based index of this
+          substring in this string.
+        * Else, ``None``.
+    '''
+
+    return text.index(substr) if substr in text else None
+
 # ....................{ ADDERS                            }....................
 def add_prefix_unless_found(text: str, prefix: str) -> str:
     '''
@@ -198,7 +226,30 @@ def add_suffix_unless_found(text: str, suffix: str) -> str:
 
     return text if is_suffix(text, suffix) else text + suffix
 
-# ....................{ JOINERS ~ on                      }....................
+# ....................{ CASERS                            }....................
+@type_check
+def lowercase_char_first(text: str) -> str:
+    '''
+    Lowercase the first character of the passed string.
+    '''
+
+    return text[0].lower() + text[1:] if text else ''
+
+
+@type_check
+def uppercase_char_first(text: str) -> str:
+    '''
+    Uppercase the first character of the passed string.
+
+    Whereas the standard :meth:`str.capitalize` method both uppercases the
+    first character of this string *and* lowercases all remaining characters,
+    this function *only* uppercases the first character. All remaining
+    characters remain unmodified.
+    '''
+
+    return text[0].upper() + text[1:] if text else ''
+
+# ....................{ JOINERS                           }....................
 def join(*texts) -> str:
     '''
     Concatenation of the passed strings with no separating delimiter.
@@ -491,14 +542,121 @@ def double_quote(text: str) -> str:
     # Double quote this string.
     return '"{}"'.format(text)
 
-# ....................{ REMOVERS ~ newline                }....................
+# ....................{ REMOVERS ~ prefix                 }....................
 @type_check
-def remove_newlines_suffix(text: str) -> str:
+def remove_prefix(
+    text: str, prefix: str, exception_message: str = None) -> str:
     '''
-    Passed string with all suffixing (but *not* prefixing) newlines removed.
+    Passed string with the passed prefix removed if present *or* raise an
+    exception with the passed message otherwise.
+
+    Parameters
+    ----------
+    text : str
+        String to be inspected.
+    prefix : str
+        Prefix to remove from this string.
+    exception_message : optional[str]
+        Exception message to be raised. Defaults to ``None``, in which case an
+        exception message synthesized from the passed arguments is raised.
+
+    Returns
+    ----------
+    str
+        This string truncated as detailed above.
     '''
 
-    return text.rstrip('\n')
+    # If this string is *NOT* prefixed by this prefix, raise this exception.
+    die_unless_prefix(text, prefix, exception_message)
+
+    # Else, return a new string with this prefix removed from this string.
+    return remove_prefix_if_found(text, prefix)
+
+
+@type_check
+def remove_prefix_if_found(text: str, prefix: str) -> str:
+    '''
+    Passed string with the passed prefix removed if present *or* the passed
+    string as is otherwise.
+
+    Parameters
+    ----------
+    text : str
+        String to be inspected.
+    prefix : str
+        Prefix to remove from this string.
+
+    Returns
+    ----------
+    str
+        This string truncated as detailed above.
+    '''
+
+    return text[len(prefix):] if is_prefix(text, prefix) else text
+
+# ....................{ REMOVERS ~ suffix                 }....................
+@type_check
+def remove_suffix_if_found(text: str, suffix: str) -> str:
+    '''
+    Passed string with the passed suffix removed if present *or* the passed
+    string as is otherwise.
+
+    Parameters
+    ----------
+    text : str
+        String to be inspected.
+    suffix : str
+        Suffix to remove from this string.
+
+    Returns
+    ----------
+    str
+        This string truncated as detailed above.
+    '''
+
+    # There exists a special case *NOT* present in remove_prefix(). If this
+    # suffix is empty, "string[:-0]" is also incorrectly empty. Avoid returning
+    # the empty string in this case by explicitly testing for emptiness.
+    return text[:-len(suffix)] if suffix and is_suffix(text, suffix) else text
+
+
+@type_check
+def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
+    '''
+    Passed string with *all* characters including and following the first
+    instance of the passed substring if present removed *or* the passed string
+    as is otherwise.
+
+    Specifically, this functions returns:
+
+    * If this substring is the empty string, the empty string.
+    * Else if this string contains no such substrings, this string as is.
+    * Else, only the prefix of this string preceding the first such substring
+      in this string.
+
+    Parameters
+    ----------
+    text : str
+        String to be inspected.
+    suffix_prefix : str
+        Substring of this string to begin removing characters at.
+
+    Returns
+    ----------
+    str
+        This string truncated as detailed above.
+    '''
+
+    # If:
+    #
+    # * This suffix prefix is non-empty, return the substring prefixing this
+    #   suffix prefix in this string if any *OR* this string as is otherwise.
+    #   Fortuitously, this is exactly the first value returned by the low-level
+    #   str.partition() method underlying this implementation.
+    # * This suffix prefix is the empty string, return the empty string. This
+    #   edge case must be explicitly tested, as str.partition() raises this
+    #   exception in this case: "ValueError: empty separator".
+    return text.partition(suffix_prefix)[0] if suffix_prefix else ''
 
 # ....................{ REMOVERS ~ space                  }....................
 @type_check
@@ -547,162 +705,94 @@ def remove_whitespace_suffix(text: str) -> str:
 
     return text.rstrip()
 
-# ....................{ REMOVERS ~ prefix                 }....................
+# ....................{ REMOVERS ~ space : newline        }....................
 @type_check
-def remove_prefix(
-    text: str, prefix: str, exception_message: str = None) -> str:
+def remove_newlines_suffix(text: str) -> str:
     '''
-    Passed string with the passed prefix removed if present *or* raise an
-    exception with the passed message otherwise.
+    Passed string with all suffixing (but *not* prefixing) newlines removed.
+    '''
+
+    return text.rstrip('\n')
+
+# ....................{ REPLACERS                         }....................
+@type_check
+def replace_substrs(text: str, substr: str, replacement: str) -> str:
+    '''
+    Passed string with all instances of the passed substring replaced by the
+    passed replacement substring if any *or* this string returned as is
+    otherwise.
 
     Parameters
     ----------
     text : str
-        String to be examined. Since strings are immutable in Python, this
-        string remains unmodified.
-    prefix : str
-        Prefix to remove from this string.
-    exception_message : optional[str]
-        Exception message to be raised. Defaults to ``None``, in which case an
-        exception message synthesized from the passed arguments is raised.
+        String to replace these substrings of.
+    substr : str
+        Substring to replace all instances of in this string.
+    replacement : str
+        Substring to replace all instances of the passed substring.
 
     Returns
     ----------
     str
-        Resulting string as described above.
+        Passed string with all instances of this substring replaced by this
+        replacement substring.
+
+    See Also
+    ----------
+    :func:`betse.util.type.text.regexes.replace_substrs`
+        Equivalent regular expression-based replacer.
     '''
 
-    # If this string is *NOT* prefixed by this prefix, raise this exception.
-    die_unless_prefix(text, prefix, exception_message)
-
-    # Else, return a new string with this prefix removed from this string.
-    return remove_prefix_if_found(text, prefix)
+    # ...thas just how we roll.
+    return text.replace(substr, replacement)
 
 
 @type_check
-def remove_prefix_if_found(text: str, prefix: str) -> str:
+def replace_substr_first(text: str, substr: str, replacement: str) -> str:
     '''
-    Passed string with the passed prefix removed if present *or* the passed
-    string as is otherwise.
+    Passed string with the first instance of the passed substring replaced by
+    the passed replacement substring if any *or* this string returned as is
+    otherwise.
 
     Parameters
     ----------
     text : str
-        String to be examined. Since strings are immutable in Python, this
-        string remains unmodified.
-    prefix : str
-        Prefix to remove from this string.
+        String to replace the first such substring of.
+    substr : str
+        Substring to replace the first instance of in this string.
+    replacement : str
+        Substring to replace the first instance of the passed substring.
 
     Returns
     ----------
     str
-        Resulting string as described above.
+        Passed string with the first instance of this substring replaced by
+        this replacement substring.
     '''
 
-    return text[len(prefix):] if is_prefix(text, prefix) else text
-
-# ....................{ REMOVERS ~ suffix                 }....................
-@type_check
-def remove_suffix_if_found(text: str, suffix: str) -> str:
-    '''
-    Passed string with the passed suffix removed if present *or* the passed
-    string as is otherwise.
-
-    Parameters
-    ----------
-    text : str
-        String to be examined. Since strings are immutable in Python, this
-        string remains unmodified.
-    suffix : str
-        Suffix to remove from this string.
-
-    Returns
-    ----------
-    str
-        Resulting string as described above.
-    '''
-
-    # There exists a special case *NOT* present in remove_prefix(). If this
-    # suffix is empty, "string[:-0]" is also incorrectly empty. Avoid returning
-    # the empty string in this case by explicitly testing for emptiness.
-    return text[:-len(suffix)] if suffix and is_suffix(text, suffix) else text
-
-
-@type_check
-def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
-    '''
-    Return the passed string without the first instance of the passed suffix
-    prefix and all characters following this suffix prefix in this string if
-    present *or* raise an exception otherwise.
-
-    Parameters
-    ----------
-    text : str
-        String to be examined. Since strings are immutable in Python, this
-        string remains unmodified.
-    suffix_prefix : str
-        Non-empty substring of this string to begin removing characters at.
-
-    Returns
-    ----------
-    str
-        Resulting string as described above.
-
-    Raises
-    ----------
-    BetseStrException
-        If either:
-        * This string does *not* contain this suffix prefix.
-        * This suffix prefix is the empty string.
-    '''
-
-    # If this suffix prefix is the empty string, raise an exception.
-    die_if_empty(text=text, exception_message='Suffix prefix empty.')
-
-    # Attempt to return the desired string.
-    try:
-        return text[:text.index(suffix_prefix)]
-    # If doing so fails with a builtin exception...
-    except ValueError as exception:
-        # ...failing to provide the contents of these arguments, wrap this
-        # exception with a fine-grained exception providing these contents.
-        if str(exception) == 'substring not found':
-            raise BetseStrException(
-                'Text "{}" contains no suffix prefix "{}".'.format(
-                    text, suffix_prefix))
-
-        # Else, re-raise this exception as is.
-        raise
-
-# ....................{ CASERS                            }....................
-@type_check
-def lowercase_char_first(text: str) -> str:
-    '''
-    Lowercase the first character of the passed string.
-    '''
-
-    return text[0].lower() + text[1:] if text else ''
-
-
-@type_check
-def uppercase_char_first(text: str) -> str:
-    '''
-    Uppercase the first character of the passed string.
-
-    Whereas the standard :meth:`str.capitalize` method both uppercases the
-    first character of this string *and* lowercases all remaining characters,
-    this function *only* uppercases the first character. All remaining
-    characters remain unmodified.
-    '''
-
-    return text[0].upper() + text[1:] if text else ''
+    # ...thas just how we roll.
+    return text.replace(substr, replacement, 1)
 
 # ....................{ TRUNCATERS                        }....................
 @type_check
-def truncate(text: str, replacement: str = '...', max_len: int = 80) -> str:
+def truncate(
+    text: str,
+    replacement: str = '...',
+    barrier: StrOrNoneTypes = None,
+    max_len: int = 80,
+) -> str:
     '''
-    Truncate the passed string to the passed maximum length by replacing the
-    substring of this string exceeding that length with the passed replacement.
+    Passed string truncated to the passed barrier substring and maximum length
+    if applicable *or* this string returned as is otherwise.
+
+    Specifically, this function applies the following operations (in order):
+
+    #. If a barrier substring is passed, the suffix of the passed string
+       prefixed by this barrier is replaced by the passed replacement.
+    #. If the resulting string still exceeds the passed maximum length, the
+       suffix of this string exceeding this length is again replaced by the
+       passed replacement.
+    #. The resulting string is returned.
 
     Parameters
     ----------
@@ -711,10 +801,26 @@ def truncate(text: str, replacement: str = '...', max_len: int = 80) -> str:
     replacement : str
         Substring to replace the truncated portion of this string with.
         Defaults to an ASCII ellipses (i.e., ``...``).
+    barrier : StrOrNoneTypes
+        Substring in this string to inclusively (i.e., including this
+        substring) truncate this string at if this string contains this
+        substring, regardless of whether this string exceeds this maximum
+        number of characters. Ergo, this substring imposes a hard barrier.
+        Defaults to ``None``, in which case no such barrier is imposed.
     max_len : int
         Maximum number of characters to truncate this string to. Defaults to
         the standard UNIX terminal line length (i.e., 80).
+
+    Returns
+    ----------
+    str
+        This string truncated to this maximum length, as detailed above.
     '''
+
+    #FIXME: Implement us up.
+    # If passed a barrier...
+    # if barrier is not None:
+        # text = remove_suffix_with_prefix(text=text, suffix_prefix=barrier)
 
     # If this string does *NOT* exceed this maximum, return this string as is.
     if len(text) <= max_len:

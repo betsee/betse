@@ -514,10 +514,21 @@ def get_home_dirname() -> str:
     return home_dirname
 
 # ....................{ GETTERS ~ filetype                }....................
+@type_check
+def get_pathname_sans_filetype(pathname: str) -> str:
+    '''
+    Passed pathname without the last ``.``-prefixed filetype (including this
+    prefix) if present *or* this pathname as is otherwise.
+    '''
+
+    return os_path.splitext(pathname)[0]
+
+
+@type_check
 def get_pathname_sans_filetypes(pathname: str) -> str:
     '''
-    Passed path without all suffixing ``.``-prefixed filetypes (including these
-    prefixes) if this path has any filetypes *or* this path as is otherwise.
+    Passed pathname with all suffixing ``.``-prefixed filetypes (including each
+    such prefix) if present removed *or* this pathname as is otherwise.
     '''
 
     # Avoid circular import dependencies.
@@ -533,22 +544,8 @@ def get_pathname_sans_filetypes(pathname: str) -> str:
     basename = strs.remove_suffix_with_prefix(basename, '.')
 
     # If this path contains a dirname, return the concatenation of this dirname
-    # as is by this stripped basename.
-    if dirname:
-        return join(dirname, basename)
-    # Else, return merely this stripped basename.
-    else:
-        return basename
-
-
-@type_check
-def get_pathname_sans_filetype(pathname: str) -> str:
-    '''
-    Passed path without the last ``.``-prefixed filetype (including this
-    prefix) if this path has a filetype *or* this path as is otherwise.
-    '''
-
-    return os_path.splitext(pathname)[0]
+    # and stripped basename; else only return this stripped basename.
+    return join(dirname, basename) if dirname else basename
 
 # ....................{ GETTERS ~ filetype : undotted     }....................
 @type_check

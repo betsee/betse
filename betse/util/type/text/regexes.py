@@ -65,9 +65,6 @@ def die_unless_replace_substrs_line(
         Further details.
     '''
 
-    # Avoid circular import dependencies.
-    from betse.util.type.text import strs
-
     # If this subject string fails to match this regex, raise an exception.
     #
     # Sadly, the re.sub() function called by the replace_substrs_line()
@@ -700,6 +697,8 @@ def replace_substrs(
 
     See Also
     ----------
+    :func:`betse.util.type.text.strs.replace_substrs`
+        Equivalent literal-based replacer.
     https://docs.python.org/3/library/re.html#re.sub
         Further details on regular expressions and keyword arguments.
     '''
