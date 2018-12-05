@@ -541,7 +541,7 @@ def get_pathname_sans_filetypes(pathname: str) -> str:
     basename = get_basename(pathname)
 
     # Strip all characters following the first "." from this basename.
-    basename = strs.remove_suffix_with_prefix(basename, '.')
+    basename = strs.remove_suffix_prefixed(basename, '.')
 
     # If this path contains a dirname, return the concatenation of this dirname
     # and stripped basename; else only return this stripped basename.

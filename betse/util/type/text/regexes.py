@@ -65,6 +65,9 @@ def die_unless_replace_substrs_line(
         Further details.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.type.text import strs
+
     # If this subject string fails to match this regex, raise an exception.
     #
     # Sadly, the re.sub() function called by the replace_substrs_line()
@@ -72,9 +75,15 @@ def die_unless_replace_substrs_line(
     # replacements performed or even whether any replacements were performed.
     # Hence, this validation *MUST* be performed manually beforehand.
     if not is_match_line(text=text, regex=regex, **kwargs):
+        # This subject string truncated to either the first newline in this
+        # string *OR* the standard UNIX line length - whichever comes first.
+        text_truncated = strs.truncate(
+            text=text, suffix_prefix='\n', max_len=80)
+
+        # Raise this exception with this truncated string for readability.
         raise BetseRegexException(
             'Subject string "{}" not matched by '
-            'regular expression "{}".'.format(text, regex))
+            'regular expression "{}".'.format(text_truncated, regex))
 
     # Else, this subject string matches this regex. In this case, perform this
     # search-and-replacement and return the result.

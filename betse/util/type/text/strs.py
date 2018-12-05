@@ -159,7 +159,7 @@ def is_suffix(text: str, suffix: str) -> bool:
 
 # ....................{ GETTERS                           }....................
 @type_check
-def get_substr_index_or_none(text: str, substr: str) -> IntOrNoneTypes:
+def get_substr_first_index_or_none(text: str, substr: str) -> IntOrNoneTypes:
     '''
     0-based index of the passed substring in the passed string if any *or*
     ``None`` otherwise (i.e., if this string does *not* contain this
@@ -621,7 +621,7 @@ def remove_suffix_if_found(text: str, suffix: str) -> str:
 
 
 @type_check
-def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
+def remove_suffix_prefixed(text: str, suffix_prefix: str) -> str:
     '''
     Passed string with *all* characters including and following the first
     instance of the passed substring if present removed *or* the passed string
@@ -645,6 +645,11 @@ def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
     ----------
     str
         This string truncated as detailed above.
+
+    See Also
+    ----------
+    :func:`remove_suffix_prefixed`
+        Function replacing rather than removing this suffix.
     '''
 
     # If:
@@ -719,13 +724,12 @@ def remove_newlines_suffix(text: str) -> str:
 def replace_substrs(text: str, substr: str, replacement: str) -> str:
     '''
     Passed string with all instances of the passed substring replaced by the
-    passed replacement substring if any *or* this string returned as is
-    otherwise.
+    passed replacement substring if any *or* the passed string as is otherwise.
 
     Parameters
     ----------
     text : str
-        String to replace these substrings of.
+        String to be inspected.
     substr : str
         Substring to replace all instances of in this string.
     replacement : str
@@ -734,7 +738,7 @@ def replace_substrs(text: str, substr: str, replacement: str) -> str:
     Returns
     ----------
     str
-        Passed string with all instances of this substring replaced by this
+        This string with all instances of this substring replaced by this
         replacement substring.
 
     See Also
@@ -751,13 +755,13 @@ def replace_substrs(text: str, substr: str, replacement: str) -> str:
 def replace_substr_first(text: str, substr: str, replacement: str) -> str:
     '''
     Passed string with the first instance of the passed substring replaced by
-    the passed replacement substring if any *or* this string returned as is
+    the passed replacement substring if any *or* the passed string as is
     otherwise.
 
     Parameters
     ----------
     text : str
-        String to replace the first such substring of.
+        String to be inspected.
     substr : str
         Substring to replace the first instance of in this string.
     replacement : str
@@ -766,29 +770,76 @@ def replace_substr_first(text: str, substr: str, replacement: str) -> str:
     Returns
     ----------
     str
-        Passed string with the first instance of this substring replaced by
-        this replacement substring.
+        This string with the first instance of this substring replaced by this
+        replacement substring.
     '''
 
     # ...thas just how we roll.
     return text.replace(substr, replacement, 1)
 
+# ....................{ REPLACERS ~ suffix                }....................
+@type_check
+def replace_suffix_prefixed(
+    text: str, suffix_prefix: str, replacement: str) -> str:
+    '''
+    Passed string with *all* characters including and following the first
+    instance of the passed substring if present replaced by the passed
+    replacement substring *or* this string returned as is otherwise.
+
+    Parameters
+    ----------
+    text : str
+        String to be inspected.
+    suffix_prefix : str
+        Substring of this string to begin replacing characters at.
+    replacement : str
+        Substring to replace the suffix of this string prefixed by this suffix
+        prefix by.
+
+    Returns
+    ----------
+    str
+        This string with all characters including and following the first
+        instance of the passed substring replaced by this replacement
+        substring.
+
+    See Also
+    ----------
+    :func:`remove_suffix_prefixed`
+        Function removing rather than replacing this suffix.
+    '''
+
+    # 0-based index of the first instance of this suffix prefix in this string
+    # if present *OR* "None" otherwise.
+    suffix_prefix_first_index = get_substr_first_index_or_none(
+        text=text, substr=suffix_prefix)
+
+    # Return...
+    return (
+        # If this string contains this suffix prefix, the prefix of this string
+        # preceding this suffix prefix appended by this replacement substring.
+        text[:suffix_prefix_first_index] + replacement
+        if suffix_prefix_first_index is not None else
+        # Else, this string as is.
+        text
+    )
+
 # ....................{ TRUNCATERS                        }....................
 @type_check
 def truncate(
     text: str,
-    replacement: str = '...',
-    barrier: StrOrNoneTypes = None,
     max_len: int = 80,
+    suffix_prefix: StrOrNoneTypes = None,
+    replacement: str = '...',
 ) -> str:
     '''
-    Passed string truncated to the passed barrier substring and maximum length
-    if applicable *or* this string returned as is otherwise.
+    Passed string truncated to the passed suffix prefix and maximum length if
+    applicable *or* this string as is otherwise.
 
     Specifically, this function applies the following operations (in order):
 
-    #. If a barrier substring is passed, the suffix of the passed string
-       prefixed by this barrier is replaced by the passed replacement.
+    #. If a suffix prefix is passed, the suffix of the passed string prefixed
+       by this prefix is replaced by the passed replacement.
     #. If the resulting string still exceeds the passed maximum length, the
        suffix of this string exceeding this length is again replaced by the
        passed replacement.
@@ -798,18 +849,17 @@ def truncate(
     ----------
     text : str
         String to be truncated.
-    replacement : str
-        Substring to replace the truncated portion of this string with.
-        Defaults to an ASCII ellipses (i.e., ``...``).
-    barrier : StrOrNoneTypes
-        Substring in this string to inclusively (i.e., including this
-        substring) truncate this string at if this string contains this
-        substring, regardless of whether this string exceeds this maximum
-        number of characters. Ergo, this substring imposes a hard barrier.
-        Defaults to ``None``, in which case no such barrier is imposed.
     max_len : int
         Maximum number of characters to truncate this string to. Defaults to
         the standard UNIX terminal line length (i.e., 80).
+    suffix_prefix : StrOrNoneTypes
+        Substring of this string to begin prematurely truncating characters at
+        if this string contains this substring, regardless of whether this
+        string exceeds this maximum length. This substring imposes a "barrier."
+        Defaults to ``None``, in which case no such barrier is imposed.
+    replacement : str
+        Substring to replace the truncated portion of this string with.
+        Defaults to an ASCII ellipses (i.e., ``...``).
 
     Returns
     ----------
@@ -817,10 +867,11 @@ def truncate(
         This string truncated to this maximum length, as detailed above.
     '''
 
-    #FIXME: Implement us up.
-    # If passed a barrier...
-    # if barrier is not None:
-        # text = remove_suffix_with_prefix(text=text, suffix_prefix=barrier)
+    # If passed a suffix prefix, replace the suffix of this string prefixed
+    # by this prefix by this replacement.
+    if suffix_prefix is not None:
+        text = replace_suffix_prefixed(
+            text=text, suffix_prefix=suffix_prefix, replacement=replacement)
 
     # If this string does *NOT* exceed this maximum, return this string as is.
     if len(text) <= max_len:
