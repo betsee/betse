@@ -781,7 +781,7 @@ class MplConfig(object):
         # "_kernel_name_to_backend_names_prefer" poperty for further details.
         if (
             backend_name == 'TkAgg' and
-            versions.is_at_least(self.version, '2.0.0')
+            versions.is_greater_than_or_equal_to(self.version, '2.0.0')
         ):
             logs.log_warning(
                 'Matplotlib backend "TkAgg" known to be unstable '
@@ -944,16 +944,15 @@ class MplConfig(object):
         # fundamentally broken this backend with respect to non-blocking
         # animations -- either with or without experimental non-blocking
         # behaviour. This has been extensively tested and isolated to
-        # matplotlib itself, which... is frustrating. Let me tell you: we are
-        # displeased.
-        if versions.is_at_least(self.version, '2.0.0'):
+        # matplotlib itself, which... is frustrating. Let me tell you,
+        # matplotlib: we are displeased and we know where your repo lives.
+        if versions.is_greater_than_or_equal_to(self.version, '2.0.0'):
             # Append this backend to the end of this list.
             backend_names_prefer.append('TkAgg')
-        # Else, prioritize the "TkAgg" backend. Why? Because:
-        #
-        # * "TkAgg", a GUI backend with adequate (albeit not particularly
-        #   impressive) aesthetics and superior performance by compare to
-        #   less preferable backends. (Tcl/Tk: who would've thought?)
+        # Else, prioritize the "TkAgg" backend. Why? Because this backend has
+        # adequate (albeit not particularly impressive) aesthetics and superior
+        # performance compared to all other backends under older versions of
+        # matplotlib. Tcl/Tk: who would've thought?
         else:
             # Prepend this backend to the beginning of this list.
             backend_names_prefer.insert(0, 'TkAgg')

@@ -19,7 +19,7 @@ types.
 # and third-party packages.)
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import inspect, logging, re
+import inspect, logging, pkg_resources, re
 from argparse import ArgumentParser, _SubParsersAction
 from collections import deque
 from collections.abc import (
@@ -95,6 +95,22 @@ This class is principally useful for annotating both:
 Note that, for obscure and uninteresting reasons, the standard :mod:`types`
 module defined the same type with the same name under Python 2.x but _not_ 3.x.
 Depressingly, this type must now be manually redefined everywhere.
+'''
+
+
+VersionSetuptoolsType = type(pkg_resources.parse_version('1'))
+'''
+:mod:`setuptools`-specific version type.
+
+The stable :func:`pkg_resources.parse_version` function bundled with
+:mod:`setuptools` creates and returns instances of this type. Sadly, the exact
+type returned by this function is unique to the currently installed version of
+:mod:`setuptools` and hence unstable. In particular:
+
+* Under :mod:`setuptools` < 39.0.0, this was the now-deprecated
+  :mod:`pkg_resources.SetuptoolsVersion` class.
+* Under :mod:`setuptools` >= 39.0.0, this is now the third-party
+  :mod:`pkg_resources.packaging.version.Version` class.
 '''
 
 # ....................{ TYPES ~ arg                       }....................
@@ -442,6 +458,46 @@ Tuple of all **method classes** (i.e., classes whose instances are either
 built-in or user-defined methods).
 '''
 
+# ....................{ TUPLES ~ version                  }....................
+VersionComparableTypes = (tuple, VersionSetuptoolsType)
+'''
+Tuple of all **comparable version types** (i.e., types suitable for use both as
+parameters to callables accepting arbitrary version specifiers *and* as
+operands to numeric operators comparing such specifiers).
+
+This is the proper subset of types listed by the :data:`VersionTypes` tuple
+that are directly comparable, thus excluding the :class:`str` type.
+``.``-delimited version specifier strings are only indirectly comparable after
+conversion to a comparable version type (e.g., by calling the
+:func:`betse.util.type.numeric.version.to_comparable` function).
+
+Caveats
+----------
+Note that all types listed by this tuple are *only* safely comparable with
+versions of the same type. In particular, the :class:`VersionSetuptoolsType`
+type does *not* necessarily support direct comparison with either the
+:class:`tuple` *or* `class:`str` version types; tragically, this type supported
+both under older but *not* newer versions of :mod:`setuptools`. *shakes fist*
+'''
+
+
+VersionTypes = (str,) + VersionComparableTypes
+'''
+Tuple of all **version types** (i.e., types suitable for use as parameters to
+callables accepting arbitrary version specifiers, notably those implemented
+by the :mod:`betse.util.type.numeric.version` submodule).
+
+This includes:
+
+* :class:`str`, specifying versions in ``.``-delimited positive integer format
+  (e.g., ``2.4.14.2.1.356.23``).
+* :class:`tuple`, specifying versions as one or more positive integers (e.g.,
+  ``(2, 4, 14, 2, 1, 356, 23)``),
+* :class:`VersionSetuptoolsType`, specifying versions as instance variables
+  convertible into both of the prior formats (e.g.,
+  ``VersionSetuptoolsType('2.4.14.2.1.356.23')``).
+'''
+
 # ....................{ TUPLES ~ weakref                  }....................
 WeakRefProxyTypes = (CallableProxyType, ProxyType)
 '''
@@ -705,6 +761,12 @@ as the type of the ``None`` singleton.
 '''
 
 
+NumericOrNoneTypes = NumericSimpleTypes + NoneTypes
+'''
+Tuple of all numeric types *and* the type of the singleton `None` object.
+'''
+
+
 NumericOrSequenceOrNoneTypes = NumericOrSequenceTypes + NoneTypes
 '''
 Tuple of all numeric types, all container base classes conforming to (but *not*
@@ -730,12 +792,6 @@ subclassing) the canonical :class:`Sequence` API as well as the type of the
 SetOrNoneTypes = (SetType, NoneType)
 '''
 Tuple of both the set type *and* the type of the ``None`` singleton.
-'''
-
-
-NumericOrNoneTypes = NumericSimpleTypes + NoneTypes
-'''
-Tuple of all numeric types *and* the type of the singleton `None` object.
 '''
 
 

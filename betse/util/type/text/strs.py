@@ -7,6 +7,9 @@
 Low-level string facilities.
 '''
 
+#FIXME: For maintainability, shift all joiners (i.e., "join"-prefixed
+#functions) into a new submodule -- say, "betse.util.type.text.strjoin".
+
 # ....................{ IMPORTS                           }....................
 import textwrap
 from betse.exceptions import BetseStrException
@@ -303,9 +306,20 @@ def join_on_newline(*texts) -> str:
     return join_on(*texts, delimiter='\n')
 
 
+def join_on_dot(*texts) -> str:
+    '''
+    Join the passed strings with a period as the separating delimiter.
+
+    This is a convnience function wrapping the standard
+    ``".".join((...))`` method, whose syntax is arguably overly verbose.
+    '''
+
+    return join_on(*texts, delimiter='.')
+
+
 def join_on_space(*texts) -> str:
     '''
-    Join the passed strings with space as the separating delimiter.
+    Join the passed strings with a space as the separating delimiter.
 
     This is a convnience function wrapping the standard
     ``" ".join((...))`` method, whose syntax is arguably overly verbose.

@@ -728,7 +728,8 @@ def replace_substrs_line(
 ) -> str:
     '''
     Passed subject string with all substrings matching the passed regular
-    expression replaced by the passed substitution in a line-oriented manner.
+    expression in a line-oriented manner (if any) replaced by the passed
+    substitution *or* this string as is otherwise.
 
     If this subject string contains no such substrings, this function silently
     reduces to a noop. If undesirable, consider calling the stricter

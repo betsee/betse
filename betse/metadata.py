@@ -107,10 +107,10 @@ tuple of integers.
 
 
 # Validate the version of the active Python interpreter *BEFORE* subsequent
-# code possibly depending on such version. Since such version should be
+# code possibly depending on this version. Since this version should be
 # validated both at setuptools-based install time and post-install runtime
-# *AND* since this module is imported sufficiently early by both, stash such
-# validation here to avoid duplication of such logic and hence the hardcoded
+# *AND* since this module is imported sufficiently early by both, stash this
+# validation here to avoid duplication of this logic and hence the hardcoded
 # Python version.
 #
 # The "sys" module exposes three version-related constants for this purpose:
@@ -142,8 +142,13 @@ tuple of integers.
 # field has yet to be integrated into either disutils or setuputils. Hence,
 # that field is validated manually in the typical way.
 if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
-    # Human-readable current version of Python. "sys.version" is sufficiently
-    # overly verbose as to be unusuable, sadly.
+    # Human-readable current version of Python. Ideally, "sys.version" would be
+    # leveraged here instead; sadly, that string embeds significantly more than
+    # merely a version and hence is inapplicable for real-world usage: e.g.,
+    #
+    #     >>> import sys
+    #     >>> sys.version
+    #     '3.6.5 (default, Oct 28 2018, 19:51:39) \n[GCC 7.3.0]'
     PYTHON_VERSION = '.'.join(
         str(version_part) for version_part in sys.version_info[:3])
 
