@@ -16,9 +16,9 @@ encapsulated by the :data:`VersionTypes` tuple, these are:
   (e.g., ``2.4.14.2.1.356.23``).
 * :class:`tuple`, specifying versions as one or more positive integers (e.g.,
   ``(2, 4, 14, 2, 1, 356, 23)``),
-* :class:`VersionSetuptoolsType`, specifying versions as instance variables
+* :class:`VersionSetuptoolsTypes`, specifying versions as instance variables
   convertible into both of the prior formats (e.g.,
-  ``VersionSetuptoolsType('2.4.14.2.1.356.23')``).
+  ``VersionSetuptoolsTypes('2.4.14.2.1.356.23')``).
 
 .. _PEP 440-compliant:
    https://www.python.org/dev/peps/pep-0440
@@ -27,7 +27,7 @@ encapsulated by the :data:`VersionTypes` tuple, these are:
 # ....................{ IMPORTS                           }....................
 import pkg_resources
 from betse.util.type.types import (
-    type_check, VersionSetuptoolsType, VersionTypes)
+    type_check, VersionSetuptoolsTypes, VersionTypes)
 
 # ....................{ TESTERS ~ greater                 }....................
 @type_check
@@ -159,7 +159,7 @@ def is_less_than_or_equal_to(
 
 # ....................{ CONVERTERS                        }....................
 @type_check
-def to_comparable(version: VersionTypes) -> VersionSetuptoolsType:
+def to_comparable(version: VersionTypes) -> VersionSetuptoolsTypes:
     '''
     Passed version converted into a **comparable version type** (i.e., type
     suitable for use both as parameters to callables accepting arbitrary
@@ -168,18 +168,37 @@ def to_comparable(version: VersionTypes) -> VersionSetuptoolsType:
 
     Specifically, if the passed version is of type:
 
-    * :class:`str` *or* :class:`tuple`, a new :class:`VersionSetuptoolsType`
-      instance is instantiated and returned from this version.
-    * :class:`VersionSetuptoolsType`, the same
-      :class:`VersionSetuptoolsType` is returned as is.
+    * :class:`str`:
+
+      * This string is munged to comply with industry-standard semantics.
+        Specifically:
+
+        * All tildes (i.e., ``~`` characters) in this string are globally
+          replaced with hyphens (i.e., ``-`` characters). For unknown reasons,
+          older (and possibly current) implementations of the low-level
+          :func:`pkg_resources.parse_version` function underlying this
+          higher-level function sort versions containing tilde characters as
+          strictly less than versions *not* containing tilde characters (e.g.,
+          sorting ``5.9.0~a1`` as less than ``5.7.0``). This is blatantly
+          wrong, of course. Since version strings associated with dependencies
+          often contain tilde characters, failure to address this subtle issue
+          would induce subtle issues elsewhere throughout this application.
+
+      * A new :class:`VersionSetuptoolsTypes` instance is instantiated and
+        returned from this version.
+
+    * :class:`tuple`, a new :class:`VersionSetuptoolsTypes` instance is
+      instantiated and returned from this version.
+    * :class:`VersionSetuptoolsTypes`, the same
+      :class:`VersionSetuptoolsTypes` is returned as is.
 
     Caveats
     ----------
     The version returned by this function is *only* safely comparable with
     versions of the same type. In particular, the
-    :class:`VersionSetuptoolsType` type does *not* necessarily support direct
+    :class:`VersionSetuptoolsTypes` type does *not* necessarily support direct
     comparison with either the :class:`tuple` *or* `class:`str` version types;
-    :class:`VersionSetuptoolsType` supported both under older but *not* newer
+    :class:`VersionSetuptoolsTypes` supported both under older but *not* newer
     versions of :mod:`setuptools`. *shakes fist*
 
     Parameters
@@ -189,7 +208,7 @@ def to_comparable(version: VersionTypes) -> VersionSetuptoolsType:
 
     Returns
     ----------
-    VersionSetuptoolsType
+    VersionSetuptoolsTypes
         :mod:`setuptools`-specific version converted from this version.
 
     Raises
@@ -248,12 +267,18 @@ def to_comparable(version: VersionTypes) -> VersionSetuptoolsType:
         # String-formatted version converted from this tuple.
         version = strs.join_on_dot(version_str_tuple)
 
-    # This version *MUST* now be either a string or a setuptools object.
-    return (
-        # If this is a string-formatted version, convert this string into a
-        # setuptools-specific version.
-        pkg_resources.parse_version(version) if isinstance(version, str)
-        # Else, this *MUST* by definition be a setuptools-specific version. In
-        # this case, return this version as is.
-        else version
-    )
+    # This version *MUST* now be either a string or setuptools object.
+    #
+    # If this is a string-formatted version...
+    if isinstance(version, str):
+        # Globally replace all "~" with "-" characters in this version. See the
+        # function docstring. (Synopsis: PySide2 versioning is insane.)
+        version = strs.replace_substrs(
+            text=version, substr='~', replacement='-')
+
+        # Convert this string into a setuptools-specific version.
+        return pkg_resources.parse_version(version)
+    # Else, this *MUST* by definition be a setuptools-specific version. In
+    # this case, return this version as is.
+    else:
+        return version

@@ -97,22 +97,6 @@ module defined the same type with the same name under Python 2.x but _not_ 3.x.
 Depressingly, this type must now be manually redefined everywhere.
 '''
 
-
-VersionSetuptoolsType = type(pkg_resources.parse_version('1'))
-'''
-:mod:`setuptools`-specific version type.
-
-The stable :func:`pkg_resources.parse_version` function bundled with
-:mod:`setuptools` creates and returns instances of this type. Sadly, the exact
-type returned by this function is unique to the currently installed version of
-:mod:`setuptools` and hence unstable. In particular:
-
-* Under :mod:`setuptools` < 39.0.0, this was the now-deprecated
-  :mod:`pkg_resources.SetuptoolsVersion` class.
-* Under :mod:`setuptools` >= 39.0.0, this is now the third-party
-  :mod:`pkg_resources.packaging.version.Version` class.
-'''
-
 # ....................{ TYPES ~ arg                       }....................
 ArgParserType = ArgumentParser
 '''
@@ -459,7 +443,20 @@ built-in or user-defined methods).
 '''
 
 # ....................{ TUPLES ~ version                  }....................
-VersionComparableTypes = (tuple, VersionSetuptoolsType)
+VersionSetuptoolsTypes = (
+    # PEP 440-compliant version type.
+    pkg_resources.packaging.version.Version,
+    # PEP 440-uncompliant version type.
+    pkg_resources.packaging.version.LegacyVersion,
+)
+'''
+Tuple of all :mod:`setuptools`-specific version types (i.e., types instantiated
+and returned by the stable :func:`pkg_resources.parse_version` function bundled
+with :mod:`setuptools`).
+'''
+
+
+VersionComparableTypes = (tuple,) + VersionSetuptoolsTypes
 '''
 Tuple of all **comparable version types** (i.e., types suitable for use both as
 parameters to callables accepting arbitrary version specifiers *and* as
@@ -474,7 +471,7 @@ conversion to a comparable version type (e.g., by calling the
 Caveats
 ----------
 Note that all types listed by this tuple are *only* safely comparable with
-versions of the same type. In particular, the :class:`VersionSetuptoolsType`
+versions of the same type. In particular, the :class:`VersionSetuptoolsTypes`
 type does *not* necessarily support direct comparison with either the
 :class:`tuple` *or* `class:`str` version types; tragically, this type supported
 both under older but *not* newer versions of :mod:`setuptools`. *shakes fist*
@@ -493,9 +490,9 @@ This includes:
   (e.g., ``2.4.14.2.1.356.23``).
 * :class:`tuple`, specifying versions as one or more positive integers (e.g.,
   ``(2, 4, 14, 2, 1, 356, 23)``),
-* :class:`VersionSetuptoolsType`, specifying versions as instance variables
+* :class:`VersionSetuptoolsTypes`, specifying versions as instance variables
   convertible into both of the prior formats (e.g.,
-  ``VersionSetuptoolsType('2.4.14.2.1.356.23')``).
+  ``VersionSetuptoolsTypes('2.4.14.2.1.356.23')``).
 '''
 
 # ....................{ TUPLES ~ weakref                  }....................

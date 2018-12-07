@@ -372,9 +372,12 @@ class CLIABC(object, metaclass=ABCMeta):
         Subclasses requiring subclass-specific options are encouraged to:
 
         * Override this method by:
+
           * Calling the superclass implementation.
           * Extending the returned tuple with all subclass-specific options.
+
         * Override the :meth:`_parse_options_top` method by:
+
           * Calling the superclass implementation.
           * Handling all subclass-specific instance variables parsed into the
             :attr:`self._args` container from these options.
