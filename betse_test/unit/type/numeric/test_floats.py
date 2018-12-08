@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-Unit tests exercising floating point functionality.
+Unit tests exercising the :mod`betse.util.type.numeric.floats` submodule.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 # import pytest
 
-# ....................{ TESTS ~ base 10                    }....................
-def test_get_base_10_exponent() -> None:
+# ....................{ TESTS ~ base 10                   }....................
+def test_float_get_base_10_exponent() -> None:
     '''
     Unit test the :func:`betse.util.type.numeric.floats.get_base_10_exponent`
     getter.
@@ -27,7 +27,7 @@ def test_get_base_10_exponent() -> None:
     assert floats.get_base_10_exponent(100001234567.9) == 11
 
 
-def test_get_base_10_precision() -> None:
+def test_float_get_base_10_precision() -> None:
     '''
     Unit test the :func:`betse.util.type.numeric.floats.get_base_10_precision`
     getter.

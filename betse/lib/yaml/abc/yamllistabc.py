@@ -16,7 +16,7 @@ from betse.util.type.cls import classes
 from betse.util.type.obj import objects
 from betse.util.type.types import (
     type_check, ClassType, SequenceTypes)
-from collections import MutableSequence
+from collections.abc import MutableSequence
 
 # ....................{ SUPERCLASSES ~ list item          }....................
 class YamlListItemABC(YamlABC):

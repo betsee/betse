@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-Unit tests exercising \*ML (e.g., HTML, SGML, XML) functionality.
+Unit tests exercising *ML (e.g., HTML, SGML, XML) functionality.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 # import pytest
 
-# ....................{ TESTS                              }....................
+# ....................{ TESTS                             }....................
 def test_is_ml() -> None:
     '''
     Unit test the :func:`betse.util.type.text.mls.is_ml` tester.

@@ -96,7 +96,17 @@ BETSE is releasable to all supported platforms as follows:
 
       $ git tag
 
-#. **Create an announcement commit.** This commit should have a message whose:
+#. **Create an announcement commit,** ideally as an **empty commit** (i.e.,
+   commit containing only a message rather than both changes *and* a message).
+   Empty announcements reduce the likelihood of introducing last-minute
+   instability into an otherwise stable release. Of course, this assumes that
+   the prior non-empty commit passed all continuous integration (CI) hosts.
+
+   .. code-block:: console
+
+      $ git commit --allow-empty
+
+   This commit should have a message whose:
 
    * First line is of the format ``"BETSE {version} ({codename}) released."``,
      where:
