@@ -8,6 +8,20 @@
 tasks (e.g., installation, freezing, test running) for this application.
 '''
 
+#FIXME: Replace this file (i.e., "setup.py") and the "requirements-pip.txt",
+#"setup.cfg", "MANIFEST.in", and "Pipfile" files with the existing
+#"pyproject.toml" file in concert with the third-party "poetry" project, which
+#replaces Python's broken build management ecosystem (e.g., distutils,
+#setuptools, pip, pipenv) with a single shell-friendly command patterned on
+#industry-standard build management utilities published for other languages
+#(e.g., Rust's "cargo"). We have manually inspected the "poetry" repository
+#and, indeed, this is the setuptools killer we have long awaited.
+#
+#Note, however, that we may still require setuptools at runtime for dependency
+#resolution -- which is quite alright, of course. Since everyone requires
+#setuptools at installation-time, setuptools remains widely available and
+#continuing to depend upon setuptools for a specific task remains sensible.
+
 #FIXME: Consider wrapping on Windows with "pynsist", a framework for generating
 #Windows installers bundling Python applications complete with a Python
 #interpreter and requisite packages.

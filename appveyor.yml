@@ -215,10 +215,10 @@ install:
   # environment's top-level directory).
   - cmd: activate conda-env-%PYTHON_VERSION%
 
-  # Add the official "anaconda" channel as the highest-priority channel.
+  # Add the unofficial "conda-forge" channel as the highest-priority channel.
   # See similar logic in ".gitlab-ci.yml" for details.
-  - cmd: conda config --add channels anaconda
-    
+  - cmd: conda config --add channels conda-forge
+
   # Install all mandatory and optional dependencies of this application into
   # this environment from the "conda-forge" channel.
   - cmd: conda install --quiet --file requirements-conda.txt
