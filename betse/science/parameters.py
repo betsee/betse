@@ -699,8 +699,6 @@ class Parameters(YamlFileABC):
 
         self.grn_enabled = self._conf['gene regulatory network settings']['gene regulatory network simulated']
 
-        self.grn_config_filename = self._conf['gene regulatory network settings']['gene regulatory network config']
-
         # If a GRN is enabled, load this GRN from this file.
         if self.grn_enabled:
             self.grn.load(conf_filename=self.grn_config_filename)
@@ -1114,6 +1112,21 @@ class Parameters(YamlFileABC):
             self.conf_dirname, self.init_export_dirname_relative)
         self.sim_export_dirname = pathnames.join_and_canonicalize(
             self.conf_dirname, self.sim_export_dirname_relative)
+
+        #FIXME: Functional test this up, which was silently broken for a
+        #shamefully lengthy period of time. To do so, we'll want to test
+        #from a different directory other than the directory containing
+        #the top-level YAML file.
+        #FIXME: Generalize "grn_config_filename_relative" into a YAML alias.
+        #FIXME: Reduce "grn_config_*" to merely "grn_conf_*".
+
+        # Relative filename from which the GRN is configured.
+        self.grn_config_filename_relative = (
+            self._conf['gene regulatory network settings']['gene regulatory network config'])
+
+        # Absolute filename from which the GRN is configured.
+        self.grn_config_filename = pathnames.join(
+            self.conf_dirname, self.grn_config_filename_relative)
 
         # Absolute pathnames to which GRN results are pickled.
         self.grn_pickle_dirname = pathnames.join(
