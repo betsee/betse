@@ -203,11 +203,11 @@ def die_unless_filetype(pathname: str) -> None:
 @type_check
 def is_filetype(pathname: str) -> bool:
     '''
-    `True` only if the passed pathname is suffixed by a filetype corresponding
+    ``True`` only if the passed pathname is suffixed by a filetype corresponding
     to a supported archive format.
 
-    `True` is returned only if the **rightmost filetype** (i.e., substring
-    following the last `.` character) of this pathname is in the
+    ``True`` is returned only if the **rightmost filetype** (i.e., substring
+    following the last ``.`` character) of this pathname is in the
     :data:`ARCHIVE_FILETYPES` set global. All preceding filetypes of this
     pathname are ignored.
 

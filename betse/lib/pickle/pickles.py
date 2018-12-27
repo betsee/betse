@@ -163,7 +163,7 @@ def save(
 ) -> None:
     '''
     Save (i.e., write, pickle, serialize) the tuple of all passed objects to the
-    file with the passed path if two or more objects are passed _or_ the single
+    file with the passed path if two or more objects are passed *or* the single
     passed object if only one object is passed.
 
     This function transparently compresses these objects into this file when
