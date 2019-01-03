@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -340,11 +340,14 @@ def iter_methods_custom(obj: object) -> GeneratorType:
     :func:`iter_methods`
         Further details.
     '''
+    # Avoid circular import dependencies.
+    from betse.util.py import pyident
+
 
     # Defer to this generator.
     yield from iter_methods_matching(
         obj=obj, predicate=lambda method_name, method: not (
-            method_name.startswith('__') and method_name.endswith('__')))
+            pyident.is_special(method_name)))
 
 
 def iter_methods_prefixed(obj: object, prefix: str) -> GeneratorType:
@@ -497,10 +500,13 @@ def iter_vars_custom(obj: object) -> GeneratorType:
         Further details.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.py import pyident
+
     # Defer to this generator.
     yield from iter_vars_matching(
-        obj=obj, predicate=lambda var_name, var_value: (
-            not (var_name.startswith('__') and var_name.endswith('__'))))
+        obj=obj, predicate=lambda var_name, var_value: not (
+            pyident.is_special(var_name)))
 
 # ....................{ ITERATORS ~ vars : custom simple  }....................
 def iter_vars_custom_simple(obj: object) -> GeneratorType:
@@ -606,6 +612,9 @@ def iter_vars_custom_simple_matching(
         variable name).
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.py import pyident
+
     # Ideally, this function would be reimplemented in terms of the
     # iter_attrs_implicit_matching() function calling the canonical
     # inspect.getmembers() function. Dynamic inspection is surprisingly
@@ -626,7 +635,7 @@ def iter_vars_custom_simple_matching(
     # this is not altogether a bad thing.
     for attr_name in dir(obj):
         # If this attribute is *NOT* a builtin...
-        if not (attr_name.startswith('__') and attr_name.endswith('__')):
+        if not pyident.is_special(attr_name):
             # Value of this attribute guaranteed to be statically rather than
             # dynamically retrieved. The getattr() builtin performs the latter,
             # dynamically calling this attribute's getter if this attribute is

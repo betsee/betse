@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -114,7 +114,7 @@ def get_package_worktree_dirname_or_none(
 
     # Avoid circular import dependencies.
     from betse.util.path import dirs, pathnames
-    from betse.util.py import pymodule
+    from betse.util.py.module import pymodule
 
     # Absolute canonical dirname of the directory providing this package,
     # canonicalized into a directory rather than symbolic link to increase the

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -17,6 +17,7 @@ from betse.util.type.types import (
     GeneratorType,
     MappingOrNoneTypes,
     SequenceOrNoneTypes,
+    StrOrNoneTypes,
 )
 
 # ....................{ EXCEPTIONS                        }....................
@@ -64,9 +65,10 @@ def is_abstract(cls: ClassType) -> bool:
 
 # ....................{ GETTERS                           }....................
 @type_check
-def get_module_name(cls: ClassType) -> str:
+def get_module_name_qualified(cls: ClassType) -> str:
     '''
-    Fully-qualified name of the module defining the passed class.
+    Fully-qualified name of the module defining the passed class if this class
+    is defined by a module *or* raise an exception otherwise.
 
     Parameters
     ----------
@@ -81,19 +83,147 @@ def get_module_name(cls: ClassType) -> str:
     Raises
     ----------
     BetseTypeException
-        If this class has no ``__module__`` attribute, which should ideally
-        *never* happen.
+        If this class is *not* defined by a module. Specifically, if either:
+
+        * This class defines no special ``__module__`` attribute.
+        * This class defines a special ``__module__`` attribute whose value is
+          either:
+
+          * ``None``.
+          * A special identifier. Notably, builtin classes defined by no
+            modules (e.g., :class:`str`) define a special ``__module__``
+            attribute whose value is ``__builtin__``.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/13653312/2809027
+        StackOverflow answer strongly inspiring this implementation.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.obj import objects
+    from betse.util.py import pyident
 
-    # Defer to this existing function, which suffices.
-    return objects.get_class_module_name(cls)
+    # If this class does *NOT* define the special "__module__" attribute,
+    # raise an exception. In theory, all classes including builtin classes
+    # should define this. In practice, some do not. Thanks alot, everybody!
+    if not hasattr(cls, '__module__'):
+        raise BetseTypeException(
+            'Class "{class_name}" module undefined '
+            '(i.e., "{class_name}.__module__" attribute not found).'.format(
+                class_name=get_name_unqualified(cls)))
+    # Else, this class defines this attribute.
+
+    # Fully-qualified name of the module defining this class if any *OR* "None"
+    # otherwise.
+    module_name = cls.__module__
+
+    # If this name is either undefined *OR* prefixed and suffixed by both "__"
+    # (e.g., as is the case with "str.__module__ == '__builtin__'"), no module
+    # defines this class. In this case, raise an exception.
+    if module_name is None or pyident.is_special(module_name):
+        raise BetseTypeException(
+            'Class "{class_name}" module undefined '
+            '(i.e., "{class_name}.__module__" attribute is '
+            '"{module_name}").'.format(
+                class_name=get_name_unqualified(cls),
+                module_name=str(module_name)))
+
+    # Else, return this name.
+    return module_name
+
+
+@type_check
+def get_module_name_qualified_or_none(cls: ClassType) -> StrOrNoneTypes:
+    '''
+    Fully-qualified name of the module defining the passed class if this class
+    is defined by a module *or* ``None`` otherwise.
+
+    Parameters
+    ----------
+    cls : ClassType
+        Class to retrieve this module name for.
+
+    Returns
+    ----------
+    StrOrNoneTypes
+        Fully-qualified name of this module if any *or* ``None`` otherwise.
+        Specifically, ``None`` is returned if either:
+
+        * This class defines no special ``__module__`` attribute.
+        * This class defines a special ``__module__`` attribute whose value is
+          either:
+
+          * ``None``.
+          * A special identifier. Notably, builtin classes defined by no
+            modules (e.g., :class:`str`) define a special ``__module__``
+            attribute whose value is ``__builtin__``.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/13653312/2809027
+        StackOverflow answer strongly inspiring this implementation.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.py import pyident
+
+    # If this class does *NOT* define the special "__module__" attribute,
+    # return "None". In theory, all classes including builtin classes should
+    # define this. In practice, some do not. Thanks for nuthin', somebody!
+    if not hasattr(cls, '__module__'):
+        return None
+    # Else, this class defines this attribute.
+
+    # Fully-qualified name of the module defining this class if any *OR* "None"
+    # otherwise.
+    module_name = cls.__module__
+
+    # Return "None" if this name is either undefined *OR* prefixed and suffixed
+    # by both "__" (e.g., as is the case with "str.__module__ ==
+    # '__builtin__'") or this name otherwise
+    return (
+        None
+        if module_name is None or pyident.is_special(module_name) else
+        module_name
+    )
 
 # ....................{ GETTERS ~ name                    }....................
 @type_check
-def get_name(cls: ClassType) -> str:
+def get_name_qualified(cls: ClassType) -> str:
+    '''
+    Fully-qualified name of the passed class.
+
+    Parameters
+    ----------
+    cls : ClassType
+        Class to retrieve this fully-qualified name for.
+
+    Returns
+    ----------
+    str
+        Fully-qualified name of this class.
+    '''
+
+    # Unqualified name of this class.
+    class_name = get_name_unqualified(cls)
+
+    # Fully-qualified name of the module defining this class if this class is
+    # defined by a module *OR* "None" otherwise.
+    module_name = get_module_name_qualified_or_none(cls)
+
+    # Return either...
+    return (
+        # The concatenation of this class and module name if this module name
+        # is well-defined.
+        '{}.{}'.format(module_name, class_name)
+        if module_name is not None else
+        # This class name as is otherwise.
+        class_name
+    )
+
+
+@type_check
+def get_name_unqualified(cls: ClassType) -> str:
     '''
     Unqualified name of the passed class.
 
@@ -110,33 +240,6 @@ def get_name(cls: ClassType) -> str:
 
     # Elegant simplicity diminishes aggressive tendencies.
     return cls.__name__
-
-
-@type_check
-def get_name_snakecase(cls: ClassType) -> str:
-    '''
-    Unqualified name of the passed class converted from CamelCase to snake_case
-    (e.g., from ``MyClassName`` to ``my_class_name``).
-
-    Parameters
-    ----------
-    cls : ClassType
-        Class to retrieve this unqualified snake_case name for.
-
-    Returns
-    ----------
-    str
-        Unqualified snake_case name of this class.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.py import pyident
-
-    # Unqualified CamelCase name of this class.
-    name_camelcase = get_name(cls)
-
-    # Can it be? But it can.
-    return pyident.convert_camelcase_to_snakecase(name_camelcase)
 
 # ....................{ GETTERS ~ method                  }....................
 @type_check

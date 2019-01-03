@@ -134,7 +134,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
         # Avoid circular import dependencies.
         from betse.util.path import dirs
-        from betse.util.py import pymodule
+        from betse.util.py.module import pymodule
 
         # Absolute pathname of the directory yielding our top-level package.
         package_dirname = pymodule.get_dirname(self.package)

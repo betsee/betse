@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -212,7 +212,7 @@ def _save_ruamel(
     '''
 
     # Fully-qualified name of the module defining this container's subclass.
-    container_class_module_name = objects.get_class_module_name(container)
+    container_class_module_name = objects.get_class_module_name_qualified(container)
 
     # If this container is *NOT* a "ruamel.yaml"-specific object returned by a
     # prior call to the _load_ruamel() function, log a non-fatal warning. While

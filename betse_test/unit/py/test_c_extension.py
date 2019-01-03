@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -14,13 +14,13 @@ Unit tests for the :func:`betse.util.py.pymodule.is_c_extension` function.
 # ....................{ TESTS                             }....................
 def test_is_c_extension_unmonkeypatched() -> None:
     '''
-    Unit test the :func:`betse.util.py.pymodule.is_c_extension` function
+    Unit test the :func:`betse.util.py.module.pymodule.is_c_extension` function
     *without* monkeypatching the PEP 302-specific `__loader__` attribute of
     tested modules.
     '''
 
     # Imports deferred for safety.
-    from betse.util.py import pymodule
+    from betse.util.py.module import pymodule
     from numpy.core import multiarray
 
     # Ensure that a C extension is correctly detected as such. Testing this
@@ -34,7 +34,7 @@ def test_is_c_extension_unmonkeypatched() -> None:
 
 def test_is_c_extension_monkeypatched(monkeypatch) -> None:
     '''
-    Test all calls of the :func:`betse.util.py.pymodule.is_c_extension`
+    Test all calls of the :func:`betse.util.py.module.pymodule.is_c_extension`
     function by monkeypatching the PEP 302-specific `__loader__` attribute of
     tested modules.
 
@@ -49,7 +49,7 @@ def test_is_c_extension_monkeypatched(monkeypatch) -> None:
     '''
 
     # Imports deferred for safety.
-    from betse.util.py import pymodule
+    from betse.util.py.module import pymodule
     from numpy.core import multiarray
 
     # Remove the the PEP 302-specific "__loader__" attribute of each such

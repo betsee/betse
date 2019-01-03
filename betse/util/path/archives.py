@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -159,7 +159,7 @@ def die_unless_filetype(pathname: str) -> None:
     if not is_filetype(pathname):
         # Avoid circular import dependencies.
         from betse.util.path import pathnames
-        from betse.util.py import pymodule
+        from betse.util.py.module import pymodname
         from betse.util.type.text import strs
 
         # Filetype of this pathname if any or raise an exception otherwise.
@@ -182,7 +182,7 @@ def die_unless_filetype(pathname: str) -> None:
                 'Python installation time).'.format(module_name))
 
             # Raise the expected exception.
-            pymodule.die_unless_module(module_name, exception_message)
+            pymodname.die_unless_module(module_name, exception_message)
 
             # The above call should have raised an exception. For safety,
             # unconditionally raise another exception as a sentinel.
@@ -504,13 +504,13 @@ def _init() -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.py import pymodule
+    from betse.util.py.module import pymodname
 
     # For each supported archive filetype and the fully-qualified name of the
     # optional stdlib module required to write archives of this filetype....
     for filetype, module_name in _ARCHIVE_FILETYPE_TO_MODULE_NAME.items():
         # If this module is installed...
-        if pymodule.is_module(module_name):
+        if pymodname.is_module(module_name):
             # Add this filetype to the set of all supported archive filetypes.
             ARCHIVE_FILETYPES.add(filetype)
 

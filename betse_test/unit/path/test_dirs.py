@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -86,8 +86,8 @@ def test_dirs_recurse_subdirnames() -> None:
     import betse, betse_setup, betse_test
     from betse import metaapp
     from betse.util.io.log import logs
-    from betse.util.py import pymodule
     from betse.util.path import dirs, files, pathnames
+    from betse.util.py.module import pymodule
     from betse.util.type.text import strs
 
     # Tuple of all top-level packages.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -93,7 +93,7 @@ any such dependencies.
 from betse import metadata, metadeps
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
-from betse.util.py import pymodule
+from betse.util.py.module import pymodname
 from betse.util.type.types import (
     type_check, MappingType, ModuleOrSequenceTypes, StrOrNoneTypes)
 
@@ -184,7 +184,7 @@ def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
 
     # If the "pkg_resources" setuptools dependency is missing, raise an
     # exception *BEFORE* importing this dependency below.
-    pymodule.die_unless_module(
+    pymodname.die_unless_module(
         module_name='pkg_resources',
         exception_message='Mandatory dependency "pkg_resources" not found.',
     )

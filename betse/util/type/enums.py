@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -379,7 +379,7 @@ def get_enum_name_from_member(enum_member: EnumMemberType) -> str:
     from betse.util.type.obj import objects
 
     # Strange, but true. We don't ask questions. Neither should you.
-    return objects.get_class_name(enum_member)
+    return objects.get_class_name_unqualified(enum_member)
 
 
 @type_check

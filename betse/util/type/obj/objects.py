@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -331,67 +331,6 @@ def is_c_based(obj: object) -> bool:
 
     return not is_pure_python(obj)
 
-# ....................{ GETTERS ~ metadata                }....................
-def get_class_name(obj: object) -> str:
-    '''
-    Unqualified name of either the passed object if this object is itself a
-    class *or* the class of this object otherwise (i.e., if this object is
-    *not* a class).
-
-    Parameters
-    ----------
-    obj : object
-        Object to retrieve this class name for.
-
-    Returns
-    ----------
-    str
-        Unqualified name of this class.
-    '''
-
-    # This class if this object is a class *OR* this object's class otherwise.
-    cls = obj if isinstance(obj, ClassType) else type(obj)
-
-    # Else, return this class' name.
-    return cls.__name__
-
-
-def get_class_module_name(obj: object) -> str:
-    '''
-    Fully-qualified name of the module defining either the passed object if
-    this object is itself a class *or* the class of this object otherwise
-    (i.e., if this object is *not* a class).
-
-    Parameters
-    ----------
-    obj : object
-        Object to retrieve this module name for.
-
-    Returns
-    ----------
-    str
-        Fully-qualified name of this module.
-
-    Raises
-    ----------
-    BetseTypeException
-        If this class has no ``__module__`` attribute, which should ideally
-        *never* happen.
-    '''
-
-    # This class if this object is a class *OR* this object's class otherwise.
-    cls = obj if isinstance(obj, ClassType) else obj.__class__
-
-    # If this module does *NOT* provide the special "__file__" attribute, raise
-    # an exception. All modules including builtin modules should provide this.
-    if not hasattr(cls, '__module__'):
-        raise BetseTypeException(
-            'Class "{}.__module__" attribute not found.'.format(
-                cls.__name__))
-
-    # Else, return this attribute's value.
-    return cls.__module__
-
 # ....................{ GETTERS : attr                    }....................
 @type_check
 def get_attr(obj: object, attr_name: str) -> object:
@@ -491,6 +430,149 @@ def get_attr_or_sentinel(obj: object, attr_name: str) -> object:
 
     # Return this attribute if any or the sentinel otherwise.
     return getattr(obj, attr_name, SENTINEL)
+
+# ....................{ GETTERS ~ class                   }....................
+def get_class(obj: object) -> ClassType:
+    '''
+    Passed object if this object is itself a class *or* the class of this
+    object otherwise (i.e., if this object is *not* a class).
+
+    Parameters
+    ----------
+    obj : object
+        Object to retrieve this class for.
+
+    Returns
+    ----------
+    ClassType
+        This object if this object is a class *or* this object's class.
+    '''
+
+    # Simplicity is not a place in Simple City.
+    return obj if isinstance(obj, ClassType) else type(obj)
+
+# ....................{ GETTERS ~ class : name            }....................
+def get_class_name_unqualified(obj: object) -> str:
+    '''
+    Unqualified name of either the passed object if this object is itself a
+    class *or* the class of this object otherwise (i.e., if this object is
+    *not* a class).
+
+    Parameters
+    ----------
+    obj : object
+        Object to retrieve this class name for.
+
+    Returns
+    ----------
+    str
+        Unqualified name of this class.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.cls import classes
+
+    # This object if this object is a class *OR* this object's class otherwise.
+    cls = get_class(obj)
+
+    # Return the unqualified name of this class.
+    return cls.__name__
+
+
+def get_class_module_name_qualified(obj: object) -> str:
+    '''
+    Fully-qualified name of the module defining either the passed object if
+    this object is itself a class *or* the class of this object otherwise
+    (i.e., if this object is *not* a class).
+
+    Parameters
+    ----------
+    obj : object
+        Object to retrieve this module name for.
+
+    Returns
+    ----------
+    str
+        Fully-qualified name of this module.
+
+    Raises
+    ----------
+    BetseTypeException
+        If this class has no ``__module__`` attribute, which should ideally
+        *never* happen.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.cls import classes
+
+    # This object if this object is a class *OR* this object's class otherwise.
+    cls = get_class(obj)
+
+    # Return the fully-qualified name of this class.
+    return classes.get_module_name_qualified(cls)
+
+# ....................{ GETTERS ~ class : package : root  }....................
+#FIXME: Implement us up, please.
+# @type_check
+# def get_class_package_root(module: ModuleOrStrTypes) -> ModuleType:
+#     '''
+#     **Root package** (i.e., topmost package whose package name contains no
+#     ``.`` delimiters) transitively containing the passed object's class.
+#
+#     Parameters
+#     ----------
+#     module : ModuleOrStrTypes
+#         Either:
+#
+#         * The fully-qualified name of this module, in which case this function
+#           dynamically imports this module.
+#         * A previously imported module object.
+#
+#     Returns
+#     ----------
+#     ModuleType
+#         Root package transitively containing this module.
+#     '''
+#
+#     # Fully-qualified name of the root package of this object's class.
+#     class_package_root_name = get_class_package_root_name(module)
+#
+#     ..
+#
+#
+# @type_check
+# def get_class_package_root_name(obj: object) -> str:
+#     '''
+#     Name of the **root package** (i.e., topmost package whose package name
+#     contains no ``.`` delimiters) transitively containing the passed object's
+#     class.
+#
+#     Design
+#     ----------
+#     The name of this function is intentionally suffixed by neither
+#     ``_qualified`` or ``_unqualified``. Since root package names contain no
+#     ``.`` delimiters (e.g., :mod:`betse`), the fully-qualified and unqualified
+#     names of any root package are identical.
+#
+#     Parameters
+#     ----------
+#     obj : object
+#         Object to retrieve the root package name of.
+#
+#     Returns
+#     ----------
+#     str
+#         Name of the root package transitively containing this object's class.
+#     '''
+#
+#     # Resolve this module's object.
+#     module = _resolve_module(module)
+#
+#     # Fully-qualified name of this module.
+#     module_name = get_name_qualified(module)
+#
+#     # Return this set via a set comprehension.
+#     .
 
 # ....................{ GETTERS : method                  }....................
 @type_check

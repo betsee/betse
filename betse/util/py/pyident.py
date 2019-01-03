@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -118,6 +118,23 @@ def die_unless_unqualified(*texts: str) -> None:
                 'valid unqualified Python identifier.'.format(text))
 
 # ....................{ TESTERS                           }....................
+@type_check
+def is_special(text: str) -> bool:
+    '''
+    ``True`` only if the passed string is a possibly syntactically invalid
+    **special Python identifier** (i.e., class, module, or attribute name
+    both prefixed *and* suffixed by the ``__`` delimiter).
+
+    Caveats
+    ----------
+    For efficiency, this function does *not* test whether this string is a
+    syntactically valid Python identifier – merely whether this string is a
+    special if this string is a syntactically valid Python identifier.
+    '''
+
+    return text.startswith('__') and text.endswith('__')
+
+
 @type_check
 def is_unqualified(text: str) -> bool:
     '''

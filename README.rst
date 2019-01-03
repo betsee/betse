@@ -584,10 +584,10 @@ generous user contributions that your user experience can continue to improve.
    To protect Dr. Pietak's e-mail address against `automated harvesting <e-mail
    harvesting_>`__, this address has been intentionally obfuscated. Reconstruct
    the original address by:
-   
+
    * Replacing the ``{dot}`` substring with the ``.`` charecter.
    * Concatenating the username and hostname strings with the ``@`` character.
-     
+
    For this reason, consider directing correspondence to the `anonymous contact
    form <Organic Mechanics Contact_>`__ at `Organic Mechanics`_ instead.
 

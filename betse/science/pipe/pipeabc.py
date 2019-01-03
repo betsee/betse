@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -470,7 +470,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
                     '(i.e., method {}.{}() not found).'.format(
                         self._noun_singular_uppercase,
                         runner_conf.name,
-                        objects.get_class_name(self),
+                        objects.get_class_name_unqualified(self),
                         runner_method_name))
             # Else, this runner is recognized.
 

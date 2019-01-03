@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -43,7 +43,7 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 from betse.util.io.log import logs
 from betse.util.os import dlls, oses
 from betse.util.path import dirs, files, pathnames
-from betse.util.py import pymodule
+from betse.util.py.module import pymodule
 from betse.util.type.iterable import itersort
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.text import regexes, strs

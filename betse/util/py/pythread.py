@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -125,8 +125,8 @@ def is_threadable() -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.py import pymodule
+    from betse.util.py.module import pymodname
 
     # Return true only if a low-level optional module installed *ONLY* when
     # Python supports multithreading is importable.
-    return pymodule.is_module('_thread')
+    return pymodname.is_module('_thread')

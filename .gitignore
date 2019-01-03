@@ -1,11 +1,11 @@
-# --------------------( LICENSE                            )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# --------------------( LICENSE                           )--------------------
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 #
-# --------------------( SYNOPSIS                           )--------------------
+# --------------------( SYNOPSIS                          )--------------------
 # Paths matching the following glob expressions are *NOT* committed by default.
 #
-# --------------------( SEE ALSO                           )--------------------
+# --------------------( SEE ALSO                          )--------------------
 # For further details, see:
 #
 # * "man gitignore" for high-level commentary.
@@ -13,7 +13,7 @@
 #   that glob() and hence ".gitignore" files support only a proper subset of
 #   bash- and zsh-style glob syntax.
 
-# ....................{ DIRECTORIES ~ top-level            }....................
+# ....................{ DIRECTORIES ~ top-level           }....................
 # Ignore all top-level BETSE-specific temporary directories.
 /output/
 /sample_sim/
@@ -32,7 +32,7 @@
 /.eggs/
 /*.egg-info/
 
-# ....................{ DIRECTORIES ~ general              }....................
+# ....................{ DIRECTORIES ~ general             }....................
 # Ignore all Python-specific cache directories.
 __pycache__/
 
@@ -42,7 +42,7 @@ __pycache__/
 # Ignore all Rope-specific subdirectories.
 .ropeproject/
 
-# ....................{ FILES ~ top-level                  }....................
+# ....................{ FILES ~ top-level                 }....................
 # Ignore all top-level Nose-specific output files.
 /nosetests.xml
 
@@ -57,7 +57,7 @@ __pycache__/
 # Ignore top-level symbolic links to BETSE-dependent projects (e.g., BETSEE).
 /betsee_link
 
-# ....................{ FILES ~ general                    }....................
+# ....................{ FILES ~ general                   }....................
 # Ignore all BETSE-specific output files.
 *.btse
 

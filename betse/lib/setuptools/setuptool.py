@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -12,8 +12,9 @@ dependency simplifying inspection of application dependencies.
 import pkg_resources
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
-from betse.util.py import pymodule
-from betse.util.py.pymodule import DISTUTILS_PROJECT_NAME_TO_MODULE_NAME
+from betse.util.py.module import pymodname, pymodule
+from betse.util.py.module.pymodname import (
+    DISTUTILS_PROJECT_NAME_TO_MODULE_NAME)
 from betse.util.type.iterable import itersort
 from betse.util.type.types import (
     type_check,
@@ -920,7 +921,7 @@ def import_requirement(requirement: Requirement) -> ModuleType:
     logs.log_debug('Importing third-party package "%s"...', package_name)
 
     # Import and return this package.
-    return pymodule.import_module(package_name)
+    return pymodname.import_module(package_name)
 
 # ....................{ ITERATORS                         }....................
 @type_check

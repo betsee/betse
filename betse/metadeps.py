@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -24,13 +24,13 @@ would render these constants effectively useless for their principal use case.
 # installed at some later time in the installation.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from betse.util.py import pymodule
+from betse.util.py.module import pymodname
 
 # ....................{ LIBS ~ runtime : mandatory        }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this subsection *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
-# * The "betse.util.py.pymodule.DISTUTILS_PROJECT_NAME_TO_MODULE_NAME"
+# * The "betse.util.py.module.pymodname.DISTUTILS_PROJECT_NAME_TO_MODULE_NAME"
 #   dictionary, converting between the setuptools-specific names listed below
 #   and the Python-specific module names imported by this application.
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
@@ -315,7 +315,7 @@ def _init() -> None:
 
     # Prefer "ruamel.yaml", the most actively maintained and hence preferred
     # YAML framework.
-    if pymodule.is_module('ruamel.yaml'):
+    if pymodname.is_module('ruamel.yaml'):
         pass
     # Fallback to "ruamel_yaml", the next most actively maintained and hence
     # preferred YAML framework. Unlike the more general-purpose "ruamel.yaml"
@@ -327,7 +327,7 @@ def _init() -> None:
     #     RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'ruamel_yaml'
     # Fallback to PyYaml, the officially dead and hence least preferred YAML
     # framework.
-    elif pymodule.is_module('yaml'):
+    elif pymodname.is_module('yaml'):
         RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'PyYAML'
 
     #FIXME: *DELETE THE FOLLOWING LINE AFTER* upstream "ruamel.yaml" roundtrip

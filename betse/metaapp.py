@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -39,11 +39,29 @@ class BetseMetaApp(MetaAppABC):
     # ..................{ PROPERTIES ~ public : superclass  }..................
     # Abstract read-only properties required to be defined by subclasses.
 
+    #FIXME: Can't this be automated as well? In particular, can't we simply
+    #return the root package of the submodule defining the current subclass?
+    #Make it so if feasible, please.
     @property
     def package(self) -> ModuleType:
         return betse
 
     # ..................{ PROPERTIES ~ dir                  }..................
+    #FIXME: Fundamentally broken. The issue, of course, is the access of
+    #"self.data_dirname" below -- which, in subclasses, mistakenly refers to
+    #the subclass data directory unlikely to contain a "yaml" subdirectory.
+    #The solution is... well, it's a bit awkward. It also appears to be the
+    #only reasonable means of resolving this issue. We want to:
+    #
+    #* Unconditionally instantiate an instance of this "BetseMetaApp" subclass
+    #  in this module as a new private global singleton -- say,
+    #  "_app_meta_betse = BetseMetaApp()" defined either at the top-level or
+    #  (probably ideally, for safety) in the init() method.
+    #* Refactor the "self.data_dirname" below to read
+    #  "_app_meta_betse.data_dirname" instead.
+    #
+    #Naturally, subclasses may still elect to override this sane default
+    #implementation if they choose -- but they really shouldn't, ever.
     @property_cached
     def data_yaml_dirname(self) -> str:
         '''

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -69,7 +69,7 @@ from betse.util.io.log import logconfig, logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.os import displays, kernels, oses
 from betse.util.path import dirs
-from betse.util.py import pymodule
+from betse.util.py.module import pymodname
 from betse.util.type.iterable import iterables, itersort
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
@@ -996,7 +996,7 @@ class MplConfig(object):
         # by the matplotlib.use() method itself to detect repetitious calls.
         # Since the "matplotlib.pyplot" subpackage internally imports this
         # subpackage, testing only this subpackage suffices.
-        return pymodule.is_imported('matplotlib.backends')
+        return pymodname.is_imported('matplotlib.backends')
 
 
     @type_check
@@ -1458,7 +1458,7 @@ class MplConfig(object):
             # Since the above behaviour is insane, this subpackage is
             # unimported instead to sanitize life.
             if not is_backend:
-                pymodule.unimport_module_if_imported(
+                pymodname.unimport_module_if_imported(
                     'matplotlib.backends', 'matplotlib.pyplot')
 
             # Re-raise this exception.
