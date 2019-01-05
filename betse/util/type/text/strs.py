@@ -165,15 +165,14 @@ def is_suffix(text: str, suffix: str) -> bool:
 def get_substr_first_index_or_none(text: str, substr: str) -> IntOrNoneTypes:
     '''
     0-based index of the passed substring in the passed string if any *or*
-    ``None`` otherwise (i.e., if this string does *not* contain this
-    substring).
+    ``None`` otherwise (i.e., if this string contains no such substring).
 
     Parameters
     ----------
     text : str
-        String to be inspected.
+        String to be searched.
     substr : str
-        Substring to inspect this string for.
+        Substring to search this string for.
 
     Returns
     ----------
@@ -186,6 +185,143 @@ def get_substr_first_index_or_none(text: str, substr: str) -> IntOrNoneTypes:
     '''
 
     return text.index(substr) if substr in text else None
+
+# ....................{ GETTERS ~ prefix                  }....................
+@type_check
+def get_prefix_preceding_char(text: str, char: str) -> str:
+    '''
+    **Prefix** (i.e., substring anchored at the first character) of the passed
+    string preceding the first instance of the passed character in this string
+    if any *or* raise an exception otherwise (i.e., if this string contains no
+    such character).
+
+    Parameters
+    ----------
+    text : str
+        String to be searched.
+    char: str
+        Character to search this string for.
+
+    Returns
+    ----------
+    str
+        Prefix of this string preceding the first instance of this character in
+        this string.
+
+    Raises
+    ----------
+    ValueError
+        If this string does *not* contain this character.
+
+    See Also
+    ----------
+    :func:`get_prefix_preceding_char_or_none`
+        Getter returning ``None`` if this string contains no such character.
+    :func:`get_prefix_preceding_char_or_text`
+        Getter returning ``text`` if this string contains no such character.
+    '''
+
+    # Return the prefix of this string preceding the first instance of this
+    # character in this string if any *OR* raise a "ValueError" otherwise.
+    return text[:text.index(char)]
+
+
+@type_check
+def get_prefix_preceding_char_or_none(text: str, char: str) -> StrOrNoneTypes:
+    '''
+    **Prefix** (i.e., substring anchored at the first character) of the passed
+    string preceding the first instance of the passed character in this string
+    if any *or* ``None`` otherwise (i.e., if this string contains no such
+    character).
+
+    Parameters
+    ----------
+    text : str
+        String to be searched.
+    char: str
+        Character to search this string for.
+
+    Returns
+    ----------
+    StrOrNoneTypes
+        Either:
+
+        * If this string contains this character, the prefix of this string
+          preceding the first instance of this character in this string.
+        * Else, ``None``.
+
+    Examples
+    ----------
+        >>> from betse.util.type.text import strs
+        >>> strs.get_prefix_preceding_char_or_none(
+        ...     text='Opposition...contradiction...premonition...compromise.',
+        ...     char='.')
+        Opposition
+        >>> strs.get_prefix_preceding_char_or_none(
+        ...     text='This is an anomaly. Disabled. What is true?',
+        ...     char='!')
+        None
+    '''
+
+    # Return either...
+    return (
+        # The prefix of this string preceding the first instance of this
+        # character in this string...
+        text[:text.index(char)]
+        # If this string contains this character *OR*...
+        if char in text else
+        # Nothingness.
+        None
+    )
+
+
+@type_check
+def get_prefix_preceding_char_or_text(text: str, char: str) -> str:
+    '''
+    **Prefix** (i.e., substring anchored at the first character) of the passed
+    string preceding the first instance of the passed character in this string
+    if any *or* this string as is otherwise (i.e., if this string contains no
+    such character).
+
+    Parameters
+    ----------
+    text : str
+        String to be searched.
+    char: str
+        Character to search this string for.
+
+    Returns
+    ----------
+    StrOrNoneTypes
+        Either:
+
+        * If this string contains this character, the prefix of this string
+          preceding the first instance of this character in this string.
+        * Else, this string as is.
+
+    Examples
+    ----------
+        >>> from betse.util.type.text import strs
+        >>> strs.get_prefix_preceding_char_or_text(
+        ...     text='Seven milestones... under a watching autumn eye.',
+        ...     char='.')
+        Seven milestones
+        >>> strs.get_prefix_preceding_char_or_text(
+        ...     text='Rain's falling. Hours crawling.',
+        ...     char='!')
+        Rain's falling. Hours crawling.
+    '''
+
+    # Return either...
+    return (
+        # The prefix of this string preceding the first instance of this
+        # character in this string...
+        text[:text.index(char)]
+        # If this string contains this character *OR*...
+        if char in text else
+        # This string.
+        text
+    )
 
 # ....................{ ADDERS                            }....................
 def add_prefix_unless_found(text: str, prefix: str) -> str:

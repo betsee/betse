@@ -58,6 +58,35 @@ def die_unless_path(*pathnames: str) -> None:
                 'Path "{}" not found or unreadable.'.format(pathname))
 
 
+@type_check
+def path_or_die(pathname: str) -> str:
+    '''
+    Passed pathname if a path with this pathname exists *or* raise an exception
+    otherwise (i.e., if this path does *not* exist).
+
+    Parameters
+    ----------
+    pathname : str
+        Absolute or relative pathname of the path to be validated.
+
+    Returns
+    ----------
+    str
+        Passed pathname if this path exists.
+
+    Raises
+    ----------
+    BetsePathException
+        If this path does *not* exist.
+    '''
+
+    # If this path is not found, fail.
+    die_unless_path(pathname)
+
+    # Else, this path exists. Return this path's pathname.
+    return pathname
+
+# ....................{ EXCEPTIONS ~ type                 }....................
 def die_if_special(pathname: str) -> None:
     '''
     Raise an exception if the passed path is an existing special file.

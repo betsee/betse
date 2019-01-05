@@ -37,10 +37,8 @@ synopsizing application metadata via read-only properties) hierarchy.
 from abc import ABCMeta
 from betse.exceptions import BetseGitException
 # from betse.util.io.log import logs
-from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.decorator.decmemo import property_cached
-from betse.util.type.types import (
-    type_check, ModuleType, StrOrNoneTypes)
+from betse.util.type.types import type_check, ModuleType, StrOrNoneTypes
 
 # ....................{ SUPERCLASSES                      }....................
 class MetaAppABC(object, metaclass=ABCMeta):
@@ -76,28 +74,27 @@ class MetaAppABC(object, metaclass=ABCMeta):
     render these constants effectively useless for their principal use case.
     '''
 
-    # ..................{ PROPERTIES ~ subclass             }..................
-    # Abstract read-only properties required to be defined by subclasses.
-
-    @abstractproperty
+    # ..................{ PROPERTIES                        }..................
+    @property_cached
     def package(self) -> ModuleType:
         '''
-        **Root Python package** (i.e., top-level package for this application,
-        typically of the same name as this application and installed into a
-        subdirectory of the same name in the ``site-packages`` directory
-        specific to the active Python interpreter).
+        **Root package** (i.e., topmost package for this application, typically
+        of the same name as this application and installed into a subdirectory
+        of the same name in the ``site-packages`` directory specific to the
+        active Python interpreter) for this application.
         '''
 
-        pass
+        # Avoid circular import dependencies.
+        from betse.util.py.module import pypackage
 
-    # ..................{ PROPERTIES                        }..................
-    # Concrete read-only properties.
+        # Introspection for the glorious victory.
+        return pypackage.get_object_type_package_root(obj=self)
 
-    @property
+
+    @property   # Avoid caching trivial properties.
     def package_name(self) -> str:
         '''
-        Unqualified name of this application's root package (e.g., ``betse`` if
-        this application is BETSE).
+        Name of this application's root package (e.g., ``betse`` for BETSE).
         '''
 
         return self.package.__name__
@@ -231,13 +228,11 @@ class MetaAppABC(object, metaclass=ABCMeta):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.path import dirs
+        from betse.util.app import apppath
 
-        # Absolute path of this directory.
-        data_dirname = self.get_pathname('data')
-
-        # If this directory is not found, fail; else, return this directory.
-        return dirs.dir_or_die(data_dirname)
+        # Return the absolute dirname of this application-relative directory if
+        # this directory exists *OR* raise an exception otherwise.
+        return apppath.get_dirname(package=self.package, dirname='data')
 
     # ..................{ PROPERTIES ~ dir : git            }..................
     @property_cached
@@ -336,76 +331,3 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
         # Return the absolute path of this file.
         return pathnames.join(self.dot_dirname, self.package_name + '.prof')
-
-    # ..................{ PROPERTIES ~ private              }..................
-
-    # ..................{ GETTERS ~ path                    }..................
-    @type_check
-    def get_pathname(self, pathname: str) -> str:
-        '''
-        Absolute path of the passed pathname relative to the absolute path of
-        the root package for this application.
-
-        Specifically, this method returns:
-
-        * If this application is a PyInstaller-frozen executable binary, the
-          concatenation of (in order):
-
-          #. The absolute path of the temporary directory containing all
-             application data resources extracted from this binary by this
-             executable's bootloader, as specified by the PyInstaller-specific
-             private attribute ``_MEIPASS`` injected into the canonical
-             :mod:`sys` module by the PyInstaller bootloader embedded in this
-             binary. "And it's turtles all the way down."
-          #. The passed relative pathname.
-
-        * If this application is a :mod:`setuptools`-installed script wrapper,
-          the result of querying :mod:`setuptools` for the absolute path of the
-          passed relative pathname. In this case, this path will have been
-          preserved as is in the :mod:`setuptools`-installed copy of this
-          application in the package tree for the active Python interpreter.
-        * Else, the concatenation of (in order):
-
-          #. The absolute path of the directory providing this root package.
-          #. The passed relative pathname.
-
-          In this case, this application is typically either a
-          :mod:`setuptools`-symlinked script wrapper *or* was invoked via the
-          secretive ``python3 -m {package.__name__}`` command.
-
-        Parameters
-        ----------
-        pathname : str
-            Relative pathname of the path to be canonicalized.
-
-        Returns
-        ----------
-        Absolute path of this pathname relative to the absolute path of the
-        root package for this application.
-        '''
-
-        # Avoid circular import dependencies.
-        from betse.lib.setuptools import resources
-        from betse.util.path import pathnames
-        from betse.util.py import pyfreeze
-
-        # If this application is frozen by PyInstaller, canonicalize this path
-        # relative to the directory to which this application is unfrozen.
-        if pyfreeze.is_frozen_pyinstaller():
-            app_pathname = pathnames.join(
-                pyfreeze.get_app_dirname_pyinstaller(), pathname)
-        # Else if this application is a setuptools-installed script wrapper,
-        # canonicalize this path by deferring to the setuptools resource API.
-        elif resources.is_dir(
-            module_name=self.package_name, dirname=pathname):
-            app_pathname = resources.get_pathname(
-                module_name=self.package_name, pathname=pathname)
-        # Else, the current application is either a setuptools-symlinked script
-        # wrapper *OR* was invoked via the secretive "python3 -m betse"
-        # command. In either case, this directory's path is directly obtainable
-        # relative to the absolute path of the passed package.
-        else:
-            app_pathname = pathnames.join(self.package_dirname, pathname)
-
-        # Return this pathname.
-        return app_pathname

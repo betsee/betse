@@ -91,15 +91,15 @@ def die_unless_dir(*dirnames: str) -> None:
 
 
 @type_check
-def dir_or_die(pathname: str) -> str:
+def dir_or_die(dirname: str) -> str:
     '''
     Passed dirname if a directory with this dirname exists *or* raise an
     exception otherwise (i.e., if this directory does *not* exist).
 
     Parameters
     ----------
-    pathname : str
-        Absolute or relative dirname of the directory to be inspected.
+    dirname : str
+        Absolute or relative dirname of the directory to be validated.
 
     Returns
     ----------
@@ -113,10 +113,10 @@ def dir_or_die(pathname: str) -> str:
     '''
 
     # If this directory is not found, fail.
-    die_unless_dir(pathname)
+    die_unless_dir(dirname)
 
-    # Return this directory's pathname.
-    return pathname
+    # Else, this directory exists. Return this directory's pathname.
+    return dirname
 
 
 @type_check

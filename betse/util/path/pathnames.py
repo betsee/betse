@@ -31,8 +31,15 @@ these errors into raised exceptions. Under Linux, for example, a
 # ....................{ EXCEPTIONS ~ absolute             }....................
 def die_if_absolute(*pathnames: str) -> None:
     '''
-    Raise an exception if any passed path is absolute (i.e., unless all passed
-    paths are relative).
+    Raise an exception if any passed pathname is absolute.
+
+    Equivalently, this function raises an exception unless unless all passed
+    pathnames are relative.
+
+    Raises
+    ----------
+    BetsePathnameException
+        If any such pathname is absolute.
 
     See Also
     ----------
@@ -49,8 +56,15 @@ def die_if_absolute(*pathnames: str) -> None:
 
 def die_if_relative(*pathnames: str) -> None:
     '''
-    Raise an exception if any passed path is relative (i.e., unless all passed
-    paths are absolute).
+    Raise an exception if any passed pathname is relative.
+
+    Equivalently, this function raises an exception unless unless all passed
+    pathnames are absolute.
+
+    Raises
+    ----------
+    BetsePathnameException
+        If any such pathname is relative.
 
     See Also
     ----------

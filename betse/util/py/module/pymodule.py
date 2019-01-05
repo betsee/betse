@@ -11,7 +11,7 @@ module object; most also accept the fully-qualified name of a module.
 
 See Also
 ----------
-:mod:`betse.util.py.module.pyname`
+:mod:`betse.util.py.module.pymodname`
     Related submodule whose functions accept only fully-qualified names.
 '''
 
@@ -23,11 +23,9 @@ See Also
 # stock Python packages.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import importlib, sys
 from betse.exceptions import BetseModuleException
 from betse.util.io.log import logs
 from betse.util.type import types
-from betse.util.type.mapping.mapcls import DefaultDict
 from betse.util.type.types import (
     type_check,
     ModuleType,
@@ -35,11 +33,69 @@ from betse.util.type.types import (
     SetType,
     StrOrNoneTypes,
 )
-from collections import defaultdict
-from importlib import util as importlib_util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 
+# ....................{ EXCEPTIONS                        }....................
+@type_check
+def die_unless_topmost(module: ModuleOrStrTypes) -> None:
+    '''
+    Raise an exception unless the passed module is **topmost** (i.e., a
+    top-level module whose module name contains no ``.`` delimiters).
+
+    Parameters
+    ----------
+    module : ModuleOrStrTypes
+        Either:
+
+        * The fully-qualified name of this module, in which case this function
+          dynamically imports this module.
+        * A previously imported module object.
+
+    Raises
+    ----------
+    BetseModuleException
+        If this module is a submodule rather than topmost.
+    '''
+
+    # If this module is *NOT* topmost...
+    if not is_topmost(module):
+        # Fully-qualified name of this module.
+        module_name = get_name_qualified(module)
+
+        # Raise an exception embedding this name.
+        raise BetseModuleException(
+            'Module "{}" not topmost '
+            '(i.e., contains one or more "." delimiters).'.format(module_name))
+
 # ....................{ TESTERS                           }....................
+@type_check
+def is_topmost(module: ModuleOrStrTypes) -> bool:
+    '''
+    ``True`` only if the passed module is **topmost** (i.e., a top-level module
+    whose module name contains no ``.`` delimiters).
+
+    Parameters
+    ----------
+    module : ModuleOrStrTypes
+        Either:
+
+        * The fully-qualified name of this module, in which case this function
+          dynamically imports this module.
+        * A previously imported module object.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this a topmost module.
+    '''
+
+    # Fully-qualified name of this module.
+    module_name = get_name_qualified(module)
+
+    # Return true only if this name contains no "." delimiters.
+    return '.' not in module_name
+
+# ....................{ TESTERS ~ type                    }....................
 @type_check
 def is_c_extension(module: ModuleOrStrTypes) -> bool:
     '''
@@ -65,7 +121,7 @@ def is_c_extension(module: ModuleOrStrTypes) -> bool:
     from betse.util.path import pathnames
 
     # Resolve this module's object.
-    module = _resolve_module(module)
+    module = resolve_module(module)
 
     # If this module was loaded by a PEP 302-compliant C extension loader, this
     # module *MUST* be a C extension.
@@ -124,7 +180,7 @@ def get_global_names(module: ModuleOrStrTypes) -> SetType:
     from betse.util.py import pyident
 
     # Resolve this module's object.
-    module = _resolve_module(module)
+    module = resolve_module(module)
 
     # Return this set via a set comprehension.
     return {
@@ -138,24 +194,31 @@ def get_global_names(module: ModuleOrStrTypes) -> SetType:
 
 # ....................{ GETTERS ~ name                    }....................
 @type_check
-def get_name_qualified(module: ModuleType) -> str:
+def get_name_qualified(module: ModuleOrStrTypes) -> str:
     '''
     **Fully-qualified name** (i.e., absolute canonical ``.``-delimited name) of
     the passed module.
 
-    While trivial, this getter is defined for orthogonality with corresponding
+    While trivial, this getter is defined for orthogonality with comparable
     non-trivial getters defined by this submodule.
 
     Parameters
     ----------
     module : ModuleOrStrTypes
-        Previously imported module object to be inspected.
+        Either:
+
+        * The fully-qualified name of this module, in which case this function
+          dynamically imports this module.
+        * A previously imported module object.
 
     Returns
     ----------
     str
         Fully-qualified name of this module.
     '''
+
+    # Resolve this module's object.
+    module = resolve_module(module)
 
     # Who let the one-liners out?
     return module.__name__
@@ -209,7 +272,7 @@ def get_filename(module: ModuleOrStrTypes) -> str:
     '''
 
     # Resolve this module's object.
-    module = _resolve_module(module)
+    module = resolve_module(module)
 
     # If this module does *NOT* provide the special "__file__" attribute, raise
     # an exception. (All modules *EXCEPT* builtin modules should provide this.)
@@ -255,8 +318,11 @@ def get_dirname(module: ModuleOrStrTypes) -> str:
     # Avoid circular import dependencies.
     from betse.util.path import pathnames
 
-    # Return this dirname. Note that get_filename() returns the absolute
-    # filename of the "__init__.py" file if this module is a package.
+    # Return the dirname of the directory containing the Python script
+    # implementing this module. Note that get_filename() returns the absolute
+    # filename of the "__init__.py" file if this module is a package,
+    # guaranteeing the correct behaviour regardless of whether this is
+    # specifically a module or package.
     return pathnames.get_dirname(get_filename(module))
 
 
@@ -336,8 +402,11 @@ def get_version_or_none(module: ModuleOrStrTypes) -> StrOrNoneTypes:
         This module's version specifier if any *or* ``None`` otherwise.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.py.module.pymodname import MODULE_NAME_TO_VERSION_ATTR_NAME
+
     # Resolve this module's object.
-    module = _resolve_module(module)
+    module = resolve_module(module)
 
     # Name of the version specifier attribute defined by that module. For sane
     # modules, this is "__version__". Insane modules, however, exist.
@@ -354,15 +423,18 @@ def get_version_or_none(module: ModuleOrStrTypes) -> StrOrNoneTypes:
     # Return this version.
     return module_version
 
-# ....................{ PRIVATE ~ resolvers               }....................
+# ....................{ RESOLVERS                         }....................
 @type_check
-def _resolve_module(module : ModuleOrStrTypes) -> ModuleType:
+def resolve_module(module: ModuleOrStrTypes) -> ModuleType:
     '''
-    Dynamically import and return the module with the passed name if a string
-    is passed *or* return the passed module as is otherwise.
+    Dynamically import and return the module with the passed name if the passed
+    parameter is a string *or* return the passed module as is otherwise.
 
-    This utility function is intended *only* to simplify the implementation of
-    public functions defined by this submodule and is hence private.
+    Motivation
+    ----------
+    This utility function is principally intended to simplify the
+    implementation of public functions defined by this submodule and the
+    :mod:`betse.util.py.module.pypackage` submodule.
 
     Parameters
     ----------
@@ -379,9 +451,15 @@ def _resolve_module(module : ModuleOrStrTypes) -> ModuleType:
         Module object resolved from the passed parameter.
     '''
 
-    # If a module name was passed, dynamically import and return this module.
-    if types.is_str(module):
-        return import_module(module)
-    # Else, type checking guarantees this object to be a module. Return this.
-    else:
-        return module
+    # Avoid circular import dependencies.
+    from betse.util.py.module import pymodname
+
+    # Return either...
+    return (
+        # A module object dynamically imported as this module name...
+        pymodname.import_module(module)
+        # If a module name rather than object was passed; else...
+        if types.is_str(module) else
+        # This module object.
+        module
+    )

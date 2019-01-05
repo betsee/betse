@@ -24,19 +24,11 @@ See Also
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import importlib, sys
-from betse.exceptions import BetseModuleException
 from betse.util.io.log import logs
-from betse.util.type import types
 from betse.util.type.mapping.mapcls import DefaultDict
-from betse.util.type.types import (
-    type_check,
-    ModuleType,
-    SetType,
-    StrOrNoneTypes,
-)
+from betse.util.type.types import type_check, ModuleType, StrOrNoneTypes
 from collections import defaultdict
 from importlib import util as importlib_util
-from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 
 # ....................{ GLOBALS ~ dict                    }....................
 DISTUTILS_PROJECT_NAME_TO_MODULE_NAME = DefaultDict(

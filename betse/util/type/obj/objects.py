@@ -7,6 +7,9 @@
 Low-level object facilities.
 '''
 
+#FIXME: For maintainability, extract all "die_"- and "is_"-prefixed functions
+#into a newly defined "objtest" submodule of this subpackage.
+
 # ....................{ IMPORTS                           }....................
 import platform
 from betse.exceptions import (
@@ -17,6 +20,7 @@ from betse.util.type.types import (
     CallableTypes,
     CallableOrNoneTypes,
     ClassType,
+    ModuleType,
     TestableTypes,
 )
 
@@ -149,7 +153,7 @@ def is_attr(obj: object, attr_name: str) -> bool:
 @type_check
 def is_class(obj: object, class_name: str) -> bool:
     '''
-    ``True`` only if the passed object provides a class with the passed name.
+    ``True`` only if the passed object defines a class with the passed name.
 
     Parameters
     ----------
@@ -161,7 +165,7 @@ def is_class(obj: object, class_name: str) -> bool:
     Returns
     ----------
     bool
-        `True` only if a class with this name is bound to this object.
+        ``True`` only if a class with this name is bound to this object.
     '''
 
     # Attribute with this name in this object if any or "None" otherwise.
@@ -510,69 +514,6 @@ def get_class_module_name_qualified(obj: object) -> str:
 
     # Return the fully-qualified name of this class.
     return classes.get_module_name_qualified(cls)
-
-# ....................{ GETTERS ~ class : package : root  }....................
-#FIXME: Implement us up, please.
-# @type_check
-# def get_class_package_root(module: ModuleOrStrTypes) -> ModuleType:
-#     '''
-#     **Root package** (i.e., topmost package whose package name contains no
-#     ``.`` delimiters) transitively containing the passed object's class.
-#
-#     Parameters
-#     ----------
-#     module : ModuleOrStrTypes
-#         Either:
-#
-#         * The fully-qualified name of this module, in which case this function
-#           dynamically imports this module.
-#         * A previously imported module object.
-#
-#     Returns
-#     ----------
-#     ModuleType
-#         Root package transitively containing this module.
-#     '''
-#
-#     # Fully-qualified name of the root package of this object's class.
-#     class_package_root_name = get_class_package_root_name(module)
-#
-#     ..
-#
-#
-# @type_check
-# def get_class_package_root_name(obj: object) -> str:
-#     '''
-#     Name of the **root package** (i.e., topmost package whose package name
-#     contains no ``.`` delimiters) transitively containing the passed object's
-#     class.
-#
-#     Design
-#     ----------
-#     The name of this function is intentionally suffixed by neither
-#     ``_qualified`` or ``_unqualified``. Since root package names contain no
-#     ``.`` delimiters (e.g., :mod:`betse`), the fully-qualified and unqualified
-#     names of any root package are identical.
-#
-#     Parameters
-#     ----------
-#     obj : object
-#         Object to retrieve the root package name of.
-#
-#     Returns
-#     ----------
-#     str
-#         Name of the root package transitively containing this object's class.
-#     '''
-#
-#     # Resolve this module's object.
-#     module = _resolve_module(module)
-#
-#     # Fully-qualified name of this module.
-#     module_name = get_name_qualified(module)
-#
-#     # Return this set via a set comprehension.
-#     .
 
 # ....................{ GETTERS : method                  }....................
 @type_check

@@ -37,7 +37,7 @@ Note that Python < 3.4.0:
 Design
 ----------
 Metadata constants defined by this submodule are intentionally *not* defined as
-metadata properties of the :class:`betse.util.meta.metaappabc` abstract base
+metadata properties of the :class:`betse.util.app.meta.metaappabc` abstract base
 class. Why? Because doing so would prevent their use from the top-level
 ``setup.py`` scripts defined by downstream consumers (e.g., BETSEE GUI), which
 would render these constants effectively useless for their principal use case.

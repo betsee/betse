@@ -18,9 +18,10 @@ synopsizing application metadata via read-only properties).
 
 import betse
 from betse.exceptions import BetseMetaAppException
-from betse.util.meta.metaappabc import MetaAppABC
+from betse.util.app import apppath
+from betse.util.app.meta.metaappabc import MetaAppABC
 from betse.util.type.decorator.decmemo import property_cached
-from betse.util.type.types import type_check, ModuleType, NoneType
+from betse.util.type.types import type_check, NoneType
 
 # ....................{ SUBCLASSES                        }....................
 class BetseMetaApp(MetaAppABC):
@@ -35,16 +36,6 @@ class BetseMetaApp(MetaAppABC):
     subclass is *not* guaranteed to exist at setuptools-based installation-time
     for downstream consumers (e.g., BETSEE).
     '''
-
-    # ..................{ PROPERTIES ~ public : superclass  }..................
-    # Abstract read-only properties required to be defined by subclasses.
-
-    #FIXME: Can't this be automated as well? In particular, can't we simply
-    #return the root package of the submodule defining the current subclass?
-    #Make it so if feasible, please.
-    @property
-    def package(self) -> ModuleType:
-        return betse
 
     # ..................{ PROPERTIES ~ dir                  }..................
     #FIXME: Fundamentally broken. The issue, of course, is the access of
@@ -62,6 +53,60 @@ class BetseMetaApp(MetaAppABC):
     #
     #Naturally, subclasses may still elect to override this sane default
     #implementation if they choose -- but they really shouldn't, ever.
+    #FIXME: Perhaps not? The above approach is patently absurd and blatantly
+    #overkill; simply extract these properties into @callable_cached-decorated
+    #public top-level functions of this submodule as under the prior design. On
+    #doing so, of course, note *EXACTLY* why this is being done.
+    #FIXME: Perhaps, actually. The prior commentary would be ideal, except for
+    #the obvious conundrum of needing to access the "data_dirname" property of
+    #BETSE rather than a subclass. One admirable means of circumventing this
+    #might be as follows:
+    #
+    #* Redefine the data_yaml_dirname() property in terms of the
+    #  betse_data_dirname() property (e.g., by substituting "self.data_dirname"
+    #  for "self.betse_data_dirname").
+    #* For both disambiguity and orthogonality, rename:
+    #  * data_yaml_dirname() to betse_data_yaml_dirname().
+    #  * sim_conf_default_filename() to betse_sim_conf_default_filename().
+    #
+    #Nice, eh? All existing semantics are preserved, including the capacity to
+    #override these sane default implementations. Moreover, no additional giant
+    #singleton need be preserved in memory merely to define a single property.
+
+    @property_cached
+    def betse_data_dirname(self) -> str:
+        '''
+        Absolute dirname of BETSE's top-level data directory if found *or*
+        raise an exception otherwise (i.e., if this directory is *not* found).
+
+        This directory typically contains BETSE-internal resources (e.g., media
+        files) required at BETSE runtime.
+
+        Design
+        ----------
+        The dirname returned by this property is guaranteed to be identical to
+        the dirname returned by the :meth:`data_dirname` *only* if the current
+        application is BETSE. If the current application is instead a
+        downstream consumer of BETSE (e.g., BETSEE, PLIMBO), the dirname
+        returned by this property is guaranteed to be BETSE-specific while that
+        returned by the :meth:`data_dirname` property is guaranteed to be
+        downstream-specific and hence differ from the former.
+
+        In short, this property enables downstream consumers to access
+        BETSE-specific data in a non-ambiguous manner *without* inviting
+        inheritance or subclass issues.
+
+        Raises
+        ----------
+        BetseDirException
+            If this directory does *not* exist.
+        '''
+
+        # Return the absolute dirname of this BETSE-relative directory if
+        # this directory exists *OR* raise an exception otherwise.
+        return apppath.get_dirname(package=betse, dirname='data')
+
+
     @property_cached
     def data_yaml_dirname(self) -> str:
         '''
