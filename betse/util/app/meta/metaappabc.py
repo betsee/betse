@@ -74,6 +74,14 @@ class MetaAppABC(object, metaclass=ABCMeta):
     render these constants effectively useless for their principal use case.
     '''
 
+    # ..................{ INITIALIZERS                      }..................
+    def __init__(self) -> None:
+        '''
+        Initialize this application metadata singleton.
+        '''
+
+        pass
+
     # ..................{ PROPERTIES                        }..................
     @property_cached
     def package(self) -> ModuleType:

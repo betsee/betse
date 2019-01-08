@@ -229,7 +229,7 @@ class MplConfig(object):
         # explicitly added to this list *BEFORE* importing this module. Awful!
         try:
             # Logging configuration singleton.
-            log_config = logconfig.get()
+            log_config = logconfig.get_log_conf()
 
             # Logging level of the application-wide standard output handler,
             # representing the default logging level for this Python process.

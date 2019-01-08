@@ -17,11 +17,10 @@ synopsizing application metadata via read-only properties).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import betse
-from betse.exceptions import BetseMetaAppException
 from betse.util.app import apppath
 from betse.util.app.meta.metaappabc import MetaAppABC
 from betse.util.type.decorator.decmemo import property_cached
-from betse.util.type.types import type_check, NoneType
+from betse.util.type.types import type_check
 
 # ....................{ SUBCLASSES                        }....................
 class BetseMetaApp(MetaAppABC):
@@ -38,41 +37,6 @@ class BetseMetaApp(MetaAppABC):
     '''
 
     # ..................{ PROPERTIES ~ dir                  }..................
-    #FIXME: Fundamentally broken. The issue, of course, is the access of
-    #"self.data_dirname" below -- which, in subclasses, mistakenly refers to
-    #the subclass data directory unlikely to contain a "yaml" subdirectory.
-    #The solution is... well, it's a bit awkward. It also appears to be the
-    #only reasonable means of resolving this issue. We want to:
-    #
-    #* Unconditionally instantiate an instance of this "BetseMetaApp" subclass
-    #  in this module as a new private global singleton -- say,
-    #  "_app_meta_betse = BetseMetaApp()" defined either at the top-level or
-    #  (probably ideally, for safety) in the init() method.
-    #* Refactor the "self.data_dirname" below to read
-    #  "_app_meta_betse.data_dirname" instead.
-    #
-    #Naturally, subclasses may still elect to override this sane default
-    #implementation if they choose -- but they really shouldn't, ever.
-    #FIXME: Perhaps not? The above approach is patently absurd and blatantly
-    #overkill; simply extract these properties into @callable_cached-decorated
-    #public top-level functions of this submodule as under the prior design. On
-    #doing so, of course, note *EXACTLY* why this is being done.
-    #FIXME: Perhaps, actually. The prior commentary would be ideal, except for
-    #the obvious conundrum of needing to access the "data_dirname" property of
-    #BETSE rather than a subclass. One admirable means of circumventing this
-    #might be as follows:
-    #
-    #* Redefine the data_yaml_dirname() property in terms of the
-    #  betse_data_dirname() property (e.g., by substituting "self.data_dirname"
-    #  for "self.betse_data_dirname").
-    #* For both disambiguity and orthogonality, rename:
-    #  * data_yaml_dirname() to betse_data_yaml_dirname().
-    #  * sim_conf_default_filename() to betse_sim_conf_default_filename().
-    #
-    #Nice, eh? All existing semantics are preserved, including the capacity to
-    #override these sane default implementations. Moreover, no additional giant
-    #singleton need be preserved in memory merely to define a single property.
-
     @property_cached
     def betse_data_dirname(self) -> str:
         '''
@@ -108,7 +72,7 @@ class BetseMetaApp(MetaAppABC):
 
 
     @property_cached
-    def data_yaml_dirname(self) -> str:
+    def betse_data_yaml_dirname(self) -> str:
         '''
         Absolute pathname of this application's data subdirectory containing
         YAML-formatted files if found *or* raise an exception otherwise (i.e.,
@@ -130,11 +94,11 @@ class BetseMetaApp(MetaAppABC):
         from betse.util.path import dirs
 
         # Return this dirname if this directory exists or raise an exception.
-        return dirs.join_or_die(self.data_dirname, 'yaml')
+        return dirs.join_or_die(self.betse_data_dirname, 'yaml')
 
     # ..................{ PROPERTIES ~ file                 }..................
     @property_cached
-    def sim_conf_default_filename(self) -> str:
+    def betse_sim_conf_default_filename(self) -> str:
         '''
         Absolute pathname of this application's **default simulation
         configuration file** (i.e., plaintext YAML-formatted file from which
@@ -151,7 +115,7 @@ class BetseMetaApp(MetaAppABC):
         from betse.util.path import files
 
         # Return this dirname if this directory exists or raise an exception.
-        return files.join_or_die(self.data_yaml_dirname, 'sim_config.yaml')
+        return files.join_or_die(self.betse_data_yaml_dirname, 'sim_config.yaml')
 
     # ..................{ GETTERS                           }..................
     @type_check
@@ -198,78 +162,3 @@ class BetseMetaApp(MetaAppABC):
 
         # Else, return the history filename for this REPL.
         return REPL_MODULE_NAME_TO_HISTORY_FILENAME[repl_module_name]
-
-# ....................{ TYPES                             }....................
-BetseMetaAppOrNoneTypes = (BetseMetaApp, NoneType)
-'''
-Tuple of the types of both the application metadata *and* ``None``  singletons.
-'''
-
-# ....................{ GLOBALS                           }....................
-_app_meta = None
-'''
-**Application metadata singleton** (i.e., application-wide object synopsizing
-application metadata via read-only properties).
-
-Caveats
-----------
-For safety, callers are advised to call the :func:`get_app_meta` getter safely
-returning this private singleton rather than directly accessing this private
-singleton unsafely.
-'''
-
-# ....................{ GETTERS                           }....................
-def get_app_meta() -> BetseMetaApp:
-    '''
-    **Application metadata singleton** (i.e., application-wide object
-    synopsizing application metadata via read-only properties) if this
-    singleton has already been instantiated by a prior call to the :func:`init`
-    function *or* raise an exception otherwise (i.eg., if that function has yet
-    to be called).
-
-    Returns
-    ----------
-    BetseMetaApp
-        Application metadata singleton defined by the most recent call to the
-        :func:`init` function.
-
-    Raises
-    ----------
-    BetseMetaAppException
-        If the :func:`init` function has yet to be called.
-    '''
-
-    # If no application metadata singleton exists, raise an exception.
-    if not _app_meta:
-        raise BetseMetaAppException(
-            'Application metadata singleton undefined '
-            '(e.g., as betse.metaapp.init() not called).')
-
-    # Else, an application metadata singleton exists; return it, please.
-    return _app_meta
-
-# ....................{ INITIALIZERS                      }....................
-@type_check
-def init(app_meta: BetseMetaAppOrNoneTypes = None) -> None:
-    '''
-    Initialize this submodule with either the passed application metadata
-    singleton if non-``None`` *or* a new instance of the :class:`BetseMetaApp`
-    subclass otherwise (i.e., if no such singleton is passed).
-
-    Parameters
-    ----------
-    app_meta : BetseMetaAppOrNoneTypes
-        Caller-specific application metadata singleton (i.e., instance of the
-        :class:`BetseMetaApp` subclass). Defaults to ``None``, in which case
-        this parameter defaults to a vanilla instance of that subclass.
-    '''
-
-    # Enable this singleton global to be overwritten be the passed parameter.
-    global _app_meta
-
-    # If passed no caller-specific singleton, default to a generic singleton.
-    if app_meta is None:
-        app_meta = BetseMetaApp()
-
-    # Set this singleton global to this caller-specific singleton.
-    _app_meta = app_meta

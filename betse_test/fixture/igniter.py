@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-Fixtures initializing BETSE in a manner suitable for _all_ testing.
+Fixtures initializing BETSE in a manner suitable for *all* testing.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from pytest import fixture
 
-# ....................{ FIXTURES                           }....................
+# ....................{ FIXTURES                          }....................
 @fixture(scope='session', autouse=True)
 def betse_init() -> None:
     '''
@@ -23,17 +23,17 @@ def betse_init() -> None:
     * Initializes all third-party dependencies thereof.
     * Increases logging verbosity to the maximum level (i.e., ``DEBUG``).
     * Enables the default non-interactive matplotlib backend ``Agg``,
-      *guaranteed* to be usable on all platforms. By default, matplotlib enables
-      an interactive backend (e.g., ``Qt5Agg``) unsuitable for use under
-      typically headless test automation.
+      *guaranteed* to be usable on all platforms. By default, matplotlib
+      enables an interactive backend (e.g., ``Qt5Agg``) unsuitable for use
+      under typically headless test automation.
 
     Motivation
     ----------
     This fixture is automatically requested by *all* tests (functional, unit,
     or otherwise) without needing to be explicitly requested. Moreover, this
-    fixture is imported into the top-level :mod:`betse_test.conftest` plugin and
-    hence *guaranteed* to be run prior to all other BETSE-specific fixtures.
-    Doing so avoids spurious issues in other fixtures and tests.
+    fixture is imported into the top-level :mod:`betse_test.conftest` plugin
+    and hence *guaranteed* to be run prior to all other BETSE-specific
+    fixtures. Doing so avoids spurious issues in other fixtures and tests.
 
     Notably, the early test-specific initialization of both BETSE and
     dependencies prevents the magic :func:`betse.science._ignite` function from
@@ -48,22 +48,17 @@ def betse_init() -> None:
     # Defer heavyweight imports.
     from betse import ignition
     from betse.lib import libs
-    from betse.util.io.log import logconfig
 
-    # Inform users of this initialization.
-    print('\n[py.test] Initializing BETSE...')
+    # Inform callers of this initialization.
+    print('\n[py.test] Igniting BETSE for testing...')
 
     # Initialize the core application. Note that the higher-level
-    # ignition.ignote() function is intentionally *NOT* called here, as doing so
-    # could erroneously enable a headfull matplotlib backend.
+    # ignition.ignote() function is intentionally *NOT* called here, as doing
+    # so could erroneously enable a headfull matplotlib backend.
     ignition.init()
 
-    # Singleton logging configuration for the current Python process retrieved
-    # *AFTER* initializing the core application.
-    log_config = logconfig.get()
-
-    # Increase logging verbosity to the maximum level (i.e., "DEBUG").
-    log_config.is_verbose = True
-
-    # Initialize all dependencies *AFTER* both the core application and logging.
+    # Initialize all dependencies *AFTER* both the application and logging.
     libs.init(matplotlib_backend_name='Agg')
+
+    # Inform callers of the completion of this initialization.
+    print('[py.test] Ignited BETSE for testing.')

@@ -17,13 +17,13 @@ Low-level logging configuration.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import logging, os, sys
+# from betse.exception import BetseLogException
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type.types import type_check
 from logging import Handler, RootLogger, StreamHandler
 
 # ....................{ GLOBALS                           }....................
-# See below for utility functions accessing this singleton.
-_config = None
+_log_conf = None
 '''
 Singleton logging configuration for the current Python process.
 
@@ -31,6 +31,42 @@ This configuration provides access to root logger handlers. In particular, this
 simplifies modification of logging levels at runtime (e.g., in response to
 command-line arguments or configuration file settings).
 '''
+
+# ....................{ INITIALIZERS                      }....................
+@type_check
+def init(is_verbose: bool = False) -> None:
+    '''
+    Enable our default logging configuration for the active Python process.
+    '''
+
+    # Instantiate this singleton global with the requisite defaults.
+    # print('Reinitializing logging.')
+    global _log_conf
+    _log_conf = LogConfig()
+
+# ....................{ GETTERS                           }....................
+def get_log_conf() -> 'LogConfig':
+    '''
+    Singleton logging configuration for the active Python process.
+    '''
+
+    return _log_conf
+
+
+def get_metadata():
+    '''
+    Ordered dictionary synopsizing the current logging configuration.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.mapping.mapcls import OrderedArgsDict
+
+    # Return this dictionary.
+    return OrderedArgsDict(
+        'file', _log_conf.filename,
+        'file level', _log_conf.file_level.name.lower(),
+        'verbose', str(_log_conf.is_verbose).lower(),
+    )
 
 # ....................{ CONFIG                            }....................
 #FIXME: Update docstring to reflect the new default configuration.
@@ -102,14 +138,15 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse import metaapp
+        from betse.util.app.meta import metaappton
+        from betse.util.py import pys
 
         # Initialize the superclass.
         super().__init__()
 
         # Initialize all non-property attributes to sane defaults. To avoid
         # chicken-and-egg issues, properties should *NOT* be set here.
-        self._filename = metaapp.get_app_meta().log_default_filename
+        self._filename = metaappton.get_app_meta().log_default_filename
         self._logger_root = None
         self._logger_root_handler_file = None
         self._logger_root_handler_stderr = None
@@ -127,6 +164,14 @@ class LogConfig(object):
         # successfully performing the above initialization.
         logging.captureWarnings(True)
 
+        # If the active Python interpreter is running an automated test suite,
+        # manually increase logging verbosity as soon as feasible: i.e., here.
+        # While deferring this configuration to elsewhere (namely, the
+        # "betse_test.fixture.igniter" submodule) is also feasible, doing so
+        # would horrifyingly squelch all early-time debug messages.
+        if pys.is_testing():
+            self.is_verbose = True
+
 
     def _init_logger_root(self) -> None:
         '''
@@ -137,14 +182,14 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse import metaapp
+        from betse.util.app.meta import metaappton
 
         # Root logger.
         self._logger_root = logging.getLogger()
 
         # For uniqueness, change the name of the root logger to that of our
         # top-level package "betse" from its ambiguous default "root".
-        self._logger_root.name = metaapp.get_app_meta().package_name
+        self._logger_root.name = metaappton.get_app_meta().package_name
 
         # Instruct this logger to entertain all log requests, ensuring these
         # requests will be delegated to the handlers defined below. By default,
@@ -411,10 +456,19 @@ class LogConfig(object):
         * If the passed boolean is ``False``, :attr:`LogLevel.INFO`.
         '''
 
+        # Avoid circular import dependencies.
+        from betse.util.io.log import logs
+
         # Convert the passed boolean to a logging level for the stdout handler.
         self._logger_root_handler_stdout.setLevel(
             LogLevel.ALL if is_verbose else LogLevel.INFO)
-        # print('handler verbosity: {} ({})'.format(self._logger_root_handler_stdout.level, ALL))
+
+        # If increasing stdout verbosity, log this fact *AFTER* doing so.
+        #
+        # Note that reversing this order of statements would silently squelch
+        # this message -- which would quite defeat the purpose.
+        if is_verbose:
+            logs.log_debug('Standard output verbosity increased.')
 
     # ..................{ PROPERTIES ~ path                 }..................
     @property
@@ -449,38 +503,3 @@ class LogConfig(object):
 
         # Destroy and recreate the file handler.
         self._init_logger_root_handler_file()
-
-# ....................{ INITIALIZERS                      }....................
-def init() -> None:
-    '''
-    Enable the default logging configuration for the active Python process.
-    '''
-
-    # Instantiate this singleton global with the requisite defaults.
-    # print('Reinitializing logging.')
-    global _config
-    _config = LogConfig()
-
-# ....................{ GETTERS                           }....................
-def get() -> LogConfig:
-    '''
-    Singleton logging configuration for the active Python process.
-    '''
-
-    return _config
-
-
-def get_metadata():
-    '''
-    Ordered dictionary synopsizing the current logging configuration.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.type.mapping.mapcls import OrderedArgsDict
-
-    # Return this dictionary.
-    return OrderedArgsDict(
-        'file', _config.filename,
-        'file level', _config.file_level.name.lower(),
-        'verbose', str(_config.is_verbose).lower(),
-    )

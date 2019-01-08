@@ -231,7 +231,7 @@ def log_exception(exception: Exception) -> None:
         exc_synopsis, exc_traceback = errexception.get_metadata(exception)
 
         # Singleton logging configuration for the current Python process.
-        log_config = logconfig.get()
+        log_config = logconfig.get_log_conf()
 
         # If the end user requested that nothing be logged to disk, respect
         # this request by logging tracebacks to the error level and hence

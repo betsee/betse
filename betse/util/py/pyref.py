@@ -125,7 +125,7 @@ def refer_weak(obj: object) -> WeakRefTypes:
 
         >>> from betse.util.io.log import logconfig, logs
         >>> from betse.util.py import pyref
-        >>> log_config_weak = pyref.refer_weak(logconfig.get())
+        >>> log_config_weak = pyref.refer_weak(logconfig.get_log_conf())
         >>> log_config_strong = log_config_weak()
         >>> if log_config_strong is not None:
         ...     logs.log_debug('Verbose logging enabled: %r',

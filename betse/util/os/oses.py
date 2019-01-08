@@ -31,6 +31,9 @@ def init() -> None:
        officially supported by this application (e.g., BSD*, Solaris).
     '''
 
+    # Log this validation.
+    logs.log_debug('Validating operating system...')
+
     # Human-readable string describing the set of all officially supported
     # platforms known to interoperate sanely with this application.
     supported_oses = (

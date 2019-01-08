@@ -17,7 +17,7 @@ Top-level abstract base class of all command line interface (CLI) subclasses.
 
 import sys
 from abc import ABCMeta, abstractmethod
-from betse import metaapp
+from betse.util.app.meta import metaappton
 from betse import metadata as betse_metadata
 from betse.lib import libs
 from betse.util.cli.cliarg import SemicolonAwareHelpFormatter
@@ -397,7 +397,7 @@ class CLIABC(object, metaclass=ABCMeta):
         )
 
         # Singleton logging configuration for the current Python process.
-        log_config = logconfig.get()
+        log_config = logconfig.get_log_conf()
 
         # Human-readable version specifier suitable for printing to end users.
         version_output = '{} {}'.format(
@@ -459,7 +459,7 @@ class CLIABC(object, metaclass=ABCMeta):
                     '(defaults to "{default}")'
                 ),
                 var_name='profile_filename',
-                default_value=metaapp.get_app_meta().profile_default_filename,
+                default_value=metaappton.get_app_meta().profile_default_filename,
             ),
         ]
 
@@ -502,7 +502,7 @@ class CLIABC(object, metaclass=ABCMeta):
         '''
 
         # Singleton logging configuration for the current Python process.
-        log_config = logconfig.get()
+        log_config = logconfig.get_log_conf()
 
         # Configure logging according to the passed options. Note that order of
         # assignment is insignificant here.
@@ -549,16 +549,16 @@ class CLIABC(object, metaclass=ABCMeta):
         called to properly initialize this application.
         '''
 
-        # (Re-)initialize BETSE. Note that calling the ignition.init()
-        # function:
+        # (Re-)initialize this application. Note that calling the
+        # ignition.init() function:
         #
-        # * Suffices when BETSE is *NOT* running under a test suite.
-        # * Fails to suffice if BETSE is running under a test suite, in
-        #   which case this suite may run each test from within the same
+        # * Suffices when this application is *NOT* running under a test suite.
+        # * Fails to suffice if this application is running under a test suite,
+        #   in which case this suite may run each test from within the same
         #   Python process. Due to caching internally performed by the
-        #   ignition.init() function, calling that function here would fail
-        #   to re-initialize BETSE in any test except the first. To
-        #   model the real world as closely as reasonable, the
+        #   ignition.init() function, calling that function here would fail to
+        #   re-initialize this application for any test except the first. To
+        #   model the physical world as closely as possible, the
         #   ignition.reinit() function is called instead.
         self._module_ignition.reinit()
 

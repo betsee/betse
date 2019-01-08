@@ -35,7 +35,7 @@ def get_metadata() -> OrderedArgsDict:
     '''
 
     # Defer heavyweight imports.
-    from betse import metaapp
+    from betse.util.app.meta import metaappton
     from betse.util.path import pathnames
     from betse.util.path.command import cmds
 
@@ -47,8 +47,8 @@ def get_metadata() -> OrderedArgsDict:
         'authors',  metadata.AUTHORS,
         'license',  metadata.LICENSE,
         'home directory', pathnames.get_home_dirname(),
-        'dot directory',  metaapp.get_app_meta().dot_dirname,
-        'data directory', metaapp.get_app_meta().data_dirname,
+        'dot directory',  metaappton.get_app_meta().dot_dirname,
+        'data directory', metaappton.get_app_meta().data_dirname,
     )
 
 # ..................{ LOGGERS                               }..................

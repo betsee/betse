@@ -84,7 +84,7 @@ def test_dirs_recurse_subdirnames() -> None:
 
     # Defer heavyweight imports.
     import betse, betse_setup, betse_test
-    from betse import metaapp
+    from betse.util.app.meta import metaappton
     from betse.util.io.log import logs
     from betse.util.path import dirs, files, pathnames
     from betse.util.py.module import pymodule
@@ -97,7 +97,7 @@ def test_dirs_recurse_subdirnames() -> None:
     PACKAGE_DIRNAMES = (pymodule.get_dirname(package) for package in PACKAGES)
 
     # Absolute dirname of this application's top-level data directory.
-    DATA_DIRNAME = metaapp.get_app_meta().data_dirname
+    DATA_DIRNAME = metaappton.get_app_meta().data_dirname
 
     # For each such dirname...
     for package_dirname in PACKAGE_DIRNAMES:

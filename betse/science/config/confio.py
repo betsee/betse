@@ -10,7 +10,7 @@ Simulation configuration file input and output (I/O) facilities.
 #FIXME: Validate the versions of loaded configuration files.
 
 # ....................{ IMPORTS                           }....................
-from betse import metaapp
+from betse.util.app.meta import metaappton
 from betse.util.io.log import logs
 from betse.util.path import dirs, files, pathnames
 from betse.util.path.dirs import DirOverwritePolicy
@@ -41,7 +41,7 @@ from betse.util.type.types import type_check  #, GeneratorType
 #  we'll need to grep all calls to this method and explicitly pass the desired
 #  parameters. Presumably, BETSEE already performs at least one such call.
 #* Instantiating a "Parameters" object as follows:
-#    p = Parameters().load(conf_filename=app_meta.sim_conf_default_filename)
+#    p = Parameters().load(conf_filename=app_meta.betse_sim_conf_default_filename)
 #* Calling the save() method of this object.
 #
 #That's pretty obvious, frankly. Tragic that we didn't concoct it until now.
@@ -96,11 +96,11 @@ def write_default(
     logs.log_info('Writing default simulation configuration...')
 
     # Application metadata singleton.
-    app_meta = metaapp.get_app_meta()
+    app_meta = metaappton.get_app_meta()
 
     # Source directory and file providing the default simulation configuration.
-    src_dirname  = app_meta.data_yaml_dirname
-    src_filename = app_meta.sim_conf_default_filename
+    src_dirname  = app_meta.betse_data_yaml_dirname
+    src_filename = app_meta.betse_sim_conf_default_filename
 
     # Target directory and file to be copied into, defined to be either the
     # parent directory of the passed path if this path has a dirname or the

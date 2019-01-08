@@ -480,7 +480,7 @@ def get_class_name_unqualified(obj: object) -> str:
     cls = get_class(obj)
 
     # Return the unqualified name of this class.
-    return cls.__name__
+    return classes.get_name_unqualified(cls)
 
 
 def get_class_module_name_qualified(obj: object) -> str:

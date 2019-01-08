@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# ....................{ CONVENIENCES                       }....................
+# ....................{ CONVENIENCES                      }....................
 #FIXME: Revise docstring. This function no longer contains test-specific logic.
 def _ignite() -> None:
     '''
@@ -23,11 +23,6 @@ def _ignite() -> None:
     # Localize *ALL* imports to this function, preventing the package namespace
     # from being polluted with imports requiring deletion via the del() builtin.
     from betse import ignition
-    # from betse.util.py import pys
-
-    # If tests are being run, avoid pre-initializing this application.
-    # if pys.is_testing():
-    #     return
 
     # Initialize both this application and all dependencies thereof.
     ignition.ignite()
@@ -37,7 +32,7 @@ def _ignite() -> None:
 # Initialize both this application and all dependencies thereof.
 _ignite()
 
-# ....................{ CLEANUP                            }....................
+# ....................{ CLEANUP                           }....................
 # Delete *ALL* attributes (including callables) defined above, preventing the
 # package namespace from being polluted with these attributes.
 del _ignite

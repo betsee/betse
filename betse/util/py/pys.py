@@ -33,6 +33,9 @@ def init() -> None:
     #. Logs a non-fatal warning if this interpreter is *not* 64-bit.
     '''
 
+    # Log this validation.
+    logs.log_debug('Validating Python interpreter...')
+
     # If this Python interpreter is 32- rather than 64-bit, log a non-fatal
     # warning. While technically feasible, running BETSE under 32-bit Python
     # interpreters imposes non-trivial constraints detrimental to sanity.

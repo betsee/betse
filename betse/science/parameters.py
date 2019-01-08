@@ -5,7 +5,7 @@
 
 # ....................{ IMPORTS                           }....................
 import numpy as np
-from betse import metaapp
+from betse.util.app.meta import metaappton
 from betse.exceptions import BetseSimConfException
 from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
@@ -1449,7 +1449,7 @@ class Parameters(YamlFileABC):
 
         # Absolute dirname of the directory containing the default
         # YAML-formatted simulation configuration file.
-        DATA_YAML_DIRNAME = metaapp.get_app_meta().data_yaml_dirname
+        DATA_YAML_DIRNAME = metaappton.get_app_meta().betse_data_yaml_dirname
 
         # Default to the basenames of all direct subdirectories of the
         # directory containing this file, which are guaranteed to be required
