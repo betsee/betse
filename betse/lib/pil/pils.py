@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
 High-level support facilities for Pillow, the Python Image Library
-(PIL)-compatible fork underlying image I/O performed by this application.
+(PIL)-compatible fork implementing most image I/O performed by this
+application.
 '''
 
 #FIXME: Revisit imageio when the following feature request is resolved in full:
 #    https://github.com/imageio/imageio/issues/289
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from PIL import Image
 from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import SetType  # type_check,
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @func_cached
 def get_filetypes() -> SetType:
     '''
@@ -36,7 +37,7 @@ def get_filetypes() -> SetType:
     # Initialize Pillow if uninitialized.
     #
     # If Pillow is uninitialized, the "Image.EXTENSION" dictionary is empty.
-    # Since the "betse.ignition" submodule already initializes Pillow,
+    # Since the betse.lib.libs.init() function already initializes Pillow,
     # explicitly doing so here should typically *NOT* be necessary. Since this
     # getter could technically be called from global scope prior to the
     # initialization performed by "betse.ignition" *AND* since this
@@ -46,17 +47,17 @@ def get_filetypes() -> SetType:
 
     # Return a set of...
     return set(
-        # This filetype strips of this prefixing ".".
+        # This filetype stripped of this prefixing "."...
         pathnames.undot_filetype(filetype_dotted)
-        # For each "."-prefixed filetype supported by Pillow...
+        # For each "."-prefixed filetype supported by Pillow.
         for filetype_dotted in Image.EXTENSION.keys()
     )
 
-# ....................{ ENUMERATIONS                       }....................
+# ....................{ ENUMERATIONS                      }....................
 def init() -> None:
     '''
-    Initialize Pillow if uninitialized *or* reduce to a noop otherwise (i.e., if
-    Pillow is already initialized).
+    Initialize Pillow if uninitialized *or* reduce to a noop otherwise (i.e.,
+    if Pillow is already initialized).
     '''
 
     # Log this initialization.

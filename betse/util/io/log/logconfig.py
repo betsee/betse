@@ -468,7 +468,7 @@ class LogConfig(object):
         # Note that reversing this order of statements would silently squelch
         # this message -- which would quite defeat the purpose.
         if is_verbose:
-            logs.log_debug('Standard output verbosity increased.')
+            logs.log_debug('Standard output verbosity enabled.')
 
     # ..................{ PROPERTIES ~ path                 }..................
     @property

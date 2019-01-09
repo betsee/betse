@@ -17,7 +17,6 @@ Top-level abstract base class of all command line interface (CLI) subclasses.
 
 import sys
 from abc import ABCMeta, abstractmethod
-from betse.util.app.meta import metaappton
 from betse import metadata as betse_metadata
 from betse.lib import libs
 from betse.util.cli.cliarg import SemicolonAwareHelpFormatter
@@ -158,10 +157,6 @@ class CLIABC(object, metaclass=ABCMeta):
         self._arg_list = arg_list
 
         try:
-            # (Re-)initialize this application *BEFORE* performing subsequent
-            # logic assuming this application to have already been initialized.
-            self._ignite_app()
-
             # Parse these arguments *AFTER* initializing logging, ensuring
             # logging of exceptions raised by this parsing.
             self._parse_args()
@@ -389,6 +384,7 @@ class CLIABC(object, metaclass=ABCMeta):
         '''
 
         # Avoid circular import dependencies.
+        from betse.util.app.meta import metaappton
         from betse.util.cli.cliopt import (
             CLIOptionArgEnum,
             CLIOptionArgStr,
@@ -459,7 +455,8 @@ class CLIABC(object, metaclass=ABCMeta):
                     '(defaults to "{default}")'
                 ),
                 var_name='profile_filename',
-                default_value=metaappton.get_app_meta().profile_default_filename,
+                default_value=(
+                    metaappton.get_app_meta().profile_default_filename),
             ),
         ]
 
@@ -511,12 +508,13 @@ class CLIABC(object, metaclass=ABCMeta):
         log_config.filename = self._args.log_filename
         log_config.file_level = LogLevel[self._args.log_level.upper()]
 
-        # Log (and hence display, by default) a human-readable synopsis of this
-        # application. Since logging depends on parsing logging operations,
-        # this logging is intentionally deferred from the earliest time at
-        # which logging could technically be performed (namely, the body of the
-        # betse.ignition.ignite() function) to here. The disadvantage of this
-        # otherwise sane approach, of course, is that this logging is deferred.
+        # Log (and thus display, by default) a human-readable synopsis of this
+        # application. Since finalizing the logging configuration requires
+        # parsing command-line options, the logging performed here is
+        # intentionally deferred from the earliest time at which logging could
+        # technically be performed (namely, the MetaAppABC.init_sans_libs()
+        # method). The disadvantage of this otherwise sane approach, of course,
+        # is that this logging is deferred.
         self._show_header()
 
         # Log all string arguments passed to this command.
@@ -536,33 +534,6 @@ class CLIABC(object, metaclass=ABCMeta):
         self._profile_type = ProfileType[self._args.profile_type.upper()]
 
     # ..................{ IGNITERS                          }..................
-    def _ignite_app(self) -> None:
-        '''
-        (Re-)initialize this application *before* performing subsequent logic
-        assuming this application to have already been initialized.
-
-        Design
-        ----------
-        Defaults to (re-)initializing all low-level application logic.
-        Subclasses may override this method to perform additional
-        initialization, in which case this superclass method should still be
-        called to properly initialize this application.
-        '''
-
-        # (Re-)initialize this application. Note that calling the
-        # ignition.init() function:
-        #
-        # * Suffices when this application is *NOT* running under a test suite.
-        # * Fails to suffice if this application is running under a test suite,
-        #   in which case this suite may run each test from within the same
-        #   Python process. Due to caching internally performed by the
-        #   ignition.init() function, calling that function here would fail to
-        #   re-initialize this application for any test except the first. To
-        #   model the physical world as closely as possible, the
-        #   ignition.reinit() function is called instead.
-        self._module_ignition.reinit()
-
-
     def _init_app_libs(self) -> None:
         '''
         (Re-)initialize all mandatory runtime dependencies of this application
@@ -670,22 +641,8 @@ class CLIABC(object, metaclass=ABCMeta):
         pass
 
 
-    #FIXME: Excise this property entirely in favour of the corresponding
-    #property within the new "betse.metaapp" submodule.
-    @abstractproperty
-    def _module_ignition(self) -> ModuleType:
-        '''
-        Imported :mod:`betse.ignition` submodule specific to this application
-        (e.g., :mod:`betsee.guiignition` for the BETSEE GUI).
-
-        This property exists principally to support alternate BETSE frontends.
-        '''
-
-        pass
-
-
-    #FIXME: Excise this property entirely in favour of the corresponding
-    #property within the new "betse.metaapp" submodule.
+    #FIXME: Shift this property into the
+    #"betse.util.app.meta.metaappabc.MetaAppABC" superclass for generality.
     @abstractproperty
     def _module_metadata(self) -> ModuleType:
         '''

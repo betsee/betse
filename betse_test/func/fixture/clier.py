@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -63,72 +63,64 @@ BETSE CLI in the active Python interpreter.
 #clearly won't work for frozen commands. Instead, if running frozen, we'll need
 #to just call "betse config". Simple, if tedious.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.util.path.command import cmdexit
 from betse.util.type.types import type_check
 from pytest import fixture
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 _CLI_OPTIONS_MANDATORY = (
     '--verbose',
     '--log-level=none',
     '--matplotlib-backend=agg',
 )
 '''
-Tuple of all failure-friendly command-line options unconditionally passed to all
-invocations of the BETSE CLI by functional tests.
+Tuple of all failure-friendly command-line options unconditionally passed to
+all invocations of the BETSE CLI by functional tests.
 
 To improve debuggability for failing tests, these options are unconditionally
-passed by :class:`CLITester` instances created by the :func:`betse_cli` fixture:
+passed by :class:`CLITester` instances created by the :func:`betse_cli`
+fixture:
 
-* ``--verbose``, logging low-level debugging messages to stdout, which `py.test`
-  captures for all tests and displays for all failing tests.
+* ``--verbose``, logging low-level debugging messages to stdout, which
+  ``py.test`` captures for all tests and displays for all failing tests.
 * ``--log-level=none``, redirecting all log messages to either stdout or stderr
   but *not* a logfile. While ``py.test`` can be configured to capture logfile
   messages, doing so sanely is complicated by the fact that ``py.test`` already
-  captures both stdout and stderr by default. As there is no benefit in
-  recapturing logfile messages already logged to either stdout or stderr, tests
-  avoid doing so entirely.
+  captures both stdout and stderr by default. There is no advantage to
+  recapturing logfile messages already logged to either stdout or stderr. So,
+  tests avoid doing so entirely.
 * ``--matplotlib-backend=agg``, enabling the default non-interactive matplotlib
   backend *guaranteed* to be usable on all platforms. By default, matplotlib
   enables an interactive backend (e.g., ``Qt5Agg``) inhibiting sane test
   automation.
 '''
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 class CLITester(object):
     '''
     BETSE CLI test runner, efficiently testing a single subcommand of the
-    official BETSE CLI (i.e., `betse`) in the active Python interpreter.
+    official BETSE CLI (i.e., ``betse``) in the active Python interpreter.
 
-    Simple functional fixtures (e.g., `betse_cli`) typically return instances of
+    Simple functional fixtures (e.g., ``betse_cli``) often return instances of
     this class to other fixtures and tests exercising a single facet of the
     BETSE CLI.
 
     Command Execution
     ----------
-    For both efficiency and reliably, this runner does _not_ actually fork this
+    For both efficiency and reliably, this runner does *not* actually fork this
     subcommand as a separate process. Doing so would introduce installation
-    complications, portability concerns, and non-reproduceable edge-cases (e.g.,
-    conflicting versions of the same `betse` command in the current `${PATH}`).
-    Instead, this runner:
+    complications, portability concerns, and non-reproduceable edge-cases
+    (e.g., conflicting versions of the same ``betse`` command in the current
+    ``${PATH}``). Instead, this runner:
 
-    * Imports the :mod:`betse.cli.__main__` module implementing the BETSE CLI.
-    * Passes this module's :func:`betse.cli.__main__.run()` function the passed
+    * Imports the :mod:`betse.__main__` module implementing the BETSE CLI.
+    * Passes this module's :func:`betse.__main__.main` function the passed
       arguments extended by the mandatory arguments defined by the
       :data:`_CLI_OPTIONS_MANDATORY` tuple global.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
-    @type_check
-    def __init__(self) -> None:
-        '''
-        Initialize this test runner.
-        '''
-
-        pass  # Well, that was easy.
-
-    # ..................{ RUNNERS                            }..................
+    # ..................{ RUNNERS                           }..................
     @type_check
     def run(self, *args: str) -> None:
         '''
@@ -141,7 +133,7 @@ class CLITester(object):
         args : Tuple[str]
             Tuple of zero or more arguments to be passed to this entry point,
             corresponding exactly to the set of command-line arguments accepted
-            by the external command for the BETSE CLI (i.e., `betse`).
+            by the external command for the BETSE CLI (i.e., ``betse``).
 
         See Also
         ----------
@@ -151,6 +143,12 @@ class CLITester(object):
 
         # Defer heavyweight imports to their point of use.
         from betse.__main__ import main
+        from betse.util.app.meta import metaappton
+
+        # Destroy the prior application metadata singleton if any. If this
+        # common case is *NOT* handled, the call to the main() function below
+        # raises an exception on attempting to reinstantiate this singleton.
+        metaappton.unset_app_meta()
 
         # Prefixed this argument list by failure-friendly options.
         args_evolved = _CLI_OPTIONS_MANDATORY + args
@@ -165,8 +163,8 @@ class CLITester(object):
             'BETSE CLI failed with exit status {} '
             'given arguments: {}'.format(exit_status, args_evolved))
 
-# ....................{ FIXTURES                           }....................
-# Test-scope fixture creating and returning a new object for each discrete test.
+# ....................{ FIXTURES                          }....................
+# Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_cli() -> CLITester:
     '''
@@ -180,7 +178,7 @@ def betse_cli() -> CLITester:
     '''
 
     # Print a newline, ensuring that the first line of stderr or stdout printed
-    # by the BETSE CLI is visually offset from current py.test output.
+    # by the BETSE CLI is visually demarcated from prior py.test output.
     print()
 
     # Create and return a new BETSE CLI test runner.

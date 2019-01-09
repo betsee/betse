@@ -1,24 +1,23 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
 Global test configuration for all tests.
 
-:mod:`pytest` implicitly imports *all* functionality defined by this module into
-*all* test modules.
+:mod:`pytest` implicitly imports *all* functionality defined by this module
+into *all* test modules.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import pytest
 from betse import metadata
 from betse.util.os.shell import shellenv
 from betse_test.exceptions import BetseTestHookException
 from betse_test.util.testabc import SerialTestABC
 
-# ....................{ IMPORTS ~ fixture                  }....................
-from betse_test.fixture.igniter import betse_init
+# ....................{ IMPORTS ~ fixture                 }....................
 from betse_test.fixture.tempdirer import betse_temp_dir
 from betse_test.fixture.simconf.simconfer import (
     betse_sim_conf,
@@ -26,7 +25,7 @@ from betse_test.fixture.simconf.simconfer import (
     betse_sim_conf_compat,
 )
 
-# ....................{ HOOKS ~ plugin                     }....................
+# ....................{ HOOKS ~ plugin                    }....................
 def pytest_configure(config):
     '''
     Hook run immediately *after* both parsing all :mod:`pytest` command-line
@@ -38,15 +37,16 @@ def pytest_configure(config):
     * The BETSE-specific :attr:`betse._is_pytest` global boolean is set to
       ``True``, informing the main codebase that tests are currently being run.
       Logic elsewhere then performs test-specific handling if this boolean is
-      enabled (e.g., defaulting to a non-interactive matplotlib backend suitable
-      for usage in this possibly non-interactive test environment).
+      enabled (e.g., defaulting to a non-interactive matplotlib backend
+      suitable for usage in this possibly non-interactive test environment).
     * If the external ``${DISPLAY}`` environment variable is currently set
       (e.g., to the X11-specific socket to be connected to display GUI
       components), unset this variable. Permitting this variable to remain set
       would permit tests erroneously attempting to connect to an X11 server to
-      locally succeed but remotely fail, as headless continuous integration (CI)
-      typically has no access to an X11 server. Unsetting this variable ensures
-      orthogonality between these cases by coercing the former to fail as well.
+      locally succeed but remotely fail, as headless continuous integration
+      (CI) typically has no access to an X11 server. Unsetting this variable
+      ensures orthogonality between these cases by coercing the former to fail
+      as well.
     '''
 
     #FIXME: The following two operations should be converted into autouse
@@ -70,9 +70,9 @@ def pytest_configure(config):
     #   case each test is run in a distinct subprocess and hence does *NOT*
     #   share the same environment variables.
     #
-    # Since unsetting environment variables is fast, doing so here transparently
-    # supports both use cases detailed above with no discernable downside. See
-    # the docstring for additional commentary.
+    # Since unsetting environment variables is fast, doing so here
+    # transparently supports both use cases detailed above with no discernable
+    # downside. See the docstring for additional commentary.
     shellenv.unset_var_if_set('DISPLAY')
 
 
@@ -90,7 +90,7 @@ def pytest_unconfigure(config):
 
     metadata._IS_TESTING = False
 
-# ....................{ HOOKS ~ test                       }....................
+# ....................{ HOOKS ~ test                      }....................
 def pytest_runtest_setup(item: 'pytest.main.Item') -> None:
     '''
     Hook run immediately *before* running the passed test.
@@ -155,15 +155,16 @@ def pytest_runtest_setup(item: 'pytest.main.Item') -> None:
             pytest.xfail(
                 'Prior serial test parametrization "{}" failed.'.format(
                     first_failing_param_id))
-    #FIXME: This should *REALLY* simply be implemented as a new @serialize_class
-    #decorator, much like @serialize_parametrized_test above.
+    #FIXME: This should *REALLY* simply be implemented as a new
+    #@serialize_class decorator, much like @serialize_parametrized_test above.
+
     # If this is an unparametrized test intended to be run serially, do so.
     elif SerialTestABC.is_test_serial(item):
         # Object to which this test method is bound.
         test_instance = item.parent
 
-        # Name of the first previously declared test method to fail in this test
-        # method's class if any or "None" otherwise.
+        # Name of the first previously declared test method to fail in this
+        # test method's class if any or "None" otherwise.
         first_failure_method_name = getattr(
             test_instance, '_first_failure_method_name', None)
 
@@ -188,8 +189,8 @@ def pytest_runtest_makereport(
     item : pytest.main.Item
         Metadata encapsulating this test callable (e.g., function, method).
     call : pytest.runner.CallInfo
-        Metadata encapsulating the value returned or exception raised by calling
-        this test callable.
+        Metadata encapsulating the value returned or exception raised by
+        calling this test callable.
 
     See Also
     ----------

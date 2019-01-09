@@ -3,36 +3,44 @@
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# ....................{ CONVENIENCES                      }....................
-#FIXME: Revise docstring. This function no longer contains test-specific logic.
-def _ignite() -> None:
-    '''
-    Initialize both the current application _and_ all mandatory third-party
-    dependencies of this application with sane defaults if this application
-    both has not already been initialized _and_ is not currently being tested.
+'''
+:mod:`betse.science` initialization functionality.
 
-    This function is a convenience intended to streamline interactive use (e.g.,
-    from web-based IPython notebooks or CLI-based Python consoles) by implicitly
-    initializing this application on the first import of this subpackage.
+Motivation
+----------
+This submodule guarantees that, on the first importation of the
+:mod:`betse.science` subpackage, both the current application *and* all
+mandatory third-party dependencies of this application have been initialized
+with sane defaults.
 
-    If this application either has already been manually initialized _or_ is
-    currently being tested by a test suite that that may subsequently do so,this
-    call silently reduces to a noop -- which is a good thing.
-    '''
+This submodule is effectively syntactic sugar. While technically unnecessary,
+this submodule streamlines interactive use (e.g., from web-based Jupyter
+notebooks or CLI-based iPython consoles) by implicitly guaranteeing this
+application to be fully usable *without* manual intervention by end users.
 
-    # Localize *ALL* imports to this function, preventing the package namespace
-    # from being polluted with imports requiring deletion via the del() builtin.
-    from betse import ignition
+This submodule silently reduces to a noop when this application has already
+been initialized, as is the common case.
+'''
 
-    # Initialize both this application and all dependencies thereof.
-    ignition.ignite()
+# ....................{ IMPORTS                           }....................
+from betse.metaapp import BetseMetaApp
+from betse.util.app.meta import metaappton
 
-#FIXME: Overly cumbersome. Just inline the two statements above here; then,
-#excise this function.
-# Initialize both this application and all dependencies thereof.
-_ignite()
+# ....................{ INITIALIZERS                      }....................
+# If no application metadata singleton has been instantiated, do so. Note that
+# doing so already calls the metaappton.set_app_meta() function, which is nice.
+if not metaappton.is_app_meta():
+    BetseMetaApp()
+# An application metadata singleton has now been instantiated.
+
+# Initialize all mandatory dependencies with sane defaults. For safety, do so
+# regardless of whether an application metadata singleton has been
+# instantiated. Since the MetaAppABC.__init__() method does *NOT* implicitly
+# call the MetaAppABC.init_libs() method, do so explicitly here to guarantee
+# this application to be fully initialized.
+metaappton.get_app_meta().init_libs()
 
 # ....................{ CLEANUP                           }....................
 # Delete *ALL* attributes (including callables) defined above, preventing the
 # package namespace from being polluted with these attributes.
-del _ignite
+del BetseMetaApp, metaappton

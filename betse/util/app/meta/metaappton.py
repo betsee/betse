@@ -8,6 +8,21 @@ High-level **application metadata singleton** (i.e., application-wide object
 synopsizing application metadata via read-only properties).
 '''
 
+#FIXME: Raise an exception if running with superuser privelages. To avoid
+#inevitable security issues, Under *NO* circumstances should either BETSE or
+#BETSEE ever be run with elevated permissions. To do so, see the following
+#canonical answer:
+#    https://stackoverflow.com/a/1026626/2809027
+
+#FIXME: Print memory-related metadata when running "betse info" *AND* log
+#non-fatal warnings when BETSE is run under a low-memory environment (e.g.,
+#< 4GB available free memory). To do so, note the following canonical API:
+#    psutil.Process(os.getpid()).get_memory_info()
+
+#FIXME: The "~/.betse" directory grows fairly large fairly quickly. It'd be
+#great to emit non-fatal warnings if its size exceeds some reasonable threshold
+#(e.g., 1MB).
+
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
@@ -42,6 +57,11 @@ def die_if_app_meta() -> None:
     Raise an exception if the application metadata singleton has been set
     (e.g., by a prior call to the :func:`set_app_meta` function).
 
+    Raises
+    ----------
+    BetseMetaAppException
+        If this singleton has already been set.
+
     See Also
     ----------
     :func:`is_app_meta`
@@ -62,6 +82,11 @@ def die_unless_app_meta() -> None:
 
     Equivalently, this function raises an exception if this singleton has *not*
     yet been set.
+
+    Raises
+    ----------
+    BetseMetaAppException
+        If this singleton has *not* yet been set.
 
     See Also
     ----------
@@ -126,11 +151,17 @@ def set_app_meta(
 
     Caveats
     ----------
+    **This function is not intended to be called explicitly.** While callers
+    may safely do so, doing so should be entirely redundant. Why? Because the
+    :meth:`betse.util.app.meta.metaappabc.MetaAppABC.__init__` method already
+    does implicitly at instantiation time.
+
     **This function intentionally performs no logging.** Doing so would be
-    unproductive. The first call to this function is typically performed by the
-    :func:`betse.ignition.init` function *before* logging has been configured.
-    All logging performed by that call (but *not* subsequent calls) would be
-    silently squelched, which any sane caller would interpret to be a bug.
+    unproductive. The first call to this function is implicitly performed by
+    the :func:`betse.util.app.meta.metaappabc.MetaAppABC.__init__` method
+    *before* logging has been configured. All logging performed by that call
+    (but *not* subsequent calls) would be silently squelched, which any sane
+    caller would interpret to be a bug.
 
     Parameters
     ----------

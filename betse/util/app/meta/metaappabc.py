@@ -77,10 +77,181 @@ class MetaAppABC(object, metaclass=ABCMeta):
     # ..................{ INITIALIZERS                      }..................
     def __init__(self) -> None:
         '''
-        Initialize this application metadata singleton.
+        Initialize both this application metadata singleton and the current
+        application (except mandatory third-party dependencies of this
+        application) if this is the first creation of such a singleton for this
+        application *or* raise an exception otherwise (i.e., if this
+        application has already instantiated such a singleton).
+
+        Design
+        ----------
+        Callers should avoid explicitly calling either the
+        :func:`betse.util.app.meta.metaappton.set_app_meta` setter or
+        :meth:`init_sans_libs` method, unless absolutely required for
+        inconceivable reasons. Why? Because this method already calls those
+        callables. Specifically, to enforce the contractual guarantees that:
+
+        * Only a single such singleton be instantiated for the lifetime of this
+          application, this method internally calls the
+          :func:`betse.util.app.meta.metaappton.set_app_meta` setter preserving
+          this guarantee.
+        * Instantiating this singleton suffices to initialize this application
+          (except third-party dependencies of this application), this method
+          internally calls the :meth:`init_sans_libs` method preserving
+          this guarantee. For maintainability, callers should avoid doing so.
+
+        Raises
+        ----------
+        BetseMetaAppException
+            If this is *not* the first instantiation of an application
+            metadata singleton for the active Python interpreter.
+
+        See Also
+        ----------
+        :meth:`init_sans_libs`
+        :meth:`betse.util.app.meta.metaappton.set_app_meta`
+            Further details.
         '''
 
-        pass
+        # Avoid circular import dependencies.
+        from betse.util.app.meta import metaappton
+
+        # Globalize this singleton *BEFORE* subsequent logic (e.g., the
+        # logconfig.init() call performed by the self.init() call), any of
+        # which could potentially require this singleton.
+        metaappton.set_app_meta(self)
+
+        # Initialize this application.
+        self.init_sans_libs()
+
+
+    def init(self, *args, **kwargs) -> None:
+        '''
+        Initialize both the current application *and* all mandatory third-party
+        dependencies of this application with sane defaults.
+
+        Parameters
+        ----------
+        All passed parameters are passed as is to the lower-level
+        :func:`betse.lib.libs.init` function.
+        '''
+
+        # (Re)initialize this application.
+        self.init_sans_libs()
+
+        # (Re)initialize all dependencies *AFTER* this application.
+        self.init_libs(*args, **kwargs)
+
+
+    def init_sans_libs(self) -> None:
+        '''
+        Initialize the current application *except* mandatory third-party
+        dependencies of this application.
+
+        Specifically, the default implementation of this method (in order):
+
+        #. Enables Python's standard handler for segmentation faults.
+        #. Globalizes the passed application metadata singleton.
+        #. Enables this application's default logging configuration.
+        #. Validates (but does *not* initialize) all mandatory third-party
+           dependencies of this application, which the
+           :func:`betsee.lib.libs.init` function initializes independently.
+        #. Validates core directories and files required at program startup,
+           creating all such directories and files that do *not* already exist
+           and are reasonably creatable.
+        #. Validates the active Python interpreter (e.g., to support
+           multithreading).
+        #. Validates the underlying operating system (e.g., to *not* be a
+           vanilla Windows shell environment ala either CMD.exe or PowerShell).
+
+        To support caller-specific error handling, this function is intended to
+        be called immediately *after* this application begins catching
+        otherwise uncaught exceptions.
+
+        Caveats
+        ----------
+        **This method is idempotent.** This method has been explicitly designed
+        to be safely recallable. Each subsequent invocation of this method
+        following the first simply reinitializes this application. While
+        typically useless, idempotency is required by low-level automation to
+        guarantee consistency across repeated runs (e.g., tests, scripts).
+
+        Design
+        ----------
+        This method intentionally avoids initializing mandatory dependencies,
+        as doing so would require late-time startup logic assumed by such
+        initiazilation to have already been performed -- namely, finalization
+        of the logging configuration and hence command-line argument parsing.
+        By compare, this method is internally called by the :meth:`__init__`
+        method called as the first statement of this application. Since no
+        startup logic has been performed yet, initialization of dependencies
+        is deferred until significantly later in the startup process.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.lib import libs
+        from betse.util.io.error import errfault
+        from betse.util.io.log import logconfig, logs
+        from betse.util.os import oses
+        from betse.util.py import pys
+        from betse.util.type.obj import objects
+
+        # Enable Python's standard handler for segmentation faults *BEFORE*
+        # performing any further logic, any of which could conceivably trigger
+        # a segmentation fault and hence process termination.
+        errfault.handle_faults()
+
+        # Enable our default logging configuration for the current Python
+        # process *BEFORE* performing any validation, thus logging any
+        # exceptions raised by this validation.
+        logconfig.init()
+
+        # Log all prior behaviour. Attempting to do so *BEFORE* enabling our
+        # default logging configuration above would silently fail, since the
+        # standard "logging" API silently squelches debug messages by default.
+        logs.log_debug('Default segementation fault handler enabled.')
+        logs.log_debug('Application singleton "%s" established.',
+            objects.get_class_name_unqualified((self)))
+
+        # Validate mandatory dependencies. Avoid initializing these
+        # dependencies now (e.g., by calling libs.init()). Doing so requires
+        # finalization of the logging configuration (e.g., by parsing CLI
+        # options), which has yet to happen this early in the lifecycle.
+        libs.die_unless_runtime_mandatory_all()
+
+        # Validate the active Python interpreter and operating system *AFTER*
+        # mandatory dependencies. While the former (mostly) comprises unenforced
+        # recommendations, the latter comprises enforced requirements and should
+        # thus be validated first.
+        oses.init()
+        pys.init()
+
+
+    #FIXME: This method is currently *NOT* idempotent, unlike the comparable
+    #init_sans_libs() method -- which is bad. Ideally, this method should be
+    #idempotent as well, which implies that the "_IS_INITTED"-style caching
+    #currently performed by the libs.init() function should be fully removed.
+    #
+    #Note, however, that there is exactly one existing call to this method in
+    #which we would prefer to preserve the existing caching approach: the
+    #"betse.science.__init__" submodule. This suggests that we may want to
+    #create a separate init_libs_if_needed() method to handle this edge case.
+    def init_libs(self, *args, **kwargs) -> None:
+        '''
+        Initialize *all* mandatory third-party dependencies of the current
+        application with sane defaults.
+
+        Parameters
+        ----------
+        All passed parameters are passed as is to the lower-level
+        :func:`betse.lib.libs.init` function.
+        '''
+
+        # Defer heavyweight and possibly circular imports.
+        from betse.lib import libs
+
+        # (Re)initialize all dependencies *AFTER* this application.
+        libs.init(*args, **kwargs)
 
     # ..................{ PROPERTIES                        }..................
     @property_cached

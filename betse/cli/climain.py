@@ -37,13 +37,6 @@ class BetseCLI(CLISubcommandableABC):
 
     # ..................{ PROPERTIES ~ superclass           }..................
     @property
-    def _module_ignition(self) -> ModuleType:
-
-        from betse import ignition
-        return ignition
-
-
-    @property
     def _module_metadata(self) -> ModuleType:
 
         from betse import metadata
