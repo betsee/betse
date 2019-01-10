@@ -37,12 +37,13 @@ def get_filetypes() -> SetType:
     # Initialize Pillow if uninitialized.
     #
     # If Pillow is uninitialized, the "Image.EXTENSION" dictionary is empty.
-    # Since the betse.lib.libs.init() function already initializes Pillow,
-    # explicitly doing so here should typically *NOT* be necessary. Since this
-    # getter could technically be called from global scope prior to the
-    # initialization performed by "betse.ignition" *AND* since this
-    # initialization efficiently reduces to a noop if unnecessary, manually
-    # initializing Pillow here is cost-free. (Cost-free is the way to be.)
+    # Since the betse.util.app.meta.metaappabc.MetaAppABC.init_libs() function
+    # already initializes Pillow, explicitly doing so here should typically
+    # *NOT* be necessary. Since this getter could technically be called from
+    # global scope prior to the initialization performed by "betse.ignition"
+    # *AND* since this initialization efficiently reduces to a noop if
+    # unnecessary, manually initializing Pillow here is cost-free... and
+    # cost-free is the way to be.
     init()
 
     # Return a set of...

@@ -197,3 +197,44 @@ def unset_app_meta() -> None:
 
     # Revert this singleton global to its initial state.
     _app_meta = None
+
+# ....................{ MAKERS                            }....................
+def make_app_meta_betse_initted(*args, **kwargs) -> None:
+    '''
+    Instantiate and set a BETSE-specific application metadata singleton if the
+    :func:`set_app_meta` function has not already been called *and*, in either
+    case, initialize all mandatory third-party application dependencies with
+    the passed parameters.
+
+    This is a convenience function simplifying BETSE initialization for
+    low-level edge-case automation (e.g.,
+    :mod:`betse.science.__init__`, tests). This function is specific to BETSE
+    and hence inappropriate for general-purpose application initialization, as
+    required by downstream consumers (e.g., the BETSEE GUI).
+
+    Parameters
+    ----------
+    All passed parameters are passed as is to the lower-level
+    :meth:`MetaAppABC.init_libs` method.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.metaapp import BetseMetaApp
+
+    # If no application metadata singleton has been instantiated, do so. Note
+    # that doing so implicitly calls the metaappton.set_app_meta() function on
+    # our behalf, which is certainly nice.
+    if not is_app_meta():
+        BetseMetaApp()
+    # An application metadata singleton has now been instantiated.
+
+    # If mandatory dependencies have *NOT* already been initialized, do so with
+    # all passed parameters.
+    #
+    # Note that this initialization is intentionally *NOT* performed in the
+    # conditional block above, ensuring this initialization to be performed
+    # regardless of whether an application metadata singleton has been
+    # previously instantiated. Since the MetaAppABC.__init__() method does
+    # *NOT* implicitly call the MetaAppABC.init_libs() method, doing so
+    # explicitly here ensures that this application is now fully initialized.
+    get_app_meta().init_libs_if_needed(*args, **kwargs)

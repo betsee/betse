@@ -18,7 +18,7 @@ Top-level abstract base class of all command line interface (CLI) subclasses.
 import sys
 from abc import ABCMeta, abstractmethod
 from betse import metadata as betse_metadata
-from betse.lib import libs
+from betse.util.app.meta import metaappton
 from betse.util.cli.cliarg import SemicolonAwareHelpFormatter
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logenum import LogLevel
@@ -277,6 +277,18 @@ class CLIABC(object, metaclass=ABCMeta):
         return arg_parser_top_kwargs
 
     # ..................{ PROPERTIES ~ matplotlib           }..................
+    #FIXME: Actually, we could probably dramatically simplify this property and
+    #subclass usage as follows:
+    #
+    #* Rename this property to "_matplotlib_backend_name".
+    #* Refactor this property to return either:
+    #  * A string signifying the name of a matplotlib name to be
+    #    unconditionally enabled by the _init_app_libs() method. In this case,
+    #    no "--matplotlib-backend" option should be exposed to CLI users.
+    #    Naturally, this should be logged to avoid unexpected behaviour.
+    #  * "None", in which case the default behaviour holds (i.e., a
+    #    "--matplotlib-backend" option is exposed to CLI users).
+    #* Implement this property to return "None" by default.
     @property
     def _is_option_matplotlib_backend(self) -> bool:
         '''
@@ -287,10 +299,11 @@ class CLIABC(object, metaclass=ABCMeta):
         Design
         ----------
         Defaults to ``True``. Subclasses overriding this default to ``False``
-        should explicitly specify the desired matplotlib backend to use by
+        *must* explicitly specify the desired matplotlib backend to use by
         overriding the :meth:`_init_app_libs` method to manually pass the name
-        of that backend to the :func:`libs.init`` function
-        (e.g., ``libs.init(matplotlib_backend_name='Qt5Agg')``).
+        of that backend to the
+        :meth:`betse.util.app.meta.metaappabc.MetaAppABC.init_libs` method
+        (e.g., ``metaappton.get_app_meta().init_libs.init(matplotlib_backend_name='Qt5Agg')``).
         '''
 
         return True
@@ -548,7 +561,8 @@ class CLIABC(object, metaclass=ABCMeta):
         ----------
         Defaults to (re-)initializing all mandatory runtime dependencies of
         BETSE. Subclasses overriding this method to perform additional
-        initialization must manually call the :meth:`libs.reinit` method to
+        initialization must manually call the
+        :meth:`betse.util.app.meta.metaappabc.MetaAppABC.init_libs` method to
         initialize these dependencies.
         '''
 
@@ -562,7 +576,8 @@ class CLIABC(object, metaclass=ABCMeta):
             matplotlib_backend_name = self._args.matplotlib_backend_name
 
         # (Re-)initialize all mandatory runtime dependencies.
-        libs.reinit(matplotlib_backend_name=matplotlib_backend_name)
+        metaappton.get_app_meta().init_libs(
+            matplotlib_backend_name=matplotlib_backend_name)
 
 
     def _show_header(self) -> None:

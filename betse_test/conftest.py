@@ -17,7 +17,15 @@ from betse.util.os.shell import shellenv
 from betse_test.exceptions import BetseTestHookException
 from betse_test.util.testabc import SerialTestABC
 
-# ....................{ IMPORTS ~ fixture                 }....................
+# ....................{ IMPORTS ~ fixture : autouse       }....................
+# Import fixtures automatically run at the start of the current test session
+# and hence typically *NOT* manually required by specific tests.
+
+from betse_test.fixture.metaapper import betse_meta_app
+
+# ....................{ IMPORTS ~ fixture : manual        }....................
+# Import fixtures required to be manually required by specific tests.
+
 from betse_test.fixture.tempdirer import betse_temp_dir
 from betse_test.fixture.simconf.simconfer import (
     betse_sim_conf,

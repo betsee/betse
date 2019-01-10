@@ -102,6 +102,7 @@ def test_dirs_recurse_subdirnames() -> None:
     # For each such dirname...
     for package_dirname in PACKAGE_DIRNAMES:
         # Log this inspection.
+        logs.log_info('')
         logs.log_info(
             'Searching "%s/" for non-package subdirectories...',
             pathnames.get_basename(package_dirname))
@@ -133,9 +134,6 @@ def test_dirs_recurse_subdirnames() -> None:
             # Log this inspection.
             logs.log_info('Including subdirectory: %s', package_subdirname)
 
-            # Absolute filename of the "__init__.py" file of this subdirectory.
-            package_init_filename = pathnames.join(
-                package_subdirname, '__init__.py')
-
-            # If this file does *NOT* exist, raise an exception.
-            files.die_unless_file(package_init_filename)
+            # If this subdirectory does *NOT* contain an "__init__.py" file,
+            # raise an exception.
+            files.join_or_die(package_subdirname, '__init__.py')

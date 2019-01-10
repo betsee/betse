@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,12 +7,12 @@
 Fixtures creating temporary directories isolated for safety to specific tests.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse_test.util import requests
 from pytest import fixture
 
-# ....................{ FIXTURES                           }....................
-# Test-scope fixture creating and returning a new object for each discrete test.
+# ....................{ FIXTURES                          }....................
+# Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_temp_dir(
     request: '_pytest.python.FixtureRequest',
@@ -25,10 +25,11 @@ def betse_temp_dir(
 
     This directory is guaranteed to be specific to this test. The basename of
     this directory is the name of this test excluding the prefixing substring
-    ``test_``. When requested by the ``test_cli_sim_default`` test, for example,
-    this fixture creates a temporary directory ``{tmpdir}/cli_sim_default`` for
-    the absolute path ``{tmpdir}`` of this test session's root temporary
-    directory (e.g., ``/tmp/pytest-0/cli_sim_default``).
+    ``test_``. When requested by the ``test_cli_sim_default`` test, for
+    example, this fixture creates a temporary directory
+    ``{tmpdir}/cli_sim_default`` for the absolute path ``{tmpdir}`` of this
+    test session's root temporary directory (e.g.,
+    ``/tmp/pytest-0/cli_sim_default``).
 
     This directory is safely accessible *only* for the duration of this test.
     Subsequently run tests and fixtures *cannot* safely reuse this directory,
@@ -40,7 +41,8 @@ def betse_temp_dir(
         Builtin fixture describing the parent fixture or test of this fixture.
     tmpdir_factory : _pytest.tmpdir.tmpdir_factory
         Builtin session-scoped fixture whose ``mktemp()`` method returns a
-        :class:`py.path.local` instance encapsulating a new temporary directory.
+        :class:`py.path.local` instance encapsulating a new temporary
+        directory.
 
     Returns
     ----------

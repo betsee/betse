@@ -36,7 +36,6 @@ synopsizing application metadata via read-only properties) hierarchy.
 
 from abc import ABCMeta
 from betse.exceptions import BetseGitException
-# from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import type_check, ModuleType, StrOrNoneTypes
 
@@ -72,6 +71,13 @@ class MetaAppABC(object, metaclass=ABCMeta):
     :meth:`name` property). Doing so would prevent their reuse from the
     top-level ``setup.py`` scripts defined by downstream consumers, which would
     render these constants effectively useless for their principal use case.
+
+    Attributes
+    ----------
+    _is_libs_initted : bool
+        ``True`` only if the :meth:`init_libs` method has already been called,
+        enabling the optimal :meth:`init_libs_if_needed` method to silently
+        reduce to a noop when ``True``.
     '''
 
     # ..................{ INITIALIZERS                      }..................
@@ -116,6 +122,11 @@ class MetaAppABC(object, metaclass=ABCMeta):
         # Avoid circular import dependencies.
         from betse.util.app.meta import metaappton
 
+        # Localize all instance variables.
+        #
+        # Note the init_libs() method to *NOT* have been called yet.
+        self._is_libs_initted = False
+
         # Globalize this singleton *BEFORE* subsequent logic (e.g., the
         # logconfig.init() call performed by the self.init() call), any of
         # which could potentially require this singleton.
@@ -123,24 +134,6 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
         # Initialize this application.
         self.init_sans_libs()
-
-
-    def init(self, *args, **kwargs) -> None:
-        '''
-        Initialize both the current application *and* all mandatory third-party
-        dependencies of this application with sane defaults.
-
-        Parameters
-        ----------
-        All passed parameters are passed as is to the lower-level
-        :func:`betse.lib.libs.init` function.
-        '''
-
-        # (Re)initialize this application.
-        self.init_sans_libs()
-
-        # (Re)initialize all dependencies *AFTER* this application.
-        self.init_libs(*args, **kwargs)
 
 
     def init_sans_libs(self) -> None:
@@ -155,7 +148,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
         #. Enables this application's default logging configuration.
         #. Validates (but does *not* initialize) all mandatory third-party
            dependencies of this application, which the
-           :func:`betsee.lib.libs.init` function initializes independently.
+           :func:`init_libs` method initializes subsequently.
         #. Validates core directories and files required at program startup,
            creating all such directories and files that do *not* already exist
            and are reasonably creatable.
@@ -214,7 +207,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
             objects.get_class_name_unqualified((self)))
 
         # Validate mandatory dependencies. Avoid initializing these
-        # dependencies now (e.g., by calling libs.init()). Doing so requires
+        # dependencies now (e.g., by calling init_libs()). Doing so requires
         # finalization of the logging configuration (e.g., by parsing CLI
         # options), which has yet to happen this early in the lifecycle.
         libs.die_unless_runtime_mandatory_all()
@@ -226,32 +219,78 @@ class MetaAppABC(object, metaclass=ABCMeta):
         oses.init()
         pys.init()
 
-
-    #FIXME: This method is currently *NOT* idempotent, unlike the comparable
-    #init_sans_libs() method -- which is bad. Ideally, this method should be
-    #idempotent as well, which implies that the "_IS_INITTED"-style caching
-    #currently performed by the libs.init() function should be fully removed.
-    #
-    #Note, however, that there is exactly one existing call to this method in
-    #which we would prefer to preserve the existing caching approach: the
-    #"betse.science.__init__" submodule. This suggests that we may want to
-    #create a separate init_libs_if_needed() method to handle this edge case.
-    def init_libs(self, *args, **kwargs) -> None:
+    # ..................{ INITIALIZERS ~ libs               }..................
+    @type_check
+    def init_libs(
+        self, matplotlib_backend_name: StrOrNoneTypes = None) -> None:
         '''
-        Initialize *all* mandatory third-party dependencies of the current
+        Initialize all mandatory third-party dependencies of the current
         application with sane defaults.
+
+        Specifically, this function (in no particular order):
+
+        * Reconfigures matplotlib with sane defaults specific to the current
+          platform and set of all available third-party GUI frameworks.
+        * Initializes exactly one available third-party YAML parsing framework
+          (e.g., PyYaml, :mod:`ruamel.yaml`).
+        * Initializes NumPy.
+        * Initializes Pillow.
 
         Parameters
         ----------
-        All passed parameters are passed as is to the lower-level
-        :func:`betse.lib.libs.init` function.
+        matplotlib_backend_name : StrOrNoneTypes
+            Name of the matplotlib backend to explicitly enable. Defaults to
+            ``None``, in which case this method implicitly enables the first
+            importable backend known to be both usable and supported by this
+            application (in descending order of preference).
         '''
 
-        # Defer heavyweight and possibly circular imports.
-        from betse.lib import libs
+        # Avoid circular import dependencies.
+        from betse.lib.matplotlib.matplotlibs import mpl_config
+        from betse.lib.numpy import numpys
+        from betse.lib.pickle import pickles
+        from betse.lib.pil import pils
+        from betse.lib.yaml import yamls
+        from betse.util.io.log import logs
 
-        # (Re)initialize all dependencies *AFTER* this application.
-        libs.init(*args, **kwargs)
+        # Log this initialization. Since initializing heavyweight third-party
+        # dependencies (especially matplotlib) consumes non-trivial time, this
+        # message is intentionally exposed to all users by default.
+        logs.log_info('Loading third-party dependencies...')
+
+        # Initialize these dependencies in arbitrary order.
+        mpl_config.init(backend_name=matplotlib_backend_name)
+        numpys.init()
+        pickles.init()
+        pils.init()
+        yamls.init()
+
+        # Note this method to have been called *AFTER* successfully doing so.
+        self._is_libs_initted = True
+
+
+    def init_libs_if_needed(self, *args, **kwargs) -> None:
+        '''
+        Initialize all mandatory third-party dependencies of the current
+        application with sane defaults if these dependencies have yet to be
+        initialized (i.e., if the :meth:`init_libs` method has yet to be
+        called) *or* silently reduce to a noop otherwise.
+
+        Parameters
+        ----------
+        All passed parameters are passed as is to the :meth:`init_libs` method.
+        '''
+
+        from betse.util.io.log import logs
+
+        # If the init_libs() method has already been called, log this fact
+        # *WITHOUT* recalling that method, thus reducing to a noop.
+        if self._is_libs_initted:
+            logs.log_debug(
+                'Ignoring request to reload third-party dependencies...')
+        # Else, the init_libs() method has yet to be called. So, do so.
+        else:
+            self.init_libs(*args, **kwargs)
 
     # ..................{ PROPERTIES                        }..................
     @property_cached

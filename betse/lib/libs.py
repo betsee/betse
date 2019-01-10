@@ -90,95 +90,12 @@ any such dependencies.
 # packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from betse import metadata, metadeps
+from betse import metadeps
 from betse.exceptions import BetseLibException
-from betse.util.io.log import logs
+# from betse.util.io.log import logs
 from betse.util.py.module import pymodname
 from betse.util.type.types import (
-    type_check, MappingType, ModuleOrSequenceTypes, StrOrNoneTypes)
-
-# ....................{ GLOBALS                           }....................
-_IS_INITTED = False
-'''
-``True`` only if the :func:`init` function has already been called.
-
-That function uses this private boolean to guard against repeated invocations
-of the :func:`init` function from multiple modules in the same Python process
-(e.g., :mod:`betse.science.__init__`, :mod:`betse.util.cli.cliabc`). While that
-function does technically support repeated calls, each additional call after
-the first performs no meaningful work and is thus safely ignorable.
-'''
-
-# ....................{ INITIALIZERS                      }....................
-def reinit(*args, **kwargs) -> None:
-    '''
-    (Re-)initialize all mandatory runtime dependencies of this application with
-    the passed parameters.
-
-    Parameters
-    ----------
-    All passed parameters are passed to the :func:`init` function as is.
-    '''
-
-    # Force the init() function to reinitialize this application.
-    global _IS_INITTED
-    _IS_INITTED = False
-
-    # Reinitialize these dependencies with these parameters.
-    init(*args, **kwargs)
-
-
-@type_check
-def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
-    '''
-    Initialize all mandatory runtime dependencies of this application if this
-    function has not already been called *or* silently reduce to a noop
-    otherwise (i.e., if this function has already been called).
-
-    Specifically, this function (in no particular order):
-
-    * Reconfigures matplotlib with sane defaults specific to the current
-      platform and set of all available third-party GUI frameworks.
-    * Initializes exactly one available third-party YAML parsing framework
-      (e.g., PyYaml, :mod:`ruamel.yaml`).
-    * Initializes NumPy.
-    * Initializes Pillow.
-
-    Parameters
-    ----------
-    matplotlib_backend_name : StrOrNoneTypes
-        Name of the matplotlib backend to explicitly enable. Defaults to
-        ``None``, in which case this method implicitly enables the first
-        importable backend known to be both usable and supported by this
-        application (in descending order of preference).
-    '''
-
-    # If this function has already been called, noop.
-    global _IS_INITTED
-    if     _IS_INITTED:
-        return
-
-    # Defer heavyweight imports.
-    from betse.lib.matplotlib.matplotlibs import mpl_config
-    from betse.lib.numpy import numpys
-    from betse.lib.pickle import pickles
-    from betse.lib.pil import pils
-    from betse.lib.yaml import yamls
-
-    # Log this initialization. Since initializing heavyweight third-party
-    # dependencies (especially matplotlib) consumes non-trivial time, this
-    # message is intentionally exposed to all users by default.
-    logs.log_info('Loading third-party %s dependencies...', metadata.NAME)
-
-    # Initialize these dependencies.
-    mpl_config.init(backend_name=matplotlib_backend_name)
-    numpys.init()
-    pickles.init()
-    pils.init()
-    yamls.init()
-
-    # Record this function as having been called *AFTER* successfully doing so.
-    _IS_INITTED = True
+    type_check, MappingType, ModuleOrSequenceTypes)
 
 # ....................{ EXCEPTIONS                        }....................
 def die_unless_runtime_mandatory_all() -> None:
