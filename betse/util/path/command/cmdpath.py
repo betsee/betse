@@ -14,6 +14,32 @@ import shutil
 from betse.exceptions import BetseCommandException
 from betse.util.type.types import type_check, SequenceTypes, StrOrNoneTypes
 
+# ....................{ EXCEPTIONS                        }....................
+@type_check
+def die_unless_pathable(
+    command_basename: str, exception_message: StrOrNoneTypes = None):
+    '''
+    Raise an exception with the passed message unless an external command with
+    the passed basename exists (i.e., unless an executable file with this
+    basename resides in the current ``${PATH}``).
+
+    Raises
+    ----------
+    BetseCommandException
+        If no external command with this basename exists.
+    '''
+
+    # If this pathable is not found, raise an exception.
+    if not is_pathable(command_basename):
+        # If no message was passed, default this message.
+        if exception_message is None:
+            exception_message = (
+                'Command "{}" not found in the current ${{PATH}} or '
+                'found but not an executable file.'.format(command_basename))
+
+        # Raise this exception.
+        raise BetseCommandException(exception_message)
+
 # ....................{ TESTERS                           }....................
 @type_check
 def is_pathable(command_basename: str) -> bool:
@@ -108,6 +134,7 @@ def get_filename_or_none(command_basename: str) -> StrOrNoneTypes:
     ----------
     StrOrNoneTypes
         Either;
+
         * Absolute path of this command if found.
         * ``None`` otherwise.
     '''

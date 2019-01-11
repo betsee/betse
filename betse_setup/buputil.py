@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -14,11 +14,11 @@ This method intentionally duplicates existing utility functions provided by the
 Yourself") and hence is usually harmful, there are valid reasons to do so here.
 Namely, :mod:`betse.util` functionality:
 
-* Assumes BETSE to be available. While this is certainly the case when this file
-  resides in the BETSE codebase, this is *not* necessarily the case when this
-  file is copied into and hence resides in the codebases of other projects
-  (e.g., BETSEE). In these projects, BETSE is merely yet another dependency that
-  is typically unavailable at installation time.
+* Assumes BETSE to be available. While this is certainly the case when this
+  file resides in the BETSE codebase, this is *not* necessarily the case when
+  this file is copied into and hence resides in the codebases of other projects
+  (e.g., BETSEE). In these projects, BETSE is merely yet another dependency
+  that is typically unavailable at installation time.
 * Raises BETSE-specific exceptions rooted at the BETSE-specific
   :class:`betse.exception.BetseException` superclass. :mod:`setuptools`
   subcommands, on the other hand, are expected to only raise
@@ -36,90 +36,14 @@ Since duplicating these functions here is no significant maintenance burden
 side effects, we adopt the former approach.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import importlib, os, platform, shutil, subprocess, sys, time
-from distutils.errors import (
-    DistutilsExecError, DistutilsFileError, DistutilsModuleError)
+from distutils.errors import DistutilsFileError, DistutilsModuleError
 from os import path
 from pkg_resources import Distribution, PathMetadata
 from setuptools import Command
 
-# ....................{ EXCEPTIONS ~ command               }....................
-def die_unless_command_succeeds(*command_words) -> None:
-    '''
-    Raise an exception unless running the passed command succeeds.
-
-    For portability, this command *must* be passed as a list of shell words
-    whose first element is the pathname of such command and all subsequent
-    elements the command-line arguments to be passed to such command (e.g.,
-    ``['ls', '/']``).
-    '''
-
-    # If the first passed shell word is *NOT* pathable, raise an exception.
-    die_unless_pathable(command_words[0])
-
-    # Print the command to be run before doing so.
-    print('Running "{}".'.format(' '.join(command_words)))
-
-    # Keyword arguments to be passed to subprocess.check_call() below, which
-    # accepts all arguments accepted by subprocess.Popen.__init__().
-    popen_kwargs = {}
-
-    # If the current platform is vanilla Windows, permit this command to inherit
-    # all file handles (including stdin, stdout, and stderr) from the current
-    # process. By default, subprocess.Popen documentation insists that:
-    #
-    #     "On Windows, if close_fds is true then no handles will be inherited by
-    #      the child process."
-    #
-    # The child process will then open new file handles for stdin, stdout, and
-    # stderr. If the current terminal is a Windows Console, the underlying
-    # terminal devices and hence file handles will remain the same, in which
-    # case this is *NOT* an issue. If the current terminal is Cygwin-based
-    # (e.g.,, MinTTY), however, the underlying terminal devices and hence file
-    # handles will differ, in which case this behaviour prevents interaction
-    # between the current shell and the vanilla Windows command to be run below.
-    # In particular, all output from this command will be squelched.
-    #
-    # If at least one of stdin, stdout, or stderr are redirected to a blocking
-    # pipe, setting "close_fds" to False can induce deadlocks under certain
-    # edge-case scenarios. Since all such file handles default to None and hence
-    # are *NOT* redirected in this case, "close_fds" may be safely set to False.
-    #
-    # On all other platforms, if "close_fds" is True, no file handles *EXCEPT*
-    # stdin, stdout, and stderr will be inherited by the child process. Hence,
-    # this function fundamentally differs in subtle (and only slightly
-    # documented ways) between vanilla Windows and all other platforms. These
-    # discrepancies appear to be harmful but probably unavoidable, given the
-    # philosophical gulf between vanilla Windows and all other platforms.
-    if is_os_windows_vanilla():
-        popen_kwargs['close_fds'] = False
-
-    # Run this command.
-    subprocess.check_call(command_words, **popen_kwargs)
-
-
-def die_unless_pathable(command_basename: str, exception_message: str = None):
-    '''
-    Raise an exception with the passed message if the passed **pathable** (i.e.,
-    external command in the current `${PATH}`) does _not_ exist.
-    '''
-
-    # If this pathable is not found, raise an exception.
-    if not is_pathable(command_basename):
-        # If no message was passed, default this message.
-        if not exception_message:
-             exception_message = (
-                 'Command "{}" not found in the current ${{PATH}} or '
-                 'found but not an executable file.'.format(
-                    command_basename))
-        assert isinstance(exception_message, str), (
-            '"{}" not a string.'.format(exception_message))
-
-        # Raise this exception.
-        raise DistutilsExecError(exception_message)
-
-# ....................{ EXCEPTIONS ~ path                  }....................
+# ....................{ EXCEPTIONS ~ path                 }....................
 def die_unless_basename(pathname: str, exception_message: str = None) -> None:
     '''
     Raise an exception unless the passed path is a **basename** (i.e., contains
@@ -181,7 +105,8 @@ def die_unless_file_or_not_found(
         if not exception_message:
             if is_dir(pathname):
                 exception_message = (
-                    'File "{}" already an existing directory.'.format(pathname))
+                    'File "{}" already an existing directory.'.format(
+                        pathname))
             elif is_symlink(pathname):
                 exception_message = (
                     'File "{}" already an existing symbolic link.'.format(
@@ -258,7 +183,7 @@ def die_unless_symlink(filename: str) -> None:
         raise DistutilsFileError(
             'Symbolic link "{}" not found.'.format(filename))
 
-# ....................{ EXCEPTIONS ~ python                }....................
+# ....................{ EXCEPTIONS ~ python               }....................
 def die_unless_module(module_name: str, exception_message: str = None):
     '''
     Raise an exception with the passed message if the module with the passed
@@ -269,30 +194,23 @@ def die_unless_module(module_name: str, exception_message: str = None):
     if not is_module(module_name):
         # If no message was passed, default this message.
         if not exception_message:
-             exception_message = (
-                 'Module "{}" not installed or not importable under '
-                 'the current Python interpreter.'.format(module_name))
+            exception_message = (
+                'Module "{}" not installed or not importable under '
+                'the current Python interpreter.'.format(module_name))
         assert isinstance(exception_message, str), (
             '"{}" not a string.'.format(exception_message))
 
         # Raise this exception.
         raise DistutilsModuleError(exception_message)
 
-# ....................{ TESTERS ~ os                       }....................
-def is_os_linux() -> bool:
-    '''
-    `True` if the current operating system is Linux.
-    '''
-    return platform.system() == 'Linux'
-
-
+# ....................{ TESTERS ~ os                      }....................
 def is_os_posix() -> bool:
     '''
     `True` if the current operating system complies with POSIX standards (e.g.,
     as required for POSIX-compliant symbolic link support).
 
     Typically, this implies this system to _not_ be vanilla Microsoft Windows
-    (i.e., to be either a Cygwin-enabled Windows terminal _or_ a genuine
+    (i.e., to be either a Cygwin-enabled Windows terminal *or* a genuine
     POSIX-compliant system).
     '''
     return os.name == 'posix'
@@ -305,7 +223,7 @@ def is_os_os_x() -> bool:
     '''
     return platform.system() == 'Darwin'
 
-# ....................{ TESTERS ~ os : windows             }....................
+# ....................{ TESTERS ~ os : windows            }....................
 def is_os_windows() -> bool:
     '''
     `True` if the current operating system is Microsoft Windows.
@@ -330,7 +248,7 @@ def is_os_windows_vanilla() -> bool:
     '''
     return sys.platform == 'win32'
 
-# ....................{ TESTERS ~ path                     }....................
+# ....................{ TESTERS ~ path                    }....................
 def is_basename(pathname: str) -> bool:
     '''
     `True` only if the passed path is a **basename** (i.e., is a non-empty
@@ -406,11 +324,11 @@ def is_pathable(command_basename: str) -> bool:
     # Return whether this command is found or not.
     return shutil.which(command_basename) is not None
 
-# ....................{ TESTERS ~ module                   }....................
+# ....................{ TESTERS ~ module                  }....................
 def is_module(module_name: str) -> bool:
     '''
-    `True` only if the module with the passed fully-qualified name is importable
-    under the active Python interpreter.
+    `True` only if the module with the passed fully-qualified name is
+    importable under the active Python interpreter.
 
     If this module is a **submodule** (i.e., contains a `.` character), all
     parent modules of this module will be imported as a side effect of this
@@ -432,7 +350,7 @@ def is_module(module_name: str) -> bool:
         except ImportError:
             return False
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 def get_project_dirname():
     '''
     Get the absolute path of the directory containing the currently run
@@ -442,7 +360,7 @@ def get_project_dirname():
     # "sys.path" list, you know what they say about assumptions.
     return get_path_dirname(get_path_dirname(__file__))
 
-# ....................{ GETTERS ~ io                       }....................
+# ....................{ GETTERS ~ io                      }....................
 def get_command_output(*args) -> str:
     '''
     Get all standard output and error captured by running the external shell
@@ -452,9 +370,9 @@ def get_command_output(*args) -> str:
     Parameters
     ----------
     *args : list
-        List of shell words comprising this command. The first item of this list
-        should be the pathname for this command; all remaining items should be
-        the arguments to pass this command.
+        List of shell words comprising this command. The first item of this
+        list should be the pathname for this command; all remaining items
+        should be the arguments to pass this command.
 
     Returns
     ----------
@@ -478,7 +396,7 @@ def get_command_output(*args) -> str:
     # Get this output, stripped of all trailing newlines.
     return command_output.rstrip('\n')
 
-# ....................{ GETTERS ~ io : file                }....................
+# ....................{ GETTERS ~ io : file               }....................
 def get_chars(filename: str, encoding: str = 'utf-8') -> str:
     '''
     String of all characters contained in the plaintext file with the passed
@@ -502,15 +420,54 @@ def get_chars(filename: str, encoding: str = 'utf-8') -> str:
     with open(filename, mode='rt', encoding=encoding) as text_file:
         return text_file.read()
 
-# ....................{ GETTERS ~ path                     }....................
+# ....................{ GETTERS ~ metadata                }....................
+def get_description() -> str:
+    '''
+    Human-readable multiline description of this application in
+    reStructuredText (reST) format.
+
+    To minimize synchronization woes, this description is identical to the
+    contents of the :doc:`/README.rst` file. When submitting this application
+    package to PyPI, this description is re-used verbatim as this package's
+    front matter.
+
+    Caveats
+    ----------
+    This function is I/O intensive and hence should be called sparingly --
+    ideally, only once by this application's top-level ``setup.py`` script.
+    '''
+
+    # Relative path of this application's front-facing documentation in
+    # reStructuredText format, required by PyPI. This path resides outside this
+    # application's package tree and hence is inlined here rather than provided
+    # by the "betsee.guimetaapp" submodule.
+    DESCRIPTION_FILENAME = 'README.rst'
+
+    # Description read from this description file.
+    try:
+        description = get_chars(DESCRIPTION_FILENAME)
+        # print('description: {}'.format(_DESCRIPTION))
+    # If this file is *NOT* readable, print a non-fatal warning and reduce this
+    # description to the empty string. While unfortunate, this description is
+    # *NOT* required for most operations and hence mostly ignorable.
+    except Exception as exception:
+        description = ''
+        output_warning(
+            'Description file "{}" not found or not readable:\n{}'.format(
+                DESCRIPTION_FILENAME, exception))
+
+    # Retcurn this description.
+    return description
+
+# ....................{ GETTERS ~ path                    }....................
 def get_path_canonicalized(pathname: str) -> str:
     '''
     Get the **canonical form** (i.e., unique absolute path) of the passed path.
 
     Specifically (in order):
 
-    * Perform **tilde expansion,** replacing a `~` character prefixing such path
-      by the absolute path of the current user's home directory.
+    * Perform **tilde expansion,** replacing a `~` character prefixing such
+      path by the absolute path of the current user's home directory.
     * Perform **path normalization,** thus:
       * Collapsing redundant separators (e.g., converting `//` to `/`).
       * Converting relative to absolute path components (e.g., converting `../`
@@ -523,8 +480,8 @@ def get_path_canonicalized(pathname: str) -> str:
 
 def get_path_dirname(pathname: str) -> str:
     '''
-    Get the **dirname** (i.e., parent directory) of the passed path if such path
-    has a dirname or raise an exception otherwise.
+    Get the **dirname** (i.e., parent directory) of the passed path if such
+    path has a dirname or raise an exception otherwise.
     '''
     # Get such dirname. Since the path.dirname() function returns the empty
     # string for paths containing no directory separators and hence having no
@@ -533,15 +490,15 @@ def get_path_dirname(pathname: str) -> str:
     assert len(dirname), 'Pathname "{}" dirname empty.'.format(pathname)
     return dirname
 
-# ....................{ GETTERS ~ path : filetype          }....................
+# ....................{ GETTERS ~ path : filetype         }....................
 def get_path_filetype(pathname: str) -> str:
     '''
     Get the **last filetype** (i.e., last `.`-prefixed substring of the
     basename *not* including such `.`) of the passed path if this path has a
     filetype _or_ `None` otherwise.
 
-    If this path contains multiple filetypes (e.g., `odium.reigns.tar.gz`), this
-    function returns only the last filetype.
+    If this path contains multiple filetypes (e.g., `odium.reigns.tar.gz`),
+    this function returns only the last filetype.
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     assert len(pathname), 'Pathname empty.'
@@ -549,8 +506,9 @@ def get_path_filetype(pathname: str) -> str:
     # Such filetype. (Yes, splitext() is exceedingly poorly named.)
     filetype = path.splitext(pathname)[1]
 
-    # Get such filetype, stripping the prefixing "." from the string returned by
-    # the prior call if such path has a filetype or returning None otherwise.
+    # Get such filetype, stripping the prefixing "." from the string returned
+    # by the prior call if such path has a filetype or returning None
+    # otherwise.
     return filetype[1:] if filetype else None
 
 
@@ -563,17 +521,72 @@ def get_path_sans_filetype(pathname: str) -> str:
     assert len(pathname), 'Pathname empty.'
     return path.splitext(pathname)[0]
 
-# ....................{ SANITIZERS                         }....................
+# ....................{ SANITIZERS ~ metadata             }....................
+def sanitize_classifiers(
+    classifiers: list,
+    python_version_min_parts: tuple,
+    python_version_minor_max: int,
+) -> list:
+    '''
+    List of all PyPI-specific trove classifier strings synopsizing this
+    application, manufactured by appending classifiers synopsizing this
+    application's support for Python major versions (e.g.,
+    ``Programming Language :: Python :: 3.6``, a classifier implying this
+    application to successfully run under Python 3.6) to the passed list.
+
+    Parameters
+    ----------
+    classifiers : list
+        List of all PyPI-specific trove classifier strings to be sanitized.
+    python_version_min_parts : tuple
+        Minimum fully-specified version of Python required by this application
+        as a tuple of integers (e.g., ``(3, 5, 0)`` if this application
+        requires at least Python 3.5.0).
+    python_version_minor_max : int
+        Maximum minor stable version of the current Python 3.x mainline (e.g.,
+        ``9`` if Python 3.9 is the most recent stable version of Python 3.x).
+
+    Returns
+    ----------
+    list
+        List of all sanitized PyPI-specific trove classifier strings.
+    '''
+    assert isinstance(classifiers, list), '"{}" not a list.'.format(
+        classifiers)
+    assert isinstance(python_version_min_parts, tuple), (
+        '"{}" not a tuple.'.format(python_version_min_parts))
+    assert isinstance(python_version_minor_max, int), (
+        '"{}" not an integer.'.format(python_version_minor_max))
+
+    # Major version of Python required by this application.
+    PYTHON_VERSION_MAJOR = python_version_min_parts[0]
+
+    # List of classifiers to return, copied from the passed list for safety.
+    classifiers_sane = classifiers[:]
+
+    # For each minor version of Python 3.x supported by this application,
+    # formally classify this version as such.
+    for python_version_minor in range(
+        python_version_min_parts[1], python_version_minor_max):
+        classifiers.append(
+            'Programming Language :: Python :: {}.{}'.format(
+                PYTHON_VERSION_MAJOR, python_version_minor,))
+    # print('classifiers: {}'.format(_CLASSIFIERS))
+
+    # Return this sanitized list of classifiers.
+    return classifiers_sane
+
+# ....................{ SANITIZERS ~ path                 }....................
 def sanitize_command_basename(command_basename: str) -> str:
     '''
-    Convert the passed platform-agnostic command basename (e.g., `pytest`) into
-    a platform-specific command basename (e.g., `pytest.exe`).
+    Convert the passed platform-agnostic command basename (e.g., ``pytest``)
+    into a platform-specific command basename (e.g., ``pytest.exe``).
 
-    If the passed basename contains a directory separator and hence is _not_ a
+    If the passed basename contains a directory separator and hence is *not* a
     basename, an exception is raised. Else, under:
 
-    * Windows, the passed basename is appended by `.exe`. To avoid confusion
-      with non-Windows executables in the current `${PATH}` when running under
+    * Windows, the passed basename is appended by ``.exe``. To avoid confusion
+      with non-Windows executables in the current ``${PATH}`` when running under
       Wine emulation, only Windows executables are accepted when running under
       Windows.
     * All other platforms, the passed basename is returned as is.
@@ -595,8 +608,9 @@ def sanitize_command_basename(command_basename: str) -> str:
     # Else, return this basename as is.
     return command_basename
 
-# ....................{ IMPORTERS                          }....................
-def import_module(module_name: str, exception_message: str = None) -> type(sys):
+# ....................{ IMPORTERS                         }....................
+def import_module(
+    module_name: str, exception_message: str = None) -> type(sys):
     '''
     Dynamically import and return the module, package, or C extension with the
     passed fully-qualified name.
@@ -611,14 +625,14 @@ def import_module(module_name: str, exception_message: str = None) -> type(sys):
     # Else, import and return this module.
     return importlib.import_module(module_name)
 
-# ....................{ QUITTERS                           }....................
+# ....................{ QUITTERS                          }....................
 def exit_with_status(exit_status: int) -> None:
     '''
     Terminate the current Python process with the passed 0-based exit status.
     '''
     sys.exit(exit_status)
 
-# ....................{ OUTPUTTERS                         }....................
+# ....................{ OUTPUTTERS                        }....................
 def output_sans_newline(*strings) -> None:
     '''
     Print the passed strings to standard output *not* suffixed by a newline.
@@ -634,7 +648,7 @@ def output_warning(*warnings) -> None:
     '''
     print('WARNING: ', *warnings, file=sys.stderr)
 
-# ....................{ QUOTERS                            }....................
+# ....................{ QUOTERS                           }....................
 def shell_quote(text: str) -> str:
     '''
     Shell-quote the passed string.
@@ -645,12 +659,12 @@ def shell_quote(text: str) -> str:
       suitable for passing as an arbitrary positional argument to external
       commands.
     * Windows, the returned string is suitable for passing *only* to external
-      commands parsing arguments according in the same manner as the Microsoft C
-      runtime. Whereas *all* applications running under POSIX-compliant systems
-      are required to parse arguments in the same manner (e.g., according to
-      Bourne shell lexing), no such standard applies to applications running
-      under Windows. For this reason, shell quoting is inherently unreliable
-      under Windows.
+      commands parsing arguments according in the same manner as the Microsoft
+      C runtime. Whereas *all* applications running under POSIX-compliant
+      systems are required to parse arguments in the same manner (e.g.,
+      according to Bourne shell lexing), no such standard applies to
+      applications running under Windows. For this reason, shell quoting is
+      inherently unreliable under Windows.
     '''
     assert isinstance(text, str), '"{}" not a string.'.format(text)
 
@@ -668,7 +682,7 @@ def shell_quote(text: str) -> str:
         import shlex
         return shlex.quote(text)
 
-# ....................{ MAKERS                             }....................
+# ....................{ MAKERS                            }....................
 def make_dir_unless_found(dirname: str) -> None:
     '''
     Create the passed directory if such directory does *not* already exist.
@@ -716,7 +730,7 @@ def make_symlink(pathname_source: str, filename_target: str) -> None:
         pathname_source, filename_target))
     os.symlink(pathname_source, filename_target)
 
-# ....................{ MOVERS                             }....................
+# ....................{ MOVERS                            }....................
 def move_file(filename_source: str, filename_target: str) -> None:
     '''
     Move the passed source to the passed target file.
@@ -729,7 +743,7 @@ def move_file(filename_source: str, filename_target: str) -> None:
     print('Moving file "{}" to "{}".'.format(filename_source, filename_target))
     shutil.move(filename_source, filename_target)
 
-# ....................{ REMOVERS                           }....................
+# ....................{ REMOVERS                          }....................
 def remove_path(pathname: str) -> None:
     '''
     Recursively remove the passed directory in a safe manner (e.g., *not*
@@ -799,18 +813,19 @@ def remove_symlink(filename: str) -> None:
     print('Removing symbolic link "{}".'.format(filename))
     os.unlink(filename)
 
-# ....................{ SETUPTOOLS                         }....................
+# ....................{ SETUPTOOLS                        }....................
 def add_setup_command_classes(
     metadata: dict, setup_options: dict, *command_classes) -> None:
     '''
-    Add one application-specific :mod:`setuptools` command for each passed class
-    to the passed dictionary of :mod:`setuptools` options.
+    Add one application-specific :mod:`setuptools` command for each passed
+    class to the passed dictionary of :mod:`setuptools` options.
 
     For simplicity, the name of each such command will be the name of the
     corresponding class. Hence, the names of such classes are recommended to be
     short lowercase strings (e.g., ``freeze``, ``symlink``).
     '''
-    assert isinstance(metadata, dict), '"{}" not a dictionary.'.format(metadata)
+    assert isinstance(metadata, dict), '"{}" not a dictionary.'.format(
+        metadata)
     assert isinstance(setup_options, dict), (
         '"{}" not a dictionary.'.format(setup_options))
 
@@ -823,19 +838,19 @@ def add_setup_command_classes(
         setup_options['cmdclass'][command_class.__name__] = command_class
 
         # Expose the passed dictionaries to this class by monkey-patching
-        # application-specific private class variables into these classes. While
-        # passing these dictionaries to instances of this class (e.g., on
+        # application-specific private class variables into these classes.
+        # While passing these dictionaries to instances of this class (e.g., on
         # instantiation) would be ideal, distutils and hence setuptools
         # requires commands to be registered as classes rather than instances.
         command_class._metadata = metadata
         command_class._setup_options = setup_options
 
-# ....................{ SETUPTOOLS ~ wrappers : generators }....................
+# ....................{ SETUPTOOLS ~ wrappers : generators}....................
 def command_entry_points(command: Command) -> 'GeneratorType':
     '''
-    Generator yielding a 3-tuple detailing each wrapper script installed for the
-    **Python distribution** (i.e., top-level package) identified by the passed
-    `setuptools` command.
+    Generator yielding a 3-tuple detailing each wrapper script installed for
+    the **Python distribution** (i.e., top-level package) identified by the
+    passed `setuptools` command.
 
     See Also
     ----------
@@ -845,10 +860,10 @@ def command_entry_points(command: Command) -> 'GeneratorType':
     assert isinstance(command, Command), (
         '"{}" not a setuptools command.'.format(command))
 
-    # Make a "pkg_resources"-specific distribution from the passed command. Yes,
-    # this code was ripped wholesale from the run() method defined by module
-    # "setuptools.command.install_scripts". Yes, we don't know how it works.
-    # "Frankly, Mam, we don't give a damn."
+    # Make a "pkg_resources"-specific distribution from the passed command.
+    # Yes, this code was ripped wholesale from the run() method defined by
+    # module "setuptools.command.install_scripts". Yes, we don't know how it
+    # works. "Frankly, Mam, we don't give a damn."
     #
     # It should be noted that all commands have an attribute "distribution".
     # Naturally, this is a setuptools-specific distribution that has literally
@@ -884,7 +899,8 @@ def package_distribution_entry_points(
       `setuptools.command.easy_install.ScriptWriter.get_script_args()` method),
       this basename is typically _not_ suffixed by a platform-specific filetype
       (e.g., `.exe` under vanilla or Cygwin Microsoft Windows).
-    * `ui_type` is this script's interface type string, guaranteed to be either:
+    * `ui_type` is this script's interface type string, guaranteed to be
+      either:
       * `console` if this script is console-specific.
       * `gui` otherwise.
     * `entry_point` is this script's `EntryPoint` object, whose attributes

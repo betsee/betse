@@ -18,10 +18,8 @@ Top-level abstract base class of all command line interface (CLI) subclasses.
 import sys
 from abc import ABCMeta, abstractmethod
 from betse import metadata as betse_metadata
-from betse.util.app.meta import metaappton
 from betse.util.cli.cliarg import SemicolonAwareHelpFormatter
 from betse.util.io.log import logs, logconfig
-from betse.util.io.log.logenum import LogLevel
 from betse.util.path.command import cmds
 from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.pyprofile import profile_callable, ProfileType
@@ -404,6 +402,7 @@ class CLIABC(object, metaclass=ABCMeta):
             CLIOptionBoolTrue,
             CLIOptionVersion,
         )
+        from betse.util.io.log.logenum import LogLevel
 
         # Singleton logging configuration for the current Python process.
         log_config = logconfig.get_log_conf()
@@ -511,6 +510,9 @@ class CLIABC(object, metaclass=ABCMeta):
         Parse top-level logging options globally applicable to all subcommands.
         '''
 
+        # Avoid circular import dependencies.
+        from betse.util.io.log.logenum import LogLevel
+
         # Singleton logging configuration for the current Python process.
         log_config = logconfig.get_log_conf()
 
@@ -565,6 +567,9 @@ class CLIABC(object, metaclass=ABCMeta):
         :meth:`betse.util.app.meta.metaappabc.MetaAppABC.init_libs` method to
         initialize these dependencies.
         '''
+
+        # Avoid circular import dependencies.
+        from betse.util.app.meta import metaappton
 
         # Name of the matplotlib backend explicitly requested by the user if
         # any *OR* "None" otherwise.

@@ -138,17 +138,18 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
     def init_sans_libs(self) -> None:
         '''
-        Initialize the current application *except* mandatory third-party
-        dependencies of this application.
+        Initialize this application *except* mandatory third-party dependencies
+        of this application, which requires external resources (e.g.,
+        command-line options, configuration files) to have been parsed.
 
         Specifically, the default implementation of this method (in order):
 
         #. Enables Python's standard handler for segmentation faults.
         #. Globalizes the passed application metadata singleton.
         #. Enables this application's default logging configuration.
-        #. Validates (but does *not* initialize) all mandatory third-party
-           dependencies of this application, which the
-           :func:`init_libs` method initializes subsequently.
+        #. Validates but does *not* initialize all mandatory third-party
+           dependencies of this application, which the :meth:`init_libs` method
+           does so subsequently.
         #. Validates core directories and files required at program startup,
            creating all such directories and files that do *not* already exist
            and are reasonably creatable.
@@ -224,10 +225,10 @@ class MetaAppABC(object, metaclass=ABCMeta):
     def init_libs(
         self, matplotlib_backend_name: StrOrNoneTypes = None) -> None:
         '''
-        Initialize all mandatory third-party dependencies of the current
-        application with sane defaults.
+        Initialize all mandatory third-party dependencies of this application
+        with sane defaults.
 
-        Specifically, this function (in no particular order):
+        Specifically, this method (in no particular order):
 
         * Reconfigures matplotlib with sane defaults specific to the current
           platform and set of all available third-party GUI frameworks.

@@ -73,7 +73,7 @@ def test_dirs_get_mtime_newest(betse_temp_dir: 'LocalPath') -> None:
     )
 
 
-def test_dirs_recurse_subdirnames() -> None:
+def test_packages_init() -> None:
     '''
     Unit test the :func:`betse.util.path.dirs.recurse_subdirnames` function by
     validating that all **non-data subdirectories** (i.e., subdirectories

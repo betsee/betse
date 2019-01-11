@@ -53,47 +53,6 @@ from betse import metadata
 from betse.lib import libs
 from betse_setup import build, freeze, symlink, test, buputil
 
-# ....................{ METADATA                          }....................
-# PyPI-specific metadata declared here rather than in the "betse.metadata"
-# submodule, reducing space and time complexity during application startup.
-# This metadata is relevant only to setuptools and hence irrelevant to the main
-# codebase.
-
-_PYTHON_VERSION_MINOR_MAX = 7
-'''
-Maximum minor stable version of this major version of Python currently released
-(e.g., ``5`` if Python 3.5 is the most recent stable version of Python 3.x).
-'''
-
-
-_DESCRIPTION = None
-'''
-Human-readable multiline description of this application in reStructuredText
-(reST) format.
-
-To minimize synchronization woes, this description is identical to the contents
-of the :doc:`/README.rst` file. When submitting this application package to
-PyPI, this description is used verbatim as this package's front matter.
-'''
-
-_PACKAGES_NAME = None
-'''
-List of the fully-qualified names of all Python packages (i.e., directories
-containing zero or more Python modules) to be installed.
-
-This includes the :mod:`betse` package and all subpackages of this package,
-thus excluding:
-
-* The top-level test package and all subpackages of this package, test
-  functionality *not* intended to be installed with this application.
-* The top-level setup package and all subpackages of this package, setuptools
-  functionality required only for application installation.
-* ``build``, caching both setuptools metadata and a complete copy of this
-  package, required only by a prior application installation.
-* ``freeze``, providing PyInstaller-specific functionality required only
-  for application freezing (i.e., conversion into an executable binary).
-'''
-
 # ....................{ METADATA ~ seo                    }....................
 _KEYWORDS = ['biology', 'multiphysics', 'science', 'simulator',]
 '''
@@ -142,79 +101,6 @@ https://pypi.python.org/pypi?%3Aaction=list_classifiers
     Plaintext list of all trove classifier strings recognized by PyPI.
 '''
 
-# ....................{ INITIALIZERS                      }....................
-#FIXME: Replace this entire function with the considerably more succinct and
-#hence saner approach taken by BETSEE.
-def _init() -> None:
-    '''
-    Finalize the definition of all globals declared by this script.
-    '''
-
-    # Global variables assigned to below.
-    global _DESCRIPTION, _PACKAGES_NAME
-
-    # List of the fully-qualified names of all Python packages (i.e.,
-    # directories containing zero or more Python modules) to be installed.
-    # Currently, this includes the "betse" package and all subpackages of this
-    # package excluding:
-    #
-    # * The top-level test package and all subpackages of this package, test
-    #   functionality *NOT* intended to be installed with this application.
-    # * The top-level setup package and all subpackages of this package,
-    #   setuptools functionality required only for application installation.
-    # * "build", caching both setuptools metadata and a complete copy of this
-    #   package, required only by a prior application installation.
-    # * "freeze", providing PyInstaller-specific functionality required only
-    #   for application freezing (i.e., conversion into an executable binary).
-    #
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # WARNING: This inspection intentionally omits subdirectories containing no
-    # "__init__.py" file, despite the remainder of the Python ecosystem
-    # commonly accepting such subdirectories as subpackages.
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    _PACKAGES_NAME = setuptools.find_packages(exclude=(
-        metadata.PACKAGE_NAME + '_test',
-        metadata.PACKAGE_NAME + '_test.*',
-        metadata.PACKAGE_NAME + '_setup',
-        metadata.PACKAGE_NAME + '_setup.*',
-        'build',
-        'freeze',
-    ))
-    # print('packages: {}'.format(_PACKAGES_NAME))
-
-    # Major version of Python required by this application.
-    PYTHON_VERSION_MAJOR = metadata.PYTHON_VERSION_MIN_PARTS[0]
-
-    # Relative path of this application's front-facing documentation in
-    # reStructuredText format, required by PyPI.
-    DESCRIPTION_FILENAME = 'README.rst'
-
-    # For each minor version of Python 3.x supported by this application,
-    # formally classify this version as such.
-    for python_version_minor in range(
-        metadata.PYTHON_VERSION_MIN_PARTS[1], _PYTHON_VERSION_MINOR_MAX + 1):
-        _CLASSIFIERS.append(
-            'Programming Language :: Python :: {}.{}'.format(
-                PYTHON_VERSION_MAJOR, python_version_minor,))
-    # print('classifiers: {}'.format(_CLASSIFIERS))
-
-    # Description read from this description file.
-    try:
-        _DESCRIPTION = buputil.get_chars(DESCRIPTION_FILENAME)
-        # print('description: {}'.format(_DESCRIPTION))
-    # If this file is *NOT* readable, print a non-fatal warning and reduce this
-    # description to the empty string. While unfortunate, this description is
-    # *NOT* required for most operations and hence mostly ignorable.
-    except Exception as exception:
-        _DESCRIPTION = ''
-        buputil.output_warning(
-            'Description file "{}" not found or not readable:\n{}'.format(
-                DESCRIPTION_FILENAME, exception))
-
-# ....................{ INITIALIZERS ~ main               }....................
-# Finalize the definition of all globals declared by this module.
-_init()
-
 # ....................{ OPTIONS                           }....................
 # Setuptools-specific options. Keywords not explicitly recognized by either
 # setuptools or distutils must be added to the above dictionary instead.
@@ -228,13 +114,17 @@ _setup_options = {
     'maintainer':       metadata.AUTHORS,
     'maintainer_email': metadata.AUTHOR_EMAIL,
     'description':      metadata.SYNOPSIS,
-    'long_description': _DESCRIPTION,
+    'long_description': buputil.get_description(),
     'url':              metadata.URL_HOMEPAGE,
     'download_url':     metadata.URL_DOWNLOAD,
 
     # ..................{ PYPI                              }..................
     # PyPi-specific metadata.
-    'classifiers': _CLASSIFIERS,
+    'classifiers': buputil.sanitize_classifiers(
+        classifiers=_CLASSIFIERS,
+        python_version_min_parts=metadata.PYTHON_VERSION_MIN_PARTS,
+        python_version_minor_max=metadata.PYTHON_VERSION_MINOR_MAX,
+    ),
     'keywords':    _KEYWORDS,
     'license':     metadata.LICENSE,
 
@@ -259,8 +149,33 @@ _setup_options = {
     'tests_require': libs.get_testing_mandatory_tuple(),
 
     # ..................{ PACKAGES                          }..................
-    # List of the fully-qualified names of all Python packages to be installed.
-    'packages': _PACKAGES_NAME,
+    # List of the fully-qualified names of all Python packages (i.e.,
+    # directories containing zero or more Python modules) to be installed,
+    # including the top-level application package and all subpackages of that
+    # package. This thus excludes:
+    #
+    # * The top-level test package and all subpackages of this package, test
+    #   functionality *NOT* intended to be installed with this application.
+    # * The top-level setup package and all subpackages of this package,
+    #   setuptools functionality required only for application installation.
+    # * "build", caching both setuptools metadata and a complete copy of this
+    #   package, required only by a prior application installation.
+    # * "freeze", providing PyInstaller-specific functionality required only for
+    #   application freezing (i.e., conversion into an executable binary).
+    #
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # WARNING: This inspection intentionally omits subdirectories containing no
+    # "__init__.py" file, despite the remainder of the Python ecosystem
+    # commonly accepting such subdirectories as subpackages.
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    'packages': setuptools.find_packages(exclude=(
+        metadata.PACKAGE_NAME + '_test',
+        metadata.PACKAGE_NAME + '_test.*',
+        metadata.PACKAGE_NAME + '_setup',
+        metadata.PACKAGE_NAME + '_setup.*',
+        'build',
+        'freeze',
+    )),
 
     # ..................{ PATHS                             }..................
     # Cross-platform script wrappers dynamically created at installation time.
