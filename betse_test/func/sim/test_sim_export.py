@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,12 +9,12 @@ directories, typically as a subprocess of a larger functional test (e.g., to
 validate application backward compatibility).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import pytest
 from betse_test.util import requests
 from betse_test.util.mark.pytskip import skip_if
 
-# ....................{ OPTIONS                            }....................
+# ....................{ OPTIONS                           }....................
 EXPORT_SIM_CONF_DIRNAME = pytest.config.option.export_sim_conf_dirname
 '''
 Absolute or relative path of the target directory to export (i.e., recursively
@@ -27,7 +27,7 @@ See Also
     Further details.
 '''
 
-# ....................{ DECORATORS                         }....................
+# ....................{ DECORATORS                        }....................
 skip_unless_export_sim_conf_dir = skip_if(
     EXPORT_SIM_CONF_DIRNAME is None,
     reason='CLI option "--export-sim-conf-dir" unpassed.')
@@ -37,12 +37,12 @@ command-line option specific to this test suite was *not* passed to the
 ``py.test`` command.
 '''
 
-# ....................{ TESTS                              }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ TESTS                             }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # CAUTION: The name of this test is assumed to *NOT* change across Git commits.
 # Changing this name would violate this assumption and hence forwards
 # compatibility with future versions of this test suite.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 @skip_unless_export_sim_conf_dir
 def test_cli_sim_export(
@@ -50,8 +50,8 @@ def test_cli_sim_export(
     betse_cli_sim: 'CLISimTester',
 ) -> None:
     '''
-    Functional test exporting the simulation configuration directory produced by
-    running all BETSE subcommands exporting pickled objects (i.e., ``seed``,
+    Functional test exporting the simulation configuration directory produced
+    by running all BETSE subcommands exporting pickled objects (i.e., ``seed``,
     ``init``, and ``sim``) to the ``test_sim_export`` subdirectory of the
     ``--export-sim-conf-dir`` command-line option passed to the ``py.test``
     command.
@@ -79,8 +79,8 @@ def test_cli_sim_export(
     test_name = requests.get_tested_name(request)
 
     # Absolute or relative pathname of the target directory to export into,
-    # canonicalized for caller convenience (e.g., to ensure tilde expansion) and
-    # created if this directory does *NOT* already exist.
+    # canonicalized for caller convenience (e.g., to ensure tilde expansion)
+    # and created if this directory does *NOT* already exist.
     trg_sim_conf_parent_dirname = dirs.canonicalize_and_make_unless_dir(
         EXPORT_SIM_CONF_DIRNAME)
 
@@ -89,7 +89,7 @@ def test_cli_sim_export(
     trg_sim_conf_dirname = pathnames.join(
         trg_sim_conf_parent_dirname, test_name)
 
-    # If this test-specific target directory already exists, raise an exception.
+    # If this test-specific target directory exists, raise an exception.
     dirs.die_if_dir(trg_sim_conf_dirname)
 
     # Absolute pathname of the test-specific source simulation configuration

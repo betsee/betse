@@ -25,7 +25,7 @@ from betse.util.cli.clicmd import (
 from betse.util.cli.clicmdabc import CLISubcommandableABC
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
-from betse.util.py import pys
+from betse.util.test import tests
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import ModuleType
 
@@ -432,7 +432,7 @@ from input files defined by this configuration.
         # In the unlikely edge-case of the "repl" subcommand being erroneously
         # run by a functional test, prohibit this by raising an exception.
         # Permitting this would probably cause tests to indefinitely hang.
-        if pys.is_testing():
+        if tests.is_testing():
             from betse.exceptions import BetseTestException
             raise BetseTestException(
                 'REPL unavailable during testing for safety.')

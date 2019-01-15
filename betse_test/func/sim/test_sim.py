@@ -12,28 +12,16 @@ complete BETSE solver *and* the "fast" equivalent circuit solver).
 # ....................{ IMPORTS                           }....................
 import pytest
 from betse_test.util.mark.pytfail import xfail
-from betse_test.util.mark.pytskip import (
-    skip_unless_matplotlib_anim_writer, skip_unless_requirement)
+from betse_test.util.mark.pytskip import skip_unless_matplotlib_anim_writer
 
 # ....................{ TESTS                             }....................
-#FIXME: This is... unfortunate. Since setuptools >= 38.0.0 will eventually
-#become industry-standard, this functional test and hence our backward
-#compatibility guarantee will eventually be untestable. To correct this, we
-#have little choice but to drop backward compatibility with older versions.
-#Specifically:
-#
-#* Bump the "betse.metadata.GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY" tag to
-#  'v0.6.2'.
-#* Remove this decoration here.
-@skip_unless_requirement('setuptools < 38.0.0')
-def test_cli_sim_compat(
-    betse_cli_sim_compat: 'CLISimTester') -> None:
+def test_cli_sim_compat( betse_cli_sim_compat: 'CLISimTester') -> None:
     '''
     Functional test exercising all simulation subcommands required to validate
     backward compatibility with a temporary simulation configuration file
     (complete with a pickled seed, initialization, and simulation) produced by
-    the oldest version of this application for which the current version of this
-    application guarantees backward compatibility.
+    the oldest version of this application for which the current version of
+    this application guarantees backward compatibility.
 
     Design
     ----------
@@ -46,17 +34,18 @@ def test_cli_sim_compat(
 
     Technically, running the:
 
-    * ``plot sim`` subcommand would test the loadability of pickled simulations.
+    * ``plot sim`` subcommand would test the loadability of pickled
+      simulations.
     * ``sim`` subcommand would test the loadability of pickled initializations.
     * ``init`` subcommand would test the loadability of pickled seeds.
 
     That said, running the ``init`` and ``sim`` subcommands would erroneously
-    overwrite the pickled seeds and initializations saved by this older version.
-    Doing so would invite edge-case issues that are best avoided; in particular,
-    care would need to be taken to run the ``sim`` subcommand *after* the
-    ``init`` subcommand. To ameliorate these concerns, plotting subcommands
-    guaranteed to both test the loadability of pickled objects *and* be side
-    effect-free are run instead.
+    overwrite the pickled seeds and initializations saved by this older
+    version. Doing so would invite edge-case issues that are best avoided; in
+    particular, care would need to be taken to run the ``sim`` subcommand
+    *after* the ``init`` subcommand. To ameliorate these concerns, plotting
+    subcommands guaranteed to both test the loadability of pickled objects
+    *and* be side effect-free are run instead.
 
     Parameters
     ----------

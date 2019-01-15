@@ -81,7 +81,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
     '''
 
     # ..................{ INITIALIZERS                      }..................
-    def __init__(self) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         '''
         Initialize both this application metadata singleton and the current
         application (except mandatory third-party dependencies of this
@@ -105,6 +105,10 @@ class MetaAppABC(object, metaclass=ABCMeta):
           (except third-party dependencies of this application), this method
           internally calls the :meth:`init_sans_libs` method preserving
           this guarantee. For maintainability, callers should avoid doing so.
+
+        Parameters
+        ----------
+        All parameters are passed as is to the :meth:`init_sans_libs` method.
 
         Raises
         ----------
@@ -133,10 +137,11 @@ class MetaAppABC(object, metaclass=ABCMeta):
         metaappton.set_app_meta(self)
 
         # Initialize this application.
-        self.init_sans_libs()
+        self.init_sans_libs(*args, **kwargs)
 
 
-    def init_sans_libs(self) -> None:
+    @type_check
+    def init_sans_libs(self, is_testing: bool = False) -> None:
         '''
         Initialize this application *except* mandatory third-party dependencies
         of this application, which requires external resources (e.g.,
@@ -180,6 +185,13 @@ class MetaAppABC(object, metaclass=ABCMeta):
         method called as the first statement of this application. Since no
         startup logic has been performed yet, initialization of dependencies
         is deferred until significantly later in the startup process.
+
+        Parameters
+        ----------
+        is_testing : bool
+            ``True`` only if the active Python interpreter is currently running
+            tests (e.g., via the :mod:`pytest` test harness). Defaults to
+            ``False``.
         '''
 
         # Avoid circular import dependencies.
@@ -188,12 +200,18 @@ class MetaAppABC(object, metaclass=ABCMeta):
         from betse.util.io.log import logconfig, logs
         from betse.util.os import oses
         from betse.util.py import pys
+        from betse.util.test import tests
         from betse.util.type.obj import objects
 
         # Enable Python's standard handler for segmentation faults *BEFORE*
         # performing any further logic, any of which could conceivably trigger
         # a segmentation fault and hence process termination.
         errfault.handle_faults()
+
+        # Set whether or not tests are currently running *BEFORE* performing
+        # any further logic, any of which could conceivably test this boolean.
+        # Indeed, the logconfig.init() function does just that.
+        tests.set_testing(is_testing)
 
         # Enable our default logging configuration for the current Python
         # process *BEFORE* performing any validation, thus logging any
@@ -203,9 +221,10 @@ class MetaAppABC(object, metaclass=ABCMeta):
         # Log all prior behaviour. Attempting to do so *BEFORE* enabling our
         # default logging configuration above would silently fail, since the
         # standard "logging" API silently squelches debug messages by default.
-        logs.log_debug('Default segementation fault handler enabled.')
         logs.log_debug('Application singleton "%s" established.',
             objects.get_class_name_unqualified((self)))
+        logs.log_debug('Default segementation fault handler enabled.')
+        logs.log_debug('Testing environment detected: %r', is_testing)
 
         # Validate mandatory dependencies. Avoid initializing these
         # dependencies now (e.g., by calling init_libs()). Doing so requires
@@ -214,9 +233,9 @@ class MetaAppABC(object, metaclass=ABCMeta):
         libs.die_unless_runtime_mandatory_all()
 
         # Validate the active Python interpreter and operating system *AFTER*
-        # mandatory dependencies. While the former (mostly) comprises unenforced
-        # recommendations, the latter comprises enforced requirements and should
-        # thus be validated first.
+        # mandatory dependencies. While the former (mostly) comprises
+        # unenforced recommendations, the latter comprises enforced
+        # requirements and should thus be validated first.
         oses.init()
         pys.init()
 

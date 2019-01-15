@@ -222,7 +222,7 @@ Machine-readable application version as a tuple of integers.
 '''
 
 # ....................{ METADATA ~ tag                    }....................
-GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.5.2'
+GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.7.0'
 '''
 Oldest Git tag for which this application guarantees backward compatibility.
 
@@ -232,6 +232,14 @@ successfully load *all*:
 
 * Simulation configuration files loadable by this older version.
 * Pickled seeds, initializations, and simulations saved by this older version.
+
+This specific version is selected for the following reasons:
+
+* Version 0.5.2 would be preferable, but is fundamentally incompatible with
+  setuptools >= 38.0.0 and is thus uninstallable on *all* modern platforms.
+* Version 0.7.0 resolves this incompatibility and is thus actually installable.
+  That this issue lingered unresolved for an entire minor version line itself
+  demonstrates a shameless lapse in quality assurance.
 
 See Also
 ----------
@@ -327,15 +335,4 @@ SCRIPT_BASENAME = PACKAGE_NAME
 '''
 Basename of the CLI-specific Python script wrapper created by :mod:`setuptools`
 installation.
-'''
-
-# ....................{ METADATA ~ private                }....................
-_IS_TESTING = False
-'''
-``True`` only if the active Python interpreter is running a test session (e.g.,
-with the ``py.test`` test harness).
-
-This private global is subject to change and thus *not* intended to be publicly
-accessed. Consider calling the public :func:`betse.util.py.pys.is_testing`
-function instead.
 '''

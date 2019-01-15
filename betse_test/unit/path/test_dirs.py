@@ -8,6 +8,7 @@ Unit tests for the :mod:`betse.util.path.dirs` submodule.
 '''
 
 # ....................{ IMPORTS                           }....................
+from betse_test.util.mark.pytskip import skip_if_ci_gitlab
 
 # ....................{ TESTS                             }....................
 def test_dirs_get_mtime_newest(betse_temp_dir: 'LocalPath') -> None:
@@ -73,6 +74,11 @@ def test_dirs_get_mtime_newest(betse_temp_dir: 'LocalPath') -> None:
     )
 
 
+#FIXME: Resolve the GitLab-CI-specific issue described under "Caveats" below.
+#Ideally, this and *ALL* tests should run as is under *ALL* CI hosts. (The
+#underlying culprit probably a recent change to GitLab's internal management of
+#git repositories - possibly governed by the ${GIT_STRATEGY} variable.)
+@skip_if_ci_gitlab()
 def test_packages_init() -> None:
     '''
     Unit test the :func:`betse.util.path.dirs.recurse_subdirnames` function by
@@ -80,6 +86,30 @@ def test_packages_init() -> None:
     containing only pure-Python) of *all* top-level package directories of this
     project (i.e., :mod:`betse`, :mod:`betse_setup`, :mod:`betse_test`) contain
     the mandatory ``__init__.py`` special file.
+
+    Caveats
+    ----------
+    **This test is currently incompatible with GitLab-CI's host environment.**
+    GitLab-CI recently introduced a ``${GIT_STRATEGY}`` environment variable
+    governing the tracking of git repositories. Previously, GitLab-CI appears
+    to have performed a full-fledged clone of repositories; GitLab-CI appears
+    to now be performing incremental pulls of repositories, instead. While
+    ostensibly optimal from the efficiency perspective, the latter approach is
+    clearly suboptimal from the reproducibility perspective. Each additional
+    pull of a repository introduces incremental artifacts into the local
+    copy of that repository, whose contents then begin to erroneously diverge.
+
+    Why? Since ``git`` tracks files rather than directories, incremental pulls
+    fail to implicitly prune formerly non-empty directories that have since
+    been rendered empty by the subsequent removal of all files previously
+    contained within those directories.
+
+    While typically innocuous, the existence of empty subdirectories triggers
+    false negatives from otherwise working functional and unit tests. In this
+    case, this unit test recursively validates that all application
+    (sub)packages define a mandatory ``__init__.py`` script, thus failing on
+    the first empty non-data subdirectory. Until the underlying host-specific
+    issue is resolved, this test is necessarily ignored on this host.
     '''
 
     # Defer heavyweight imports.

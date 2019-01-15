@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-Low-level **environment** (i.e., set of all external shell variables exported to
-the the active Python interpreter) facilities.
+Low-level **environment** (i.e., set of all external shell variables exported
+to the the active Python interpreter) facilities.
 '''
 
 #FIXME: For disambiguity, rename this submodule to "shellenv".
 
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: For safety, all attempts to get, set, or unset environment variables
 # should act on the low-level global "os.environ" dictionary directly rather
 # than calling the high-level getenv(), setenv(), or unsetenv() functions. To
@@ -20,14 +20,14 @@ the the active Python interpreter) facilities.
 #     modify os.environ.
 #
 # See http://docs.python.org/library/os.html#os.environ.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from os import environ
 from betse.exceptions import BetseOSShellEnvException
 from betse.util.type.types import type_check, MappingType, StrOrNoneTypes
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
 def die_unless_var(*names: str) -> None:
     '''
@@ -57,7 +57,7 @@ def die_unless_var(*names: str) -> None:
                 raise BetseOSShellEnvException(
                     'Environment variable "{}" undefined.'.format(name))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_var(*names: str) -> bool:
     '''
@@ -82,23 +82,23 @@ def is_var(*names: str) -> bool:
     # of the corresponding dictionary global.
     return mappings.is_key(environ, *names)
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 def get_env() -> MappingType:
     '''
-    Dictionary mapping the name of each environment variable to the string value
-    of this variable.
+    Dictionary mapping the name of each environment variable to the string
+    value of this variable.
 
     For safety, this dictionary is guaranteed to be a deep copy of the current
     environment and hence may be safely:
 
-    * Modified elsewhere _without_ modifying the true environment.
-    * Isolate this environment to subprocesses, preventing concurrent changes in
-      the environment of this process from affecting these subprocesses.
+    * Modified elsewhere *without* modifying the true environment.
+    * Isolate this environment to subprocesses, preventing concurrent changes
+      in the environment of this process from affecting these subprocesses.
     '''
 
     return environ.copy()
 
-# ....................{ GETTERS ~ var                      }....................
+# ....................{ GETTERS ~ var                     }....................
 @type_check
 def get_var(name: str) -> str:
     '''
@@ -169,7 +169,7 @@ def get_var_or_none(name: str) -> StrOrNoneTypes:
 
     return environ.get(name, None)
 
-# ....................{ SETTERS                            }....................
+# ....................{ SETTERS                           }....................
 @type_check
 def set_var(name: str, value: str) -> None:
     '''
@@ -185,13 +185,13 @@ def set_var(name: str, value: str) -> None:
 
     environ[name] = value
 
-# ....................{ REMOVERS                           }....................
+# ....................{ REMOVERS                          }....................
 @type_check
 def unset_var(name: str) -> None:
     '''
     Unset the environment variable with the passed name (i.e., remove this
-    variable from the shell environment for the current process) if defined *or*
-    raise an exception otherwise (i.e., if this variable is undefined).
+    variable from the shell environment for the current process) if defined
+    *or* raise an exception otherwise (i.e., if this variable is undefined).
 
     Parameters
     ----------
@@ -215,8 +215,8 @@ def unset_var(name: str) -> None:
 def unset_var_if_set(name: str) -> None:
     '''
     Unset the environment variable with the passed name (i.e., remove this
-    variable from the shell environment for the current process) if defined *or*
-    noop otherwise (i.e., if this variable is undefined).
+    variable from the shell environment for the current process) if defined
+    *or* noop otherwise (i.e., if this variable is undefined).
 
     Parameters
     ----------
@@ -224,17 +224,18 @@ def unset_var_if_set(name: str) -> None:
         Name of this variable.
     '''
 
-    # Reduce this variable to the empty string *BEFORE* unsetting this variable,
-    # thus:
+    # Reduce this variable to the empty string *BEFORE* unsetting this
+    # variable, thus:
     #
     # * Preventing the subsequent attempt to unset this variable from raising
     #   exceptions if undefined.
     # * Handling edge-case platforms whose kernels fail to support the
     #   os.unsetenv() operation internally invoked by deleting keys from the
     #   "os.environ" dictionary (e.g., AIX). Under such platforms, deleting
-    #   environment variables in Python fails to delete these variables from the
-    #   environment outside of Python. Although reducing this variable to the
-    #   empty string does *NOT* delete this variable, no alternatives exist.
+    #   environment variables in Python fails to delete these variables from
+    #   the environment outside of Python. Although reducing this variable to
+    #   the empty string does *NOT* delete this variable, no alternatives
+    #   exist.
     environ[name] = ""
 
     # Unset this variable.

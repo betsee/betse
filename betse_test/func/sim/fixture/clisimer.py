@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,15 +8,15 @@ Fixtures and fixture classes efficiently exercising multiple subcommands of the
 BETSE CLI in the active Python interpreter.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse_test.fixture.simconf.simconfclser import (
     SimConfTestExternal, SimConfTestInternal)
 from betse_test.func.fixture.clier import CLITester
-from betse_test.func.fixture.sim.clisimclser import CLISimTester
+from betse_test.func.sim.fixture.clisimclser import CLISimTester
 from pytest import fixture
 
-# ....................{ FIXTURES                           }....................
-# Test-scope fixture creating and returning a new object for each discrete test.
+# ....................{ FIXTURES                          }....................
+# Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_cli_sim(
     betse_cli: CLITester,
@@ -33,7 +33,7 @@ def betse_cli_sim(
     betse_cli : CLITester
         Object running a single simulation-specific BETSE CLI subcommand.
     betse_sim_conf : SimConfTestInternal
-        Object encapsulating a temporary minified simulation configuration file.
+        Object encapsulating a temporary minified simulation configuration.
 
     Returns
     ----------
@@ -47,7 +47,7 @@ def betse_cli_sim(
     )
 
 
-# Test-scope fixture creating and returning a new object for each discrete test.
+# Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_cli_sim_default(
     betse_cli: CLITester,
@@ -86,7 +86,7 @@ def betse_cli_sim_default(
     )
 
 
-# Test-scope fixture creating and returning a new object for each discrete test.
+# Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_cli_sim_compat(
     betse_cli: CLITester,
@@ -97,8 +97,8 @@ def betse_cli_sim_compat(
     CLI simulation subcommands (e.g., ``betse seed``, ``betse sim``) with the
     temporary simulation configuration isolated to the current fixture or test
     (complete with a pickled seed, initialization, and simulation) produced by
-    the oldest version of this application for which the current version of this
-    application guarantees backward compatibility.
+    the oldest version of this application for which the current version of
+    this application guarantees backward compatibility.
 
     Parameters
     ----------

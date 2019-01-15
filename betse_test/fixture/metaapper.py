@@ -13,7 +13,7 @@ from pytest import fixture
 
 # ....................{ FIXTURES                          }....................
 @fixture(scope='session', autouse=True)
-def betse_meta_app() -> 'betse.util.app.meta.metaappabc.MetaAppABC':
+def betse_app_meta() -> 'betse.util.app.meta.metaappabc.MetaAppABC':
     '''
     Automatically run per-session fixture instantiating and initializing the
     application metadata singleton in a manner suitable for unit testing,
@@ -61,9 +61,11 @@ def betse_meta_app() -> 'betse.util.app.meta.metaappabc.MetaAppABC':
     # the metaappton.set_app_meta() function has yet to be called *AND*, in
     # either case, initialize all mandatory third-party dependencies with a
     # standard non-interactive matplotlib backend guaranteed to exist.
-    metaappton.make_app_meta_betse_initted(matplotlib_backend_name='Agg')
+    app_meta = metaappton.make_app_meta_betse(is_testing=True)
+    app_meta.init_libs(matplotlib_backend_name='Agg')
 
     # Inform callers of the completion of this initialization.
     print('[py.test] Initialized BETSE for testing.')
 
     # Return this singleton for caller convenience.
+    return app_meta

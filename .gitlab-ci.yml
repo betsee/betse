@@ -185,37 +185,6 @@ cache:
 # "script" key of any job below. These commands build and install both this
 # application and all third-party dependencies required by this application.
 before_script:
-  # Recursively remove all empty subdirectories. In theory, no such
-  # directories should exist; indeed, since "git" tracks files rather than
-  # directories, empty subdirectories should *NEVER* exist. In practice, such
-  # directories appear to exist. Why? We're honestly unsure, but suspect the
-  # underlying culprit to be a (presumably) recent change to GitLab's internal
-  # management of git repositories.
-  #
-  # GitLab-CI recently introduced a new "GIT_STRATEGY" environment variable
-  # governing the tracking of git repositories. Previously, GitLab-CI appears to
-  # have performed a full-fledged clone of this repository; GitLab-CI appears to
-  # now be performing incremental pulls of this repository, instead. While
-  # ostensibly optimal from the efficiency perspective, the latter approach is
-  # clearly suboptimal from the reproducibility perspective. Each additional
-  # pull of this repository introduces incremental artifacts into the local
-  # copy of this repository, producing divergence from both a full-fledged clone
-  # of this repository *AND* the remote copy of this repository.
-  # 
-  # Why? Because "git" tracks files rather than directories, incremental pulls
-  # fail to implicitly prune formerly non-empty directories that have since
-  # been rendered empty by the subsequent removal of all files previously
-  # contained in those directories.
-  #
-  # While typically innocuous, empty subdirectories trigger false negatives from
-  # subsequent tests. Specifically:
-  #
-  # * "test_packages_init", a unit test recursively validating that all
-  #   application (sub)packages contain a mandatory "__init__.py" script.
-  #   The existence of even one empty subdirectory raises an exception from this
-  #   test and hence the entire test suite.
-  - find . -type d -empty -delete
-
   # Update all system packages installed by default with this image for the
   # duration of this CI pipeline.
   #

@@ -21,7 +21,7 @@ from betse_test.util.testabc import SerialTestABC
 # Import fixtures automatically run at the start of the current test session
 # and hence typically *NOT* manually required by specific tests.
 
-from betse_test.fixture.metaapper import betse_meta_app
+from betse_test.fixture.metaapper import betse_app_meta
 
 # ....................{ IMPORTS ~ fixture : manual        }....................
 # Import fixtures required to be manually required by specific tests.
@@ -42,11 +42,12 @@ def pytest_configure(config):
 
     Specifically:
 
-    * The BETSE-specific :attr:`betse._is_pytest` global boolean is set to
-      ``True``, informing the main codebase that tests are currently being run.
-      Logic elsewhere then performs test-specific handling if this boolean is
-      enabled (e.g., defaulting to a non-interactive matplotlib backend
-      suitable for usage in this possibly non-interactive test environment).
+    * The BETSE-specific :attr:`betse.metadata._IS_TESTING` global boolean is
+      set to ``True``, informing the main codebase that tests are currently
+      being run. Logic elsewhere then performs test-specific handling if this
+      boolean is enabled (e.g., defaulting to a non-interactive matplotlib
+      backend suitable for usage in this possibly non-interactive test
+      environment).
     * If the external ``${DISPLAY}`` environment variable is currently set
       (e.g., to the X11-specific socket to be connected to display GUI
       components), unset this variable. Permitting this variable to remain set
@@ -57,16 +58,13 @@ def pytest_configure(config):
       as well.
     '''
 
-    #FIXME: The following two operations should be converted into autouse
-    #fixtures defined in this plugin above. Such fixtures should require the
-    #builtin fixture permitting us to temporarily change environment variables,
-    #which should then be used to temporarily undefine the ${DISPLAY} variable.
-    #What was that called again... "monkeypatch"? Contemplate eternity and see:
+    #FIXME: This operation should be converted into autouse fixtures defined in
+    #this plugin above. Such fixtures should require the builtin fixture
+    #permitting us to temporarily change environment variables, which should
+    #then be used to temporarily undefine the ${DISPLAY} variable. What was
+    #that called again... "monkeypatch"? Contemplate eternity and see:
     #
     #    http://pytest.org/latest/fixture.html#autouse-fixtures-xunit-setup-on-steroids
-
-    # Inform the main codebase that tests are currently being run.
-    metadata._IS_TESTING = True
 
     # Unset the external `${DISPLAY}` environment variable if currently set.
     # Technically, this operation needs to be performed:
@@ -82,21 +80,6 @@ def pytest_configure(config):
     # transparently supports both use cases detailed above with no discernable
     # downside. See the docstring for additional commentary.
     shellenv.unset_var_if_set('DISPLAY')
-
-
-def pytest_unconfigure(config):
-    '''
-    Hook run immediately *before* exiting the current :mod:`pytest` test
-    session.
-
-    Specifically:
-
-    * The BETSE-specific :attr:`betse._is_pytest` global boolean is set to
-      ``False``, informing the main codebase that tests are no longer currently
-      being run.
-    '''
-
-    metadata._IS_TESTING = False
 
 # ....................{ HOOKS ~ test                      }....................
 def pytest_runtest_setup(item: 'pytest.main.Item') -> None:

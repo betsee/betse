@@ -48,16 +48,6 @@ def init() -> None:
             'Consider running {name} only under a '
             '64-bit Python interpreter.'.format(name=metadata.NAME))
 
-# ....................{ TESTERS                           }....................
-@func_cached
-def is_testing() -> bool:
-    '''
-    ``True`` only if the active Python interpreter is running a test session
-    (e.g., with the :mod:`pytest` test harness).
-    '''
-
-    return metadata._IS_TESTING
-
 # ....................{ TESTERS ~ wordsize                }....................
 @func_cached
 def is_wordsize_32() -> bool:

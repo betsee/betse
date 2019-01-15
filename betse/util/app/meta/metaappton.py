@@ -199,12 +199,13 @@ def unset_app_meta() -> None:
     _app_meta = None
 
 # ....................{ MAKERS                            }....................
-def make_app_meta_betse_initted(*args, **kwargs) -> None:
+# Avoid circular import dependencies.
+def make_app_meta_betse(*args, **kwargs) -> (
+    'betse.util.app.meta.metaappabc.MetaAppABC'):
     '''
     Instantiate and set a BETSE-specific application metadata singleton if the
     :func:`set_app_meta` function has not already been called *and*, in either
-    case, initialize all mandatory third-party application dependencies with
-    the passed parameters.
+    case, (re)initialize this singleton
 
     This is a convenience function simplifying BETSE initialization for
     low-level edge-case automation (e.g.,
@@ -212,10 +213,23 @@ def make_app_meta_betse_initted(*args, **kwargs) -> None:
     and hence inappropriate for general-purpose application initialization, as
     required by downstream consumers (e.g., the BETSEE GUI).
 
+    Caveats
+    ----------
+    **This function does not initialize mandatory third-party dependencies.**
+    To permit callers to configure such initialization, callers are required to
+    explicitly call the
+    :meth:`betse.util.app.meta.metaappabc.MetaAppABC.init_libs` method on the
+    object returned by this function.
+
     Parameters
     ----------
-    All passed parameters are passed as is to the lower-level
-    :meth:`MetaAppABC.init_libs` method.
+    All parameters are passed as is to the
+    :meth:`betse.util.app.meta.metaappabc.MetaAppABC.init_sans_libs` method.
+
+    Returns
+    ----------
+    betse.util.app.meta.metaappabc.MetaAppABC
+        Application metadata singleton.
     '''
 
     # Avoid circular import dependencies.
@@ -225,16 +239,8 @@ def make_app_meta_betse_initted(*args, **kwargs) -> None:
     # that doing so implicitly calls the metaappton.set_app_meta() function on
     # our behalf, which is certainly nice.
     if not is_app_meta():
-        BetseMetaApp()
+        BetseMetaApp(*args, **kwargs)
     # An application metadata singleton has now been instantiated.
 
-    # If mandatory dependencies have *NOT* already been initialized, do so with
-    # all passed parameters.
-    #
-    # Note that this initialization is intentionally *NOT* performed in the
-    # conditional block above, ensuring this initialization to be performed
-    # regardless of whether an application metadata singleton has been
-    # previously instantiated. Since the MetaAppABC.__init__() method does
-    # *NOT* implicitly call the MetaAppABC.init_libs() method, doing so
-    # explicitly here ensures that this application is now fully initialized.
-    get_app_meta().init_libs_if_needed(*args, **kwargs)
+    # Return this singleton.
+    return get_app_meta()

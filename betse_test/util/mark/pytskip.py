@@ -30,7 +30,7 @@ from _pytest.runner import Skipped
 skip_if = pytest.mark.skipif
 '''
 Conditionally skip the decorated test with the passed human-readable
-justification if the passed boolean is `False`.
+justification if the passed boolean is ``False``.
 
 Parameters
 ----------
@@ -104,6 +104,26 @@ def skip_unless_command(pathname: str):
     else:
         return skip('Command "{}" not found.'.format(pathname))
 
+# ....................{ SKIP ~ host                       }....................
+def skip_if_ci_gitlab():
+    '''
+    Skip the decorated test if tests are currently running under a remote
+    GitLab-CI continuous integration (CI) host.
+
+    Returns
+    ----------
+    pytest.skipif
+        Decorator describing these requirements if unmet *or* the identity
+        decorator successfully reducing to a noop otherwise.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.util.test import tstci
+
+    # Skip this test or fixture if tests are remotely running under GitLab-CI.
+    return skip_if(tstci.is_ci_gitlab(), reason=(
+        'Test or fixture currently incompatible with GitLab-CI.'))
+
 # ....................{ SKIP ~ lib                        }....................
 @type_check
 def skip_unless_matplotlib_anim_writer(writer_name: str):
@@ -134,8 +154,8 @@ def skip_unless_matplotlib_anim_writer(writer_name: str):
     # Else, skip this test with a human-readable justification.
     else:
         return skip(
-            'Matplotlib animation writer "{}" either not found or '
-            'unrecognized by BETSE.'.format(writer_name))
+            'Matplotlib animation writer "{}" either '
+            'not found or unrecognized.'.format(writer_name))
 
 # ....................{ SKIP ~ module : setuptools        }....................
 @type_check
@@ -285,10 +305,10 @@ def _skip_if_callable_raises_exception(
     kwargs: MappingOrNoneTypes = None,
 ):
     '''
-    Skip the decorated test if calling the passed function with the passed
+    Skip the decorated test if calling the passed callable with the passed
     positional and keyword arguments raises an exception of the passed type.
 
-    If calling this function raises:
+    If calling this callable raises:
 
     * Any other type of exception, this test is marked as a failure.
     * No exception, this test continues as expected.
@@ -298,7 +318,7 @@ def _skip_if_callable_raises_exception(
     exception_type : ClassType
         Type of exception expected to be raised by this callable.
     func : CallableTypes
-        Callable to pass these arguments.
+        Callable to be called.
     args : SequenceOrNoneTypes
         Sequence of all positional arguments to unconditionally pass to the
         passed callable if any *or* ``None`` otherwise. Defaults to ``None``.

@@ -23,15 +23,18 @@ been initialized, as is the common case.
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse.util.app.meta import metaappton
+from betse.util.app.meta import metaappton as _metaappton
 
 # ....................{ MAIN                              }....................
 # Instantiate and set a BETSE-specific application metadata singleton if the
-# metaappton.set_app_meta() function has yet to be called *AND*, in either
-# case, initialize all mandatory third-party application dependencies.
-metaappton.make_app_meta_betse_initted()
+# metaappton.set_app_meta() function has yet to be called elsewhere.
+_app_meta = _metaappton.make_app_meta_betse()
+
+# Initialize all mandatory third-party dependencies if the
+# _app_meta.init_libs() method has yet to be called elsewhere.
+_app_meta.init_libs_if_needed()
 
 # ....................{ CLEANUP                           }....................
 # Delete *ALL* attributes (including callables) defined above, preventing the
 # package namespace from being polluted with these attributes.
-del metaappton
+del _metaappton, _app_meta
