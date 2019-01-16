@@ -115,7 +115,8 @@ class BetseMetaApp(MetaAppABC):
         from betse.util.path import files
 
         # Return this dirname if this directory exists or raise an exception.
-        return files.join_or_die(self.betse_data_yaml_dirname, 'sim_config.yaml')
+        return files.join_or_die(
+            self.betse_data_yaml_dirname, 'sim_config.yaml')
 
     # ..................{ GETTERS                           }..................
     @type_check

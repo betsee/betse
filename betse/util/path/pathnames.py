@@ -81,7 +81,8 @@ def die_if_relative(*pathnames: str) -> None:
 # ....................{ EXCEPTIONS ~ basename             }....................
 def die_if_basename(pathname: str) -> None:
     '''
-    Raise an exception if the passed path contains no directory separators.
+    Raise an exception if the passed pathname is a **pure basename** (i.e.,
+    contains no directory separators).
 
     See Also
     ----------
@@ -97,12 +98,12 @@ def die_if_basename(pathname: str) -> None:
 
 def die_unless_basename(pathname: str) -> None:
     '''
-    Raise an exception if the passed path contains one or more directory
-    separators.
+    Raise an exception unless the passed pathname is a **pure basename** (i.e.,
+    contains one or more directory separators).
 
     See Also
     ----------
-    :func:`is_basename`)
+    :func:`is_basename`
         Further details.
     '''
 

@@ -222,7 +222,7 @@ Machine-readable application version as a tuple of integers.
 '''
 
 # ....................{ METADATA ~ tag                    }....................
-GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.7.0'
+GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.8.4'
 '''
 Oldest Git tag for which this application guarantees backward compatibility.
 
@@ -238,8 +238,12 @@ This specific version is selected for the following reasons:
 * Version 0.5.2 would be preferable, but is fundamentally incompatible with
   setuptools >= 38.0.0 and is thus uninstallable on *all* modern platforms.
 * Version 0.7.0 resolves this incompatibility and is thus actually installable.
-  That this issue lingered unresolved for an entire minor version line itself
-  demonstrates a shameless lapse in quality assurance.
+  Unfortunately, this version is fundamentally incompatible with modern
+  versions of :mod:`pytest` and is thus equally useless for most purposes.
+* Version 0.8.0 resolves both incompatibilities, but suffers one or more fatal
+  configuration-related errors at simulation time and is thus equally unusable.
+* Version 0.8.4 resolves both incompatibilities as well as these errors and is
+  thus both installable *and* usable... but for how long?
 
 See Also
 ----------

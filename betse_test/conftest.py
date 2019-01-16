@@ -34,7 +34,7 @@ from betse_test.fixture.simconf.simconfer import (
 )
 
 # ....................{ HOOKS ~ plugin                    }....................
-def pytest_configure(config):
+def pytest_configure(config) -> None:
     '''
     Hook run immediately *after* both parsing all :mod:`pytest` command-line
     options and loading all third-party :mod:`pytest` plugins (including
@@ -42,12 +42,6 @@ def pytest_configure(config):
 
     Specifically:
 
-    * The BETSE-specific :attr:`betse.metadata._IS_TESTING` global boolean is
-      set to ``True``, informing the main codebase that tests are currently
-      being run. Logic elsewhere then performs test-specific handling if this
-      boolean is enabled (e.g., defaulting to a non-interactive matplotlib
-      backend suitable for usage in this possibly non-interactive test
-      environment).
     * If the external ``${DISPLAY}`` environment variable is currently set
       (e.g., to the X11-specific socket to be connected to display GUI
       components), unset this variable. Permitting this variable to remain set
@@ -80,6 +74,15 @@ def pytest_configure(config):
     # transparently supports both use cases detailed above with no discernable
     # downside. See the docstring for additional commentary.
     shellenv.unset_var_if_set('DISPLAY')
+
+
+def pytest_unconfigure(config) -> None:
+    '''
+    Hook run immediately *before* exiting the current :mod:`pytest` test
+    session.
+    '''
+
+    pass
 
 # ....................{ HOOKS ~ test                      }....................
 def pytest_runtest_setup(item: 'pytest.main.Item') -> None:

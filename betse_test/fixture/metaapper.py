@@ -61,7 +61,7 @@ def betse_app_meta() -> 'betse.util.app.meta.metaappabc.MetaAppABC':
     # the metaappton.set_app_meta() function has yet to be called *AND*, in
     # either case, initialize all mandatory third-party dependencies with a
     # standard non-interactive matplotlib backend guaranteed to exist.
-    app_meta = metaappton.make_app_meta_betse(is_testing=True)
+    app_meta = metaappton.make_app_meta_betse()
     app_meta.init_libs(matplotlib_backend_name='Agg')
 
     # Inform callers of the completion of this initialization.

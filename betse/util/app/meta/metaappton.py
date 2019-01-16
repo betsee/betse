@@ -71,8 +71,8 @@ def die_if_app_meta() -> None:
     # If an application metadata singleton exists, raise an exception.
     if is_app_meta():
         raise BetseMetaAppException(
-            'Application metadata singleton already set '
-            '(i.e., set_app_meta() already called).')
+            'Application metadata singleton already defined '
+            '(i.e., metaappton.set_app_meta() already called).')
 
 
 def die_unless_app_meta() -> None:
@@ -97,8 +97,8 @@ def die_unless_app_meta() -> None:
     # If no application metadata singleton exists, raise an exception.
     if not is_app_meta():
         raise BetseMetaAppException(
-            'Application metadata singleton not set '
-            '(i.e., set_app_meta() not called).')
+            'Application metadata singleton undefined '
+            '(i.e., metaappton.set_app_meta() not called).')
 
 # ....................{ TESTERS                           }....................
 def is_app_meta() -> bool:

@@ -141,7 +141,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
 
     @type_check
-    def init_sans_libs(self, is_testing: bool = False) -> None:
+    def init_sans_libs(self) -> None:
         '''
         Initialize this application *except* mandatory third-party dependencies
         of this application, which requires external resources (e.g.,
@@ -185,13 +185,6 @@ class MetaAppABC(object, metaclass=ABCMeta):
         method called as the first statement of this application. Since no
         startup logic has been performed yet, initialization of dependencies
         is deferred until significantly later in the startup process.
-
-        Parameters
-        ----------
-        is_testing : bool
-            ``True`` only if the active Python interpreter is currently running
-            tests (e.g., via the :mod:`pytest` test harness). Defaults to
-            ``False``.
         '''
 
         # Avoid circular import dependencies.
@@ -208,11 +201,6 @@ class MetaAppABC(object, metaclass=ABCMeta):
         # a segmentation fault and hence process termination.
         errfault.handle_faults()
 
-        # Set whether or not tests are currently running *BEFORE* performing
-        # any further logic, any of which could conceivably test this boolean.
-        # Indeed, the logconfig.init() function does just that.
-        tests.set_testing(is_testing)
-
         # Enable our default logging configuration for the current Python
         # process *BEFORE* performing any validation, thus logging any
         # exceptions raised by this validation.
@@ -224,7 +212,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
         logs.log_debug('Application singleton "%s" established.',
             objects.get_class_name_unqualified((self)))
         logs.log_debug('Default segementation fault handler enabled.')
-        logs.log_debug('Testing environment detected: %r', is_testing)
+        logs.log_debug('Testing environment detected: %r', tests.is_testing())
 
         # Validate mandatory dependencies. Avoid initializing these
         # dependencies now (e.g., by calling init_libs()). Doing so requires
@@ -311,31 +299,6 @@ class MetaAppABC(object, metaclass=ABCMeta):
         # Else, the init_libs() method has yet to be called. So, do so.
         else:
             self.init_libs(*args, **kwargs)
-
-    # ..................{ PROPERTIES                        }..................
-    @property_cached
-    def package(self) -> ModuleType:
-        '''
-        **Root package** (i.e., topmost package for this application, typically
-        of the same name as this application and installed into a subdirectory
-        of the same name in the ``site-packages`` directory specific to the
-        active Python interpreter) for this application.
-        '''
-
-        # Avoid circular import dependencies.
-        from betse.util.py.module import pypackage
-
-        # Introspection for the glorious victory.
-        return pypackage.get_object_type_package_root(obj=self)
-
-
-    @property   # Avoid caching trivial properties.
-    def package_name(self) -> str:
-        '''
-        Name of this application's root package (e.g., ``betse`` for BETSE).
-        '''
-
-        return self.package.__name__
 
     # ..................{ PROPERTIES ~ bool                 }..................
     @property_cached
@@ -569,3 +532,51 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
         # Return the absolute path of this file.
         return pathnames.join(self.dot_dirname, self.package_name + '.prof')
+
+    # ..................{ PROPERTIES ~ module : root        }..................
+    @property_cached
+    def package(self) -> ModuleType:
+        '''
+        **Root package** (i.e., topmost package for this application, typically
+        of the same name as this application and installed into a subdirectory
+        of the same name in the ``site-packages`` directory specific to the
+        active Python interpreter) for this application.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.py.module import pypackage
+
+        # Introspection for the glorious victory.
+        return pypackage.get_object_type_package_root(obj=self)
+
+
+    @property_cached
+    def package_name(self) -> str:
+        '''
+        Name of this application's root package (e.g., ``betse`` for BETSE).
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.py.module import pymodule
+
+        # By the power of Grayskull...
+        return pymodule.get_name_qualified(module=self.package)
+
+    # ..................{ PROPERTIES ~ module : test        }..................
+    @property_cached
+    def test_package_name(self) -> str:
+        '''
+        Name of the root package of this application's ancillary test suite
+        (e.g., ``betse_test`` for BETSE).
+
+        Caveats
+        ----------
+        **This package is typically not installed with this application,** as
+        tests are useless (or at least incidental) for most end user purposes.
+        Instead, this package is only distributed with tarballs archiving the
+        contents of this application's repository at stable releases time. This
+        package is *not* guaranteed to exist and, in fact, typically does not.
+        '''
+
+        # When our powers combine!
+        return self.package_name + '_test'

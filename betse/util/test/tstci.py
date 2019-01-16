@@ -94,9 +94,19 @@ def _is_ci_host(env_var_name: str) -> bool:
 
     # Avoid circular import dependencies.
     from betse.util.os.shell import shellenv
-    from betse.util.test import tests
 
     # Return true only if this interpreter is running tests *AND* an
     # environment variable with the passed name exists, implying these tests to
     # be run under the CI host uniquely identified with that variable.
-    return tests.is_testing() and shellenv.is_var(env_var_name)
+    #
+    # Ideally, this implementation would also call the
+    # betse.util.test.tests.is_calling() function to ensure that tests are
+    # running as expected. However, that function is *NOT* safely callable from
+    # module scope. Calling that function here would thus prevent this function
+    # and functions calling this function from also being safely callable from
+    # module scope -- which, in turn, would prevent test decorators (e.g.,
+    # @betse_test.util.mark.pytskip.skip_if_ci_gitlab) from being safely
+    # used... *AT ALL.* Since that would rather defeat the purpose of defining
+    # any of this functionality in the first place, we have little choice but
+    # to defer to a simple environment variable existence test.
+    return shellenv.is_var(env_var_name)

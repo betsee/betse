@@ -310,7 +310,7 @@ from input files defined by this configuration.
         # Basename of the sample configuration file to be created.
         config_basename = 'sample_sim.yaml'
 
-        # Relative path of this file, relative to the current directory.
+        # Relative filename of this file, relative to the current directory.
         self._args.conf_filename = pathnames.join(
             'sample_sim', config_basename)
 
