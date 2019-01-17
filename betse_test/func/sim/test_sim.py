@@ -12,9 +12,50 @@ complete BETSE solver *and* the "fast" equivalent circuit solver).
 # ....................{ IMPORTS                           }....................
 import pytest
 from betse_test.util.mark.pytfail import xfail
-from betse_test.util.mark.pytskip import skip_unless_matplotlib_anim_writer
+from betse_test.util.mark.pytskip import (
+    skip_unless_matplotlib_anim_writer, skip_if_requirement)
 
 # ....................{ TESTS                             }....................
+# This function test is well-known to be incompatible with recent versions of
+# py.test, raising exceptions resembling:
+#
+#     ============================= test session starts ==============================
+#     platform linux -- Python 3.7.1, pytest-4.1.1, py-1.7.0, pluggy-0.8.0 -- /builds/betse/betse/conda-env/bin/python
+#     cachedir: .pytest_cache
+#     rootdir: /tmp/pytest-of-root/pytest-0/cli_sim_compat0/betse_old, inifile: pytest.ini
+#     collecting ...
+#     ==================================== ERRORS ====================================
+#     _________________ ERROR collecting betse_test/func/test_cli.py _________________
+#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/hooks.py:284: in __call__
+#         return self._hookexec(self, self.get_hookimpls(), kwargs)
+#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/manager.py:67: in _hookexec
+#         return self._inner_hookexec(hook, methods, kwargs)
+#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/manager.py:61: in <lambda>
+#         firstresult=hook.spec.opts.get("firstresult") if hook.spec else False,
+#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/_pytest/python.py:225: in pytest_pycollect_makeitem
+#         res = list(collector._genfunctions(name, obj))
+#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/_pytest/python.py:405: in _genfunctions
+#         self.ihook.pytest_generate_tests(metafunc=metafunc)
+#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/hooks.py:284: in __call__
+#         return self._hookexec(self, self.get_hookimpls(), kwargs)
+#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/manager.py:67: in _hookexec
+#         return self._inner_hookexec(hook, methods, kwargs)
+#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/manager.py:61: in <lambda>
+#         firstresult=hook.spec.opts.get("firstresult") if hook.spec else False,
+#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/_pytest/python.py:132: in pytest_generate_tests
+#         metafunc.parametrize(*marker.args, **marker.kwargs)
+#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/_pytest/python.py:892: in parametrize
+#         function_definition=self.definition,
+#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/_pytest/mark/structures.py:114: in _for_parametrize
+#         if len(param.values) != len(argnames):
+#     E   TypeError: object of type 'MarkDecorator' has no len()
+#
+# Since ours appears to be the only py.test-based test suite exhibiting this
+# exception, identifying and resolving the underlying culprit (e.g., by
+# monkey-patching) is effectively infeasible. Moreover, since it remains
+# unclear which py.test version introduced this incompatibility, we have little
+# choice but to skip the entire py.test 4.x release line and hope for the best.
+@skip_if_requirement('pytest >= 4.0.0')
 def test_cli_sim_compat( betse_cli_sim_compat: 'CLISimTester') -> None:
     '''
     Functional test exercising all simulation subcommands required to validate

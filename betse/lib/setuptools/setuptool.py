@@ -100,7 +100,7 @@ def die_unless_requirements_dict_keys(
 @type_check
 def die_unless_requirements_str(*requirements_str: str) -> None:
     '''
-    Raise an exception unless all passed :mod:`setuptools`-formatted
+    Raise an exception unless *all* passed :mod:`setuptools`-formatted
     requirements strings (e.g., ``Numpy >= 1.8.0``) are satisfiable, implying
     the corresponding third-party packages to be both importable and of
     satisfactory version.
@@ -119,7 +119,7 @@ def die_unless_requirements_str(*requirements_str: str) -> None:
     # List of all requirement objects parsed from these requirement strings.
     requirements = iter_requirements_str(*requirements_str)
 
-    # Validate these requirements.
+    # Validate each such requirement.
     for requirement in requirements:
         die_unless_requirement(requirement)
 

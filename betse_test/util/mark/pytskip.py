@@ -157,7 +157,7 @@ def skip_unless_matplotlib_anim_writer(writer_name: str):
             'Matplotlib animation writer "{}" either '
             'not found or unrecognized.'.format(writer_name))
 
-# ....................{ SKIP ~ module : setuptools        }....................
+# ....................{ SKIP ~ setuptools                 }....................
 @type_check
 def skip_unless_lib_runtime_optional(*lib_names: str):
     '''
@@ -188,6 +188,38 @@ def skip_unless_lib_runtime_optional(*lib_names: str):
         exception_type=BetseLibException,
         func=libs.die_unless_runtime_optional,
         args=lib_names,
+    )
+
+# ....................{ SKIP ~ setuptools : requirement   }....................
+@type_check
+def skip_if_requirement(*requirement_strs: str):
+    '''
+    Skip the decorated test if one or more of the dependencies identified by
+    the passed :mod:`setuptools`-formatted requirement strings are
+    **satisfiable** (i.e., importable *and* of satisfactory version).
+
+    Parameters
+    ----------
+    requirement_strs : str
+        Tuple of all :mod:`setuptools`-formatted requirement strings
+        identifying these dependencies (e.g., `Numpy >= 1.8.0`).
+
+    Returns
+    ----------
+    pytest.skipif
+        Decorator describing these requirements if unmet *or* the identity
+        decorator reducing to a noop otherwise.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.exceptions import BetseLibException
+    from betse.lib.setuptools import setuptool
+
+    # Skip this test if one or more such dependences are satisfiable.
+    return _skip_unless_callable_raises_exception(
+        exception_type=BetseLibException,
+        func=setuptool.die_unless_requirements_str,
+        args=requirement_strs,
     )
 
 
@@ -308,8 +340,9 @@ def _skip_if_callable_raises_exception(
     Skip the decorated test if calling the passed callable with the passed
     positional and keyword arguments raises an exception of the passed type.
 
-    If calling this callable raises:
+    Specifically, if calling this callable raises:
 
+    * The passed type of exception, this test is marked as skipped.
     * Any other type of exception, this test is marked as a failure.
     * No exception, this test continues as expected.
 
@@ -359,3 +392,64 @@ def _skip_if_callable_raises_exception(
     # Else, this callable raised no exception. Silently reduce to a noop.
     else:
         return pytmark.noop
+
+
+@type_check
+def _skip_unless_callable_raises_exception(
+    # Mandatory parameters.
+    exception_type: ClassType,
+    func: CallableTypes,
+
+    # Optional parameters.
+    args: SequenceOrNoneTypes = None,
+    kwargs: MappingOrNoneTypes = None,
+):
+    '''
+    Skip the decorated test unless calling the passed callable with the passed
+    positional and keyword arguments raises an exception of the passed type.
+
+    Specifically, if calling this callable raises:
+
+    * The passed type of exception, this test continues as expected.
+    * Any other type of exception, this test is marked as a failure.
+    * No exception, this test is marked as skipped.
+
+    Parameters
+    ----------
+    exception_type : ClassType
+        Type of exception expected to be raised by this callable.
+    func : CallableTypes
+        Callable to be called.
+    args : SequenceOrNoneTypes
+        Sequence of all positional arguments to unconditionally pass to the
+        passed callable if any *or* ``None`` otherwise. Defaults to ``None``.
+    kwargs : MappingOrNoneTypes
+        Dictionary of all keyword arguments to unconditionally pass to the
+        passed callable if any *or* ``None`` otherwise. Defaults to ``None``.
+
+    Returns
+    ----------
+    pytest.skipif
+        Decorator skipping this test if this callable does *not* raise this
+        exception *or* the identity decorator reducing to a noop otherwise.
+    '''
+
+    # Default all unpassed arguments to sane values.
+    if args is None:
+        args = ()
+    if kwargs is None:
+        kwargs = {}
+
+    # Attempt to call this callable with these arguments.
+    try:
+        func(*args, **kwargs)
+    # If this callable raises an expected exception, reduce to a noop.
+    except exception_type as exception:
+        return pytmark.noop
+    # If this callable raises an unexpected exception, fail this test. To
+    # preserve this exception's stack trace, reraise this exception as is.
+    except Exception as exception:
+        raise
+    # Else, this callable raised no exception. Skip this test.
+    else:
+        return skip(str(exception))
