@@ -17,10 +17,11 @@ from betse.util.type.types import (
     type_check,
     CallableTypes,
     ClassType,
-    SequenceOrNoneTypes,
     MappingOrNoneTypes,
+    SequenceOrNoneTypes,
+    StrOrNoneTypes,
 )
-from betse_test.util.mark import pytmark
+from betse.util.test.pytest.mark import pytmark
 
 # ....................{ IMPORTS ~ private                 }....................
 # Sadly, the following imports require private modules and packages.
@@ -29,7 +30,7 @@ from _pytest.runner import Skipped
 # ....................{ SKIP                              }....................
 skip_if = pytest.mark.skipif
 '''
-Conditionally skip the decorated test with the passed human-readable
+Conditionally skip the decorated test or fixture with the passed human-readable
 justification if the passed boolean is ``False``.
 
 Parameters
@@ -37,7 +38,7 @@ Parameters
 boolean : bool
     Boolean to be tested.
 reason : str
-    Human-readable message justifying the skipping of this test.
+    Human-readable message justifying the skipping of this test or fixture.
 '''
 
 
@@ -192,7 +193,7 @@ def skip_unless_lib_runtime_optional(*lib_names: str):
 
 # ....................{ SKIP ~ setuptools : requirement   }....................
 @type_check
-def skip_if_requirement(*requirement_strs: str):
+def skip_if_requirement(*requirements_str: str):
     '''
     Skip the decorated test if one or more of the dependencies identified by
     the passed :mod:`setuptools`-formatted requirement strings are
@@ -200,7 +201,7 @@ def skip_if_requirement(*requirement_strs: str):
 
     Parameters
     ----------
-    requirement_strs : str
+    requirements_str : str
         Tuple of all :mod:`setuptools`-formatted requirement strings
         identifying these dependencies (e.g., `Numpy >= 1.8.0`).
 
@@ -214,17 +215,23 @@ def skip_if_requirement(*requirement_strs: str):
     # Defer heavyweight imports.
     from betse.exceptions import BetseLibException
     from betse.lib.setuptools import setuptool
+    from betse.util.type.text import strs
+
+    # Human-readable message justifying the skipping of this test or fixture.
+    reason = 'Test or fixture currently incompatible with {}.'.format(
+        strs.join_as_conjunction_double_quoted(*requirements_str))
 
     # Skip this test if one or more such dependences are satisfiable.
     return _skip_unless_callable_raises_exception(
         exception_type=BetseLibException,
         func=setuptool.die_unless_requirements_str,
-        args=requirement_strs,
+        args=requirements_str,
+        reason=reason,
     )
 
 
 @type_check
-def skip_unless_requirement(*requirement_strs: str):
+def skip_unless_requirement(*requirements_str: str):
     '''
     Skip the decorated test if one or more of the dependencies identified by
     the passed :mod:`setuptools`-formatted requirement strings are
@@ -232,7 +239,7 @@ def skip_unless_requirement(*requirement_strs: str):
 
     Parameters
     ----------
-    requirement_strs : str
+    requirements_str : str
         Tuple of all :mod:`setuptools`-formatted requirement strings
         identifying these dependencies (e.g., `Numpy >= 1.8.0`).
 
@@ -251,7 +258,7 @@ def skip_unless_requirement(*requirement_strs: str):
     return _skip_if_callable_raises_exception(
         exception_type=BetseLibException,
         func=setuptool.die_unless_requirements_str,
-        args=requirement_strs,
+        args=requirements_str,
     )
 
 # ....................{ SKIP ~ module : importlib         }....................
@@ -380,7 +387,7 @@ def _skip_if_callable_raises_exception(
         return skip(str(exception))
     # If this callable raises an unexpected exception, fail this test. To
     # preserve this exception's stack trace, reraise this exception as is.
-    except Exception as exception:
+    except Exception:
         raise
         # # Print this exception's stacktrace to stderr.
         # stderrs.output_exception(heading=(
@@ -403,6 +410,7 @@ def _skip_unless_callable_raises_exception(
     # Optional parameters.
     args: SequenceOrNoneTypes = None,
     kwargs: MappingOrNoneTypes = None,
+    reason: StrOrNoneTypes = None,
 ):
     '''
     Skip the decorated test unless calling the passed callable with the passed
@@ -426,6 +434,10 @@ def _skip_unless_callable_raises_exception(
     kwargs : MappingOrNoneTypes
         Dictionary of all keyword arguments to unconditionally pass to the
         passed callable if any *or* ``None`` otherwise. Defaults to ``None``.
+    reason : StrOrNoneTypes
+        Human-readable message justifying the skipping of this test or fixture.
+        Defaults to ``None``, in which case this function utilizes a
+        general-purpose message generically applicable to all tests.
 
     Returns
     ----------
@@ -434,22 +446,28 @@ def _skip_unless_callable_raises_exception(
         exception *or* the identity decorator reducing to a noop otherwise.
     '''
 
+    # Defer heavyweight imports.
+    from betse.util.type.cls import classes
+
     # Default all unpassed arguments to sane values.
     if args is None:
         args = ()
     if kwargs is None:
         kwargs = {}
+    if reason is None:
+        reason = 'Test or fixture failed to raise exception "{}".'.format(
+            classes.get_name_unqualified(exception_type))
 
     # Attempt to call this callable with these arguments.
     try:
         func(*args, **kwargs)
     # If this callable raises an expected exception, reduce to a noop.
-    except exception_type as exception:
+    except exception_type:
         return pytmark.noop
     # If this callable raises an unexpected exception, fail this test. To
     # preserve this exception's stack trace, reraise this exception as is.
-    except Exception as exception:
+    except Exception:
         raise
     # Else, this callable raised no exception. Skip this test.
     else:
-        return skip(str(exception))
+        return skip(reason)

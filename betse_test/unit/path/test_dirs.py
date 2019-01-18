@@ -8,7 +8,7 @@ Unit tests for the :mod:`betse.util.path.dirs` submodule.
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse_test.util.mark.pytskip import skip_if_ci_gitlab
+from betse.util.test.pytest.mark.pytskip import skip_if_ci_gitlab
 
 # ....................{ TESTS                             }....................
 def test_dirs_get_mtime_newest(betse_temp_dir: 'LocalPath') -> None:

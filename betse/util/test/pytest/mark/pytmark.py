@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-General-purpose decorators marking tests.
+High-level :mod:`pymod`-based general-purpose decorators marking tests.
 
 This submodule aggregates general-purpose decorates *not* conditionally marking
 their decorated tests as either failed, parametrized, or skipped.

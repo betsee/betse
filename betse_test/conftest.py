@@ -7,15 +7,11 @@
 Global test configuration for all tests.
 
 :mod:`pytest` implicitly imports *all* functionality defined by this module
-into *all* test modules.
+into *all* :mod:`betse_test` submodules.
 '''
 
 # ....................{ IMPORTS                           }....................
 import pytest
-from betse import metadata
-from betse.util.os.shell import shellenv
-from betse_test.exceptions import BetseTestHookException
-from betse_test.util.testabc import SerialTestABC
 
 # ....................{ IMPORTS ~ fixture : autouse       }....................
 # Import fixtures automatically run at the start of the current test session
@@ -51,6 +47,9 @@ def pytest_configure(config) -> None:
       ensures orthogonality between these cases by coercing the former to fail
       as well.
     '''
+
+    # Defer heavyweight imports.
+    from betse.util.os.shell import shellenv
 
     #FIXME: This operation should be converted into autouse fixtures defined in
     #this plugin above. Such fixtures should require the builtin fixture
@@ -92,10 +91,10 @@ def pytest_runtest_setup(item: 'pytest.main.Item') -> None:
     Specifically:
 
     * If this is a **serial test** (i.e., test method bound to an instance of
-      the :class:`SerialTestABC` superclass) for which a prior serial test in
-      the same test class was recorded as failing by the
-      :func:`pytest_runtest_makereport` hook, this hook marks this test as
-      xfailing.
+      the :class:`betse.util.test.pytest.pytabc.SerialTestABC` superclass) for
+      which a prior serial test in the same test class was recorded as failing
+      by the :func:`pytest_runtest_makereport` hook, this hook marks this test
+      as xfailing.
 
     Parameters
     ----------
@@ -107,6 +106,10 @@ def pytest_runtest_setup(item: 'pytest.main.Item') -> None:
     https://pytest.org/latest/example/simple.html#incremental-testing-test-steps
         Official py.test code snippet inspiring this implementation.
     '''
+
+    # Defer heavyweight imports.
+    from betse.exceptions import BetseTestHookException
+    from betse.util.test.pytest.pytabc import SerialTestABC
 
     # For each list of fixtures requested by this test...
     for fixture_defs in item._fixtureinfo.name2fixturedefs.values():
@@ -174,9 +177,12 @@ def pytest_runtest_makereport(
     '''
     Hook run immediately *after* the passed test returned the passed result.
 
-    If this is a **serial test** (i.e., test method bound to an instance of the
-    the :class:`SerialTestABC` superclass) that failed, this hook records this
-    failure for subsequent analysis by the :func:`pytest_runtest_setup` hook.
+    Specifically:
+
+    * If this is a **serial test** (i.e., test method bound to an instance of
+      the the :class:`betse.util.test.pytest.pytabc.SerialTestABC` superclass)
+      that failed, this hook records this failure for subsequent analysis by
+      the :func:`pytest_runtest_setup` hook.
 
     Parameters
     ----------
@@ -191,6 +197,9 @@ def pytest_runtest_makereport(
     https://pytest.org/latest/example/simple.html#incremental-testing-test-steps
         Official py.test code snippet inspiring this implementation.
     '''
+
+    # Defer heavyweight imports.
+    from betse.util.test.pytest.pytabc import SerialTestABC
 
     # If this test failed...
     if call.excinfo is not None:

@@ -11,11 +11,36 @@ complete BETSE solver *and* the "fast" equivalent circuit solver).
 
 # ....................{ IMPORTS                           }....................
 import pytest
-from betse_test.util.mark.pytfail import xfail
-from betse_test.util.mark.pytskip import (
+from betse.util.test.pytest.mark.pytfail import xfail
+from betse.util.test.pytest.mark.pytskip import (
     skip_unless_matplotlib_anim_writer, skip_if_requirement)
 
 # ....................{ TESTS                             }....................
+#FIXME: Sadly, our current approach to backward compatibility testing is
+#fundamentally flawed. Why? Because third-party dependencies (e.g., pytest,
+#setuptools) continue to break backward compatibility. Ironically, this renders
+#our own attempts to preserve backward compatibility infeasible.
+#
+#Technically, we *COULD* probably circumvent this issue by installing the older
+#version of BETSE checked out for this functional test within a virtual
+#environment of some sort (e.g., Pipenv). Doing so would invest even more
+#scarce development resources in a probably flawed testing regime, however.
+#
+#Pragmatically, the optimal approach is simply to embed a copy of the
+#"betse.data" subpackage corresponding to that of the oldest version of BETSE
+#with which we preserve backward compatibility within a new "betse_test.data"
+#subpackage -- presumably gated by version-specific subdirectories: e.g.,
+#
+#* "betse_test.data.0_5_2", containing the exact subset of files provided by
+#  the "betse.data.yaml" subdirectory of BETSE 0.5.2 required to reproduce
+#  this test's requirements.
+#* "betse_test.data.0_6_0", likewise for BETSE 0.6.0.
+#
+#In other words: *WHAT WERE WE THINKING.* Well, O.K.; we knew what we were
+#thinking. We were attempting to avoid data duplication. In this case, the
+#minimal set of all data required to safeguard backward compatibility is
+#probably of ignorable filesize. In simpler words, we chose poorly.
+
 # This function test is well-known to be incompatible with recent versions of
 # py.test, raising exceptions resembling:
 #
@@ -138,7 +163,7 @@ def test_cli_sim_default(betse_cli_sim_default: 'CLISimTester') -> None:
 
 
 # Sadly, all existing higher-level parametrization decorators defined by the
-# "betse_test.util.mark.params" submodule fail to support embedded py.test
+# "betse.util.test.pytest.mark.params" submodule fail to support embedded py.test
 # "skipif" and "xfail" markers. Consequently, we leverage the lower-level
 # parametrization decorator shipped with py.test itself.
 @pytest.mark.parametrize(

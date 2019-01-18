@@ -10,7 +10,7 @@ to gene regulatory networks (e.g., `betse sim-grn`, `betse plot sim-grn`).
 
 # ....................{ IMPORTS                            }....................
 import pytest
-from betse_test.util.mark.pytskip import skip_unless_lib_runtime_optional
+from betse.util.test.pytest.mark.pytskip import skip_unless_lib_runtime_optional
 
 # ....................{ DECORATORS                         }....................
 skip_unless_networkable = skip_unless_lib_runtime_optional('networkx', 'pydot')

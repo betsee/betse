@@ -57,10 +57,10 @@ def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
 
     # Tuple of requirements strings converted by concatenating each key and
     # value of this dictionary.
-    requirement_strs = get_requirements_str_from_dict(requirements_dict)
+    requirements_str = get_requirements_str_from_dict(requirements_dict)
 
     # Validate these requirements strings.
-    die_unless_requirements_str(*requirement_strs)
+    die_unless_requirements_str(*requirements_str)
 
 
 @type_check
@@ -757,10 +757,10 @@ def get_requirements_dict_synopsis(
 
     # Tuple of requirements strings converted by concatenating each key and
     # value of this dictionary.
-    requirement_strs = get_requirements_str_from_dict(requirements_dict)
+    requirements_str = get_requirements_str_from_dict(requirements_dict)
 
     # Return this metadata.
-    return get_requirements_str_synopsis(*requirement_strs)
+    return get_requirements_str_synopsis(*requirements_str)
 
 
 @type_check

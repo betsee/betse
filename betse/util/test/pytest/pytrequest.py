@@ -1,16 +1,27 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-Utility functions simplifying access to :mod:`pytest` built-in ``request``
-fixture.
+Low-level **request** (i.e., the standard ``request`` fixture exposed by the
+:mod:`pytest` API) functionality.
 
-The official documentation for this fixture is blatantly inadequate. Even were
-this documentation adequate, however, this fixture's API is overly obtuse to an
-absurd (and almost obfuscatory) degree. This module provides an intelligible
-alternative to that API.
+This submodule principally defines utility functions simplifying access to this
+fixture. The official documentation for this fixture is blatantly inadequate.
+Even were that *not* the case, however, this fixture's API is overly obtuse to
+an absurd (and almost obfuscatory) degree. This submodule defines an
+intelligible alternative to those horrors.
+
+Caveats
+----------
+All functions defined below accepting a ``request`` fixture object assume the
+passed object to be of the desired type rather than validating this to be the
+case. Why? Because that type resides in a private module that does *not*
+appear to be externally importable, thanks to devilish import trickery: e.g.,
+
+    >>> import _pytest.python.FixtureRequest as req
+    ImportError: cannot import name 'transfer_markers'
 
 See Also
 ----------
@@ -18,22 +29,14 @@ https://pytest.org/latest/builtin.html#_pytest.python.FixtureRequest
     Official documentation for this fixture – such as it is.
 '''
 
-# Note that all functions defined below accepting a "request" fixture object
-# assume the passed object to be of the expected type rather than validating
-# this to be the case. Why?  Because this type resides in a private module that
-# does *NOT* appear to be externally importable: e.g.,
-#
-#     >>> import _pytest.python.FixtureRequest as req
-#     ImportError: cannot import name 'transfer_markers'
-
-# ....................{ IMPORTS                            }....................
-from pytest import Function
+# ....................{ IMPORTS                           }....................
+from betse.exceptions import BetseTestFixtureException
+from betse.util.test.pytest import pytests
 from betse.util.type.iterable import sequences
 from betse.util.type.types import type_check, TestableTypes
-from betse_test.exceptions import BetseTestFixtureException
-from betse_test.util import pytests
+from pytest import Function
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 _DEFAULT_VALUE_NONE = object()
 '''
 Default value for the optional ``default_value`` argument accepted by the
@@ -43,7 +46,7 @@ This value permits that function to distinguish between default values of value
 ``None`` and the lack of any default value altogether.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_unless_tested(request: '_pytest.python.FixtureRequest') -> None:
     '''
     Raise an exception unless the passed ``request`` fixture object was
@@ -71,11 +74,11 @@ def die_unless_tested(request: '_pytest.python.FixtureRequest') -> None:
             '(e.g., due to being requested by a file- or '
             'session-scoped fixture): {}'.format(request))
 
-# ....................{ EXCEPTIONS ~ fixture               }....................
+# ....................{ EXCEPTIONS ~ fixture              }....................
 def die_unless_fixture(request: '_pytest.python.FixtureRequest') -> None:
     '''
-    Raise an exception unless the passed ``request`` fixture object was directly
-    requested by a fixture rather than a test.
+    Raise an exception unless the passed ``request`` fixture object was
+    directly requested by a fixture rather than a test.
 
     Parameters
     ----------
@@ -119,7 +122,7 @@ def die_unless_fixture_parametrized(
             '"request" fixture requested by '
             'unparametrized fixture "{}".'.format(get_fixture_name(request)))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 def is_tested(request: '_pytest.python.FixtureRequest') -> bool:
     '''
     `True` only if the passed ``request`` fixture object was transitively
@@ -139,11 +142,11 @@ def is_tested(request: '_pytest.python.FixtureRequest') -> bool:
 
     return isinstance(request.node, Function)
 
-# ....................{ TESTERS ~ fixture                  }....................
+# ....................{ TESTERS ~ fixture                 }....................
 def is_fixture(request: '_pytest.python.FixtureRequest') -> bool:
     '''
-    `True` only if the passed ``request`` fixture object was directly requested by
-    a fixture rather than a test.
+    `True` only if the passed ``request`` fixture object was directly requested
+    by a fixture rather than a test.
 
     Parameters
     ----------
@@ -187,7 +190,7 @@ def is_fixture_parametrized(request: '_pytest.python.FixtureRequest') -> bool:
     # not the latter was parametrized. py.test API: you fail again.
     return hasattr(request, 'param')
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 def get_tested_name(request: '_pytest.python.FixtureRequest') -> str:
     '''
     Unqualified name of the current test (e.g., `test_cli_info`) if the passed
@@ -212,9 +215,9 @@ def get_tested_name(request: '_pytest.python.FixtureRequest') -> str:
     Raises
     ----------
     BetseTestFixtureException
-        If the passed ``request`` fixture object was *not* transitively requested
-        by a test (e.g., was requested by a file- or session-scope fixture), in
-        which case no test exists to obtain the name of.
+        If the passed ``request`` fixture object was *not* transitively
+        requested by a test (e.g., was requested by a file- or session-scope
+        fixture), in which case no test exists to obtain the name of.
     '''
 
     # Raise an exception unless a test transitively requested this fixture.
@@ -223,11 +226,11 @@ def get_tested_name(request: '_pytest.python.FixtureRequest') -> str:
     # No one would ever think of trying this. Except one man did.
     return request.node.name
 
-# ....................{ GETTERS ~ fixture                  }....................
+# ....................{ GETTERS ~ fixture                 }....................
 def get_fixture_name(request: '_pytest.python.FixtureRequest') -> str:
     '''
-    Name of the current fixture that explicitly requested the passed ``request``
-    fixture object.
+    Name of the current fixture that explicitly requested the passed
+    ``request`` fixture object.
 
     If this ``request`` fixture was requested by a test rather than a fixture,
     an exception is raised.
@@ -258,10 +261,10 @@ def get_fixture_param(
     type_expected: TestableTypes = None,
 ) -> object:
     '''
-    Parameter parametrizing the fixture requesting the passed ``request`` fixture,
-    optionally defaulted to the passed default value if the former fixture is
-    unparametrized _and_ optinionally validated to be an instance of the passed
-    type or tuple of types.
+    Parameter parametrizing the fixture requesting the passed ``request``
+    fixture, optionally defaulted to the passed default value if the former
+    fixture is unparametrized *and* optinionally validated to be an instance of
+    the passed type or tuple of types.
 
     Parameters
     ----------
@@ -273,8 +276,8 @@ def get_fixture_param(
         instead if this fixture is unparametrized.
     type_expected : optional[TestableTypes]
         Class or tuple of classes to validate this object to be an instance of.
-        If this object is _not_ an instance of this class or classes, an
-        exception is raised. Defaults to `None`, in which case this object is
+        If this object is *not* an instance of this class or classes, an
+        exception is raised. Defaults to ``None``, in which case this object is
         returned unvalidated.
 
     Returns
@@ -286,17 +289,18 @@ def get_fixture_param(
     ----------
     BetseTestFixtureException
         If either:
+
         * A test rather than fixture requested this ``request`` fixture.
         * An unparametrized fixture requested this ``request`` fixture.
-        * A fixture parametrized by an instance of a class _not_ the passed
-          `check_type` requested this ``request`` fixture.
+        * A fixture parametrized by an instance of a class *not* the passed
+          ``check_type`` requested this ``request`` fixture.
     '''
 
     # Parameter parametrizing the fixture requesting this "request" fixture
     fixture_param = None
 
-    # If the caller passed a default value *AND* this fixture is unparametrized,
-    # default this parameter to this value.
+    # If the caller passed a default value *AND* this fixture is
+    # unparametrized, default this parameter to this value.
     if (default_value is not _DEFAULT_VALUE_NONE and
         not is_fixture_parametrized(request)):
         fixture_param = default_value
@@ -319,7 +323,7 @@ def get_fixture_param(
     # Return this parameter.
     return fixture_param
 
-# ....................{ GETTERS ~ request                  }....................
+# ....................{ GETTERS ~ request                 }....................
 #FIXME: This function internally calls the now-deprecated
 #request.getfuncargvalue() function, which has since been replaced by the
 #request.getfixturevalue() function. Sadly, the latter is unavailable in the
@@ -348,8 +352,8 @@ def get_requested_fixture(
         Name of the fixture to return the object returned by that fixture.
     type_expected : optional[TestableTypes]
         Class or tuple of classes to validate this object to be an instance of.
-        If this object is _not_ an instance of this class or classes, an
-        exception is raised. Defaults to `None`, in which case this object is
+        If this object is *not* an instance of this class or classes, an
+        exception is raised. Defaults to ``None``, in which case this object is
         returned unvalidated.
 
     Returns
@@ -359,8 +363,8 @@ def get_requested_fixture(
 
     Raises
     ----------
-    `pytests.get_fixture_lookup_error_type()`
-        If this fixture is either unavailable _or_ is available but
+    :func:`pytests.get_pytest_fixture_lookup_error_type`
+        If this fixture is either unavailable *or* is available but
         unretrievable (e.g., this fixture is the child of the current fixture).
     '''
 
@@ -379,13 +383,15 @@ def get_requested_fixture(
     return fixture_object
 
 
+#FIXME: Properly typecheck this. Note in doing so, however, that this function
+#also returns "None" on occasion.
 def get_requested_fixture_or_none(
     request: '_pytest.python.FixtureRequest',
     fixture_name: str,
 ) -> '_pytest.python.FixtureDef':
     '''
     Fixture with the passed name transitively requested by the current test if
-    this fixture is both available and retrievable _or_ `None` otherwise,
+    this fixture is both available and retrievable *or* ``None`` otherwise,
     inspected from the passed ``request`` fixture object.
 
     Parameters
@@ -397,13 +403,13 @@ def get_requested_fixture_or_none(
 
     Returns
     ----------
-    _pytest.python.FixtureDef or None
-        This fixture if this fixture is both available and retrievable _or_
-        `None` otherwise.
+    {_pytest.python.FixtureDef, None}
+        This fixture if this fixture is both available and retrievable *or*
+        ``None`` otherwise.
     '''
 
     # Class of all "FixtureLookupError" exceptions raised by "pytest".
-    FixtureLookupError = pytests.get_fixture_lookup_error_type()
+    FixtureLookupError = pytests.get_pytest_fixture_lookup_error_type()
 
     # Attempt to retrieve and return this fixture for this request.
     try:
@@ -412,13 +418,13 @@ def get_requested_fixture_or_none(
     except FixtureLookupError:
         return None
 
-# ....................{ GETTERS ~ request : name           }....................
+# ....................{ GETTERS ~ request : name          }....................
 def get_requested_fixture_names(
     request: '_pytest.python.FixtureRequest') -> list:
     '''
-    List of the names of all fixtures transitively requested by the current test
-    excluding the fixture that explicitly requested the passed ``request`` fixture
-    object if any, inspected from that ``request`` fixture object.
+    List of the names of all fixtures transitively requested by the current
+    test excluding the fixture that explicitly requested the passed ``request``
+    fixture object if any, inspected from that ``request`` fixture object.
 
     This list includes the names of all fixtures that are:
 
@@ -459,17 +465,17 @@ def get_requested_fixture_names(
     # Return these fixture names.
     return fixture_names
 
-# ....................{ GETTERS ~ request : name : prefix  }....................
+# ....................{ GETTERS ~ request : name : prefix }....................
 def get_requested_fixture_name_prefixed_by(
     request: '_pytest.python.FixtureRequest',
     fixture_name_prefix: str,
 ) -> str:
     '''
     Name prefixed by the passed prefix of the single fixture transitively
-    requested by the current test, inspected from the passed ``request`` fixture
-    object.
+    requested by the current test, inspected from the passed ``request``
+    fixture object.
 
-    If either no such fixture _or_ more than one such fixture exist, an
+    If either no such fixture *or* more than one such fixture exist, an
     exception is raised.
 
     Parameters
@@ -524,9 +530,9 @@ def get_requested_fixture_names_prefixed_by(
     fixture_name_prefix: str,
 ) -> list:
     '''
-    List of all names prefixed by the passed prefix of all fixtures transitively
-    requested by the current test, inspected from the passed ``request`` fixture
-    object.
+    List of all names prefixed by the passed prefix of all fixtures
+    transitively requested by the current test, inspected from the passed
+    ``request`` fixture object.
 
     Parameters
     ----------

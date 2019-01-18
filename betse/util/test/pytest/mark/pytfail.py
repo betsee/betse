@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Decorators failing tests.
+High-level :mod:`pymod`-based decorators failing tests.
 
 These decorators conditionally mark their decorated tests as failing depending
 on whether the conditions signified by the passed parameters are satisfied

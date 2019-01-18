@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes (ABCs) globally applicable to all tests.
+High-level :mod:`pytest`-specific abstract base class (ABC) hierarchies.
 '''
 
-# ....................{ IMPORTS                            }....................
-from abc import ABCMeta  #, abstractmethod
+# ....................{ IMPORTS                           }....................
+from abc import ABCMeta
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
+# FIXME: The "_first_failure_method_name" attribute documented below is
+# dynamically set on the py.test object encapsulating this class instance
+# rather than this actual class instance. This may or may not be a bad thing.
 class SerialTestABC(metaclass=ABCMeta):
     '''
     Abstract base class running all test methods defined by this concrete
@@ -24,19 +27,16 @@ class SerialTestABC(metaclass=ABCMeta):
     The majority of the black magic required by this class is implemented as
     low-level py.test hooks in the top-level :mod:`betse_func.conftest` plugin.
 
-    FIXME: The following attribute is dynamically set on the py.test object
-    encapsulating this class instance rather than this actual class instance.
-
     Attributes
     ----------
     _first_failure_method_name : str
         Unqualified name of the first failing test method (i.e., method whose
-        execution raised an exception) declared by this subclass for the current
-        test session if any such method failed _or_ `None` otherwise (i.e., if
-        no such methods have yet to fail).
+        execution raised an exception) declared by this subclass for the
+        current test session if any such method failed *or* ``None`` otherwise
+        (i.e., if no such methods have yet to fail).
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @staticmethod
     def is_test_serial(item: 'pytest.main.Item') -> bool:
         '''
@@ -58,9 +58,10 @@ class SerialTestABC(metaclass=ABCMeta):
             ``True`` only if this test is serial.
         '''
 
-        # Class of this test callable if this callable is a method or "None".
+        # Class of this test callable if this callable is a method *OR* "None".
         test_class = item.parent.cls
 
-        # This callable is intended to be run serially only if the test subclass
-        # to which this callable is bound subclasses this abstract base class.
+        # This callable is intended to be run serially only if the test
+        # subclass to which this callable is bound subclasses this abstract
+        # base class.
         return test_class is not None and issubclass(test_class, SerialTestABC)

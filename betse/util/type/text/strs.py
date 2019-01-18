@@ -414,9 +414,11 @@ def join_by_index(iterable: IterableTypes, subiterable_index: object) -> str:
         Object with which to index each subiterable of this iterable. The type
         of this object *must* be a type accepted by the ``__getitem__()``
         special method of each subiterable. If each subiterable is a:
+
         * **Mapping** (e.g., :class:`dict`), this object *must* be hashable.
         * **Sequence** (e.g., :class:`list`, :class:`tuple`), this object
           *must* be either:
+
           * An integer.
           * A :func:`slice` object.
 

@@ -11,8 +11,7 @@ validate application backward compatibility).
 
 # ....................{ IMPORTS                           }....................
 import pytest
-from betse_test.util import requests
-from betse_test.util.mark.pytskip import skip_if
+from betse.util.test.pytest.mark.pytskip import skip_if
 
 # ....................{ OPTIONS                           }....................
 EXPORT_SIM_CONF_DIRNAME = pytest.config.option.export_sim_conf_dirname
@@ -74,9 +73,10 @@ def test_cli_sim_export(
 
     # Defer heavyweight imports.
     from betse.util.path import dirs, pathnames
+    from betse.util.test import pytrequest
 
     # Name of the current test.
-    test_name = requests.get_tested_name(request)
+    test_name = pytrequest.get_tested_name(request)
 
     # Absolute or relative pathname of the target directory to export into,
     # canonicalized for caller convenience (e.g., to ensure tilde expansion)

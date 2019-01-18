@@ -63,77 +63,6 @@ class BetseModuleException(BetseException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ os                   }....................
-class BetseOSException(BetseException):
-    '''
-    General-purpose Low-level operating system (OS) exception.
-    '''
-
-    pass
-
-
-class BetseOSShellEnvException(BetseOSException):
-    '''
-    Shell environment-specific exception.
-    '''
-
-    pass
-
-# ....................{ EXCEPTIONS ~ python               }....................
-class BetsePyException(BetseException):
-    '''
-    General-purpose low-level Python interpreter exception.
-
-    This exception is appropriate for use in relation to low-level issues
-    concerning the active Python interpreter (e.g., inability to retrieve this
-    interpreter's absolute path).
-    '''
-
-    pass
-
-
-class BetsePyFrozenException(BetsePyException):
-    '''
-    Low-level exception pertaining to **frozen executables** (i.e., Python
-    codebases converted into platform-specific executables).
-    '''
-
-    pass
-
-
-class BetsePyIdentifierException(BetsePyException):
-    '''
-    Low-level exception pertaining to **Python identifiers** (i.e., class,
-    module, or attribute name).
-    '''
-
-    pass
-
-# ....................{ EXCEPTIONS ~ arg                  }....................
-class BetseCLIException(BetseException):
-    '''
-    General-purpose command-line interface (CLI) exception.
-    '''
-
-    pass
-
-
-class BetseCLIArgException(BetseCLIException):
-    '''
-    Command-line interface (CLI) argument-specific exception.
-    '''
-
-    pass
-
-
-class BetseCLIArgParserException(BetseCLIArgException):
-    '''
-    **Argument parser** (i.e., :class:`argparse.ArgumentParser`)-specific
-    exception.
-    '''
-
-    pass
-
 # ....................{ EXCEPTIONS ~ call                 }....................
 class BetseCallableException(BetseException):
     '''
@@ -190,12 +119,12 @@ class BetseMethodUnimplementedException(
     Unimplemented method-specific exception.
 
     This exception is typically raised from **unimplemented optional methods**
-    (i.e., non-mandatory methods _not_ intended to be called) of concrete
+    (i.e., non-mandatory methods *not* intended to be called) of concrete
     subclasses of abstract base classes. While the optimal solution for
     defining **unimplemented mandatory methods** (i.e., non-optional methods
-    also _not_ intended to be called) is via the canonical `@abc.abstractmethod`
-    decorator, there currently exists no canonical alternative for defining
-    optional methods. Hence, this exception.
+    also *not* intended to be called) is via the standard
+    :call:`collections.abc.abstractmethod` decorator, there exists no standard
+    alternative for defining optional methods. Hence, this exception.
     '''
 
     # ..................{ INITIALIZERS                      }..................
@@ -223,6 +152,31 @@ class BetseExprAliasException(BetseDescriptorException):
     pass
 
 
+# ....................{ EXCEPTIONS ~ cli                  }....................
+class BetseCLIException(BetseException):
+    '''
+    General-purpose command-line interface (CLI) exception.
+    '''
+
+    pass
+
+
+class BetseCLIArgException(BetseCLIException):
+    '''
+    Command-line interface (CLI) argument-specific exception.
+    '''
+
+    pass
+
+
+class BetseCLIArgParserException(BetseCLIArgException):
+    '''
+    **Argument parser** (i.e., :class:`argparse.ArgumentParser`)-specific
+    exception.
+    '''
+
+    pass
+
 # ....................{ EXCEPTIONS ~ lib                  }....................
 class BetseLibException(BetseException):
     '''
@@ -234,7 +188,7 @@ class BetseLibException(BetseException):
 
 class BetseMatplotlibException(BetseLibException):
     '''
-    Matplotlib-specific exception.
+    :mod:`matplotlib`-specific exception.
     '''
 
     pass
@@ -242,7 +196,15 @@ class BetseMatplotlibException(BetseLibException):
 
 class BetsePyDotException(BetseLibException):
     '''
-    PyDot-specific exception.
+    :mod:`pydot`-specific exception.
+    '''
+
+    pass
+
+
+class BetseYamlException(BetseException):
+    '''
+    Yet Another Markup Language (YAML)-specific exception.
     '''
 
     pass
@@ -275,6 +237,22 @@ class BetseMathPointException(BetseMathException):
 class BetseMathPolygonException(BetseMathException):
     '''
     Polygon-specific math exception.
+    '''
+
+    pass
+
+# ....................{ EXCEPTIONS ~ os                   }....................
+class BetseOSException(BetseException):
+    '''
+    General-purpose Low-level operating system (OS) exception.
+    '''
+
+    pass
+
+
+class BetseOSShellEnvException(BetseOSException):
+    '''
+    Shell environment-specific exception.
     '''
 
     pass
@@ -343,6 +321,36 @@ class BetseImageException(BetseFileException):
 
     pass
 
+# ....................{ EXCEPTIONS ~ python               }....................
+class BetsePyException(BetseException):
+    '''
+    General-purpose low-level Python interpreter exception.
+
+    This exception is appropriate for use in relation to low-level issues
+    concerning the active Python interpreter (e.g., inability to retrieve this
+    interpreter's absolute path).
+    '''
+
+    pass
+
+
+class BetsePyFrozenException(BetsePyException):
+    '''
+    Low-level exception pertaining to **frozen executables** (i.e., Python
+    codebases converted into platform-specific executables).
+    '''
+
+    pass
+
+
+class BetsePyIdentifierException(BetsePyException):
+    '''
+    Low-level exception pertaining to **Python identifiers** (i.e., class,
+    module, or attribute name).
+    '''
+
+    pass
+
 # ....................{ EXCEPTIONS ~ test                 }....................
 class BetseTestException(BetseException):
     '''
@@ -351,10 +359,34 @@ class BetseTestException(BetseException):
 
     pass
 
+
+class BetseTestFixtureException(BetseTestException):
+    '''
+    Fixture-specific test exception.
+    '''
+
+    pass
+
+
+class BetseTestHookException(BetseTestException):
+    '''
+    Hook-specific test exception.
+    '''
+
+    pass
+
+
+class BetseTestParamException(BetseTestException):
+    '''
+    Parameter-specific test exception.
+    '''
+
+    pass
+
 # ....................{ EXCEPTIONS ~ type                 }....................
 class BetseTypeException(BetseException):
     '''
-    General-purpose exception applicable to types (i.e., classes).
+    General-purpose exception applicable to all types (i.e., classes).
     '''
 
     pass
@@ -429,14 +461,6 @@ class BetseCharException(BetseStrException):
 class BetseRegexException(BetseStrException):
     '''
     Regular exception-specific type or value exception.
-    '''
-
-    pass
-
-# ....................{ EXCEPTIONS ~ yaml                 }....................
-class BetseYamlException(BetseException):
-    '''
-    Yet Another Markup Language (YAML)-specific exception.
     '''
 
     pass

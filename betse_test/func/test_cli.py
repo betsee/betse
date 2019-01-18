@@ -10,7 +10,7 @@ CLI-specific functional tests exercising all miscellaneous subcommands (e.g.,
 
 # ....................{ IMPORTS                           }....................
 import pytest
-from betse_test.util.mark.pytskip import skip_unless_lib_runtime_optional
+from betse.util.test.pytest.mark.pytskip import skip_unless_lib_runtime_optional
 
 # ....................{ TESTS                             }....................
 def test_cli_no_arg(betse_cli: 'CLITester') -> None:
