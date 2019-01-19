@@ -10,6 +10,7 @@ aggregating runners defined by all available export pipelines) facilities.
 
 # ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseSimPipeRunnerUnsatisfiedException
+from betse.lib.matplotlib import mplfigure
 from betse.science.phase.phasecls import SimPhase
 from betse.science.pipe.export.pipeexpcsv import SimPipeExportCSVs
 from betse.science.pipe.export.pipeexpanim import SimPipeExportAnimCells
@@ -166,6 +167,15 @@ class SimPipesExport(object):
                         exception.reason))
             # Else if this runner raises any other exception, permit this
             # exception to propagate up the callstack without intervention.
+
+        # Unconditionally close all currently open matplotlib figures
+        # regardless of whether any of the above runners invoked matplotlib.
+        #
+        # In theory, each of the runner_method() methods called above should
+        # explicitly do so already; in practice, the matplotlib API is
+        # sufficiently non-deterministic *AND* resource-consumptive to justify
+        # such precautions.
+        mplfigure.close_figures_all()
 
         # Log the directory to which all results were exported.
         logs.log_info('Simulation results exported to:')

@@ -80,6 +80,12 @@ from betse.util.test.pytest.mark.pytskip import (
 # monkey-patching) is effectively infeasible. Moreover, since it remains
 # unclear which py.test version introduced this incompatibility, we have little
 # choice but to skip the entire py.test 4.x release line and hope for the best.
+#FIXME: After simplifying this functional test as detailed above, remove all of
+#the following:
+#
+#* The "--export-sim-conf-dir" option, defined by the pytest_addoption() hook
+#  in the top-level "hetse_test.conftest" plugin.
+#* The "test_sim_export" submodule.
 @skip_if_requirement('pytest >= 4.0.0')
 def test_cli_sim_compat( betse_cli_sim_compat: 'CLISimTester') -> None:
     '''

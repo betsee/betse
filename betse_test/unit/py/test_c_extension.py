@@ -19,16 +19,21 @@ def test_is_c_extension_unmonkeypatched() -> None:
     tested modules.
     '''
 
-    # Imports deferred for safety.
+    # Defer heavyweight imports.
     from betse.util.py.module import pymodule
-    from numpy.core import multiarray
+
+    # Import a Python module guaranteed to be implemented as a C extension.
+    # This unit test previously imported the "numpy.core.multiarray" submodule,
+    # which has since been reimplemented from a C extension to pure-Python.
+    import cmath
 
     # Ensure that a C extension is correctly detected as such. Testing this
     # particular C extension is critical, as the core codebase explicitly
     # performs the same call at application startup.
-    assert pymodule.is_c_extension(multiarray) is True
+    assert pymodule.is_c_extension(cmath) is True
 
-    # Ensure that a pure-Python submodule is *NOT* detected to be a C extension.
+    # Ensure that a pure-Python submodule is *NOT* detected to be a C
+    # extension.
     assert pymodule.is_c_extension(pymodule) is False
 
 

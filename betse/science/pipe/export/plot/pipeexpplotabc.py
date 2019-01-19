@@ -66,7 +66,7 @@ plots produced after initialization and simulation) abstract base classes.
 
 # ....................{ IMPORTS                           }....................
 import matplotlib
-from betse.lib.matplotlib import mplutil
+from betse.lib.matplotlib import mplfigure, mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.phase.phasecls import SimPhase
 from betse.science.pipe.export.pipeexpabc import SimPipeExportABC
@@ -195,9 +195,9 @@ class SimPipeExportPlotABC(SimPipeExportABC):
 
         #FIXME: Non-ideal. Under a threading scenario, this will introduce race
         #conditions. Ideally, the figure associated with this plot should be
-        #explicitly passed to the pyplot.close() function as is currently done
-        #by the VisualCellsABC.close() method.
+        #explicitly passed to the mplfigure.close_figure() function as is
+        #currently done in the VisualCellsABC.close() method.
 
         # If *NOT* displaying this plot, close this plot to conserve resources.
         if not phase.p.plot.is_after_sim_show:
-            pyplot.close()
+            mplfigure.close_figure_current()

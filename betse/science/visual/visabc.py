@@ -9,14 +9,13 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 
 #FIXME: Refactor all procedural cell cluster-specific
 #"betse.science.visual.plot.plotutil" functions into subclasses of the
-#"LayerCellsABC" base class defined elsewhere.
-#Ultimate power fights the dark deceit!
+#"LayerCellsABC" base class defined elsewhere. Ultimate power fights the dark deceit!
 
 # ....................{ IMPORTS                           }....................
 import numpy as np
 from abc import ABCMeta
 from betse.exceptions import BetseSimVisualException
-from betse.lib.matplotlib import mplutil
+from betse.lib.matplotlib import mplfigure, mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_PATCH, ZORDER_STREAM
 from betse.lib.numpy import nparray
@@ -382,17 +381,18 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         To reduce resource overhead (namely memory), this method (in order):
 
-        . Explicitly closes this visual's figure.
-        . Explicitly breaks all circular references between this figure and
-          related artist objects (e.g., between this figure and its axes).
-        . Explicitly nullifies *all* attributes of the current object.
-        . Explicitly garbage collects.
+        #. Explicitly clears this visual's figure axis and figure.
+        #. Explicitly closes this visual's figure window.
+        #. Explicitly breaks all circular references between this figure and
+           related artist objects (e.g., between this figure and its axes).
+        #. Explicitly nullifies *all* attributes of the current object.
+        #. Explicitly garbage collects.
 
         Caveats
         ----------
         This method should only be called:
 
-        * If this visual is blocking (e.g., saved non-interactively,
+        * If this visual is blocking (e.g., saved non-interactively or
           displayed interactively in a blocking manner). If this plot or
           animation is non-blocking, the resources assigned this plot or
           animation may be safely deallocated only *after* the end user closes
@@ -406,9 +406,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         variable bound to this object will reliably raise an exception.
         '''
 
-        # If this figure still exists, explicitly close it.
+        # If this figure still exists, attempt to safely close this figure.
         if self._figure is not None:
-            pyplot.close(self._figure)
+            mplfigure.close_figure(self._figure)
 
         # For each name and value of a field bound to this object...
         for field_name, field_value in objiter.iter_vars_custom_simple(self):

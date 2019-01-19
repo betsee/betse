@@ -37,15 +37,16 @@ def pytest_addoption(parser: '_pytest.config.Parser') -> None:
 
     Options
     ----------
-    After :mod:`pytest` parses these options, the globally accessible
-    :attr:`pytest.config.option.{option_var_name}` attribute provides the value
-    of the argument accepted by each option (if any), where
-    ``{option_var_name}`` is the value of the ``dest`` keyword argument passed
-    to the :meth:`parser.add_option` method in the body of this hook.
+    After :mod:`pytest` parses these options, the
+    ``pytestconfig.getoption({option_var_name})` method of the ``pytestconfig``
+    fixture provides the value of the argument accepted by each option (if
+    any), where ``{option_var_name}`` is the value of the ``dest`` keyword
+    argument passed to the :meth:`parser.add_option` method in the body of this
+    hook.
 
     Specifically, the following option variables are guaranteed to be defined:
 
-    * :attr:`pytest.config.option.export_sim_conf_dirname`, the value of the
+    * ``pytestconfig.getoption('export_sim_conf_dirname')``, the value of the
       ``--export-sim-conf-dir`` command-line option if passed *or* ``None``
       otherwise.
 

@@ -617,6 +617,16 @@ subclass :class:`collections.abc.Sequence` despite implementing the entirety of
 that that API.
 '''
 
+# ....................{ TUPLES : lib ~ matplotlib         }....................
+MatplotlibFigureType = None
+'''
+Type of :mod:`matplotlib` figures if :mod:`matplotlib` is importable *or*
+``None`` otherwise.
+
+This class is a synonym of the :class:`matplotlib.figure.Figure` class,
+permitting callers to avoid importing that class.
+'''
+
 # ....................{ TUPLES : lib ~ numpy              }....................
 NumpyArrayType = None
 '''
@@ -639,16 +649,23 @@ This class is a synonym of the :class:`numpy.dtype` class, permitting callers
 to avoid importing that class.
 '''
 
-# ....................{ TUPLES : init ~ numpy             }....................
-# Conditionally add sequence types to previously declared tuples.
+# ....................{ TUPLES : init                     }....................
+# Conditionally define dependency-specific types.
 #
-# If Numpy is available, add both core APIs and the Numpy array type (which
-# fails to subclass these APIs). Although Numpy is a mandatory dependency, this
-# submodule is typically imported quite early in program startup, implying the
+# Since this submodule is often imported early in application startup, the
 # importability of *ANY* dependency (mandatory or not) at the top level of this
-# submodule to still be in question. Since subsequent logic in program startup
-# is guaranteed to raise human-readable exceptions for missing dependencies,
-# this error is silently ignored here.
+# submodule remains undecided. Since subsequent logic in application startup is
+# guaranteed to raise human-readable exceptions on missing mandatory
+# dependencies, their absence here is ignorable.
+
+# If matplotlib is importable, conditionally define matplotlib-specific types.
+try:
+    from matplotlib.figure import Figure
+    MatplotlibFigureType = Figure
+except:
+    pass
+
+# If NumPy is importable, conditionally define NumPy-specific types.
 try:
     from numpy import dtype, ndarray
 
@@ -656,7 +673,7 @@ try:
     NumpyDataTypes = (dtype,) + NumericlikeTypes
     IterableTypes = (Iterable, NumpyArrayType)
     SequenceTypes = (Sequence, NumpyArrayType)
-# Else, Numpy is unavailable. Define these tuples to contain only stock types.
+# Else, Numpy is unimportable. Define these tuples to contain only stock types.
 except:
     IterableTypes = (Iterable,)
     SequenceTypes = (Sequence,)

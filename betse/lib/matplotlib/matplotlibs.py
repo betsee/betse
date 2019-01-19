@@ -56,10 +56,10 @@ Footnote descriptions are as follows:
 
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: To permit matplotlib's default verbosity and backend to be replaced
-# by BETSE-specific values, no matplotlib package or module may be imported
-# until *AFTER* the MplConfig.init() method has been called -- including
-# here at the top-level.
+# WARNING: To allow matplotlib defaults (e.g., backend, logging) to be replaced
+# with application-specific preferences, no matplotlib module may be imported
+# until *AFTER* the MplConfig.init() method has been called -- including here
+# at the top-level.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
@@ -68,9 +68,8 @@ from betse.util.io.error import errexception
 from betse.util.io.log import logconfig, logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.os import displays, kernels, oses
-from betse.util.path import dirs
 from betse.util.py.module import pymodname
-from betse.util.type.iterable import iterables, itersort
+from betse.util.type.iterable import itersort
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.numeric import versions
@@ -107,13 +106,20 @@ matplotlib < 2.2.0).
 
 
 _RC_PARAMS = {
-    #FIXME: This doesn't appear to do anything anymore. Excise, please. *sigh*
-
-    # Unconditionally print terse messages. By default, matplotlib prints *NO*
-    # messages. Valid values include: "silent", "helpful", "debug", and
-    # "debug-annoying".
-    # 'verbose.level': 'helpful',
-    # 'verbose.level': 'debug',
+    # This option's default value of 20 is slightly too small for our use case,
+    # inviting unctuous non-fatal runtime warnings resembling:
+    #
+    #    /builds/betse/betse/conda-env/lib/python3.7/site-packages/matplotlib/pyplot.py:514:
+    #    RuntimeWarning: More than 20 figures have been opened. Figures created
+    #    through the pyplot interface (`matplotlib.pyplot.figure`) are retained
+    #    until explicitly closed and may consume too much memory. (To control
+    #    this warning, see the rcParam `figure.max_open_warning`).
+    #
+    # While these warnings may be entirely eliminated by setting this option to
+    # 0, doing so has the unfortunate side effect of failing to notify both
+    # developers and end users of imminent memory exhaustion. To err on the
+    # side of caution, we thus instead reduce the frequency of this warning.
+    'figure.max_open_warning': 50,
 }
 '''
 Dictionary mapping ``matplotlibrc`` option names to corresponding values.
@@ -341,6 +347,11 @@ class MplConfig(object):
             del(_sys_argv_old)
 
         # Unconditionally enable all settings defined by this global.
+        #
+        # Note that calling the rcParams.update() method appears to be the only
+        # reliable means of overriding default matplotlib options. See also a
+        # relevant StackOverflow response:
+        #     https://stackoverflow.com/a/34377868/2809027
         rcParams.update(_RC_PARAMS)
 
         #FIXME: Sadly, the "font_manager.USE_FONTCONFIG" global is currently

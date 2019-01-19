@@ -125,7 +125,7 @@ def die_unless_fixture_parametrized(
 # ....................{ TESTERS                           }....................
 def is_tested(request: '_pytest.python.FixtureRequest') -> bool:
     '''
-    `True` only if the passed ``request`` fixture object was transitively
+    ``True`` only if the passed ``request`` fixture object was transitively
     requested by a test (e.g., directly by a test or indirectly by a test-scope
     fixture).
 
@@ -137,7 +137,8 @@ def is_tested(request: '_pytest.python.FixtureRequest') -> bool:
     Returns
     ----------
     bool
-        `True` only if a test transitively requested this ``request`` fixture.
+        ``True`` only if a test transitively requested this ``request``
+        fixture.
     '''
 
     return isinstance(request.node, Function)
@@ -145,8 +146,8 @@ def is_tested(request: '_pytest.python.FixtureRequest') -> bool:
 # ....................{ TESTERS ~ fixture                 }....................
 def is_fixture(request: '_pytest.python.FixtureRequest') -> bool:
     '''
-    `True` only if the passed ``request`` fixture object was directly requested
-    by a fixture rather than a test.
+    ``True`` only if the passed ``request`` fixture object was directly
+    requested by a fixture rather than a test.
 
     Parameters
     ----------
@@ -156,7 +157,7 @@ def is_fixture(request: '_pytest.python.FixtureRequest') -> bool:
     Returns
     ----------
     bool
-        `True` only if a fixture requested this ``request`` fixture.
+        ``True`` only if a fixture requested this ``request`` fixture.
     '''
 
     return request.fixturename is not None
@@ -164,8 +165,8 @@ def is_fixture(request: '_pytest.python.FixtureRequest') -> bool:
 
 def is_fixture_parametrized(request: '_pytest.python.FixtureRequest') -> bool:
     '''
-    `True` only if the fixture requesting the passed ``request`` fixture object
-    was parametrized (either directly or indirectly).
+    ``True`` only if the fixture requesting the passed ``request`` fixture
+    object was parametrized (either directly or indirectly).
 
     Parameters
     ----------
@@ -175,7 +176,7 @@ def is_fixture_parametrized(request: '_pytest.python.FixtureRequest') -> bool:
     Returns
     ----------
     bool
-        `True` only if this fixture was parametrized.
+        ``True`` only if this fixture was parametrized.
 
     Raises
     ----------
@@ -193,9 +194,9 @@ def is_fixture_parametrized(request: '_pytest.python.FixtureRequest') -> bool:
 # ....................{ GETTERS                           }....................
 def get_tested_name(request: '_pytest.python.FixtureRequest') -> str:
     '''
-    Unqualified name of the current test (e.g., `test_cli_info`) if the passed
-    ``request`` fixture object was either directly requested by that test *or*
-    indirectly requested by a test-scope fixture.
+    Unqualified name of the current test (e.g., ``test_cli_info``) if the
+    passed ``request`` fixture object was either directly requested by that
+    test *or* indirectly requested by a test-scope fixture.
 
     This function returns either:
 
@@ -383,8 +384,6 @@ def get_requested_fixture(
     return fixture_object
 
 
-#FIXME: Properly typecheck this. Note in doing so, however, that this function
-#also returns "None" on occasion.
 def get_requested_fixture_or_none(
     request: '_pytest.python.FixtureRequest',
     fixture_name: str,
