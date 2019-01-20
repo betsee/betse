@@ -40,15 +40,24 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 #generalized as to support a wide variety of computational needs -- like ours.
 
 # ....................{ IMPORTS                           }....................
+import numpy
 from betse.util.io.log import logs
 from betse.util.os import dlls, oses
 from betse.util.path import dirs, files, pathnames
-from betse.util.py.module import pymodule
+from betse.util.py.module import pymodname, pymodule
+from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.iterable import itersort
 from betse.util.type.mapping.mapcls import OrderedArgsDict
+from betse.util.type.numeric import versions
 from betse.util.type.text import regexes, strs
-from betse.util.type.types import BoolOrNoneTypes
+from betse.util.type.types import BoolOrNoneTypes, ModuleType
 from numpy import __config__ as numpy_config
+
+# ....................{ GLOBALS                           }....................
+VERSION = numpy.__version__
+'''
+Human-readable :mod:`numpy` version string (e.g., ``1.14.5``).
+'''
 
 # ....................{ GLOBALS ~ opt_info                }....................
 # Fully initialized by the _init_globals() function below.
@@ -159,13 +168,16 @@ def init() -> None:
     '''
     Initialize this submodule.
 
-    Specifically (_in order_):
+    Specifically (in order):
 
     #. Initialize all uninitialized global variables of this submodule.
     #. If the currently installed version of Numpy was linked against an
        unoptimized BLAS implementation and is thus itself unoptimized, log a
        non-fatal warning.
     '''
+
+    # Log this initialization.
+    logs.log_debug('Initializing NumPy...')
 
     # Initialize all uninitialized global variables of this submodule.
     _init_globals()
@@ -549,7 +561,7 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     if not blas_basename_substr.endswith('blas'):
         return None
 
-    # Absolute path of an arbitrary shared library-based Numpy C extension.
+    # Arbitrary Numpy C extension.
     #
     # Unfortunately, the "numpy.__config__" API fails to specify the absolute
     # paths of the libraries it links against. Since there exists no reliable
@@ -559,7 +571,10 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     # for the absolute paths of all external shared libraries to which this
     # extension links -- exactly one of which is guaranteed to be the absolute
     # path of what appears to be a reference BLAS or CBLAS implementation.
-    numpy_lib_filename = pymodule.get_filename('numpy.core.multiarray')
+    numpy_lib = get_c_extension()
+
+    # Absolute filename of this C extension.
+    numpy_lib_filename = pymodule.get_filename(module=numpy_lib)
 
     # For the basename and absolute path of each shared library linked to
     # by this Numpy shared library...
@@ -605,6 +620,56 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     return None
 
 # ....................{ GETTERS                           }....................
+@func_cached
+def get_c_extension() -> ModuleType:
+    '''
+    Arbitrary Numpy-specific submodule guaranteed to be implemented as a C
+    extension.
+
+    Application startup typically tests platform-specific libraries linked
+    against this C extension to attempt to dynamically detect whether this
+    version of Numpy is multithreaded or not.
+
+    :func:`get_c_extension_name_qualified`
+        Further details.
+    '''
+
+    # One-liners for the greater glory of BETSE.
+    return pymodname.import_module(get_c_extension_name_qualified())
+
+
+@func_cached
+def get_c_extension_name_qualified() -> str:
+    '''
+    Fully-qualified name of an arbitrary Numpy-specific submodule guaranteed to
+    be implemented as a C extension.
+
+    Specifically, this function returns either:
+
+    * If this is Numpy >= 1.16.0, the newly unified
+      :mod:`numpy.core._multiarray_umath` C extension. To quote a comment
+      heading the pure-Python :mod:`numpy.core.multiarray` submodule in recent
+      versions of Numpy:
+
+          Create the ``numpy.core.multiarray`` namespace for backward
+          compatibility. In v1.16 the ``multiarray`` and ``umath`` c-extension
+          modules were merged into a single ``_multiarray_umath`` extension
+          module. So we replicate the old namespace by importing from the
+          extension module.
+
+    * Else, the obsoleted :mod:`numpy.core.multiarray` C extension.
+    '''
+
+    # Return either...
+    return (
+        # If Numpy >= 1.16.0, this newly unified C extension.
+        'numpy.core._multiarray_umath'
+        if versions.is_greater_than_or_equal_to(VERSION, '1.16.0') else
+        # Else, Numpy < 1.16.0. In this case, this obsoleted C extension.
+        'numpy.core.multiarray'
+    )
+
+# ....................{ GETTERS ~ metadata                }....................
 def get_metadatas() -> tuple:
     '''
     Tuple of 2-tuples ``(metedata_name, metadata_value)``, describing all

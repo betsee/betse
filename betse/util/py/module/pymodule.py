@@ -37,6 +37,41 @@ from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 
 # ....................{ EXCEPTIONS                        }....................
 @type_check
+def die_if_builtin(module: ModuleOrStrTypes) -> None:
+    '''
+    Raise an exception if the passed module is a **builtin** (i.e., compiled
+    into the executable file for the active Python interpreter and hence having
+    no external file).
+
+    Parameters
+    ----------
+    module : ModuleOrStrTypes
+        Either:
+
+        * The fully-qualified name of this module, in which case this function
+          dynamically imports this module.
+        * A previously imported module object.
+
+    Raises
+    ----------
+    BetseModuleException
+        If this module is a builtin.
+
+    See Also
+    ----------
+    :func:`is_builtin`
+        Further details.
+    '''
+
+    # If this module is a builtin, raise an exception.
+    if is_builtin(module):
+        raise BetseModuleException(
+            'Module "{0}" is a builtin '
+            '(i.e., "{0}.__file__" undefined).'.format(
+                get_name_qualified(module)))
+
+# ....................{ EXCEPTIONS ~ name                 }....................
+@type_check
 def die_unless_topmost(module: ModuleOrStrTypes) -> None:
     '''
     Raise an exception unless the passed module is **topmost** (i.e., a
@@ -57,22 +92,20 @@ def die_unless_topmost(module: ModuleOrStrTypes) -> None:
         If this module is a submodule rather than topmost.
     '''
 
-    # If this module is *NOT* topmost...
+    # If this module is *NOT* topmost, raise an exception.
     if not is_topmost(module):
-        # Fully-qualified name of this module.
-        module_name = get_name_qualified(module)
-
-        # Raise an exception embedding this name.
         raise BetseModuleException(
             'Module "{}" not topmost '
-            '(i.e., contains one or more "." delimiters).'.format(module_name))
+            '(i.e., contains one or more "." delimiters).'.format(
+                get_name_qualified(module)))
 
 # ....................{ TESTERS                           }....................
 @type_check
-def is_topmost(module: ModuleOrStrTypes) -> bool:
+def is_builtin(module: ModuleOrStrTypes) -> bool:
     '''
-    ``True`` only if the passed module is **topmost** (i.e., a top-level module
-    whose module name contains no ``.`` delimiters).
+    ``True`` only if the passed module is a **builtin** (i.e., compiled into
+    the executable file for the active Python interpreter and hence having no
+    external file).
 
     Parameters
     ----------
@@ -86,16 +119,44 @@ def is_topmost(module: ModuleOrStrTypes) -> bool:
     Returns
     ----------
     bool
-        ``True`` only if this a topmost module.
+        ``True`` only if this module is a builtin.
     '''
 
-    # Fully-qualified name of this module.
-    module_name = get_name_qualified(module)
+    # Return true only if this module fails to define the special "__file__"
+    # attribute, required to be defined by all modules *EXCEPT* builtins.
+    return not hasattr(module, '__file__')
 
-    # Return true only if this name contains no "." delimiters.
-    return '.' not in module_name
+# ....................{ TESTERS ~ c                       }....................
+@type_check
+def is_c(module: ModuleOrStrTypes) -> bool:
+    '''
+    ``True`` only if the passed module is **implemented in C** (i.e., as either
+    an internally builtin module *or* external C extension).
 
-# ....................{ TESTERS ~ type                    }....................
+    Parameters
+    ----------
+    module : ModuleOrStrTypes
+        Either:
+
+        * The fully-qualified name of this module, in which case this function
+          dynamically imports this module.
+        * A previously imported module object.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this module is implemented in C.
+
+    See Also
+    ----------
+    :func:`is_builtin`
+    :func:`is_c_extension`
+        Further details.
+    '''
+
+    return is_builtin(module) or is_c_extension(module)
+
+
 @type_check
 def is_c_extension(module: ModuleOrStrTypes) -> bool:
     '''
@@ -127,6 +188,10 @@ def is_c_extension(module: ModuleOrStrTypes) -> bool:
     # module *MUST* be a C extension.
     if isinstance(getattr(module, '__loader__', None), ExtensionFileLoader):
         return True
+    # Else if this module is a builtin, this module has no external file and
+    # hence *CANNOT* be a C extension.
+    elif is_builtin(module):
+        return False
 
     # Else, fallback to filetype matching heuristics.
     #
@@ -146,6 +211,34 @@ def is_c_extension(module: ModuleOrStrTypes) -> bool:
     # This module is only a C extension if this path's filetype is that of a
     # C extension specific to the current platform.
     return module_filetype in EXTENSION_SUFFIXES
+
+# ....................{ TESTERS : name                    }....................
+@type_check
+def is_topmost(module: ModuleOrStrTypes) -> bool:
+    '''
+    ``True`` only if the passed module is **topmost** (i.e., a top-level module
+    whose module name contains no ``.`` delimiters).
+
+    Parameters
+    ----------
+    module : ModuleOrStrTypes
+        Either:
+
+        * The fully-qualified name of this module, in which case this function
+          dynamically imports this module.
+        * A previously imported module object.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this a topmost module.
+    '''
+
+    # Fully-qualified name of this module.
+    module_name = get_name_qualified(module)
+
+    # Return true only if this name contains no "." delimiters.
+    return '.' not in module_name
 
 # ....................{ GETTERS ~ attr : global           }....................
 #FIXME: Rename this getter to iter_global_names() for orthogonality with
@@ -224,14 +317,12 @@ def get_name_qualified(module: ModuleOrStrTypes) -> str:
     return module.__name__
 
 # ....................{ GETTERS ~ path                    }....................
-#FIXME: The current approach is trivial and therefore terrible, breaking down
-#under commonplace real-world conditions (e.g., modules embedded within
-#egg-like archives). Consider generalizing this approach via the new
-#setuptools-based "betse.lib.setuptool.resources" submodule.
 @type_check
 def get_filename(module: ModuleOrStrTypes) -> str:
     '''
-    Absolute filename of the file providing the passed module or package.
+    Absolute filename of the file providing the passed module or package if
+    this is not a builtin module *or* raise an exception otherwise (i.e., if
+    this is a builtin module).
 
     If the passed object signifies:
 
@@ -268,20 +359,20 @@ def get_filename(module: ModuleOrStrTypes) -> str:
     Raises
     ----------
     BetseModuleException
-        If this module has no such attribute (e.g., is a builtin module).
+        If this is a **builtin module** (i.e., compiled into the executable
+        file for the active Python interpreter and hence having no external
+        file).
     '''
 
     # Resolve this module's object.
     module = resolve_module(module)
 
-    # If this module does *NOT* provide the special "__file__" attribute, raise
-    # an exception. (All modules *EXCEPT* builtin modules should provide this.)
-    if not hasattr(module, '__file__'):
-        raise BetseModuleException(
-            'Module "{0}.__file__" attribute not found '
-            '(e.g., as "{0}" is a builtin module).'.format(module.__name__))
+    # If this module is a builtin (and hence does *NOT* define the standard
+    # "__file__" attribute), raise an exception.
+    die_if_builtin(module)
+    # Else, this module is *NOT* a builtin and hence defines this attribute.
 
-    # Else, return this attribute's value.
+    # Return this attribute's value.
     return module.__file__
 
 # ....................{ GETTERS ~ path : dir              }....................
