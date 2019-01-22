@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-High-level facilities for serializing and deserializing Numpy arrays to and from
-comma-separated value (CSV) files.
+High-level facilities for serializing and deserializing Numpy arrays to and
+from comma-separated value (CSV) files.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.exceptions import BetseSequenceException, BetseStrException
 from betse.util.io.log import logs
@@ -18,7 +18,7 @@ from betse.util.type.text import strs
 from betse.util.type.types import type_check
 from collections import OrderedDict
 
-# ....................{ WRITERS                            }....................
+# ....................{ WRITERS                           }....................
 #FIXME: Donate this function back to Numpy as a new np.savecsv() function
 #paralleling the existing np.savetxt() function.
 @type_check
@@ -35,6 +35,7 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
 
     * The same length. If this is not the case, an exception is raised.
     * Any type satisfying the :class:`SequenceTypes` API, including:
+
       * Numpy arrays.
       * Lists.
       * Tuples.
@@ -48,6 +49,7 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
         file already exists, this file is silently overwritten.
     column_name_to_values: OrderedDict
         Ordered dictionary of all columns to be serialized such that:
+
         * Each key of this dictionary is a **column name** (i.e., terse string
           describing the type of data contained in this column).
         * Each value of this dictionary is **column data** (i.e.,
@@ -58,12 +60,14 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
     ----------
     BetseSequenceException
         If one or more values of this dictionary are either:
+
         * *Not* sequences.
         * Sequences whose length differs from that of any preceding value
           sequences of this dictionary.
     BetseStrException
         If this column name contains one or more characters reserved for use by
         the CSV non-standard, including:
+
         * Double quotes, reserved for use as the CSV quoting character.
         * Newlines, reserved for use as the CSV row delimiting character.
     '''
@@ -71,11 +75,15 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
     # Log this serialization.
     logs.log_debug('Writing CSV file: %s', filename)
 
+    # Create the directory containing this file if needed and hence raise
+    # filesystem-related exceptions *BEFORE* performing any subsequent logic.
+    dirs.make_parent_unless_dir(filename)
+
     # Validate the contents of this dictionary. While the np.column_stack()
     # function called below also does, the exceptions raised by the latter are
     # both ambiguous and non-human-readable and hence effectively useless.
     #
-    # Length of all prior columns or None if no columns have yet to be iterated.
+    # Length of all prior columns *OR* "None" if no columns have been iterated.
     columns_prior_len = None
 
     # List of all column names sanitized such that each name containing one or
@@ -105,8 +113,8 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
                 'length {} of prior columns.'.format(
                     column_name, column_len, columns_prior_len))
 
-        # If this column name contains one or more reserved characters, raise an
-        # exception. This includes:
+        # If this column name contains one or more reserved characters, raise
+        # an exception. This includes:
         #
         # * Double quotes, reserved for use as the CSV quoting character.
         # * Newlines, reserved for use as the CSV row delimiting character.
@@ -132,22 +140,40 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
     # Comma-separated string listing all column names.
     columns_name = strs.join_on(column_names, delimiter=',')
 
+    # Two-dimensional sequence of all column data, whose:
+    #
+    # * First dimension indexes each column.
+    # * Second dimension indexes each data point in that column.
+    columns_values = tuple(column_name_to_values.values())
+
     # Two-dimensional Numpy array of all row data converted from this column
     # data, whose:
     #
-    # * First dimension indexes each sampled time step such that each element is
-    #   a one-dimensional Numpy array of length the number of columns (i.e., the
+    # * First dimension indexes each sampled time step such that each item is a
+    #   one-dimensional Numpy array of length the number of columns (i.e., the
     #   number of key-value pairs in the passed dictionary).
-    # * Second dimension indexes each column data point for this time step
-    columns_values = np.column_stack(column_name_to_values.values())
-
-    # Create the directory containing this file if needed.
-    dirs.make_parent_unless_dir(filename)
+    # * Second dimension indexes each column data point for that time step.
+    #
+    # Note that passing "column_name_to_values.values()" no longer suffices
+    # under NumPy >= 1.16. Because breaking backward compatibility for utterly
+    # no good reason is Now A Good Thing, the np.column_stack() function now
+    # longer accepts arbitrary iterables but now requires strict sequences:
+    #
+    #     FutureWarning: arrays to stack must be passed as a "sequence" type
+    #     such as list or tuple. Support for non-sequence iterables such as
+    #     generators is deprecated as of NumPy 1.16 and will raise an error in
+    #     the future.
+    #
+    # Converting non-sequence iterables to sequences is trivial, ignoring the
+    # obvious edge case of infinite generators, which -- much like the
+    # legendary Pokemon of yore -- appear not to exist in the wild. Ergo, the
+    # NumPy developers yet again chose poorly. *STOP BREAKING EVERYTHING.*
+    rows_values = np.column_stack(columns_values)
 
     # Serialize these sequences to this file in CSV format.
     np.savetxt(
         fname=filename,
-        X=columns_values,
+        X=rows_values,
         header=columns_name,
         delimiter=',',
 
