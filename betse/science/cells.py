@@ -1293,6 +1293,15 @@ class Cells(object):
 
         self.cell_centres = np.delete(self.cell_centres, 0, 0)
 
+        if p.svg_override: # if we're defining cells from an svg file:
+            # Sort the seed_fills to the new indexing of cell_centres:
+            cellTree = cKDTree(self.clust_xy) # search tree from clust_xy points
+            _, celli = cellTree.query(self.cell_centres) # indices of clust_xy corresponding to cell_centres
+            self.seed_fills = self.seed_fills[celli] # sort the seed_fills to match cell_centres organization
+
+        else:
+            self.seed_fills = None # else set this quantity to None by default
+
     def cellVerts(self,p):
         """
         Calculate the true vertices of each individual cell from the extracellular matrix (ecm) vertices
@@ -2681,7 +2690,7 @@ class Cells(object):
 
         xypts = np.column_stack((circle_x*p.wsx, circle_y*p.wsx))
 
-        fill_regex = regexes.compile_regex(r'^.*?(?:^|;)fill:(#[0-9a-fA-F]{6})(?:$|;)')
+        fill_regex = regexes.compile_regex(r'^.*?(?:^|;)fill:#([0-9a-fA-F]{6})(?:$|;)')
 
         self.seed_fills = nparray.from_iterable(
             regexes.get_match_group_first(
@@ -2705,29 +2714,6 @@ class Cells(object):
 
         self.centre = np.asarray([0.5*p.wsx, 0.5*p.wsx])
         self.clust_xy = xypts
-
-        # cell_types = {'#008000': 'epidermis',  # FIXME do this later
-        #               '#008080': 'cortex',
-        #               '#00ff00': 'endodermis',
-        #               '#ff6600': 'pericycle',
-        #               '#800000': 'stele',
-        #               '#ffd5d5': 'lateral root cap',
-        #               '#800080': 'columella',
-        #               '#ff00ff': 'quiescent centre',
-        #               '#000080': 'pericycle initials',
-        #               '#00ffff': 'cortex/endodermis initials',
-        #               '#0000ff': 'columella initials',
-        #               '#ffff00': 'stele initials',
-        #               '#552200': 'epidermal/lateral root cap initials'}
-        #
-        # tissue_profiles = {}
-        # for tn in cell_types.values():
-        #     tissue_profiles[tn] = []
-        #
-        # for i, (cx, cy, fi) in enumerate(zip(circle_x, circle_y, fills)):
-        #
-        #     if fi in cell_types.keys():
-        #         tissue_profiles[cell_types[fi]].append(i)
 
         #-----Utility functions--------------------------------------------------------------------------------------------
     def gradient(self, SS):
