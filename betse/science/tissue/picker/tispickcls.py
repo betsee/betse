@@ -151,6 +151,51 @@ class TissuePickerAll(TissuePickerABC):
         return cells.cell_i
 
 
+class TissuePickerColor(TissuePickerABC):
+    '''
+    Vector image-based tissue picker, matching all cells in the current cell
+    cluster whose cell centres are simple circles with a given fill color of a
+    vector image (defined by the ``cells from svg`` setting in the current
+    YAML-formatted simulation configuration file).
+
+    Attributes
+    ----------
+    cells_color : str
+        **Hexadecimal-formatted color** (i.e., string of six hexadecimal digits
+        specifying this color's red, green, and blue components) of all circles
+        within this vector image to be selected as cell centres.
+    '''
+
+    # ..................{ INITIALIZERS                      }..................
+    @type_check
+    def __init__(self, cells_color: str) -> None:
+        '''
+        Initialize this tissue picker.
+
+        Parameters
+        ----------
+        cells_color : str
+            **Hexadecimal-formatted color** (i.e., string of six hexadecimal
+            digits, specifying this color's red, green, and blue components) of
+            all circles within this vector image to be selected as cell
+            centres.
+        '''
+
+        self.cells_color = cells_color
+
+    # ..................{ PICKERS                           }..................
+    #FIXME: Implement this method up. Tangential tangelos are delicious!
+    @type_check
+    def pick_cells(
+        self,
+        cells: 'betse.science.cells.Cells',
+        p:     'betse.science.parameters.Parameters',
+    ) -> SequenceTypes:
+
+        from betse.exceptions import BetseMethodUnimplementedException
+        raise BetseMethodUnimplementedException()
+
+
 class TissuePickerIndices(TissuePickerABC):
     '''
     Cell indices-based tissue picker, matching all cells in the current cell

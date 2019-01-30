@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                          )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,12 +8,12 @@
 subset of the cells in a cell cluster) functionality.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta
 from betse.science.tissue.picker.tispickcls import TissuePickerABC
-from betse.util.type.types import type_check, MappingType
+from betse.util.type.types import type_check
 
-# ....................{ SUPERCLASS                         }....................
+# ....................{ SUPERCLASS                        }....................
 class CellsProfileABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **cell cluster profile** (i.e., collection of
@@ -36,9 +36,10 @@ class CellsProfileABC(object, metaclass=ABCMeta):
         Object assigning a subset of the cell population to this profile.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
-    def __init__(self, name: str, z_order: int, picker: TissuePickerABC) -> None:
+    def __init__(
+        self, name: str, z_order: int, picker: TissuePickerABC) -> None:
         '''
         Initialize this cell cluster region.
 
@@ -59,7 +60,7 @@ class CellsProfileABC(object, metaclass=ABCMeta):
         self.z_order = z_order
         self.picker = picker
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 class TissueProfile(CellsProfileABC):
     '''
     **Tissue profile** (i.e., cell cluster region unconditionally assigning all
@@ -73,8 +74,8 @@ class TissueProfile(CellsProfileABC):
     ----------
     is_gj_insular : bool
         ``True`` only if gap junctions originating at cells in this tissue are
-        **insular** (i.e., prevented from connecting to cells in other tissues),
-        implying these gap junctions to be strictly intra-tissue.
+        **insular** (i.e., prevented from connecting to cells in other
+        tissues), implying these gap junctions to be strictly intra-tissue.
 
     Attributes (Membrane Diffusion)
     ----------
@@ -94,7 +95,7 @@ class TissueProfile(CellsProfileABC):
         Protein (P-) membrane diffusion constant in m2/s.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(
         self,
@@ -153,11 +154,11 @@ class CutProfile(CellsProfileABC):
     **Cut profile** (i.e., cell cluster region to be permanently removed by a
     cutting event triggered during the simulation phase).
 
-    There exists a many-to-one relation between cut profiles and cutting events.
-    That is to say, each cutting event references zero or more cut profiles.
-    While unwieldy, this disconnection permits cutting event (but *not* cut
-    profile) parameters to be modified without requiring simulation reseeding or
-    reinitialization. Welcome to the code jungle.
+    There exists a many-to-one relation between cut profiles and cutting
+    events. That is to say, each cutting event references zero or more cut
+    profiles. While unwieldy, this disconnection permits cutting event (but
+    *not* cut profile) parameters to be modified without requiring simulation
+    reseeding or reinitialization. Welcome to the code jungle.
     '''
 
     pass

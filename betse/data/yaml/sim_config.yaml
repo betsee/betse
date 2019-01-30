@@ -135,13 +135,22 @@ general options:
 
     endoplasmic reticulum Ca2+: 0.1             # starting level of Ca2+ in the ER store [mmol/L]
 
-# ---------------------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # WORLD OPTIONS
-# ---------------------------------------------------------------------------------------------------------------------
-# The 'world' refers to cell geometric properties, the size of the cluster, and the properties of the environment,
-# such as size and temperature. These variables are common to both init and sim runs. All of these world variables
-# will be created in the init and apply to all sims running from the init.
-
+# --------------------------------------------------------------------------------------------------
+# The 'world' refers to cell geometric properties, the size of the cluster, and the properties of
+# the environment, such as size and temperature. These variables are common to both init and sim
+# runs. All of these world variables will be created in the init and apply to all sims running from
+# the init.
+#
+# SVG files should have a square page area (e.g. 500x500 mm) and be prepared in Inkscape. The
+# centres of cells are defined by 'circle' objects in the 'cells from svg' file. The fill color of
+# the circular cell centerpoints can be used to assign cells to a specific tissue profile using the
+# hex "color" type in the "Tissue Profiles" section below. When preparing the cell svg file, do not:
+#
+# * Use transforms (e.g. flip, rotate).
+# * Group cells.
+#
 # File sync warning: you can't change any of these 'world options' after running 'betse seed'.
 
 world options:
@@ -182,25 +191,19 @@ world options:
     svg override: False  # Turn to True to enable imports from SVG files
     cells from svg: geo/root/root_cells.svg # read in exact cell centre locations from 'circles' in svg file
     svg size: 500  # size of the svg page area in mm
-    # SVG files should have a square page area (e.g. 500x500 mm) and be prepared in Inkscape. The centres of cells are
-    # defined by 'circle' objects in the 'cells from svg' file.
-    # The fill color of the circular cell centerpoints can be used to
-    # assign cells to a specific tissue profile using the hex code in the Tissue Profiles section below.
-    # Do not use transforms (e.g. flip, rotate) when preparing the cell svg file. Do not group cells.
 
-
-#-----------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
 # TISSUE PROFILE DESIGNATION
-#-----------------------------------------------------------------------------------------------------------------------
-# Tissue profiles are user-defined regions within the cluster to which specific base
-# membrane diffusion profiles, interventions, and individualized dynamics (e.g., voltage
-# gated channels) can be applied. Tissue profiles can be gap-junction connected or
-# separated (isolated) from other tissue profiles. Cluster shape and individual tissues
-# can be defined by images, or specified via various functional regimes. When multiple
-# profiles apply to the same cell, options defined by later profiles override options
-# defined by earlier profiles.
+#---------------------------------------------------------------------------------------------------
+# Tissue profiles are user-defined regions within the cluster to which specific base membrane
+# diffusion profiles, interventions, and individualized dynamics (e.g., voltage gated channels) can
+# be applied. Tissue profiles can be gap-junction connected or separated (isolated) from other
+# tissue profiles. Cluster shape and individual tissues can be defined by images, or specified via
+# various functional regimes. When multiple profiles apply to the same cell, options defined by
+# later profiles override options defined by earlier profiles.
 #
-# Image masks defining tissue and cut profiles *MUST*:
+# Raster image masks defining tissue and cut profiles *MUST*:
+#
 # * Be square (i.e., have equal width and height).
 # * Contain no alpha transparency layer.
 # * Contain pure-black pixels (i.e., pixels whose RGB color components are all 0) defining
@@ -239,18 +242,24 @@ tissue profile definition:
           Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
         cell targets:
-          type: image   # Cell population type, as any following string:
+          type: image   # Cell population type as any following string:
                         # * "all", uniformly applying this tissue profile to all cells.
-                        # * "image", selecting only cells residing in an image's pure-black area.
-                        # * "indices", selecting only cells with the indices listed below.
-                        # * "percent", selecting only a random subset of cells in the cluster.
-          image: geo/circle/spot_3.png # Absolute or relative filename of this image.
+                        # * "color", matching only cells whose cell centres are simple circles with
+                        #   a fill color (specified by the "color" setting below) of a vector image
+                        #   (specified by the "cells from svg" setting above).
+                        # * "image", matching only cells whose cell centres are pure-black pixels
+                        #   in a raster image (specified by the "image" setting below).
+                        # * "indices", matching only cells whose indices are listed below.
+                        # * "percent", matching only a random subset of cells.
+          color: ff0000                # Color in hexadecimal format of simple circles within this
+                                       # vector image.
+          image: geo/circle/spot_3.png # Absolute or relative filename of this raster image.
           indices: [3, 14, 15, 9, 265] # List of all positive integers uniquely identifying each
                                        # cell in this cluster to apply this tissue profile to.
                                        # Ignored unless "type: indices" specified above.
           percent: 50  # Percentage of all cells in this cluster to randomly apply this tissue
-                     # profile to in the range [0, 100] (e.g., 50 selects 50% of all cells).
-                     # Ignored unless "type: random" specified above,
+                       # profile to in the range [0, 100] (e.g., 50 selects 50% of all cells).
+                       # Ignored unless "type: random" specified above,
 
 
   cut profiles: # List of all cut profiles (i.e., cell cluster regions to be permanently
@@ -258,8 +267,8 @@ tissue profile definition:
                 # Ignored if "profiles enabled" is False or cutting event is disabled.
     # Example cut profile removing a depolarized wedge of cells from a cell cluster boundary.
     - name: surgery # Arbitrary unique profile name.
-      image: geo/circle/wedge.png # Absolute or relative filename of the image whose pure-black
-                                  # pixels define the region of cells to remove.
+      image: geo/circle/wedge.png # Absolute or relative filename of the raster image whose
+                                  # pure-black pixels define the region of cells to remove.
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS

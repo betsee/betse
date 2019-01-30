@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,15 +8,15 @@
 typed data in simulation configuration files.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.util.type.enums import make_enum
 
-# ....................{ ENUMS ~ cell                       }....................
+# ....................{ ENUMS ~ cell                      }....................
 CellLatticeType = make_enum(
     class_name='CellLatticeType', member_names=('HEX', 'SQUARE',))
 '''
-Enumeration of all supported types of **base cell lattices** (i.e., uniform grid
-to which cells are situated *before* random lattice disorder is applied).
+Enumeration of all supported types of **base cell lattices** (i.e., uniform
+grid to which cells are situated *before* random lattice disorder is applied).
 
 Attributes
 ----------
@@ -26,10 +26,10 @@ SQUARE : enum
     Rectilinear base cell lattice, situating cells along a square grid.
 '''
 
-# ....................{ ENUMS ~ cells                      }....................
+# ....................{ ENUMS ~ cells                     }....................
 CellsPickerType = make_enum(
     class_name='CellsPickerType',
-    member_names=('ALL', 'IMAGE', 'INDICES', 'PERCENT',))
+    member_names=('ALL', 'COLOR', 'IMAGE', 'INDICES', 'PERCENT',))
 '''
 Enumeration of all supported types of **tissue profile pickers** (i.e., objects
 assigning a subset of all cells matching some criteria to the corresponding
@@ -39,9 +39,13 @@ Attributes
 ----------
 ALL : enum
     All-inclusive tissue picker, unconditionally matching *all* cells.
+COLOR : enum
+    Vector image-based tissue picker, matching all cells whose cell centres are
+    simple circles with a given fill color of a given vector (i.e., scalable
+    vector graphics (SVG)-formatted) image file.
 IMAGE : enum
-    Image-based tissue picker, matching all cells residing inside the colored
-    pixel area defined by an associated on-disk image mask file.
+    Raster image-based tissue picker, matching all cells whose cell centres are
+    the pure-black pixels of a given raster (i.e., bitmap) image file.
 INDICES : enum
     Cell indices-based tissue picker, matching all cells whose indices are
     defined by a given sequence.
@@ -49,7 +53,7 @@ PERCENT : enum
     Randomized cell picker, randomly matching a given percentage of all cells.
 '''
 
-# ....................{ ENUMS ~ grn                        }....................
+# ....................{ ENUMS ~ grn                       }....................
 GrnUnpicklePhaseType = make_enum(
     class_name='GrnUnpicklePhaseType',
     member_names=('SEED', 'INIT', 'SIM',))
@@ -64,8 +68,8 @@ Attributes
 SEED : enum
     Unpickled seed phase, running this network on the results of a previously
     run ``betse seed`` subcommand and hence an uninitialized and unsimulated
-    cell cluster (i.e., neither initialized to steady-state concentrations *nor*
-    simulated with non-steady-state bioelectrical phenomena).
+    cell cluster (i.e., neither initialized to steady-state concentrations
+    *nor* simulated with non-steady-state bioelectrical phenomena).
 INIT : enum
     Unpickled initialization phase, running this network on the results of a
     previously run ``betse init`` subcommand and hence an initialized but
@@ -76,13 +80,13 @@ SIM : enum
     simulated cell cluster.
 '''
 
-# ....................{ ENUMS ~ ion                        }....................
+# ....................{ ENUMS ~ ion                       }....................
 IonProfileType = make_enum(
     class_name='IonProfileType',
     member_names=('BASIC', 'BASIC_CA', 'MAMMAL', 'AMPHIBIAN', 'CUSTOM',))
 '''
-Enumeration of all supported types of **ion profiles** (i.e., predefined sets of
-all extracellular and cytosolic ions enabled by this simulation).
+Enumeration of all supported types of **ion profiles** (i.e., predefined sets
+of all extracellular and cytosolic ions enabled by this simulation).
 
 Note that *all* ion profiles unconditionally enable an unidentified
 charge-balance anion denoted M-, as required for both simulation stability and
@@ -98,8 +102,8 @@ BASIC_CA : enum
     the superset of the :attr:`BASIC` profile enabling Ca2+ ions.
 MAMMAL : enum
     Ion profile enabling M-, Na+, K+, proteins-, Ca2+, Cl-, and H+ ions
-    expressed in amniotic environmental concentrations, principally intended for
-    mammalian cell clusters. This profile is the superset of the
+    expressed in amniotic environmental concentrations, principally intended
+    for mammalian cell clusters. This profile is the superset of the
     :attr:`BASIC_CA` profile enabling Cl- and H+ ions.
 AMPHIBIAN : enum
     Ion profile enabling M-, Na+, K+, proteins-, Ca2+, Cl-, and H+ ions
@@ -111,7 +115,7 @@ CUSTOM : enum
     :attr:`betse.science.parameters.Parameters.ions_custom` variable.
 '''
 
-# ....................{ ENUMS ~ solver                     }....................
+# ....................{ ENUMS ~ solver                    }....................
 SolverType = make_enum(
     class_name='SolverType',
     member_names=('FULL', 'FAST',))
@@ -131,10 +135,13 @@ FAST : enum
     well-known equivalent circuit formalism. This solver produces draft-quality
     results, analogizing real-world biological systems to electronic circuits.
     While integrated with gene regulatory networks (GRNs), this solver *cannot*
-    by definition simulate the following phenomena simulated by the full solver:
+    by definition simulate the following phenomena simulated by the full
+    solver:
+
     * Bioelectric fields or currents.
     * Extracellular voltages or voltage polarities.
     * Ion concentrations.
+
     If this solver is selected, these phenomena are silently ignored even if
     otherwise enabled by the current simulation configuration.
 '''

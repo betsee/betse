@@ -62,17 +62,17 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
     Dm_K  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_K']")
     Dm_Cl = yaml_alias_float_nonnegative("['diffusion constants']['Dm_Cl']")
     Dm_Ca = yaml_alias_float_nonnegative("['diffusion constants']['Dm_Ca']")
-    # Dm_H  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_H']")
     Dm_M  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_M']")
     Dm_P  = yaml_alias_float_nonnegative("['diffusion constants']['Dm_P']")
 
 # ....................{ SUBCLASSES ~ tissue               }....................
 class SimConfTissueDefault(SimConfTissueABC, YamlABC):
     '''
-    YAML-backed default tissue profile subconfiguration, encapsulating the
-    configuration of a single tissue profile unconditionally applicable to all
-    cells parsed from a dictionary configuring at least this profile in the
-    current YAML-formatted simulation configuration file.
+    YAML-backed **default tissue profile** (i.e., profile applied to all cells
+    *not* already targeted by another tissue profile) subconfiguration,
+    encapsulating the configuration of a single tissue profile unconditionally
+    applicable to all cells parsed from a dictionary configuring at least this
+    profile in the current YAML-formatted simulation configuration file.
 
     Attributes (Cell Picker)
     ----------
@@ -105,6 +105,12 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     picker_type : CellsPickerType
         Type of **tissue profile picker** (i.e., object assigning a subset of
         all cells matching some criteria to this tissue profile).
+    picker_cells_color : str
+        **Hexadecimal-formatted color** (i.e., string of six hexadecimal digits
+        specifying this color's red, green, and blue components) of all circles
+        within the vector image (defined by the ``cells from svg`` setting in
+        the current simulation configuration) to be assigned to this tissue.
+        Ignored unless :attr:`picker_type` is :attr:`CellsPickerType.COLOR`.
     picker_cells_index : SequenceTypes
         Sequence of the indices of all cells to be assigned to this tissue.
         Ignored unless :attr:`picker_type` is :attr:`CellsPickerType.INDICES`.
@@ -130,6 +136,11 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
 
     # ..................{ ALIASES ~ picker                  }..................
     picker_type = yaml_enum_alias("['cell targets']['type']", CellsPickerType)
+
+    #FIXME: Create a new yaml_alias_color() data descriptor validating this
+    #string to be a valid hexadecimal-formatted color.
+    picker_cells_color = yaml_alias("['cell targets']['color']", str)
+
     picker_cells_index = yaml_alias(
         "['cell targets']['indices']", SequenceTypes)
     picker_cells_percent = yaml_alias_float_percent(
@@ -154,15 +165,15 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
             'insular': True,
             'diffusion constants': {
                 'Dm_Na': 1.0e-18,
-                'Dm_K': 15.0e-18,
+                'Dm_K':  15.0e-18,
                 'Dm_Cl': 2.0e-18,
                 'Dm_Ca': 1.0e-18,
-                # 'Dm_H': 1.0e-18,
-                'Dm_M': 1.0e-18,
-                'Dm_P': 0.0,
+                'Dm_M':  1.0e-18,
+                'Dm_P':  0.0,
             },
             'cell targets': {
                 'type': 'all',
+                'color': 'ff0000',
                 'image': 'geo/circle/circle_base.png',
                 'indices': [3, 14, 15, 9, 265],
                 'percent': 50,

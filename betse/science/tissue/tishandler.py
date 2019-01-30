@@ -7,8 +7,6 @@
 High-level tissue and event handling functionality.
 '''
 
-#FIXME: Include other channels in morphogen (dye) dynamics.
-
 # ....................{ IMPORTS                           }....................
 import copy
 import numpy as np
@@ -21,7 +19,12 @@ from betse.science.tissue.tisprofile import CutProfile, TissueProfile
 from betse.science.tissue.event.tisevecut import SimEventCut
 from betse.science.tissue.event.tisevevolt import SimEventPulseVoltage
 from betse.science.tissue.picker.tispickcls import (
-    TissuePickerABC, TissuePickerAll, TissuePickerIndices, TissuePickerPercent)
+    TissuePickerABC,
+    TissuePickerAll,
+    TissuePickerColor,
+    TissuePickerIndices,
+    TissuePickerPercent,
+)
 from betse.science.tissue.picker.tispickimage import TissuePickerImage
 from betse.util.io.log import logs
 # from betse.util.type import types
@@ -33,7 +36,10 @@ from random import shuffle
 #FIXME: Since this class handles both tissue profiles *AND* scheduled
 #interventions, consider renaming this class to a less ambiguous name -- say, to
 #"TissueEventHandler".
+
 #FIXME: Document all instance variables defined within this class.
+
+#FIXME: Include other channels in morphogen (dye) dynamics.
 class TissueHandler(object):
     '''
     High-level tissue handler, managing all tissue-centric functionality
@@ -159,7 +165,7 @@ class TissueHandler(object):
 
         #FIXME: Set this picker for the "tissue_default" object, while still
         #setting the above tissue picker for the
-        #"tissue_name_to_profile["p.tissue_default.name]" object -- implying
+        #"tissue_name_to_profile[p.tissue_default.name]" object -- implying
         #that these two objects should be different objects. Viola!
         # tissue_picker = TissuePickerImage(
         #     filename=p.tissue_default.picker_image_filename,
@@ -175,9 +181,9 @@ class TissueHandler(object):
                 z_order=tissue_z_order,
                 picker=tissue_picker,
 
-                # By definition, the cell cluster shares no gap junctions with cells
-                # in the environment -- since, of course, there *ARE* no cells
-                # in the environment.
+                # By definition, the cell cluster shares no gap junctions with
+                # cells in the environment -- since, of course, there *ARE* no
+                # cells in the environment.
                 is_gj_insular=True,
 
                 Dm_Na=p.tissue_default.Dm_Na,
@@ -190,8 +196,8 @@ class TissueHandler(object):
 
         # For each non-default tissue profile...
         for tissue_profile in p.tissue_profiles:
-            # If a prior profile collides with this profile's name, this profile
-            # is non-unique. In this case, raise an exception.
+            # If a prior profile collides with this profile's name, this
+            # profile is non-unique. In this case, raise an exception.
             if tissue_profile.name in self.tissue_name_to_profile:
                 raise BetseSimTissueException(
                     'Tissue profile "{0}" non-unique '
@@ -201,12 +207,15 @@ class TissueHandler(object):
             # 1-based index of this tissue profile.
             tissue_z_order += 1
 
-            # Object assigning a cell cluster region to this tissue profile.
+            # Picker assigning a cell cluster region to this tissue profile.
             tissue_picker = None
 
-            # Conditionally define this object.
+            # Conditionally define this picker.
             if tissue_profile.picker_type is CellsPickerType.ALL:
                 tissue_picker = TissuePickerAll()
+            elif tissue_profile.picker_type is CellsPickerType.COLOR:
+                tissue_picker = TissuePickerColor(
+                    cells_color=tissue_profile.picker_cells_color)
             elif tissue_profile.picker_type is CellsPickerType.IMAGE:
                 tissue_picker = TissuePickerImage(
                     filename=tissue_profile.picker_image_filename,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,13 +8,13 @@ Facilities guaranteeing backward compatibility with prior file formats for
 simulation configurations.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.science.parameters import Parameters
 from betse.util.io.log import logs
 from betse.util.type.iterable import iterables
 from betse.util.type.types import type_check, MappingType
 
-# ....................{ UPGRADERS                          }....................
+# ....................{ UPGRADERS                         }....................
 #FIXME: If the current third-party YAML dependency is "ruamel.yaml" rather than
 #PyYAML, improve this function to preserve all in-memory changes back to disk --
 #albeit, for safety, presumably in a separate file preserving the existing
@@ -40,14 +40,14 @@ def upgrade_sim_conf(p: Parameters) -> None:
 
     * Any configuration file produced by any version of this application no
       older than (i.e., at least as new as) the version specified by the
-      :attr:`betse.metadata.GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY` string global
-      is explicitly supported by this function and hence guaranteed to be safely
-      loadable with the current version of this application.
+      :attr:`betse.metadata.GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY` string
+      global is explicitly supported by this function and hence guaranteed to
+      be safely loadable with the current version of this application.
     * No configuration files produced by any older version of this application
-      is explicitly supported by this function. Indeed, these files are unlikely
-      to be safely loadable with the current version of this application. These
-      files *must* be manually upgraded by end users to conform with the current
-      configuration format.
+      is explicitly supported by this function. Indeed, these files are
+      unlikely to be safely loadable with the current version of this
+      application. These files *must* be manually upgraded by end users to
+      conform with the current configuration format.
     '''
 
     #FIXME: Excise this hack *AFTER* refactoring the codebase to use the
@@ -62,8 +62,9 @@ def upgrade_sim_conf(p: Parameters) -> None:
     _upgrade_sim_conf_to_0_5_2(p)
     _upgrade_sim_conf_to_0_6_0(p)
     _upgrade_sim_conf_to_0_7_1(p)
+    _upgrade_sim_conf_to_0_9_3(p)
 
-# ....................{ UPGRADERS ~ 0.5.0                  }....................
+# ....................{ UPGRADERS ~ 0.5.0                 }....................
 @type_check
 def _upgrade_sim_conf_to_0_5_0(p: Parameters) -> None:
     '''
@@ -256,7 +257,7 @@ def _upgrade_sim_conf_to_0_5_0(p: Parameters) -> None:
         elif anim_conf['type'] == 'junction_state':
             anim_conf['type'] = 'gj_permeability'
 
-# ....................{ UPGRADERS ~ 0.5.2                  }....................
+# ....................{ UPGRADERS ~ 0.5.2                 }....................
 @type_check
 def _upgrade_sim_conf_to_0_5_2(p: Parameters) -> None:
     '''
@@ -295,7 +296,7 @@ def _upgrade_sim_conf_to_0_5_2(p: Parameters) -> None:
     elif general_dict['ion profile'] == 'customized':
         general_dict['ion profile'] = 'custom'
 
-# ....................{ UPGRADERS ~ 0.6.0                  }....................
+# ....................{ UPGRADERS ~ 0.6.0                 }....................
 @type_check
 def _upgrade_sim_conf_to_0_6_0(p: Parameters) -> None:
     '''
@@ -365,7 +366,8 @@ def _upgrade_sim_conf_to_0_6_0(p: Parameters) -> None:
             profile['cell targets']['type'] = 'percent'
 
         if 'image' not in profile['cell targets']:
-            profile['cell targets']['image'] = profile['cell targets']['bitmap']
+            profile['cell targets']['image'] = profile[
+                'cell targets']['bitmap']
         if 'percent' not in profile['cell targets']:
             profile['cell targets']['percent'] = profile[
                 'cell targets']['random']
@@ -443,3 +445,23 @@ def _upgrade_sim_conf_to_0_7_1(p: Parameters) -> None:
     # the former to the latter.
     if grn_dict['sim-grn settings']['load from'] == 'None':
         grn_dict['sim-grn settings']['load from'] = None
+
+
+@type_check
+def _upgrade_sim_conf_to_0_9_3(p: Parameters) -> None:
+    '''
+    Upgrade the in-memory contents of the passed simulation configuration to
+    reflect the newest structure of these contents expected by version 0.9.3
+    of this application.
+    '''
+
+    # Log this upgrade attempt.
+    logs.log_debug('Upgrading simulation configuration to 0.9.3 format...')
+
+    # Localize configuration subdictionaries for convenience.
+    tissue_dict = p._conf['tissue profile definition']
+
+    # For each tissue profile, define the "color" cell targets type if needed.
+    for profile in tissue_dict['tissue']['profiles']:
+        if 'color' not in profile['cell targets']:
+            profile['cell targets']['color'] = 'ff0000'  # Red. Just 'cause.
