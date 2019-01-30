@@ -192,8 +192,22 @@ class TissuePickerColor(TissuePickerABC):
         p:     'betse.science.parameters.Parameters',
     ) -> SequenceTypes:
 
-        from betse.exceptions import BetseMethodUnimplementedException
-        raise BetseMethodUnimplementedException()
+        # search for cells matching the tissue profile color:
+        selected_cells = []
+
+        if cells.seed_fills is not None:
+
+            for i, fi in enumerate(cells.seed_fills):
+                if fi == self.cells_color:
+                    selected_cells.append(i)
+
+        else: # if seed_fills is None, then an svg is not being run so raise exception
+
+            from betse.exceptions import BetseMethodUnimplementedException
+            raise BetseMethodUnimplementedException()
+
+        return selected_cells
+
 
 
 class TissuePickerIndices(TissuePickerABC):

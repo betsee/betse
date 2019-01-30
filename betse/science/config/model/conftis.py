@@ -139,6 +139,10 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
 
     #FIXME: Create a new yaml_alias_color() data descriptor validating this
     #string to be a valid hexadecimal-formatted color.
+    # FIXME: in the yaml, if color specifications don't have quotations around them (e.g. '808080') the
+    # yaml sometimes thinks all numerical hex codes are strings (e.g. 008080), and sometimes integers (e.g. 800080),
+    # in which case the whole thing crashed with a type error! I'm not quite sure how to force it to read in a string...
+    # For now, I've put quotes around the hex code numeral...
     picker_cells_color = yaml_alias("['cell targets']['color']", str)
 
     picker_cells_index = yaml_alias(
