@@ -173,10 +173,21 @@ world options:
                               # hexagonal base grid. If equal to 0, a perfect
                               # hexagonal or rectangular grid is created.
 
-  mesh refinement:                  # Use Llyod's algorith to optimize the Voronoi mesh
+  mesh refinement:                  # Use Llyod's algorithm to optimize the Voronoi mesh?
     refine mesh: True              # Turn optimization on? (Only works for Convex model shapes)
     maximum steps: 25              # Maximum number of itterations (models typically converge in <30 steps)
     convergence threshold: 10.0   # Threshhold above which optimization is considered complete (minimum of 5.0).
+
+  import from svg:  # Import individual cell centres and clipping curve from an svg file
+    svg override: False  # Turn to True to enable imports from SVG files
+    cells from svg: geo/root/root_cells.svg # read in exact cell centre locations from 'circles' in svg file
+    svg size: 500  # size of the svg page area in mm
+    # SVG files should have a square page area (e.g. 500x500 mm) and be prepared in Inkscape. The centres of cells are
+    # defined by 'circle' objects in the 'cells from svg' file.
+    # The fill color of the circular cell centerpoints can be used to
+    # assign cells to a specific tissue profile using the hex code in the Tissue Profiles section below.
+    # Do not use transforms (e.g. flip, rotate) when preparing the cell svg file. Do not group cells.
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TISSUE PROFILE DESIGNATION

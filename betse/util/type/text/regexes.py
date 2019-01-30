@@ -21,6 +21,7 @@ from betse.util.type.types import (
     RegexTypes,
     SequenceTypes,
     SequenceOrNoneTypes,
+    StrOrNoneTypes,
 )
 
 # ....................{ FLAGS                             }....................
@@ -30,7 +31,7 @@ When specified, the pattern character:
 
 * ``^`` matches both at the beginning of the subject string *and* at the
   beginning of each line (immediately following each newline) of this string.
-* ``$`` matches both at the end of the subject string _and_ at the end of each
+* ``$`` matches both at the end of the subject string *and* at the end of each
   line (immediately preceding each newline) of this string.
 
 By default:
@@ -41,6 +42,35 @@ By default:
 '''
 
 # ....................{ EXCEPTIONS                        }....................
+@type_check
+def die_unless_match(text: str, regex: RegexTypes, **kwargs) -> str:
+    '''
+    Raise an exception unless the passed subject string matches the passed
+    regular expression.
+
+    Raises
+    ----------
+    BetseRegexException
+        If this subject string fails to match this regular expression.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text import strs
+
+    # If this subject string fails to match this regex, raise an exception.
+    if not is_match(text=text, regex=regex, **kwargs):
+        # This subject string truncated to either the first newline in this
+        # string *OR* the standard UNIX line length - whichever comes first.
+        text_truncated = strs.truncate(
+            text=text, suffix_prefix='\n', max_len=80)
+
+        # Raise this exception with this truncated string for readability.
+        raise BetseRegexException(
+            'Subject string "{}" not matched by '
+            'regular expression "{}".'.format(text_truncated, regex))
+
+
+#FIXME: Rename to replace_substrs_line_or_die() for clarity.
 @type_check
 def die_unless_replace_substrs_line(
     text: str,
@@ -67,6 +97,9 @@ def die_unless_replace_substrs_line(
 
     # Avoid circular import dependencies.
     from betse.util.type.text import strs
+
+    #FIXME: Generalize this validation into a new die_unless_match_line()
+    #function of this submodule.
 
     # If this subject string fails to match this regex, raise an exception.
     #
@@ -211,7 +244,7 @@ def get_match_groups_named(
 
     return get_match(text, regex, **kwargs).groupdict()
 
-# ....................{ MATCHERS ~ group : numbered       }....................
+# ....................{ MATCHERS ~ group : number         }....................
 def get_match_groups_numbered(
     text: str, regex: RegexTypes, **kwargs) -> SequenceTypes:
     '''
@@ -293,6 +326,103 @@ def get_match_groups_numbered_or_none(
 
     match = get_match_or_none(text, regex, **kwargs)
     return match.groups() if match is not None else None
+
+# ....................{ MATCHERS ~ group : number : index }....................
+@type_check
+def get_match_group_first(
+    text: str, regex: RegexTypes, **kwargs) -> str:
+    '''
+    First grouped substring anchored to the beginning of the passed subject
+    string matched against the passed regular expression if any *or* raise an
+    exception otherwise.
+
+    Parameters
+    ----------
+    text : str
+        String to match.
+    regex : RegexTypes
+        Regular expression to be matched. This object should be either of type:
+
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
+
+    This function accepts the same optional keyword arguments as the
+    :func:`re.match` function.
+
+    Returns
+    ----------
+    str
+        First grouped substring anchored to the beginning of this string.
+
+    Raises
+    ----------
+    BetseRegexException
+        If either:
+
+        * This string does *not* match this expression.
+        * This expression defines *no* match groups.
+        * No match groups defined by this expression matched this string.
+
+    See Also
+    ----------
+    :func:`get_match_or_none`
+        Further details on regular expressions and keyword arguments.
+    '''
+
+    # First grouped substring if any *OR* "None" otherwise.
+    match_group_first = get_match_group_first_or_none(text, regex, **kwargs)
+
+    # If no grouped substring is matched, raise an exception.
+    if match_group_first is None:
+        die_unless_match(text, regex, **kwargs)
+
+    # Return this grouped substring.
+    return match_group_first
+
+
+@type_check
+def get_match_group_first_or_none(
+    text: str, regex: RegexTypes, **kwargs) -> StrOrNoneTypes:
+    '''
+    First grouped substring anchored to the beginning of the passed subject
+    string matched against the passed regular expression if any *or* ``None``
+    otherwise.
+
+    Parameters
+    ----------
+    text : str
+        String to match.
+    regex : RegexTypes
+        Regular expression to be matched. This object should be either of type:
+
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
+
+    This function accepts the same optional keyword arguments as the
+    :func:`re.match` function.
+
+    Returns
+    ----------
+    StrOrNoneTypes
+        Either:
+
+        * If this subject string matches this regular expression, the first
+          grouped substring anchored to the beginning of this string.
+        * Else, ``None``.
+
+    Raises
+    ----------
+    BetseRegexException
+        If this string does *not* match this expression.
+
+    See Also
+    ----------
+    :func:`get_match_or_none`
+        Further details on regular expressions and keyword arguments.
+    '''
+
+    match = get_match_or_none(text, regex, **kwargs)
+    return match.group(1) if match is not None else None
 
 # ....................{ MATCHERS ~ full : first           }....................
 def get_match_full_first_or_none(

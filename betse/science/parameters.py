@@ -493,6 +493,24 @@ class Parameters(YamlFileABC):
             self.maximum_voronoi_steps = 20
             self.voronoi_convergence = 1.0e-9
 
+        # Parameters for import of cell seed centers and clipping curve from user-defined svg files:
+        svg_import = self._conf['world options'].get('import from svg', None)
+
+        if svg_import is not None:
+
+            self.svg_size = svg_import['svg size']
+            self.svg_override = svg_import['svg override']
+            svg_cells_fname_o = svg_import['cells from svg']
+
+            self.svg_cells_fname = pathnames.join(self.conf_dirname, svg_cells_fname_o)
+
+
+        else:
+            self.svg_override = False
+            self.svg_cells_fname = None
+            self.svg_size = None
+
+
         #---------------------------------------------------------------------------------------------------------------
         # TARGETED INTERVENTIONS
         #---------------------------------------------------------------------------------------------------------------

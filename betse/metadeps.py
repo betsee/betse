@@ -182,6 +182,7 @@ RUNTIME_OPTIONAL = {
     # Dependencies directly required by this application.
     'pympler': '>= 0.4.1',
     'ptpython': '>= 0.29',
+    'svgpathtools': '>= 1.3',
 
     # A relatively modern version of NetworkX *EXCLUDING* 1.11, which
     # critically broke backwards compatibility by coercing use of the

@@ -11,18 +11,22 @@ from scipy import interpolate as interp
 from scipy import ndimage
 from scipy.spatial import Voronoi, cKDTree
 from betse.exceptions import BetseSequenceException, BetseSimConfException
+from betse.lib import libs
 from betse.lib.numpy import nparray
 from betse.science import filehandling as fh
 from betse.science.config.confenum import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
+from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockwise
+from betse.science.math.geometry.polygon.geopoly import orient_counterclockwise
 from betse.science.phase.phasecls import SimPhase
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import property_cached
+from xml.dom import minidom
 from betse.util.type.types import (
     type_check, NumericOrSequenceTypes, SequenceTypes)
-from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockwise
-from betse.science.math.geometry.polygon.geopoly import orient_counterclockwise
+from betse.lib.numpy import nparray
+from betse.util.type.text import regexes
 
 # ....................{ CLASSES                           }....................
 #FIXME: Create a new option for seed points: Fibonacci radial-spiral array.
@@ -428,10 +432,16 @@ class Cells(object):
 
         # Create the cell lattice, which serves as the seed grid underlying all
         # subsequent data structures.
-        self._make_cell_lattice(phase.p)
+        if phase.p.svg_override is True: # If user requests cell centres and clip from svg files
+            self.parse_svg(phase.p)
+
+        else: # Otherwise make cell centre points algorithmically
+            self._make_cell_lattice(phase.p)
+
 
         # Define the initial seed point collection:
         seed_points_o = np.vstack((self.clust_xy, self.bbox))
+        # seed_points_o = np.vstack((self.clust_xy))
 
         # Create the initial Voronoi diagram after making the initial seed
         # points of the cell lattice.
@@ -931,12 +941,7 @@ class Cells(object):
         # user-defined image file.
         image_mask = image_picker.get_image_mask(cells=self)
 
-        # add the bitmasker clipping curve to the points:
-        # seed_points = np.vstack((self.clust_xy, image_mask.clipcurve))
-        # seed_points = self.clust_xy
-
         # define the Voronoi diagram from the seed points:
-        # vor = Voronoi(self.clust_xy)
         vor = Voronoi(seed_points)
 
         # round the x,y values of the vertices so that duplicates aren't formed when we use search algorithms later:
@@ -1016,7 +1021,7 @@ class Cells(object):
 
                 if point_check.sum() <= 1.0e-15:  # if all points are outside of the clipping zone
 
-                    self.voronoi_verts.append(cell_polya)  # Append the phole cell poly to the list
+                    self.voronoi_verts.append(cell_polya)  # Append the whole cell poly to the list
 
                 elif point_check.sum() == len(cell_poly):  # if all points are all inside the clipping zone
 
@@ -1063,12 +1068,12 @@ class Cells(object):
 
                     else:  # else if the clip_poly is empty:
 
-                        self.voronoi_verts.append(cell_polya)  # Append the phole cell poly to the list
+                        self.voronoi_verts.append(cell_polya)  # Append the whole cell poly to the list
 
 
                 else:
 
-                    self.voronoi_verts.append(cell_polya)  # Append the phole cell poly to the list
+                    self.voronoi_verts.append(cell_polya)  # Append the whole cell poly to the list
 
         self.cluster_mask = image_mask.clipping_matrix  # keep track of cluster mask and its size
         self.msize = image_mask.msize
@@ -1086,6 +1091,8 @@ class Cells(object):
         self.ecm_verts_unique = [
             list(ecm_verts) for ecm_verts in list(ecm_verts_set)]
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
+
+        self.temp_image_mask = image_mask # FIXME temporarily store the image mask so we can we can see how to replace it with svg alts
 
     def search_point_cloud(self, pts, pt_cloud):
 
@@ -2498,14 +2505,15 @@ class Cells(object):
             # Center point of this Voronoi region, defined as a 2-element array
             # whose first and second elements are the X and Y coordinates of
             # this center point.
-            aa = np.mean(aa,axis=0)
+            if len(aa):
+                aa = np.mean(aa,axis=0)
 
-            #FIXME: Inefficient. Consider optimizing by redefining
-            #"self.voronoi_centres = []", appending to that list here, and then
-            #converting that list to a proper Numpy array below.
+                #FIXME: Inefficient. Consider optimizing by redefining
+                #"self.voronoi_centres = []", appending to that list here, and then
+                #converting that list to a proper Numpy array below.
 
-            # Append this center point to this array of these points.
-            self.voronoi_centres = np.vstack((self.voronoi_centres,aa))
+                # Append this center point to this array of these points.
+                self.voronoi_centres = np.vstack((self.voronoi_centres,aa))
 
         self.voronoi_centres = np.delete(self.voronoi_centres, 0, 0)
 
@@ -2646,7 +2654,82 @@ class Cells(object):
             self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
             self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
 
-    #-----Utility functions--------------------------------------------------------------------------------------------
+    # SVG processing functions-----------------------------------------------------------------------------------------
+    @type_check
+    def parse_svg(self, p: 'betse.science.parameters.Parameters') -> None:
+        '''
+        Parse the passed SVG-formatted file into a clipping bitmask, cell
+        centers, tissue profiles, and related cell cluster metadata.
+
+        Parameters
+        ----------
+        fname_cells : str
+            Absolute or relative filename of the SVG-formatted file defining cell centres to be parsed.
+
+        fname_clip : str
+            Absolute or relative filename of the SVG-formatted file defining clipping curve to be parsed.
+        '''
+
+        doc = minidom.parse(p.svg_cells_fname)
+        circle_objects = doc.getElementsByTagName('circle')
+
+        circle_x = np.asarray([np.float64(co.getAttribute('cx')) for co in circle_objects])
+        circle_y = np.asarray([np.float64(co.getAttribute('cy')) for co in circle_objects])
+
+        circle_x = (circle_x) / p.svg_size
+        circle_y = (p.svg_size - circle_y) / p.svg_size
+
+        xypts = np.column_stack((circle_x*p.wsx, circle_y*p.wsx))
+
+        fill_regex = regexes.compile_regex(r'^.*?(?:^|;)fill:(#[0-9a-fA-F]{6})(?:$|;)')
+
+        self.seed_fills = nparray.from_iterable(
+            regexes.get_match_group_first(
+                text=co.getAttribute('style'), regex=fill_regex)
+            for co in circle_objects
+        )
+
+        doc.unlink()
+
+        # define geometric limits and centre for the cluster of points
+        self.xmin = 0
+        self.xmax = p.wsx
+        self.ymin = 0
+        self.ymax = p.wsx
+
+        self.bbox = np.asarray(
+            [[self.xmin, self.ymin],
+             [self.xmax, self.ymin],
+             [self.xmax, self.ymax],
+             [self.xmin, self.ymax]])
+
+        self.centre = np.asarray([0.5*p.wsx, 0.5*p.wsx])
+        self.clust_xy = xypts
+
+        # cell_types = {'#008000': 'epidermis',  # FIXME do this later
+        #               '#008080': 'cortex',
+        #               '#00ff00': 'endodermis',
+        #               '#ff6600': 'pericycle',
+        #               '#800000': 'stele',
+        #               '#ffd5d5': 'lateral root cap',
+        #               '#800080': 'columella',
+        #               '#ff00ff': 'quiescent centre',
+        #               '#000080': 'pericycle initials',
+        #               '#00ffff': 'cortex/endodermis initials',
+        #               '#0000ff': 'columella initials',
+        #               '#ffff00': 'stele initials',
+        #               '#552200': 'epidermal/lateral root cap initials'}
+        #
+        # tissue_profiles = {}
+        # for tn in cell_types.values():
+        #     tissue_profiles[tn] = []
+        #
+        # for i, (cx, cy, fi) in enumerate(zip(circle_x, circle_y, fills)):
+        #
+        #     if fi in cell_types.keys():
+        #         tissue_profiles[cell_types[fi]].append(i)
+
+        #-----Utility functions--------------------------------------------------------------------------------------------
     def gradient(self, SS):
         """
         Calculates the gradient based on differences of a property SS between cell centres.
