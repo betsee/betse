@@ -51,7 +51,9 @@ tasks (e.g., installation, freezing, test running) for this application.
 import setuptools
 from betse import metadata
 from betse.lib import libs
-from betse_setup import build, freeze, symlink, test, buputil
+from betse.lib.setuptools.command import (
+    supcmdfreeze, supcmdsymlink, supcmdtest)
+from betse_setup import bupbuild, buputil
 
 # ....................{ METADATA ~ seo                    }....................
 _KEYWORDS = ['biology', 'multiphysics', 'science', 'simulator',]
@@ -230,13 +232,6 @@ _setup_options = {
     # there exists no guarantee this removal will actually be performed (e.g.,
     # due to preemptive SIGKILLs), compressed archives are inherently fragile.
     'zip_safe': False,
-
-    # ..................{ COMMANDS                          }..................
-    # Set of all custom setuptools subcommands specific to this makefile (e.g.,
-    # "sudo python3 setup.py symlink"), defaulting to the empty set. Each
-    # subsequent call to the add_setup_commands() function iteratively
-    # performed below adds one or more such subcommands to this set.
-    'cmdclass': {},
 }
 '''
 Dictionary passed to the subsequent call to the :func:`setup` function.
@@ -248,12 +243,11 @@ customize these options (e.g., by defining custom commands).
 # print('extras: {}'.format(setup_options['extras_require']))
 
 
-_setup_options_custom = {
-    # While currently empty, it's likely we'll want this again... someday.
-}
+# While currently empty, it's likely we'll want this again... someday.
+_custom_metadata = {}
 '''
 Non-setuptools-specific metadata, used to inform custom subcommands (e.g.,
-``freeze_file``) of other metadata *not* already declared by the
+``freeze_file``) of supplementary metadata *not* already declared by the
 :data:`setup_options` dictionary.
 
 Setuptools raises fatal exceptions when the :data:`setup_options` dictionary
@@ -263,8 +257,8 @@ instead.
 
 # ....................{ COMMANDS                          }....................
 # Define all application-specific setuptools commands.
-for setup_module in (build, freeze, symlink, test):
-    setup_module.add_setup_commands(_setup_options_custom, _setup_options)
+for subcommand_submodule in bupbuild, supcmdfreeze, supcmdsymlink, supcmdtest:
+    subcommand_submodule.add_subcommand(_setup_options, _custom_metadata)
 
 # ....................{ SETUP                             }....................
 setuptools.setup(**_setup_options)

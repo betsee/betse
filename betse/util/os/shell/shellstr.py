@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,10 +7,10 @@
 Low-level shell-specific string facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.util.type.types import type_check, IntOrNoneTypes
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 #FIXME: Consider integrating this method with the main codebase, ideally by
 #calling this function before running each simulation phase. This banner is
 #sufficiently aesthetic that I'd certainly appreciate seeing it everywhere.
@@ -120,7 +120,7 @@ def get_banner(
         # Return this banner.
         return banner
 
-# ....................{ QUOTERS                            }....................
+# ....................{ QUOTERS                           }....................
 @type_check
 def shell_quote(text: str) -> str:
     '''
@@ -128,8 +128,8 @@ def shell_quote(text: str) -> str:
 
     If the current platform is:
 
-    * *Not* Windows (e.g., Linux, OS X), the returned string is guaranteed to be
-      suitable for passing as an arbitrary positional argument to external
+    * *Not* Windows (e.g., Linux, OS X), the returned string is guaranteed to
+      be suitable for passing as an arbitrary positional argument to external
       commands.
     * Windows, the returned string is suitable for passing *only* to external
       commands parsing arguments in the same manner as the Microsoft C runtime.

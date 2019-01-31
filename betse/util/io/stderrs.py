@@ -9,20 +9,34 @@ Low-level standard error facilities.
 
 # ....................{ IMPORTS                           }....................
 import sys, traceback
+from betse.util.type.types import type_check, StrOrNoneTypes
 
 # ....................{ OUTPUTTERS                        }....................
-def output(*objects) -> None:
+@type_check
+def output(*texts: str) -> None:
     '''
-    Print all passed objects to stderr *without* logging these objects.
+    Print all passed strings to stderr *without* logging these strings.
 
-    This function is intentionally *not* named :func:`print`. Doing so
-    introduces subtle issues elsewhere.
+    This function is intentionally *not* named :func:`print`, as doing so would
+    invite conflicts with the standard :func:`print` function.
     '''
 
-    print(*objects, file=sys.stderr)
+    print(*texts, file=sys.stderr)
 
 
-def output_exception(heading: str = None) -> None:
+@type_check
+def output_warning(*warnings: str) -> None:
+    '''
+    Print all passed strings (prefixed by a suitable human-readable warning
+    label) to stderr *without* logging these strings.
+    '''
+
+    # ...that was easier than expected.
+    output('WARNING: ', *warnings)
+
+# ....................{ OUTPUTTERS ~ exception            }....................
+@type_check
+def output_exception(heading: StrOrNoneTypes = None) -> None:
     '''
     Print the currently caught exception to stderr *without* logging this
     exception optionally preceded by the passed human-readable heading if any.

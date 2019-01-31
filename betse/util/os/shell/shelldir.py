@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,35 +7,35 @@
 Low-level shell-specific directory facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import os
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
 from contextlib import contextmanager
 from types import GeneratorType
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 def get_cwd_dirname() -> str:
     '''
     **Current working dirname** (i.e., absolute path of the current working
     directory (CWD)) of the active Python process.
 
-    Unless subsequently changed, this is the absolute path of the directory from
-    which this application was initially run.
+    Unless subsequently changed, this is the absolute path of the directory
+    from which this application was initially run.
     '''
 
     return os.getcwd()
 
-# ....................{ SETTERS                            }....................
+# ....................{ SETTERS                           }....................
 @type_check
 def set_cwd(dirname: str) -> None:
     '''
     Set the **current working directory** (CWD) of the active Python process to
     the passed directory.
 
-    This function permanently changes the CWD for the remainder of this process.
-    For a robust alternative changing the CWD for a single code block, consider
-    using the :func:`setting_cwd` context manager instead.
+    This function permanently changes the CWD for the remainder of this
+    process. For a robust alternative changing the CWD for a single code block,
+    consider using the :func:`setting_cwd` context manager instead.
 
     Parameters
     -----------
@@ -49,7 +49,7 @@ def set_cwd(dirname: str) -> None:
     # Change to this directory.
     os.chdir(dirname)
 
-# ....................{ CONTEXTS                           }....................
+# ....................{ CONTEXTS                          }....................
 @contextmanager
 @type_check
 def setting_cwd(dirname: str) -> GeneratorType:
@@ -59,7 +59,8 @@ def setting_cwd(dirname: str) -> GeneratorType:
     context.
 
     This context manager guaranteeably reverts the CWD to the prior CWD even
-    when fatal exceptions are raised (e.g., due to this directory not existing).
+    when fatal exceptions are raised (e.g., due to this directory not
+    existing).
 
     Parameters
     -----------
@@ -84,17 +85,17 @@ def setting_cwd(dirname: str) -> GeneratorType:
 
     Examples
     -----------
-    >>> from betse.util.paths import dirs
-    >>> print('CWD: ' + dirs.get_cwd_dirname())
-    CWD: /home/azrael
-    >>> with dirs.current('/home/uriel/urial/nuriel/uryan/jeremiel'):
-    ...     print('CWD: ' + dirs.get_cwd_dirname())
-    ...     raise ValueError(
-    ...         'But unknown, abstracted, brooding secret the dark power hid')
-    CWD: /home/uriel/urial/nuriel/uryan/jeremiel
-    ValueError: But unknown, abstracted, brooding secret the dark power hid.
-    >>> print('CWD: ' + dirs.get_cwd_dirname())
-    CWD: /home/azrael
+        >>> from betse.util.paths import dirs
+        >>> print('CWD: ' + dirs.get_cwd_dirname())
+        CWD: /home/azrael
+        >>> with dirs.current('/home/uriel/urial/nuriel/uryan/jeremiel'):
+        ...     print('CWD: ' + dirs.get_cwd_dirname())
+        ...     raise ValueError(
+        ...         'But unknown, abstracted, brooding secret the dark power hid')
+        CWD: /home/uriel/urial/nuriel/uryan/jeremiel
+        ValueError: But unknown, abstracted, brooding secret the dark power hid.
+        >>> print('CWD: ' + dirs.get_cwd_dirname())
+        CWD: /home/azrael
     '''
 
     # Absolute path of the current CWD.

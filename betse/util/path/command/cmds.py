@@ -16,15 +16,15 @@ from betse.util.type.types import type_check, StrOrNoneTypes
 
 # ....................{ EXCEPTIONS                        }....................
 @type_check
-def die_unless_command(pathname: str, reason: StrOrNoneTypes = None) -> None:
+def die_unless_command(filename: str, reason: StrOrNoneTypes = None) -> None:
     '''
-    Raise an exception unless a command with the passed path exists.
+    Raise an exception unless a command with the passed filename exists.
 
     Parameters
     ----------
-    pathname : str
-        Basename or absolute or relative path of the executable file to
-        inspect.
+    filename : str
+        Either the basename *or* the absolute or relative filename of the
+        executable file to be validated.
     reason : optional[str]
         Human-readable sentence fragment to be embedded in this exception's
         message (e.g., ``due to "pyside2-tools" not being installed``).
@@ -42,9 +42,9 @@ def die_unless_command(pathname: str, reason: StrOrNoneTypes = None) -> None:
     '''
 
     # If this command does *NOT* exist...
-    if not is_command(pathname):
+    if not is_command(filename):
         # Exception message to be raised.
-        message = 'Command "{}" not found'.format(pathname)
+        message = 'Command "{}" not found'.format(filename)
 
         # If an exception reason was passed, embed this reason in this message.
         if reason is not None:
@@ -58,9 +58,9 @@ def die_unless_command(pathname: str, reason: StrOrNoneTypes = None) -> None:
 
 # ....................{ TESTERS                           }....................
 @type_check
-def is_command(pathname: str) -> bool:
+def is_command(filename: str) -> bool:
     '''
-    ``True`` only if the command with the passed path exists.
+    ``True`` only if a command with the passed filename exists.
 
     This is the case if this path is either:
 
@@ -70,8 +70,8 @@ def is_command(pathname: str) -> bool:
     Parameters
     ----------
     pathname : str
-        Basename or absolute or relative path of the executable file to
-        inspect.
+        Either the basename *or* the absolute or relative filename of the
+        executable file to be tested.
 
     Returns
     ----------
@@ -86,9 +86,9 @@ def is_command(pathname: str) -> bool:
     # This path is that of an existing command if and only if either...
     return (
         # This path is that of an executable file *OR*
-        files.is_executable(pathname) or (
+        files.is_executable(filename) or (
         # This path is that of a basename in the current ${PATH}.
-        pathnames.is_basename(pathname) and cmdpath.is_pathable(pathname))
+        pathnames.is_basename(filename) and cmdpath.is_pathable(filename))
     )
 
 # ....................{ GETTERS                           }....................

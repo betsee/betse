@@ -63,6 +63,7 @@ def is_dir(module_name: (str, Requirement), dirname: str) -> bool:
         ``True`` only if this resource is a directory.
     '''
 
+    # One-liners for fast and furious vengeance.
     return pkg_resources.resource_isdir(module_name, dirname)
 
 # ....................{ GETTERS                           }....................
@@ -86,7 +87,7 @@ def get_pathname(module_name: (str, Requirement), pathname: str) -> str:
          it will be extracted to a cache directory, and the filename within the
          cache will be returned. If the named resource is a directory, then all
          resources within that directory (including subdirectories) are also
-         extracted. If the named resource is a C extension or “eager resource”
+         extracted. If the named resource is a C extension or "eager resource"
          (see the setuptools documentation for details), then all C extensions
          and eager resources are extracted at the same time.
 
@@ -112,4 +113,5 @@ def get_pathname(module_name: (str, Requirement), pathname: str) -> str:
         Absolute path of this resource.
     '''
 
+    # One-liners for fast and furious convenience.
     return pkg_resources.resource_filename(module_name, pathname)

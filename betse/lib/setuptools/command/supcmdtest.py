@@ -1,28 +1,29 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-Application-specific ``test`` subcommand for :mod:`setuptools`.
+High-level custom ``test`` :mod:`setuptools` subcommand.
 '''
 
-# ....................{ IMPORTS                            }....................
-from betse.util.type.obj import objects
-from betse_setup import buputil
+# ....................{ IMPORTS                           }....................
+import sys
+from betse.lib.setuptools.command import supcommand
 from distutils.errors import DistutilsClassError
 from setuptools import Command
 
-# ....................{ COMMANDS                           }....................
-def add_setup_commands(metadata: dict, setup_options: dict) -> None:
+# ....................{ ADDERS                            }....................
+def add_subcommand(setup_options: dict, custom_metadata: dict) -> None:
     '''
-    Add the ``test`` subcommand to the passed dictionary of :mod:`setuptools`
-    options.
+    Add the custom ``test`` :mod:`setuptools` subcommand to the passed
+    dictionaries of :mod:`setuptools` options and arbirtrary metadata.
     '''
 
-    buputil.add_setup_command_classes(metadata, setup_options, test)
+    # Make it so, ensign.
+    supcommand.add_subcommand(setup_options, custom_metadata, test)
 
-# ....................{ CLASSES ~ base                     }....................
+# ....................{ SUBCOMMANDS                       }....................
 class test(Command):
     '''
     Command class testing the current application with :mod:`pytest`.
@@ -54,7 +55,7 @@ class test(Command):
         useless. This is also less than useful.
     '''
 
-    # ..................{ ATTRIBUTES                         }..................
+    # ..................{ ATTRIBUTES                        }..................
     description = 'run py.test-driven functional and unit tests'
     '''
     Command description printed on running ``./setup.py --help-commands``.
@@ -122,7 +123,7 @@ class test(Command):
         Inarguably, the best (albeit unofficial) documentation on this list.
     '''
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS                        }..................
     def initialize_options(self):
         '''
         Declare option-specific attributes subsequently initialized by
@@ -136,8 +137,9 @@ class test(Command):
         '''
 
         # Option-specific public attributes. For each option declared by the
-        # "user_options" list above, a public attribute of the same name as this
-        # option's long form *MUST* be initialized here to its default value.
+        # "user_options" list above, a public attribute of the same name as
+        # this option's long form *MUST* be initialized here to its default
+        # value.
         self.no_capture = None
         self.match_name = None
         self.export_sim_conf_dir = None
@@ -169,21 +171,21 @@ class test(Command):
         self._patch_pytest()
         self._run_pytest()
 
-    # ..................{ PRIVATE                            }..................
+    # ..................{ PRIVATE                           }..................
     def _init_pytest(self) -> None:
         '''
         Dynamically import the top-level :mod:`pytest` package into this
         object's :attr:`_pytest` instance variable.
 
-        Specifically, this method imports the top-level `_pytest.main` module,
-        providing programmatic access to py.test's CLI implementation. While
-        py.test is also runnable as an external command, doing so invites
-        non-trivial complications. Unlike most Python applications (e.g.,
-        PyInstaller), py.test is *not* dynamically importable via the following
-        import machinery:
+        Specifically, this method imports the top-level :mod:`_pytest.main`
+        module, providing programmatic access to the CLI implementation of
+        :mod:`pytest`. While :mod:`pytest` is also runnable as an external
+        command, doing so invites non-trivial complications. Unlike most Python
+        applications (e.g., PyInstaller), :mod:`pytest` is *not* dynamically
+        importable via the following import machinery:
 
             # Don't do this.
-            >>> pytest_main = buputil.import_module(
+            >>> pytest_main = pymodname.import_module(
             ...    'pytest.main', exception_message=(
             ...    'py.test not installed under the current Python interpreter.'))
 
@@ -198,17 +200,20 @@ class test(Command):
         by only dynamically importing the root :mod:`pytest` package.
         '''
 
+        # Defer heavyweight imports.
+        from betse.util.py.module import pymodname
+
         # Import the public "pytest" package *BEFORE* the private "_pytest"
         # package. While importation order is typically ignorable, imports can
         # technically have side effects. Tragicomically, this is the case here.
         # Importing the public "pytest" package establishes runtime
-        # configuration required by submodules of the private "_pytest" package.
-        # The former *MUST* always be imported before the latter. Failing to do
-        # so raises obtuse exceptions at runtime... which is bad.
-        self._pytest_public = buputil.import_module(
+        # configuration required by submodules of the private "_pytest"
+        # package. The former *MUST* always be imported before the latter.
+        # Failing to do so raises obtuse exceptions at runtime... which is bad.
+        self._pytest_public = pymodname.import_module(
             'pytest', exception_message=(
             'py.test not installed under the current Python interpreter.'))
-        self._pytest_private = buputil.import_module(
+        self._pytest_private = pymodname.import_module(
             '_pytest', exception_message=(
             'py.test not installed under the current Python interpreter.'))
 
@@ -219,23 +224,25 @@ class test(Command):
         interpreter, altering startup :mod:`pytest` functionality in an
         early-time manner *not* permitted within :mod:`pytest` plugins.
 
-        `pytest` plugins (e.g., ``conftest`` submodules of a test suite) are
-        imported by :mod:`pytest` *after* :mod:`pytest` startup and hence cannot
-        be used to alter startup :mod:`pytest` functionality in an early-time
-        manner.
+        :mod:`pytest` plugins (e.g., ``conftest`` submodules of a test suite)
+        are imported by :mod:`pytest` *after* :mod:`pytest` startup and hence
+        cannot be used to alter startup :mod:`pytest` functionality in an
+        early-time manner.
 
         Specifically, this method monkey-patches:
 
         * The :meth:`CaptureManager._getcapture` method to capture stderr but
           *not* stdout (rather than neither stderr nor stdout) when the
-          ``py.test`` command is passed either the ``-s`` or ``--capture=no``
+          :mod:`pytest` command is passed either the ``-s`` or ``--capture=no``
           CLI options. The default approach of *not* capturing stderr prevents
-          ``py.test`` from capturing and hence reporting error messages in
+          :mod:`pytest` from capturing and hence reporting error messages in
           failure reports, requiring tedious upwards scrolling through test
           output to find the corresponding error messages.
         '''
 
-        # py.test classes to be monkey-patched.
+        # Defer heavyweight imports, including py.test classes to be
+        # monkey-patched.
+        from betse.util.type.obj import objects
         from _pytest.capture import CaptureManager, FDCapture, MultiCapture
 
         # If the private method to be monkey-patched no longer exists, py.test
@@ -269,6 +276,10 @@ class test(Command):
         setuptools command.
         '''
 
+        # Defer heavyweight imports.
+        from betse.util.io import stderrs
+        from betse.util.py.module import pymodname
+
         # List of all shell words to be passed as arguments to "py.test".
         #
         # Whereas the top-level "pytest.ini" configuration file lists options
@@ -276,16 +287,16 @@ class test(Command):
         # lists options conditionally applicable to invocations run within the
         # "python3 setup.py test" subcommand.
         #
-        # For example, the "--capture=no" option should be conditionally enabled
-        # *ONLY* when applying the monkey-patch applied by this setuptools
-        # subcommand (namely, here). This option is intentionally omitted from
-        # the top-level "pytest.ini" configuration file.
+        # For example, the "--capture=no" option should be conditionally
+        # enabled *ONLY* when applying the monkey-patch applied by this
+        # setuptools subcommand (namely, here). This option is intentionally
+        # omitted from the top-level "pytest.ini" configuration file.
         pytest_args = [
             # When testing interactively, prevent py.test from capturing stdout
-            # but *NOT* stderr. By default, py.test captures and delays printing
-            # stdout until after test completion. While a possibly suitable
-            # default for short-lived unit tests, such capturing is unsuitable
-            # for long-lived functional tests.
+            # but *NOT* stderr. By default, py.test captures and delays
+            # printing stdout until after test completion. While a possibly
+            # suitable default for short-lived unit tests, such capturing is
+            # unsuitable for long-lived functional tests.
             #
             # Note that this option is monkey-patched by the _patch_pytest()
             # method to capture only stdout. By default, this option captures
@@ -320,7 +331,7 @@ class test(Command):
         # True only if the optional third-party "pytest-xdist" plugin is both
         # importable and *NOT* explicitly disabled below (e.g., due to the end
         # user having passed CLI options incompatible with this plugin).
-        is_xdist = buputil.is_module('xdist')
+        is_xdist = pymodname.is_module('xdist')
 
         #FIXME: Disabled for the moment. "xdist" appears to be inexplicably
         #failing with non-human-readable exceptions. The lack of official
@@ -353,9 +364,9 @@ class test(Command):
             # https://github.com/pytest-dev/pytest/issues/680
             if is_xdist:
                 # Print a non-fatal warning.
-                buputil.output_warning(
+                stderrs.output_warning(
                     'Option "-s" unsupported by py.test plugin "pytest-xdist".')
-                buputil.output_warning(
+                stderrs.output_warning(
                     'Tests will *NOT* be parallelized across '
                     'multiple processors.')
 
@@ -369,9 +380,9 @@ class test(Command):
             # pytest_args.append('--capture=no')
 
         # If any remaining option is passed, forward these option unmodified
-        # onto "py.test". For safety, these option's arguments are intentionally
-        # *NOT* shell-quoted. Doing so unnecessarily adds an additional level of
-        # quoting... which is bad.
+        # onto "py.test". For safety, these option's arguments are
+        # intentionally *NOT* shell-quoted. Doing so unnecessarily adds an
+        # additional level of quoting... which is bad.
         if self.match_name is not None:
             pytest_args.extend(('-k', self.match_name,))
         if self.export_sim_conf_dir is not None:
@@ -384,12 +395,12 @@ class test(Command):
             print('Optional py.test plugin "pytest-xdist" found.')
             print('Tests will be parallelized across all available processors.')
 
-            # Instruct "pytest-xdist" to autodetect and parallelize tests to all
-            # available processors.
+            # Instruct "pytest-xdist" to autodetect and parallelize tests to
+            # all available processors.
             pytest_args.extend(['-n', 'auto'])
 
-        # Instruct "py.test" of the relative pathname to the top-level directory
-        # for this project. On startup, "py.test" internally:
+        # Instruct "py.test" of the relative pathname to the top-level
+        # directory for this project. On startup, "py.test" internally:
         #
         # * Sets its "rootdir" property to this pathname in absolute form.
         # * Sets its "inifile" property to the concatenation of this pathname
@@ -413,11 +424,11 @@ class test(Command):
         #      inifile: None
         #      rootdir: /home/leycec
         #
-        # See the following official documentation for further details, entitled
-        # "Initialization: determining rootdir and inifile":
+        # See the following official documentation for further details,
+        # entitled "Initialization: determining rootdir and inifile":
         #     https://docs.pytest.org/en/latest/customize.html
         pytest_args.append('.')
 
         # Fork the "py.test" command, propagating its exit status as our own.
         print('Running py.test with arguments: {}'.format(pytest_args))
-        buputil.exit_with_status(self._pytest_public.main(pytest_args))
+        sys.exit(self._pytest_public.main(pytest_args))

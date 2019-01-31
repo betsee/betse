@@ -57,4 +57,4 @@ def main(arg_list: list = None) -> int:
 # else, noop. For POSIX compliance, the exit status returned by this function
 # is propagated to the caller as this script's exit status.
 if __name__ == '__main__':
-    cmdexit.exit(main())
+    cmdexit.exit_with_status(main())

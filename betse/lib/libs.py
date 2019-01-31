@@ -12,6 +12,14 @@ submodules (e.g., :mod:`betse.util.cli.cliabc`) *before* attempting to import
 any such dependencies.
 '''
 
+#FIXME: Refactor *ALL* functions defined by this submodule into methods of a
+#new "LibResolverABC" superclass -- except the following, which are called by
+#setuptools at installation-time and hence *MUST* reside outside this API for
+#copy-and-paste-style reuse by downstream consumers:
+#
+#* get_runtime_mandatory_tuple().
+#* get_runtime_optional_tuple().
+#* get_testing_mandatory_tuple().
 #FIXME: Ideally eliminate the boilerplate repeated across the equivalent of
 #this submodule in BETSE, BETSEE, and so on by generalizing this functionality.
 #To do so, we might consider:

@@ -87,7 +87,7 @@ def get_pathname(package: ModuleOrStrTypes, pathname: str) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.lib.setuptools import resources
+    from betse.lib.setuptools import supresource
     from betse.util.path import pathnames, paths
     from betse.util.py import pyfreeze
     from betse.util.py.module import pymodule
@@ -113,9 +113,9 @@ def get_pathname(package: ModuleOrStrTypes, pathname: str) -> str:
         app_pathname = pathnames.join(app_frozen_dirname, pathname)
     # Else if this application is a setuptools-installed script wrapper,
     # canonicalize this path by deferring to the setuptools resource API.
-    elif resources.is_dir(
+    elif supresource.is_dir(
         module_name=package_name, dirname=pathname):
-        app_pathname = resources.get_pathname(
+        app_pathname = supresource.get_pathname(
             module_name=package_name, pathname=pathname)
     # Else, the current application is either a setuptools-symlinked script
     # wrapper *OR* was invoked via the secretive "python3 -m betse"

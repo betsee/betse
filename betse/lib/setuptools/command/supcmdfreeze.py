@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
+
+'''
+High-level custom ``freeze`` :mod:`setuptools` subcommands.
+'''
 
 #FIXME: Executables output under OS X and Windows pretty much *MUST* be signed.
 #This looks to be fairly trivial under Windows. OS X, however, is another kettle
@@ -39,59 +43,57 @@
 #reasonable solution:
 #    https://github.com/pyinstaller/pyinstaller/wiki/Recipe-Setuptools-Entry-Point
 
-'''
-BETSE-specific `freeze` subcommands for `setuptools`.
-'''
-
-# ....................{ IMPORTS                            }....................
-import os
+# ....................{ IMPORTS                           }....................
+import os, sys
 from abc import ABCMeta, abstractmethod
+from betse.lib.setuptools.command import supcommand
+from betse.util.type.types import type_check
 from distutils.errors import DistutilsExecError
-from os import path
-from pkg_resources import EntryPoint
-from betse_setup import buputil
 from setuptools import Command
 
-# ....................{ COMMANDS                           }....................
-def add_setup_commands(metadata: dict, setup_options: dict) -> None:
+# ....................{ ADDERS                            }....................
+def add_subcommand(setup_options: dict, custom_metadata: dict) -> None:
     '''
-    Add `freeze` subcommands to the passed dictionary of `setuptools` options.
+    Add custom ``symlink`` :mod:`setuptools` subcommands to the passed
+    dictionaries of :mod:`setuptools` options and arbirtrary metadata.
     '''
 
-    buputil.add_setup_command_classes(
-        metadata, setup_options, freeze_dir, freeze_file)
+    # Who is Number One?
+    supcommand.add_subcommand(
+        setup_options, custom_metadata, freeze_dir, freeze_file)
 
-# ....................{ CLASSES ~ base                     }....................
-class freeze(Command, metaclass = ABCMeta):
+# ....................{ SUBCOMMANDS ~ superclass          }....................
+class freeze(Command, metaclass=ABCMeta):
     '''
-    Abstract command class creating either one platform-specific executable file
-    _or_ one directory containing such file in the top-level `dist` directory
-    for each previously installed script of the current application.
+    Abstract command class creating either one platform-specific executable
+    file *or* one directory containing such file in the top-level ``dist``
+    directory for each previously installed script of the current application.
 
-    Each such file is created by running the external `pyinstaller` command with
-    sane command-line arguments. Since this command does _not_ support
-    **cross-bundling** (i.e., creation of executable files for operating systems
-    other than the current), these files apply _only_ to the current system.
-    Specifically:
+    Each such file is created by running the external ``pyinstaller`` command
+    with sane command-line arguments. Since this command does *not* support
+    **cross-bundling** (i.e., creation of executable files for operating
+    systems other than the current), these files apply *only* to the current
+    system. Specifically:
 
     * Under Linux, these files will be ELF (Executable and Linkable Format)
       binaries.
-    * Under OS X, these files will be conventional `.app`-suffixed directories.
-      (Of course, that's not a file. So sue us.)
-    * Under Windows, such files will be conventional `.exe`-suffixed binaries.
+    * Under OS X, these files will be conventional ``.app``-suffixed
+      directories. (Of course, that's not a file. So sue us.)
+    * Under Windows, such files will be conventional ``.exe``-suffixed
+      binaries.
 
     Attributes
     ----------
     clean : optional[bool]
-        `True` only if the user passed the `--clean` option to the current
-        `setuptools` subcommand. Defaults to `True`, for safety.
+        ``True`` only if the user passed the ``--clean`` option to the current
+        :mod:`setuptools` subcommand. Defaults to ``True``, for safety.
     debug : optional[bool]
-        `True` only if the user passed the `--debug` option to the current
-        `setuptools` subcommand. Defaults to `False`.
+        ``True`` only if the user passed the ``--debug`` option to the current
+        :mod:`setuptools` subcommand. Defaults to ``False``.
     dist_dir : optional[str]
         Absolute or relative path of the output directory to which frozen
         executables (as either files or directories) are written. Defaults to
-        the relative path `freeze/dist/`.
+        the relative path ``freeze/dist/``.
     install_dir : str
         Absolute path of the directory to which our wrapper scripts were
         previously installed.
@@ -104,7 +106,7 @@ class freeze(Command, metaclass = ABCMeta):
         Relative path of our input PyInstaller custom hooks subdirectory.
     '''
 
-    # ..................{ ATTRIBUTES                         }..................
+    # ..................{ ATTRIBUTES                        }..................
     EXCEPTION_ADVICE = (
         'Consider running either:\n'
         '\tsudo python3 setup.py install\n'
@@ -120,15 +122,17 @@ class freeze(Command, metaclass = ABCMeta):
         ('debug', None,
          'print debug messages during PyInstaller bootloader startup'),
         ('dist-dir=', None,
-         'absolute or relative path of the output directory to which executables will be frozen'),
+         'absolute or relative path of the output directory '
+         'to which executables will be frozen'),
     ]
     '''
     List of 3-tuples specifying command-line options accepted by this command.
 
     For each such option, an attribute of the same name as this option's long
-    form _must_ be explicitly initialized in the `initialize_options()` method.
-    `setuptools` fails to recognize options for which this is _not_ the case.
-    (You fail a simple sanity check yet again, `setuptools`.)
+    form *must* be explicitly initialized in the :meth:`initialize_options`
+    method. :mod:`setuptools` fails to recognize options for which this is
+    *not* the case. (You fail a simple sanity check yet again,
+    :mod:`setuptools`.)
 
     See Also
     ----------
@@ -136,26 +140,27 @@ class freeze(Command, metaclass = ABCMeta):
         Inarguably, the best (albeit unofficial) documentation on this list.
     '''
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS                        }..................
     def initialize_options(self):
         '''
         Declare option-specific attributes subsequently initialized by
-        `finalize_options()`.
+        :meth:`finalize_options`.
 
-        If this function is _not_ defined, the default implementation of this
-        method raises an inscrutable `distutils` exception. If these attributes
-        are _not_ declared, the subsequent call to
-        `self.set_undefined_options()` raises an inscrutable `setuptools`
+        If this function is *not* defined, the default implementation of this
+        method raises an inscrutable :mod:`distutils` exception. If these
+        attributes are *not* declared, the subsequent call to
+        :meth:`set_undefined_options` raises an inscrutable :mod:`setuptools`
         exception. (This is terrible. So much hate.)
         '''
+
         #FIXME: To circumvent PyInstaller caching issues, we currently force
         #"self.clean = True". Once PyInstaller caching is sufficiently reliable
         #to reasonably permit reuse of cached metadata, revert this back to
         #"self.clean = False".
 
         # Option-specific public attributes. For each option declared by the
-        # "user_options" list above, a public attribute of the same name as this
-        # option's long form *MUST* be initialized here to its default value.
+        # "user_options" list above, a public attribute of the same name as
+        # this option's long form *MUST* be initialized here to its default.
         self.clean = True
         self.debug = False
         self.dist_dir = None
@@ -192,45 +197,50 @@ class freeze(Command, metaclass = ABCMeta):
         # Run this command for each entry point.
         self._run_pyinstaller_commands()
 
-
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def _init_pyinstaller_command(self) -> None:
         '''
         Initialize the list of all shell words of the PyInstaller command to be
         run.
         '''
 
+        # Defer heavyweight imports.
+        from betse.util.io import stderrs
+        from betse.util.path import dirs, pathnames
+        from betse.util.path.command import cmds
+        from betse.util.os.shell import shellstr
+
         # Relative path of the top-level PyInstaller directory.
         pyinstaller_dirname = 'freeze'
 
         # Relative path of the PyInstaller spec file converting such
         # platform-independent script into a platform-specific executable.
-        self._pyinstaller_spec_filename = path.join(
+        self._pyinstaller_spec_filename = pathnames.join(
             pyinstaller_dirname, '.spec')
 
         # If the frozen executable directory was *NOT* explicitly passed on the
         # command-line, default to a subdirectory of this top-level directory.
         if self.dist_dir is None:
-            self.dist_dir = path.join(pyinstaller_dirname, 'dist')
+            self.dist_dir = pathnames.join(pyinstaller_dirname, 'dist')
         # Else, canonicalize the passed directory.
         else:
-            self.dist_dir = buputil.get_path_canonicalized(self.dist_dir)
+            self.dist_dir = pathnames.canonicalize(self.dist_dir)
         assert isinstance(self.dist_dir, str), (
             '"{}" not a string.'.format(self.dist_dir))
 
         # Relative path of the input hooks subdirectory.
-        self._pyinstaller_hooks_dirname = path.join(
+        self._pyinstaller_hooks_dirname = pathnames.join(
             pyinstaller_dirname, 'hooks')
 
         # Relative path of the intermediate build subdirectory.
-        pyinstaller_work_dirname = path.join(pyinstaller_dirname, 'build')
+        pyinstaller_work_dirname = pathnames.join(pyinstaller_dirname, 'build')
 
         # Create such hooks subdirectory if not found, as failing to do so
         # will induce fatal PyInstaller errors.
-        buputil.make_dir_unless_found(self._pyinstaller_hooks_dirname)
+        dirs.make_unless_dir(self._pyinstaller_hooks_dirname)
 
-        # List of all shell words of the PyInstaller command to be run, starting
-        # with the basename of this command.
+        # List of all shell words of the PyInstaller command to be run,
+        # starting with the basename of this command.
         self._pyinstaller_args = []
 
         # Append all PyInstaller command options common to running such command
@@ -242,8 +252,8 @@ class freeze(Command, metaclass = ABCMeta):
             '--noconfirm',
 
             # Non-default PyInstaller directories.
-            '--workpath=' + buputil.shell_quote(pyinstaller_work_dirname),
-            '--distpath=' + buputil.shell_quote(self.dist_dir),
+            '--workpath=' + shellstr.shell_quote(pyinstaller_work_dirname),
+            '--distpath=' + shellstr.shell_quote(self.dist_dir),
 
             # Non-default log level.
             # '--log-level=DEBUG',
@@ -264,32 +274,33 @@ class freeze(Command, metaclass = ABCMeta):
                 # simplify debugging, such compression is disabled.
                 '--noupx',
             ))
-            buputil.output_warning(
-                'Enabling bootloader debug messages.')
-            buputil.output_warning(
-                'Disabling UPX-based compression.')
+            stderrs.output_warning('Enabling bootloader debug messages.')
+            stderrs.output_warning('Disabling UPX-based compression.')
         # If *NOT* debugging and UPX is *NOT* found, print a non-fatal warning.
         # While optional, freezing in the absence of UPX produces uncompressed
         # and hence considerably larger executables.
-        elif not buputil.is_pathable('upx'):
-            buputil.output_warning(
+        elif not cmds.is_cmd('upx'):
+            stderrs.output_warning(
                 'UPX not installed or "upx" not in the current ${PATH}.')
-            buputil.output_warning(
+            stderrs.output_warning(
                 'Frozen binaries will *NOT* be compressed.')
 
-    # ..................{ RUNNERS                            }..................
+    # ..................{ RUNNERS                           }..................
     def _run_pyinstaller_commands(self):
         '''
         Run the PyInstaller command previously constructed by the
-        `_init_pyinstaller_command()` method for each entry point.
+        :meth:`_init_pyinstaller_command` method for each entry point.
         '''
+
+        # Defer heavyweight imports.
+        from betse.util.path import dirs, paths, pathnames
 
         # True if the current distribution has at least one entry point.
         is_entry_point = False
 
         # Freeze each previously installed script wrapper.
         for script_basename, script_type, entry_point in\
-            buputil.command_entry_points(self):
+            supcommand.iter_command_entry_points(self):
             # Note at least one entry point to be installed.
             is_entry_point = True
 
@@ -301,16 +312,19 @@ class freeze(Command, metaclass = ABCMeta):
 
             # Relative path of the output frozen executable file or directory,
             # created by stripping the suffixing ".exe" filetype on Windows.
-            frozen_pathname = path.join(
+            frozen_pathname = pathnames.join(
                 self.dist_dir,
-                buputil.get_path_sans_filetype(script_basename))
+                pathnames.get_pathname_sans_filetype(script_basename))
 
             # If cleaning *AND* this path exists, remove this path before
             # validating this path. Why? This path could be an existing file
             # and the current command freezing to a directory (or vice versa),
             # in which case subsequent validation would raise an exception.
-            if self.clean and buputil.is_path(frozen_pathname):
-                buputil.remove_path(frozen_pathname)
+            if self.clean and paths.is_path(frozen_pathname):
+
+                #FIXME: Define a new paths.remove_path() function resembling
+                #the existing buputils.remove_path() function.
+                paths.remove_path(frozen_pathname)
 
             # Validate this path.
             self._check_frozen_path(frozen_pathname)
@@ -326,7 +340,7 @@ class freeze(Command, metaclass = ABCMeta):
 
             # Report these results to the user.
             frozen_pathtype = (
-                'directory' if buputil.is_dir(frozen_pathname) else 'file')
+                'directory' if dirs.is_dir(frozen_pathname) else 'file')
             print('Froze {} "{}".\n'.format(frozen_pathtype, frozen_pathname))
 
             #FIXME: Excise when beginning GUI work.
@@ -349,51 +363,64 @@ class freeze(Command, metaclass = ABCMeta):
     #rather than as an external command in a different Python process, this
     #should be feasible.
     def _set_environment_variables(
-        self, script_basename: str, script_type: str, entry_point: str) -> None:
+        self,
+        script_basename: str,
+        script_type: str,
+        entry_point: str,
+    ) -> None:
         '''
-        Set all environment variables used to communicate with the BETSE-
-        specific PyInstaller specification file run in a separate process, given
-        the passed arguments yielded by the `command_entry_points()` generator.
+        Set all environment variables used to communicate with the
+        application-specific PyInstaller specification file run in a separate
+        process, given the passed arguments yielded by the
+        :meth:`command_entry_points` generator.
 
         While hardly ideal, PyInstaller appears to provide no other means of
-        communicating with such file.
+        communicating with that file.
         '''
+
+        # Defer heavyweight imports.
+        from betse.util.os.shell import shellenv
+        from betse.util.path import files, pathnames
 
         # Absolute path of the entry module.
         #
         # This module's relative path to the top-level project directory is
-        # obtained by converting the entry point specifier defined by "setup.py"
-        # for the current entry point (e.g., "betse.gui.guicli:main") into a
-        # platform-specific path. Sadly, setuptools provides no cross-platform
-        # API for reliably obtaining the absolute path of the corresponding
-        # script wrapper. Even if it did, such path would be of little use under
-        # POSIX-incompatible platforms (e.g., Windows), where these wrappers are
-        # binary blobs rather than valid Python scripts.
+        # obtained by converting the entry point specifier defined by
+        # "setup.py" for the current entry point (e.g.,
+        # "betse.gui.guicli:main") into a platform-specific path. Sadly,
+        # setuptools provides no cross-platform API for reliably obtaining the
+        # absolute path of the corresponding script wrapper. Even if it did,
+        # such path would be of little use under POSIX-incompatible platforms
+        # (e.g., Windows), where these wrappers are binary blobs rather than
+        # valid Python scripts.
         #
         # Instead, we reverse-engineer the desired path via brute-force path
         # manipulation. Thus burns out another tawdry piece of my soul.
-        module_filename = path.join(
-            buputil.get_project_dirname(),
-            entry_point.module_name.replace('.', path.sep) + '.py')
+        module_filename = pathnames.join(
+            #FIXME: Define a new supcommand.get_setup_dirname() function
+            #resembling the existing buputils.get_project_dirname() function.
+            supcommand.get_project_dirname(),
+            entry_point.module_name.replace('.', os.path.sep) + '.py')
 
         # Ensure such module exists.
-        buputil.die_unless_file(module_filename)
+        files.die_unless_file(module_filename)
 
         # Such path.
-        os.environ['__FREEZE_MODULE_FILENAME'] = module_filename
+        shellenv.set_var('__FREEZE_MODULE_FILENAME', module_filename)
 
         # Whether to freeze in "one-file" or "one-directory" mode.
-        os.environ['__FREEZE_MODE'] = self._get_freeze_mode()
+        shellenv.set_var('__FREEZE_MODE', self._get_freeze_mode)
 
         # Whether to freeze a CLI- or GUI-based application.
-        os.environ['__FREEZE_INTERFACE_TYPE'] = script_type
+        shellenv.set_var('__FREEZE_INTERFACE_TYPE', script_type)
 
 
+    @type_check
     def _run_pyinstaller_command(
         self,
         script_basename: str,
         script_type: str,
-        entry_point: 'EntryPoint',
+        entry_point,
     ) -> None:
         '''
         Run the currently configured PyInstaller command for the passed entry
@@ -406,42 +433,48 @@ class freeze(Command, metaclass = ABCMeta):
         script_type : str
             Type of the executable wrapper script running this entry point,
             guaranteed to be either:
-            * `console` if this script is console-specific.
-            * `gui` otherwise..
+
+            * If this script is console-specific, ``console`` .
+            * Else, ``gui``.
         entry_point : EntryPoint
-            `EntryPoint` object, whose attributes specify the module to be
-            imported and function to be run by this script.
+            Entry point, whose attributes specify the module to be imported and
+            function to be run by this script.
         '''
+
+        # Defer heavyweight imports.
+        from betse.util.io import stderrs
+        from betse.util.os.shell import shellstr
+        from betse.util.path import files, pathnames
 
         # If this spec exists, instruct PyInstaller to reuse rather than
         # recreate this file, thus preserving edits to this file.
-        if buputil.is_file(self._pyinstaller_spec_filename):
+        if files.is_file(self._pyinstaller_spec_filename):
             print('Reusing spec file "{}".'.format(
                 self._pyinstaller_spec_filename))
 
             # Append the relative path of this spec file.
             self._pyinstaller_args.append(
-                buputil.shell_quote(self._pyinstaller_spec_filename))
+                shellstr.shell_quote(self._pyinstaller_spec_filename))
 
             # Freeze this script with this spec file.
             self._run_pyinstaller_imported()
         # Else, instruct PyInstaller to (re)create this spec file.
         else:
             # Absolute path of the directory containing this files.
-            pyinstaller_spec_dirname = buputil.get_path_dirname(
+            pyinstaller_spec_dirname = pathnames.get_dirname(
                 self._pyinstaller_spec_filename)
 
             # Absolute path of the current script wrapper.
-            script_filename = path.join(
+            script_filename = pathnames.join(
                 self.install_dir, script_basename)
-            buputil.die_unless_file(
+            files.die_unless_file(
                 script_filename, 'File "{}" not found. {}'.format(
                     script_filename, freeze.EXCEPTION_ADVICE))
 
             # Inform the user of this action *AFTER* the above validation.
             # Since specification files should typically be reused rather
             # than regenerated, do so as a non-fatal warning.
-            buputil.output_warning(
+            stderrs.output_warning(
                 'Generating spec file "{}".'.format(
                     self._pyinstaller_spec_filename))
 
@@ -454,22 +487,23 @@ class freeze(Command, metaclass = ABCMeta):
                 '--console' if script_type == 'console' else '--windowed',
 
                 # Non-default PyInstaller directories.
-                '--additional-hooks-dir=' + buputil.shell_quote(
+                '--additional-hooks-dir=' + shellstr.shell_quote(
                     self._pyinstaller_hooks_dirname),
-                '--specpath=' + buputil.shell_quote(pyinstaller_spec_dirname),
+                '--specpath=' + shellstr.shell_quote(pyinstaller_spec_dirname),
             ])
 
             # Append all subclass-specific options.
             self._pyinstaller_args.extend(self._get_pyinstaller_options())
 
             # Append the absolute path of this script.
-            self._pyinstaller_args.append(buputil.shell_quote(script_filename))
+            self._pyinstaller_args.append(
+                shellstr.shell_quote(script_filename))
 
             # Freeze this script and generate a spec file.
             self._run_pyinstaller_imported()
 
             # Absolute path of this file.
-            script_spec_filename = path.join(
+            script_spec_filename = pathnames.join(
                 pyinstaller_spec_dirname, script_basename + '.spec')
 
             # Rename this file to have the basename expected by the prior
@@ -478,10 +512,11 @@ class freeze(Command, metaclass = ABCMeta):
             # Note that "pyinstaller" accepts an option "--name" permitting
             # the basename of this file to be specified prior to generating
             # this file. Unfortunately, this option *ALSO* specifies the
-            # basename of the generated executable. While the former is reliably
-            # renamable, the former is *NOT* (e.g., due to code signing). Hence,
-            # this file is manually renamed without passing this option.
-            buputil.move_file(
+            # basename of the generated executable. While the former is
+            # reliably renamable, the former is *NOT* (e.g., due to code
+            # signing). Hence, this file is manually renamed without passing
+            # this option.
+            files.move_file(
                 script_spec_filename, self._pyinstaller_spec_filename)
 
 
@@ -496,30 +531,36 @@ class freeze(Command, metaclass = ABCMeta):
         that arise when running PyInstaller as an external command.
         '''
 
+        # Defer heavyweight imports.
+        from betse.util.py.module import pymodname
+
         # PyInstaller's top-level "__main__" module, providing programmatic
         # access to its CLI implementation.
-        pyinstaller_main = buputil.import_module(
-            'PyInstaller.__main__', exception_message=(
-            'PyInstaller not installed under the current Python interpreter.'))
+        pyinstaller_main = pymodname.import_module(
+            module_name='PyInstaller.__main__',
+            exception_message=(
+                'PyInstaller not installed under the '
+                'active Python interpreter.'))
 
         # Run PyInstaller and propagate its exit status as ours to the caller.
         print('Running PyInstaller with arguments: {}'.format(
             self._pyinstaller_args))
-        buputil.exit_with_status(
-            pyinstaller_main.run(pyi_args=self._pyinstaller_args))
+        sys.exit(pyinstaller_main.run(pyi_args=self._pyinstaller_args))
 
-    # ..................{ CLASS                              }..................
+    # ..................{ CLASS                             }..................
     @classmethod
-    def _check_entry_point(entry_point: EntryPoint):
+    def _check_entry_point(entry_point):
         '''
         Validate the passed entry point, describing the current script wrapper
         to be frozen.
         '''
-        assert isinstance(entry_point, EntryPoint), (
-            '"{}" not an entry point.'.format(entry_point))
+
+        # Defer heavyweight imports.
+        from betse.util.io import stderrs
+        from betse.util.py.module import pymodname
 
         # If this entry module is unimportable, raise an exception.
-        if not buputil.is_module(entry_point.module_name):
+        if not pymodname.is_module(entry_point.module_name):
             raise ImportError(
                 'Entry module "{}" unimportable. {}'.format(
                 entry_point.module_name, freeze.EXCEPTION_ADVICE))
@@ -529,7 +570,7 @@ class freeze(Command, metaclass = ABCMeta):
         # customary modules usually causes the frozen executable to reduce
         # to a noop (i.e., silently do nothing).
         if entry_point.module_name.split('.') != '__main__':
-            buputil.output_warning(
+            stderrs.output_warning(
                 'Entry module "{}" basename not "__main__".'.format(
                 entry_point.module_name))
 
@@ -538,11 +579,11 @@ class freeze(Command, metaclass = ABCMeta):
         # entry function usually causes the frozen executable to reduce to a
         # noop (i.e., silently do nothing).
         if not len(entry_point.attrs):
-            buputil.output_warning(
+            stderrs.output_warning(
                 'Entry module "{}" entry function undefined.'.format(
                 entry_point.module_name))
 
-    # ..................{ SUBCLASS                           }..................
+    # ..................{ SUBCLASS                          }..................
     @abstractmethod
     def _check_frozen_path(self, frozen_pathname: str) -> None:
         '''
@@ -550,44 +591,51 @@ class freeze(Command, metaclass = ABCMeta):
         the output frozen executable file or directory for the current input
         Python script (in a subclass-specific manner).
         '''
+
         pass
+
 
     @abstractmethod
     def _get_freeze_mode(self) -> str:
         '''
-        Get a string constant specific to this subclass.
+        String constant specific to this subclass.
 
-        This constant should be `file` when freezing in "one-file" mode and
-        `dir` when freezing in "one-directory" mode. The BETSE-specific
-        `__FREEZE_MODE` environment variable will be set to this constant,
-        informing the BETSE-specific PyInstaller specification file run in a
-        separate process of which mode to freeze in.
+        This constant should be either:
+
+        * ``file`` when freezing in "one-file" mode.
+        * ``dir`` when freezing in "one-directory" mode.
+
+        The application-specific ``__FREEZE_MODE`` environment variable will be
+        set to this constant, informing the application-specific PyInstaller
+        specification file run in a separate process of the mode to freeze in.
         '''
+
         pass
+
 
     @abstractmethod
     def _get_pyinstaller_options(self) -> list:
         '''
-        Get a list of subclass-specific command-line options to be passed to the
-        external `pyinstaller` command, when running such command in the absence
-        of a previously generated spec file.
+        List of subclass-specific command-line options to be passed to the
+        external ``pyinstaller`` command, when running such command in the
+        absence of a previously generated spec file.
 
-        When run with a previously generated spec file, such command effectively
-        accepts *no* such options. Hence, this method is only called when no
-        such file exists for the current script wrapper to be frozen.
+        When run with a previously generated spec file, that command
+        effectively accepts *no* such options. So, this method is only called
+        when no such file exists for the current script wrapper to be frozen.
         '''
         pass
 
-# ....................{ CLASSES ~ sub                      }....................
+# ....................{ SUBCOMMANDS ~ subclasses          }....................
 class freeze_dir(freeze):
     '''
     Create one platform-specific executable file in one subdirectory of the
-    top-level `dist` directory for each previously installed script for the
+    top-level ``dist`` directory for each previously installed script for the
     current application.
 
     See Also
     ----------
-    freeze
+    :class:`freeze`
         For further details.
     '''
 
@@ -596,37 +644,44 @@ class freeze_dir(freeze):
         'a platform-specific executable and all requisite dependencies'
     )
     '''
-    Command description printed on running `./setup.py --help-commands`.
+    Command description printed on running ``./setup.py --help-commands``.
     '''
 
     def _check_frozen_path(self, frozen_pathname: str) -> None:
         '''
         Validate that the directory to be generated is *not* an existing file
-        (e.g., due to a prior run of the `freeze_file` command).
+        (e.g., due to a prior run of the ``freeze_file`` subcommand).
 
-        Additionally, if such directory exists *and* the user passed option
-        `--clean`, such directory will be recursively deleted in a safe manner
-        (e.g., *not* following symbolic links outside such directory).
+        Additionally, if that directory exists *and* the user passed option
+        ``--clean``, that directory will be recursively deleted in a safe
+        manner (e.g., *not* following symbolic links outside that directory).
         '''
-        buputil.die_unless_dir_or_not_found(frozen_pathname)
+
+        # Defer heavyweight imports.
+        from betse.util.path import dirs
+
+        #FIXME: Define a new dirs.die_unless_dir_or_not_found() function
+        #resembling the existing buputils.die_unless_dir_or_not_found()
+        #function -- ideally with a more human-readable name.
+        dirs.die_unless_dir_or_not_found(frozen_pathname)
+
 
     def _get_freeze_mode(self) -> str:
         return 'dir'
 
+
     def _get_pyinstaller_options(self) -> list:
-        return [
-            '--onedir',
-        ]
+        return ['--onedir',]
 
 
 class freeze_file(freeze):
     '''
-    Create one platform-specific executable file in the top-level `dist`
+    Create one platform-specific executable file in the top-level ``dist``
     directory for each previously installed script for the current application.
 
     See Also
     ----------
-    freeze
+    :class:`freeze`
         For further details.
     '''
 
@@ -635,28 +690,31 @@ class freeze_file(freeze):
         'freeze each installed entry point to a platform-specific executable'
     )
     '''
-    Command description printed on running `./setup.py --help-commands`.
+    Command description printed on running ``./setup.py --help-commands``.
     '''
 
 
     def _check_frozen_path(self, frozen_pathname: str) -> None:
         '''
         Validate that the file to be generated is *not* an existing directory
-        (e.g., due to a prior run of the "freeze_dir" command).
+        (e.g., due to a prior run of the ``freeze_dir`` subcommand).
 
-        Additionally, if such file exists *and* the user passed option
-        `--clean`, such file will be deleted.
+        Additionally, if that file exists *and* the user passed option
+        ``--clean``, that file will be deleted.
         '''
 
-        buputil.die_unless_file_or_not_found(frozen_pathname)
+        # Defer heavyweight imports.
+        from betse.util.path import files
+
+        #FIXME: Define a new files.die_unless_file_or_not_found() function
+        #resembling the existing buputils.die_unless_file_or_not_found()
+        #function -- ideally with a more human-readable name.
+        files.die_unless_file_or_not_found(frozen_pathname)
 
 
     def _get_freeze_mode(self) -> str:
-
         return 'file'
 
-    def _get_pyinstaller_options(self) -> list:
 
-        return [
-            '--onefile',
-        ]
+    def _get_pyinstaller_options(self) -> list:
+        return ['--onefile',]

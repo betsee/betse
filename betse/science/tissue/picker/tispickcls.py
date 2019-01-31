@@ -184,7 +184,6 @@ class TissuePickerColor(TissuePickerABC):
         self.cells_color = cells_color
 
     # ..................{ PICKERS                           }..................
-    #FIXME: Implement this method up. Tangential tangelos are delicious!
     @type_check
     def pick_cells(
         self,
@@ -192,22 +191,20 @@ class TissuePickerColor(TissuePickerABC):
         p:     'betse.science.parameters.Parameters',
     ) -> SequenceTypes:
 
-        # search for cells matching the tissue profile color:
+        # If no cell cluster SVG is enabled, raise an exception.
+        if cells.seed_fills is None:
+            raise BetseSimConfException(
+                'Color-based cell targets type requires '
+                'cell cluster SVG to be enabled.')
+
+        # Search for cells matching the tissue profile color.
         selected_cells = []
 
-        if cells.seed_fills is not None:
-
-            for i, fi in enumerate(cells.seed_fills):
-                if fi == self.cells_color:
-                    selected_cells.append(i)
-
-        else: # if seed_fills is None, then an svg is not being run so raise exception
-
-            from betse.exceptions import BetseMethodUnimplementedException
-            raise BetseMethodUnimplementedException()
+        for i, fi in enumerate(cells.seed_fills):
+            if fi == self.cells_color:
+                selected_cells.append(i)
 
         return selected_cells
-
 
 
 class TissuePickerIndices(TissuePickerABC):
@@ -275,7 +272,7 @@ class TissuePickerPercent(TissuePickerABC):
         # important enough to always test rather than defer to assertions.
         if not 0.0 <= cells_percent <= 100.0:
             raise BetseSimConfException(
-                '{} not in the range [0.0, 100.0].'.format(cells_percent))
+                'Percentage {} not in range [0, 100].'.format(cells_percent))
 
         # Classify this parameter.
         self.cells_percent = cells_percent

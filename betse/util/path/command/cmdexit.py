@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,12 +7,12 @@
 Low-level external process facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import sys
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 SUCCESS = 0
 '''
 Exit status signifying a process to have terminated successfully.
@@ -21,14 +21,14 @@ Exit status signifying a process to have terminated successfully.
 
 FAILURE_DEFAULT = 1
 '''
-Exit status typically signifying a process to have terminated prematurely with a
-fatal error.
+Exit status typically signifying a process to have terminated prematurely with
+a fatal error.
 
 While any exit status in the range ``[1, 255]`` signifies failure, this exit
 status is the most common and hence preferred default.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def raise_success() -> None:
     '''
     Raise the :class:`SystemExit` exception with the success exit status (i.e.,
@@ -39,7 +39,7 @@ def raise_success() -> None:
     raise SystemExit(SUCCESS)
 
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_success(exit_status: int) -> bool:
     '''
@@ -57,7 +57,7 @@ def is_failure(exit_status: int) -> bool:
 
     return exit_status != SUCCESS
 
-# ....................{ EXITERS                            }....................
+# ....................{ EXITERS                           }....................
 def exit_with_success(error_message: str = '') -> None:
     '''
     Halt the current process with the success exit status (i.e.,
@@ -65,7 +65,7 @@ def exit_with_success(error_message: str = '') -> None:
     silently otherwise.
     '''
 
-    exit(exit_status=FAILURE_DEFAULT, exit_message=error_message)
+    exit_with_status(exit_status=FAILURE_DEFAULT, exit_message=error_message)
 
 
 def exit_with_failure(error_message: str = '') -> None:
@@ -75,11 +75,12 @@ def exit_with_failure(error_message: str = '') -> None:
     exiting silently otherwise.
     '''
 
-    exit(exit_status=FAILURE_DEFAULT, exit_message=error_message)
+    exit_with_status(exit_status=FAILURE_DEFAULT, exit_message=error_message)
 
 
 @type_check
-def exit(exit_status: int = FAILURE_DEFAULT, exit_message: str = '') -> None:
+def exit_with_status(
+    exit_status: int = FAILURE_DEFAULT, exit_message: str = '') -> None:
     '''
     Halt the current process with the passed exit status, logging the passed
     message if nonempty *or* exiting silently otherwise.
