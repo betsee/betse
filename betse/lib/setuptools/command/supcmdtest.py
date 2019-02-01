@@ -9,11 +9,18 @@ High-level custom ``test`` :mod:`setuptools` subcommand.
 
 # ....................{ IMPORTS                           }....................
 import sys
+from betse.exceptions import BetseTestException
 from betse.lib.setuptools.command import supcommand
-from distutils.errors import DistutilsClassError
 from setuptools import Command
 
 # ....................{ ADDERS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To raise human-readable exceptions on missing mandatory
+# dependencies, the top-level of this module may import *ONLY* from packages
+# guaranteed to exist at installation time -- which typically means *ONLY*
+# BETSE packages and stock Python packages.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 def add_subcommand(setup_options: dict, custom_metadata: dict) -> None:
     '''
     Add the custom ``test`` :mod:`setuptools` subcommand to the passed
@@ -212,10 +219,10 @@ class test(Command):
         # Failing to do so raises obtuse exceptions at runtime... which is bad.
         self._pytest_public = pymodname.import_module(
             'pytest', exception_message=(
-            'py.test not installed under the current Python interpreter.'))
+                'py.test not installed under the active Python interpreter.'))
         self._pytest_private = pymodname.import_module(
             '_pytest', exception_message=(
-            'py.test not installed under the current Python interpreter.'))
+                'py.test not installed under the active Python interpreter.'))
 
 
     def _patch_pytest(self) -> None:
@@ -248,7 +255,7 @@ class test(Command):
         # If the private method to be monkey-patched no longer exists, py.test
         # is either broken or unsupported. In either case, raise an exception.
         if not objects.is_method(CaptureManager, '_getcapture'):
-            raise DistutilsClassError(
+            raise BetseTestException(
                 'Method pytest.capture.CaptureManager._getcapture() '
                 'not found. The current version of py.test is either '
                 'broken (unlikely) or unsupported (likely).'
@@ -345,9 +352,9 @@ class test(Command):
         # If this plugin is unimportable, print a non-fatal warning. Due to the
         # cost of running tests, parallelization is highly recommended.
         # if not is_xdist:
-        #     buputil.output_warning(
+        #     stderrs.output_warning(
         #         'Optional py.test plugin "pytest-xdist" not found.')
-        #     buputil.output_warning(
+        #     stderrs.output_warning(
         #         'Tests will *NOT* be parallelized across multiple processors.')
 
         # Pass options passed to this subcommand to this py.test command,
@@ -399,22 +406,22 @@ class test(Command):
             # all available processors.
             pytest_args.extend(['-n', 'auto'])
 
-        # Instruct "py.test" of the relative pathname to the top-level
-        # directory for this project. On startup, "py.test" internally:
+        # Instruct "py.test" of the relative dirname of the top-level directory
+        # for this project. On startup, "py.test" internally:
         #
-        # * Sets its "rootdir" property to this pathname in absolute form.
-        # * Sets its "inifile" property to the concatenation of this pathname
-        #   with the basename "pytest.ini" if this top-level configuration file
+        # * Sets its "rootdir" property to this dirname in absolute form.
+        # * Sets its "inifile" property to the concatenation of this dirname
+        #   with the basename "pytest.ini" if that top-level configuration file
         #   exists.
         # * Prints the initial values of these properties to stdout.
         #
         # *THIS IS ESSENTIAL.* If "py.test" is *NOT* explicitly passed this
-        # relative pathname as an argument, "py.test" typically fails to set
-        # these properties to the expected paths. For unknown reasons
+        # relative dirname as an argument, "py.test" typically fails to set
+        # these properties to the expected pathnames. For unknown reasons
         # (presumably unresolved "py.test" issues), "py.test" instead sets
-        # "rootdir" to the absolute path of the current user's home directory
-        # and "inifile" to "None" -- because no current user's home directory
-        # contains a "pytest.ini" file. The error output resembles:
+        # "rootdir" to the absolute dirname of the current user's home
+        # directory and "inifile" to "None". Why? Since no user's home
+        # directory contains a "pytest.ini" file! The error output resembles:
         #
         #    $ ./test -k test_sim_export --export-sim-conf-dir ~/tmp/yolo
         #    running test

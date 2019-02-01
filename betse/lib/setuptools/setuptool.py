@@ -12,10 +12,6 @@ dependency simplifying inspection of application dependencies.
 import pkg_resources
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
-from betse.util.py.module import pymodname, pymodule
-from betse.util.py.module.pymodname import (
-    DISTUTILS_PROJECT_NAME_TO_MODULE_NAME)
-from betse.util.type.iterable import itersort
 from betse.util.type.types import (
     type_check,
     DistributionOrNoneTypes,
@@ -141,6 +137,11 @@ def die_unless_requirement(requirement: Requirement) -> None:
     BetseLibException
         If this requirement is unsatisfiable.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.py.module import pymodule
+    from betse.util.py.module.pymodname import (
+        DISTUTILS_PROJECT_NAME_TO_MODULE_NAME)
 
     # Human-readable exception to be raised below if any.
     betse_exception = None
@@ -275,6 +276,9 @@ def is_requirement(requirement: Requirement) -> bool:
         ``True`` only if this requirement is satisfiable.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.py.module import pymodule
+
     try:
         # Object describing the currently installed version of the package or
         # module satisfying this requirement if any or "None" if this
@@ -312,7 +316,7 @@ def is_requirement(requirement: Requirement) -> bool:
         return True
     # Else, this requirement is versioned.
 
-    # Package version if any or "None" otherwise.
+    # Package version if any *OR* "None" otherwise.
     package_version = pymodule.get_version_or_none(package)
 
     # Return "True" only if this version exists and satisfies this requirement.
@@ -537,6 +541,9 @@ def get_requirement_synopsis(requirement: Requirement) -> str:
     str
         Human-readable string describing this requirement.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.py.module import pymodule
 
     # Distribution satisfying this requirement if any or "None" otherwise.
     distribution = None
@@ -783,6 +790,9 @@ def get_requirements_str_synopsis(*requirements_str: str) -> OrderedDict:
         function).
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.type.iterable import itersort
+
     # Lexicographically sorted tuple of these strings.
     requirement_strs_sorted = itersort.sort_ascending(requirements_str)
 
@@ -912,6 +922,11 @@ def import_requirement(requirement: Requirement) -> ModuleType:
     ImportError
         If this package is unimportable.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.py.module import pymodname
+    from betse.util.py.module.pymodname import (
+        DISTUTILS_PROJECT_NAME_TO_MODULE_NAME)
 
     # Fully-qualified name of this requirement's package.
     package_name = DISTUTILS_PROJECT_NAME_TO_MODULE_NAME[

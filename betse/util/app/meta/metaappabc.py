@@ -314,9 +314,48 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
     # ..................{ PROPERTIES ~ dir                  }..................
     @property_cached
+    def project_dirname(self) -> str:
+        '''
+        Absolute dirname of this application's **root project directory**
+        (i.e., top-level directory containing this application's installable
+        ``pyproject.toml`` file or ``setup.py`` script) if found *or* raise an
+        exception otherwise (i.e., if this directory is *not* found).
+
+        Equivalently, this is the same as:
+
+        * The root directory archived by release tarballs for this application.
+        * The Git-based working tree for this application (i.e., the top-level
+          directory containing this application's ``.git`` subdirectory).
+
+        Caveats
+        ----------
+        **This directory typically does not exist.** This directory is only
+        required during installation by non-developers *or* during development
+        by developers. Once this application has been installed in a standard
+        (i.e., non-editable) fashion by non-developers, this directory is no
+        longer required and hence should *not* be assumed to exist.
+
+        Raises
+        ----------
+        BetseDirException
+            If this directory does *not* exist.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.path import dirs
+        from betse.util.py.module import pypackage
+
+        # Absolute dirname of the parent directory of our top-level package.
+        package_dirname = pypackage.get_package_project_dirname(self.package)
+
+        # If this directory is not found, fail; else, return this directory.
+        return dirs.dir_or_die(package_dirname)
+
+
+    @property_cached
     def package_dirname(self) -> str:
         '''
-        Absolute pathname of this application's root package directory if found
+        Absolute dirname of this application's root package directory if found
         *or* raise an exception otherwise (i.e., if this directory is *not*
         found).
 
@@ -334,7 +373,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
         from betse.util.path import dirs
         from betse.util.py.module import pymodule
 
-        # Absolute pathname of the directory yielding our top-level package.
+        # Absolute dirname of the directory yielding our top-level package.
         package_dirname = pymodule.get_dirname(self.package)
 
         # If this directory is not found, fail; else, return this directory.
@@ -344,9 +383,10 @@ class MetaAppABC(object, metaclass=ABCMeta):
     @property_cached
     def dot_dirname(self) -> str:
         '''
-        Absolute dirname of this application's top-level dot directory in the
-        home directory of the current user, silently creating this directory if
-        *not* already found.
+        Absolute dirname of this application's **root dot directory** (i.e.,
+        top-level directory containing this application's user-specific files
+        and hence residing in the home directory of the current user), silently
+        creating this directory if *not* already found.
 
         This directory contains user-specific files (e.g., logfiles, profile
         files) both read from and written to at application runtime. These are
@@ -382,10 +422,10 @@ class MetaAppABC(object, metaclass=ABCMeta):
         from betse.util.os.shell import shellenv
         from betse.util.path import dirs, pathnames
 
-        # Absolute path of this directory.
+        # Absolute dirname of this directory.
         dot_dirname = None
 
-        # If the current platform is macOS, return the appropriate directory.
+        # If the current platform is macOS, set the appropriate directory.
         if oses.is_macos():
             dot_dirname = pathnames.join(
                 pathnames.get_home_dirname(),
@@ -393,7 +433,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
                 'Application Support',
                 self.package_name,
             )
-        # If the current platform is Windows, return the appropriate directory.
+        # If the current platform is Windows, set the appropriate directory.
         elif oses.is_windows():
             dot_dirname = pathnames.join(
                 shellenv.get_var('APPDATA'), self.package_name)
@@ -408,7 +448,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
         # Create this directory if not found.
         dirs.make_unless_dir(dot_dirname)
 
-        # Return this directory's path.
+        # Return this dirname.
         return dot_dirname
 
     # ..................{ PROPERTIES ~ dir : data           }..................
@@ -457,7 +497,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
         # Avoid circular import dependencies.
         from betse.util.path import dirs
 
-        # Absolute pathname of this application's Git-based working tree if
+        # Absolute dirname of this application's Git-based working tree if
         # this application was installed for development or "None" otherwise.
         git_worktree_dirname = self.git_worktree_dirname_or_none
 
@@ -474,7 +514,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
     @property_cached
     def git_worktree_dirname_or_none(self) -> StrOrNoneTypes:
         '''
-        Absolute dirname of this application's Git-based **working tree**
+        Absolute dirname of this application's **Git-based working tree**
         (i.e., top-level directory containing this application's ``.git``
         subdirectory and ``setup.py`` install script) if this application was
         installed in a developer manner *or* ``None`` otherwise.

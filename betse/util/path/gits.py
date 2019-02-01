@@ -75,15 +75,18 @@ def get_package_worktree_dirname_or_none(
     package: ModuleType) -> StrOrNoneTypes:
     '''
     **Absolute canonical dirname** (i.e., absolute dirname after resolving
-    symbolic links) of the Git-based **working tree** (i.e., top-level
+    symbolic links) of the **Git-based working tree** (i.e., top-level
     directory containing the canonical ``.git`` subdirectory) governing the
-    passed top-level Python package if that package was installed in a
-    developer manner *or* ``None`` otherwise.
+    passed top-level Python package if found *or* ``None`` otherwise.
 
     Caveats
     ----------
-    For both safety and efficiency, this function does *not* recursively search
-    the filesystem up from the directory providing this package for a ``.git``
+    **This directory typically does not exist.** This directory is only
+    required during development by developers and hence should *not* be assumed
+    to exist.
+
+    For safety and efficiency, this function does *not* recursively search the
+    filesystem up from the directory yielding this package for a ``.git``
     subdirectory; rather, this function only directly searches that directory
     itself for such a subdirectory. For that reason, this function typically
     returns ``None`` for *all* modules except top-level packages installed in a

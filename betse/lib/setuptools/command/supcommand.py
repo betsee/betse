@@ -8,6 +8,13 @@ Low-level :mod:`setuptools` command facilities.
 '''
 
 # ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To raise human-readable exceptions on missing mandatory
+# dependencies, the top-level of this module may import *ONLY* from packages
+# guaranteed to exist at installation time -- which typically means *ONLY*
+# BETSE packages and stock Python packages.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 from betse.util.type.types import type_check, GeneratorType, MappingType
 from pkg_resources import Distribution, PathMetadata
 from setuptools import Command
@@ -20,8 +27,8 @@ def add_subcommand(
 
     #FIXME: Type-check each such command to be a "Command". For unknown
     #reasons, Python is currently complaining that "freeze_dir" is not a
-    #"Command", despite clearly being a "Command". *collective_shrug*
-    *subcommands,
+    #"Command", despite clearly being a "Command". </collective_shrug>
+    *subcommands
 ) -> None:
     '''
     Define one custom :mod:`setuptools` subcommand for each passed class,

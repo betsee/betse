@@ -348,16 +348,6 @@ def is_module(module_name: str) -> bool:
         except ImportError:
             return False
 
-# ....................{ GETTERS                           }....................
-def get_project_dirname():
-    '''
-    Get the absolute path of the directory containing the currently run
-    `setup.py` script.
-    '''
-    # While such path is also typically  available as the first entry of the
-    # "sys.path" list, you know what they say about assumptions.
-    return get_path_dirname(get_path_dirname(__file__))
-
 # ....................{ GETTERS ~ io                      }....................
 def get_command_output(*args) -> str:
     '''

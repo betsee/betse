@@ -17,10 +17,10 @@ See Also
 
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: To raise human-readable exceptions on missing mandatory dependencies,
-# the top-level of this module may import *ONLY* from packages guaranteed to
-# exist at installation time -- which typically means *ONLY* BETSE packages and
-# stock Python packages.
+# WARNING: To raise human-readable exceptions on missing mandatory
+# dependencies, the top-level of this module may import *ONLY* from packages
+# guaranteed to exist at installation time -- which typically means *ONLY*
+# BETSE packages and stock Python packages.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse.exceptions import BetseModuleException

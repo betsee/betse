@@ -26,6 +26,13 @@ no plausible alternatives exist.
 '''
 
 # ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To raise human-readable exceptions on missing mandatory
+# dependencies, the top-level of this module may import *ONLY* from packages
+# guaranteed to exist at installation time -- which typically means *ONLY*
+# BETSE packages and stock Python packages.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 from betse.lib.setuptools.command import supcommand
 from setuptools.command.install import install
 from setuptools.command.install_lib import install_lib
@@ -130,6 +137,7 @@ class symlink(install):
         '''
 
         # Defer heavyweight imports.
+        from betse.util.app.meta import metaappton
         from betse.util.io import stderrs
         from betse.util.os import oses
 
@@ -147,9 +155,8 @@ class symlink(install):
                 'symbolic links will be faked with black magic.'
             )
 
-            # Absolute path of the parent directory containing the top-level
-            # "betse" package.
-            parent_dirname = supcommand.get_project_dirname()
+            # Absolute dirname of this application's project directory.
+            project_dirname = metaappton.get_app_meta().project_dirname
             # print('parent: ' + parent_dirname)
 
             # Prepend the template for subsequently installed entry points by a
@@ -163,7 +170,7 @@ class symlink(install):
 # preserved by inserting at index 1 rather than 0.
 import sys
 sys.path.insert(1, {})
-            """.format(repr(parent_dirname)) + build.SCRIPT_TEMPLATE
+            """.format(repr(project_dirname)) + build.SCRIPT_TEMPLATE
 
         # Run all subcommands.
         for subcommand_name in self.get_sub_commands():

@@ -44,6 +44,13 @@ High-level custom ``freeze`` :mod:`setuptools` subcommands.
 #    https://github.com/pyinstaller/pyinstaller/wiki/Recipe-Setuptools-Entry-Point
 
 # ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To raise human-readable exceptions on missing mandatory
+# dependencies, the top-level of this module may import *ONLY* from packages
+# guaranteed to exist at installation time -- which typically means *ONLY*
+# BETSE packages and stock Python packages.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 import os, sys
 from abc import ABCMeta, abstractmethod
 from betse.lib.setuptools.command import supcommand
@@ -379,6 +386,7 @@ class freeze(Command, metaclass=ABCMeta):
         '''
 
         # Defer heavyweight imports.
+        from betse.util.app.meta import metaappton
         from betse.util.os.shell import shellenv
         from betse.util.path import files, pathnames
 
@@ -397,9 +405,7 @@ class freeze(Command, metaclass=ABCMeta):
         # Instead, we reverse-engineer the desired path via brute-force path
         # manipulation. Thus burns out another tawdry piece of my soul.
         module_filename = pathnames.join(
-            #FIXME: Define a new supcommand.get_setup_dirname() function
-            #resembling the existing buputils.get_project_dirname() function.
-            supcommand.get_project_dirname(),
+            metaappton.get_app_meta().project_dirname,
             entry_point.module_name.replace('.', os.path.sep) + '.py')
 
         # Ensure such module exists.

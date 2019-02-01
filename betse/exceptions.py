@@ -55,14 +55,6 @@ class BetseMetaAppException(BetseException):
 
     pass
 
-
-class BetseModuleException(BetseException):
-    '''
-    Module-specific exception.
-    '''
-
-    pass
-
 # ....................{ EXCEPTIONS ~ call                 }....................
 class BetseCallableException(BetseException):
     '''
@@ -237,6 +229,22 @@ class BetseMathPointException(BetseMathException):
 class BetseMathPolygonException(BetseMathException):
     '''
     Polygon-specific math exception.
+    '''
+
+    pass
+
+# ....................{ EXCEPTIONS ~ module               }....................
+class BetseModuleException(BetseException):
+    '''
+    Module-specific exception.
+    '''
+
+    pass
+
+
+class BetsePackageException(BetseModuleException):
+    '''
+    Module-specific exception.
     '''
 
     pass
