@@ -69,12 +69,9 @@ engine optimization (SEO). In actuality, they do absolutely nothing.
 # "Programming Language :: Python :: "-prefixed strings are dynamically
 # appended to this list by the init() function below.
 _CLASSIFIERS = [
-    #FIXME: Replace with the following after the "1.0.0" release:
-    #    'Development Status :: 5 - Production/Stable',
-
     # PyPI-specific version type. The number specified here is a magic constant
     # with no relation to this application's version numbering scheme. *sigh*
-    'Development Status :: 4 - Beta',
+    'Development Status :: 5 - Production/Stable',
 
     # Sublist of all supported platform-specific CLI and GUI components.
     'Environment :: Console',

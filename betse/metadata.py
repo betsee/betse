@@ -306,11 +306,8 @@ URL of this application's homepage.
 '''
 
 
-URL_DOWNLOAD = (
-    'https://gitlab.com/betse/betse/repository/archive.tar.gz?ref=v{}'.format(
-        VERSION,
-    )
-)
+URL_DOWNLOAD = '{}/repository/archive.tar.gz?ref=v{}'.format(
+    URL_HOMEPAGE, VERSION)
 '''
 URL of the source tarball for the current version of this application.
 

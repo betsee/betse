@@ -259,6 +259,15 @@ BETSE is releasable to all supported platforms as follows:
 
       $ git push && git push --tags
 
+#. **Reinstall this package.** Doing so updates the setuptools-specific
+   version associated with its internal installation of this package, ensuring
+   that subsequent attempts to install downstream packages requiring this
+   version (e.g., BETSEE, BiCoDi) will succeed as expected.
+
+   .. code-block:: console
+
+      $ sudo python3 setup.py develop
+
 #. (\ *Optional*\ ) **Test the remote installation of this release.**
 
    #. **Test this release on** `Test PyPI`_. Note that, as this server is a
