@@ -73,7 +73,6 @@ from betse.util.type.iterable import itersort
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.numeric import versions
-from betse.util.type.text import regexes, strs
 from betse.util.type.types import (
     type_check, MappingType, SequenceTypes, SetType, StrOrNoneTypes,)
 from contextlib import contextmanager
@@ -407,6 +406,9 @@ class MplConfig(object):
             application requirements (in descending order of preference).
         '''
 
+        # Avoid circular import dependencies.
+        from betse.util.type.text.string import strjoin
+
         # If no specific backend is requested *AND* the active Python process
         # is headless and hence supports only headless backends...
         if backend_name is None and displays.is_headless():
@@ -477,7 +479,7 @@ class MplConfig(object):
                 'Defaulting to usable CLI-based backend "%s". '
                 'Consider installing support for GUI-based backends %s.',
                 _BACKEND_NAME_HEADLESS,
-                strs.join_as_disconjunction_double_quoted(*backend_names))
+                strjoin.join_as_disconjunction_double_quoted(*backend_names))
 
             # Default to this backend and return.
             self.backend_name = _BACKEND_NAME_HEADLESS
@@ -493,7 +495,7 @@ class MplConfig(object):
             'No usable matplotlib backend found. '
             '{}-supported backends tested include (in order): {}.'.format(
                 kernel_name,
-                strs.join_as_conjunction_double_quoted(*backend_names)))
+                strjoin.join_as_conjunction_double_quoted(*backend_names)))
 
     # ..................{ PROPERTIES                        }..................
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -513,6 +515,7 @@ class MplConfig(object):
 
         # Delay importation of the "matplotlib.__init__" module.
         import matplotlib
+        from betse.util.type.text import regexes
 
         # Currently installed version of matplotlib to be returned.
         version_return = matplotlib.__version__

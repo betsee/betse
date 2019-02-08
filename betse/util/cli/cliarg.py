@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -11,14 +11,13 @@ Low-level command-line argument facilities.
 #by contributing a patch. See:
 #    http://bugs.python.org/issue12806
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import re
 from argparse import HelpFormatter
 # from betse.util.io.log import logs
-from betse.util.type.text import strs
 from betse.util.type.types import type_check, GeneratorType, SequenceTypes
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 _BLANK_LINE_REGEX = re.compile(r'^\s*$')
 '''
 Regular expression matching only blank lines.
@@ -30,7 +29,7 @@ _INDENTATION_REGEX = re.compile(r'^( *)')
 Regular expression capturing all spaces prefixing the subject string.
 '''
 
-# ....................{ FORMATTERS                         }....................
+# ....................{ FORMATTERS                        }....................
 class SemicolonAwareHelpFormatter(HelpFormatter):
     '''
     Formatter wrapping all lines *not* prefixed by ``;`` in
@@ -92,7 +91,7 @@ class SemicolonAwareHelpFormatter(HelpFormatter):
         And whither then? I cannot say.
     '''
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS                        }..................
     def _fill_text(self, text: str, width: int, indent: str) -> str:
         '''
         Passed string with all non-indented lines wrapped into paragraphs.
@@ -109,7 +108,7 @@ class SemicolonAwareHelpFormatter(HelpFormatter):
 
         return self._split_lines_indented(text, width)
 
-    # ..................{ SUBCLASS                           }..................
+    # ..................{ SUBCLASS                          }..................
     @type_check
     def _split_lines_indented(
         self, text: str, width: int, indent: str = '') -> list:
@@ -118,10 +117,13 @@ class SemicolonAwareHelpFormatter(HelpFormatter):
         text into paragraphs and splitting this string on newlines.
         '''
 
+        # Avoid circular import dependencies.
+        from betse.util.type.text.string import strs
+
         # Initialize this text wrapper with the passed arguments.
-        strs.text_wrapper.width = width
-        strs.text_wrapper.initial_indent = indent
-        strs.text_wrapper.subsequent_indent = indent
+        strs.text_wrapper_config.width = width
+        strs.text_wrapper_config.initial_indent = indent
+        strs.text_wrapper_config.subsequent_indent = indent
 
         # List of lines wrapped from this text.
         lines = []
@@ -153,8 +155,8 @@ class SemicolonAwareHelpFormatter(HelpFormatter):
 
         # For each line split from this text...
         for line in text.splitlines():
-            # If this line is a blank line, pretend this line consisted of a ";"
-            # instead to force this line to stop wrapping the currently
+            # If this line is a blank line, pretend this line consisted of a
+            # ";" instead to force this line to stop wrapping the currently
             # accumulated paragraph if any.
             if _BLANK_LINE_REGEX.match(line):
                 line = ';'
@@ -195,14 +197,17 @@ class SemicolonAwareHelpFormatter(HelpFormatter):
     @type_check
     def _wrap_lines(self, lines: SequenceTypes, main_indent_len: int) -> list:
         '''
-        Join the passed list of lines on newline, reduce two or more consecutive
-        whitespace characters in the passed string to one space, strip leading
-        and trailing whitespace, wrap the result, and return a wrapped list of
-        lines.
+        Join the passed list of lines on newline, reduce two or more
+        consecutive whitespace characters in the passed string to one space,
+        strip leading and trailing whitespace, wrap the result, and return a
+        wrapped list of lines.
 
         Since the base class performs the same reduction and stripping of
         whitespace, so do we.
         '''
+
+        # Avoid circular import dependencies.
+        from betse.util.type.text.string import strjoin, strs
 
         # Difference in spaces between the indentation of the first line of the
         # entire text passed above and the indentation of the first line of the
@@ -213,15 +218,15 @@ class SemicolonAwareHelpFormatter(HelpFormatter):
         paragraph_indent = ' ' * paragraph_indent_len
 
         # Indent each wrapped line by this difference.
-        strs.text_wrapper.initial_indent    = paragraph_indent
-        strs.text_wrapper.subsequent_indent = paragraph_indent
+        strs.text_wrapper_config.initial_indent    = paragraph_indent
+        strs.text_wrapper_config.subsequent_indent = paragraph_indent
 
         # Strip and wrap these lines.
-        return strs.text_wrapper.wrap(
+        return strs.text_wrapper_config.wrap(
             self._whitespace_matcher.sub(
-                ' ', strs.join_on_newline(lines)).strip())
+                ' ', strjoin.join_on_newline(lines)).strip())
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def _get_text_indent_len(text: str) -> int:
     '''

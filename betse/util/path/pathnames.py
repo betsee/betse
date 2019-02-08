@@ -346,7 +346,7 @@ def is_parent(parent_dirname: str, child_pathname: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # Absolute or relative pathname of the candidate parent directory, suffixed
     # by this platform's directory separator to ensure this child is actually a
@@ -383,7 +383,7 @@ def is_filetype_equals(pathname: str, filetype: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # Prefix this filetype by "." if needed.
     filetype = dot_filetype(filetype)
@@ -547,7 +547,7 @@ def get_pathname_sans_filetypes(pathname: str) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # Dirname of this path if any or the empty string otherwise.
     dirname = get_dirname_or_empty(pathname)
@@ -649,7 +649,7 @@ def dot_filetype(filetype: str) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # Return this filetype prefixed by "." if needed.
     return strs.add_prefix_unless_found(text=filetype, prefix='.')
@@ -676,7 +676,7 @@ def undot_filetype(filetype: str) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # Return this filetype prefixed by "." if needed.
     return strs.remove_prefix_if_found(text=filetype, prefix='.')

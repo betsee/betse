@@ -25,7 +25,7 @@ from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.pyprofile import profile_callable, ProfileType
 from betse.util.type import types
 from betse.util.type.decorator.deccls import abstractproperty
-from betse.util.type.text import strs
+from betse.util.type.text.string import strs
 from betse.util.type.types import (
     type_check,
     ArgParserType,

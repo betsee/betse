@@ -184,13 +184,13 @@ def get_shebang() -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strjoin
 
     # List of one or more shell words unambiguously running this binary.
     py_command_args = get_command_line_prefix()
 
     # Space-delimited string listing these words.
-    py_command = strs.join_on_space(py_command_args)
+    py_command = strjoin.join_on_space(py_command_args)
 
     # Return this string prefixed by the shebang identifier.
     return '#!' + py_command

@@ -692,7 +692,7 @@ def expr_enum_alias(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
     from betse.util.type.cls import classes
 
     # Validate the names of all members of this enumeration to be uppercase.

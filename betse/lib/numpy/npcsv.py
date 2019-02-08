@@ -14,7 +14,6 @@ from betse.exceptions import BetseSequenceException, BetseStrException
 from betse.util.io.log import logs
 from betse.util.path import dirs
 from betse.util.type import types
-from betse.util.type.text import strs
 from betse.util.type.types import type_check
 from collections import OrderedDict
 
@@ -71,6 +70,9 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
         * Double quotes, reserved for use as the CSV quoting character.
         * Newlines, reserved for use as the CSV row delimiting character.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text.string import strjoin
 
     # Log this serialization.
     logs.log_debug('Writing CSV file: %s', filename)
@@ -138,7 +140,7 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
         column_names.append(column_name)
 
     # Comma-separated string listing all column names.
-    columns_name = strs.join_on(column_names, delimiter=',')
+    columns_name = strjoin.join_on(column_names, delimiter=',')
 
     # Two-dimensional sequence of all column data, whose:
     #

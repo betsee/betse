@@ -22,7 +22,7 @@ from betse.util.io.log import logs
 from betse.util.path import files, pathnames
 from betse.util.type.decorator.decorators import deprecated
 from betse.util.type.decorator.decprof import log_time_seconds
-from betse.util.type.text import strs
+from betse.util.type.text.string import strs
 from betse.util.type.types import type_check
 from matplotlib.collections import LineCollection, PolyCollection
 

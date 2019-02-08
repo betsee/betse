@@ -345,7 +345,7 @@ def get_size_profile(
 
     # Avoid circular import dependencies.
     from betse.util.type.iterable import itersort
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strjoin, strs
     from betse.util.type.numeric.ints import MiB
     from betse.util.type.obj import objects, objiter
 
@@ -588,7 +588,7 @@ def get_size_profile(
             (_TYPE_FORMATTER + _SIZE_FORMATTER).format(obj, obj_size) +
 
             # The size of each variable bound to this object.
-            strs.join_by_index(
+            strjoin.join_by_index(
                 iterable=vars_size_profile_sorted, subiterable_index=0) +
 
             # The substring suffixing this entire synopsis if any.

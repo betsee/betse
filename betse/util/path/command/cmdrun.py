@@ -354,7 +354,7 @@ def _log_pipe_lines(pipe: TextIOWrapper, log_level: LogLevel) -> None:
 
     # Avoid circular import dependencies.
     from betse.util.io.iofiles import READLINE_EOF
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # With this pipe contextually opened for reading...
     with pipe:

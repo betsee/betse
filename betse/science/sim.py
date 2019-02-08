@@ -1980,7 +1980,7 @@ class Simulator(object):
             Current simulation phase.
         '''
 
-        from betse.util.type.text import strs
+        from betse.util.type.text.string import strjoin
 
         logs.log_info('This world contains %d cells.', phase.cells.cell_number)
         logs.log_info(
@@ -1989,7 +1989,8 @@ class Simulator(object):
         logs.log_info(
             'The "%s" ion profile enables the %s ions.',
             phase.p.ion_profile.name.lower(),
-            strs.join_as_conjunction_double_quoted(*phase.sim.ionlabel.values()))
+            strjoin.join_as_conjunction_double_quoted(
+                *phase.sim.ionlabel.values()))
         logs.log_info(
             'If you have selected features using other ions, '
             'they will be ignored.')
@@ -1997,7 +1998,8 @@ class Simulator(object):
 
         if phase.p.is_ecm:
             logs.log_info(
-                'Cells per environmental grid square: %.2f', phase.cells.ratio_cell2ecm)
+                'Cells per environmental grid square: %.2f',
+                phase.cells.ratio_cell2ecm)
 
         logs.log_info(
             'Electroosmotic fluid flow: %s', str(phase.p.fluid_flow))
@@ -2017,8 +2019,7 @@ class Simulator(object):
                 'Gene regulatory network (GRN) configuration: %s',
                 phase.p.grn_config_filename)
 
-    #.................{  DOOERs & GETTERS  }............................................
-
+    # ..................{ UPDATERS                          }..................
     def update_V(self,cells,p):
 
         # save the voltage as a placeholder:
@@ -2172,6 +2173,7 @@ class Simulator(object):
 
             self.endo_retic.update(self, cells, p)
 
+
     def update_gj(self,cells,p,t,i):
 
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
@@ -2217,6 +2219,7 @@ class Simulator(object):
 
 
         self.fluxes_gj[i] = self.fluxes_gj[i] + fgj_X   # store gap junction flux for this ion
+
 
     def update_ecm(self,cells,p,t,i):
 
@@ -2264,6 +2267,7 @@ class Simulator(object):
             cenv = fd.integrator(cenv, sharp = p.sharpness)
 
         self.cc_env[i] = cenv.ravel()
+
 
     def update_intra(self, cells, p, i):
 
@@ -2320,13 +2324,15 @@ class Simulator(object):
         # uncomment this to skip the above computational loop ---------------
         self.cc_at_mem[i] = cav*1
 
+    # ..................{ GETTERS                           }..................
     def get_ion(self, ion_name: str) -> int:
         '''
-        0-based index assigned to the ion with the passed name (e.g., ``Na``) if
-        this ion is enabled by this simulation *or* the empty list otherwise.
+        0-based index assigned to the ion with the passed name (e.g., ``Na``)
+        if this ion is enabled by this simulation *or* the empty list
+        otherwise.
 
-        This index is guaranteed to uniquely (but arbitrarily) identify this ion
-        with respect to this simulation.
+        This index is guaranteed to uniquely (but arbitrarily) identify this
+        ion with respect to this simulation.
         '''
 
         if ion_name == 'Na':

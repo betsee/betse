@@ -118,7 +118,7 @@ def test_packages_init() -> None:
     from betse.util.io.log import logs
     from betse.util.path import dirs, files, pathnames
     from betse.util.py.module import pymodule
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # Tuple of all top-level packages.
     PACKAGES = (betse, betse_setup, betse_test)

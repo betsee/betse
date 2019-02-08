@@ -51,7 +51,7 @@ def betse_temp_dir(
 
     # Defer heavyweight imports.
     from betse.util.test.pytest import pytrequest
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # Name of the current test.
     test_name = pytrequest.get_tested_name(request)

@@ -155,13 +155,13 @@ def die_unless_filetype(pathname: str) -> None:
         Further details.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.path import pathnames
+    from betse.util.py.module import pymodname
+    from betse.util.type.text.string import strjoin
+
     # If this pathname is *NOT* suffixed by a supported archive filetype...
     if not is_filetype(pathname):
-        # Avoid circular import dependencies.
-        from betse.util.path import pathnames
-        from betse.util.py.module import pymodname
-        from betse.util.type.text import strs
-
         # Filetype of this pathname if any or raise an exception otherwise.
         filetype = pathnames.get_filetype_undotted(pathname)
 
@@ -190,7 +190,7 @@ def die_unless_filetype(pathname: str) -> None:
         #  Else, this is an unrecognized archive filetype.
         else:
             # Human-readable string listing all supported archive filetypes.
-            archive_filetypes = strs.join_as_disconjunction_double_quoted(
+            archive_filetypes = strjoin.join_as_disconjunction_double_quoted(
                 *ARCHIVE_FILETYPES)
 
             # Raise an exception embedding this string.
@@ -203,8 +203,8 @@ def die_unless_filetype(pathname: str) -> None:
 @type_check
 def is_filetype(pathname: str) -> bool:
     '''
-    ``True`` only if the passed pathname is suffixed by a filetype corresponding
-    to a supported archive format.
+    ``True`` only if the passed pathname is suffixed by a filetype
+    corresponding to a supported archive format.
 
     ``True`` is returned only if the **rightmost filetype** (i.e., substring
     following the last ``.`` character) of this pathname is in the

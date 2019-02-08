@@ -215,11 +215,11 @@ def skip_if_requirement(*requirements_str: str):
     # Defer heavyweight imports.
     from betse.exceptions import BetseLibException
     from betse.lib.setuptools import setuptool
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strjoin
 
     # Human-readable message justifying the skipping of this test or fixture.
     reason = 'Test or fixture currently incompatible with {}.'.format(
-        strs.join_as_conjunction_double_quoted(*requirements_str))
+        strjoin.join_as_conjunction_double_quoted(*requirements_str))
 
     # Skip this test if one or more such dependences are satisfiable.
     return _skip_unless_callable_raises_exception(

@@ -167,7 +167,7 @@ def to_str_capitalized(func: CallableTypes) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # Return a capitalized human-readable string describing this callable.
     return strs.uppercase_char_first(to_str(func))

@@ -92,7 +92,7 @@ def get_object_type_package_root_name(obj: object) -> str:
     # Avoid circular import dependencies.
     from betse.util.type.cls import classes
     from betse.util.type.obj import objects
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # Class of this object.
     cls = objects.get_class(obj)

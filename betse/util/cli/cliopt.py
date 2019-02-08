@@ -19,7 +19,7 @@ command line interface (CLI) options.
 from abc import ABCMeta
 from betse.exceptions import BetseCLIArgException
 from betse.util.py import pyident
-from betse.util.type.text import strs
+from betse.util.type.text.string import strs
 from betse.util.type.types import (
     type_check,
     ArgParserType,

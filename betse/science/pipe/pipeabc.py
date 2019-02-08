@@ -51,7 +51,7 @@ from betse.util.type.decorator.deccls import abstractmethod #, abstractproperty
 from betse.util.type.descriptor.descs import (
     abstractclassproperty_readonly, classproperty_readonly)
 from betse.util.type.obj import objects, objiter
-from betse.util.type.text import strs
+from betse.util.type.text.string import strs
 from betse.util.type.types import (
     type_check,
     ClassType,

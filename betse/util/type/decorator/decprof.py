@@ -71,7 +71,7 @@ def log_time_seconds(
 
     # Avoid circular import dependencies.
     from betse.util.type.call import callables
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # Decorator factory creating a decorator specific to the passed parameters.
     def _log_time_seconds_decorator(func: CallableTypes) -> CallableTypes:

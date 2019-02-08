@@ -61,7 +61,8 @@ def get_metadata(exception: Exception) -> tuple:
     # Avoid circular import dependencies.
     from betse.util.io.error import errhaiku
     from betse.util.py import pyident
-    from betse.util.type.text import regexes, strs
+    from betse.util.type.text import regexes
+    from betse.util.type.text.string import strjoin, strs
 
     # Generator yielding 2-tuples "(exception, traceback)" for all parent
     # exceptions of this exception *AND* this exception (in that order), where
@@ -142,7 +143,7 @@ def get_metadata(exception: Exception) -> tuple:
 
         # Append this message to the traceback buffer *BEFORE* appending a
         # truncation of this message to the message buffer.
-        exc_full_buffer.write(strs.join(exc_message_lines))
+        exc_full_buffer.write(strjoin.join(exc_message_lines))
         #print('exception string: '+ exc_message_lines[-1])
 
         # Split the last line of this message into a non-human-readable
@@ -207,7 +208,7 @@ def get_metadata(exception: Exception) -> tuple:
                 '\nTraceback (most recent call last):\n')
 
             # Append this traceback.
-            exc_full_buffer.write(strs.join(
+            exc_full_buffer.write(strjoin.join(
                 # List of lines formatted from this list.
                 traceback.format_list(
                     # List of stack trace entries from this traceback.

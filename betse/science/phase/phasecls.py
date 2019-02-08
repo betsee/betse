@@ -13,7 +13,7 @@ from betse.science.phase import phasecallbacks
 from betse.science.phase.phasecallbacks import SimCallbacksBCOrNoneTypes
 from betse.science.phase.phaseenum import SimPhaseKind
 # from betse.util.type.iterable import iterables
-from betse.util.type.text import strs
+from betse.util.type.text.string import strjoin
 from betse.util.type.types import type_check, NoneType
 
 # ....................{ CLASSES                           }....................
@@ -55,6 +55,7 @@ class SimPhase(object):
       :class:`betse.science.simrunner.SimRunner` object owning all objects
       pertaining to the current cell cluster, configuration, and simulation.
     * Direct children are:
+
       * The current cell cluster.
       * The current simulation.
       * The current simulation configuration.
@@ -385,7 +386,7 @@ class SimPhase(object):
             kinds_name = (str(kind) for kind in kinds)
 
             # Human-readable double-quoted disjunction of these names.
-            kinds_name_joined = strs.join_as_disconjunction_double_quoted(
+            kinds_name_joined = strjoin.join_as_disconjunction_double_quoted(
                 *kinds_name)
 
             # Raise an exception embedding this disjunction.

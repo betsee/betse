@@ -16,7 +16,7 @@ from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirements, SimPhaseRequirementsOrNoneTypes)
 from betse.util.io.log import logs
-from betse.util.type.text import strs
+from betse.util.type.text.string import strs
 from betse.util.type.types import type_check, CallableTypes, SequenceTypes
 
 # ....................{ CLASSES                           }....................

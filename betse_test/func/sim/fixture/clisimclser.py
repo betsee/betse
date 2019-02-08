@@ -175,7 +175,7 @@ class CLISimTester(object):
 
         # Defer heavyweight imports.
         from betse.util.io.log import logs
-        from betse.util.type.text import strs
+        from betse.util.type.text.string import strjoin
 
         # If persisting all in-memory configuration changes back to disk, do so
         # *BEFORE* running the passed.subcommands requiring these changes.
@@ -183,7 +183,8 @@ class CLISimTester(object):
             self.overwrite_conf()
 
         # Human-readable title to be embedded in a single-line terminal banner.
-        subcommand_banner_title = strs.join_on(subcommand_args, delimiter=' ')
+        subcommand_banner_title = strjoin.join_on(
+            subcommand_args, delimiter=' ')
 
         # Log a single-line terminal banner embedding this title.
         logs.log_banner(title=subcommand_banner_title, padding='=')

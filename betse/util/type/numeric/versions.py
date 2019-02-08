@@ -229,7 +229,7 @@ def to_comparable(version: VersionTypes) -> VersionSetuptoolsTypes:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strjoin, strs
 
     # Note that there are *MANY* approaches for converting strings into
     # comparable versions, including:
@@ -265,7 +265,7 @@ def to_comparable(version: VersionTypes) -> VersionSetuptoolsTypes:
             str(version_part) for version_part in version)
 
         # String-formatted version converted from this tuple.
-        version = strs.join_on_dot(version_str_tuple)
+        version = strjoin.join_on_dot(version_str_tuple)
 
     # This version *MUST* now be either a string or setuptools object.
     #

@@ -12,11 +12,11 @@ simulation phase).
 # ....................{ IMPORTS                           }....................
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require.abc.phasereqabc import SimPhaseRequirementABC
-from betse.util.io.log import logs
+# from betse.util.io.log import logs
 from betse.util.type.iterable import iterables
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.set.setcls import FrozenSetSubclassable
-from betse.util.type.text import strs
+from betse.util.type.text.string import strjoin
 from betse.util.type.types import type_check, IterableOrNoneTypes, NoneType
 
 # ....................{ SUBCLASSES ~ requirements         }....................
@@ -132,7 +132,7 @@ class SimPhaseRequirements(SimPhaseRequirementABC, FrozenSetSubclassable):
 
         # Create, return, and cache this name to be a human-readable
         # conjunction of these names.
-        return strs.join_as_conjunction(*requirement_names)
+        return strjoin.join_as_conjunction(*requirement_names)
 
 
     @type_check

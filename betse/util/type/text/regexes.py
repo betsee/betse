@@ -55,7 +55,7 @@ def die_unless_match(text: str, regex: RegexTypes, **kwargs) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     # If this subject string fails to match this regex, raise an exception.
     if not is_match(text=text, regex=regex, **kwargs):
@@ -96,7 +96,7 @@ def die_unless_replace_substrs_line(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strs
 
     #FIXME: Generalize this validation into a new die_unless_match_line()
     #function of this submodule.

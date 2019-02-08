@@ -49,7 +49,7 @@ from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.iterable import itersort
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.numeric import versions
-from betse.util.type.text import regexes, strs
+from betse.util.type.text import regexes
 from betse.util.type.types import BoolOrNoneTypes, ModuleType
 from numpy import __config__ as numpy_config
 
@@ -688,6 +688,9 @@ def get_blas_metadata() -> OrderedArgsDict:
     Ordered dictionary synopsizing the current Numpy installation with respect
     to BLAS linkage.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text.string import strs
 
     # This dictionary.
     metadata = OrderedArgsDict('optimized', is_blas_optimized())

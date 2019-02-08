@@ -179,17 +179,18 @@ def get_first_basename(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text import strs
+    from betse.util.type.text.string import strjoin
 
-    # Return the first pathable string in this list.
+    # If this list contains the basename of a pathable command, return the
+    # first such basename.
     for command_basename in command_basenames:
         if is_pathable(command_basename):
             return command_basename
 
-    # Else, no such string is pathable. In this case, raise an exception.
+    # Else, this list contains no such basename. Ergo, raise an exception.
     exception_message_suffix = (
         '{} not found in the current ${{PATH}}.'.format(
-            strs.join_as_conjunction_double_quoted(*command_basenames)))
+            strjoin.join_as_conjunction_double_quoted(*command_basenames)))
 
     # If a non-empty exception message is passed, suffix this message with this
     # detailed explanation.
