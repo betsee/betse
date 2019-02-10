@@ -1092,7 +1092,7 @@ class Cells(object):
             list(ecm_verts) for ecm_verts in list(ecm_verts_set)]
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
 
-        self.temp_image_mask = image_mask # FIXME temporarily store the image mask so we can we can see how to replace it with svg alts
+        # self.temp_image_mask = image_mask
 
     def search_point_cloud(self, pts, pt_cloud):
 
@@ -1210,6 +1210,7 @@ class Cells(object):
 
         # optimization vector:
         opti_steps = np.arange(p.maximum_voronoi_steps)
+
         seed_points2 = np.vstack((self.cell_centres, self.bbox))
         # convergence = np.ones(len(seed_points2))
 
@@ -1218,23 +1219,12 @@ class Cells(object):
         for i in opti_steps:
 
             if mesh_qual_metric < p.voronoi_convergence:
+                self.clust_xy = seed_points2 * 1
                 self._make_voronoi(seed_points2, phase)
                 self._clean_voronoi(p)
                 self.cell_index(p)
-                # seed_points_o = seed_points2 * 1
-                seed_points2 = np.vstack((self.cell_centres, self.bbox))
 
-                # if len(seed_points_o) == len(seed_points2):
-                #     convergence = np.sqrt(
-                #         (seed_points_o[:, 0] - seed_points2[:, 0]) ** 2 + (seed_points_o[:, 1] - seed_points2[:, 1]) ** 2)
-                #
-                #     conv_mess = "Step {}: optimization convergence {}".format(i, convergence.mean())
-                #     logs.log_info(conv_mess)
-                #
-                # else:
-                #
-                #     conv_mess = "Step {}: optimization cell number changed (suggests concave shape!)...".format(i)
-                #     logs.log_info(conv_mess)
+                seed_points2 = np.vstack((self.cell_centres, self.bbox))
 
                 mesh_qual_metric = self.mesh_quality_calc()
 
@@ -1293,10 +1283,12 @@ class Cells(object):
 
         self.cell_centres = np.delete(self.cell_centres, 0, 0)
 
+        # Sort the seed_fills to the new indexing of cell_centres:
+        cellTree = cKDTree(self.clust_xy)  # search tree from clust_xy points
+        _, celli = cellTree.query(self.cell_centres)  # indices of clust_xy corresponding to cell_centres
+        self.clusti_xy = self.clust_xy[celli] # get the Voronoi seed points corresponding to polygon cell index
+
         if p.svg_override: # if we're defining cells from an svg file:
-            # Sort the seed_fills to the new indexing of cell_centres:
-            cellTree = cKDTree(self.clust_xy) # search tree from clust_xy points
-            _, celli = cellTree.query(self.cell_centres) # indices of clust_xy corresponding to cell_centres
             self.seed_fills = self.seed_fills[celli] # sort the seed_fills to match cell_centres organization
 
         else:
@@ -1449,10 +1441,8 @@ class Cells(object):
         # define map allowing a dispatch from cell index to each respective membrane -------------------------------
         indmap_mem = np.asarray(indmap_mem)
 
-        #FIXME: This assignment is safely reducible to:
-        #    self.mem_to_cells = indmap_mem[:,0]
         #Indexing by "[self.mem_i]" is superfluous here. Lively jumping snakes!
-        self.mem_to_cells = indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
+        self.mem_to_cells = indmap_mem[:,0]   # gives cell index for each mem_i index placeholder
 
         # construct a mapping giving membrane index for each cell_i------------------------------------------------
         self.cell_to_mems = []
@@ -1953,6 +1943,103 @@ class Cells(object):
         # linear k index:
         self.index_k = [x for x in range(0,len(self.xypts))]
 
+        # FIXME temporary addition of block of sphaghetti code for later use/improvement:
+        #--------------------------------------------------------------
+        # Create singular ecm points and data-structures mapping from cell to ecm nn
+        # where 'ecm' is different than the environmental grid points defined in self.xypts and corresponds
+        # to the shared membrane midpoint between two cells (e.g. a true 'extracellular' matrix point).
+
+        bflags_ecm_o = [] # flags for ecm points at boundaries
+        ecm_points_o = [] # the points, prior to processing
+
+        for i, (mem_i, mem_j) in enumerate(self.mem_nn): # for each membrane mid pair in mem near neighbours...
+
+            xmem = self.mem_mids_flat[:, 0]
+            ymem = self.mem_mids_flat[:, 1]
+
+            xi = (xmem[mem_i] + xmem[mem_j])/2 # average the x and y points
+            yi = (ymem[mem_i] + ymem[mem_j])/2
+
+            ecm_points_o.append([xi, yi]) # append the pair to the points list
+
+            if mem_i == mem_j:         # if membrane indices are equal, they must be a boundary:
+                bflags_ecm_o.append([xi, yi])
+
+        ecm_points_unique = np.unique(ecm_points_o, axis = 0)   # get only the unique points from the above
+        bflags_ecm_unique = np.unique(bflags_ecm_o, axis = 0)
+
+        ecm_list = ecm_points_unique.tolist()     # convert them back to a list
+        bflags_list = bflags_ecm_unique.tolist()
+
+        bflags_ecm = []
+
+        for bf in bflags_list:
+
+            bflags_ecm.append(ecm_list.index(bf))   # get the proper index for the boundary flag from points list
+
+        self.ecm_points = np.asarray(ecm_points_unique)  # assign final data structures
+        self.bflags_ecm = np.asarray(bflags_ecm)
+
+        self.ecm_i = np.asarray([ii for ii in range(len(self.ecm_points))])
+
+        xmem_mids = (self.mem_mids_flat[self.mem_nn[:,0]]
+                     + self.mem_mids_flat[self.mem_nn[:,1]])/2
+
+        points_tree_ecm = cKDTree(self.ecm_points)
+
+
+        mem_to_ecm = []
+        for xm in xmem_mids:
+
+            _,ei = points_tree_ecm.query(xm)
+            mem_to_ecm.append(ei)
+
+        self.mem_to_ecm = np.asarray(mem_to_ecm)
+
+
+        cell_to_ecm = []
+        for ci, mem_is in enumerate(self.cell_to_mems):
+
+            mem_pts = xmem_mids[mem_is] # get membrane mids surrounding this cell
+            _, eci = points_tree_ecm.query(mem_pts)
+            cell_to_ecm.append(eci.tolist())
+
+        self.cell_to_ecm = np.asarray(cell_to_ecm)
+
+        self.all_points = np.vstack((self.cell_centres, self.ecm_points))
+        self.all_points_imap = np.hstack((self.cell_i, self.ecm_i))
+        self.all_i = np.asarray([ii for ii in range(len(self.all_points))])
+        self.all_points_ecm_i = len(self.cell_i) + self.ecm_i
+        self.all_points_cell_i = self.cell_i
+        self.adl = len(self.all_points)
+
+        points_tree_mems = cKDTree(self.mem_mids_flat)
+        ecm_to_mems_o = points_tree_mems.query_ball_point(self.ecm_points, r = 10*p.cell_space)
+
+        ecm_to_mems = []
+        ecm_to_cells = []
+        for i, ecm_is in enumerate(ecm_to_mems_o):
+
+            ecm_to_mems.append(ecm_is)
+            ecm_to_cells.append(self.mem_to_cells[ecm_is])
+
+        self.ecm_to_mems = np.asarray(ecm_to_mems)
+        self.ecm_to_cells = np.asarray(ecm_to_cells)
+
+        # Surface area and volume of ecm spaces:
+        self.ecm_vol = []
+        self.ecm_sa = []
+
+        for mis in self.ecm_to_mems:
+            esa = self.mem_sa[mis[0]]
+            self.ecm_vol.append(esa*p.cell_space)
+            self.ecm_sa.append(esa*1)
+
+        self.ecm_vol = np.asarray(self.ecm_vol)
+        self.ecm_sa = np.asarray(self.ecm_sa)
+
+        self.ecmdl = len(self.ecm_points)
+
     def environment(self,p):
 
         """
@@ -2111,8 +2198,10 @@ class Cells(object):
             for cell_j in cell_inds:
 
                 # get the distance between the cell centres of the pair:
-                lx = self.cell_centres[cell_j, 0] - self.cell_centres[cell_i, 0]
-                ly = self.cell_centres[cell_j, 1] - self.cell_centres[cell_i, 1]
+                # lx = self.cell_centres[cell_j, 0] - self.cell_centres[cell_i, 0]
+                # ly = self.cell_centres[cell_j, 1] - self.cell_centres[cell_i, 1]
+                lx = self.clusti_xy[cell_j, 0] - self.clusti_xy[cell_i, 0]
+                ly = self.clusti_xy[cell_j, 1] - self.clusti_xy[cell_i, 1]
                 len_ij = np.sqrt(lx ** 2 + ly ** 2)
 
                 # find the shared membrane index for the pair:
@@ -2138,10 +2227,10 @@ class Cells(object):
         self.lapGJinv = np.linalg.pinv(lapGJ)
         self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
 
-        if p.td_deform is True:
-            # if time0dependent deformation is selected, also save the direct Laplacian operator:
-            self.lapGJ = lapGJ
-            self.lapGJ_P = lapGJ_P
+        # if p.td_deform is True:
+        #     # if time0dependent deformation is selected, also save the direct Laplacian operator:
+        self.lapGJ = lapGJ
+        self.lapGJ_P = lapGJ_P
 
         # weighting function for the voronoi lattice:
         self.geom_weight = np.dot(self.M_sum_mems, self.mem_sa / self.mem_vol) * p.cell_height

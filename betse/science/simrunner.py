@@ -157,9 +157,9 @@ class SimRunner(object):
 
         #FIXME: Would shifting this logic into the cells.graphLaplacian() method
         #called above be feasible? If not, no worries! Granular lunar sunsets!
-        if not self._p.td_deform:  # if time-dependent deformation is not required
-            phase.cells.lapGJ = None
-            phase.cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
+        # if not self._p.td_deform:  # if time-dependent deformation is not required
+        #     phase.cells.lapGJ = None
+        #     phase.cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
 
         # Create accessory matrices depending on user requirements.
         if self._p.deformation:
