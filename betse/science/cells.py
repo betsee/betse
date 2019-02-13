@@ -2456,8 +2456,8 @@ class Cells(object):
             pt1_mem = self.mem_mids_flat[mem_i]
             pt2_mem = self.mem_mids_flat[mem_j]
 
-            pt1_cell = self.cell_centres[cell_i]
-            pt2_cell = self.cell_centres[cell_j]
+            pt1_cell = self.clusti_xy[cell_i]
+            pt2_cell = self.clusti_xy[cell_j]
 
             tang_o = pt2_mem - pt1_mem
 
@@ -2488,7 +2488,7 @@ class Cells(object):
 
             if len_mag == 0.0:
 
-                self.nn_len.append(-1)
+                self.nn_len.append(-1) # FIXME -- this seems like a horrific idea...
 
             else:
 
@@ -2512,8 +2512,8 @@ class Cells(object):
 
         for cell_i, cell_j in self.cell_nn_i:
 
-            pt1 = self.cell_centres[cell_i]
-            pt2 = self.cell_centres[cell_j]
+            pt1 = self.clusti_xy[cell_i]
+            pt2 = self.clusti_xy[cell_j]
 
             tang_o = pt2 - pt1
             norm_tang = np.sqrt(tang_o[0]**2 + tang_o[1]**2)
