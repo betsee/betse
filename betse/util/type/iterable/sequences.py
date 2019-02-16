@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -18,14 +18,51 @@ betse.util.type.types.is_sequence
 #sequence types and then shifted into the existing "iterables" submodule.
 #Ideally, this submodule could then be excised entirely.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseSequenceException
 from betse.util.type import types
 from betse.util.type.types import (
-    type_check, CallableTypes, SequenceTypes, StrOrNoneTypes)
-from collections.abc import Container, Mapping
+    type_check, CallableTypes, MappingType, SequenceTypes, StrOrNoneTypes)
 
-# ....................{ EXCEPTIONS                         }....................
+#FIXME: Replace with "betse.util.type.types.ContainerTypes" -- which may need
+#to be newly (re)defined to include the NumPy array type.
+from collections.abc import Container
+
+# ....................{ EXCEPTIONS                        }....................
+@type_check
+def die_unless_index(sequence: SequenceTypes, index: int) -> None:
+    '''
+    Raise an exception unless the passed index **indexes** (i.e., is a
+    non-negative integer strictly greater than -1 and less than the length of)
+    the passed sequence.
+
+    Equivalently, this function raises an exception this index is either:
+
+    * Less than 0.
+    * Greater than or equal to the length of this sequence.
+
+    Parameters
+    ----------
+    sequence : SequenceTypes
+        Sequence to be validated.
+    index : int
+        0-based index to validate against this sequence.
+
+    Raises
+    ----------
+    BetseSequenceException
+        Unless this index indexes this sequence.
+    '''
+
+    # If this index does *NOT* index this sequence, raise an exception.
+    if not is_index(sequence=sequence, index=index):
+        raise BetseSequenceException(
+            'Sequence index {} invalid (i.e., not in range [0, {}]).'.format(
+                index, len(sequence)))
+
+# ....................{ EXCEPTIONS ~ empty                }....................
+#FIXME: Generalize the passed "label" parameter to a full-blown
+#"exception_message" parameter instead.
 @type_check
 def die_if_empty(
     *sequences: SequenceTypes, label: str = 'Sequence') -> None:
@@ -38,8 +75,8 @@ def die_if_empty(
     sequences: tuple
         Tuple of all sequences to be validated.
     label : optional[str]
-        Human-readable label prefixing exception messages raised by this method.
-        Defaults to a general-purpose string.
+        Human-readable label prefixing exception messages raised by this
+        method. Defaults to a general-purpose string.
 
     Raises
     ----------
@@ -51,7 +88,8 @@ def die_if_empty(
     if len(sequences) == 1:
         # If this sequence is non-empty, raise a simplistic exception.
         if is_empty(sequences[0]):
-            raise BetseSequenceException('{} empty.'.format(label.capitalize()))
+            raise BetseSequenceException('{} empty.'.format(
+                label.capitalize()))
     # Else, multiple sequences are passed.
     else:
         # For each such sequence...
@@ -99,56 +137,7 @@ def die_unless_len(
         # Raise this exception.
         raise BetseSequenceException(exception_message)
 
-# ....................{ TESTERS ~ type                     }....................
-def is_sequence(*objs: object) -> bool:
-    '''
-    ``True`` only if all passed objects are **sequences** (i.e., of types
-    conforming to but *not* necessarily subclassing the canonical
-    :class:`collections.abc.Sequence` API).
-
-    Parameters
-    ----------
-    objs: tuple[object]
-        Tuple of all objects to be tested.
-
-    Returns
-    ----------
-    bool
-        ``True`` only if these objects are all sequences.
-
-    See Also
-    ----------
-    :class:`collections.abc.Sequence`
-        Further details.
-    '''
-
-    # all(). It is awesome.
-    return all(isinstance(obj, SequenceTypes) for obj in objs)
-
-
-def is_numpy_array(*objs: object) -> bool:
-    '''
-    ``True`` only if all passed objects are **Numpy arrays** (i.e., instances of
-    the :class:`numpy.ndarray` superclass).
-
-    Parameters
-    ----------
-    objs: tuple[object]
-        Tuple of all objects to be tested.
-
-    Returns
-    ----------
-    bool
-        ``True`` only if these objects are all Numpy arrays.
-    '''
-
-    # Avoid importing third-party packages at the top level, for safety.
-    from numpy import ndarray
-
-    # all(). It exceeds at all the tests.
-    return all(isinstance(obj, ndarray) for obj in objs)
-
-# ....................{ TESTERS ~ len                      }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_empty(*sequences: SequenceTypes) -> bool:
     '''
@@ -157,7 +146,7 @@ def is_empty(*sequences: SequenceTypes) -> bool:
 
     Parameters
     ----------
-    sequences: tuple
+    sequences : tuple[SequenceTypes]
         Tuple of all sequences to be tested.
 
     Returns
@@ -176,7 +165,82 @@ def is_empty(*sequences: SequenceTypes) -> bool:
     #     ambiguous. Use a.any() or a.all()
     return all(len(sequence) == 0 for sequence in sequences)
 
-# ....................{ GETTERS                            }....................
+
+@type_check
+def is_index(sequence: SequenceTypes, index: int) -> bool:
+    '''
+    ``True`` only if the passed index **indexes** (i.e., is a non-negative
+    integer strictly greater than -1 and less than the length of) the passed
+    sequence.
+
+    Parameters
+    ----------
+    sequence : SequenceTypes
+        Sequence to be tested.
+    index : int
+        0-based index to test against this sequence.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this index indexes this sequence.
+    '''
+
+    return 0 <= index < len(sequence)
+
+# ....................{ TESTERS ~ type                    }....................
+def is_sequence(*objs: object) -> bool:
+    '''
+    ``True`` only if all passed objects are **sequences** (i.e., of types
+    conforming to but *not* necessarily subclassing the canonical
+    :class:`collections.abc.Sequence` API).
+
+    Parameters
+    ----------
+    objs : tuple[object]
+        Tuple of all objects to be tested.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if these objects are all sequences.
+
+    See Also
+    ----------
+    :class:`collections.abc.Sequence`
+        Further details.
+    '''
+
+    # all(). It is awesome.
+    return all(isinstance(obj, SequenceTypes) for obj in objs)
+
+
+#FIXME: Excise everywhere in favour of the more appropriate
+#betse.lib.numpy.nparray.is_array() function -- which, admittedly, may need to
+#be generalized to accept variadic parameters.
+def is_numpy_array(*objs: object) -> bool:
+    '''
+    ``True`` only if all passed objects are **Numpy arrays** (i.e., instances
+    of the :class:`numpy.ndarray` superclass).
+
+    Parameters
+    ----------
+    objs : tuple[object]
+        Tuple of all objects to be tested.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if these objects are all Numpy arrays.
+    '''
+
+    # Avoid importing third-party packages at the top level, for safety.
+    from numpy import ndarray
+
+    # all(). It exceeds at all the tests.
+    return all(isinstance(obj, ndarray) for obj in objs)
+
+# ....................{ GETTERS                           }....................
 #FIXME: Generalize into a function of the same name accepting an iterable rather
 #than sequence and shift into the "iterables" submodule. When doing so, rename
 #the "item_satisfier" parameter to "predicate" for orthogonality and clarity.
@@ -198,8 +262,9 @@ def get_items_satisfying(
     item_satisfier : CallableTypes
         CallableTypes (e.g., function, lambda) accepting a single element of
         this sequence and returning only:
-        * `True` if this element satisfies the desired requirements.
-        * `False` otherwise.
+
+        * ``True`` if this element satisfies the desired requirements.
+        * ``False`` otherwise.
 
     Returns
     ----------
@@ -214,7 +279,7 @@ def get_items_satisfying(
     # Return a generator-based shallow copy of this sequence.
     return sequence_type(item for item in sequence if item_satisfier(item))
 
-# ....................{ GETTERS ~ str                      }....................
+# ....................{ GETTERS ~ str                     }....................
 #FIXME: Generalize into a function of the same name accepting an iterable rather
 #than sequence and shift into the "iterables" submodule. When doing so, rename
 #the "item_prefix" parameter to simply "prefix".
@@ -233,7 +298,7 @@ def get_items_prefixed_by(
     ----------
     sequence : SequenceTypes
         Original sequence to return a proper subset of. For safety, this
-        function does _not_ modify this sequence.
+        function does *not* modify this sequence.
     item_prefix : str
         String prefixing all elements of the returned sequence.
 
@@ -248,11 +313,9 @@ def get_items_prefixed_by(
     return get_items_satisfying(
         sequence=sequence,
         item_satisfier=lambda item: (
-            types.is_str(item) and item.startswith(item_prefix)
-        ),
-    )
+            types.is_str(item) and item.startswith(item_prefix)))
 
-# ....................{ OMITTERS                           }....................
+# ....................{ OMITTERS                          }....................
 def omit_item(sequence: SequenceTypes, item: object) -> SequenceTypes:
     '''
     New non-string sequence containing all elements of the first passed
@@ -304,16 +367,16 @@ def omit_items(sequence: SequenceTypes, items: Container) -> SequenceTypes:
         item_satisfier=lambda item: item not in items,
     )
 
-# ....................{ REMOVERS                           }....................
+# ....................{ REMOVERS                          }....................
 def remove_item(sequence: SequenceTypes, item: object) -> None:
     '''
-    Remove all elements equal to the passed object from the passed mutable
+    Remove all items equal to the passed object from the passed mutable
     non-string sequence in-place.
 
     Parameters
     ----------
-    sequence : collections.Sequence
-        Sequence to remove elements from in-place.
+    sequence : SequenceTypes
+        Sequence to remove items from in-place.
     item : object
         Object to be removed.
     '''
@@ -324,15 +387,15 @@ def remove_item(sequence: SequenceTypes, item: object) -> None:
 @type_check
 def remove_items(sequence: SequenceTypes, items: Container) -> None:
     '''
-    Remove all elements contained in the passed non-string container from
-    the passed mutable non-string sequence in-place.
+    Remove all items contained in the passed non-string container from the
+    passed mutable non-string sequence in-place.
 
     Parameters
     ----------
     sequence : SequenceTypes
-        Sequence to remove elements from in-place.
+        Sequence to remove items from in-place.
     items : Container
-        Container containing all elements to be remove from this sequence.
+        Container containing all items to be remove from this sequence.
     '''
 
     # Slice assignment implicitly modifies the original sequence, permitting
@@ -342,22 +405,23 @@ def remove_items(sequence: SequenceTypes, items: Container) -> None:
 # ....................{ REPLACERS                          }....................
 @type_check
 def replace_items(
-    sequence: SequenceTypes, replacements: Mapping) -> SequenceTypes:
+    sequence: SequenceTypes, replacements: MappingType) -> SequenceTypes:
     '''
-    New non-string sequence containing all elements of the passed non-string
-    sequence (_in the same order_) such that each element equal to a key of the
+    New non-string sequence containing all items of the passed non-string
+    sequence (_in the same order_) such that each item equal to a key of the
     passed dictionary is replaced by the value of that key.
 
     This method effectively performs an equality-based global
-    search-and-replacement for sequence elements.
+    search-and-replacement for sequence items.
 
     Parameters
     ----------
-    sequence : collections.Sequence
+    sequence : SequenceTypes
         Original sequence to be returned transformed. For safety, this
-        function does _not_ modify this sequence.
-    replacements : collections.Mapping
+        function does *not* modify this sequence.
+    replacements : MappingType
         Mapping whose:
+
         * Keys are input values to find in the passed sequence. For simplicity,
           keys are matched via object equality rather than more complex object
           matching alternatives (e.g., glob, regex, prefix, suffix, substring).
@@ -366,7 +430,7 @@ def replace_items(
 
     Returns
     ----------
-    collections.Sequence
+    SequenceTypes
         Sequence transformed from the passed sequence. For efficiency, this
         sequence is only a shallow rather than deep copy of the passed sequence.
     '''
@@ -374,8 +438,8 @@ def replace_items(
     # Type of both the passed sequence and the sequence to be returned.
     sequence_type = type(sequence)
 
-    # Return a shallow copy of this sequence, replacing each element that is a
-    # key of the passed mapping by that key's value.
+    # Return a shallow copy of this sequence, replacing each item that is a key
+    # of the passed mapping by that key's value.
     return sequence_type(
         replacements[item] if item in replacements else item
         for item in sequence
