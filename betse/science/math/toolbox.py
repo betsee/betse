@@ -64,7 +64,7 @@ def flatten(ls_of_ls: SequenceTypes) -> tuple:
 
 def area(p):
     """
-    Calculates the area of an arbitrarily shaped polygon defined by a set of
+    Calculates the unsigned area of an arbitrarily shaped polygon defined by a set of
     counter-clockwise oriented points in 2D.
 
     Parameters
@@ -80,7 +80,102 @@ def area(p):
     The algorithm is an application of Green's theorem for the functions -y and
     x, exactly in the way a planimeter works.
     """
-    return 0.5 * abs(sum(x0*y1 - x1*y0 for ((x0, y0), (x1, y1)) in zip(p, p[1:] + [p[0]])))
+
+    foo = np.asarray(p)
+
+    # move points along by one:
+    foo_p = np.roll(foo, -1, axis=0)
+
+    ai = foo[:,0]*foo_p[:,1] - foo_p[:,0]*foo[:,1]
+
+    aa = np.abs((1/2)*np.sum(ai))
+
+
+    return aa
+
+
+def poly_centroid(p):
+    """
+    Calculates the centroid (geometric centre of mass) of a polygon.
+
+    Parameters
+    ----------
+    p       array of [x,y] points defining polygon vertices
+
+    Returns
+    --------
+    cx, cy  polygon centroid coordinates
+
+    reference: https://en.wikipedia.org/wiki/Centroid#Of_a_polygon
+    """
+
+    # cx, cy = np.mean(p, axis = 0)
+
+
+    foo = np.asarray(p)
+
+    # move points along by one:
+    foo_p = np.roll(foo, -1, axis=0)
+
+    ai = foo[:,0]*foo_p[:,1] - foo_p[:,0]*foo[:,1]
+
+    aa = (1/2)*np.sum(ai)  # signed area
+
+    cx = (1/(6*aa))*np.sum((foo[:,0] + foo_p[:,0])*(foo[:,0] * foo_p[:,1] - foo_p[:,0] * foo[:,1]))
+    cy = (1/(6*aa))*np.sum((foo[:,1] + foo_p[:,1])*(foo[:,0] * foo_p[:,1] - foo_p[:,0] * foo[:,1]))
+
+
+    return cx, cy
+
+
+def circumc(A, B, C):
+    """
+    Calculates the circumcenter and circumradius of a triangle with
+    vertices A = [Ax, Ay], B = [Bx, By], and C = [Cx, Cy]
+
+    returns ox, oy, rc, the x and y coordinates of the circumcentre and
+    the circumradius, respectively.
+
+    """
+
+    # Point coords:
+    Ax = A[0]
+    Ay = A[1]
+    Bx = B[0]
+    By = B[1]
+    Cx = C[0]
+    Cy = C[1]
+
+    # Calculate circumcentre:
+    # (from https://en.wikipedia.org/wiki/Circumscribed_circle#Cartesian_coordinates_2)
+
+    A2 = Ax**2 + Ay**2
+    B2 = Bx**2 + By**2
+    C2 = Cx**2 + Cy**2
+
+    denom = 2*(Ax*(By - Cy) + Bx*(Cy - Ay) + Cx*(Ay - By))
+
+    ox = (A2*(By - Cy) + B2*(Cy - Ay) + C2*(Ay - By))/denom
+    oy = (A2*(Cx - Bx) + B2*(Ax - Cx) + C2*(Bx - Ax))/denom
+
+    # Calculate circumradius:
+    # (from https://www.mathalino.com/reviewer/
+    # derivation-of-formulas/derivation-of-formula-for-radius-of-circumcircle)
+    a = np.sqrt((Ax - Bx)**2 + (Ay-By)**2)
+    b = np.sqrt((Bx - Cx)**2 + (By-Cy)**2)
+    c = np.sqrt((Cx - Ax)**2 + (Cy-Ay)**2)
+
+    s = (a + b + c) / 2.0
+    area = np.sqrt(s * (s - a) * (s - b) * (s - c))
+
+    # circumcircle:
+    if area > 0.0:
+        rc = a * b * c / (4.0 * area)
+
+    else:
+        rc = 0.0
+
+    return ox, oy, rc
 
 def side_check(p):
 
@@ -94,7 +189,6 @@ def side_check(p):
     check_stat = Rm.min()
 
     return check_stat
-
 
 def alpha_shape(points, alpha):
     """

@@ -879,6 +879,9 @@ class Cells(object):
         self.xmax = self.xmax + p.cell_radius
         self.ymax = self.ymax + p.cell_radius
 
+        # define axis bounds for easy plotting:
+        self.xyaxis = [self.xmin, self.xmax, self.ymin, self.ymax]
+
 
     @type_check
     def _make_voronoi(self, seed_points, phase: SimPhase) -> None:
@@ -1092,7 +1095,6 @@ class Cells(object):
             list(ecm_verts) for ecm_verts in list(ecm_verts_set)]
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
 
-        # self.temp_image_mask = image_mask
 
     def search_point_cloud(self, pts, pt_cloud):
 
@@ -1159,10 +1161,6 @@ class Cells(object):
         and defines a set of unique ecm vertices.
         """
 
-        # Log this attempt.
-        # logs.log_info('Cleaning Voronoi geometry... ')
-
-        # first need to go through and make sure each patch has unique vertex points
 
         #-----clipping out redundant points--------------------------------------------------------
         ecm_verts_2 = []
@@ -1237,32 +1235,6 @@ class Cells(object):
                 logs.log_info(final_mess)
                 break
 
-    def refineMesh(self, p):
-
-        ecm_verts2 = []
-        vol_mean = p.cell_height*np.pi*p.cell_radius**2
-
-        for i, poly in enumerate(self.ecm_verts):
-
-            mem_is = self.cell_to_mems[i]
-
-            vol_i = self.mem_vol[mem_is]
-
-            vol_check = vol_i/vol_mean
-
-            inds_small = (vol_check < 0.01).nonzero()
-
-            if not len(inds_small[0]):
-
-                ecm_verts2.append(poly)
-
-        self.ecm_verts = ecm_verts2
-
-        self.cell_index(p)  # Calculate the correct centre and index for each cell
-        self.cellVerts(p)  # create individual cell polygon vertices
-        self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
-        self.cell_vols(p)   # calculate the volume of cell and its internal regions
-
     def cell_index(self, p) -> None:
         '''
         (Re)define the array of all cell centres (i.e., :attr:`cell_centres`)
@@ -1274,25 +1246,31 @@ class Cells(object):
         extracellular matrix (ECM)-driven polygons and segments.
         '''
 
-        self.cell_centres = np.array([0,0])
+        cell_centres = []
+        cell_vol = []
 
-        for poly in self.ecm_verts:
-            aa = np.asarray(poly)
-            aa = np.mean(aa,axis=0)
-            self.cell_centres = np.vstack((self.cell_centres,aa))
+        for polypts in self.ecm_verts:
 
-        self.cell_centres = np.delete(self.cell_centres, 0, 0)
+            cx, cy = tb.poly_centroid(polypts)
+            aa = tb.area(polypts)
 
-        # Sort the seed_fills to the new indexing of cell_centres:
-        cellTree = cKDTree(self.clust_xy)  # search tree from clust_xy points
-        _, celli = cellTree.query(self.cell_centres)  # indices of clust_xy corresponding to cell_centres
-        self.clusti_xy = self.clust_xy[celli] # get the Voronoi seed points corresponding to polygon cell index
+            cell_centres.append([cx,cy])
+            cell_vol.append(aa*p.cell_height)
 
-        if p.svg_override: # if we're defining cells from an svg file:
-            self.seed_fills = self.seed_fills[celli] # sort the seed_fills to match cell_centres organization
+        self.cell_centres = np.asarray(cell_centres)
 
-        else:
-            self.seed_fills = None # else set this quantity to None by default
+        self.cell_vol = np.asarray(cell_vol)
+
+
+
+        # self.cell_centres = np.array([0,0])
+        #
+        # for poly in self.ecm_verts:
+        #     aa = np.asarray(poly)
+        #     aa = np.mean(aa,axis=0)
+        #     self.cell_centres = np.vstack((self.cell_centres,aa))
+        #
+        # self.cell_centres = np.delete(self.cell_centres, 0, 0)
 
     def cellVerts(self,p):
         """
@@ -1319,6 +1297,20 @@ class Cells(object):
         The Voronoi diagram returns a connected graph. For this simulation, each cell needs unique vertices and edges.
         This method takes the vertices of the original diagram and scales them in to make unique cells.
         """
+
+        # Voronoi mesh refinement works by calculating cell centroids and using those as seeds in the next
+        # itteration of Voronoi graph preparation. However, Discrete Exterior Calculus requires cell centres
+        # to be the Voronoi seeds. Therefore, redefine cell_centers in terms of the last clust_xy values.
+        # Sort the seed_fills to the new indexing of cell_centres:=
+        cellTree = cKDTree(self.clust_xy)  # search tree from clust_xy points
+        _, celli = cellTree.query(self.cell_centres)  # indices of clust_xy corresponding to cell_centres
+        self.tri_verts = self.clust_xy[celli] # get the vertices in the cluster corresponding to Voronoi seed points
+
+        if p.svg_override: # if we're defining cells from an svg file:
+            self.seed_fills = self.seed_fills[celli] # sort the seed_fills to match cell_centres organization
+
+        else:
+            self.seed_fills = None # else set this quantity to None by default
 
         self.gj_len = p.cell_space      # distance between gap junction (as "pipe length")
 
@@ -2197,11 +2189,13 @@ class Cells(object):
 
             for cell_j in cell_inds:
 
-                # get the distance between the cell centres of the pair:
-                # lx = self.cell_centres[cell_j, 0] - self.cell_centres[cell_i, 0]
-                # ly = self.cell_centres[cell_j, 1] - self.cell_centres[cell_i, 1]
-                lx = self.clusti_xy[cell_j, 0] - self.clusti_xy[cell_i, 0]
-                ly = self.clusti_xy[cell_j, 1] - self.clusti_xy[cell_i, 1]
+                # get the distance between the tri_mesh vertices of the pair:
+                # lx = self.tri_verts[cell_j, 0] - self.tri_verts[cell_i, 0]  # FIXME! Change these back
+                # ly = self.tri_verts[cell_j, 1] - self.tri_verts[cell_i, 1]
+
+                lx = self.cell_centres[cell_j, 0] - self.cell_centres[cell_i, 0]  # FIXME! Change these back
+                ly = self.cell_centres[cell_j, 1] - self.cell_centres[cell_i, 1]
+
                 len_ij = np.sqrt(lx ** 2 + ly ** 2)
 
                 # find the shared membrane index for the pair:
@@ -2456,8 +2450,12 @@ class Cells(object):
             pt1_mem = self.mem_mids_flat[mem_i]
             pt2_mem = self.mem_mids_flat[mem_j]
 
-            pt1_cell = self.clusti_xy[cell_i]
-            pt2_cell = self.clusti_xy[cell_j]
+            # pt1_cell = self.tri_verts[cell_i]  # FIXME change these back
+            # pt2_cell = self.tri_verts[cell_j]
+
+
+            pt1_cell = self.cell_centres[cell_i]  # FIXME change these back
+            pt2_cell = self.cell_centres[cell_j]
 
             tang_o = pt2_mem - pt1_mem
 
@@ -2512,8 +2510,11 @@ class Cells(object):
 
         for cell_i, cell_j in self.cell_nn_i:
 
-            pt1 = self.clusti_xy[cell_i]
-            pt2 = self.clusti_xy[cell_j]
+            # pt1 = self.tri_verts[cell_i] # FIXME change these back
+            # pt2 = self.tri_verts[cell_j]
+
+            pt1 = self.cell_centres[cell_i] # FIXME change these back
+            pt2 = self.cell_centres[cell_j]
 
             tang_o = pt2 - pt1
             norm_tang = np.sqrt(tang_o[0]**2 + tang_o[1]**2)
@@ -2805,6 +2806,7 @@ class Cells(object):
         self.clust_xy = xypts
 
         #-----Utility functions--------------------------------------------------------------------------------------------
+
     def gradient(self, SS):
         """
         Calculates the gradient based on differences of a property SS between cell centres.
