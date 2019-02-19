@@ -17,7 +17,7 @@ from betse.lib.yaml.yamlalias import (
 )
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import YamlList, YamlListItemABC
-from betse.science.config.confenum import CellsPickerType
+from betse.science.enum.enumconf import CellsPickerType
 # from betse.util.io.log import logs
 from betse.util.type.types import type_check, SequenceTypes
 

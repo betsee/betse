@@ -30,7 +30,7 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 # "conftest" plugin modules. To defer the importation of this submodule until
 # *AFTER* test collection, this submodule is intentionally segregated.
 from betse.science.config import confio
-from betse.science.config.confenum import IonProfileType, SolverType
+from betse.science.enum.enumconf import IonProfileType, SolverType
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.phaseenum import SimPhaseKind
 from betse.science.phase.require import phasereqs

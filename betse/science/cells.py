@@ -14,7 +14,7 @@ from betse.exceptions import BetseSequenceException, BetseSimConfException
 from betse.lib import libs
 from betse.lib.numpy import nparray
 from betse.science import filehandling as fh
-from betse.science.config.confenum import CellLatticeType
+from betse.science.enum.enumconf import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
 from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockwise

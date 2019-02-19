@@ -11,7 +11,7 @@ High-level tissue and event handling functionality.
 import copy
 import numpy as np
 from betse.exceptions import BetseSimTissueException
-from betse.science.config.confenum import CellsPickerType, SolverType
+from betse.science.enum.enumconf import CellsPickerType, SolverType
 from betse.science.math import modulate as mod
 from betse.science.math import toolbox as tb
 from betse.science.phase.phasecls import SimPhase

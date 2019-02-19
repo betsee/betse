@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
 High-level **simulation phase enumeration** (e.g., :class:`enum.Enum` subclass
 describing different types of simulation phases) functionality.
+
+**Simulation modelling enumerations** (i.e., :class:`enum.Enum` subclasses
+internally required by simulation modelling phases).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.util.type.enums import EnumOrdered
 
-# ....................{ ENUMS                              }....................
+# ....................{ ENUMS                             }....................
 SimPhaseKind = EnumOrdered('SimPhaseKind', ('SEED', 'INIT', 'SIM',))
 '''
 Ordered enumeration of all possible simulation phases.

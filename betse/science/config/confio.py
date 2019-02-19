@@ -82,6 +82,7 @@ def write_default(
         Defaults to ``False``. The ``is_data_overwritable`` parameter takes
         precedence over this parameter. Specifically, if the
         ``is_data_overwritable`` parameter is ``True`` and this parameter is:
+
         * ``True``, an exception is raised. These two parameters conflict and
           hence *cannot* both be concurrently enabled.
         * ``False``, this parameter is silently ignored.

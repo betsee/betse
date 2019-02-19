@@ -10,7 +10,7 @@ from betse.exceptions import BetseSimConfException
 from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
-from betse.science.config.confenum import (
+from betse.science.enum.enumconf import (
     CellLatticeType, GrnUnpicklePhaseType, IonProfileType, SolverType)
 from betse.science.config.export.confcsv import SimConfExportCSVs
 from betse.science.config.export.visual.confanim import SimConfAnimAll
@@ -253,8 +253,7 @@ class Parameters(YamlFileABC):
           * ``K``, the potassium cation K+.
           * ``Ca``, the calcium cation Ca2+.
           * ``Cl``, the chloride anion Cl-.
-          * ``H``, the hydrogen cation H+.
-          * ``M``, the M anion bicarbonate HCO3-.
+          * ``M``, the unidentified anion M-.
           * ``P``, the anionic protein P-.
 
         * To either:

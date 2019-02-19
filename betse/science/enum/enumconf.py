@@ -4,15 +4,15 @@
 # See "LICENSE" for further details.
 
 '''
-**Enumeration types** (i.e., :class:`enum.Enum` subclasses) required to express
-typed data in simulation configuration files.
+**Simulation configuration enumerations** (i.e., :class:`enum.Enum` subclasses
+required to validate typed data in simulation configuration files).
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse.util.type.enums import make_enum
+from betse.util.type import enums
 
 # ....................{ ENUMS ~ cell                      }....................
-CellLatticeType = make_enum(
+CellLatticeType = enums.make_enum(
     class_name='CellLatticeType', member_names=('HEX', 'SQUARE',))
 '''
 Enumeration of all supported types of **base cell lattices** (i.e., uniform
@@ -27,7 +27,7 @@ SQUARE : enum
 '''
 
 # ....................{ ENUMS ~ cells                     }....................
-CellsPickerType = make_enum(
+CellsPickerType = enums.make_enum(
     class_name='CellsPickerType',
     member_names=('ALL', 'COLOR', 'IMAGE', 'INDICES', 'PERCENT',))
 '''
@@ -54,7 +54,7 @@ PERCENT : enum
 '''
 
 # ....................{ ENUMS ~ grn                       }....................
-GrnUnpicklePhaseType = make_enum(
+GrnUnpicklePhaseType = enums.make_enum(
     class_name='GrnUnpicklePhaseType',
     member_names=('SEED', 'INIT', 'SIM',))
 '''
@@ -81,7 +81,7 @@ SIM : enum
 '''
 
 # ....................{ ENUMS ~ ion                       }....................
-IonProfileType = make_enum(
+IonProfileType = enums.make_enum(
     class_name='IonProfileType',
     member_names=('BASIC', 'BASIC_CA', 'MAMMAL', 'AMPHIBIAN', 'CUSTOM',))
 '''
@@ -116,7 +116,7 @@ CUSTOM : enum
 '''
 
 # ....................{ ENUMS ~ solver                    }....................
-SolverType = make_enum(
+SolverType = enums.make_enum(
     class_name='SolverType',
     member_names=('FULL', 'FAST',))
 '''

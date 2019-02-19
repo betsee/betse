@@ -11,7 +11,7 @@ from betse.lib.pickle import pickles
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.chemistry.gene import MasterOfGenes
-from betse.science.config.confenum import GrnUnpicklePhaseType
+from betse.science.enum.enumconf import GrnUnpicklePhaseType
 from betse.science.pipe.export.pipeexps import SimPipesExport
 from betse.science.parameters import Parameters
 from betse.science.phase import phasecallbacks

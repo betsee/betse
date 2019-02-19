@@ -574,6 +574,28 @@ def get_member_from_value(
 
 # ....................{ ITERATORS                         }....................
 @type_check
+def iter_names(enum_type: EnumType) -> GeneratorType:
+    '''
+    Generator yielding the unmodified name of each member of the passed
+    enumeration type in **declaration order** (i.e., the order in which these
+    members were originally declared).
+
+    Parameters
+    ----------
+    enum_type : EnumType
+        Enumeration type to be inspected.
+
+    Returns
+    ----------
+    GeneratorType
+        Generator yielding the unmodified name of each member of this
+        enumeration type.
+    '''
+
+    return (enum_member.name for enum_member in enum_type)
+
+
+@type_check
 def iter_names_lowercase(enum_type: EnumType) -> GeneratorType:
     '''
     Generator yielding the lowercased name of each member of the passed

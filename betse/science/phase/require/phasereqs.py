@@ -48,7 +48,7 @@ instances of the :class:`SimPhaseRequirements` class.
 # ....................{ IMPORTS                           }....................
 from betse.science.phase.require import phasereqsmake
 from betse.science.phase.require.abc.phasereqset import SimPhaseRequirements
-from betse.science.config.confenum import SolverType
+from betse.science.enum.enumconf import SolverType
 
 # ....................{ REQUIREMENTS                      }....................
 NONE = SimPhaseRequirements()

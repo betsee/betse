@@ -12,7 +12,7 @@ from betse.science import sim_toolbox as stb
 from betse.science.channels.gap_junction import Gap_Junction
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.molecules import MasterOfMolecules
-from betse.science.config.confenum import SolverType
+from betse.science.enum.enumconf import SolverType
 from betse.science.math import finitediff as fd
 from betse.science.organelles.endo_retic import EndoRetic
 from betse.science.physics.deform import (

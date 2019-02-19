@@ -62,7 +62,7 @@ def test_cli_grn_isolated(
         title='sim-grn ({})'.format(unpickle_phase_name), padding='~')
 
     # Defer all remaining heavyweight imports.
-    from betse.science.config.confenum import GrnUnpicklePhaseType
+    from betse.science.enum.enumconf import GrnUnpicklePhaseType
     from betse.util.path import pathnames
     from betse.util.type import enums
 
