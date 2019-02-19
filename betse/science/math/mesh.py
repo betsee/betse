@@ -18,6 +18,7 @@ from matplotlib import path
 
 from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockwise
 from betse.science.math.geometry.polygon.geopoly import orient_counterclockwise
+from betse.util.io.log import logs
 
 from scipy.spatial import cKDTree, Delaunay
 
@@ -37,7 +38,8 @@ class DECMesh(object):
                  use_alpha_shape=True,
                  single_cell_noise=0.5,
                  single_cell_sides=6,
-                 image_mask=None):
+                 image_mask=None,
+                 make_all_operators = True):
 
         self.single_cell_noise = single_cell_noise
         self.single_cell_sides = single_cell_sides
@@ -45,6 +47,7 @@ class DECMesh(object):
         self.cell_radius = cell_radius
         self.use_alpha_shape = use_alpha_shape
         self.image_mask = image_mask
+        self.make_all_operators = make_all_operators
 
         if seed_points is None:
             self.make_single_cell_points()
@@ -59,7 +62,10 @@ class DECMesh(object):
         self.create_tri_mesh()
         self.create_mappings()
         self.process_vormesh()
-        self.create_d_operators()
+        self.create_core_operators()
+
+        if self.make_all_operators:
+            self.create_aux_operators()
 
     def make_single_cell_points(self):
         """
@@ -95,12 +101,11 @@ class DECMesh(object):
 
         self.n_tverts = len(self.tri_verts)
 
-        # Calculate the centroids of the triangulation (which should be identical to mem_verts,
-        # as well as circumcircle radii:
-
+        # Calculate the centroids of the triangulation:
         self.tri_circcents = []
-        self.vor_verts_bound = []
-        self.tri_rcircs = []
+        self.vor_verts_bound = [] # vertices at the boundary
+        self.tri_rcircs = [] # circumradius of triangle
+        self.tri_rin = [] # inradius of triangle
         self.tricell_i = []  # index of simplexes
         self.tri_sa = []  # surface area of triangle faces
         self.tcell_verts = []  # x,y components of tri_mesh cells
@@ -109,7 +114,7 @@ class DECMesh(object):
         for i, vert_inds in enumerate(trimesh.simplices):
 
             abc = trimesh.points[vert_inds]
-            vx, vy, r_circ = self.circumc(abc[0], abc[1], abc[2])
+            vx, vy, r_circ, r_in = self.circumc(abc[0], abc[1], abc[2])
 
             sa = self.area(abc)  # surface area of triangle
 
@@ -129,6 +134,7 @@ class DECMesh(object):
                     if flagc != 0.0:  # if it's not outside the cluster region, include the simplex:
                         self.tri_circcents.append([vx, vy])
                         self.tri_rcircs.append(r_circ)
+                        self.tri_rin.append(r_in)
                         self.tricell_i.append(i)
                         simplices2.append(vert_inds)
                         self.tri_sa.append(sa)
@@ -140,6 +146,7 @@ class DECMesh(object):
                 self.tri_cells = trimesh.simplices
                 self.tri_circcents.append([vx, vy])
                 self.tri_rcircs.append(r_circ)
+                self.tri_rin.append(r_in)
                 self.tricell_i.append(i)
                 self.tri_sa.append(sa)
                 self.tcell_verts.append(abc)
@@ -183,6 +190,7 @@ class DECMesh(object):
         self.tri_circcents = np.asarray(self.tri_circcents)
         self.vor_verts_bound = np.asarray(self.vor_verts_bound)
         self.tri_rcircs = np.asarray(self.tri_rcircs)
+        self.tri_rin = np.asarray(self.tri_rin)
         self.tri_sa = np.asarray(self.tri_sa)
         self.tri_cell_i = np.asarray(self.tricell_i)
         self.tcell_verts = np.asarray(self.tcell_verts)
@@ -227,6 +235,7 @@ class DECMesh(object):
         tri_edges = self.tri_edges.tolist()
 
         face_to_edges = [[] for ii in range(self.n_tcell)]
+        bflags_tcells = []
 
         for ci, (vi, vj, vk) in enumerate(self.tri_cells):
 
@@ -234,6 +243,7 @@ class DECMesh(object):
                 # get the index of the opposite sign edge:
                 ea = tri_edges.index([vj, vi])
                 face_to_edges[ci].append(ea) # append the edge index to the array at the cell index
+
             else:
                 # get the forward sign edge:
                 ea = tri_edges.index([vi, vj])
@@ -257,7 +267,12 @@ class DECMesh(object):
                 ec = tri_edges.index([vk, vi])
                 face_to_edges[ci].append(ec)
 
+            # if any edge is on the boundary, mark the cell
+            if ea in self.bflags_tedges or eb in self.bflags_tedges or ec in self.bflags_tedges:
+                bflags_tcells.append(ci)
+
         self.tface_to_tedges = np.asarray(face_to_edges) # tri_face index to tri_edges indices mapping
+        self.bflags_tcells = np.asarray(bflags_tcells)
 
         # create an array giving a list of simplex indices for each tri_vert
         verts_to_simps = [[] for i in range(len(self.tri_verts))]
@@ -371,61 +386,63 @@ class DECMesh(object):
             # representing the shared edge:
             shared_ij = np.intersect1d(vor_reg_i, vor_reg_j)
 
-            assert (len(shared_ij) == 2), "Shared vor_cell edge inds must be length 2"
+            # assert (len(shared_ij) == 2), "Shared vor_cell edge inds must be length 2"
 
-            # find points representing vor and tri edges:
+            if len(shared_ij) == 2:
 
-            tpi = self.tri_verts[ti]
-            tpj = self.tri_verts[tj]
+                # find points representing vor and tri edges:
 
-            tan_t = tpj - tpi
+                tpi = self.tri_verts[ti]
+                tpj = self.tri_verts[tj]
 
-            tri_len = np.linalg.norm(tan_t)
-            #     tri_len = np.sqrt(tan_t[0]**2 + tan_t[1]**2)
+                tan_t = tpj - tpi
 
-            pptm = (tpi + tpj) / 2  # calculate midpoint of tri-edge:
+                tri_len = np.linalg.norm(tan_t)
+                #     tri_len = np.sqrt(tan_t[0]**2 + tan_t[1]**2)
 
-            tri_edge_mids.append(pptm)
+                pptm = (tpi + tpj) / 2  # calculate midpoint of tri-edge:
 
-            assert (tri_len != 0.0), "Tri-edge length equal to zero!"
+                tri_edge_mids.append(pptm)
 
-            tri_edge_len.append(tri_len * 1)
-            tri_tang.append(1 * tan_t / tri_len)
+                assert (tri_len != 0.0), "Tri-edge length equal to zero!"
 
-            vpi = self.vor_verts[shared_ij[0]]
-            vpj = self.vor_verts[shared_ij[1]]
+                tri_edge_len.append(tri_len * 1)
+                tri_tang.append(1 * tan_t / tri_len)
 
-            tan_v = vpj - vpi
+                vpi = self.vor_verts[shared_ij[0]]
+                vpj = self.vor_verts[shared_ij[1]]
 
-            vor_len = np.linalg.norm(tan_v)
-            #     vor_len = np.sqrt(tan_v[0]**2 + tan_v[1]**2)
+                tan_v = vpj - vpi
 
-            #             ppvm = (vpi + vpj)/2 # midpoint of voronoi edge
-            #             vor_edge_mids.append(ppvm)
+                vor_len = np.linalg.norm(tan_v)
+                #     vor_len = np.sqrt(tan_v[0]**2 + tan_v[1]**2)
 
-            assert (vor_len != 0.0), "Vor-edge length equal to zero!"
+                #             ppvm = (vpi + vpj)/2 # midpoint of voronoi edge
+                #             vor_edge_mids.append(ppvm)
 
-            vor_edge_len.append(vor_len * 1)
+                assert (vor_len != 0.0), "Vor-edge length equal to zero!"
 
-            cross_tp = tan_t[0] * tan_v[1] - tan_v[0] * tan_t[1]
+                vor_edge_len.append(vor_len * 1)
 
-            # Check that the tri_edge and vor_edge are orthogonal:
-            dottv = np.dot(tan_t, tan_v)
-            dot_check = np.round(np.abs(dottv), 20)
+                cross_tp = tan_t[0] * tan_v[1] - tan_v[0] * tan_t[1]
 
-            # if yes, add vor_edge points with 90 degree clockwise rotation to
-            # the tri_edge:
-            if dot_check == 0.0:
+                # Check that the tri_edge and vor_edge are orthogonal:
+                dottv = np.dot(tan_t, tan_v)
+                dot_check = np.round(np.abs(dottv), 20)
 
-                if np.sign(cross_tp) == -1.0:
+                # if yes, add vor_edge points with 90 degree clockwise rotation to
+                # the tri_edge:
+                if dot_check == 0.0:
 
-                    vor_edges.append([shared_ij[0], shared_ij[1]])
-                    vor_tang.append(tan_v / vor_len)
+                    if np.sign(cross_tp) == -1.0:
 
-                elif np.sign(cross_tp) == 1.0:
+                        vor_edges.append([shared_ij[0], shared_ij[1]])
+                        vor_tang.append(tan_v / vor_len)
 
-                    vor_edges.append([shared_ij[1], shared_ij[0]])
-                    vor_tang.append(-tan_v / vor_len)
+                    elif np.sign(cross_tp) == 1.0:
+
+                        vor_edges.append([shared_ij[1], shared_ij[0]])
+                        vor_tang.append(-tan_v / vor_len)
 
         self.vor_edges = np.asarray(vor_edges)
         self.tri_tang = np.asarray(tri_tang)
@@ -532,7 +549,7 @@ class DECMesh(object):
         # Calculate the centroid of the whole shape:
         self.centroid = np.mean(self.tri_verts, axis=0)
 
-    def create_d_operators(self):
+    def create_core_operators(self):
         """
 
         Creates the exterior derivative operators 'delta_0' and 'delta_1'.
@@ -552,6 +569,18 @@ class DECMesh(object):
 
         # get and store inverse:
         self.delta_tri_0_inv = np.linalg.pinv(self.delta_tri_0)
+
+        # Mixing matrix inverse -- maps quantity from tri_edge mids to tri_verts using barycentric coordinates:
+        # Note that forward mapping from tri_verts to tri_edge mids is given by M = np.abs(delta_tri_0)*(1/2),
+        # therefore:
+        self.MM_tri_inv = np.linalg.pinv(np.abs(self.delta_tri_0)*(1/2))
+
+    def create_aux_operators(self):
+        """
+        Creates auxiliary operators required for curl, vector laplacians, etc. Note these are
+        needed for the main mesh, but not for the 'mu-mesh' that is required for tensor work...
+
+        """
 
         # exterior derivative operator for tri mesh operating on edges to return faces:
         delta_tri_1 = np.zeros((self.n_tcell, self.n_tedges))
@@ -629,187 +658,386 @@ class DECMesh(object):
         #
         # self.delta_vor_1 = np.asarray(delta_vor_1)
 
-        # Mixing matrix inverse -- maps quantity from tri_edge mids to tri_verts using barycentric coordinates:
-        # Note that forward mapping from tri_verts to tri_edge mids is given by M = np.abs(delta_tri_0)*(1/2),
-        # therefore:
-        self.MM_tri_inv = np.linalg.pinv(np.abs(self.delta_tri_0)*(1/2))
         self.MM_vor_inv = np.linalg.pinv(np.abs(self.delta_vor_0)*(1/2))
 
+        # # Create mapping from tri verts to tri centers (Uses Barycentric coordinates to interpolate
+        # # from verts to circumcentre):
+        #
+        # M_verts_to_cents = np.zeros((self.n_tcell, self.n_tverts))
+        #
+        # for ii, edge_inds in enumerate(self.tface_to_tedges):
+        #     a, b, c = self.tri_edge_len[edge_inds]
+        #
+        #     b1o = (a ** 2) * (-a ** 2 + b ** 2 + c ** 2)
+        #     b2o = (b ** 2) * (a ** 2 - b ** 2 + c ** 2)
+        #     b3o = (c ** 2) * (a ** 2 + b ** 2 - c ** 2)
+        #
+        #     sumb = b1o + b2o + b3o
+        #
+        #     b1 = b1o / sumb
+        #     b2 = b2o / sumb
+        #     b3 = b3o / sumb
+        #
+        #     # get verts of triangle:
+        #     vi, vj, vk = self.tri_cells[ii]
+        #
+        #     M_verts_to_cents[ii, vi] = b1
+        #     M_verts_to_cents[ii, vj] = b2
+        #     M_verts_to_cents[ii, vk] = b3
+        #
+        # self.M_verts_to_cents = np.asarray(M_verts_to_cents)
+        # self.M_verts_to_cents_inv = np.linalg.pinv(self.M_verts_to_cents)
 
-    def area(self, p):
+
+    #----Mathematical operator functions-----------
+
+    def gradient_xy(self, S, gtype = 'tri'):
         """
-        Calculates the unsigned area of an arbitrarily shaped polygon defined by a set of
-        counter-clockwise oriented points in 2D.
+        Gradient of scalar quantity 'S' with respect to the
+        tangent vectors of tri_mesh (gtype = 'tri') or vor_mesh
+        (gtype = 'vor').
+
+        Note that this discrete gradient is a directional derivative with
+        respect to the tangents of the mesh, and is not a true gradient in the x- and y-
+        coordinate system.
 
         Parameters
-        ----------
-        p               xy list of polygon points
+        -----------
+        S   -- a scalar array defined on tri_verts or vor_verts, depending on gtype
+        gtype -- specifies if gradient is taken with respect to tri mesh or vor mesh
 
         Returns
-        -------
-        area            area of a polygon in square meters
+        ----------
+        gradSx, gradSy  -- the x and y components of the directional derivative of S
 
-        Notes
-        -------
-        The algorithm is an application of Green's theorem for the functions -y and
-        x, exactly in the way a planimeter works.
         """
 
-        foo = np.asarray(p)
+        if gtype == 'tri':
 
-        # move points along by one:
-        foo_p = np.roll(foo, -1, axis=0)
+            assert(len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
 
-        ai = foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]
+            gradSx, gradSy = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, S)*self.tri_tang.T
 
-        aa = np.abs((1 / 2) * np.sum(ai))
+        elif gtype == 'vor':
 
-        # aa = 0.5 * abs(sum(x0*y1 - x1*y0 for ((x0, y0), (x1, y1)) in zip(p, p[1:] + [p[0]])))
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
 
-        return aa
+            assert(len(S) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
 
-    def poly_centroid(self, p):
+            gradSx, gradSy = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, S)*self.vor_tang.T
+
+        else:
+            gradSx = None
+            gradSy = None
+
+
+        return gradSx, gradSy
+
+    def gradient(self, S, gtype = 'tri'):
         """
-        Calculates the centroid (geometric centre of mass) of a polygon.
+        Gradient of scalar quantity 'S' with respect to the
+        tangent vectors of tri_mesh (gtype = 'tri') or vor_mesh
+        (gtype = 'vor').
+
+        Note that this discrete gradient is a directional derivative with
+        respect to the tangents of the mesh, and returns the component of the
+        gradient with respect to the tangent vectors of the mesh on which it was
+        computed.
 
         Parameters
+        -----------
+        S   -- a scalar array defined on tri_verts or vor_verts, depending on gtype
+        gtype -- specifies if gradient is taken with respect to tri mesh or vor mesh
+
+        Returns
         ----------
-        p       array of [x,y] points defining polygon vertices
+        gradS  -- the tangential component of the directional derivative of S along tangents of mesh
+
+        """
+
+        if gtype == 'tri':
+
+            assert(len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+
+            gradS = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, S)
+
+        elif gtype == 'vor':
+
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+            assert(len(S) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+
+            gradS = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, S)
+
+        else:
+            gradS = None
+
+        return gradS
+
+    def div_xy(self, Fx, Fy, gtype = 'tri'):
+        """
+        Divergence of a vector field Fx, and Fy with respect to the tri (gtype = 'tri') or vor (gtype = 'vor')
+        mesh cells.
+
+        If gtype == 'tri', the divergence is with respect to a vor_mesh "control cell", and the final
+        divergence is defined at vor_cents (tri vertices).
+
+        If gtype == 'vor', the divergence is with respect to a tri_mesh "control cell", and the final
+        divergence is defined at tri_cents (vor vertices).
+
+        This computation assumes that self.delta_vor_1 = -self.delta_tri_0.T, which has been confirmed,
+        and can be confirmed by uncommenting code calculating self.delta_vor_1 in create_aux_operators method, above.
+
+        Parameters
+        -----------
+        Fx, Fy   -- components of vector field defined on mesh edges, depending on gtype
+        gtype -- specifies if divergence is taken with respect to tri mesh or vor mesh
+
+        Returns
+        ----------
+        divF  -- divergence of the vector field Fx, Fy
+
+        """
+
+        if gtype == 'tri':
+
+            # get component of vector field parallel to tri_mesh tangents (and therefore perpendicular to vor_edges):
+            FF = Fx*self.tri_tang[:,0] + Fy*self.tri_tang[:,1]
+
+            divF = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T, self.vor_edge_len*FF)
+
+        elif gtype == 'vor':
+
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor div"
+
+            # get component of vector field parallel to vor_mesh tangents (and therefore perpendicular to tri_edges):
+            FF = Fx*self.vor_tang[:,0] + Fy*self.vor_tang[:,1]
+
+            divF = (1/self.tri_sa)*np.dot(self.delta_tri_1, self.tri_edge_len*FF)
+
+        else:
+            divF = None
+
+
+        return divF
+
+    def div(self, Ft, gtype = 'tri'):
+        """
+        Divergence of a vector field tangential component Ft with respect to the tri (gtype = 'tri')
+        or vor (gtype = 'vor') mesh cells.
+
+        If gtype == 'tri', the divergence is with respect to a vor_mesh "control cell", and the final
+        divergence is defined at vor_cents (tri vertices). The input Ft should represent the tangential component
+        of a vector field with respect ot the tri_tangents.
+
+        If gtype == 'vor', the divergence is with respect to a tri_mesh "control cell", and the final
+        divergence is defined at tri_cents (vor vertices). The input Ft should represent the tangential component
+        of a vector field with respect ot the vor_tangents.
+
+        This computation assumes that self.delta_vor_1 = -self.delta_tri_0.T, which has been confirmed,
+        and can be confirmed by uncommenting code calculating self.delta_vor_1 in create_aux_operators method, above.
+
+        Parameters
+        -----------
+        Ft   -- tangential component of vector field with respect to mesh edges, depending on gtype
+        gtype -- specifies if divergence is taken with respect to tri mesh or vor mesh
+
+        Returns
+        ----------
+        divF  -- divergence of the vector field Ft
+
+        """
+
+        if gtype == 'tri':
+
+            divF = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T, self.vor_edge_len*Ft)
+
+        elif gtype == 'vor':
+
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor div!"
+
+            divF = (1/self.tri_sa)*np.dot(self.delta_tri_1, self.tri_edge_len*Ft)
+
+        else:
+            divF = None
+
+
+        return divF
+
+    def lap(self, S, gtype = 'tri'):
+        """
+        Computes a scalar forwards Laplacian on a scalar variable S as the divergence of the gradient of the
+        scalar.
+
+        If gtype = 'tri', the gradient is taken with respect to the tri_mesh edges with vor_mesh control volumes,
+        and if gtype = 'vor', the gradient is taken with respect to the vor_mesh edges with tri_mesh control volumes.
+
+        Note that due to the structure of the grids, the gtype tri lap is closed boundary (zero flux) while the
+        gtype vor lap is open boundary.
+
+        Parameters
+        -----------
+        S   -- a scalar array defined on tri_verts or vor_verts, depending on gtype
+        gtype -- specifies if laplacian is taken with respect to tri mesh or vor mesh
+
+        Returns
+        ----------
+        lapS  -- the Laplacian of S with 'natural' boundary conditions.
+
+        """
+        if gtype == 'tri':
+
+            # calculate gradient of S:
+            gS = self.gradient(S, gtype='tri')
+
+            # calculate the divergence of the gradient, which is the laplacian:
+            lapS = self.div(gS, gtype = 'tri')
+
+        elif gtype == 'vor':
+
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+            # calculate gradient of S:
+            gS = self.gradient(S, gtype='vor')
+
+            # calculate the divergence of the gradient, which is the Laplacian:
+            lapS = self.div(gS, gtype = 'vor')
+
+        else:
+            lapS = None
+
+        return lapS
+
+    def lap_inv(self, S, gtype = 'tri'):
+        pass
+
+    def curl(self, Fz, gtype = 'tri'):
+        pass
+
+    def curl_xy(self, Fx, Fy, gtype = 'tri'):
+        pass
+
+    def verts_to_mids(self, Sv, gtype = 'tri'):
+        """
+        Maps property S from vertices of mesh to midpoints of edges using barycentric interpolation.
+
+        Parameters
+        ------------
+        Sv -- property defined at vertices (verts depend on gtype)
+        gtype  -- if transformation is from triverts to trimids or vorverts to vormids
 
         Returns
         --------
-        cx, cy  polygon centroid coordinates
-
-        reference: https://en.wikipedia.org/wiki/Centroid#Of_a_polygon
-        """
-
-        foo = np.asarray(p)
-
-        # move points along by one:
-        foo_p = np.roll(foo, -1, axis=0)
-
-        ai = foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]
-
-        aa = (1 / 2) * np.sum(ai)  # signed area
-
-        cx = (1 / (6 * aa)) * np.sum((foo[:, 0] + foo_p[:, 0]) * (foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]))
-        cy = (1 / (6 * aa)) * np.sum((foo[:, 1] + foo_p[:, 1]) * (foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]))
-
-        return cx, cy
-
-    def circumc(self, A, B, C):
-        """
-        Calculates the circumcenter and circumradius of a triangle with
-        vertices A = [Ax, Ay], B = [Bx, By], and C = [Cx, Cy]
-
-        returns ox, oy, rc, the x and y coordinates of the circumcentre and
-        the circumradius, respectively.
+        Sm  -- property at edge mids
 
         """
 
-        # Point coords:
-        Ax = A[0]
-        Ay = A[1]
-        Bx = B[0]
-        By = B[1]
-        Cx = C[0]
-        Cy = C[1]
+        if gtype == 'tri':
+            assert(len(Sv) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            MM = np.abs(self.delta_tri_0)*(1/2)
 
-        # Calculate circumcentre:
-        # (from https://en.wikipedia.org/wiki/Circumscribed_circle#Cartesian_coordinates_2)
+            Sm = np.dot(MM, Sv)
 
-        A2 = Ax ** 2 + Ay ** 2
-        B2 = Bx ** 2 + By ** 2
-        C2 = Cx ** 2 + Cy ** 2
+        elif gtype == 'vor':
 
-        denom = 2 * (Ax * (By - Cy) + Bx * (Cy - Ay) + Cx * (Ay - By))
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+            assert(len(Sv) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
 
-        ox = (A2 * (By - Cy) + B2 * (Cy - Ay) + C2 * (Ay - By)) / denom
-        oy = (A2 * (Cx - Bx) + B2 * (Ax - Cx) + C2 * (Bx - Ax)) / denom
+            MM = np.abs(self.delta_vor_0)*(1/2)
 
-        # Calculate circumradius:
-        # (from https://www.mathalino.com/reviewer/
-        # derivation-of-formulas/derivation-of-formula-for-radius-of-circumcircle)
-        a = np.sqrt((Ax - Bx) ** 2 + (Ay - By) ** 2)
-        b = np.sqrt((Bx - Cx) ** 2 + (By - Cy) ** 2)
-        c = np.sqrt((Cx - Ax) ** 2 + (Cy - Ay) ** 2)
-
-        s = (a + b + c) / 2.0
-        area = np.sqrt(s * (s - a) * (s - b) * (s - c))
-
-        # circumcircle:
-        if area > 0.0:
-            rc = a * b * c / (4.0 * area)
+            Sm = np.dot(MM, Sv)
 
         else:
-            rc = 0.0
+            Sm = None
 
-        return ox, oy, rc
+        return Sm
 
-    def mesh_energy_i(self, A, B, C, ro = 5.0e-5):
+    def mids_to_verts(self, Sm, gtype = 'tri'):
         """
-        Calculates the circumcenter and circumradius of a triangle with
-        vertices A = [Ax, Ay], B = [Bx, By], and C = [Cx, Cy]
+        Maps property Sm from edge mids of mesh to vertices using barycentric interpolation.
 
-        returns ox, oy, rc, the x and y coordinates of the circumcentre and
-        the circumradius, respectively.
+        Parameters
+        ------------
+        Sm -- property at edge mids
+        gtype  -- if transformation is from triverts to trimids or vorverts to vormids
+
+        Returns
+        --------
+        Sv  -- property defined at vertices (verts depend on gtype)
 
         """
 
-        # Point coords:
-        Ax = A[0]
-        Ay = A[1]
-        Bx = B[0]
-        By = B[1]
-        Cx = C[0]
-        Cy = C[1]
+        if gtype == 'tri':
+            assert(len(Sm) == self.n_tedges), "Length of array passed to gradient is not edges length"
+            MM_inv = self.MM_tri_inv
 
-        # Calculate circumradius:
-        # (from https://www.mathalino.com/reviewer/
-        # derivation-of-formulas/derivation-of-formula-for-radius-of-circumcircle)
-        a = np.sqrt((Ax - Bx) ** 2 + (Ay - By) ** 2)
-        b = np.sqrt((Bx - Cx) ** 2 + (By - Cy) ** 2)
-        c = np.sqrt((Cx - Ax) ** 2 + (Cy - Ay) ** 2)
+            Sv = np.dot(MM_inv, Sm)
 
-        s = (a + b + c) / 2.0
-        area = np.sqrt(s * (s - a) * (s - b) * (s - c))
+        elif gtype == 'vor':
 
-        rt = (1/ro)*2*area/(a + b + c)
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+            assert(len(Sm) == self.n_vedges), "Length of array passed to gradient is not edges length"
 
-        Rt = (1/ro)*(a*b*c)/(4*area)
+            MM_inv = self.MM_vor_inv
 
-        if area < 0.0:
-
-            uu = 1.0e10
+            Sv = np.dot(MM_inv, Sm)
 
         else:
 
-            uu = (1/2)*Rt*(Rt - 2*rt)
+            Sv = None
 
+        return Sv
 
-        return uu
+    def verts_to_cent(self, Sv):
+
+        pass
+
+    def cent_to_verts(self, Sc):
+
+        pass
+
+    def vector_laplacian(self, Fx, Fy, gtype = 'tri'):
+        pass
+
+    def vector_laplacian_inv(self, Fx, Fy, gtype = 'tri'):
+        pass
+
+    def helmholtz_hodge(self, Fx, Fy, gtype = 'tri'):
+
+        pass
+
+    def calc_tri(self):
+        self.tri_circcents = []
+        self.tri_rcircs = [] # circumradius of triangle
+        self.tri_rin = [] # inradius of triangle
+        self.tri_sa = []  # surface area of triangle faces
+
+        for i, vert_inds in enumerate(self.tri_cells):
+
+            abc = self.tri_verts[vert_inds]
+            vx, vy, r_circ, r_in = self.circumc(abc[0], abc[1], abc[2])
+
+            sa = self.area(abc)  # surface area of triangle
+
+            self.tri_circcents.append([vx, vy])
+            self.tri_rcircs.append(r_circ)  # circumradius of triangle
+            self.tri_rin.append(r_in)  # inradius of triangle
+            self.tri_sa.append(sa)  # surface area of triangle faces
+
+        self.tri_circcents = np.asarray(self.tri_circcents)
+        self.tri_rcircs = np.asarray(self.tri_rcircs) # circumradius of triangle
+        self.tri_rin = np.asarray(self.tri_rin) # inradius of triangle
+        self.tri_sa = np.asarray(self.tri_sa)  # surface area of triangle faces
 
     def mesh_quality_calc(self):
 
-        edge_lengths = self.vor_edge_len
-        mean_edge = edge_lengths.mean()
+        uu = (1/2)*self.tri_rcircs*(self.tri_rcircs - 2*self.tri_rin)
 
-        edge_qual = (edge_lengths / mean_edge) * 100
-        mesh_qual_metric = edge_qual.min()
+        # energy at edge cells is double that of those in the interior:
+        uu[self.bflags_tcells] = self.tri_rcircs[self.bflags_tcells]*(self.tri_rcircs[self.bflags_tcells]
+                                                                      - 2*self.tri_rin[self.bflags_tcells])
 
-        Ui = []
-
-        for ci, (vi, vj, vk) in enumerate(self.tri_cells):
-            # get points
-            pi, pj, pk = self.tri_verts[[vi, vj, vk]]
-
-            ui = self.mesh_energy_i(pi, pj, pk)
-
-            Ui.append(ui)
-        #
-        UU = np.sum(Ui)
-
-        return mesh_qual_metric, UU
+        return uu
 
     def search_point_cloud(self, pts, pt_cloud):
 
@@ -852,30 +1080,19 @@ class DECMesh(object):
 
         return matched_pts, unmatched_pts
 
-    def refine_mesh(self, max_steps=50, convergence=15.0):
+    def refine_mesh(self, max_steps=25, convergence=7.5):
 
-        #         logs.log_info("Initializing Voronoi mesh optimization...")
-
-        # optimization vector:
-        #         opti_steps = np.arange(p.maximum_voronoi_steps)
+        logs.log_info("Initializing Voronoi mesh optimization...")
 
         opti_steps = np.arange(max_steps)
 
-        mesh_qual_metric, UU = self.mesh_quality_calc()
+        ui = self.mesh_quality_calc()
 
-        # fixed_bound_points = self.tri_mids[self.bflags_tedges] # fix a bounding curve of points
-
-        # self.tri_verts = np.vstack((fixed_bound_points, self.vor_cents)) # add in the fixed-bound points once!
-
-        # # change the points at the boundary by folding in tri_mids, just once:
-        # self.tri_verts = np.vstack((self.tri_mids[self.bflags_tedges], self.tri_verts)) # add in the fixed-bound points
-        # self.create_tri_mesh()
-        # self.create_mappings()
-        # self.process_vormesh()
+        UU = np.sum(ui)/self.cell_radius**2
 
         for i in opti_steps:
 
-            if mesh_qual_metric < convergence:
+            if UU > convergence:
 
                 # Continuously reassign tri_verts to vor_centres, without affecting the boundary
                 self.tri_verts[self.biocell_i] = self.vor_cents[self.biocell_i]
@@ -884,23 +1101,25 @@ class DECMesh(object):
                 self.create_mappings()
                 self.process_vormesh()
 
-                mesh_qual_metric, UU = self.mesh_quality_calc()
+                ui = self.mesh_quality_calc()
 
-                conv_mess = "Step {}: mesh quality {}, {}".format(i, mesh_qual_metric, UU)
+                UU = np.sum(ui)/self.cell_radius**2
+
+                conv_mess = "Step {}: mesh quality {}".format(i, UU)
                 #                 logs.log_info(conv_mess)
-                print(conv_mess)
+                logs.log_info(conv_mess)
 
             else:
 
                 # Finish up:
-                self.create_d_operators() # calculate the matrices
+                self.init_mesh() # build entire mesh
 
-                self.mesh_qual = mesh_qual_metric
+                self.mesh_qual = UU
                 #                 logs.log_info("Convergence condition met for mesh optimization.")
                 print("Convergence condition met for mesh optimization.")
-                final_mess = "Final mesh quality {}".format(mesh_qual_metric)
+                final_mess = "Final mesh quality {}".format(UU)
                 #                 logs.log_info(final_mess)
-                print(final_mess)
+                logs.log_info(final_mess)
                 break
 
     def clip_to_curve(self, imagemask):
@@ -982,27 +1201,139 @@ class DECMesh(object):
         self.init_mesh()
 
 
-### WASTELANDS ###
+    #-----Utility functions--------------------------
 
-    #         # exterior derivative operator for vor mesh operating on edges to return faces:
-    #         delta_vor_1 = np.zeros((self.n_vcells, self.n_vedges))
+    def area(self, p):
+        """
+        Calculates the unsigned area of an arbitrarily shaped polygon defined by a set of
+        counter-clockwise oriented points in 2D.
 
-    #         vor_edges = self.vor_edges.tolist()
+        Parameters
+        ----------
+        p               xy list of polygon points
 
-    #         for ic, cell_verts in enumerate(self.vor_cells):
+        Returns
+        -------
+        area            area of a polygon in square meters
 
-    #             cell_verts_roll = np.roll(cell_verts, 1)
+        Notes
+        -------
+        The algorithm is an application of Green's theorem for the functions -y and
+        x, exactly in the way a planimeter works.
+        """
 
-    #             for (vi, vj) in zip(cell_verts, cell_verts_roll):
+        foo = np.asarray(p)
 
-    #                 if [vi, vj] in vor_edges:
-    #                     # get the index of the opposite sign edge:
-    #                     ea = vor_edges.index([vi, vj])
-    #                     delta_vor_1[ic, ea] = -1
+        # move points along by one:
+        foo_p = np.roll(foo, -1, axis=0)
 
-    #                 elif [vj, vi] in vor_edges:
-    #                     # get the forward sign edge:
-    #                     ea = vor_edges.index([vj, vi])
-    #                     delta_vor_1[ic, ea] = 1
+        ai = foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]
 
-    #         self.delta_vor_1 = np.asarray(delta_vor_1)
+        # aa = np.abs((1 / 2) * np.sum(ai))
+
+        aa = (1 / 2) * np.sum(ai)
+
+        return aa
+
+    def poly_centroid(self, p):
+        """
+        Calculates the centroid (geometric centre of mass) of a polygon.
+
+        Parameters
+        ----------
+        p       array of [x,y] points defining polygon vertices
+
+        Returns
+        --------
+        cx, cy  polygon centroid coordinates
+
+        reference: https://en.wikipedia.org/wiki/Centroid#Of_a_polygon
+        """
+
+        foo = np.asarray(p)
+
+        # move points along by one:
+        foo_p = np.roll(foo, -1, axis=0)
+
+        ai = foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]
+
+        aa = (1 / 2) * np.sum(ai)  # signed area
+
+        cx = (1 / (6 * aa)) * np.sum((foo[:, 0] + foo_p[:, 0]) * (foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]))
+        cy = (1 / (6 * aa)) * np.sum((foo[:, 1] + foo_p[:, 1]) * (foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]))
+
+        return cx, cy
+
+
+    def circumc(self, A, B, C):
+        """
+        Calculates the circumcenter and circumradius of a triangle with
+        vertices A = [Ax, Ay], B = [Bx, By], and C = [Cx, Cy]
+
+        returns ox, oy, rc, the x and y coordinates of the circumcentre and
+        the circumradius, respectively.
+
+        """
+
+        # Point coords:
+        Ax = A[0]
+        Ay = A[1]
+        Bx = B[0]
+        By = B[1]
+        Cx = C[0]
+        Cy = C[1]
+
+        # Calculate circumcentre:
+        # (from https://en.wikipedia.org/wiki/Circumscribed_circle#Cartesian_coordinates_2)
+
+        A2 = Ax ** 2 + Ay ** 2
+        B2 = Bx ** 2 + By ** 2
+        C2 = Cx ** 2 + Cy ** 2
+
+        denom = 2 * (Ax * (By - Cy) + Bx * (Cy - Ay) + Cx * (Ay - By))
+
+        ox = (A2 * (By - Cy) + B2 * (Cy - Ay) + C2 * (Ay - By)) / denom
+        oy = (A2 * (Cx - Bx) + B2 * (Ax - Cx) + C2 * (Bx - Ax)) / denom
+
+        # Calculate circumradius:
+        # (from https://www.mathalino.com/reviewer/
+        # derivation-of-formulas/derivation-of-formula-for-radius-of-circumcircle)
+        a = np.sqrt((Ax - Bx) ** 2 + (Ay - By) ** 2)
+        b = np.sqrt((Bx - Cx) ** 2 + (By - Cy) ** 2)
+        c = np.sqrt((Cx - Ax) ** 2 + (Cy - Ay) ** 2)
+
+        s = (a + b + c) / 2.0
+        area = np.sqrt(s * (s - a) * (s - b) * (s - c))
+
+        # circumcircle:
+        if area > 0.0:
+            rc = a * b * c / (4.0 * area)
+
+        else:
+            rc = 0.0
+
+        # inradius:
+        ri = (2*area)/ (a + b + c)
+
+        return ox, oy, rc, ri
+
+
+    #WasteLands-------------------------------------
+    # # Interpolate mesh energy from tri cents to verts
+    # uv = np.dot(self.M_verts_to_cents_inv, ui)
+    # # Calculate the gradient (x and y components on tri edges):
+    # guxe, guye = self.gradient_xy(uv)
+    # # Interpolate from edges to verts:
+    # gUx = self.mids_to_verts(guxe)
+    # gUy = self.mids_to_verts(guye)
+    #
+    # # move the verts to the negative gradient:
+    # self.tri_verts[self.biocell_i,0] += -gUx[self.biocell_i]*step_size
+    # self.tri_verts[self.biocell_i,1] += -gUy[self.biocell_i]*step_size
+    #
+    # # recalculate key features of tri_mesh with new triverts positions
+    # # self.calc_tri()
+
+
+
+
