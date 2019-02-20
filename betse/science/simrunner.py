@@ -17,7 +17,7 @@ from betse.science.parameters import Parameters
 from betse.science.phase import phasecallbacks
 from betse.science.phase.phasecallbacks import SimCallbacksBCOrNoneTypes
 from betse.science.phase.phasecls import SimPhase
-from betse.science.phase.phaseenum import SimPhaseKind
+from betse.science.enum.enumphase import SimPhaseKind
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
 from betse.util.type.decorator.decorators import deprecated

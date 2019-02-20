@@ -100,7 +100,7 @@ from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplcls import (
     ImageMovieWriter, NoopMovieWriter)
-from betse.science.phase.phaseenum import SimPhaseKind
+from betse.science.enum.enumphase import SimPhaseKind
 from betse.science.visual.layer.vectorfield.lyrvecfldabc import (
     LayerCellsFieldColorlessABC)
 from betse.science.visual.layer.vectorfield.lyrvecfldstream import (

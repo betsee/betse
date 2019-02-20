@@ -30,10 +30,11 @@ def iter_ion_names() -> GeneratorType:
 # ....................{ ENUMS                             }....................
 IonType = enums.make_enum(
     class_name='IonType',
-    member_names=('Na', 'K', 'Ca', 'Cl', 'M', 'P',))
-'''
-Enumeration of all supported types of **ions** (i.e., atoms or molecules having
-lost or gained electrons and hence net electric charge).
+    member_names=('Na', 'K', 'Ca', 'Cl', 'M', 'P',),
+    is_ordered=True,
+    doc='''
+Ordered enumeration of all supported types of **ions** (i.e., atoms or
+molecules having lost or gained electrons and hence net electric charge).
 
 For brevity, the names of these types are intentionally condensed to their
 standard abbreviations rather than elongated to their human-readable nouns
@@ -56,4 +57,4 @@ M : enum
     stability and correctness.
 P : enum
     Anionic protein P-.
-'''
+''')

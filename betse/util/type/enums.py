@@ -28,8 +28,7 @@ class EnumOrdered(EnumClassType):
     Enumeration whose members are comparable according to their assigned
     values.
 
-    This :class:`Enum` subclass complies with the `Functional
-    API<https://docs.python.org/3/library/enum.html#functional-api>`_ for
+    This :class:`Enum` subclass complies with the `Functional API`_ for
     enumerations, permitting comparable enumeration types to be defined with a
     single function call. (See the example below.)
 
@@ -39,27 +38,30 @@ class EnumOrdered(EnumClassType):
     ``__eq__()`` and ``__ne__()``) are already implemented by the :class:`Enum`
     superclass and hence need *not* be reimplemented here.
 
+    .. _Functional API:
+       https://docs.python.org/3/library/enum.html#functional-api
+
     See Also
     ----------
     https://docs.python.org/3/library/enum.html#orderedenum
-        `OrderedEnum` class strongly inspiring this class.
+        Standard Python documentation strongly inspiring this implementation.
 
     Examples
     ----------
-    >>> from betse.util.type.enums import EnumOrdered
-    >>> Shrike = EnumOrdered('Shrike', ('hyperion', 'endymion'))
-    >>> Shrike.endymion == Shrike.endymion
-    True
-    >>> Shrike.hyperion != Shrike.endymion
-    True
-    >>> Shrike.hyperion < Shrike.endymion
-    True
-    >>> Shrike.hyperion <= Shrike.endymion
-    True
-    >>> Shrike.endymion > Shrike.hyperion
-    True
-    >>> Shrike.endymion >= Shrike.hyperion
-    True
+        >>> from betse.util.type.enums import EnumOrdered
+        >>> Shrike = EnumOrdered('Shrike', ('hyperion', 'endymion'))
+        >>> Shrike.endymion == Shrike.endymion
+        True
+        >>> Shrike.hyperion != Shrike.endymion
+        True
+        >>> Shrike.hyperion < Shrike.endymion
+        True
+        >>> Shrike.hyperion <= Shrike.endymion
+        True
+        >>> Shrike.endymion > Shrike.hyperion
+        True
+        >>> Shrike.endymion >= Shrike.hyperion
+        True
     '''
 
     # ..................{ COMPARATORS                       }..................
@@ -117,10 +119,6 @@ class EnumOrdered(EnumClassType):
             NotImplemented)
 
 # ....................{ MAKERS                            }....................
-#FIXME: Add an additional "doc" optional parameter to this function, defaulting
-#to "None". If non-None, this function should set the docstring for the
-#returned tupe to the value of this parameter. See
-#tuples.make_named_subclass() for similar logic.
 @type_check
 def make_enum(
     # Mandatory parameters.
@@ -128,6 +126,7 @@ def make_enum(
     member_names: SequenceTypes,
 
     # Optional parameters.
+    is_ordered: bool = False,
     doc: StrOrNoneTypes = None,
 ) -> EnumType:
     '''
@@ -166,7 +165,12 @@ def make_enum(
     member_names : SequenceTypes
         Sequence of the names of all members of this enumeration type, required
         to be valid **Python identifiers** (i.e., contain only alphanumeric
-        characters and the underscore).
+        characters and underscores).
+    is_ordered : bool
+        ``True`` only if the members of this enumeration are ordered (and hence
+        comparable) according to the ordering of member names in the passed
+        ``member_names`` sequence. Defaults to ``False``, in which case the
+        members of this enumeration are unordered (and hence incomparable).
     doc : StrOrNoneTypes
         Class docstring to document this type with. Defaults to ``None``, in
         which case this type remains undocumented.
@@ -178,14 +182,14 @@ def make_enum(
 
     Examples
     ----------
-    >>> from betse.util.type.enums import make_enum
-    >>> CthulhicState = make_enum(
-    ...     class_name='CthulhicState',
-    ...     member_names=('MERCIFUL', 'INNABILITY', 'CORRELATE', 'CONTENTS',))
-    >>> CthulhicState.CORRELATE.name
-    'CORRELATE'
-    >>> CthulhicState.CORRELATE.value
-    3
+        >>> from betse.util.type.enums import make_enum
+        >>> CthulhicState = make_enum(
+        ...     class_name='CthulhicState',
+        ...     member_names=('MERCIFUL', 'INNABILITY', 'CORRELATE', 'CONTENTS',))
+        >>> CthulhicState.CORRELATE.name
+        'CORRELATE'
+        >>> CthulhicState.CORRELATE.value
+        3
     '''
 
     # Avoid circular import dependencies.
@@ -202,8 +206,15 @@ def make_enum(
     # Fully-qualified name of the module defining this enumeration type.
     module_name = callers.get_caller_module_name()
 
+    # Type of enumeration superclass to be subclassed. Specifically, if the
+    # caller requested that the members of this enumeration be:
+    #
+    # * Ordered, this is our custom ordered enumeration type.
+    # * Unordered, this is the standard unordered enumeration type.
+    enum_superclass = EnumOrdered if is_ordered else EnumClassType
+
     # Dynamically synthesize and return this enumeration type.
-    enum_subclass = EnumClassType(
+    enum_subclass = enum_superclass(
         value=class_name,
         names=member_names,
         module=module_name,

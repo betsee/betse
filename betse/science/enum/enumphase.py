@@ -4,20 +4,21 @@
 # See "LICENSE" for further details.
 
 '''
-High-level **simulation phase enumeration** (e.g., :class:`enum.Enum` subclass
-describing different types of simulation phases) functionality.
-
 **Simulation modelling enumerations** (i.e., :class:`enum.Enum` subclasses
 internally required by simulation modelling phases).
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse.util.type.enums import EnumOrdered
+from betse.util.type import enums
 
 # ....................{ ENUMS                             }....................
-SimPhaseKind = EnumOrdered('SimPhaseKind', ('SEED', 'INIT', 'SIM',))
-'''
-Ordered enumeration of all possible simulation phases.
+SimPhaseKind = enums.make_enum(
+    class_name='SimPhaseKind',
+    member_names=('SEED', 'INIT', 'SIM',),
+    is_ordered=True,
+    doc='''
+Ordered enumeration of all supported types of **simulation phases** (i.e.,
+consecutive steps for the process of simulating simulation configurations).
 
 Each member of this enumeration is arbitrarily comparable to each other member.
 Each member's value is less than that of another member's value if and only if
@@ -43,4 +44,4 @@ SIM : enum
     :meth:`betse.science.simrunner.SimRunner.sim` method. This phase simulates
     the previously initialized cell cluster from a cached input file and caches
     this simulation to an output file.
-'''
+''')

@@ -13,8 +13,9 @@ from betse.util.type import enums
 
 # ....................{ ENUMS ~ cell                      }....................
 CellLatticeType = enums.make_enum(
-    class_name='CellLatticeType', member_names=('HEX', 'SQUARE',))
-'''
+    class_name='CellLatticeType',
+    member_names=('HEX', 'SQUARE',),
+    doc='''
 Enumeration of all supported types of **base cell lattices** (i.e., uniform
 grid to which cells are situated *before* random lattice disorder is applied).
 
@@ -24,13 +25,13 @@ HEX : enum
     Hexagonal base cell lattice, situating cells along a hexagonal grid.
 SQUARE : enum
     Rectilinear base cell lattice, situating cells along a square grid.
-'''
+''')
 
 # ....................{ ENUMS ~ cells                     }....................
 CellsPickerType = enums.make_enum(
     class_name='CellsPickerType',
-    member_names=('ALL', 'COLOR', 'IMAGE', 'INDICES', 'PERCENT',))
-'''
+    member_names=('ALL', 'COLOR', 'IMAGE', 'INDICES', 'PERCENT',),
+    doc='''
 Enumeration of all supported types of **tissue profile pickers** (i.e., objects
 assigning a subset of all cells matching some criteria to the corresponding
 tissue profile).
@@ -51,13 +52,13 @@ INDICES : enum
     defined by a given sequence.
 PERCENT : enum
     Randomized cell picker, randomly matching a given percentage of all cells.
-'''
+''')
 
 # ....................{ ENUMS ~ grn                       }....................
 GrnUnpicklePhaseType = enums.make_enum(
     class_name='GrnUnpicklePhaseType',
-    member_names=('SEED', 'INIT', 'SIM',))
-'''
+    member_names=('SEED', 'INIT', 'SIM',),
+    doc='''
 Enumeration of all supported types of gene regulatory network (GRN)-specific
 **unpickle simulation phases** (i.e., previously pickled simulation phase to
 unpickle as the computational basis for the current network to be run by the
@@ -78,13 +79,13 @@ SIM : enum
     Unpickled simulation phase, running this network on the results of a
     previously run ``betse sim`` subcommand and hence an initialized and
     simulated cell cluster.
-'''
+''')
 
 # ....................{ ENUMS ~ ion                       }....................
 IonProfileType = enums.make_enum(
     class_name='IonProfileType',
-    member_names=('BASIC', 'BASIC_CA', 'MAMMAL', 'AMPHIBIAN', 'CUSTOM',))
-'''
+    member_names=('BASIC', 'BASIC_CA', 'MAMMAL', 'AMPHIBIAN', 'CUSTOM',),
+    doc='''
 Enumeration of all supported types of **ion profiles** (i.e., predefined sets
 of all extracellular and cytosolic ions enabled by this simulation).
 
@@ -113,13 +114,13 @@ AMPHIBIAN : enum
 CUSTOM : enum
     User-defined ion profile. See the
     :attr:`betse.science.parameters.Parameters.ions_custom` variable.
-'''
+''')
 
 # ....................{ ENUMS ~ solver                    }....................
 SolverType = enums.make_enum(
     class_name='SolverType',
-    member_names=('FULL', 'FAST',))
-'''
+    member_names=('FULL', 'FAST',),
+    doc='''
 Enumeration of all supported types of **simulation solvers** (i.e.,
 computational technique iteratively computing each time step of a simulation).
 
@@ -144,4 +145,4 @@ FAST : enum
 
     If this solver is selected, these phenomena are silently ignored even if
     otherwise enabled by the current simulation configuration.
-'''
+''')

@@ -21,7 +21,7 @@ from betse.science.physics.flow import getFlow
 from betse.science.physics.ion_current import get_current
 from betse.science.physics.pressures import osmotic_P
 from betse.science.phase.phasecls import SimPhase
-from betse.science.phase.phaseenum import SimPhaseKind
+from betse.science.enum.enumphase import SimPhaseKind
 from betse.science.organelles.microtubules import Mtubes
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.io.log import logs

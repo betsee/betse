@@ -32,7 +32,7 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 from betse.science.config import confio
 from betse.science.enum.enumconf import IonProfileType, SolverType
 from betse.science.phase.phasecls import SimPhase
-from betse.science.phase.phaseenum import SimPhaseKind
+from betse.science.enum.enumphase import SimPhaseKind
 from betse.science.phase.require import phasereqs
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirementsOrNoneTypes)

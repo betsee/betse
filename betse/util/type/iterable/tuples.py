@@ -54,14 +54,15 @@ def make_named_subclass(
 
     Examples
     ----------
-    >>> from betse.util.type.iterable.tuples import make_subclass_named
-    >>> OneBloodStrain = make_subclass_named(
-    ...     class_name='OneBloodStrain',
-    ...     item_names=('summer_goes', 'paint_leaves',))
-    >>> common_man = OneBloodStrain(
-    ...     summer_goes='and autumn comes', paint_leaves='with sombre fires')
-    >>> common_man.summer_goes
-    'and autumn comes'
+        >>> from betse.util.type.iterable.tuples import make_subclass_named
+        >>> OneBloodStrain = make_subclass_named(
+        ...     class_name='OneBloodStrain',
+        ...     item_names=('summer_goes', 'paint_leaves',))
+        >>> common_man = OneBloodStrain(
+        ...     summer_goes='and autumn comes',
+        ...     paint_leaves='with sombre fires')
+        >>> common_man.summer_goes
+        'and autumn comes'
     '''
 
     # Avoid circular import dependencies.

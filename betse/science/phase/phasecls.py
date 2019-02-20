@@ -11,7 +11,7 @@ High-level simulation phase classes.
 from betse.exceptions import BetseSimPhaseException
 from betse.science.phase import phasecallbacks
 from betse.science.phase.phasecallbacks import SimCallbacksBCOrNoneTypes
-from betse.science.phase.phaseenum import SimPhaseKind
+from betse.science.enum.enumphase import SimPhaseKind
 # from betse.util.type.iterable import iterables
 from betse.util.type.text.string import strjoin
 from betse.util.type.types import type_check, NoneType

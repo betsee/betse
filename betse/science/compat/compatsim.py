@@ -161,7 +161,7 @@ def _upgrade_sim_imports_to_0_7_1() -> None:
     from betse.science import channels
     from betse.science.config.export import visual
     # from betse.science.phase import phasecls
-    # from betse.science.phase.phaseenum import SimPhaseKind
+    # from betse.science.enum.enumphase import SimPhaseKind
 
     # Alias obsolete module names to current module objects.
     sys.modules['betse.science.channelo'] = channels
