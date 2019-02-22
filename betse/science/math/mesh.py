@@ -102,7 +102,7 @@ class DECMesh(object):
         self.n_tverts = len(self.tri_verts)
 
         # Calculate the centroids of the triangulation:
-        self.tri_circcents = []
+        self.tri_ccents = []
         self.vor_verts_bound = [] # vertices at the boundary
         self.tri_rcircs = [] # circumradius of triangle
         self.tri_rin = [] # inradius of triangle
@@ -132,7 +132,7 @@ class DECMesh(object):
                         flagc = 1.0
 
                     if flagc != 0.0:  # if it's not outside the cluster region, include the simplex:
-                        self.tri_circcents.append([vx, vy])
+                        self.tri_ccents.append([vx, vy])
                         self.tri_rcircs.append(r_circ)
                         self.tri_rin.append(r_in)
                         self.tricell_i.append(i)
@@ -144,7 +144,7 @@ class DECMesh(object):
 
             else:
                 self.tri_cells = trimesh.simplices
-                self.tri_circcents.append([vx, vy])
+                self.tri_ccents.append([vx, vy])
                 self.tri_rcircs.append(r_circ)
                 self.tri_rin.append(r_in)
                 self.tricell_i.append(i)
@@ -187,7 +187,7 @@ class DECMesh(object):
             if (vb, va) not in unique_edges:
                 unique_edges.add((va, vb))
 
-        self.tri_circcents = np.asarray(self.tri_circcents)
+        self.tri_ccents = np.asarray(self.tri_ccents)
         self.vor_verts_bound = np.asarray(self.vor_verts_bound)
         self.tri_rcircs = np.asarray(self.tri_rcircs)
         self.tri_rin = np.asarray(self.tri_rin)
@@ -223,10 +223,11 @@ class DECMesh(object):
         self.tri_edge_i = np.linspace(0, self.n_tedges - 1, self.n_tedges, dtype=np.int)
 
         # include hull-edge-mids in voronoi vert array:
-        # self.biocell_verts = self.tri_circcents*1 # assign core vor_verts to new data_structure
+        # self.biocell_verts = self.tri_ccents*1 # assign core vor_verts to new data_structure
 
         # reassign vor_verts to contain boundary verts:
-        self.vor_verts = np.vstack((self.tri_circcents, self.vor_verts_bound))
+        self.vor_verts = np.vstack((self.tri_ccents, self.vor_verts_bound))
+        self.inner_vvert_i = np.linspace(0, len(self.tri_ccents), len(self.tri_ccents), dtype=np.int)
 
     def create_mappings(self):
 
@@ -272,7 +273,7 @@ class DECMesh(object):
                 bflags_tcells.append(ci)
 
         self.tface_to_tedges = np.asarray(face_to_edges) # tri_face index to tri_edges indices mapping
-        self.bflags_tcells = np.asarray(bflags_tcells)
+        self.bflags_tcells = np.asarray(bflags_tcells)  # trimesh faces on boundary
 
         # create an array giving a list of simplex indices for each tri_vert
         verts_to_simps = [[] for i in range(len(self.tri_verts))]
@@ -573,7 +574,7 @@ class DECMesh(object):
         # Mixing matrix inverse -- maps quantity from tri_edge mids to tri_verts using barycentric coordinates:
         # Note that forward mapping from tri_verts to tri_edge mids is given by M = np.abs(delta_tri_0)*(1/2),
         # therefore:
-        self.MM_tri_inv = np.linalg.pinv(np.abs(self.delta_tri_0)*(1/2))
+        # self.MM_tri_inv = np.linalg.pinv(np.abs(self.delta_tri_0)*(1/2))
 
     def create_aux_operators(self):
         """
@@ -633,9 +634,9 @@ class DECMesh(object):
         # get and store inverse:
         self.delta_vor_0_inv = np.linalg.pinv(self.delta_vor_0)
 
-        ## Note the following creates the delta_vor_1 exterior derivative, however, delta_vor_1 is
-        # not required as: delta_vor_1 = delta_tri_1.T. Keeping only for testing purposes.
-        ## exterior derivative operator for vor mesh operating on edges to return faces:
+        # ## Note the following creates the delta_vor_1 exterior derivative, however, delta_vor_1 is
+        # # not required as: delta_vor_1 = delta_tri_1.T. Keeping only for testing purposes.
+        # # exterior derivative operator for vor mesh operating on edges to return faces:
         # delta_vor_1 = np.zeros((self.n_vcells, self.n_vedges))
         #
         # vor_edges = self.vor_edges.tolist()
@@ -657,36 +658,36 @@ class DECMesh(object):
         #             delta_vor_1[ic, ea] = -1
         #
         # self.delta_vor_1 = np.asarray(delta_vor_1)
+        #
+        # self.delta_vor_1_inv = np.linalg.pinv(self.delta_vor_1)
 
-        self.MM_vor_inv = np.linalg.pinv(np.abs(self.delta_vor_0)*(1/2))
+        # Create mapping from tri verts to tri centers (Uses Barycentric coordinates to interpolate
+        # from verts to circumcentre):
 
-        # # Create mapping from tri verts to tri centers (Uses Barycentric coordinates to interpolate
-        # # from verts to circumcentre):
-        #
-        # M_verts_to_cents = np.zeros((self.n_tcell, self.n_tverts))
-        #
-        # for ii, edge_inds in enumerate(self.tface_to_tedges):
-        #     a, b, c = self.tri_edge_len[edge_inds]
-        #
-        #     b1o = (a ** 2) * (-a ** 2 + b ** 2 + c ** 2)
-        #     b2o = (b ** 2) * (a ** 2 - b ** 2 + c ** 2)
-        #     b3o = (c ** 2) * (a ** 2 + b ** 2 - c ** 2)
-        #
-        #     sumb = b1o + b2o + b3o
-        #
-        #     b1 = b1o / sumb
-        #     b2 = b2o / sumb
-        #     b3 = b3o / sumb
-        #
-        #     # get verts of triangle:
-        #     vi, vj, vk = self.tri_cells[ii]
-        #
-        #     M_verts_to_cents[ii, vi] = b1
-        #     M_verts_to_cents[ii, vj] = b2
-        #     M_verts_to_cents[ii, vk] = b3
-        #
-        # self.M_verts_to_cents = np.asarray(M_verts_to_cents)
-        # self.M_verts_to_cents_inv = np.linalg.pinv(self.M_verts_to_cents)
+        M_verts_to_cents = np.zeros((self.n_tcell, self.n_tverts))
+
+        for ii, edge_inds in enumerate(self.tface_to_tedges):
+            a, b, c = self.tri_edge_len[edge_inds]
+
+            b1o = (a ** 2) * (-a ** 2 + b ** 2 + c ** 2)
+            b2o = (b ** 2) * (a ** 2 - b ** 2 + c ** 2)
+            b3o = (c ** 2) * (a ** 2 + b ** 2 - c ** 2)
+
+            sumb = b1o + b2o + b3o
+
+            b1 = b1o / sumb
+            b2 = b2o / sumb
+            b3 = b3o / sumb
+
+            # get verts of triangle:
+            vi, vj, vk = self.tri_cells[ii]
+
+            M_verts_to_cents[ii, vi] = b1
+            M_verts_to_cents[ii, vj] = b2
+            M_verts_to_cents[ii, vk] = b3
+
+        self.M_verts_to_cents = np.asarray(M_verts_to_cents)
+        self.M_verts_to_cents_inv = np.linalg.pinv(self.M_verts_to_cents)
 
 
     #----Mathematical operator functions-----------
@@ -716,7 +717,10 @@ class DECMesh(object):
 
             assert(len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
 
-            gradSx, gradSy = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, S)*self.tri_tang.T
+            gS = np.dot(self.delta_tri_0, S)
+
+            gradSx = (1/self.tri_edge_len)*gS*self.tri_tang[:,0]
+            gradSy = (1 / self.tri_edge_len)*gS*self.tri_tang[:, 1]
 
         elif gtype == 'vor':
 
@@ -724,7 +728,9 @@ class DECMesh(object):
 
             assert(len(S) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
 
-            gradSx, gradSy = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, S)*self.vor_tang.T
+            gS = np.dot(self.delta_vor_0, S)
+            gradSx = (1/self.vor_edge_len)*gS*self.vor_tang[:,0]
+            gradSy = (1/self.vor_edge_len)*gS*self.vor_tang[:, 1]
 
         else:
             gradSx = None
@@ -885,7 +891,10 @@ class DECMesh(object):
         lapS  -- the Laplacian of S with 'natural' boundary conditions.
 
         """
+
         if gtype == 'tri':
+            # ensure passed array is of the correct length:
+            assert (len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
 
             # calculate gradient of S:
             gS = self.gradient(S, gtype='tri')
@@ -894,6 +903,8 @@ class DECMesh(object):
             lapS = self.div(gS, gtype = 'tri')
 
         elif gtype == 'vor':
+
+            assert(len(S) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
 
@@ -909,13 +920,122 @@ class DECMesh(object):
         return lapS
 
     def lap_inv(self, S, gtype = 'tri'):
-        pass
 
-    def curl(self, Fz, gtype = 'tri'):
-        pass
+        """
+        Computes an inverse scalar Laplacian on a scalar variable S as the inverse div of the inverse gradient of the
+        scalar.
+
+        If gtype = 'tri', the gradient is taken with respect to the tri_mesh edges with vor_mesh control volumes,
+        and if gtype = 'vor', the gradient is taken with respect to the vor_mesh edges with tri_mesh control volumes.
+
+        Note that due to the structure of the grids, the gtype tri lap is closed boundary (zero flux) while the
+        gtype vor lap is a 'free'/'open' boundary.
+
+        Parameters
+        -----------
+        S   -- a scalar array defined on tri_verts or vor_verts, depending on gtype
+        gtype -- specifies if laplacian is taken with respect to tri mesh or vor mesh
+
+        Returns
+        ----------
+        lapS  -- the Laplacian of S with 'natural' boundary conditions.
+
+        """
+        if gtype == 'tri':
+
+            # ensure passed array is of the correct length:
+            assert(len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+
+            # calculate the divergence of the gradient, which is the laplacian:
+            lapS_inv = np.dot(self.delta_tri_0_inv,
+                              (self.tri_edge_len/self.vor_edge_len)*np.dot(-self.delta_tri_0_inv.T, S*(self.vor_sa)))
+
+        elif gtype == 'vor':
+
+            # ensure passed array is of the correct length:
+            assert(len(S) == len(self.tri_ccents)), "Length of array passed to gradient is not tri_faces length"
+
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+            # calculate inverse Laplacian of S:
+            lapS_inv = np.dot(self.delta_vor_0_inv,
+                   (self.vor_edge_len/self.tri_edge_len)*np.dot(self.delta_tri_1_inv, S*(self.tri_sa)))
+
+        else:
+            lapS_inv = None
+
+        return lapS_inv
+
+    def curl_z(self, Fz, gtype = 'tri'):
+
+        # Vector Laplacians can only be computed for
+        assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+        if gtype == 'tri':
+
+            assert (len(Fz) == self.n_tverts), "Length of array passed to curl is not tri verts length!"
+
+
+            curlFt = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, Fz)
+
+            # the x, y components of curl are the skew gradient:
+
+            curlFz_x = curlFt*self.vor_tang[:,0]
+            curlFz_y = curlFt*self.vor_tang[:,1]
+
+
+        elif gtype == 'vor':
+
+            assert (len(Fz) == self.n_vverts), "Length of array passed to curl is not vor verts length!"
+
+            curlFt = -(1/self.vor_edge_len)*np.dot(self.delta_vor_0, Fz)
+
+            curlFz_x = curlFt*self.tri_tang[:,0]
+            curlFz_y = curlFt*self.tri_tang[:,1]
+
+        else:
+            curlFz_x = None  # FIXME -- change all of these to raise proper errors!
+            curlFz_y = None
+
+        return curlFz_x, curlFz_y
 
     def curl_xy(self, Fx, Fy, gtype = 'tri'):
-        pass
+        """
+        Calculates the curl of an Fx, Fy vector field and returns the curl = Phi_z component.
+        :param Fx:
+        :param Fy:
+        :param gtype:
+        :return:
+        """
+
+        # as there are an equal number of edges in tri and vor grids, check once:
+        assert (len(Fx) == self.n_tedges), "Length of array passed to curl_xy is not edges length!"
+        assert (len(Fy) == self.n_tedges), "Length of array passed to curl_xy is not edges length!"
+
+        # Vector Laplacians can only be computed for
+        assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+        if gtype == 'tri':
+
+            # get tangential component of Fx, Fy with respect to the tri_tangents:
+            Ft = Fx*self.tri_tang[:,0] + Fy*self.tri_tang[:,1]
+
+            # calculate the curl (which is a vector in the z-direction with + representing out of page):
+            curl_F = (1/self.tri_sa)*np.dot(self.delta_tri_1, (self.tri_edge_len)*Ft)
+
+
+        elif gtype == 'vor':
+
+            # get tangential component of Fx, Fy with respect to the vor_tangents:
+            Ft = Fx*self.vor_tang[:,0] + Fy*self.vor_tang[:,1]
+
+            # calculate the curl (which is a vector in the z-direction with + representing out of page):
+            curl_F = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T, (self.vor_edge_len)*Ft)
+
+        else:
+            curl_F = None  # FIXME -- change all of these to raise proper errors!
+
+        return curl_F
 
     def verts_to_mids(self, Sv, gtype = 'tri'):
         """
@@ -969,7 +1089,7 @@ class DECMesh(object):
 
         if gtype == 'tri':
             assert(len(Sm) == self.n_tedges), "Length of array passed to gradient is not edges length"
-            MM_inv = self.MM_tri_inv
+            MM_inv = np.abs(self.delta_tri_0.T)*(1/2)
 
             Sv = np.dot(MM_inv, Sm)
 
@@ -978,7 +1098,7 @@ class DECMesh(object):
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
             assert(len(Sm) == self.n_vedges), "Length of array passed to gradient is not edges length"
 
-            MM_inv = self.MM_vor_inv
+            MM_inv = np.abs(self.delta_vor_0.T)*(1/2)
 
             Sv = np.dot(MM_inv, Sm)
 
@@ -990,24 +1110,230 @@ class DECMesh(object):
 
     def verts_to_cent(self, Sv):
 
-        pass
+        assert (len(Sv) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
 
-    def cent_to_verts(self, Sc):
+        Sc = np.dot(self.M_verts_to_cents, Sv)
 
-        pass
+        return Sc
 
-    def vector_laplacian(self, Fx, Fy, gtype = 'tri'):
-        pass
 
-    def vector_laplacian_inv(self, Fx, Fy, gtype = 'tri'):
-        pass
+    def vector_laplacian_z(self, Fz, gtype = 'tri'):
+        """
+        Calculates the Vector Laplacian for the curl of the curl of a vector field in the z-direction.
+
+        :param Fz:
+        :param gtype:
+        :return:
+        """
+
+        # Vector Laplacians can only be computed for
+        assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+        if gtype == 'tri':
+
+            assert (len(Fz) == self.n_tverts), "Length of array passed to gradient is not tverts length!"
+
+            # calculate the curl of the curl:
+            curl_of_curl = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T,
+                                  (self.vor_edge_len/self.tri_edge_len)*np.dot(self.delta_tri_0, Fz))
+
+
+        elif gtype == 'vor':
+
+            assert (len(Fz) == self.n_vverts), "Length of array passed to gradient is not tverts length!"
+
+            # get tangential component of Fx, Fy with respect to the vor_tangents:
+            curl_of_curl = (1/self.tri_sa)*np.dot(self.delta_tri_1,
+                                  (self.tri_edge_len/self.vor_edge_len)*np.dot(-self.delta_vor_0, Fz))
+
+        else:
+            curl_of_curl = None  # FIXME -- change all of these to raise proper errors!
+
+        return curl_of_curl
+
+    def vector_laplacian_z_inv(self, Fz, gtype = 'tri'):
+        """
+        Calculates the inverse Vector Laplacian for the curl of the curl of a vector field in the z-direction.
+
+        :param Fz:
+        :param gtype:
+        :return:
+        """
+
+        # Vector Laplacians can only be computed for
+        assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+        if gtype == 'tri':
+
+            assert (len(Fz) == self.n_tverts), "Length of array passed to gradient is not tverts length!"
+
+            # calculate the inverse curl of the curl:
+            Psi_z = np.dot(self.delta_tri_0_inv,
+                           (self.tri_edge_len/self.vor_edge_len)*np.dot(-self.delta_vor_0_inv.T,
+                                                                        Fz*self.vor_sa))
+
+
+        elif gtype == 'vor':
+
+            assert (len(Fz) == self.n_vverts), "Length of array passed to gradient is not tverts length!"
+
+            # calculate the inverse curl of the curl:
+            Psi_z = np.dot(self.delta_vor_0_inv,
+                           -(self.vor_edge_len/self.tri_edge_len)*np.dot(self.delta_tri_1_inv,
+                                                                        Fz*self.tri_sa))
+
+        else:
+            Psi_z  = None  # FIXME -- change all of these to raise proper errors!
+
+        return Psi_z
+
+    def vector_laplacian_xy(self, Fx, Fy, gtype = 'tri'):
+        """
+        Calculates the Vector Laplacian for the curl of the curl of a vector field Fx, Fy minus the
+        gradient of the divergence of Fx, Fy.
+
+        :param Fx:
+        :param Fy:
+        :param gtype:
+        :return:
+        """
+        # as there are an equal number of edges in tri and vor grids, check once:
+        assert (len(Fx) == self.n_tedges), "Length of array passed to gradient is not edges length!"
+        assert (len(Fy) == self.n_tedges), "Length of array passed to gradient is not edges length!"
+
+        # Vector Laplacians can only be computed for
+        assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+        if gtype == 'tri':
+
+            # get tangential component of Fx, Fy with respect to the tri_tangents:
+            Ft = Fx*self.tri_tang[:,0] + Fy*self.tri_tang[:,1]
+
+            # calculate the curl of the curl:
+            curl_of_curl = (1/self.vor_edge_len)*np.dot(self.delta_vor_0,
+                                                          (1/self.tri_sa)*np.dot(self.delta_tri_1,
+                                                                                 (self.tri_edge_len)*Ft))
+
+            div_F = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T, self.vor_edge_len*Ft)
+
+            grad_of_div = np.dot(self.delta_tri_0, div_F)
+
+            lapFt = curl_of_curl - grad_of_div
+
+            lapFx = lapFt*self.tri_tang[:,0]
+            lapFy = lapFt*self.tri_tang[:, 1]
+
+
+        elif gtype == 'vor':
+
+            # get tangential component of Fx, Fy with respect to the vor_tangents:
+            Ft = Fx*self.vor_tang[:,0] + Fy*self.vor_tang[:,1]
+
+            # calculate the curl of the curl:
+            curl_of_curl = (1/self.tri_edge_len)*np.dot(self.delta_tri_0,
+                                                          (1/self.vor_sa)*np.dot(self.delta_vor_1,
+                                                                                 (self.vor_edge_len)*Ft))
+
+            div_F = (1/self.tri_sa)*np.dot(-self.delta_tri_0.T, self.tri_edge_len*Ft)
+
+            grad_of_div = np.dot(self.delta_vor_0, div_F)
+
+            lapFt = curl_of_curl - grad_of_div
+
+            lapFx = lapFt*self.vor_tang[:,0]
+            lapFy = lapFt*self.vor_tang[:, 1]
+
+        else:
+            lapFx = None  # FIXME -- change all of these to raise proper errors!
+            lapFy = None
+
+        return lapFx, lapFy
+
+    def vector_laplacian_xy_inv(self, Fx, Fy, gtype = 'tri'):
+        """
+        Calculates the inverse Vector Laplacian for a *divergence free* field Fx, Fy as the inverse of the
+        curl of the curl of Fx, Fy. Returns components lapFx_inv and lapFy_inv tangential to the mesh gtype used.
+
+        :param Fx:
+        :param Fy:
+        :param gtype:
+        :return:
+        """
+        # as there are an equal number of edges in tri and vor grids, check once:
+        assert (len(Fx) == self.n_tedges), "Length of array passed to gradient is not edges length!"
+        assert (len(Fy) == self.n_tedges), "Length of array passed to gradient is not edges length!"
+
+        # Vector Laplacians can only be computed for
+        assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+        if gtype == 'tri':
+
+            # get tangential component of Fx, Fy with respect to the tri_tangents:
+            Ft = Fx * self.tri_tang[:, 0] + Fy * self.tri_tang[:, 1]
+
+            # calculate the inverse curl of the curl:
+            lapFt_inv = (1/self.tri_edge_len)*np.dot(self.delta_tri_1_inv,
+                                                     self.tri_sa*np.dot(self.delta_vor_0_inv,
+                                                                        Ft*self.vor_edge_len))
+
+            lapFx_inv = lapFt_inv*self.tri_tang[:, 0]
+            lapFy_inv = lapFt_inv*self.tri_tang[:, 1]
+
+
+        elif gtype == 'vor':
+
+            # get tangential component of Fx, Fy with respect to the vor_tangents:
+            Ft = Fx * self.vor_tang[:, 0] + Fy * self.vor_tang[:, 1]
+
+            # calculate the inverse curl of the curl:
+            lapFt_inv = (1/self.vor_edge_len)*np.dot(-self.delta_tri_0_inv.T,
+                                                     self.vor_sa*np.dot(self.delta_tri_0_inv,
+                                                                        Ft*self.tri_edge_len))
+
+            lapFx_inv = lapFt_inv*self.vor_tang[:, 0]
+            lapFy_inv = lapFt_inv*self.vor_tang[:, 1]
+
+        else:
+            lapFx_inv = None  # FIXME -- change all of these to raise proper errors!
+            lapFy_inv = None
+
+        return lapFx_inv, lapFy_inv
 
     def helmholtz_hodge(self, Fx, Fy, gtype = 'tri'):
+        """
+        Decomposes a vector field Fx, Fy into curl-free (gPhi_x, gPhi_y) and div-free (cPsi_x, cPsi_y) components
+        using the Helmholtz-Hodge decomposition.
 
-        pass
+        :param Fx:
+        :param Fy:
+        :param gtype:
+        :return:
+        """
+
+        # Solving for the curl-free vector field:
+        # take the divergence of the vector field:
+        divF = self.div_xy(Fx, Fy, gtype=gtype)
+
+        # The scalar potential of the curl-free component is given by:
+        Phi = self.lap_inv(divF, gtype=gtype)
+
+        # Where the curl-free vector field is given by:
+        gPhi_x, gPhi_y = self.gradient_xy(Phi, gtype=gtype)
+
+        # Solving for the divergence-free vector field:
+        # take the curl of the vector field:
+        curlF = self.curl_xy(Fx, Fy, gtype=gtype)
+
+        # The vector potential of the div-free component is given by:
+        Psi_z = self.vector_laplacian_z_inv(curlF, gtype=gtype)
+
+        # Where the div-free component of Fx, Fy is given by:
+        cPsi_x, cPsi_y = self.curl_z(Psi_z, gtype=gtype)
+
+        return cPsi_x, cPsi_y, gPhi_x, gPhi_y
 
     def calc_tri(self):
-        self.tri_circcents = []
+        self.tri_ccents = []
         self.tri_rcircs = [] # circumradius of triangle
         self.tri_rin = [] # inradius of triangle
         self.tri_sa = []  # surface area of triangle faces
@@ -1019,22 +1345,22 @@ class DECMesh(object):
 
             sa = self.area(abc)  # surface area of triangle
 
-            self.tri_circcents.append([vx, vy])
+            self.tri_ccents.append([vx, vy])
             self.tri_rcircs.append(r_circ)  # circumradius of triangle
             self.tri_rin.append(r_in)  # inradius of triangle
             self.tri_sa.append(sa)  # surface area of triangle faces
 
-        self.tri_circcents = np.asarray(self.tri_circcents)
+        self.tri_ccents = np.asarray(self.tri_ccents)
         self.tri_rcircs = np.asarray(self.tri_rcircs) # circumradius of triangle
         self.tri_rin = np.asarray(self.tri_rin) # inradius of triangle
         self.tri_sa = np.asarray(self.tri_sa)  # surface area of triangle faces
 
     def mesh_quality_calc(self):
 
-        uu = (1/2)*self.tri_rcircs*(self.tri_rcircs - 2*self.tri_rin)
+        uu = self.tri_rcircs*(self.tri_rcircs - 2*self.tri_rin)
 
-        # energy at edge cells is double that of those in the interior:
-        uu[self.bflags_tcells] = self.tri_rcircs[self.bflags_tcells]*(self.tri_rcircs[self.bflags_tcells]
+        # energy at edge cells is half that of those in the interior (as they are constrained to be half cells):
+        uu[self.bflags_tcells] = (1/2)*self.tri_rcircs[self.bflags_tcells]*(self.tri_rcircs[self.bflags_tcells]
                                                                       - 2*self.tri_rin[self.bflags_tcells])
 
         return uu
@@ -1263,7 +1589,6 @@ class DECMesh(object):
         cy = (1 / (6 * aa)) * np.sum((foo[:, 1] + foo_p[:, 1]) * (foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]))
 
         return cx, cy
-
 
     def circumc(self, A, B, C):
         """
