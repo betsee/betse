@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,14 +9,14 @@ polygon such that all line segments between any two points on the polygon
 boundary remain strictly inside the polygon) functionality.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.exceptions import BetseMathPolygonException
 from betse.lib.numpy import nparray
-from betse.science.math.geometry import geopoint
+from betse.util.math.geometry import geopoint
 from betse.util.type.types import type_check, SequenceTypes
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_unless_polygon(*polygons: SequenceTypes) -> None:
     '''
     Raise an exception unless all passed sequences are two-dimensional
@@ -45,12 +46,12 @@ def die_unless_polygon(*polygons: SequenceTypes) -> None:
                     '(i.e., length < 3 or item length != 2): {!r}'.format(
                         polygon))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_polygon(*polygons: SequenceTypes) -> bool:
     '''
-    ``True`` only if all passed sequences are **two-dimensional polygons** (i.e.,
-    contain at least three two-dimensional points).
+    ``True`` only if all passed sequences are **two-dimensional polygons**
+    (i.e., contain at least three two-dimensional points).
 
     Parameters
     ----------
@@ -73,7 +74,7 @@ def is_polygon(*polygons: SequenceTypes) -> bool:
         for polygon in polygons
     )
 
-# ....................{ ORIENTERS                          }....................
+# ....................{ ORIENTERS                         }....................
 #FIXME: Unit test us up.
 @type_check
 def orient_counterclockwise(polygon: SequenceTypes) -> SequenceTypes:
@@ -87,10 +88,13 @@ def orient_counterclockwise(polygon: SequenceTypes) -> SequenceTypes:
     polygon : SequenceTypes
         Two-dimensional sequence of all points defining the possibly non-convex
         two-dimensional polygon to be positively oriented such that:
+
         * The first dimension indexes each such point (in arbitrary order).
         * The second dimension indexes each coordinate of this point such that:
+
           * The first item is the X coordinate of this point.
           * The second item is the Y coordinate of this point.
+
         Note that this function expects the type of this sequence to define an
         ``__init__()`` method accepting a passed iterable as its first and only
         positional argument. Unsurprisingly, all builtin sequences (e.g.,
@@ -107,17 +111,17 @@ def orient_counterclockwise(polygon: SequenceTypes) -> SequenceTypes:
     # If this sequence is *NOT* a polygon, raise an exception.
     die_unless_polygon(polygon)
 
-    # Numpy array corresponding to this sequence. While polygon reorientation is
-    # feasible in pure-Python, the Numpy-based approach is significantly more
-    # efficient as the number of polygon edges increases.
+    # Numpy array corresponding to this sequence. While polygon reorientation
+    # is feasible in pure-Python, the Numpy-based approach is significantly
+    # more efficient as the number of polygon edges increases.
     poly_verts = nparray.from_iterable(polygon)
 
     # Centre point of this polygon,
     poly_centre = poly_verts.mean(axis=0)
 
-    # One-dimensional Numpy array indexing each vertex of this polygon such that
-    # each element is the angle in radians between the positive X-axis and that
-    # vertex, derived according to the classic mnemonic SOHCAHTOA:
+    # One-dimensional Numpy array indexing each vertex of this polygon such
+    # that each element is the angle in radians between the positive X-axis and
+    # that vertex, derived according to the classic mnemonic SOHCAHTOA:
     #
     #              opposite             (opposite)
     #              --------             (--------)

@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Unit tests for the :mod:`betse.science.math.geometry.geopoint` submodule.
+Unit tests for the :mod:`betse.util.math.geometry.geopoint` submodule.
 '''
 
 # ....................{ IMPORTS                           }....................
@@ -14,11 +14,11 @@ import pytest
 def test_is_left_of_vector() -> None:
     '''
     Unit test the
-    :func:`betse.science.math.geometry.geopoint.is_left_of_vector` function.
+    :func:`betse.util.math.geometry.geopoint.is_left_of_vector` function.
     '''
 
     # Defer heavyweight imports.
-    from betse.science.math.geometry import geopoint
+    from betse.util.math.geometry import geopoint
 
     # Head and tail points of the vector to be tested.
     vector_head_point = (0, 2)
@@ -43,14 +43,14 @@ def test_is_left_of_vector() -> None:
 
 def test_intersect_lines() -> None:
     '''
-    Unit test the :func:`betse.science.math.geometry.geopoint.intersect_lines`
+    Unit test the :func:`betse.util.math.geometry.geopoint.intersect_lines`
     function.
     '''
 
     # Defer heavyweight imports.
     import numpy
     from betse.exceptions import BetseMathLineException
-    from betse.science.math.geometry import geopoint
+    from betse.util.math.geometry import geopoint
     from numpy import array
 
     # Assert the expected intersection of two intersecting lines given tuples.

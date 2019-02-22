@@ -16,8 +16,8 @@ from matplotlib.collections import PolyCollection, LineCollection
 from matplotlib.patches import Circle
 from matplotlib import path
 
-from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockwise
-from betse.science.math.geometry.polygon.geopoly import orient_counterclockwise
+from betse.util.math.geometry.polygon.geopolyconvex import clip_counterclockwise
+from betse.util.math.geometry.polygon.geopoly import orient_counterclockwise
 from betse.util.io.log import logs
 
 from scipy.spatial import cKDTree, Delaunay

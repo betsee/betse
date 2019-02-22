@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Unit tests for the :mod:`betse.science.math.geometry.geopolyconvex` submodule.
+Unit tests for the :mod:`betse.util.math.geometry.geopolyconvex` submodule.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -12,12 +12,12 @@ Unit tests for the :mod:`betse.science.math.geometry.geopolyconvex` submodule.
 # ....................{ TESTS                              }....................
 def test_clip() -> None:
     '''
-    Unit test the :func:`betse.science.math.geometry.geopolyconvex.clip`
+    Unit test the :func:`betse.util.math.geometry.geopolyconvex.clip`
     function.
     '''
 
     # Defer heavyweight imports.
-    from betse.science.math.geometry.polygon import geopolyconvex
+    from betse.util.math.geometry.polygon import geopolyconvex
 
     # Rectangle to clip all subject polygons by, oriented randomly rather than
     # counter-clockwise. Due to trivial limitations of the
@@ -46,12 +46,12 @@ def test_clip() -> None:
 def test_clip_counterclockwise() -> None:
     '''
     Unit test the
-    :func:`betse.science.math.geometry.geopolyconvex.clip_counterclockwise`
+    :func:`betse.util.math.geometry.geopolyconvex.clip_counterclockwise`
     function.
     '''
 
     # Defer heavyweight imports.
-    from betse.science.math.geometry.polygon import geopolyconvex
+    from betse.util.math.geometry.polygon import geopolyconvex
 
     # Rectangle to clip all subject polygons by, oriented counter-clockwise.
     clip_rectangle = ((2, 2), (-1, 2), (-1, -1), (2, -1))

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -6,12 +7,12 @@
 Primitive two-dimensional point functionality.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseMathLineException, BetseMathPointException
 from betse.util.type.iterable import iterables
 from betse.util.type.types import type_check, SequenceTypes
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_unless_point(*points: SequenceTypes) -> None:
     '''
     Raise an exception unless all passed sequences are two-dimensional points.
@@ -39,7 +40,7 @@ def die_unless_point(*points: SequenceTypes) -> None:
                     'Sequence not a two-dimensional point '
                     '(i.e., length != 2): {!r}'.format(point))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_point(*points: SequenceTypes) -> bool:
     '''
@@ -80,29 +81,32 @@ def is_left_of_vector(
     * A clockwise rotation rotates this subject point onto this vector.
     * A counter-clockwise rotation rotates this vector onto this subject point.
     * The determinant and hence sign of the cross product of this vector and
-      this **subject vector** (i.e., vector whose head is this subject point and
-      tail is the passed tail point) is positive.
+      this **subject vector** (i.e., vector whose head is this subject point
+      and tail is the passed tail point) is positive.
 
     Derivation
     ----------
     We now derive the implementation of this function from the prior statement.
-    If the angle between this vector and this subject vector (in that order) is:
+    If the angle between this vector and this subject vector (in that order)
+    is:
 
-    * Positive, a counter-clockwise rotation rotates the former onto the latter.
-      In this case, this vector is spatially situated to the right of this
-      subject point.
-    * Negative, a clockwise rotation rotates the former onto the latter.  In
+    * Positive, a counter-clockwise rotation rotates the former onto the
+      latter. In this case, this vector is spatially situated to the right of
+      this subject point.
+    * Negative, a clockwise rotation rotates the former onto the latter. In
       this case, this vector is spatially situated to the left of this subject
       point.
 
     This function thus reduces to testing the sign of the angle between this
     vector and this subject vector. While there exist numerous means of doing
-    so, the most computationally efficient in both space and time is to test the
-    sign of the determinant of the cross product of these vectors -- requiring
-    exactly four subtractions, two multiplications, and one comparison.
+    so, the most computationally efficient in both space and time is to test
+    the sign of the determinant of the cross product of these vectors --
+    requiring exactly four subtractions, two multiplications, and one
+    comparison.
 
     The traditional definition of the cross product ``u × v`` of two arbitrary
-    vectors ``u`` and ``v`` is given by the following two equivalent equalities:
+    vectors ``u`` and ``v`` is given by the following two equivalent
+    equalities:
 
     .. code::
 
@@ -115,8 +119,8 @@ def is_left_of_vector(
 
     * ``|u|`` and ``|v|`` are the magnitudes of these vectors.
     * ``θ`` is the angle between these vectors.
-    * ``n`` is a unit vector perpendicular to the plane containing these vectors
-      in the direction oriented by the right-hand rule.
+    * ``n`` is a unit vector perpendicular to the plane containing these
+      vectors in the direction oriented by the right-hand rule.
     * ``i``, ``j``, and ``k`` are the standard basis vectors.
     * ``ux``, ``uy``, and ``uz`` are the X, Y, and Z components of ``u``: e.g.,
       ``u = ux i + uy j + uz k``.
@@ -212,6 +216,7 @@ def is_left_of_vector(
     vector_head_point : SequenceTypes
         2-sequence of the X and Y coordinates of the two-dimensional head point
         of this vector such that:
+
         * The first item is the X coordinate of this point.
         * The second item is the Y coordinate of this point.
     vector_tail_point : SequenceTypes
@@ -238,7 +243,7 @@ def is_left_of_vector(
             (subject_point[0] - vector_tail_point[0])
     )
 
-# ....................{ INTERSECTERS                       }....................
+# ....................{ INTERSECTERS                      }....................
 @type_check
 def intersect_lines(
     line1_point1: SequenceTypes,
@@ -254,8 +259,8 @@ def intersect_lines(
 
     Derivation
     ----------
-    We now derive the implementation of this function from the two-point form of
-    a two-dimensional line. Let:
+    We now derive the implementation of this function from the two-point form
+    of a two-dimensional line. Let:
 
     * ``c`` be the first passed point defining the first line.
     * ``d`` be the second passed point defining the first line.
@@ -278,8 +283,9 @@ def intersect_lines(
                 ------------------
        y - sy =  tx - sx
 
-    Determining this intersection point if any reduces to solving this system of
-    two linear equations of two variables, which typically proceeds as follows:
+    Determining this intersection point if any reduces to solving this system
+    of two linear equations of two variables, which typically proceeds as
+    follows:
 
     .. code::
 
@@ -336,7 +342,8 @@ def intersect_lines(
             |cy-dy        dx·cy-dy·cx|
        My = |sy-ty        tx·sy-ty·sx|
 
-    The determinants ``det(Mx)`` and ``det(My)`` of these matrices are given by:
+    The determinants ``det(Mx)`` and ``det(My)`` of these matrices are given
+    by:
 
     .. code::
 
@@ -369,8 +376,9 @@ def intersect_lines(
     Parameters
     ----------
     line1_point1 : SequenceTypes
-        2-sequence of the X and Y coordinates of the first two-dimensional point
-        residing on the first of these lines (in any order) such that:
+        2-sequence of the X and Y coordinates of the first two-dimensional
+        point residing on the first of these lines (in any order) such that:
+
         * The first item is the X coordinate of this point.
         * The second item is the Y coordinate of this point.
     line1_point2 : SequenceTypes
@@ -388,12 +396,14 @@ def intersect_lines(
     SequenceTypes
         2-sequence of the X and Y coordinates of the two-dimensional point
         intersecting the pair of lines defined by these two-dimensional points.
-        The type of this sequence is the same as that of the first passed point.
+        The type of this sequence is the same as that of the first passed
+        point.
 
     Raises
     ----------
     BetseMathLineException
         If these lines either:
+
         * Infinitely overlap (i.e., are collinear).
         * Never overlap (i.e., are parallel).
     '''

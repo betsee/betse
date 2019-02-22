@@ -17,8 +17,8 @@ from betse.science import filehandling as fh
 from betse.science.enum.enumconf import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
-from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockwise
-from betse.science.math.geometry.polygon.geopoly import orient_counterclockwise
+from betse.util.math.geometry.polygon.geopolyconvex import clip_counterclockwise
+from betse.util.math.geometry.polygon.geopoly import orient_counterclockwise
 from betse.science.phase.phasecls import SimPhase
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import property_cached

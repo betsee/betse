@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Unit tests for the :mod:`betse.science.math.geometry.geopoly` submodule.
+Unit tests for the :mod:`betse.util.math.geometry.geopoly` submodule.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -13,12 +13,12 @@ Unit tests for the :mod:`betse.science.math.geometry.geopoly` submodule.
 def test_orient_counterclockwise() -> None:
     '''
     Unit test the
-    :func:`betse.science.math.geometry.geopoly.orient_counterclockwise`
+    :func:`betse.util.math.geometry.geopoly.orient_counterclockwise`
     function.
     '''
 
     # Defer heavyweight imports.
-    from betse.science.math.geometry.polygon import geopoly
+    from betse.util.math.geometry.polygon import geopoly
 
     # Rectangle oriented randomly rather than counter-clockwise. Due to trivial
     # limitations of the betse.lib.numpy.nparray.to_iterable() function, this

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -19,13 +20,13 @@ boundary remain strictly inside the polygon) functionality.
 #Vatti appears to be the most general-purpose solution and hence should
 #possibly be our first avenue of inquiry.
 
-# ....................{ IMPORTS                            }....................
-from betse.science.math.geometry import geopoint
-from betse.science.math.geometry.polygon import geopoly
+# ....................{ IMPORTS                           }....................
+from betse.util.math.geometry import geopoint
+from betse.util.math.geometry.polygon import geopoly
 from betse.util.type.iterable import iterables
 from betse.util.type.types import type_check, SequenceTypes
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 #FIXME: Implement us up. To do so:
 #* Choose any three adjacent polygon vertices -- say, "polygon[0]",
 #  "polygon[1]", and "polygon[3]".
@@ -60,7 +61,7 @@ from betse.util.type.types import type_check, SequenceTypes
 #
 #     pass
 
-# ....................{ CLIPPERS                           }....................
+# ....................{ CLIPPERS                          }....................
 #FIXME: Unit test us up.
 @type_check
 def clip(
@@ -82,10 +83,13 @@ def clip(
         Two-dimensional sequence of all points defining the **subject polygon**
         (i.e., possibly non-convex two-dimensional polygon to be clipped) such
         that:
+
         * The first dimension indexes each such point (in arbitrary order).
         * The second dimension indexes each coordinate of this point such that:
+
           * The first item is the X coordinate of this point.
           * The second item is the Y coordinate of this point.
+
         Note that this function expects the type of this sequence to define an
         ``__init__()`` method accepting a passed list as its first and only
         positional argument. Unsurprisingly, all builtin sequences (e.g.,
@@ -95,8 +99,10 @@ def clip(
         Two-dimensional sequence of all points defining the **clip polygon**
         (i.e., strictly convex two-dimensional polygon to clip the subject
         polygon against) such that:
+
         * The first dimension indexes each such point (in arbitrary order).
         * The second dimension indexes each coordinate of this point such that:
+
           * The first item is the X coordinate of this point.
           * The second item is the Y coordinate of this point.
 
@@ -127,13 +133,13 @@ def clip_counterclockwise(
     in the exterior of the latter onto the boundary of the latter.
 
     This function implements the Sutherland-Hodgman polygon clipping algorithm.
-    Like most brute-force implementations of this algorithm, this implementation
-    mandates the vertices of both polygons to be oriented (i.e., sorted) in
-    strict counter-clockwise order. If the caller cannot guarantee this to be
-    the case, the general-purpose but less efficient :func:`clip` function
-    should be called instead. According to the GIGO (Garbage In, Garbage Out)
-    principle, if the caller passes improperly oriented polygons, this function
-    returns an improperly clipped polygon.
+    Like most brute-force implementations of this algorithm, this
+    implementation mandates the vertices of both polygons to be oriented (i.e.,
+    sorted) in strict counter-clockwise order. If the caller cannot guarantee
+    this to be the case, the general-purpose but less efficient :func:`clip`
+    function should be called instead. According to the GIGO (Garbage In,
+    Garbage Out) principle, if the caller passes improperly oriented polygons,
+    this function returns an improperly clipped polygon.
 
     See Also
     ----------
@@ -273,7 +279,8 @@ def clip_counterclockwise(
             subj_vert_curr              = subj_vert_next
             is_subj_vert_curr_inside = is_subj_vert_next_inside
 
-        # Rotate the current vertex of the clip polygon to the next such vertex.
+        # Rotate the current vertex of the clip polygon to the next such
+        # vertex.
         clip_vert_curr = clip_vert_next
 
     # Return the current and hence final version of the clipped subject polygon
