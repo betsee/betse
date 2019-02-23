@@ -9,6 +9,7 @@ import numpy as np
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+from matplotlib import ticker
 from matplotlib import colors
 from matplotlib import colorbar
 from matplotlib import rcParams
@@ -733,8 +734,7 @@ class DECMesh(object):
             gradSy = (1/self.vor_edge_len)*gS*self.vor_tang[:, 1]
 
         else:
-            gradSx = None
-            gradSy = None
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
 
         return gradSx, gradSy
@@ -776,7 +776,7 @@ class DECMesh(object):
             gradS = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, S)
 
         else:
-            gradS = None
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
         return gradS
 
@@ -822,7 +822,7 @@ class DECMesh(object):
             divF = (1/self.tri_sa)*np.dot(self.delta_tri_1, self.tri_edge_len*FF)
 
         else:
-            divF = None
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
 
         return divF
@@ -865,7 +865,7 @@ class DECMesh(object):
             divF = (1/self.tri_sa)*np.dot(self.delta_tri_1, self.tri_edge_len*Ft)
 
         else:
-            divF = None
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
 
         return divF
@@ -915,7 +915,7 @@ class DECMesh(object):
             lapS = self.div(gS, gtype = 'vor')
 
         else:
-            lapS = None
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
         return lapS
 
@@ -962,7 +962,7 @@ class DECMesh(object):
                    (self.vor_edge_len/self.tri_edge_len)*np.dot(self.delta_tri_1_inv, S*(self.tri_sa)))
 
         else:
-            lapS_inv = None
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
         return lapS_inv
 
@@ -994,8 +994,7 @@ class DECMesh(object):
             curlFz_y = curlFt*self.tri_tang[:,1]
 
         else:
-            curlFz_x = None  # FIXME -- change all of these to raise proper errors!
-            curlFz_y = None
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
         return curlFz_x, curlFz_y
 
@@ -1033,7 +1032,7 @@ class DECMesh(object):
             curl_F = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T, (self.vor_edge_len)*Ft)
 
         else:
-            curl_F = None  # FIXME -- change all of these to raise proper errors!
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
         return curl_F
 
@@ -1068,7 +1067,7 @@ class DECMesh(object):
             Sm = np.dot(MM, Sv)
 
         else:
-            Sm = None
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
         return Sm
 
@@ -1104,7 +1103,7 @@ class DECMesh(object):
 
         else:
 
-            Sv = None
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
         return Sv
 
@@ -1117,75 +1116,76 @@ class DECMesh(object):
         return Sc
 
 
-    def vector_laplacian_z(self, Fz, gtype = 'tri'):
-        """
-        Calculates the Vector Laplacian for the curl of the curl of a vector field in the z-direction.
-
-        :param Fz:
-        :param gtype:
-        :return:
-        """
-
-        # Vector Laplacians can only be computed for
-        assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
-
-        if gtype == 'tri':
-
-            assert (len(Fz) == self.n_tverts), "Length of array passed to gradient is not tverts length!"
-
-            # calculate the curl of the curl:
-            curl_of_curl = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T,
-                                  (self.vor_edge_len/self.tri_edge_len)*np.dot(self.delta_tri_0, Fz))
-
-
-        elif gtype == 'vor':
-
-            assert (len(Fz) == self.n_vverts), "Length of array passed to gradient is not tverts length!"
-
-            # get tangential component of Fx, Fy with respect to the vor_tangents:
-            curl_of_curl = (1/self.tri_sa)*np.dot(self.delta_tri_1,
-                                  (self.tri_edge_len/self.vor_edge_len)*np.dot(-self.delta_vor_0, Fz))
-
-        else:
-            curl_of_curl = None  # FIXME -- change all of these to raise proper errors!
-
-        return curl_of_curl
-
-    def vector_laplacian_z_inv(self, Fz, gtype = 'tri'):
-        """
-        Calculates the inverse Vector Laplacian for the curl of the curl of a vector field in the z-direction.
-
-        :param Fz:
-        :param gtype:
-        :return:
-        """
-
-        # Vector Laplacians can only be computed for
-        assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
-
-        if gtype == 'tri':
-
-            assert (len(Fz) == self.n_tverts), "Length of array passed to gradient is not tverts length!"
-
-            # calculate the inverse curl of the curl:
-            Psi_z = np.dot(self.delta_tri_0_inv,
-                           (self.tri_edge_len/self.vor_edge_len)*np.dot(-self.delta_vor_0_inv.T,
-                                                                        Fz*self.vor_sa))
-
-
-        elif gtype == 'vor':
-
-            assert (len(Fz) == self.n_vverts), "Length of array passed to gradient is not tverts length!"
-
-            # calculate the inverse curl of the curl:
-            Psi_z = np.dot(self.delta_vor_0_inv,
-                           -(self.vor_edge_len/self.tri_edge_len)*np.dot(self.delta_tri_1_inv,
-                                                                        Fz*self.tri_sa))
-
-        else:
-            Psi_z  = None  # FIXME -- change all of these to raise proper errors!
-
-        return Psi_z
+    # def vector_laplacian_z(self, Fz, gtype = 'tri'):
+    #     """
+    #     Calculates the Vector Laplacian for the curl of the curl of a vector field in the z-direction.
+    #     This operation actually turns out to be identical to laplacian.
+    #
+    #     :param Fz:
+    #     :param gtype:
+    #     :return:
+    #     """
+    #
+    #     # Vector Laplacians can only be computed for
+    #     assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+    #
+    #     if gtype == 'tri':
+    #
+    #         assert (len(Fz) == self.n_tverts), "Length of array passed to gradient is not tverts length!"
+    #
+    #         # calculate the curl of the curl:
+    #         curl_of_curl = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T,
+    #                               (self.vor_edge_len/self.tri_edge_len)*np.dot(self.delta_tri_0, Fz))
+    #
+    #
+    #     elif gtype == 'vor':
+    #
+    #         assert (len(Fz) == self.n_vverts), "Length of array passed to gradient is not tverts length!"
+    #
+    #         # get tangential component of Fx, Fy with respect to the vor_tangents:
+    #         curl_of_curl = (1/self.tri_sa)*np.dot(self.delta_tri_1,
+    #                               (self.tri_edge_len/self.vor_edge_len)*np.dot(-self.delta_vor_0, Fz))
+    #
+    #     else:
+    #         curl_of_curl = None  # FIXME -- change all of these to raise proper errors!
+    #
+    #     return curl_of_curl
+    #
+    # def vector_laplacian_z_inv(self, Fz, gtype = 'tri'):
+    #     """
+    #     Calculates the inverse Vector Laplacian for the curl of the curl of a vector field in the z-direction.
+    #
+    #     :param Fz:
+    #     :param gtype:
+    #     :return:
+    #     """
+    #
+    #     # Vector Laplacians can only be computed for
+    #     assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+    #
+    #     if gtype == 'tri':
+    #
+    #         assert (len(Fz) == self.n_tverts), "Length of array passed to gradient is not tverts length!"
+    #
+    #         # calculate the inverse curl of the curl:
+    #         Psi_z = np.dot(self.delta_tri_0.T/2,
+    #                        (self.tri_edge_len/self.vor_edge_len)*np.dot(-self.delta_tri_0/2,
+    #                                                                     Fz*self.vor_sa))
+    #
+    #
+    #     elif gtype == 'vor':
+    #
+    #         assert (len(Fz) == self.n_vverts), "Length of array passed to gradient is not tverts length!"
+    #
+    #         # calculate the inverse curl of the curl:
+    #         Psi_z = np.dot(self.delta_vor_0.T/2,
+    #                        -(self.vor_edge_len/self.tri_edge_len)*np.dot(self.delta_tri_1_inv,
+    #                                                                     Fz*self.tri_sa))
+    #
+    #     else:
+    #         Psi_z  = None  # FIXME -- change all of these to raise proper errors!
+    #
+    #     return Psi_z
 
     def vector_laplacian_xy(self, Fx, Fy, gtype = 'tri'):
         """
@@ -1231,10 +1231,10 @@ class DECMesh(object):
 
             # calculate the curl of the curl:
             curl_of_curl = (1/self.tri_edge_len)*np.dot(self.delta_tri_0,
-                                                          (1/self.vor_sa)*np.dot(self.delta_vor_1,
+                                                          (1/self.vor_sa)*np.dot(-self.delta_tri_0.T,
                                                                                  (self.vor_edge_len)*Ft))
 
-            div_F = (1/self.tri_sa)*np.dot(-self.delta_tri_0.T, self.tri_edge_len*Ft)
+            div_F = (1/self.tri_sa)*np.dot(self.delta_tri_1, self.tri_edge_len*Ft)
 
             grad_of_div = np.dot(self.delta_vor_0, div_F)
 
@@ -1244,8 +1244,7 @@ class DECMesh(object):
             lapFy = lapFt*self.vor_tang[:, 1]
 
         else:
-            lapFx = None  # FIXME -- change all of these to raise proper errors!
-            lapFy = None
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
         return lapFx, lapFy
 
@@ -1294,8 +1293,7 @@ class DECMesh(object):
             lapFy_inv = lapFt_inv*self.vor_tang[:, 1]
 
         else:
-            lapFx_inv = None  # FIXME -- change all of these to raise proper errors!
-            lapFy_inv = None
+            raise Exception("valid gtype is 'tri' or 'vor'")
 
         return lapFx_inv, lapFy_inv
 
@@ -1325,7 +1323,7 @@ class DECMesh(object):
         curlF = self.curl_xy(Fx, Fy, gtype=gtype)
 
         # The vector potential of the div-free component is given by:
-        Psi_z = self.vector_laplacian_z_inv(curlF, gtype=gtype)
+        Psi_z = self.lap_inv(curlF, gtype=gtype)
 
         # Where the div-free component of Fx, Fy is given by:
         cPsi_x, cPsi_y = self.curl_z(Psi_z, gtype=gtype)
@@ -1642,6 +1640,264 @@ class DECMesh(object):
 
         return ox, oy, rc, ri
 
+    def test_function(self, a=0.02, b=5.0e-6, gtype='tri'):
+        """
+        Generates an analytical test function with analytical gradient, laplacian,
+        and curl for comparison with discrete calculations
+
+        """
+        # Generate analytical math:
+
+        if gtype == 'tri':
+            xo = self.tri_verts[:, 0]
+            yo = self.tri_verts[:, 1]
+
+        elif gtype == 'vor':
+            xo = self.vor_verts[:, 0]
+            yo = self.vor_verts[:, 1]
+
+        else:
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+        # Test function on vor_verts:
+        self.foo = np.sin((a * xo * yo) / b ** 2)
+
+        self.gfx = ((a * yo) / b ** 2) * np.cos((a * xo * yo) / b ** 2)
+        self.gfy = ((a * xo) / b ** 2) * np.cos((a * xo * yo) / b ** 2)
+
+        self.gf_mag = np.sqrt(self.gfx ** 2 + self.gfy ** 2)
+
+        # second derivatives
+        self.d2fx = -(((a * yo) / b ** 2) ** 2) * np.sin((a * xo * yo) / b ** 2)
+        self.d2fy = -(((a * xo) / b ** 2) ** 2) * np.sin((a * xo * yo) / b ** 2)
+
+        self.div_foo = self.d2fx + self.d2fy
+
+        # Curl of foo as phi_z = foo
+        self.cfx = self.gfy
+        self.cfy = -self.gfx
+        self.cf_mag = np.sqrt(self.cfx** 2 + self.cfy**2)
+
+        # Gradient of the gradient:
+        self.gfxx = -(((a * yo) / b ** 2) ** 2) * np.sin((a * xo * yo) / b ** 2)
+        self.gfxy = (a*np.cos((a*xo*yo)/b**2))/b**2-(a**2*xo*yo*np.sin((a*xo*yo)/b**2))/b**4
+        self.gfyx = (a*np.cos((a*xo*yo)/b**2))/b**2-(a**2*xo*yo*np.sin((a*xo*yo)/b**2))/b**4
+        self.gfyy = -(((a * xo) / b ** 2) ** 2) * np.sin((a * xo * yo) / b ** 2)
+
+
+        # Generate DEC-computed quantities (denoted by '_')-------------------------------------
+
+        # Gradient at edges, in xy components, and div, also using xy components:
+        gfxmv, gfymv = self.gradient_xy(self.foo, gtype=gtype)
+        self.div_foo_ = self.div_xy(gfxmv, gfymv, gtype=gtype)
+
+        # Interpolate gradient to verts and get components
+        self.gfx_ = self.mids_to_verts(gfxmv, gtype=gtype)
+        self.gfy_ = self.mids_to_verts(gfymv, gtype=gtype)
+        self.gf_mag_ = np.sqrt(self.gfx_**2 + self.gfy_** 2)
+
+        self.lap_foo_ = self.lap(self.foo, gtype=gtype)
+
+        if gtype == 'vor':
+            self.lap_inv_ = self.lap_inv(self.div_foo[self.inner_vvert_i], gtype=gtype)
+
+        else:
+            self.div_foo[self.bflags_tverts] = 0.0
+            self.lap_inv_ = self.lap_inv(self.div_foo, gtype=gtype)
+
+        # Curl on the vor grid with Phi_z = foov
+        cfxm, cfym = self.curl_z(self.foo, gtype=gtype)
+        self.cfx_ = self.mids_to_verts(cfxm, gtype = gtype)
+        self.cfy_ = self.mids_to_verts(cfym, gtype = gtype)
+        self.cf_mag_ = np.sqrt(self.cfx_ ** 2 + self.cfy_ ** 2)
+
+        # Gradient of the gradient (from verts mapping):
+        gfxxm, gfxym = self.gradient_xy(self.gfx_, gtype=gtype)
+        gfyxm, gfyym = self.gradient_xy(self.gfy_, gtype=gtype)
+
+        # each component needs to be mapped to verts:
+        self.gfxx_ = self.mids_to_verts(gfxxm, gtype=gtype)
+        self.gfxy_ = self.mids_to_verts(gfxym, gtype=gtype)
+        self.gfyx_ = self.mids_to_verts(gfyxm, gtype=gtype)
+        self.gfyy_ = self.mids_to_verts(gfyym, gtype=gtype)
+
+        # RMS errors between quantities:
+        self.error_grad = np.sqrt((self.gf_mag - self.gf_mag_)**2)
+
+        if gtype == 'vor':
+            self.error_div = np.sqrt((self.div_foo[self.inner_vvert_i] - self.div_foo_)**2)
+            self.error_lap = np.sqrt((self.div_foo[self.inner_vvert_i] - self.lap_foo_)**2)
+
+        else:
+            self.error_div = np.sqrt((self.div_foo - self.div_foo_) ** 2)
+            self.error_lap = np.sqrt((self.div_foo - self.lap_foo_) ** 2)
+
+        self.error_lap_inv = np.sqrt((self.foo - self.lap_inv_)**2)
+        self.error_curl = np.sqrt((self.cf_mag - self.cf_mag_)**2)
+
+        self.test_errors = {'grad': self.error_grad.mean()/np.abs(self.gf_mag).max(),
+                            'div': self.error_div.mean()/np.abs(self.div_foo).max(),
+                            'lap': self.error_lap.mean()/np.abs(self.div_foo).max(),
+                            'lap_inv': self.error_lap_inv.mean()/np.abs(self.foo).max(),
+                            'curl': self.error_curl.mean()/np.abs(self.cf_mag).max()}
+
+    def plot_test_A(self, gtype = 'tri'):
+
+        self.test_function(b=self.cell_radius, gtype=gtype)
+
+        if gtype == 'tri':
+            xo = self.tri_verts[:, 0]
+            yo = self.tri_verts[:, 1]
+
+        elif gtype == 'vor':
+            xo = self.vor_verts[:, 0]
+            yo = self.vor_verts[:, 1]
+
+        else:
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+        # Plot the results:
+        fig, axarr = plt.subplots(2, 3, figsize=(10, 8))
+
+        axarr[0, 0].xaxis.set_ticklabels([])
+        axarr[0, 0].yaxis.set_ticklabels([])
+
+        axarr[0, 1].xaxis.set_ticklabels([])
+        axarr[0, 1].yaxis.set_ticklabels([])
+
+        axarr[0, 2].xaxis.set_ticklabels([])
+        axarr[0, 2].yaxis.set_ticklabels([])
+
+        axarr[1, 0].xaxis.set_ticklabels([])
+        axarr[1, 0].yaxis.set_ticklabels([])
+
+        axarr[1, 1].xaxis.set_ticklabels([])
+        axarr[1, 1].yaxis.set_ticklabels([])
+
+        axarr[1, 2].xaxis.set_ticklabels([])
+        axarr[1, 2].yaxis.set_ticklabels([])
+
+        tp1 = axarr[0, 0].tripcolor(xo, yo, self.foo)
+        cb1 = fig.colorbar(tp1, ax=axarr[0, 0], orientation='horizontal',
+                           fraction=0.025, pad=0.01)
+        axarr[0, 0].set_title('F (exact)')
+        axarr[0, 0].axis('equal')
+        axarr[0, 0].axis('off')
+
+        # ---------------------
+
+        tp2 = axarr[0, 1].tripcolor(xo, yo, self.gf_mag)
+        cb2 = fig.colorbar(tp2, ax=axarr[0, 1], orientation='horizontal',
+                           fraction=0.025, pad=0.01)
+        axarr[0, 1].quiver(xo, yo, self.gfx, self.gfy)
+        axarr[0, 1].set_title(r'$\nabla F (exact)$')
+        axarr[0, 1].axis('equal')
+        axarr[0, 1].axis('off')
+
+        # ---------------------
+        tp3 = axarr[0, 2].tripcolor(xo, yo, self.div_foo)
+        cb3 = fig.colorbar(tp3, ax=axarr[0, 2], orientation='horizontal',
+                           fraction=0.025, pad=0.01)
+        axarr[0, 2].set_title(r'$\nabla^{2}F$ (exact)')
+        axarr[0, 2].axis('equal')
+        axarr[0, 2].axis('off')
+
+        # ---------------------
+
+        tp4 = axarr[1, 0].tripcolor(xo, yo, self.lap_inv_)
+        cb4 = fig.colorbar(tp4, ax=axarr[1, 0], orientation='horizontal',
+                           fraction=0.025, pad=0.01)
+        axarr[1, 0].set_title(r'$(\nabla^{2})^{-1}(\nabla\cdot\nabla F)_{exact} (DEC)$')
+        axarr[1, 0].axis('equal')
+        axarr[1, 0].axis('off')
+
+        tp5 = axarr[1, 1].tripcolor(xo, yo, self.gf_mag_)
+        cb5 = fig.colorbar(tp5, ax=axarr[1, 1], orientation='horizontal',
+                           fraction=0.025, pad=0.01)
+        axarr[1, 1].quiver(xo, yo, self.gfx_, self.gfy_)
+        axarr[1, 1].set_title(r'$\nabla F (DEC)$')
+        axarr[1, 1].axis('equal')
+        axarr[1, 1].axis('off')
+
+        if gtype == 'vor':
+            tp6 = axarr[1, 2].tripcolor(self.tri_ccents[:, 0], self.tri_ccents[:, 1], self.lap_foo_)
+
+        else:
+            tp6 = axarr[1, 2].tripcolor(xo, yo, self.lap_foo_)
+
+        cb6 = fig.colorbar(tp6, ax=axarr[1, 2], orientation='horizontal',
+                           fraction=0.025, pad=0.01)
+        axarr[1, 2].set_title(r'$\nabla^{2}F$ (DEC)')
+        axarr[1, 2].axis('equal')
+        axarr[1, 2].axis('off')
+
+        tick_locator = ticker.MaxNLocator(nbins=1)
+
+        cb1.locator = tick_locator
+        cb1.update_ticks()
+
+        cb2.locator = tick_locator
+        cb2.update_ticks()
+
+        cb3.locator = tick_locator
+        cb3.update_ticks()
+
+        cb4.locator = tick_locator
+        cb4.update_ticks()
+
+        cb5.locator = tick_locator
+        cb5.update_ticks()
+
+        cb6.locator = tick_locator
+        cb6.update_ticks()
+
+        return fig, axarr
+
+    def plot_test_B(self, gtype = 'tri'):
+
+        self.test_function(b=self.cell_radius, gtype=gtype)
+
+        if gtype == 'tri':
+            xo = self.tri_verts[:, 0]
+            yo = self.tri_verts[:, 1]
+
+        elif gtype == 'vor':
+            xo = self.vor_verts[:, 0]
+            yo = self.vor_verts[:, 1]
+
+        else:
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, figsize=(10, 5))
+
+        col_1 = PolyCollection(self.vcell_verts,
+                                 color='grey', edgecolor='black',
+                                 linewidth=1.5)
+        col_1.set_alpha(0.1)
+        col_1.set_linestyle('-')
+
+        col_2 = PolyCollection(self.vcell_verts,
+                                 color='grey', edgecolor='black',
+                                 linewidth=1.5)
+        col_2.set_alpha(0.1)
+        col_2.set_linestyle('-')
+
+        ax1.add_collection(col_1)
+        ax2.add_collection(col_2)
+
+        ax1.quiver(xo, yo, self.gfxx, self.gfxy, color = 'red', zorder = 10)
+        ax1.quiver(xo, yo, self.gfyx, self.gfyy, color = 'blue', zorder = 10)
+
+        ax2.quiver(xo, yo, self.gfxx_, self.gfxy_, color = 'red', zorder = 10)
+        ax2.quiver(xo, yo, self.gfyx_, self.gfyy_, color = 'blue', zorder = 10)
+
+        ax1.axis('tight')
+        ax1.axis('off')
+
+        ax2.axis('tight')
+        ax2.axis('off')
+
+        return fig, ax1, ax2
 
     #WasteLands-------------------------------------
     # # Interpolate mesh energy from tri cents to verts
