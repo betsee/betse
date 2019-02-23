@@ -7,12 +7,33 @@
 Low-level general-purpose string facilities.
 '''
 
+#FIXME: Shift all removal methods into a new
+#"betse.util.type.text.string.strremove" submodule for maintainability.
+#FIXME: Shift all wrapper methods into a new
+#"betse.util.type.text.string.strwrap" submodule for maintainability.
+
 # ....................{ IMPORTS                           }....................
 import textwrap
 from betse.exceptions import BetseStrException
 from betse.util.type.types import (
     type_check, IntOrNoneTypes, IterableTypes, StrOrNoneTypes)
 from textwrap import TextWrapper
+
+#FIXME: Highly non-ideal. Instead:
+#
+#* Define a new "betse.util.type.text.string.strtrim" submodule containing
+#  *ONLY* this trim() function.
+#* Import the "betse.util.type.text.string.strtrim" submodule as needed in the
+#  bodies of functions in the "betse.util.type.types" submodule.
+#* Refactor all current calls to betse.util.type.types.trim() to call
+#  betse.util.type.text.string.strtrim.trim() instead.
+#* Merge the implementations of the
+#  betse.util.type.text.string.strtrim.trim() and
+#  betse.util.type.text.string.strs.truncate() functions. Sadly, we appear to
+#  have reimplemented the former in the latter -- largely due to this
+#  nomenclature confusion. *sigh*
+#* Remove the betse.util.type.types.trim() function.
+#* Remove the betse.util.type.text.string.strs.truncate() function.
 
 # For convenience, permit callers to import the general-purpose trim() function
 # from this submodule rather than the "types" submodule.
@@ -62,12 +83,52 @@ def die_if_empty(text: str, exception_message: StrOrNoneTypes = None) -> None:
 
 
 @type_check
+def die_unless_substr(
+    text: str, substr: str, exception_message: StrOrNoneTypes = None) -> None:
+    '''
+    Raise an exception with the passed message (defaulting to a message
+    synthesized from the passed arguments) if the passed string does *not*
+    contain the passed substring.
+
+    Parameters
+    ----------
+    text : str
+        String to be validated.
+    substr : str
+        Substring to test for.
+    exception_message : optional[str]
+        Exception message to be raised. Defaults to ``None``, in which case an
+        exception message synthesized from the passed arguments is raised.
+
+    Raises
+    ----------
+    BetseStrException
+        If this string does *not* contain this substring.
+
+    See Also
+    ----------
+    :func:`is_substr`
+        Further details.
+    '''
+
+    # If this string does *NOT* contain this substring, raise an exception.
+    if not is_substr(text, substr):
+        # If no exception message was passed, synthesize one from this name.
+        if not exception_message:
+            exception_message = (
+                'String "{}" contains no substring "{}".'.format(text, substr))
+
+        # Raise this exception.
+        raise BetseStrException(exception_message)
+
+
+@type_check
 def die_unless_prefix(
     text: str, prefix: str, exception_message: StrOrNoneTypes = None) -> None:
     '''
     Raise an exception with the passed message (defaulting to a message
-    synthesized from the passed arguments) if the second passed string does
-    *not* prefix the first passed string.
+    synthesized from the passed arguments) if the passed string is *not*
+    prefixed by the passed prefix.
 
     Parameters
     ----------
@@ -83,6 +144,11 @@ def die_unless_prefix(
     ----------
     BetseStrException
         If this string is *not* prefixed by this prefix.
+
+    See Also
+    ----------
+    :func:`is_prefix`
+        Further details.
     '''
 
     # If this string is *NOT* prefixed by this prefix, raise an exception.
@@ -94,6 +160,22 @@ def die_unless_prefix(
 
         # Raise this exception.
         raise BetseStrException(exception_message)
+
+# ....................{ TESTERS                           }....................
+def is_substr(text: str, substr: str) -> bool:
+    '''
+    ``True`` only if the passed string does *not* contain the passed substring.
+
+    Parameters
+    ----------
+    text : str
+        String to be tested.
+    substr : str
+        Substring to test for.
+    '''
+
+    # Don't look at me like that.
+    return substr in text
 
 # ....................{ TESTERS ~ case                    }....................
 @type_check
@@ -128,7 +210,7 @@ def is_uppercase(text: str) -> bool:
 # ....................{ TESTERS ~ [pre|suf]fix            }....................
 def is_prefix(text: str, prefix: str) -> bool:
     '''
-    ``True`` only if the second passed string prefixes the first passed string.
+    ``True`` only if the passed string is prefixed by the passed prefix.
 
     Parameters
     ----------
@@ -144,7 +226,7 @@ def is_prefix(text: str, prefix: str) -> bool:
 @type_check
 def is_suffix(text: str, suffix: str) -> bool:
     '''
-    ``True`` only if the second passed string suffixes the first passed string.
+    ``True`` only if the passed string is suffixed by the passed prefix.
 
     Parameters
     ----------

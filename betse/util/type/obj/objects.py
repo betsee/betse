@@ -20,7 +20,6 @@ from betse.util.type.types import (
     CallableTypes,
     CallableOrNoneTypes,
     ClassType,
-    ModuleType,
     TestableTypes,
 )
 
@@ -75,6 +74,8 @@ def die_unless_instance(obj: object, cls: TestableTypes) -> None:
             'Object {!r} not an instance of {!r}.'.format(obj, cls))
 
 # ....................{ EXCEPTIONS ~ attr                 }....................
+#FIXME: Rename to die_unless_has_class() for clarity. The current name is
+#functionally insane.
 @type_check
 def die_unless_class(obj: object, *class_names: str) -> None:
     '''
@@ -90,16 +91,19 @@ def die_unless_class(obj: object, *class_names: str) -> None:
 
     Raises
     ----------
-    BetseMethodException
+    BetseTypeException
         If one or more such classes are *not* bound to this object.
     '''
 
+    #FIXME: Inefficient. Refactor to use the any() builtin instead.
     for class_name in class_names:
         if not is_class(obj=obj, class_name=class_name):
-            raise BetseMethodException(
+            raise BetseTypeException(
                 'Object "{}" class "{}" undefined.'.format(obj, class_name))
 
 
+#FIXME: Rename to die_unless_has_method() for clarity. The current name is
+#functionally insane.
 @type_check
 def die_unless_method(obj: object, *method_names: str) -> None:
     '''
@@ -119,12 +123,14 @@ def die_unless_method(obj: object, *method_names: str) -> None:
         If one or more such methods are *not* bound to this object.
     '''
 
+    #FIXME: Inefficient. Refactor to use the any() builtin instead.
     for method_name in method_names:
         if not is_method(obj=obj, method_name=method_name):
             raise BetseMethodException(
                 'Object "{}" method {}() undefined.'.format(obj, method_name))
 
 # ....................{ TESTERS                           }....................
+#FIXME: Rename to has_attr() for orthogonality with testers defined below.
 @type_check
 def is_attr(obj: object, attr_name: str) -> bool:
     '''
@@ -150,6 +156,7 @@ def is_attr(obj: object, attr_name: str) -> bool:
     return hasattr(obj, attr_name)
 
 
+#FIXME: Rename to has_class() for clarity. The current name is insane.
 @type_check
 def is_class(obj: object, class_name: str) -> bool:
     '''
@@ -168,7 +175,7 @@ def is_class(obj: object, class_name: str) -> bool:
         ``True`` only if a class with this name is bound to this object.
     '''
 
-    # Attribute with this name in this object if any or "None" otherwise.
+    # Attribute with this name in this object if any *OR* "None" otherwise.
     cls = getattr(obj, class_name, None)
 
     # Return whether this attribute is a class. Since "None" is guaranteed to
@@ -177,6 +184,7 @@ def is_class(obj: object, class_name: str) -> bool:
     return types.is_class(cls)
 
 
+#FIXME: Rename to has_method() for clarity. The current name is insane.
 @type_check
 def is_method(obj: object, method_name: str) -> bool:
     '''

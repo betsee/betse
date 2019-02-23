@@ -14,8 +14,8 @@ from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.util.type.cls import classes
 from betse.util.type.obj import objects
-from betse.util.type.types import (
-    type_check, ClassType, SequenceTypes)
+from betse.util.type.text.string import strs
+from betse.util.type.types import type_check, ClassType, SequenceTypes
 from collections.abc import MutableSequence
 
 # ....................{ SUPERCLASSES ~ list item          }....................
@@ -40,7 +40,7 @@ class YamlListItemABC(YamlABC):
 
         Parameters
         ----------
-        All parameters are passed as is to the :meth:`YamlList.__init__`
+        All passed parameters are passed as is to the :meth:`YamlList.__init__`
         method.
         '''
 
@@ -264,7 +264,7 @@ class YamlList(YamlABC, MutableSequence):
     def append_default(self) -> YamlListItemABC:
         '''
         Append a new low-level YAML-backed list item initialized to default
-        values suitable for this list and return this item.
+        values suitable for this list *and* return this item.
 
         Returns
         ----------
@@ -275,7 +275,7 @@ class YamlList(YamlABC, MutableSequence):
         '''
 
         # New simulation configuration list item specific to this list.
-        conf_wrap = self._item_type.make_default(self)
+        conf_wrap = self._item_type.make_default(yaml_list=self)
 
         # Append this list item to this list.
         self.append(conf_wrap)
@@ -310,7 +310,30 @@ class YamlList(YamlABC, MutableSequence):
         ----------
         str
             Item name unique to this list matching this format.
+
+        Raises
+        ----------
+        BetseStrException
+            If this format specifier contains no ``{}`` substring.
         '''
+
+        #FIXME: Ideally, we would also raise exceptions if this format
+        #specifier contains two or more ``{}`` substrings. Sadly, there appears
+        #no trivial and/or efficient means of doing so. While we suppose we
+        #*COULD* define a new
+        #betse.util.type.text.string.strs.get_substrs_count() function doing
+        #so, the lack of any benefit to doing so hardly seems worth it. Note
+        #also that genuinely testing this is effectively infeasible due to
+        #false positives (e.g., the string "{}{}" should raise exceptions but
+        #the string "{}{{}}" should *NOT*).
+
+        # If this format specifier contains no "{}" substring, raise an
+        # exception.
+        #
+        # Note that this simplistic logic fails to account for "{{" and "}}"
+        # escaping and hence *COULD* fail to raise exceptions when passed
+        # worst-case format specifiers, but that we mostly do not care.
+        strs.die_unless_substr(text=name_format, substr='{}')
 
         # Arbitrary unique identifier with which to uniquify (i.e., guarantee
         # the uniqueness of) the name of a new item in this list, defaulting to

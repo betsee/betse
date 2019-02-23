@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,11 +8,17 @@ High-level **Python profiling** (i.e., measuring various metrics pertaining to
 Python code, including time and space performance) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseMethodUnimplementedException
 from betse.util.io.log import logs
 from betse.util.type.types import (
-    type_check, CallableTypes, MappingType, SequenceTypes,)
+    type_check,
+    CallableTypes,
+    MappingType,
+    MappingOrNoneTypes,
+    SequenceTypes,
+    SequenceOrNoneTypes,
+)
 from cProfile import Profile
 from enum import Enum
 from functools import partial
@@ -20,7 +26,7 @@ from io import StringIO
 from pstats import Stats
 from timeit import Timer
 
-# ....................{ ENUMS                              }....................
+# ....................{ ENUMS                             }....................
 ProfileType = Enum('ProfileType', ('NONE', 'CALL', 'SIZE',))
 # ProfileType = Enum('ProfileType', ('NONE', 'CALL', 'LINE', 'SIZE',))
 '''
@@ -50,7 +56,86 @@ SIZE : enum
 #     that of the ``CALL`` type, but requires installation of the optional
 #     third-party dependency :mod:`line_profiler`.
 
-# ....................{ PROFILERS                          }....................
+# ....................{ TIMERS                            }....................
+@type_check
+def time_callable(
+    call: CallableTypes,
+    args: SequenceOrNoneTypes = None,
+    kwargs: MappingOrNoneTypes = None,
+    repetitions: int = 7,
+    iterations: int = 1000,
+) -> float:
+    '''
+    Time the passed callable with the passed positional and keyword arguments
+    (if any) called the passed number of repetitions of the passed number of
+    iterations, returning the time in seconds consumed by the fastest call to
+    this callable.
+
+    This function *only* returns the minimum timing of all observed timings,
+    discarding the time consumed by all calls other than the fastest call to
+    this callable. Why? Because the timing of the fastest call is the most
+    statistically signifant timing. All error in timing is **positive,**
+    typically due to overhead associated with low-level kernel operations
+    (e.g., I/O) and unrelated running processes. By definition, error in timing
+    cannot be negative. As astutely noted by the Stackoverflow answer below:
+
+        There's no way to get negative error because a computer can't ever
+        compute faster than it can compute!
+
+    Since all timing error is positive, the minimum timing is the timing that
+    exhibits minimum error. For all intents and purposes, all other timings are
+    effectively irrelevant.
+
+    Parameters
+    ----------
+    call : CallableTypes
+        Callable to be timed.
+    args : SequenceOrNoneTypes
+        Sequence of positional arguments to pass to each call to this callable.
+        Defaults to ``None``, in which no such arguments are passed.
+    kwargs: MappingOrNoneTypes
+        Dictionary of keyword arguments to pass to each call to this callable.
+        Defaults to ``None``, in which no such arguments are passed.
+    repetitions : optional[int]
+        Number of times to repeat each number of times to call this callable.
+        Defaults to a reasonably small value.
+    iterations: optional[int]
+        Number of times to call this callable for each repetition. The total
+        number of calls is thus given by ``repetitions * iterations``. Defaults
+        to a reasonably large value.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/24105845/2809027
+        Stackoverflow answer strongly inspiring this implementation.
+    '''
+
+    # Partial function binding this callable to these arguments. Avoid
+    # defaulting unpassed positional and keyword arguments to empty data
+    # structures, as doing so appears to substantially skew timings and hence
+    # should be avoided if feasible.
+    callable_bound = None
+
+    # If both positional and keyword arguments were passed, bind this callable
+    # to both.
+    if args and kwargs:
+        callable_bound = partial(call, *args, **kwargs)
+    # Else if only positional arguments were passed, bind this callable to only
+    # positional arguments.
+    elif args:
+        callable_bound = partial(call, *args)
+    # Else if only keyword arguments were passed, bind this callable to only
+    # keyword arguments.
+    elif kwargs:
+        callable_bound = partial(call, **kwargs)
+    # Else, call this callable as is.
+    else:
+        callable_bound = call
+
+    # Return the minimum timing of this callable repeated this number of times.
+    return min(Timer(callable_bound).repeat(repetitions, iterations))
+
+# ....................{ PROFILERS                         }....................
 @type_check
 def profile_callable(
     call: CallableTypes,
@@ -61,9 +146,10 @@ def profile_callable(
     profile_type: ProfileType = ProfileType.CALL,
 ) -> object:
     '''
-    Profile the passed callable with the passed positional and keyword arguments
-    (if any), returning the value returned by this call and optionally logging
-    and serializing the resulting profile to the file with the passed filename.
+    Profile the passed callable with the passed positional and keyword
+    arguments (if any), returning the value returned by this call and
+    optionally logging and serializing the resulting profile to the file with
+    the passed filename.
 
     Parameters
     ----------
@@ -81,7 +167,7 @@ def profile_callable(
     profile_filename : optional[str]
         Absolute or relative path of the file to serialize this profile to. If
         this file already exists, this file will be silently overwritten
-        _without_ explicit warning or error. (While silently overwriting is
+        *without* explicit warning or error. (While silently overwriting is
         typically discouraged, doing so is sensible in this case. Profiles are
         frequently and trivially created, rendering their preservation
         insignificant by compare to usability concerns.)
@@ -114,7 +200,7 @@ def profile_callable(
         profile_filename=profile_filename,
     )
 
-# ....................{ PROFILERS ~ none                   }....................
+# ....................{ PROFILERS ~ none                  }....................
 def _profile_callable_none(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
@@ -129,12 +215,12 @@ def _profile_callable_none(
 
     return call(*args, **kwargs)
 
-# ....................{ PROFILERS ~ call                   }....................
+# ....................{ PROFILERS ~ call                  }....................
 def _profile_callable_call(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
-    Profile the passed callable in a call-oriented deterministic manner with the
-    passed positional and keyword arguments (if any), returning the value
+    Profile the passed callable in a call-oriented deterministic manner with
+    the passed positional and keyword arguments (if any), returning the value
     returned by this call and optionally logging and serializing the resulting
     profile to the file with the passed filename.
 
@@ -170,17 +256,17 @@ def _profile_callable_call(
         # output, reducing these pathnames to basenames.
         calls.strip_dirs()
 
-        # Sort all profiled callables by cumulative time (i.e., total time spent
-        # in a callable including all time spent in calls to callables called by
-        # that callable).
+        # Sort all profiled callables by cumulative time (i.e., total time
+        # spent in a callable including all time spent in calls to callables
+        # called by that callable).
         calls.sort_stats('cumtime')
 
         # Write the slowest sublist of these callables to this string buffer.
         calls.print_stats(CALLABLES_MAX)
 
-        # Sort all profiled callables by "total" time (i.e., total time spent in
-        # a callable excluding all time spent in calls to callables called by
-        # that callable).
+        # Sort all profiled callables by "total" time (i.e., total time spent
+        # in a callable excluding all time spent in calls to callables called
+        # by that callable).
         calls.sort_stats('tottime')
 
         # Write the slowest sublist of these callables to this string buffer.
@@ -204,19 +290,19 @@ def _profile_callable_call(
     # Return the value returned by this call.
     return return_value
 
-# ....................{ PROFILERS ~ line                   }....................
+# ....................{ PROFILERS ~ line                  }....................
 #FIXME: Implement this function properly. Sadly, Python does *NOT* provide an
 #out-of-the-box solution for line-based profiling. To do so, either (...both?)
 #of the following third-party packages will need to be dynamically detected,
 #imported, and leveraged:
 #
 #* "line", profiling in a line- rather than call-based manner.
-#  * "line_profiler", a third-party C extension profiling each line (rather than
-#    function as cProfile does). Infrequently updated, but slightly more
+#  * "line_profiler", a third-party C extension profiling each line (rather
+#    than function as cProfile does). Infrequently updated, but slightly more
 #    frequently than "statprof", which is effectively dead. Sadly, the
 #    "line_profiler" API is less than ideal, requiring that each individual
-#    functions to be non-transitively line-profiled be explicitly decorated with
-#    a "line_profiler"-specific decorator -- which, frankly, is crazy and
+#    functions to be non-transitively line-profiled be explicitly decorated
+#    with a "line_profiler"-specific decorator -- which, frankly, is crazy and
 #    probably not reasonably supportable. See the live repository at:
 #    https://github.com/rkern/line_profiler
 #  * "statprof", a third-party C extension operating rather differently than
@@ -229,17 +315,17 @@ def _profile_callable_call(
 #    Sadly, "statprof" was last updated in 2015; see the dead repository at:
 #    https://github.com/bos/statprof.py
 #
-#Note that the "pprofile" package *CANNOT* be supported, due to its encumberment
-#under a GPL-2 license.
+#Note that the "pprofile" package *CANNOT* be supported, due to its
+#encumberment under a GPL-2 license.
 #
-#In short, there currently appears to be no BSD-compatible, well-maintained line
-#profiling solution for Python. Hence, this function is disabled.
+#In short, there currently appears to be no BSD-compatible, well-maintained
+#line profiling solution for Python. Hence, this function is disabled.
 
 def _profile_callable_line(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
-    Profile the passed callable in a line-oriented deterministic manner with the
-    passed positional and keyword arguments (if any), returning the value
+    Profile the passed callable in a line-oriented deterministic manner with
+    the passed positional and keyword arguments (if any), returning the value
     returned by this call and optionally logging and serializing the resulting
     profile to the file with the passed filename.
 
@@ -258,7 +344,7 @@ def _profile_callable_line(
     #FIXME: Excise this after properly implementing this function.
     raise BetseMethodUnimplementedException()
 
-# ....................{ PROFILERS ~ size                   }....................
+# ....................{ PROFILERS ~ size                  }....................
 def _profile_callable_size(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
@@ -285,9 +371,9 @@ def _profile_callable_size(
     # Value returned by calling this callable with these arguments.
     return_value = call(*args, **kwargs)
 
-    # Log the profiling to be subsequently performed. Since doing so can recurse
-    # through the full object tree in the worst case, inform the end user of
-    # this potentially slow operation *BEFORE* doing so.
+    # Log the profiling to be subsequently performed. Since doing so can
+    # recurse through the full object tree in the worst case, inform the end
+    # user of this potentially slow operation *BEFORE* doing so.
     logs.log_debug(
         'Profiling space (i.e., memory) consumption '
         'for %r() return value of type %r...',
@@ -302,9 +388,9 @@ def _profile_callable_size(
         # to a small positive integer.
         vars_depth=2,
 
-        # Maximum number of the largest instance variables of the value returned
-        # by calling this callable to log, arbitrarily defined to be twice the
-        # default number of rows in the average Linux terminal.
+        # Maximum number of the largest instance variables of the value
+        # returned by calling this callable to log, arbitrarily defined to be
+        # twice the default number of rows in the average Linux terminal.
         vars_max=48,
     )
 
@@ -326,12 +412,13 @@ def _profile_callable_size(
     # Return the value returned by this call.
     return return_value
 
-# ....................{ GLOBALS ~ private                  }....................
-# Technically, the same effect is also achievable via getattr() on the current
-# module object. Doing so is complicated by artificial constraints Python
-# imposes on doing so (e.g., obtaining the current module object is obscure) and
-# the PEP 20 doctrine of "Explicit is better than implicit." We beg to disagree.
-# Nonetheless, the explicit approach remains preferable in this edge-case.
+# ....................{ GLOBALS ~ private                 }....................
+# Technically, the same effect as that of the following dictionary is also
+# achievable via getattr() on the current module object. Doing so is
+# complicated by artificial constraints Python imposes on doing so (e.g.,
+# obtaining the current module object is obscure) and the PEP 20 doctrine of
+# "Explicit is better than implicit." We beg to disagree. Nonetheless, the
+# explicit approach remains preferable in this edge-case.
 _PROFILE_TYPE_TO_PROFILER = {
     ProfileType.CALL: _profile_callable_call,
     # ProfileType.LINE: _profile_callable_line,
@@ -345,82 +432,3 @@ performing this type of profiling.
 This private global is intended for use _only_ by the public
 :func:`profile_callable` function.
 '''
-
-# ....................{ TIMERS                             }....................
-@type_check
-def time_callable(
-    call: CallableTypes,
-    args: SequenceTypes = None,
-    kwargs: MappingType = None,
-    repetitions: int = 7,
-    iterations: int = 1000,
-) -> float:
-    '''
-    Time the passed callable with the passed positional and keyword arguments
-    (if any) called the passed number of repetitions of the passed number of
-    iterations, returning the time in seconds consumed by the fastest call to
-    this callable.
-
-    This function _only_ returns the minimum timing of all observed timings,
-    discarding the time consumed by all calls other than the fastest call to
-    this callable. Why? Because the timing of the fastest call is the most
-    statistically signifant timing. All error in timing is **positive,**
-    typically due to overhead associated with low-level kernel operations (e.g.,
-    I/O) and unrelated running processes. By definition, error in timing cannot
-    be negative. As astutely noted by the Stackoverflow answer below:
-
-        There's no way to get negative error because a computer can't ever
-        compute faster than it can compute!
-
-    Since all timing error is positive, the minimum timing is the timing that
-    exhibits minimum error. For all intents and purposes, all other timings are
-    effectively irrelevant.
-
-    Parameters
-    ----------
-    call : CallableTypes
-        Callable to be timed.
-    args : optional[SequenceTypes]
-        Sequence of positional arguments to pass to each call to this callable.
-        Defaults to `None`, in which no such arguments are passed.
-    kwargs: optional[MappingType]
-        Dictionary of keyword arguments to pass to each call to this callable.
-        Defaults to `None`, in which no such arguments are passed.
-    repetitions : optional[int]
-        Number of times to repeat each number of times to call this callable.
-        Defaults to a reasonably small value.
-    iterations: optional[int]
-        Number of times to call this callable for each repetition. The total
-        number of calls is thus given by `repetitions * iterations`. Defaults to
-        a reasonably large value.
-
-    See Also
-    ----------
-    https://stackoverflow.com/a/24105845/2809027
-        Stackoverflow answer strongly inspiring this implementation.
-    '''
-
-    # Partial function binding this callable to these arguments. Avoid
-    # defaulting unpassed positional and keyword arguments to empty data
-    # structures, as doing so appears to substantially skew timings and hence
-    # should be avoided if feasible.
-    #
-    # If both positional and keyword arguments were passed, bind this callable
-    # to both.
-    callable_bound = None
-    if args and kwargs:
-        callable_bound = partial(call, *args, **kwargs)
-    # Else if only positional arguments were passed, bind this callable to only
-    # positional arguments.
-    elif args:
-        callable_bound = partial(call, *args)
-    # Else if only keyword arguments were passed, bind this callable to only
-    # keyword arguments.
-    elif kwargs:
-        callable_bound = partial(call, **kwargs)
-    # Else, call this callable as is.
-    else:
-        callable_bound = call
-
-    # Return the minimum timing of this callable repeated this number of times.
-    return min(Timer(callable_bound).repeat(repetitions, iterations))
