@@ -8,13 +8,28 @@ Low-level floating point facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
+import math
 from sys import float_info
 # from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import type_check, RegexCompiledType
 from decimal import Decimal
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS ~ pi                      }....................
+PI = math.pi
+'''
+**π** (i.e., transcendental number defined as the ratio of a circle's
+circumference C to diameter d: ``C/d``).
+'''
+
+
+TWO_PI = 2 * PI
+'''
+**2π** (i.e., 2 * :data:`PI`), preserved as a global constant to reduce
+needless recomputation of this frequently referenced constant.
+'''
+
+# ....................{ CONSTANTS ~ range                  }....................
 FLOAT_MIN = float_info.min
 '''
 Minimum representable finite floating point number under the active Python

@@ -2805,6 +2805,8 @@ class Cells(object):
         self.centre = np.asarray([0.5*p.wsx, 0.5*p.wsx])
         self.clust_xy = xypts
 
+        self.xyaxis = [self.xmin, self.xmax, self.ymin, self.ymax]
+
         #-----Utility functions--------------------------------------------------------------------------------------------
 
     def gradient(self, SS):

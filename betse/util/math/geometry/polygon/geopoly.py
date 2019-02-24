@@ -10,10 +10,9 @@ boundary remain strictly inside the polygon) functionality.
 '''
 
 # ....................{ IMPORTS                           }....................
+import math
 import numpy as np
 from betse.exceptions import BetseMathPolygonException
-from betse.lib.numpy import nparray
-from betse.util.math.geometry import geopoint
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ EXCEPTIONS                        }....................
@@ -69,10 +68,116 @@ def is_polygon(*polygons: SequenceTypes) -> bool:
         Further details on two-dimensional points.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.math.geometry import geopoint
+
+    # Defer to the existing is_point() tester.
     return all(
         len(polygon) >= 3 and geopoint.is_point(*polygon)
-        for polygon in polygons
-    )
+        for polygon in polygons)
+
+
+@type_check
+def is_convex(polygon: SequenceTypes) -> bool:
+    '''
+    ``True`` only if the passed polygon is **strictly convex** (i.e., is
+    non-self-intersecting such that all interior angles are strictly
+    between zero and a straight angle).
+
+    Parameters
+    ----------
+    polygon : SequenceTypes
+        Two-dimensional sequence of all points defining the polygon to be
+        tested such that:
+
+        * The first dimension indexes each such point (in arbitrary order).
+        * The second dimension indexes each coordinate of this point such that:
+
+          * The first item is the X coordinate of this point.
+          * The second item is the Y coordinate of this point.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this polygon is strictly convex.
+
+    Raises
+    ----------
+    BetseMathPointException
+        If this sequence is *not* a two-dimensional polygon.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/45372025/2809027
+        StackOverflow answer strongly inspiring this implementation. The credit
+        entirely goes to Rory Daulton for mastering this non-trivial problem.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.numeric.floats import PI, TWO_PI
+
+    # If this sequence is *NOT* a polygon, raise an exception.
+    die_unless_polygon(polygon)
+
+    # NOTES:  1.  Algorithm: the signed changes of the direction angles
+    #             from one side to the next side must be all positive or
+    #             all negative, and their sum must equal plus-or-minus
+    #             one full turn (2 pi radians). Also check for too few,
+    #             invalid, or repeated points.
+    #         2.  No check is explicitly done for zero internal angles
+    #             (180 degree direction-change angle) as this is covered
+    #             in other ways, including the `n < 3` check.
+
+    # Needed for any bad points or direction changes.
+    try:
+        # Get starting information.
+        old_x, old_y = polygon[-2]
+        new_x, new_y = polygon[-1]
+        new_direction = math.atan2(new_y - old_y, new_x - old_x)
+        angle_sum = 0.0
+
+        # Check each point (the side ending there, its angle) and accumulated
+        # angles.
+        for ndx, newpoint in enumerate(polygon):
+            # Update point coordinates and side directions and check side
+            # length.
+            old_x, old_y, old_direction = new_x, new_y, new_direction
+            new_x, new_y = newpoint
+            new_direction = math.atan2(new_y - old_y, new_x - old_x)
+
+            # If repeated consecutive points, non-convex.
+            if old_x == new_x and old_y == new_y:
+                return False
+
+            # Calculate & check the normalized direction-change angle.
+            angle = new_direction - old_direction
+
+            # Make it in half-open interval (-Pi, Pi].
+            if angle <= -PI:
+                angle += TWO_PI
+            elif angle > PI:
+                angle -= TWO_PI
+
+            # If first time through loop, initialize orientation.
+            if ndx == 0:
+                if angle == 0.0:
+                    return False
+
+                orientation = 1.0 if angle > 0.0 else -1.0
+            # Else if other time through loop, check orientation is stable.
+            elif orientation * angle <= 0.0:  # not both pos. or both neg.
+                return False
+
+            # Accumulate the direction-change angle.
+            angle_sum += angle
+
+        # Check that the total number of full turns is plus-or-minus 1.
+        return abs(round(angle_sum / TWO_PI)) == 1
+
+    #FIXME: Clearly non-ideal. Refactor the above implementation to avoid
+    #raising spurious exceptions in the first place.
+    except (ArithmeticError, TypeError, ValueError):
+        return False  # any exception means not a proper convex polygon
 
 # ....................{ ORIENTERS                         }....................
 #FIXME: Unit test us up.
@@ -107,6 +212,9 @@ def orient_counterclockwise(polygon: SequenceTypes) -> SequenceTypes:
         Copy of this polygon positively oriented. The type of this sequence is
         the same as that of the original polygon.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.lib.numpy import nparray
 
     # If this sequence is *NOT* a polygon, raise an exception.
     die_unless_polygon(polygon)
