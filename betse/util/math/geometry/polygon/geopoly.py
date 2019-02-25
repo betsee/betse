@@ -179,6 +179,43 @@ def is_convex(polygon: SequenceTypes) -> bool:
     except (ArithmeticError, TypeError, ValueError):
         return False  # any exception means not a proper convex polygon
 
+
+def is_cyclic_quad(A, B, C, D):
+    """
+    Utility function returns a boolean (True/False)
+    stating whether it is possible to draw a circle
+    around the set of four vertices (A, B, C, D), which represent a
+    counter-clockwise oriented quadrilateral. If True, the
+    quadrilateral is said to be 'cyclic'.
+
+    Parameters
+    ------------
+    A, B, C, D: the 4 vertices of the quadrilateral,
+                       oriented counterclockwise
+
+    Returns
+    ----------
+    test_bool: Do the verts define a cyclic quadrilateral?
+    """
+    # Calculate the length of four sides from vertices
+    a = np.linalg.norm(B - A)
+    b = np.linalg.norm(C - B)
+    c = np.linalg.norm(D - C)
+    d = np.linalg.norm(A - D)
+
+    # Calculate the length of the two diagonals
+    e = np.sqrt(((a * c + b * d) * (a * d + b * c)) / (a * b + c * d))
+    f = np.sqrt(((a * c + b * d) * (a * b + c * d)) / (a * d + b * c))
+
+    # for a cyclic quad, the product between the two diagonals equals
+    # the product between the two adjacent sides:
+    lhs = np.round(e*f, 15)
+    rhs = np.round(a*c + b*d, 15)
+
+    test_bool = lhs == rhs
+
+    return test_bool
+
 # ....................{ ORIENTERS                         }....................
 #FIXME: Unit test us up.
 @type_check

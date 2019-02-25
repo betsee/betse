@@ -18,7 +18,7 @@ from matplotlib.patches import Circle
 from matplotlib import path
 
 from betse.util.math.geometry.polygon.geopolyconvex import clip_counterclockwise
-from betse.util.math.geometry.polygon.geopoly import orient_counterclockwise, is_convex
+from betse.util.math.geometry.polygon.geopoly import orient_counterclockwise, is_convex, is_cyclic_quad
 from betse.util.io.log import logs
 
 from scipy.spatial import cKDTree, Delaunay
@@ -35,15 +35,16 @@ class DECMesh(object):
     def __init__(self,
                  cell_radius = None, # average half distance between seed points
                  mesh_type = 'tri', # mesh_type can be 'tri' or 'quad'
-                 seed_points=None,
-                 alpha_shape=0.4,
-                 use_alpha_shape=True,
-                 single_cell_noise=0.5,
-                 single_cell_sides=6,
-                 image_mask=None,
-                 make_all_operators = True,
-                 allow_merging = True,
-                 merge_thresh = 0.2):
+                 seed_points=None, # points to use in Delaunay triangulation
+                 use_centroids = True, # Use the centroids of polygons as Voronoi verts instead of circumcenters
+                 use_alpha_shape=True, # use alpha-shape exclusion of triangles from Delaunay
+                 alpha_shape=0.4, # Threshhold for alpha-shape analysis
+                 single_cell_sides=6,  # If seed points is None, a single cell will be created with this many sides
+                 single_cell_noise=0.5,  # Irregularity to add to single cell construction
+                 image_mask=None, # Use an image mask (from BETSE) to control point location
+                 make_all_operators = True, # Make all operators (True), or only key ones (False)
+                 allow_merging = True, # Allow tri-cells to be merged to quads if circumcenters are close?
+                 merge_thresh = 0.2): # Distance threshhold (%of total radius) for merging close circumcenters
 
 
         self.single_cell_noise = single_cell_noise
@@ -55,6 +56,7 @@ class DECMesh(object):
         self.mesh_type = mesh_type
         self.merge_thresh = merge_thresh
         self.allow_merging = allow_merging
+        self.use_centroids = use_centroids
 
         self.removed_bad_verts = False # flag to bad tri-vert removal (only do case once!)
 
@@ -100,7 +102,6 @@ class DECMesh(object):
     def init_and_refine(self, max_steps=25, convergence=7.5, fix_bounds=True):
         self.pre_mesh()
         self.refine_mesh(max_steps=max_steps, convergence=convergence, fix_bounds=fix_bounds)
-
 
     def make_single_cell_points(self):
         """
@@ -300,18 +301,23 @@ class DECMesh(object):
                             sorted_pts = quad_pts[np.argsort(angles)]
 
                             # test to see if the merged poly is convex:
-                            good = is_convex(sorted_pts) # FIXME also check that merger is cyclic quad
+                            conv_quad = is_convex(sorted_pts) #
+                            cycl_quad = is_cyclic_quad(sorted_pts[0], sorted_pts[1],
+                                                                          sorted_pts[2], sorted_pts[3])
 
-                            if good:
+                            if conv_quad and cycl_quad:
+
+                                Rq, areaq, ccxq, ccyq = self.quad_circumc(sorted_pts[0], sorted_pts[1],
+                                                                          sorted_pts[2], sorted_pts[3])
 
                                 quad_cells.append(sorted_region)
                                 qcell_verts.append(sorted_pts)
 
-                                quad_ccents.append((cc1 + cc2) / 2) # FIXME these calcs are totally off!
-                                quad_rcircs.append((rc1+ rc2)/2) # FIXME these calcs are totally off!
+                                quad_ccents.append([ccxq, ccyq])
+                                quad_rcircs.append(Rq)
                                 quad_rin.append((ri1 + ri2) / 2) # FIXME these calcs are totally off!
 
-                                quad_sa.append((a1+a2)) # FIXME these calcs are totally off!
+                                quad_sa.append(areaq)
 
                                 quadcell_i.append(ai)
 
@@ -320,7 +326,7 @@ class DECMesh(object):
                                 quad_cents.append([cx, cy])
 
 
-                            else: # if it's not good, then don't split it; append original triangles:
+                            else: # if it's not convex and/or cyclic, then don't split it; append original triangles:
 
                                 ptsa = self.tri_verts[vertsa] # get the x, y coords of points
                                 ptsb = self.tri_verts[vertsb]
@@ -353,7 +359,7 @@ class DECMesh(object):
 
                         quad_cells.append(vertsa)
                         qcell_verts.append(ptsa)
-                        quad_ccents.append(c1)
+                        quad_ccents.append(cc1)
                         quad_rcircs.append(rc1)
                         quad_rin.append(ri1)
                         quad_sa.append(a1)
@@ -368,7 +374,7 @@ class DECMesh(object):
 
                 quad_cells.append(vertsa)
                 qcell_verts.append(ptsa)
-                quad_ccents.append(c1)
+                quad_ccents.append(cc1)
                 quad_rcircs.append(rc1)
                 quad_rin.append(ri1)
                 quad_sa.append(a1)
@@ -400,9 +406,6 @@ class DECMesh(object):
 
         self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])
 
-        # re-process the edges and boundaries:
-        # self.process_primary_edges(mesh_version = 'quad')
-
     def process_primary_edges(self, mesh_version = 'tri'):
         """
         Processes the edges and boundary of the primary mesh.
@@ -414,7 +417,6 @@ class DECMesh(object):
         unique_edges = set()  # set of unique vertex pairs
         hull_points = []
         hull_edges = []
-        vor_verts_bound = [] # vertices at the boundary
         tri_mids = [] # midpoint of tri edges
         tri_edge_len = [] # length of tri edge
         tri_tang = [] # tri edge tangent
@@ -464,20 +466,6 @@ class DECMesh(object):
 
         self.tri_edge_i = np.linspace(0, self.n_tedges - 1, self.n_tedges, dtype=np.int)
 
-        # Make a search tree of interior vor vertices
-        if mesh_version == 'tri': # 'tri' mesh version uses circumcenters:
-
-            vor_tree = cKDTree(self.tri_ccents)
-            vor_points = self.tri_ccents
-
-        elif mesh_version == 'quad': # 'quad' mesh version uses centroids:
-            # FIXME calc quad circumcents so this isn't needed!
-            vor_tree = cKDTree(self.tri_cents)
-            vor_points = self.tri_cents
-
-        else:
-            logs.log_error("'tri' and 'quad' are only available mesh types.")
-
 
         # Finally, go through and calculate mids, len, and tangents of tri_edges, and prepare a mapping between
         # each vertices and edges:
@@ -501,42 +489,11 @@ class DECMesh(object):
             tri_edge_len.append(tri_len)
             tri_tang.append(tan_ti)
 
-            if ei in self.bflags_tedges: # If this edge is on the hull/boundary, need to calc bound vorcell points
-
-                # query the interior vor points for the nearest neighbour vor point to the edge mid:
-                d_va, i_va = vor_tree.query(pptm)
-
-                # get first point of boundary vor ridge:
-                vor_pt_a = vor_points[i_va]
-
-                # get the vor edge tangent vector as 90 degree rotation of tri_edge tangent (x --> y, y --> -x):
-                vor_tang = tan_ti*1
-                vor_tang_x = vor_tang[1]
-                vor_tang_y = -vor_tang[0]
-                # calculate the boundary vor verts from hull edge properties:
-                vor_pt_b = vor_pt_a*1
-
-                vor_pt_b[0] = vor_tang_x*tri_len*0.5 + vor_pt_a[0]
-                vor_pt_b[1] = vor_tang_y*tri_len*0.5 + vor_pt_a[1]
-
-                vor_verts_bound.append(vor_pt_b)
-
-
         self.tri_mids = np.asarray(tri_mids)
         self.tri_edge_len = np.asarray(tri_edge_len)
         self.tri_tang = np.asarray(tri_tang)
 
-        # define vor_verts:
-        self.vor_verts_bound = np.asarray(vor_verts_bound)
-
-
-        if mesh_version == 'tri':
-            self.vor_verts = np.vstack((self.tri_ccents, self.vor_verts_bound))
-            self.inner_vvert_i = np.linspace(0, len(self.tri_ccents), len(self.tri_ccents), dtype=np.int)
-
-        elif mesh_version == 'quad': # FIXME calculate quad ccents so we don't need this!
-            self.vor_verts = np.vstack((self.tri_cents, self.vor_verts_bound))
-            self.inner_vvert_i = np.linspace(0, len(self.tri_cents), len(self.tri_ccents), dtype=np.int)
+        self.inner_vvert_i = np.linspace(0, len(self.tri_ccents), len(self.tri_ccents), dtype=np.int)
 
     def create_tri_map(self):
         """
@@ -595,11 +552,10 @@ class DECMesh(object):
                     bflags_tcells.append(ci)
 
 
-        self.tface_to_tedges = np.asarray(face_to_edges) # tri_face index to tri_edges indices mapping
+        self.tcell_to_tedges = np.asarray(face_to_edges) # tri_face index to tri_edges indices mapping
         self.bflags_tcells = np.asarray(np.unique(bflags_tcells))  # trimesh faces on boundary
         self.tverts_to_tedges = np.asarray(verts_to_edges) # for each tever, what edges does it belong to?
 
-        self.map_tvert_to_vorcell() # initial mapping between triverts and surrounding vor cell verts
 
     def map_tvert_to_vorcell(self):
         """
@@ -623,12 +579,78 @@ class DECMesh(object):
 
         self.triverts_to_vorverts = np.asarray(triverts_to_vorverts)
 
+    def define_vorverts(self):
+        """
+        When constructing a voronoi diagram, the vor mesh edges intersecting the incredible hull of the
+        tri mesh must be defined by a new set of vor mesh vertices added outside the tri mesh hull. This
+        method adds these perpendicular bisectors into the vor mesh.
+
+        """
+
+        # Make a search tree of interior vor vertices
+        if self.use_centroids:
+            vor_tree = cKDTree(self.tri_cents)
+            vor_points = self.tri_cents
+
+        else:
+            vor_tree = cKDTree(self.tri_ccents)
+            vor_points = self.tri_ccents
+
+        vor_verts_bound = [] # vertices at the boundary
+
+        for si, edge_inds in enumerate(self.tcell_to_tedges):
+
+            for ei in edge_inds:
+
+                if ei in self.bflags_tedges:  # If this edge is on the hull/boundary, need to calc bound vorcell points
+
+                    tri_edge_mid = self.tri_mids[ei] # midpoint of tri_edge
+                    tri_edge_tang = self.tri_tang[ei] # tangent of tri_edge
+
+                    if self.use_centroids:
+                        tri_cell_cent = self.tri_cents[si] # get the ccent or cent point of this tri cell
+                    else:
+                        tri_cell_cent = self.tri_ccents[si]
+
+                    d_cent_to_mid = np.linalg.norm(tri_edge_mid - tri_cell_cent) # get the distance from cell center
+                                                                                 # to the edge midpoint (to use as
+                                                                                 # potentially anisotropic radius)
+
+                    # query the interior vor points for the vor index of the nearest neigh vor point to the edge mid:
+                    d_va, i_va = vor_tree.query(tri_edge_mid)
+
+                    # get coordinates of the first point of the missing vor ridge at the boundary:
+                    vor_pt_a = vor_points[i_va]
+
+                    # get the vor edge tangent vector as the 90o rotation of tri_edge tangent (x --> y, y --> -x):
+                    vor_tang = tri_edge_tang*1
+                    vor_tang_x = vor_tang[1]
+                    vor_tang_y = -vor_tang[0]
+
+                    # calculate the boundary vor verts from hull edge properties:
+                    vor_pt_b = vor_pt_a*1
+
+                    vor_pt_b[0] = vor_tang_x*d_cent_to_mid*1.5 + vor_pt_a[0]
+                    vor_pt_b[1] = vor_tang_y*d_cent_to_mid*1.5 + vor_pt_a[1]
+
+                    vor_verts_bound.append(vor_pt_b)
+
+        # define vor_verts:
+        self.vor_verts_bound = np.asarray(vor_verts_bound)
+
+        if self.use_centroids:
+            self.vor_verts = np.vstack((self.tri_cents, self.vor_verts_bound))
+        else:
+            self.vor_verts = np.vstack((self.tri_ccents, self.vor_verts_bound))
+
     def process_vorcells(self):
 
         vor_cells = []  # vor_vert inds specifying dual cell for each tri_vert
         vcell_verts = []
         vor_cents = []  # centroid of voronoi polygons
         vor_sa = []  # surface area of voronoi polygons
+
+        tvert_to_vorcell = [] # updated mapping between tverts and vorcells
 
         for tvi, tedge_inds_o in enumerate(self.tverts_to_tedges):
             # make the edge inds for this trivert unique:
@@ -645,6 +667,7 @@ class DECMesh(object):
                 cent = vor_pts.mean(axis=0)  # calculate the centre point
                 angles = np.arctan2(vor_pts[:, 1] - cent[1], vor_pts[:, 0] - cent[0])  # calculate point angles
                 sorted_region = vort_indis[np.argsort(angles)]  # sort indices counter-clockwise
+
                 vor_cells.append(sorted_region)  # add sorted list to the regions structure
 
                 vpts = self.vor_verts[sorted_region]  # x,y coordinates, sorted
@@ -657,10 +680,14 @@ class DECMesh(object):
                 sa = self.area(vpts)
                 vor_sa.append(sa)
 
+                # update the map between tvert and vorcell:
+                tvert_to_vorcell.append(sorted_region)
+
             else:
                 logs.log_warning("Warning! Non-polygonal Voronoi cell detected!")
 
 
+        self.triverts_to_vorverts = np.asarray(tvert_to_vorcell)
         self.vor_cells = np.asarray(vor_cells)
         self.vcell_verts = np.asarray(vcell_verts)
         self.vor_cents = np.asarray(vor_cents)
@@ -680,6 +707,12 @@ class DECMesh(object):
         vor_edge_len = []  # length of vor_edge
         vor_mids = [] # mids of vor edges
 
+        # Add in Voronoi points on the outer boundary and define total vor_verts:
+        self.define_vorverts()
+
+        # create an initial mapping between triverts and surrounding vor cell verts
+        self.map_tvert_to_vorcell()
+
         # find edges of Voronoi dual mesh:
         # Want vor edges to have the same index as tri_edges and to be
         # perpendicular bisectors; therefore we're going to have one vor_edge vert pair for each tri-edge
@@ -697,9 +730,6 @@ class DECMesh(object):
 
 
             if len(shared_ij) > 2: # We have a multiple-intersecting vor cell issue to deal with...
-
-
-                shared_ijo = shared_ij*1 # save the original inds
 
                 # get tangent vector for tri_edge:
                 tan_t = self.tri_tang[tei]
@@ -731,10 +761,6 @@ class DECMesh(object):
 
                 # redefine shared ij pair in terms of most orthogonal vor edge to tri edge:
                 shared_ij = np.asarray([sorted_reg[sorted_dot_check][0], sorted_reg_i[sorted_dot_check][0]])
-
-                # # need to mark other vor verts for these cells:
-                # removal_vertio = np.setxor1d(shared_ijo, shared_ij)
-                # removal_verti = np.unique(removal_vertio)
 
                 # Proceed to process the voronoi edge:
                 vpi = self.vor_verts[shared_ij[0]]
@@ -830,11 +856,6 @@ class DECMesh(object):
         for tvi, sverts in enumerate(self.tverts_to_tcell):
             if len(sverts) == 0:
                 unused_tverts.append(tvi)
-
-        # # Also check the triangle areas to see if boundary "slivers" exist; remove them
-        # qual = self.tri_sa.mean()/self.tri_sa
-        # inds_qual = (qual > 2.5).nonzero()[0]
-        # unused_tverts.append(inds_qual)
 
         unused_tverts = np.asarray(unused_tverts)
 
@@ -1040,7 +1061,7 @@ class DECMesh(object):
 
         # M_verts_to_cents = np.zeros((self.n_tcell, self.n_tverts))
         #
-        # for ii, edge_inds in enumerate(self.tface_to_tedges):
+        # for ii, edge_inds in enumerate(self.tcell_to_tedges):
         #     a, b, c = self.tri_edge_len[edge_inds] # FIXME don't know that they're triangles!
         #
         #     b1o = (a ** 2) * (-a ** 2 + b ** 2 + c ** 2)
@@ -1966,6 +1987,32 @@ class DECMesh(object):
 
         return ox, oy, rc, ri
 
+    def quad_circumc(self, A, B, C, D):
+
+        # calculate lengths of all sides
+        a = np.linalg.norm(B - A)
+        b = np.linalg.norm(C - B)
+        c = np.linalg.norm(D - C)
+        d = np.linalg.norm(A - D)
+
+        # semiperimeter:
+        s = (1 / 2) * (a + b + c + d)
+
+        area = np.sqrt((s - a) * (s - b) * (s - c) * (s - d))
+
+        R = (1 / 4) * (np.sqrt((a * c + b * d) * (a * d + b * c) * (a * b + c * d)) / area)
+
+        # Calculate the diagonal tangent:
+        tando = C - A
+        tanl = np.linalg.norm(C - A)
+        tand = tando / tanl
+
+        # cicumcentre:
+        cx = A[0] + (R) * tand[0]
+        cy = A[1] + (R) * tand[1]
+
+        return R, area, cx, cy
+
     def test_function(self, a=0.02, b=5.0e-6, gtype='tri'):
         """
         Generates an analytical test function with analytical gradient, laplacian,
@@ -2146,7 +2193,11 @@ class DECMesh(object):
         axarr[1, 1].axis('off')
 
         if gtype == 'vor':
-            tp6 = axarr[1, 2].tripcolor(self.tri_ccents[:, 0], self.tri_ccents[:, 1], self.lap_foo_)
+            if self.use_centroids:
+                tp6 = axarr[1, 2].tripcolor(self.tri_cents[:, 0], self.tri_cents[:, 1], self.lap_foo_)
+
+            else:
+                tp6 = axarr[1, 2].tripcolor(self.tri_ccents[:, 0], self.tri_ccents[:, 1], self.lap_foo_)
 
         else:
             tp6 = axarr[1, 2].tripcolor(xo, yo, self.lap_foo_)
