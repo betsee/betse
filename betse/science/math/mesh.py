@@ -97,6 +97,11 @@ class DECMesh(object):
         self.process_voredges()
         self.process_vorcells()
 
+    def init_and_refine(self, max_steps=25, convergence=7.5, fix_bounds=True):
+        self.pre_mesh()
+        self.refine_mesh(max_steps=max_steps, convergence=convergence, fix_bounds=fix_bounds)
+
+
     def make_single_cell_points(self):
         """
         Creates seed points (tri_mesh verts) for a single closed voronoi cell and
@@ -119,6 +124,50 @@ class DECMesh(object):
         yenv = np.hstack((yenv, 0.0)) + noisey * self.cell_radius * self.single_cell_noise
 
         self.tri_verts = np.column_stack((xenv, yenv))
+
+    def create_tri_mesh(self):
+        """
+        Calculates the Delaunay triangulation and non-convex Hull (using alpha shapes).
+
+        """
+
+        self.trimesh_core_calcs()
+
+        self.sanity_check() # check for bad triverts (triverts belonging to no simplexes)
+
+        # Next check for triverts with really close circumcenters, and, if necessary, merge to quads,
+        # or if requested, try merging as much of the mesh to quads as possible
+        # Find ccents that are close to one another and mark cells for quad-merge
+        tri_tree = cKDTree(self.tri_ccents)
+        di, ni = tri_tree.query(self.tri_ccents, k=2)
+        mark_for_merge = []
+        for si, ccenti in enumerate(self.tri_ccents):
+            disti = di[si, 1] # distance between circumcenter of si and nearest neighbour
+            indi = ni[si, 1] # index to nearest neighbour of si
+
+            if self.mesh_type == 'quad': # if user wants a quad mesh anyway, append all
+                # nearest-neighbour simplices:
+                mark_for_merge.append([indi])
+
+            else:
+                # only mark if distance between ccents is less than 20% of the cell radius
+                if disti < self.cell_radius * self.merge_thresh:
+                    mark_for_merge.append([indi])
+
+                else: # append an empty list to indicate there's no merging to be performed
+                    mark_for_merge.append([])
+
+        if self.allow_merging or self.mesh_type == 'quad':
+            # merge tri elements as required:
+            self.merge_tri_mesh(mark_for_merge)
+
+        # process the edges and boundaries:
+        self.process_primary_edges(mesh_version = self.mesh_type)
+
+        # inds to full voronoi cells only (these are the official cells of cluster):
+        self.biocell_i = np.delete(self.tri_vert_i, self.bflags_tverts)
+        # Calculate the centroid of the whole shape:
+        self.centroid = np.mean(self.tri_verts, axis=0)
 
     def trimesh_core_calcs(self):
 
@@ -190,50 +239,6 @@ class DECMesh(object):
         # Create an updated mapping of which triangle each vertex belongs to:
         self.create_tri_map()
 
-    def create_tri_mesh(self):
-        """
-        Calculates the Delaunay triangulation and non-convex Hull (using alpha shapes).
-
-        """
-
-        self.trimesh_core_calcs()
-
-        self.sanity_check() # check for bad triverts (triverts belonging to no simplexes)
-
-        # Next check for triverts with really close circumcenters, and, if necessary, merge to quads,
-        # or if requested, try merging as much of the mesh to quads as possible
-        # Find ccents that are close to one another and mark cells for quad-merge
-        tri_tree = cKDTree(self.tri_ccents)
-        di, ni = tri_tree.query(self.tri_ccents, k=2)
-        mark_for_merge = []
-        for si, ccenti in enumerate(self.tri_ccents):
-            disti = di[si, 1] # distance between circumcenter of si and nearest neighbour
-            indi = ni[si, 1] # index to nearest neighbour of si
-
-            if self.mesh_type == 'quad': # if user wants a quad mesh anyway, append all
-                # nearest-neighbour simplices:
-                mark_for_merge.append([indi])
-
-            else:
-                # only mark if distance between ccents is less than 20% of the cell radius
-                if disti < self.cell_radius * self.merge_thresh:
-                    mark_for_merge.append([indi])
-
-                else: # append an empty list to indicate there's no merging to be performed
-                    mark_for_merge.append([])
-
-        if self.allow_merging or self.mesh_type == 'quad':
-            # merge tri elements as required:
-            self.merge_tri_mesh(mark_for_merge)
-
-        # process the edges and boundaries:
-        self.process_primary_edges(mesh_version = self.mesh_type)
-
-        # inds to full voronoi cells only (these are the official cells of cluster):
-        self.biocell_i = np.delete(self.tri_vert_i, self.bflags_tverts)
-        # Calculate the centroid of the whole shape:
-        self.centroid = np.mean(self.tri_verts, axis=0)
-
     def merge_tri_mesh(self, merge_list):
         """
         Merge cells of the tri_mesh into a (potentially) mixed quad-tri mesh.
@@ -295,18 +300,18 @@ class DECMesh(object):
                             sorted_pts = quad_pts[np.argsort(angles)]
 
                             # test to see if the merged poly is convex:
-                            good = is_convex(sorted_pts)
+                            good = is_convex(sorted_pts) # FIXME also check that merger is cyclic quad
 
                             if good:
 
                                 quad_cells.append(sorted_region)
                                 qcell_verts.append(sorted_pts)
 
-                                quad_ccents.append((cc1 + cc2) / 2)
-                                quad_rcircs.append((rc1+ rc2)/2)
-                                quad_rin.append((ri1 + ri2) / 2)
+                                quad_ccents.append((cc1 + cc2) / 2) # FIXME these calcs are totally off!
+                                quad_rcircs.append((rc1+ rc2)/2) # FIXME these calcs are totally off!
+                                quad_rin.append((ri1 + ri2) / 2) # FIXME these calcs are totally off!
 
-                                quad_sa.append((a1+a2))
+                                quad_sa.append((a1+a2)) # FIXME these calcs are totally off!
 
                                 quadcell_i.append(ai)
 
@@ -396,7 +401,7 @@ class DECMesh(object):
         self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])
 
         # re-process the edges and boundaries:
-        self.process_primary_edges(mesh_version = 'quad')
+        # self.process_primary_edges(mesh_version = 'quad')
 
     def process_primary_edges(self, mesh_version = 'tri'):
         """
@@ -434,20 +439,10 @@ class DECMesh(object):
 
                 hull_edges.append([va, vb])
 
-                # calculate the boundary vor verts from hull edge midpoint:
-                pta = self.tri_verts[va]
-                ptb = self.tri_verts[vb]
-
-                vorb = (pta + ptb) / 2
-
-                vor_verts_bound.append(vorb)
-
 
             if (vb, va) not in unique_edges: # otherwise add the edge to the set
                 unique_edges.add((va, vb))
 
-
-        self.vor_verts_bound = np.asarray(vor_verts_bound)
 
         self.bflags_tverts = np.unique(hull_points)
         self.tri_edges = np.asarray(list(unique_edges))
@@ -469,15 +464,20 @@ class DECMesh(object):
 
         self.tri_edge_i = np.linspace(0, self.n_tedges - 1, self.n_tedges, dtype=np.int)
 
-        # define vor_verts:
+        # Make a search tree of interior vor vertices
+        if mesh_version == 'tri': # 'tri' mesh version uses circumcenters:
 
-        if mesh_version == 'tri':
-            self.vor_verts = np.vstack((self.tri_ccents, self.vor_verts_bound))
-            self.inner_vvert_i = np.linspace(0, len(self.tri_ccents), len(self.tri_ccents), dtype=np.int)
+            vor_tree = cKDTree(self.tri_ccents)
+            vor_points = self.tri_ccents
 
-        elif mesh_version == 'quad':
-            self.vor_verts = np.vstack((self.tri_cents, self.vor_verts_bound))
-            self.inner_vvert_i = np.linspace(0, len(self.tri_cents), len(self.tri_ccents), dtype=np.int)
+        elif mesh_version == 'quad': # 'quad' mesh version uses centroids:
+            # FIXME calc quad circumcents so this isn't needed!
+            vor_tree = cKDTree(self.tri_cents)
+            vor_points = self.tri_cents
+
+        else:
+            logs.log_error("'tri' and 'quad' are only available mesh types.")
+
 
         # Finally, go through and calculate mids, len, and tangents of tri_edges, and prepare a mapping between
         # each vertices and edges:
@@ -491,17 +491,52 @@ class DECMesh(object):
 
             tri_len = np.linalg.norm(tan_t)
 
+            tan_ti = tan_t/tri_len
+
             assert (np.round(tri_len, 15) != 0.0), "Tri-edge length equal to zero! Duplicate seed points exist!"
 
             pptm = (tpi + tpj) / 2  # calculate midpoint of tri-edge:
 
             tri_mids.append(pptm)
             tri_edge_len.append(tri_len)
-            tri_tang.append(tan_t/tri_len)
+            tri_tang.append(tan_ti)
+
+            if ei in self.bflags_tedges: # If this edge is on the hull/boundary, need to calc bound vorcell points
+
+                # query the interior vor points for the nearest neighbour vor point to the edge mid:
+                d_va, i_va = vor_tree.query(pptm)
+
+                # get first point of boundary vor ridge:
+                vor_pt_a = vor_points[i_va]
+
+                # get the vor edge tangent vector as 90 degree rotation of tri_edge tangent (x --> y, y --> -x):
+                vor_tang = tan_ti*1
+                vor_tang_x = vor_tang[1]
+                vor_tang_y = -vor_tang[0]
+                # calculate the boundary vor verts from hull edge properties:
+                vor_pt_b = vor_pt_a*1
+
+                vor_pt_b[0] = vor_tang_x*tri_len*0.5 + vor_pt_a[0]
+                vor_pt_b[1] = vor_tang_y*tri_len*0.5 + vor_pt_a[1]
+
+                vor_verts_bound.append(vor_pt_b)
+
 
         self.tri_mids = np.asarray(tri_mids)
         self.tri_edge_len = np.asarray(tri_edge_len)
         self.tri_tang = np.asarray(tri_tang)
+
+        # define vor_verts:
+        self.vor_verts_bound = np.asarray(vor_verts_bound)
+
+
+        if mesh_version == 'tri':
+            self.vor_verts = np.vstack((self.tri_ccents, self.vor_verts_bound))
+            self.inner_vvert_i = np.linspace(0, len(self.tri_ccents), len(self.tri_ccents), dtype=np.int)
+
+        elif mesh_version == 'quad': # FIXME calculate quad ccents so we don't need this!
+            self.vor_verts = np.vstack((self.tri_cents, self.vor_verts_bound))
+            self.inner_vvert_i = np.linspace(0, len(self.tri_cents), len(self.tri_ccents), dtype=np.int)
 
     def create_tri_map(self):
         """
@@ -787,7 +822,6 @@ class DECMesh(object):
 
         self.n_vedges = len(self.vor_edges)
         self.vor_edge_i = np.linspace(0, self.n_vedges - 1, self.n_vedges, dtype=np.int)
-
 
     def sanity_check(self):
 
@@ -1673,7 +1707,7 @@ class DECMesh(object):
 
         return matched_pts, unmatched_pts
 
-    def refine_mesh(self, max_steps=25, convergence=7.5):
+    def refine_mesh(self, max_steps=25, convergence=7.5, fix_bounds = True):
 
         if self.mesh_type == 'tri':
 
@@ -1689,8 +1723,15 @@ class DECMesh(object):
 
                 if UU > convergence:
 
+                    self.removed_bad_verts = False
+
                     # Continuously reassign tri_verts to vor_centres, without affecting the boundary
-                    self.tri_verts[self.biocell_i] = self.vor_cents[self.biocell_i]
+                    if fix_bounds:
+                        self.tri_verts[self.biocell_i] = self.vor_cents[self.biocell_i]*1
+
+                    # Continuously reassign tri_verts to vor_centres, affecting the boundary
+                    else:
+                        self.tri_verts = self.vor_cents*1
 
                     self.pre_mesh()
 
@@ -1703,20 +1744,27 @@ class DECMesh(object):
                     logs.log_info(conv_mess)
 
                 else:
-
-                    # Finish up:
-                    self.init_mesh() # build entire mesh
-
                     self.mesh_qual = UU
                     #                 logs.log_info("Convergence condition met for mesh optimization.")
                     print("Convergence condition met for mesh optimization.")
                     final_mess = "Final mesh quality {}".format(UU)
                     #                 logs.log_info(final_mess)
                     logs.log_info(final_mess)
+
                     break
+
+            # Finish up:
+            # self.init_mesh() # build entire mesh
+            self.create_core_operators()
+
+            if self.make_all_operators:
+                self.create_aux_operators()
+
 
         if self.mesh_type == 'vor':
             logs.log_info("Mesh optimization not available for 'quad' meshes")
+            self.init_mesh() # build entire mesh
+
 
     def clip_to_curve(self, imagemask):
 
