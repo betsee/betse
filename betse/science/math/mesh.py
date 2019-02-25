@@ -42,6 +42,7 @@ class DECMesh(object):
                  single_cell_sides=6,
                  image_mask=None,
                  make_all_operators = True,
+                 allow_merging = True,
                  merge_thresh = 0.2):
 
 
@@ -53,6 +54,7 @@ class DECMesh(object):
         self.make_all_operators = make_all_operators
         self.mesh_type = mesh_type
         self.merge_thresh = merge_thresh
+        self.allow_merging = allow_merging
 
         self.removed_bad_verts = False # flag to bad tri-vert removal (only do case once!)
 
@@ -220,9 +222,9 @@ class DECMesh(object):
                 else: # append an empty list to indicate there's no merging to be performed
                     mark_for_merge.append([])
 
-
-        # merge tri elements as required:
-        self.merge_tri_mesh(mark_for_merge)
+        if self.allow_merging or self.mesh_type == 'quad':
+            # merge tri elements as required:
+            self.merge_tri_mesh(mark_for_merge)
 
         # process the edges and boundaries:
         self.process_primary_edges(mesh_version = self.mesh_type)
@@ -794,6 +796,11 @@ class DECMesh(object):
         for tvi, sverts in enumerate(self.tverts_to_tcell):
             if len(sverts) == 0:
                 unused_tverts.append(tvi)
+
+        # # Also check the triangle areas to see if boundary "slivers" exist; remove them
+        # qual = self.tri_sa.mean()/self.tri_sa
+        # inds_qual = (qual > 2.5).nonzero()[0]
+        # unused_tverts.append(inds_qual)
 
         unused_tverts = np.asarray(unused_tverts)
 
@@ -1730,6 +1737,11 @@ class DECMesh(object):
                                                                  self.vcell_verts,
                                                                  self.vor_cents)):
 
+            # see if voronoi cell center is within the clip curve boundary:
+            cent_val = imagemask.clipping_function(vor_cent[0], vor_cent[1])
+            if cent_val != 0.0:
+                cent_val = 1.0
+
             if len(poly_ind) >= 3:
                 cell_polya = cell_poly.tolist()
                 point_check = np.zeros(len(cell_poly))
@@ -1747,8 +1759,9 @@ class DECMesh(object):
                     cx, cy = self.poly_centroid(cell_polya)
                     clip_vor_cents.append([cx, cy])
 
+                # the region's points are in the clipping func range, and the voronoi cent lays in the bound:
                 elif point_check.sum() > 0.0 and point_check.sum() < len(
-                        cell_poly):  # the region's points are in the clipping func range
+                        cell_poly) and cent_val == 1.0:
 
                     clip_poly = clip_counterclockwise(
                         cell_poly, imagemask.clipcurve)
