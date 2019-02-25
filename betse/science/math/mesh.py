@@ -83,7 +83,6 @@ class DECMesh(object):
         self.create_mappings()
         self.process_voredges()
         self.process_vorcells()
-
         self.create_core_operators()
 
         if self.make_all_operators:
@@ -102,6 +101,19 @@ class DECMesh(object):
     def init_and_refine(self, max_steps=25, convergence=7.5, fix_bounds=True):
         self.pre_mesh()
         self.refine_mesh(max_steps=max_steps, convergence=convergence, fix_bounds=fix_bounds)
+        self.pre_mesh()
+        self.create_core_operators()
+        if self.make_all_operators:
+            self.create_aux_operators()
+
+    def clip_and_refine(self, max_steps=25, convergence=7.5, fix_bounds=True):
+        self.pre_mesh()
+        self.clip_to_curve(self.image_mask)
+        self.refine_mesh(max_steps=max_steps, convergence=convergence, fix_bounds=True)
+        self.pre_mesh()
+        self.create_core_operators()
+        if self.make_all_operators:
+            self.create_aux_operators()
 
     def make_single_cell_points(self):
         """
@@ -109,8 +121,6 @@ class DECMesh(object):
         its boundary.
 
         """
-
-        # centre = [0.0, 0.0]
 
         angles = [(2 * n * np.pi) / self.single_cell_sides
                   for n in range(self.single_cell_sides)]
@@ -181,7 +191,6 @@ class DECMesh(object):
         tri_ccents = []  # circumcentres of the triangles
         tri_cents = []  # centroids of the triangles
         tri_rcircs = []  # circumradius of triangle
-        tri_rin = []  # inradius of triangle
         tri_sa = []  # surface area of triangle faces
         tcell_verts = []  # x,y components of tri_mesh cells
         tri_cells = []  # indices to tri_verts defining each triangle (simplex)
@@ -211,7 +220,6 @@ class DECMesh(object):
                         tri_ccents.append([vx, vy])
                         tri_cents.append([cx, cy])
                         tri_rcircs.append(r_circ)
-                        tri_rin.append(r_in)
                         tri_cells.append(vert_inds)
                         tri_sa.append(sa)
                         tcell_verts.append(abc)
@@ -220,7 +228,6 @@ class DECMesh(object):
                 tri_ccents.append([vx, vy])
                 tri_cents.append([cx, cy])
                 tri_rcircs.append(r_circ)
-                tri_rin.append(r_in)
                 tri_sa.append(sa)
                 tri_cells.append(vert_inds)
                 tcell_verts.append(abc)
@@ -233,7 +240,6 @@ class DECMesh(object):
         self.tri_ccents = np.asarray(tri_ccents)
         self.tri_cents = np.asarray(tri_cents)
         self.tri_rcircs = np.asarray(tri_rcircs)
-        self.tri_rin = np.asarray(tri_rin)
         self.tri_sa = np.asarray(tri_sa)
         self.tcell_verts = np.asarray(tcell_verts)
 
@@ -250,7 +256,6 @@ class DECMesh(object):
         quad_ccents = []
         quad_sa = [] # area of quadrilateral cell
         quad_rcircs = [] # circumradius of quad
-        quad_rin = [] # inradius of quad
         quadcell_i = []  # index of simplexes
 
         qcell_verts = []  # verts of tri or quad simplex
@@ -264,7 +269,6 @@ class DECMesh(object):
             c1 = self.tri_cents[ai] # cent of triangle ai
             a1 = self.tri_sa[ai]  # surface area of triangle ai
             rc1 = self.tri_rcircs[ai]  # circumcenter of triangle ai
-            ri1 = self.tri_rin[ai] # incenter of triangle ai
 
             if len(blist) != 0:
 
@@ -276,7 +280,6 @@ class DECMesh(object):
                 c2 = self.tri_cents[bi]
                 a2 = self.tri_sa[bi]
                 rc2 = self.tri_rcircs[bi]
-                ri2 = self.tri_rin[bi]
 
                 # If triangle ai has not yet been used in a merging:
                 if ai in self.free_to_merge:
@@ -315,7 +318,6 @@ class DECMesh(object):
 
                                 quad_ccents.append([ccxq, ccyq])
                                 quad_rcircs.append(Rq)
-                                quad_rin.append((ri1 + ri2) / 2) # FIXME these calcs are totally off!
 
                                 quad_sa.append(areaq)
 
@@ -335,7 +337,6 @@ class DECMesh(object):
                                 qcell_verts.append(ptsa)
                                 quad_ccents.append(cc1)
                                 quad_rcircs.append(rc1)
-                                quad_rin.append(ri1)
                                 quad_sa.append(a1)
                                 quadcell_i.append(ai)
                                 quad_cents.append(c1)
@@ -344,7 +345,6 @@ class DECMesh(object):
                                 qcell_verts.append(ptsb)
                                 quad_ccents.append(cc2)
                                 quad_rcircs.append(rc2)
-                                quad_rin.append(ri2)
                                 quad_sa.append(a2)
                                 quadcell_i.append(bi)
                                 quad_cents.append(c2)
@@ -361,7 +361,6 @@ class DECMesh(object):
                         qcell_verts.append(ptsa)
                         quad_ccents.append(cc1)
                         quad_rcircs.append(rc1)
-                        quad_rin.append(ri1)
                         quad_sa.append(a1)
                         quadcell_i.append(ai)
                         quad_cents.append(c1)
@@ -376,7 +375,6 @@ class DECMesh(object):
                 qcell_verts.append(ptsa)
                 quad_ccents.append(cc1)
                 quad_rcircs.append(rc1)
-                quad_rin.append(ri1)
                 quad_sa.append(a1)
                 quadcell_i.append(ai)
                 quad_cents.append(c1)
@@ -386,7 +384,6 @@ class DECMesh(object):
         quad_cells = np.asarray(quad_cells)
         quad_ccents = np.asarray(quad_ccents)
         quad_rcircs = np.asarray(quad_rcircs)
-        quad_rin = np.asarray(quad_rin)
         quad_sa = np.asarray(quad_sa)
 
         qcell_verts = np.asarray(qcell_verts)
@@ -397,7 +394,6 @@ class DECMesh(object):
         self.tri_cells = quad_cells # indices of cells
         self.tri_ccents = quad_ccents # circumcenters
         self.tri_rcircs = quad_rcircs
-        self.tri_rin = quad_rin
         self.tri_cents = quad_cents # centroids
         self.tcell_verts = qcell_verts # x,y coordinates of vertices of cells
         self.tri_sa = quad_sa  # surface area of triangle
@@ -555,7 +551,6 @@ class DECMesh(object):
         self.tcell_to_tedges = np.asarray(face_to_edges) # tri_face index to tri_edges indices mapping
         self.bflags_tcells = np.asarray(np.unique(bflags_tcells))  # trimesh faces on boundary
         self.tverts_to_tedges = np.asarray(verts_to_edges) # for each tever, what edges does it belong to?
-
 
     def map_tvert_to_vorcell(self):
         """
@@ -1657,7 +1652,6 @@ class DECMesh(object):
         if self.mesh_type == 'tri':
             self.tri_ccents = []
             self.tri_rcircs = [] # circumradius of triangle
-            self.tri_rin = [] # inradius of triangle
             self.tri_sa = []  # surface area of triangle faces
 
             for i, vert_inds in enumerate(self.tri_cells):
@@ -1669,21 +1663,17 @@ class DECMesh(object):
 
                 self.tri_ccents.append([vx, vy])
                 self.tri_rcircs.append(r_circ)  # circumradius of triangle
-                self.tri_rin.append(r_in)  # inradius of triangle
                 self.tri_sa.append(sa)  # surface area of triangle faces
 
             self.tri_ccents = np.asarray(self.tri_ccents)
             self.tri_rcircs = np.asarray(self.tri_rcircs) # circumradius of triangle
-            self.tri_rin = np.asarray(self.tri_rin) # inradius of triangle
             self.tri_sa = np.asarray(self.tri_sa)  # surface area of triangle faces
 
     def mesh_quality_calc(self):
 
-        uu = self.tri_rcircs*(self.tri_rcircs - 2*self.tri_rin)
+        # calculate quality of the mesh in terms of the difference between tri cents and tri ccents
 
-        # energy at edge cells is half that of those in the interior (as they are constrained to be half cells):
-        uu[self.bflags_tcells] = (1/2)*self.tri_rcircs[self.bflags_tcells]*(self.tri_rcircs[self.bflags_tcells]
-                                                                      - 2*self.tri_rin[self.bflags_tcells])
+        uu = (np.linalg.norm(self.tri_ccents - self.tri_cents, axis = 1))**2
 
         return uu
 
@@ -1730,61 +1720,48 @@ class DECMesh(object):
 
     def refine_mesh(self, max_steps=25, convergence=7.5, fix_bounds = True):
 
-        if self.mesh_type == 'tri':
+        # if self.mesh_type == 'tri':
 
-            logs.log_info("Initializing Voronoi mesh optimization...")
+        logs.log_info("Initializing Voronoi mesh optimization...")
 
-            opti_steps = np.arange(max_steps)
+        opti_steps = np.arange(max_steps)
 
-            ui = self.mesh_quality_calc()
+        ui = self.mesh_quality_calc()
 
-            UU = np.sum(ui)/self.cell_radius**2
+        UU = np.sum(ui)/self.cell_radius**2
 
-            for i in opti_steps:
+        for i in opti_steps:
 
-                if UU > convergence:
+            if UU > convergence:
 
-                    self.removed_bad_verts = False
+                self.removed_bad_verts = False
 
-                    # Continuously reassign tri_verts to vor_centres, without affecting the boundary
-                    if fix_bounds:
-                        self.tri_verts[self.biocell_i] = self.vor_cents[self.biocell_i]*1
+                # Continuously reassign tri_verts to vor_centres, without affecting the boundary
+                if fix_bounds:
+                    self.tri_verts[self.biocell_i] = self.vor_cents[self.biocell_i]*1
 
-                    # Continuously reassign tri_verts to vor_centres, affecting the boundary
-                    else:
-                        self.tri_verts = self.vor_cents*1
-
-                    self.pre_mesh()
-
-                    ui = self.mesh_quality_calc()
-
-                    UU = np.sum(ui)/self.cell_radius**2
-
-                    conv_mess = "Step {}: mesh quality {}".format(i, UU)
-                    #                 logs.log_info(conv_mess)
-                    logs.log_info(conv_mess)
-
+                # Continuously reassign tri_verts to vor_centres, affecting the boundary
                 else:
-                    self.mesh_qual = UU
-                    #                 logs.log_info("Convergence condition met for mesh optimization.")
-                    print("Convergence condition met for mesh optimization.")
-                    final_mess = "Final mesh quality {}".format(UU)
-                    #                 logs.log_info(final_mess)
-                    logs.log_info(final_mess)
+                    self.tri_verts = self.vor_cents*1
 
-                    break
+                self.pre_mesh()
 
-            # Finish up:
-            # self.init_mesh() # build entire mesh
-            self.create_core_operators()
+                ui = self.mesh_quality_calc()
 
-            if self.make_all_operators:
-                self.create_aux_operators()
+                UU = np.sum(ui)/self.cell_radius**2
 
+                conv_mess = "Step {}: mesh quality {}".format(i, UU)
+                logs.log_info(conv_mess)
 
-        if self.mesh_type == 'vor':
-            logs.log_info("Mesh optimization not available for 'quad' meshes")
-            self.init_mesh() # build entire mesh
+            else:
+                self.mesh_qual = UU
+                #                 logs.log_info("Convergence condition met for mesh optimization.")
+                print("Convergence condition met for mesh optimization.")
+                final_mess = "Final mesh quality {}".format(UU)
+                #                 logs.log_info(final_mess)
+                logs.log_info(final_mess)
+
+                break
 
 
     def clip_to_curve(self, imagemask):
@@ -1869,7 +1846,7 @@ class DECMesh(object):
         self.tri_verts = clip_vor_cents
         self.image_mask = imagemask
 
-        self.init_mesh()
+        self.pre_mesh()
 
 
     #-----Utility functions--------------------------
