@@ -104,13 +104,15 @@ class DECMesh(object):
     def init_and_refine(self, smoothing = None, refinement = True,
                         max_steps=25, convergence=7.5, fix_bounds=True):
 
-        self.pre_mesh()
+        if smoothing is not None:
+            self.init_mesh()  # init the whole mesh
+            self.laplacian_smoothing(stepsize=smoothing)  # run the smoothing of the tri_verts
+            self.pre_mesh()
+
+        else:
+            self.pre_mesh()
 
         if refinement:
-
-            if smoothing is not None:
-                self.init_mesh()  # init the whole mesh
-                self.laplacian_smoothing(stepsize=smoothing)  # run the smoothing of the tri_verts
 
             self.refine_mesh(max_steps=max_steps, convergence=convergence, fix_bounds=fix_bounds)
             self.pre_mesh()
@@ -126,10 +128,12 @@ class DECMesh(object):
         self.pre_mesh()
         self.clip_to_curve(imagemask)
 
+        if smoothing is not None:
+            self.init_mesh()  # init the whole mesh to remake operators
+            self.laplacian_smoothing(stepsize=smoothing)  # run the smoothing of the tri_verts
+            self.pre_mesh()
+
         if refinement:
-            if smoothing is not None:
-                self.init_mesh()  # init the whole mesh to remake operators
-                self.laplacian_smoothing(stepsize=smoothing)  # run the smoothing of the tri_verts
 
             self.refine_mesh(max_steps=max_steps, convergence=convergence, fix_bounds=fix_bounds)
             self.pre_mesh()
@@ -669,8 +673,8 @@ class DECMesh(object):
                     # calculate the boundary vor verts from hull edge properties:
                     vor_pt_b = vor_pt_a*1
 
-                    vor_pt_b[0] = vor_tang_x*d_cent_to_mid*1.5 + vor_pt_a[0]
-                    vor_pt_b[1] = vor_tang_y*d_cent_to_mid*1.5 + vor_pt_a[1]
+                    vor_pt_b[0] = vor_tang_x*d_cent_to_mid*2 + vor_pt_a[0]
+                    vor_pt_b[1] = vor_tang_y*d_cent_to_mid*2 + vor_pt_a[1]
 
                     vor_verts_bound.append(vor_pt_b)
 
@@ -1305,7 +1309,7 @@ class DECMesh(object):
 
         if gtype == 'tri':
 
-            sflux_n = 1.0
+            sflux_n =  self.sflux_n
 
             divF = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T, sflux_n*self.vor_edge_len*Ft)
 
@@ -1345,7 +1349,7 @@ class DECMesh(object):
 
         if gtype == 'tri':
 
-            sflux_n = 1.0
+            sflux_n = self.sflux_n
             # ensure passed array is of the correct length:
             assert (len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
 
@@ -1396,7 +1400,7 @@ class DECMesh(object):
         """
         if gtype == 'tri':
 
-            sflux_n = 1.0
+            sflux_n =  self.sflux_n
 
             # ensure passed array is of the correct length:
             assert(len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
@@ -1571,6 +1575,97 @@ class DECMesh(object):
     #
     #     return Sc
 
+    def curl_of_curl(self, Fz, gtype = 'tri'):
+        """
+        Calculates the Vector Laplacian for the curl of the curl of a vector field Fx, Fy minus the
+        gradient of the divergence of Fx, Fy.
+
+        :param Fx:
+        :param Fy:
+        :param gtype:
+        :return:
+        """
+
+        # Vector Laplacians can only be computed for
+        assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+        if gtype == 'tri':
+
+            # For the Curl of curl, the initial Fz is defined on the opposite points to the mesh you are
+            # working with:
+            assert(len(Fz) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+            # calculate gradient of Fz with respect to the vor mesh; the skew gradient is the curl:
+            gS = self.gradient(Fz, gtype='vor')
+
+            # calculate the divergence of the gradient on the vor mesh, which is the curl of the curl on
+            # the tri mesh:
+            ccS = self.div(gS, gtype = 'vor')
+
+        elif gtype == 'vor':
+
+            sflux_n = self.sflux_n
+            # ensure passed array is of the correct length:
+            assert (len(Fz) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+
+            # calculate gradient of Fz on the tri mesh:
+            gS = self.gradient(Fz, gtype='tri')
+
+            # calculate the divergence of the gradient on the tri mesh, which is the curl of the curl on
+            # the vor mesh:
+            ccS = self.div(sflux_n * gS, gtype='tri')
+
+        else:
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+        return ccS
+
+    def curl_of_curl_inv(self, Fz, gtype = 'tri'):
+        """
+        Computes an inverse vector Laplacian as the inverse curl of the curl of the z-hat component of a
+        vector field Fz.  Note the use of opposite mesh versions (e.g. 'vor' operators when a 'tri' mesh
+        is specified, and vice-versa, is *not* a mistake, and is done according to DEC theory.
+
+        Parameters
+        -----------
+        S   -- a scalar array defined on tri_verts or vor_verts, depending on gtype
+        gtype -- specifies if laplacian is taken with respect to tri mesh or vor mesh
+
+        Returns
+        ----------
+        lapS  -- the Laplacian of S with 'natural' boundary conditions.
+
+        """
+        if gtype == 'vor':
+
+            sflux_n =  self.sflux_n
+
+            # ensure passed array is of the correct length:
+            assert(len(Fz) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+
+            # calculate the divergence of the gradient, which is the laplacian:
+            ccS_inv = np.dot(self.delta_tri_0_inv,
+                              (self.tri_edge_len/
+                               (self.vor_edge_len*sflux_n))*np.dot(-self.delta_tri_0_inv.T, Fz*(self.vor_sa)))
+
+        elif gtype == 'tri':
+
+            # ensure passed array is of the correct length:
+            assert(len(Fz) == len(self.tri_ccents)), "Length of array passed to gradient is not tri_faces length"
+
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+            # calculate inverse Laplacian of S:
+            ccS_inv = np.dot(self.delta_vor_0_inv,
+                   (self.vor_edge_len/self.tri_edge_len)*np.dot(-self.delta_tri_1_inv, Fz*(self.tri_sa)))
+
+        else:
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+        return ccS_inv
+
     def vector_laplacian_xy(self, Fx, Fy, gtype = 'tri'):
         """
         Calculates the Vector Laplacian for the curl of the curl of a vector field Fx, Fy minus the
@@ -1686,12 +1781,20 @@ class DECMesh(object):
         Decomposes a vector field Fx, Fy into curl-free (gPhi_x, gPhi_y) and div-free (cPsi_x, cPsi_y) components
         using the Helmholtz-Hodge decomposition.
 
-        :param Fx:
-        :param Fy:
-        :param gtype:
-        :return:
-        """
+        Parameters
+        -----------
+        Fx: Force field x component (on DEC mesh mids)
+        Fy: Force field y component (on DEC mesh mids)
+        gtype: type of mesh to work with
 
+        Returns
+        ----------
+        """
+        if gtype == 'tri':
+            op_gtype = 'vor'
+
+        else:
+            op_gtype = 'tri'
         # Solving for the curl-free vector field:
         # take the divergence of the vector field:
         divF = self.div_xy(Fx, Fy, gtype=gtype)
@@ -1707,10 +1810,10 @@ class DECMesh(object):
         curlF = self.curl_xy(Fx, Fy, gtype=gtype)
 
         # The vector potential of the div-free component is given by:
-        Psi_z = self.lap_inv(curlF, gtype=gtype)
+        Psi_z = self.curl_of_curl_inv(curlF, gtype=gtype)
 
         # Where the div-free component of Fx, Fy is given by:
-        cPsi_x, cPsi_y = self.curl_z(Psi_z, gtype=gtype)
+        cPsi_x, cPsi_y = self.curl_z(Psi_z, gtype=op_gtype)
 
         return cPsi_x, cPsi_y, gPhi_x, gPhi_y
 
@@ -1801,6 +1904,8 @@ class DECMesh(object):
 
         for i in opti_steps:
 
+            self.removed_bad_verts = False  # reset flag for empty tri_vert removal
+
             if UU > convergence:
 
                 self.removed_bad_verts = False
@@ -1846,6 +1951,8 @@ class DECMesh(object):
 
         clip_vor_verts = []
         clip_vor_cents = []
+
+        self.removed_bad_verts = False # reset flag for empty tri_vert removal
 
         for ii, (poly_ind, cell_poly, vor_cent) in enumerate(zip(self.vor_cells,
                                                                  self.vcell_verts,
@@ -1917,13 +2024,37 @@ class DECMesh(object):
         self.pre_mesh()
 
     def laplacian_smoothing(self, stepsize):
+        """
+        Laplacian smoothing of the mesh, using an Implicit Euler
+        updating scheme.
 
-        # # Laplacian smoothing of the mesh:
-        delx = self.lap(self.tri_verts[:, 0])
-        dely = self.lap(self.tri_verts[:, 1])
+        stepsize: How much smoothing to apply (2.0e-6 x cell_radius is good)
 
-        self.tri_verts[:, 0] = self.tri_verts[:, 0] + delx*stepsize
-        self.tri_verts[:, 1] = self.tri_verts[:, 1] + dely*stepsize
+        """
+        self.removed_bad_verts = False # reset flag for empty tri_vert removal
+
+        II = np.diag(np.ones(self.n_tverts)) # Identity matrix
+        HH2 = np.diag(1 / self.vor_sa)  # Hodge star 20
+        HH1 = np.diag(self.vor_edge_len / self.tri_edge_len) # Hodge star 11
+
+        term1 = np.dot(HH2, -self.delta_tri_0.T)
+        term2 = np.dot(HH1, self.delta_tri_0)
+
+        LL = np.dot(term1, term2) # Forwards Laplacian operator
+
+        MM = (II - stepsize * LL)    # Matrix equation from diffusion equation
+        MM_inv = np.linalg.pinv(MM)  # Least-squares solution matrix
+
+        self.tri_verts[:,0] = np.dot(MM_inv, self.tri_verts[:,0]) # Implicit Euler update solution
+        self.tri_verts[:,1] = np.dot(MM_inv, self.tri_verts[:,1])
+
+
+        # # # Laplacian smoothing of the mesh using explicit Euler:
+        # delx = self.lap(self.tri_verts[:, 0])
+        # dely = self.lap(self.tri_verts[:, 1])
+        #
+        # self.tri_verts[:, 0] = self.tri_verts[:, 0] + delx*stepsize
+        # self.tri_verts[:, 1] = self.tri_verts[:, 1] + dely*stepsize
 
 
 
