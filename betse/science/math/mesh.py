@@ -44,7 +44,9 @@ class DECMesh(object):
                  image_mask=None, # Use an image mask (from BETSE) to control point location
                  make_all_operators = True, # Make all operators (True), or only key ones (False)
                  allow_merging = True, # Allow tri-cells to be merged to quads if circumcenters are close?
-                 merge_thresh = 0.2): # Distance threshhold (%of total radius) for merging close circumcenters
+                 merge_thresh = 0.2, # Distance threshhold (%of total radius) for merging close circumcenters
+                 close_thresh = 0.25, # threshhold for removal of close tri vert neighour points
+                 ):
 
 
         self.single_cell_noise = single_cell_noise
@@ -57,6 +59,7 @@ class DECMesh(object):
         self.merge_thresh = merge_thresh
         self.allow_merging = allow_merging
         self.use_centroids = use_centroids
+        self.close_thresh = close_thresh
 
         self.removed_bad_verts = False # flag to bad tri-vert removal (only do case once!)
 
@@ -98,20 +101,41 @@ class DECMesh(object):
         self.process_voredges()
         self.process_vorcells()
 
-    def init_and_refine(self, max_steps=25, convergence=7.5, fix_bounds=True):
+    def init_and_refine(self, smoothing = None, refinement = True,
+                        max_steps=25, convergence=7.5, fix_bounds=True):
+
         self.pre_mesh()
-        self.refine_mesh(max_steps=max_steps, convergence=convergence, fix_bounds=fix_bounds)
-        self.pre_mesh()
+
+        if refinement:
+
+            if smoothing is not None:
+                self.init_mesh()  # init the whole mesh
+                self.laplacian_smoothing(stepsize=smoothing)  # run the smoothing of the tri_verts
+
+            self.refine_mesh(max_steps=max_steps, convergence=convergence, fix_bounds=fix_bounds)
+            self.pre_mesh()
+
         self.create_core_operators()
+
         if self.make_all_operators:
             self.create_aux_operators()
 
-    def clip_and_refine(self, max_steps=25, convergence=7.5, fix_bounds=True):
+    def clip_and_refine(self, imagemask, smoothing = None, refinement = True,
+                        max_steps=25, convergence=7.5, fix_bounds=True):
+
         self.pre_mesh()
-        self.clip_to_curve(self.image_mask)
-        self.refine_mesh(max_steps=max_steps, convergence=convergence, fix_bounds=True)
-        self.pre_mesh()
+        self.clip_to_curve(imagemask)
+
+        if refinement:
+            if smoothing is not None:
+                self.init_mesh()  # init the whole mesh to remake operators
+                self.laplacian_smoothing(stepsize=smoothing)  # run the smoothing of the tri_verts
+
+            self.refine_mesh(max_steps=max_steps, convergence=convergence, fix_bounds=fix_bounds)
+            self.pre_mesh()
+
         self.create_core_operators()
+
         if self.make_all_operators:
             self.create_aux_operators()
 
@@ -181,6 +205,26 @@ class DECMesh(object):
         self.centroid = np.mean(self.tri_verts, axis=0)
 
     def trimesh_core_calcs(self):
+
+        # Figure out if there are super close points in the tri_verts set:
+        # Next check for triverts with really close circumcenters, and, if necessary, merge to quads,
+        # or if requested, try merging as much of the mesh to quads as possible
+        # Find ccents that are close to one another and mark cells for quad-merge
+        tri_tree = cKDTree(self.tri_verts)
+        di, ni = tri_tree.query(self.tri_verts, k=2)
+        mark_for_merge = set()
+        not_merged = set()
+        for vi, tvertpts in enumerate(self.tri_verts):
+            disti = di[vi, 1]  # distance between circumcenter of si and nearest neighbour
+            indi = ni[vi, 1]  # index to nearest neighbour of si
+            near_point_check = disti/self.cell_radius
+            if near_point_check < self.close_thresh:
+                if vi not in not_merged:
+                    mark_for_merge.add(vi)
+                not_merged.add(indi)
+
+        mark_for_merge = np.asarray(list(mark_for_merge))
+        self.tri_verts = np.delete(self.tri_verts, mark_for_merge, axis = 1)
 
         # calculate the Delaunday triangulation based on the cluster-masked seed points:
         trimesh = Delaunay(self.tri_verts)  # Delaunay trianulation of cell centres
@@ -702,6 +746,10 @@ class DECMesh(object):
         vor_edge_len = []  # length of vor_edge
         vor_mids = [] # mids of vor edges
 
+        vor_norm = [] # normals to vor cell surfaces (outwards pointing)
+        tri_norm = [] # normals to tri cell surfaces (outwards pointing)
+        sflux_n = [] # dot product between voronoi cell surface normal (outwards) and tri-tangent
+
         # Add in Voronoi points on the outer boundary and define total vor_verts:
         self.define_vorverts()
 
@@ -757,83 +805,54 @@ class DECMesh(object):
                 # redefine shared ij pair in terms of most orthogonal vor edge to tri edge:
                 shared_ij = np.asarray([sorted_reg[sorted_dot_check][0], sorted_reg_i[sorted_dot_check][0]])
 
-                # Proceed to process the voronoi edge:
-                vpi = self.vor_verts[shared_ij[0]]
-                vpj = self.vor_verts[shared_ij[1]]
-
-                tan_v = vpj - vpi
-
-                vor_len = np.linalg.norm(tan_v)
-
-                ppvm = (vpi + vpj) / 2  # midpoint of voronoi edge
-                vor_mids.append(ppvm)
-
-                assert (vor_len != 0.0), "Vor-edge length equal to zero!"
-
-                vor_edge_len.append(vor_len)
-
-                cross_tp = tan_t[0] * tan_v[1] - tan_v[0] * tan_t[1]
-
-                # Check that the tri_edge and vor_edge are orthogonal:
-                dottv = np.dot(tan_t, tan_v)
-                dot_check = np.round(np.abs(dottv), 3)
-
-                # if yes, add vor_edge points with 90 degree clockwise rotation to
-                # the tri_edge:
-                if dot_check != 0.0:
-                    mess = 'Mesh edges not orthogonal' + str(dottv)
-                    logs.log_warning(mess)
-
-                if np.sign(cross_tp) == -1.0:
-
-                    vor_edges.append([shared_ij[0], shared_ij[1]])
-                    vor_tang.append(tan_v / vor_len)
-
-                elif np.sign(cross_tp) == 1.0:
-
-                    vor_edges.append([shared_ij[1], shared_ij[0]])
-                    vor_tang.append(-tan_v / vor_len)
+                vor_edge_ij = shared_ij*1
 
             elif len(shared_ij) == 2:
 
-                # find points representing vor and tri edges:
-                tan_t = self.tri_tang[tei]
+                vor_edge_ij = shared_ij*1
 
-                vpi = self.vor_verts[shared_ij[0]]
-                vpj = self.vor_verts[shared_ij[1]]
+            else:
+                raise Exception("Empty Voronoi edge.")
 
-                tan_v = vpj - vpi
 
-                vor_len = np.linalg.norm(tan_v)
+            # find points representing vor and tri edges:
+            tan_t = self.tri_tang[tei]
 
-                ppvm = (vpi + vpj)/2 # midpoint of voronoi edge
-                vor_mids.append(ppvm)
+            tri_norm.append([tan_t[1], -tan_t[0]])
 
-                assert (vor_len != 0.0), "Vor-edge length equal to zero!"
+            vpi = self.vor_verts[vor_edge_ij[0]]
+            vpj = self.vor_verts[vor_edge_ij[1]]
 
-                vor_edge_len.append(vor_len)
+            tan_vo = vpj - vpi
 
-                cross_tp = tan_t[0]*tan_v[1] - tan_v[0]*tan_t[1]
+            vor_len = np.linalg.norm(tan_vo)
 
-                # Check that the tri_edge and vor_edge are orthogonal:
-                dottv = np.dot(tan_t, tan_v)
-                dot_check = np.round(np.abs(dottv), 3)
+            tan_v = tan_vo/vor_len
 
-                # if yes, add vor_edge points with 90 degree clockwise rotation to
-                # the tri_edge:
-                if dot_check != 0.0:
-                    mess = 'Mesh edges not orthogonal' + str(dottv)
-                    logs.log_warning(mess)
+            ppvm = (vpi + vpj)/2 # midpoint of voronoi edge
+            vor_mids.append(ppvm)
 
-                if np.sign(cross_tp) == -1.0:
+            assert (vor_len != 0.0), "Vor-edge length equal to zero!"
 
-                    vor_edges.append([shared_ij[0], shared_ij[1]])
-                    vor_tang.append(tan_v / vor_len)
+            vor_edge_len.append(vor_len)
 
-                elif np.sign(cross_tp) == 1.0:
+            cross_tp = tan_t[0]*tan_v[1] - tan_v[0]*tan_t[1]
 
-                    vor_edges.append([shared_ij[1], shared_ij[0]])
-                    vor_tang.append(-tan_v / vor_len)
+            if np.sign(cross_tp) == -1.0:
+
+                vor_edges.append([vor_edge_ij[0], vor_edge_ij[1]])
+                vor_tang.append(tan_v)
+                norm_v = [tan_v[1], -tan_v[0]]
+                vor_norm.append(norm_v)
+                sflux_n.append(-(norm_v[0]*tan_t[0] + norm_v[1]*tan_t[1]))
+
+            elif np.sign(cross_tp) == 1.0:
+
+                vor_edges.append([vor_edge_ij[1], vor_edge_ij[0]])
+                vor_tang.append(-tan_v)
+                norm_v = [-tan_v[1], tan_v[0]]
+                vor_norm.append(norm_v)
+                sflux_n.append(-(norm_v[0]*tan_t[0] + norm_v[1]*tan_t[1]))
 
         self.vor_edges = np.asarray(vor_edges)
         self.vor_tang = np.asarray(vor_tang)
@@ -843,6 +862,10 @@ class DECMesh(object):
 
         self.n_vedges = len(self.vor_edges)
         self.vor_edge_i = np.linspace(0, self.n_vedges - 1, self.n_vedges, dtype=np.int)
+
+        self.vor_norm = np.asarray(vor_norm) # normals to vor cell surfaces (outwards pointing)
+        self.tri_norm = np.asarray(tri_norm) # normals to tri cell surfaces (outwards pointing)
+        self.sflux_n = np.asarray(sflux_n) # dot product between voronoi cell surface normal (outwards) and tri-tangent
 
     def sanity_check(self):
 
@@ -887,12 +910,19 @@ class DECMesh(object):
         vor_edge_mids = []  # mids of tri cell edges
         vor_edge_len = []  # length of vor_edge
         vor_tang = []  # tangent vectors to vor_edges
+        vor_norm = [] # normal vectors to vor_edges
+
 
         tri_cents = [] # center of triangular cells #FIXME implement this!
         tri_ccents = [] # circumcenter of triangles
+        tri_rcircs = [] # circumradius of triangles
+        tri_sa = [] # surface area of triangles
         tri_edge_mids = []  # mids of tri cell edges
         tri_edge_len = []  # length of tri_edge
         tri_tang = []  # tangent vectors to tri_edges
+        tri_norm = []  # tangent vectors to vor_edges
+
+        sflux_n = [] # dot product between vor cell normal and tricell tangents
 
 
         for pts in self.vcell_verts: # FIXME calculate tri cell properties here too (each vcell index maps to tri vert index)
@@ -912,10 +942,10 @@ class DECMesh(object):
             tpi = self.tri_verts[ti]
             tpj = self.tri_verts[tj]
 
-            tan_t = tpj - tpi
+            tan_to = tpj - tpi
 
-            tri_len = np.linalg.norm(tan_t)
-            #     tri_len = np.sqrt(tan_t[0]**2 + tan_t[1]**2)
+            tri_len = np.linalg.norm(tan_to)
+            tan_t = tan_to/tri_len
 
             pptm = (tpi + tpj) / 2  # calculate midpoint of tri-edge:
 
@@ -924,10 +954,8 @@ class DECMesh(object):
             assert (tri_len != 0.0), "Tri-edge length equal to zero!"
 
             tri_edge_len.append(tri_len * 1)
-            tri_tang.append(1 * tan_t / tri_len)
-
-            # get the correct Voronoi edges
-            # (they're at the same edge index as tri edges):
+            tri_tang.append(1 * tan_t)
+            tri_norm.append([tan_t[1], -tan_t[0]])
 
             vi, vj = self.vor_edges[tei]
 
@@ -935,9 +963,11 @@ class DECMesh(object):
             vpi = self.vor_verts[vi]
             vpj = self.vor_verts[vj]
 
-            tan_v = vpj - vpi
+            tan_vo = vpj - vpi
 
-            vor_len = np.linalg.norm(tan_v)
+            vor_len = np.linalg.norm(tan_vo)
+
+            tan_v = tan_vo/vor_len
 
             ppvm = (vpi + vpj)/2 # midpoint of voronoi edge
             vor_edge_mids.append(ppvm)
@@ -945,16 +975,46 @@ class DECMesh(object):
             assert (vor_len != 0.0), "Vor-edge length equal to zero!"
 
             vor_edge_len.append(vor_len * 1)
-            vor_tang.append(tan_v / vor_len)
+            vor_tang.append(tan_v)
+            norm_v = [tan_v[1], -tan_v[0]]
+            vor_norm.append(norm_v)
+
+            sflux_n.append(-(norm_v[0] * tan_t[0] + norm_v[1] * tan_t[1]))
+
+        for si, verti in enumerate(self.tri_cells):
+            tripts = self.tri_verts[verti]
+
+            cx, cy = self.poly_centroid(tripts)
+            tri_cents.append([cx, cy])
+
+            sa = self.area(tripts)  # surface area of triangle
+            tri_sa.append(sa)
+
+            if len(verti) == 3:
+                vx, vy, r_circ, r_in = self.circumc(tripts[0], tripts[1], tripts[2])
+                tri_ccents.append([vx, vy])
+                tri_rcircs.append(r_circ)
+
+            elif len(verti) == 4:
+                R, area, cx, cy = self.quad_circumc(tripts[0], tripts[1], tripts[2], tripts[3])
+                tri_ccents.append([cx, cy])
+                tri_rcircs.append(R)
 
         self.tri_tang = np.asarray(tri_tang)
         self.vor_tang = np.asarray(vor_tang)
+        self.tri_cents = np.asarray(tri_cents)
+        self.tri_ccents = np.asarray(tri_ccents)
+        self.tri_sa = np.asarray(tri_sa)
 
         self.vor_edge_len = np.asarray(vor_edge_len)  # length of vor_edge
         self.tri_edge_len = np.asarray(tri_edge_len)  # length of tri_edge
 
         self.tri_mids = np.asarray(tri_edge_mids)  # edge midpoints
         self.vor_mids = np.asarray(vor_edge_mids) # edge midpoints
+
+        self.vor_norm = np.asarray(vor_norm) # normals to vor cell surfaces (outwards pointing)
+        self.tri_norm = np.asarray(tri_norm) # normals to tri cell surfaces (outwards pointing)
+        self.sflux_n = np.asarray(sflux_n) # dot product between voronoi cell surface normal (outwards) and tri-tang
 
         # Calculate the centroid of the whole shape:
         self.centroid = np.mean(self.tri_verts, axis=0)
@@ -1245,7 +1305,9 @@ class DECMesh(object):
 
         if gtype == 'tri':
 
-            divF = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T, self.vor_edge_len*Ft)
+            sflux_n = 1.0
+
+            divF = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T, sflux_n*self.vor_edge_len*Ft)
 
         elif gtype == 'vor':
 
@@ -1282,6 +1344,8 @@ class DECMesh(object):
         """
 
         if gtype == 'tri':
+
+            sflux_n = 1.0
             # ensure passed array is of the correct length:
             assert (len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
 
@@ -1289,7 +1353,7 @@ class DECMesh(object):
             gS = self.gradient(S, gtype='tri')
 
             # calculate the divergence of the gradient, which is the laplacian:
-            lapS = self.div(gS, gtype = 'tri')
+            lapS = self.div(sflux_n*gS, gtype = 'tri')
 
         elif gtype == 'vor':
 
@@ -1332,12 +1396,15 @@ class DECMesh(object):
         """
         if gtype == 'tri':
 
+            sflux_n = 1.0
+
             # ensure passed array is of the correct length:
             assert(len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
 
             # calculate the divergence of the gradient, which is the laplacian:
             lapS_inv = np.dot(self.delta_tri_0_inv,
-                              (self.tri_edge_len/self.vor_edge_len)*np.dot(-self.delta_tri_0_inv.T, S*(self.vor_sa)))
+                              (self.tri_edge_len/
+                               (self.vor_edge_len*sflux_n))*np.dot(-self.delta_tri_0_inv.T, S*(self.vor_sa)))
 
         elif gtype == 'vor':
 
@@ -1647,6 +1714,8 @@ class DECMesh(object):
 
         return cPsi_x, cPsi_y, gPhi_x, gPhi_y
 
+    #----Mesh Refinement-------------------------------
+
     def calc_tri(self):
 
         if self.mesh_type == 'tri':
@@ -1750,7 +1819,7 @@ class DECMesh(object):
 
                 UU = np.sum(ui)/self.cell_radius**2
 
-                conv_mess = "Step {}: mesh quality {}".format(i, UU)
+                conv_mess = "Step {}: mesh energy {}".format(i, UU)
                 logs.log_info(conv_mess)
 
             else:
@@ -1762,7 +1831,6 @@ class DECMesh(object):
                 logs.log_info(final_mess)
 
                 break
-
 
     def clip_to_curve(self, imagemask):
 
@@ -1847,6 +1915,16 @@ class DECMesh(object):
         self.image_mask = imagemask
 
         self.pre_mesh()
+
+    def laplacian_smoothing(self, stepsize):
+
+        # # Laplacian smoothing of the mesh:
+        delx = self.lap(self.tri_verts[:, 0])
+        dely = self.lap(self.tri_verts[:, 1])
+
+        self.tri_verts[:, 0] = self.tri_verts[:, 0] + delx*stepsize
+        self.tri_verts[:, 1] = self.tri_verts[:, 1] + dely*stepsize
+
 
 
     #-----Utility functions--------------------------
