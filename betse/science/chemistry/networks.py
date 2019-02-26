@@ -473,14 +473,11 @@ class MasterOfNetworks(object):
                 if icg is not None:
 
                     mol.ion_channel_gating = True
-
                     mol.gating_channel_name = icg.get('channel name', 'Gated channel')
-
                     mol.gating_ion_name = icg['ion channel target']  # get a target ion label to gate membrane to (or 'None')
 
                     if mol.gating_ion_name != 'None':
                         mol.use_gating_ligand = True
-
                         mol.gating_ion = []
 
                         for ion_o in mol.gating_ion_name:
@@ -1098,7 +1095,6 @@ class MasterOfNetworks(object):
             obj = self.modulators[name]
 
             obj.target_label = str(mod_dic['target'])
-
             obj.target_ion = mod_dic.get('target ion', None)
 
             # obj.zone = str(mod_dic['zone'])
@@ -1137,16 +1133,16 @@ class MasterOfNetworks(object):
 
             if obj.target_label == 'TJ':
                 r_zone = 'env'
-
             else:
-
                 r_zone = 'mem'
 
-            all_alpha, alpha_tex, tex_vars = self.get_influencers(a_list, Km_a_list,
-                                                                    n_a_list, i_list,
-                                                                    Km_i_list, n_i_list, tex_list=tex_vars,
-                                                                    reaction_zone=r_zone, zone_tags_a = zone_a,
-                                                                    zone_tags_i=zone_i, in_mem_tag=False)
+            all_alpha, alpha_tex, tex_vars = self.get_influencers(
+                a_list, Km_a_list,
+                n_a_list, i_list,
+                Km_i_list, n_i_list, tex_list=tex_vars,
+                reaction_zone=r_zone, zone_tags_a = zone_a,
+                zone_tags_i=zone_i, in_mem_tag=False,
+            )
 
             obj.alpha_eval_string = "(" + all_alpha + ")"
 
@@ -3091,7 +3087,6 @@ class MasterOfNetworks(object):
             pass_chan = False
 
             if phase.kind is SimPhaseKind.INIT and chan.init_active is False:
-
                 pass_chan = True
 
             if pass_chan is False:
@@ -3247,20 +3242,12 @@ class MasterOfNetworks(object):
             modulator = obj.max_val*eval(obj.alpha_eval_string, globalo, localo)
 
             if obj.target_label == 'GJ':
-
                 sim.gj_block = modulator
-
             elif obj.target_label == 'Na/K-ATPase':
-
                 sim.NaKATP_block = modulator
-
             elif obj.target_label == 'MT':
-
                 sim.mtubes.modulator = modulator
-
             elif obj.target_label == 'TJ':
-
-
                 if obj.ion_i is None:
 
                     # if no target ion is supplied, apply TJ modulation to all ions:
@@ -4376,7 +4363,12 @@ class MasterOfNetworks(object):
             obj = self.molecules[name]
             c_cells = [arr[p.plot_cell] for arr in obj.c_cells_time]
             ax_all1D.plot(
-                sim.time, c_cells, color=c_names.to_rgba(i), linewidth=2.0, label=name)
+                sim.time,
+                c_cells,
+                color=c_names.to_rgba(i),
+                linewidth=2.0,
+                label=name,
+            )
 
         ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
         ax_all1D.set_xlabel('Time [s]')
@@ -4405,7 +4397,13 @@ class MasterOfNetworks(object):
                 mem_i = cells.cell_to_mems[p.plot_cell][0]
                 c_env = [arr[mem_i] for arr in obj.c_env_time]
 
-            ax_all1D.plot(sim.time, c_env, color=c_names.to_rgba(i), linewidth=2.0, label=name)
+            ax_all1D.plot(
+                sim.time,
+                c_env,
+                color=c_names.to_rgba(i),
+                linewidth=2.0,
+                label=name,
+            )
 
         ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
 
@@ -4467,10 +4465,15 @@ class MasterOfNetworks(object):
 
             for i, name in enumerate(self.molecules):
                 obj = self.molecules[name]
-
                 c_mit = [arr[p.plot_cell] for arr in obj.c_mit_time]
 
-                ax_all1D.plot(sim.time, c_mit, color=c_names.to_rgba(i), linewidth=2.0, label=name)
+                ax_all1D.plot(
+                    sim.time,
+                    c_mit,
+                    color=c_names.to_rgba(i),
+                    linewidth=2.0,
+                    label=name,
+                )
 
             ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
 
@@ -4520,7 +4523,13 @@ class MasterOfNetworks(object):
                 if len(obj.rate_time) > 0:
                     r_rate = [arr[p.plot_cell] for arr in obj.rate_time]
 
-                    ax_all1D.plot(sim.time, r_rate, color=c_names.to_rgba(i), linewidth=2.0, label=name)
+                    ax_all1D.plot(
+                        sim.time,
+                        r_rate,
+                        color=c_names.to_rgba(i),
+                        linewidth=2.0,
+                        label=name,
+                    )
 
                     react_dataM.append(r_rate)
                     react_header = react_header + name + ' [mM/s]' + ','
@@ -4583,7 +4592,13 @@ class MasterOfNetworks(object):
                     plt.figure()
                     ax_all1D = plt.subplot(111)
 
-                    ax_all1D.plot(sim.time, t_rate, color=c_names.to_rgba(i), linewidth=2.0, label=name)
+                    ax_all1D.plot(
+                        sim.time,
+                        t_rate,
+                        color=c_names.to_rgba(i),
+                        linewidth=2.0,
+                        label=name,
+                    )
 
                     transp_dataM.append(t_rate)
                     transp_header = transp_header + name + ' [mM/s]' + ','
@@ -4835,10 +4850,10 @@ class MasterOfNetworks(object):
                 nde = pydot.Node(name_env, shape=self.conc_shape)
                 graphicus_maximus.add_node(nde)
 
-                graphicus_maximus.add_edge(pydot.Edge(name, react_label, arrowhead='normal', coeff=1.0,
-                                                      ))
-                graphicus_maximus.add_edge(pydot.Edge(react_label, name_env, arrowhead='normal', coeff=1.0,
-                                                      ))
+                graphicus_maximus.add_edge(pydot.Edge(
+                    name, react_label, arrowhead='normal', coeff=1.0))
+                graphicus_maximus.add_edge(pydot.Edge(
+                    react_label, name_env, arrowhead='normal', coeff=1.0))
 
         # if there are any reactions in the cytosol, add them to the graph
         if len(self.reactions) > 0:
@@ -5969,12 +5984,15 @@ class Molecule(object):
 
             effector_MorphEnv = tb.pulse(t,self.change_bounds_start,self.change_bounds_end,self.change_bounds_rate)
 
-            if p.is_ecm is False:
-                self.c_env[:] = self.change_bounds_target*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
+            if p.is_ecm:
+                self.c_bound = (
+                    self.change_bounds_target*effector_MorphEnv +
+                    self.c_envo*(1-effector_MorphEnv))
+            else:
+                self.c_env[:] = (
+                    self.change_bounds_target*effector_MorphEnv +
+                    self.c_envo*(1-effector_MorphEnv))
 
-            elif p.is_ecm is True:
-
-                self.c_bound = self.change_bounds_target*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
 
     #FIXME: Ideally, this method should be refactored to comply with the
     #new pipeline API.
@@ -5984,21 +6002,20 @@ class Molecule(object):
         saveData = pathnames.join(savePath, saveName)
 
         ci = p.plot_cell  # index of cell to get time-dependent data for
+        ccell = [arr[ci] for arr in self.c_cells_time]
 
         # create the header, first entry will be time:
         headr = 'time_s' + ','
-
-        ccell = [arr[ci] for arr in self.c_cells_time]
-
         headr = headr + 'Cell_Conc_' + self.name + '_mmol/L' + ','
 
-        if p.is_ecm is True:
-
-            cenv = [obj_cenv[cells.map_cell2ecm][ci] for obj_cenv in self.c_env_time]
-
+        if p.is_ecm:
+            cenv = [
+                obj_cenv[cells.map_cell2ecm][ci]
+                for obj_cenv in self.c_env_time]
         else:
-
-            cenv = [np.dot(cells.M_sum_mems, obj_cenv) / cells.num_mems for obj_cenv in self.c_env_time]
+            cenv = [
+                np.dot(cells.M_sum_mems, obj_cenv) / cells.num_mems
+                for obj_cenv in self.c_env_time]
 
         headr = headr + 'Env_Conc_' + self.name + '_mmol/L' + ','
 
@@ -6080,14 +6097,15 @@ class Molecule(object):
         #                                zdata=self.c_cells, number_cells=p.enumerate_cells, clrmap=p.default_cm,
         #                                clrMin=self.plot_min, clrMax=self.plot_max, clrAutoscale=self.plot_autoscale)
 
-        fig, ax, cb = viz.plotPrettyPolyData(self.cc_at_mem,
-                                             sim, cells, p,
-                                             number_cells=p.enumerate_cells,
-                                             clrAutoscale=self.plot_autoscale,
-                                             clrMin=self.plot_min,
-                                             clrMax=self.plot_max,
-                                             clrmap=p.default_cm)
-
+        fig, ax, cb = viz.plotPrettyPolyData(
+            self.cc_at_mem,
+            sim, cells, p,
+            number_cells=p.enumerate_cells,
+            clrAutoscale=self.plot_autoscale,
+            clrMin=self.plot_min,
+            clrMax=self.plot_max,
+            clrmap=p.default_cm,
+        )
 
         ax.set_title('Final ' + self.name + ' Concentration in Cells')
         ax.set_xlabel('Spatial distance [um]')
@@ -6103,13 +6121,14 @@ class Molecule(object):
 
         # mitochondrial plots
         if self.mit_enabled:
-
-            fig, ax, cb = viz.plotPolyData(sim, cells, p, zdata=self.c_mit,
+            fig, ax, cb = viz.plotPolyData(
+                sim, cells, p, zdata=self.c_mit,
                 number_cells=p.enumerate_cells,
                 clrAutoscale=self.plot_autoscale,
                 clrMin=self.plot_min,
                 clrMax=self.plot_max,
-                clrmap=p.default_cm)
+                clrmap=p.default_cm,
+            )
 
             ax.set_title('Final ' + self.name + ' Concentration in Mitochondria')
             ax.set_xlabel('Spatial distance [um]')
@@ -6195,7 +6214,7 @@ class Molecule(object):
             phase=phase,
             conf=conf,
             time_series=self.c_cells_time,
-            label=self.name + '_cells',
+            kind=self.name + '_cells',
             figure_title='Cytosolic ' + self.name,
             colorbar_title='Concentration [mmol/L]')
 
@@ -6228,7 +6247,7 @@ class Molecule(object):
                 phase=phase,
                 conf=conf,
                 time_series=env_time_series,
-                label=self.name + '_env',
+                kind=self.name + '_env',
                 figure_title='Environmental ' + self.name,
                 colorbar_title='Concentration [mmol/L]')
         else:

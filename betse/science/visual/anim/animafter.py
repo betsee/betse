@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,13 +8,13 @@
 *while* solving a simulation) subclasses.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.science.config.export.visual.confvisabc import SimConfVisualCellsABC
 from betse.science.phase.phasecls import SimPhase
 from betse.science.visual.anim.animabc import AnimCellsABC
 from betse.util.type.types import type_check, SequenceTypes
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 class AnimCellsAfterSolving(AnimCellsABC):
     '''
     Abstract base class of all post-simulation animation subclasses.
@@ -37,7 +38,8 @@ class AnimCellsAfterSolving(AnimCellsABC):
         phase: SimPhase
             Current simulation phase.
 
-        See the superclass `__init__()` method for all remaining parameters.
+        All remaining parameters are passed as is to the superclass
+        ``__init__`` method.
         '''
 
         # Initialize our superclass.
@@ -69,7 +71,7 @@ class AnimCellsAfterSolvingLayered(AnimCellsAfterSolving):
     cluster using a predefined sequence of layers.
     '''
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS                        }..................
     @type_check
     def __init__(
         self,
@@ -104,14 +106,14 @@ class AnimCellsAfterSolvingLayered(AnimCellsAfterSolving):
             # this name is guaranteed to be unique across all other visuals of
             # the same type, this path is guaranteed to be unique in at least
             # the directory containing all visuals of the same type.
-            label=conf.name,
+            kind=conf.kind,
             **kwargs
         )
 
         # Display and/or save this animation.
         self._animate()
 
-# ....................{ SUBCLASSES ~ obsolete              }....................
+# ....................{ SUBCLASSES ~ obsolete             }....................
 #FIXME: Replace use of all the following subclasses with the
 #"AnimCellsAfterSolvingLayered" subclass *AFTER* refactoring all subclasses to
 #leverage layers.

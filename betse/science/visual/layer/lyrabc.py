@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -12,7 +13,7 @@ plotting onto the cell cluster.
 #composition (i.e., merging two or more types of plots together into a single
 #plot) by adding new booleans to the "AnimCellsABC" base class (e.g.,
 #"is_current_overlayable") -- a fundamentally unwieldy and ultimately
-#unworkable approach. By definition, you cannot provide true composability frow
+#unworkable approach. By definition, you cannot provide true composability from
 #within a single class hierarchy. Instead, we need to split the specific
 #process of generating different types of artists (e.g., mesh plots, stream
 #plots) from the general process of animating and saving frames and plots as
@@ -39,7 +40,7 @@ plotting onto the cell cluster.
 #So, yes. It's quite a bit of work. But it's absolutely essential as well,
 #particularly for implementing a general-purpose BETSE GUI.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta, abstractmethod
 from betse.exceptions import BetseSimVisualLayerException
 from betse.util.io.log import logs
@@ -50,11 +51,11 @@ from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceOrNoneTypes,)
 
-# ....................{ SUPERCLASS                         }....................
+# ....................{ SUPERCLASS                        }....................
 class LayerCellsABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all classes spatially plotting a single feature of
-    the cell cluster for a parent visual.
+    Abstract base class of all subclasses spatially plotting a single feature
+    of the cell cluster for a parent visual.
 
     Each subclass of this class plots the spatial distribution of a single
     modelled variable (e.g., membrane voltage) for one or more simulation time
@@ -65,8 +66,8 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     Separating low-level layer logic from high-level visual logic (e.g., frame
     iteration, video compression) enables composition between otherwise
     unrelated types. Thanks to layers, two or more types of visuals may be
-    trivially composed into a unique third type of visual with *no* modification
-    to existing layers or visuals.
+    trivially composed into a unique third type of visual with *no*
+    modification to existing layers or visuals.
 
     Attributes
     ----------
@@ -81,25 +82,25 @@ class LayerCellsABC(object, metaclass=ABCMeta):
         elsewhere in the codebase, this attribute is nonetheless defined and
         should be used in place of the :meth:`_visual.phase` property.
     _visual : VisualCellsABC
-        Plot or animation to layer onto *or* ``None`` if the :meth:`prep` method
-        has yet to be called.
+        Plot or animation to layer onto *or* ``None`` if the :meth:`prep`
+        method has yet to be called.
     _zorder : int
         **Z-order** (i.e., positive integer ordering artist drawing, such that
         artists with larger z-orders are drawn above artists with smaller
         z-orders) of all artists plotted by this layer. While this zorder is
         *not* strictly enforced by this abstract base class, layer subclasses
-        are encouraged to voluntarily pass the ``zorder=self._zorder`` option to
-        all matplotlib axis-specific artist creation methods.
+        are encouraged to voluntarily pass the ``zorder=self._zorder`` option
+        to all matplotlib axis-specific artist creation methods.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self) -> None:
         '''
         Initialize this layer.
 
         This method intentionally accepts *no* parameters except constants
-        parametrizing this layer's behaviour. In particular, this method accepts
-        references to neither the parent
+        parametrizing this layer's behaviour. In particular, this method
+        accepts references to neither the parent
         :class:`betse.science.visual.visabc.VisualCellsABC` instance containing
         this layer instance *nor* any other instances also contained by that
         parent instance (e.g., Matplotlib figure or axes objects). Why? Because
@@ -158,12 +159,12 @@ class LayerCellsABC(object, metaclass=ABCMeta):
         # reusable between multiple parent visuals.
         self._is_layered = False
 
-    # ..................{ LAYERS                             }..................
+    # ..................{ LAYERS                            }..................
     def layer(self) -> None:
         '''
-        Layer the spatial distribution of a single modelled variable (e.g., cell
-        membrane voltage) for the current time step and each cell of the current
-        cluster onto the figure axes of the current plot or animation.
+        Layer the spatial distribution of a single modelled variable (e.g.,
+        cell membrane voltage) for the current time step and each cell of the
+        current cluster onto the figure axes of the current plot or animation.
         '''
 
         # If this method has yet to be called...
@@ -171,7 +172,8 @@ class LayerCellsABC(object, metaclass=ABCMeta):
             # Perform logic specific to this call.
             self._layer_first()
 
-            # Prevent subsequent calls to this method from repeating this logic.
+            # Prevent subsequent calls to this method from repeating this
+            # logic.
             self._is_layered = True
         # Else, this method has been called at least once.
         else:
@@ -180,35 +182,36 @@ class LayerCellsABC(object, metaclass=ABCMeta):
 
 
     # Layer subclasses are recommended but *NOT* required to reimplement this
-    # empty method. Since simplistic layers plotting artists whose appearance is
-    # constant across all time steps only require the abstract _layer_first()
-    # method to be implemented, this method is concrete rather than abstract.
+    # empty method. Since simplistic layers plotting artists whose appearance
+    # is constant across all time steps only require the abstract
+    # _layer_first() method to be implemented, this method is concrete rather
+    # than abstract.
     def _layer_next(self) -> None:
         '''
-        Layer the spatial distribution of a single modelled variable (e.g., cell
-        membrane voltage) for the next simulation time step onto the figure axes
-        of the current plot or animation.
+        Layer the spatial distribution of a single modelled variable (e.g.,
+        cell membrane voltage) for the next simulation time step onto the
+        figure axes of the current plot or animation.
         '''
 
         pass
 
-    # ..................{ SUBCLASS                           }..................
+    # ..................{ SUBCLASS                          }..................
     # Subclasses are required to implement the following abstract methods.
 
     @abstractmethod
     def _layer_first(self) -> None:
         '''
-        Layer the spatial distribution of a single modelled variable (e.g., cell
-        membrane voltage) for the first simulation time step onto the figure
-        axes of the current plot or animation.
+        Layer the spatial distribution of a single modelled variable (e.g.,
+        cell membrane voltage) for the first simulation time step onto the
+        figure axes of the current plot or animation.
         '''
 
         pass
 
-# ....................{ SUBCLASSES ~ colorful              }....................
+# ....................{ SUBCLASSES ~ colorful             }....................
 class LayerCellsColorfulABC(LayerCellsABC):
     '''
-    Abstract base class of all classes spatially plotting a single modelled
+    Abstract base class of all subclasses spatially plotting a single modelled
     variable of the cell cluster (e.g., cell membrane voltage) whose values are
     mappable as colors onto the colorbar for a parent plot or animation.
 
@@ -226,7 +229,7 @@ class LayerCellsColorfulABC(LayerCellsABC):
         :attr:`_conf.is_color_autoscaled` is ``True``.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self) -> None:
         '''
         Initialize this layer.
@@ -240,7 +243,7 @@ class LayerCellsColorfulABC(LayerCellsABC):
         self._color_min = None
         self._color_max = None
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS                        }..................
     #FIXME: Generalize this class to support layers recomputing color mappables
     #each time step. To do so:
     #
@@ -331,7 +334,7 @@ class LayerCellsColorfulABC(LayerCellsABC):
         # would be generally undesirable, this colorbar is preserved as is.
         self._scale_color_mappables()
 
-    # ..................{ SUBCLASS ~ mandatory               }..................
+    # ..................{ SUBCLASS ~ mandatory              }..................
     # The following abstract methods *MUST* be implemented by subclasses.
 
     @abstractproperty
@@ -375,7 +378,7 @@ class LayerCellsColorfulABC(LayerCellsABC):
 
         pass
 
-    # ..................{ SUBCLASS ~ optional                }..................
+    # ..................{ SUBCLASS ~ optional               }..................
     # The following non-abstract methods *MAY* be implemented by subclasses.
 
     def _layer_next_color_mappables(self) -> IterableTypes:
@@ -397,13 +400,13 @@ class LayerCellsColorfulABC(LayerCellsABC):
         * This method, in which case this layer is assumed to behave as follows
           for each time step:
 
-          * Destroy all color mappables created by the prior call to this or the
-            :meth:`_layer_first_color_mappables` method.
+          * Destroy all color mappables created by the prior call to this or
+            the :meth:`_layer_first_color_mappables` method.
           * Create and return new color mappables from the call to this method.
 
-        Since the latter is substantially less efficient than the former, *only*
-        layers recreating color mappables must implement this method; all other
-        layers should implement the :meth:`layer_next` method.
+        Since the latter is substantially less efficient than the former,
+        *only* layers recreating color mappables must implement this method;
+        all other layers should implement the :meth:`layer_next` method.
 
         Returns
         ----------
@@ -415,7 +418,7 @@ class LayerCellsColorfulABC(LayerCellsABC):
 
         pass
 
-    # ..................{ COLORS                             }..................
+    # ..................{ COLORS                            }..................
     def _make_colorbar(self) -> None:
         '''
         Add a colorbar to the parent visual's figure.
@@ -440,8 +443,8 @@ class LayerCellsColorfulABC(LayerCellsABC):
 
     def _set_color_range(self) -> None:
         '''
-        Set the minimum and maximum color values to be displayed by the colorbar
-        for the parent visual's figure.
+        Set the minimum and maximum color values to be displayed by the
+        colorbar for the parent visual's figure.
 
         Specifically, these values are set to:
 
@@ -492,7 +495,7 @@ class LayerCellsColorfulABC(LayerCellsABC):
         # Log this attempt.
         logs.log_debug(
             'Rescaling "%s" colors to [%d, %d]...',
-            self._visual.name, self._color_min, self._color_max)
+            self._visual.kind, self._color_min, self._color_max)
 
         # For each color mappable, clip that mappable to the minimum and
         # maximum values discovered above. Note this also has the beneficial

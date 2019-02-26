@@ -43,7 +43,7 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 #close events by explicitly closing the current animation on such events: e.g.,
 #
 #    def _hook_on_close(event) -> None:
-#        print('Animation "{}" window closed.'.format(self._label))
+#        print('Animation "{}" window closed.'.format(self._kind))
 #
 #        #FIXME: Is this safe to call here? Presumably, but consider.
 #        self._close()
@@ -255,7 +255,7 @@ class AnimCellsABC(VisualCellsABC):
             raise BetseSimConfException(
                 'Animation "{}" requires extracellular spaces, which are '
                 'disabled by the current simulation configuration.'.format(
-                self._label))
+                self._kind))
 
         # Default unpassed parameters.
         #
@@ -331,12 +331,12 @@ class AnimCellsABC(VisualCellsABC):
 
         # If the human-readable name of this animation contains directory
         # separators and hence is *NOT* a valid basename, raise an exception.
-        pathnames.die_unless_basename(self._label)
+        pathnames.die_unless_basename(self._kind)
 
         # Path of the subdirectory to which these files will be saved,
         # creating this subdirectory and all parents thereof if needed.
         save_dirname = dirs.canonicalize_and_make_unless_dir(pathnames.join(
-            self._phase.export_dirname, save_dir_parent_basename, self._label))
+            self._phase.export_dirname, save_dir_parent_basename, self._kind))
 
         # If saving animation frames as images, prepare to do so.
         if anim_config.is_images_save:
@@ -352,7 +352,7 @@ class AnimCellsABC(VisualCellsABC):
             # "}}"-delimited substring to the 0-based index of the current
             # frame number.
             save_frame_template_basename = '{}_{{:07d}}.{}'.format(
-                self._label, anim_config.image_filetype)
+                self._kind, anim_config.image_filetype)
 
             # Template expanding to the absolute path of each image to be
             # saved.
@@ -395,7 +395,7 @@ class AnimCellsABC(VisualCellsABC):
 
             # Basename of the video to be written.
             save_video_basename = '{}.{}'.format(
-                self._label, anim_config.video_filetype)
+                self._kind, anim_config.video_filetype)
 
             # Absolute path of the video to be written.
             writer_video_filename = pathnames.join(

@@ -12,7 +12,7 @@ YAML-backed simulation subconfigurations for exporting comma-separated value
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import (
-    YamlList, YamlListItemABC, YamlListItemTypedABC)
+    YamlList, YamlListItemABC, YamlListItemTypedBooledABC)
 from betse.util.type.types import type_check
 # from betse.util.type.types import type_check, MappingType, SequenceTypes
 
@@ -75,7 +75,7 @@ class SimConfExportCSVs(YamlABC):
         self.csvs_after_sim.unload()
 
 # ....................{ SUBCLASSES : item                 }....................
-class SimConfExportCSV(YamlListItemTypedABC):
+class SimConfExportCSV(YamlListItemTypedBooledABC):
     '''
     YAML-backed subconfiguration list item for exporting a comma-separated
     value (CSV) file enabled by a list of these exports in the current

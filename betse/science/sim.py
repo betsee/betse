@@ -2496,8 +2496,8 @@ class Simulator(object):
             #be properly incorporated into the current cell cluster *WITHOUT*
             #requiring "cellso" shenanigans. (Wake me up when Utopia arrives.)
 
-            # Deformed simulation phase, replacing the current cell cluster with
-            # the deformed cell cluster *ONLY* for this animation. If
+            # Deformed simulation phase, replacing the current cell cluster
+            # with the deformed cell cluster *ONLY* for this animation. If
             # deformations are disabled, this is a noop; if deformations are
             # enabled, this is required to animate deformations while solving.
             phase_deformed = SimPhase(
@@ -2514,7 +2514,7 @@ class Simulator(object):
                 time_step_count=len(time_steps_sampled),
 
                 # Animation metadata.
-                label='Vmem',
+                kind='Vmem',
                 figure_title='Vmem while {}'.format(phase_verb),
                 colorbar_title='Voltage [mV]',
             )

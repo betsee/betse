@@ -4,14 +4,15 @@
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes of all YAML-backed simulation configuration subclasses
-encapsulating on-disk lists and list items.
+Abstract base classes of all YAML-backed configuration subclasses encapsulating
+on-disk lists and list items.
 '''
 
 # ....................{ IMPORTS                           }....................
 from abc import abstractmethod
-from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
+from betse.lib.yaml.abc.yamlmixin import YamlTypedBooledMixin
+from betse.util.io.log import logs
 from betse.util.type.cls import classes
 from betse.util.type.obj import objects
 from betse.util.type.text.string import strs
@@ -21,12 +22,13 @@ from collections.abc import MutableSequence
 # ....................{ SUPERCLASSES ~ list item          }....................
 class YamlListItemABC(YamlABC):
     '''
-    Abstract base class of all YAML-backed list item subclasses, each instance
-    of which is intended to be added to a parent :class:`YamlList` container.
+    Abstract base class of all **YAML-backed list item** (i.e., configuration
+    intended to be added to a parent :class:`YamlList` container) subclasses.
 
-    Each such instance may technically encapsulate any valid YAML type (e.g.,
-    :class:`int`, :class:`str`) but typically encapsulates a YAML dictionary of
-    related key-value pairs (e.g., animation settings, tissue profile).
+    Each instance of this superclass may technically encapsulate any valid YAML
+    type (e.g., :class:`int`, :class:`str`) but typically encapsulates a YAML
+    dictionary of related key-value pairs (e.g., settings configuring a single
+    animation or tissue profile).
     '''
 
     # ..................{ MAKERS                            }..................
@@ -34,13 +36,13 @@ class YamlListItemABC(YamlABC):
     def make_list(cls, *args, **kwargs) -> (
         'betse.lib.yaml.abc.yamllistabc.YamlList'):
         '''
-        Create and return a low-level YAML-backed list containing only items of
-        this specific subclass type, both loaded from and savable back into a
-        YAML-formatted file.
+        Create and return a YAML-backed list containing only items of this
+        subclass type, both loaded from and savable back to a YAML-formatted
+        file.
 
         Parameters
         ----------
-        All passed parameters are passed as is to the :meth:`YamlList.__init__`
+        All parameters are passed as is to the :meth:`YamlList.__init__`
         method.
         '''
 
@@ -72,27 +74,16 @@ class YamlListItemABC(YamlABC):
         pass
 
 
-class YamlListItemTypedABC(YamlListItemABC):
+class YamlListItemTypedBooledABC(YamlTypedBooledMixin, YamlListItemABC):
     '''
-    Abstract base class of all low-level YAML-backed typed list item
-    subclasses, each instance of which encapsulates a YAML dictionary whose
-    keys define the type and name of this item intended to be added to a
-    :class:`YamlList` container.
-
-    Attributes
-    ----------
-    is_enabled : bool
-        ``True`` only if this list item is enabled.
-    name : str
-        Lowercase alphanumeric string uniquely identifying the type of this
-        list item (e.g., ``voltage_membrane``, signifying a transmembrane
-        voltage list item). See each ``type`` key of the corresponding list in
-        the default simulation configuration file for further commentary.
+    Abstract base class of all **YAML-backed typed booled list item** (i.e.,
+    YAML-backed list item whose value is a YAML dictionary defining a top-level
+    key ``type`` whose value is a machine-readable string identifying that
+    item's type *and* a top-level key ``enabled`` whose value is a boolean
+    specifying whether that item is enabled or disabled) subclasses.
     '''
 
-    # ..................{ ALIASES                           }..................
-    is_enabled = yaml_alias("['enabled']", bool)
-    name       = yaml_alias("['type']", str)
+    pass
 
 # ....................{ SUPERCLASSES ~ list               }....................
 class YamlList(YamlABC, MutableSequence):
@@ -285,37 +276,47 @@ class YamlList(YamlABC, MutableSequence):
 
     # ..................{ GETTERS                           }..................
     @type_check
-    def get_item_name_unique(self, name_format: str) -> str:
+    def uniquify_item_attr_value(
+        self, attr_name: str, attr_value_format: str) -> str:
         '''
-        Identifier formatted according to the passed format specifier,
-        guaranteed to be unique across all items of this list.
+        Create and return a machine-readable string guaranteed to be unique
+        across all items of this list when set as the value of the settable
+        attribute (e.g., YAML alias) with the passed name of any such item,
+        including an item that has yet to be created.
 
-        By duck typing, each item of this list is required to define a ``name``
-        instance variable whose value is the YAML-backed name of that item; if
-        this is *not* the case, an exception is raised.
-
-        This method then returns an identifier suitable for use by the caller
-        as the value of the ``name`` instance variable for a newly created item
-        of this list. Hence, callers tend to call this method from subclass
-        :meth:`make_default` implementations.
+        This method requires each item of this list to declare an attribute
+        with the passed name whose value is an arbitrary string. This method
+        then returns a string suitable for use by the caller as the value of
+        that attribute for a newly created item of this list. Hence, callers
+        typically call this method from subclass :meth:`make_default`
+        implementations.
 
         Parameters
         ----------
-        name_format : str
+        attr_name : str
+            Name of the attribute declared by all items of this list whose
+            string value is to be uniquified.
+        attr_value_format : str
             Format specifier containing a ``{}`` substring (e.g.,
             ``tissue ({})``), iteratively interpolated by this function with an
-            arbitrary integer to produce this unique list item name.
+            arbitrary integer to produce this unique list item attribute value.
 
         Returns
         ----------
         str
-            Item name unique to this list matching this format.
+            Value of this attribute guaranteed to both match this format *and*
+            be unique across all items of this list.
 
         Raises
         ----------
         BetseStrException
             If this format specifier contains no ``{}`` substring.
         '''
+
+        # Log this formatting.
+        logs.log_debug(
+            'Uniquifying YAML list item key "%s" with template "%s"...',
+            attr_name, attr_value_format)
 
         #FIXME: Ideally, we would also raise exceptions if this format
         #specifier contains two or more ``{}`` substrings. Sadly, there appears
@@ -327,13 +328,12 @@ class YamlList(YamlABC, MutableSequence):
         #false positives (e.g., the string "{}{}" should raise exceptions but
         #the string "{}{{}}" should *NOT*).
 
-        # If this format specifier contains no "{}" substring, raise an
-        # exception.
+        # If this specifier contains no "{}" substring, raise an exception.
         #
         # Note that this simplistic logic fails to account for "{{" and "}}"
         # escaping and hence *COULD* fail to raise exceptions when passed
         # worst-case format specifiers, but that we mostly do not care.
-        strs.die_unless_substr(text=name_format, substr='{}')
+        strs.die_unless_substr(text=attr_value_format, substr='{}')
 
         # Arbitrary unique identifier with which to uniquify (i.e., guarantee
         # the uniqueness of) the name of a new item in this list, defaulting to
@@ -347,7 +347,7 @@ class YamlList(YamlABC, MutableSequence):
         # this list until obtaining a unique name. This iteration is guaranteed
         # to (eventually) terminate successfully with a unique name.
         while True:
-            yaml_list_item_name = name_format.format(yaml_list_item_id)
+            yaml_list_item_name = attr_value_format.format(yaml_list_item_id)
 
             # For each existing item of this list...
             for yaml_list_item_other in self._confs_wrap:

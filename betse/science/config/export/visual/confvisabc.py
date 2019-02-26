@@ -13,7 +13,7 @@ from abc import ABCMeta
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import (
-    YamlList, YamlListItemABC, YamlListItemTypedABC)
+    YamlList, YamlListItemABC, YamlListItemTypedBooledABC)
 # from betse.util.io.log import logs
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import type_check, NumericSimpleTypes
@@ -23,8 +23,8 @@ from betse.util.type.types import type_check, NumericSimpleTypes
 #to leverage the YAML format specified by "SimConfVisualCellsYAMLMixin".
 class SimConfVisualCellsABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class generalizing logic common to all cell cluster visual
-    subconfigurations -- YAML-backed or otherwise.
+    Abstract base class of all cell cluster visual subconfiguration subclasses,
+    YAML-backed or otherwise.
 
     Attributes (Colorbar)
     ----------
@@ -57,13 +57,12 @@ class SimConfVisualCellsABC(object, metaclass=ABCMeta):
 
 class SimConfVisualCellsYAMLMixin(SimConfVisualCellsABC):
     '''
-    Abstract mixin generalizing implementation common to all YAML-backed cell
-    cluster visual subconfiguration subclasses.
+    Mixin of all **YAML-backed cell cluster visual subconfiguration** (i.e.,
+    configuration of a single visual export parsed from the current
+    YAML-formatted simulation configuration file) subclasses.
 
-    This mixin encapsulates configuration of a single visual (either in- or
-    post-simulation plot or animation) parsed from the current YAML-formatted
-    simulation configuration file. For generality, this mixin provides no
-    support for a YAML ``type`` key or corresponding :attr:`name` property.
+    For generality, this mixin provides no support for a top-level YAML key
+    ``type`` or corresponding :attr:`kind` property.
     '''
 
     # ..................{ ALIASES ~ colorbar                }..................
@@ -127,7 +126,7 @@ class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
 
 # ....................{ SUBCLASSES : item                 }....................
 class SimConfVisualCellsListItem(
-    SimConfVisualCellsYAMLMixin, YamlListItemTypedABC):
+    SimConfVisualCellsYAMLMixin, YamlListItemTypedBooledABC):
     '''
     YAML-backed cell cluster visual subconfiguration list item, configuring a
     single visual applicable to all cells parsed from a list of these visuals
@@ -154,7 +153,7 @@ class SimConfVisualCellsListItem(
         return yaml_list_item
 
 
-class SimConfVisualCellListItem(YamlListItemTypedABC):
+class SimConfVisualCellListItem(YamlListItemTypedBooledABC):
     '''
     YAML-backed single-cell visual subconfiguration list item, configuring a
     single visual (either in- or post-simulation plot or animation) specific to

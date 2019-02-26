@@ -17,26 +17,17 @@ from betse.lib.yaml.yamlalias import (
 )
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamllistabc import YamlList, YamlListItemABC
+from betse.lib.yaml.abc.yamlmixin import YamlNamedMixin
 from betse.science.enum.enumconf import CellsPickerType
 # from betse.util.io.log import logs
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ SUPERCLASSES ~ tissue             }....................
-class SimConfTissueABC(object, metaclass=ABCMeta):
+class SimConfTissueABC(YamlNamedMixin, metaclass=ABCMeta):
     '''
-    Abstract mixin generalizing implementation common to all YAML-backed tissue
-    profile subconfiguration subclasses.
-
-    This mixin encapsulates configuration of a single tissue profile parsed
-    from the current YAML-formatted simulation configuration file. For
-    generality, this mixin provides no support for the YAML ``name`` key or the
-    suite of YAML keys pertaining to tissue pickers.
-
-    Attributes
-    ----------
-    name : str
-        Arbitrary string uniquely identifying this tissue profile in the list
-        of all tissue profiles for this simulation.
+    Mixin of all **YAML-backed tissue profile subconfiguration** (i.e.,
+    configuration of a single tissue profile parsed from the current
+    YAML-formatted simulation configuration file) subclasses.
 
     Attributes (Membrane Diffusion)
     ----------
@@ -53,9 +44,6 @@ class SimConfTissueABC(object, metaclass=ABCMeta):
     Dm_P : float
         Protein (P-) membrane diffusion constant in m2/s.
     '''
-
-    # ..................{ ALIASES                           }..................
-    name = yaml_alias("['name']", str)
 
     # ..................{ ALIASES ~ diffusion               }..................
     Dm_Na = yaml_alias_float_nonnegative("['diffusion constants']['Dm_Na']")
@@ -160,8 +148,8 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Name of this tissue profile unique to this list.
-        tissue_name = yaml_list.get_item_name_unique(
-            name_format='tissue ({{}})')
+        tissue_name = yaml_list.uniquify_item_attr_value(
+            attr_name='name', attr_value_format='tissue ({})')
 
         # Create and return the equivalent YAML-backed tissue profile list
         # item, duplicating the first such item in our default YAML file.
@@ -188,7 +176,7 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
         return yaml_list_item
 
 # ....................{ SUBCLASSES ~ cut                  }....................
-class SimConfCutListItem(YamlListItemABC):
+class SimConfCutListItem(YamlNamedMixin, YamlListItemABC):
     '''
     YAML-backed cut profile list item subconfiguration, encapsulating the
     configuration of a single cut profile parsed from a list of these profiles
@@ -196,8 +184,6 @@ class SimConfCutListItem(YamlListItemABC):
 
     Attributes
     ----------
-    name : str
-        Arbitrary string uniquely identifying this cut profile in this list.
     picker_image_filename : str
         Absolute or relative filename of the image mask whose pure-black pixels
         define the region of the cell cluster whose cells are all to be removed
@@ -207,7 +193,6 @@ class SimConfCutListItem(YamlListItemABC):
     '''
 
     # ..................{ ALIASES                           }..................
-    name = yaml_alias("['name']", str)
     picker_image_filename = yaml_alias("['image']", str)
 
     # ..................{ CLASS                             }..................
@@ -216,7 +201,8 @@ class SimConfCutListItem(YamlListItemABC):
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Name of this cut profile unique to this list.
-        cut_name = yaml_list.get_item_name_unique(name_format='cut ({{}})')
+        cut_name = yaml_list.uniquify_item_attr_value(
+            attr_name='name', attr_value_format='cut ({})')
 
         # Create and return the equivalent YAML-backed cut profile list item,
         # duplicating the first such item in our default YAML file.

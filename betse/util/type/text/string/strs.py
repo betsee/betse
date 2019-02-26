@@ -83,46 +83,6 @@ def die_if_empty(text: str, exception_message: StrOrNoneTypes = None) -> None:
 
 
 @type_check
-def die_unless_substr(
-    text: str, substr: str, exception_message: StrOrNoneTypes = None) -> None:
-    '''
-    Raise an exception with the passed message (defaulting to a message
-    synthesized from the passed arguments) if the passed string does *not*
-    contain the passed substring.
-
-    Parameters
-    ----------
-    text : str
-        String to be validated.
-    substr : str
-        Substring to test for.
-    exception_message : optional[str]
-        Exception message to be raised. Defaults to ``None``, in which case an
-        exception message synthesized from the passed arguments is raised.
-
-    Raises
-    ----------
-    BetseStrException
-        If this string does *not* contain this substring.
-
-    See Also
-    ----------
-    :func:`is_substr`
-        Further details.
-    '''
-
-    # If this string does *NOT* contain this substring, raise an exception.
-    if not is_substr(text, substr):
-        # If no exception message was passed, synthesize one from this name.
-        if not exception_message:
-            exception_message = (
-                'String "{}" contains no substring "{}".'.format(text, substr))
-
-        # Raise this exception.
-        raise BetseStrException(exception_message)
-
-
-@type_check
 def die_unless_prefix(
     text: str, prefix: str, exception_message: StrOrNoneTypes = None) -> None:
     '''
@@ -157,6 +117,86 @@ def die_unless_prefix(
         if not exception_message:
             exception_message = 'String "{}" not prefixed by "{}".'.format(
                 text, prefix)
+
+        # Raise this exception.
+        raise BetseStrException(exception_message)
+
+# ....................{ EXCEPTIONS ~ substr               }....................
+@type_check
+def die_if_substr(
+    text: str, substr: str, exception_message: StrOrNoneTypes = None) -> None:
+    '''
+    Raise an exception with the passed message (defaulting to a message
+    synthesized from the passed arguments) if the passed string contains the
+    passed substring.
+
+    Parameters
+    ----------
+    text : str
+        String to be validated.
+    substr : str
+        Substring to test for.
+    exception_message : optional[str]
+        Exception message to be raised. Defaults to ``None``, in which case an
+        exception message synthesized from the passed arguments is raised.
+
+    Raises
+    ----------
+    BetseStrException
+        If this string contains this substring.
+
+    See Also
+    ----------
+    :func:`is_substr`
+        Further details.
+    '''
+
+    # If this string contains this substring, raise an exception.
+    if is_substr(text, substr):
+        # If no exception message was passed, synthesize one from this name.
+        if not exception_message:
+            exception_message = (
+                'String "{}" contains substring "{}".'.format(text, substr))
+
+        # Raise this exception.
+        raise BetseStrException(exception_message)
+
+
+@type_check
+def die_unless_substr(
+    text: str, substr: str, exception_message: StrOrNoneTypes = None) -> None:
+    '''
+    Raise an exception with the passed message (defaulting to a message
+    synthesized from the passed arguments) if the passed string does *not*
+    contain the passed substring.
+
+    Parameters
+    ----------
+    text : str
+        String to be validated.
+    substr : str
+        Substring to test for.
+    exception_message : optional[str]
+        Exception message to be raised. Defaults to ``None``, in which case an
+        exception message synthesized from the passed arguments is raised.
+
+    Raises
+    ----------
+    BetseStrException
+        If this string does *not* contain this substring.
+
+    See Also
+    ----------
+    :func:`is_substr`
+        Further details.
+    '''
+
+    # If this string does *NOT* contain this substring, raise an exception.
+    if not is_substr(text, substr):
+        # If no exception message was passed, synthesize one from this name.
+        if not exception_message:
+            exception_message = (
+                'String "{}" contains no substring "{}".'.format(text, substr))
 
         # Raise this exception.
         raise BetseStrException(exception_message)

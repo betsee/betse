@@ -94,7 +94,7 @@ class SimPipesExport(object):
           method for that pipeline returns ``True`` when passed that phase):
 
           * For each **pipeline runner subconfiguration** (i.e.,
-            :class:`YamlListItemTypedABC` instance in the sequence of these
+            :class:`YamlListItemTypedBooledABC` instance in the sequence of these
             instances listed by the :meth:`iter_runners_enabled` method for
             that pipeline):
 

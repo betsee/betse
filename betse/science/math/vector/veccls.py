@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -6,7 +7,7 @@
 Abstract base classes of all vector subclasses.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.exceptions import BetseSimVectorException
 from betse.lib.numpy import nparray
@@ -16,7 +17,7 @@ from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import type_check, IterableOrNoneTypes
 from numpy import ndarray
 
-# ....................{ SUPERCLASSES                       }....................
+# ....................{ SUPERCLASSES                      }....................
 class VectorCellsCache(SimPhaseCacheABC):
     '''
     Cell cluster vector cache, persisting all two-dimensional Numpy arrays
@@ -32,9 +33,9 @@ class VectorCellsCache(SimPhaseCacheABC):
     * The midpoint of each cell membrane in the simulated cluster.
     * The centre of each square grid space (in either dimension).
 
-    Each property provided by this cache (e.g., :meth:`times_cell_centres`) then
-    efficiently interpolates this input data from its original coordinate system
-    into the corresponding output data in another coordinate system.
+    Each property provided by this cache (e.g., :meth:`times_cell_centres`)
+    then efficiently interpolates this input data from its original coordinate
+    system into the corresponding output data in another coordinate system.
 
     Attributes
     ----------
@@ -48,11 +49,11 @@ class VectorCellsCache(SimPhaseCacheABC):
         midpoints, returned by the :meth:`times_membranes_midpoint` property.
     _times_grids_centre : ndarray
         Two-dimensional Numpy array of all arbitrary grid data for one or more
-        simulation time steps spatially situated at grid space centres, returned
-        by the :meth:`times_grids_centre` property.
+        simulation time steps spatially situated at grid space centres,
+        returned by the :meth:`times_grids_centre` property.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(
         self,
@@ -70,10 +71,12 @@ class VectorCellsCache(SimPhaseCacheABC):
             Two-dimensional iterable of all cell data for a single cell
             membrane-specific modelled variable (e.g., cell electric field
             magnitude) for all simulation time steps, whose:
-            . First dimension indexes each sampled time step.
-            . Second dimension indexes each cell, such that each element is
-              arbitrary cell data spatially situated at the centre of this cell
-              for this time step.
+
+            #. First dimension indexes each sampled time step.
+            #. Second dimension indexes each cell, such that each element is
+               arbitrary cell data spatially situated at the centre of this cell
+               for this time step.
+
             Defaults to ``None``, in which case at least one of the
             ``times_grids_centre`` and ``times_membranes_midpoint`` parameters
             must be non-``None``.
@@ -81,10 +84,12 @@ class VectorCellsCache(SimPhaseCacheABC):
             Two-dimensional iterable of all grid data for a single
             intra- and/or extracellular modelled variable (e.g., total current
             density) for all simulation time steps, whose:
-            . First dimension indexes each sampled time step.
-            . Second dimension indexes each grid space (in either dimension),
-              such that each element is arbitrary grid data spatially
-              situated at the centre of this grid space for this time step.
+
+            #. First dimension indexes each sampled time step.
+            #. Second dimension indexes each grid space (in either dimension),
+               such that each element is arbitrary grid data spatially
+               situated at the centre of this grid space for this time step.
+
             Defaults to ``None``, in which case at least one of the
             ``times_cells_centre`` and ``times_membranes_midpoint`` parameters
             must be non-``None``.
@@ -92,13 +97,15 @@ class VectorCellsCache(SimPhaseCacheABC):
             Two-dimensional iterable of all cell membrane data for a single
             cell membrane-specific modelled variable (e.g., cell membrane
             voltage) for all simulation time steps, whose:
-            . First dimension indexes each sampled time step.
-            . Second dimension indexes each cell membrane, such that each
-              element is arbitrary cell membrane data spatially situated at the
-              midpoint of this membrane for this time step.
+
+            #. First dimension indexes each sampled time step.
+            #. Second dimension indexes each cell membrane, such that each
+               element is arbitrary cell membrane data spatially situated at
+               the midpoint of this membrane for this time step.
+
             Defaults to ``None``, in which case at least one of the
-            ``times_cells_centre`` and ``times_grids_centre`` parameters must be
-            non-``None``.
+            ``times_cells_centre`` and ``times_grids_centre`` parameters must
+            be non-``None``.
 
         All remaining keyword arguments are passed as is to the superclass
         :meth:`SimPhaseCacheABC.__init__` method.
@@ -152,7 +159,7 @@ class VectorCellsCache(SimPhaseCacheABC):
         self._times_grids_centre = times_grids_centre
         self._times_membranes_midpoint = times_membranes_midpoint
 
-    # ..................{ PROPERTIES                         }..................
+    # ..................{ PROPERTIES                        }..................
     # Read-only properties, preventing callers from setting these attributes.
 
     @property_cached
@@ -163,8 +170,8 @@ class VectorCellsCache(SimPhaseCacheABC):
 
         #. First dimension indexes each sampled time step.
         #. Second dimension indexes each cell, such that each element is
-           arbitrary cell data spatially situated at the centre of this cell for
-           this time step.
+           arbitrary cell data spatially situated at the centre of this cell
+           for this time step.
 
         This array is created only on the first access of this property.
         '''
@@ -197,7 +204,8 @@ class VectorCellsCache(SimPhaseCacheABC):
         simulation time steps, whose:
 
         #. First dimension indexes each sampled time step.
-        #. Second dimension indexes each cell membrane, such that each element is
+        #. Second dimension indexes each cell membrane, such that each element
+        #is
            arbitrary cell membrane data spatially situated at the midpoint of
            this membrane for this time step.
 
@@ -271,22 +279,25 @@ class VectorCellsCache(SimPhaseCacheABC):
         #. First dimension indexes each sampled time step.
         #. Second dimension indexes each square environmental grid space (in
            either dimension), such that each element is either:
+
            * If this vector was initialized with the :meth:`times_grids_centre`
              parameter, arbitrary grid data spatially situated at the centre of
              this grid space for this time step. In this case, no interpolation
              is required and the original :meth:`times_grids_centre` array is
-             returned as is. This edge case preserves all extracellular data for
-             environmental grid spaces.
+             returned as is. This edge case preserves all extracellular data
+             for environmental grid spaces.
            * Else:
+
              * If this grid space resides *inside* the convex hull of this cell
                cluster, arbitrary grid data spatially interpolated from the
-               centres of all cells whose membranes overlap this grid space onto
-               the centre of this grid space for this time step.
+               centres of all cells whose membranes overlap this grid space
+               onto the centre of this grid space for this time step.
              * Else, 0. In this case, this is an environmental grid space
                residing *outside* the convex hull of this cell cluster. Since
-               this vector was initialized with a cell-centric array rather than
-               the `times_grids_centre` parameter, this vector contains no
-               extracellular data to interpolate environmental grid spaces from.
+               this vector was initialized with a cell-centric array rather
+               than the `times_grids_centre` parameter, this vector contains no
+               extracellular data to interpolate environmental grid spaces
+               from.
 
         This array is created only on the first access of this property.
         '''

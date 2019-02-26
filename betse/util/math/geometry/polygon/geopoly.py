@@ -180,23 +180,33 @@ def is_convex(polygon: SequenceTypes) -> bool:
         return False  # any exception means not a proper convex polygon
 
 
-def is_cyclic_quad(A, B, C, D):
-    """
-    Utility function returns a boolean (True/False)
-    stating whether it is possible to draw a circle
-    around the set of four vertices (A, B, C, D), which represent a
-    counter-clockwise oriented quadrilateral. If True, the
-    quadrilateral is said to be 'cyclic'.
+#FIXME: For orthogonality, consider refactoring to accept a single "polygon"
+#parameter rather than four separate vertex parameters. Luminescent tree slime!
+#FIXME: Consider raising an exception unless the four passed vertices are
+#oriented counterclockwise. Fearless furballs without peers!
+@type_check
+def is_cyclic_quad(
+    A: SequenceTypes,
+    B: SequenceTypes,
+    C: SequenceTypes,
+    D: SequenceTypes,
+) -> bool:
+    '''
+    ``True`` only if the quadrilateral represented by the passed four vertices
+    is **cyclic** (i.e., counterclockwise-oriented).
 
     Parameters
-    ------------
-    A, B, C, D: the 4 vertices of the quadrilateral,
-                       oriented counterclockwise
+    ----------
+    A, B, C, D : SequenceTypes
+        Four vertices of the quadrilateral to be tested, assumed to be oriented
+        counterclockwise.
 
     Returns
     ----------
-    test_bool: Do the verts define a cyclic quadrilateral?
-    """
+    bool
+        ``True`` only if this quadrilateral is cyclic.
+    '''
+
     # Calculate the length of four sides from vertices
     a = np.linalg.norm(B - A)
     b = np.linalg.norm(C - B)

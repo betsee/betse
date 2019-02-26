@@ -596,6 +596,10 @@ class SimConfigTestWrapper(object):
             possible exports are unconditionally enabled.
         '''
 
+        # Defer heavyweight imports.
+        from betse.lib.yaml.abc.yamllistabc import YamlListItemTypedBooledABC
+        from betse.util.type.obj import objects
+
         # Log this action.
         logs.log_debug('Analyzing pipeline exporters...')
 
@@ -603,7 +607,7 @@ class SimConfigTestWrapper(object):
         if requirements_omit is None:
             requirements_omit = phasereqs.NONE
 
-        #FIXME: For each export pipeline, refactor the following iteration to:
+        #FIXME: For each export pipeline, refactor the following iteration to
         #clear the existing sequence of all exporters configured for this
         #pipeline first. Investigate whether or not a YamlListABC.clear()
         #method has already been defined for doing so.
@@ -650,11 +654,18 @@ class SimConfigTestWrapper(object):
                     'Including pipeline "%s" exporter "%s"...',
                     pipe_export.name, pipe_exporter_name)
 
-                # Create and append a new exporter configuration with sane
-                # defaults to the sequence of such configurations for this
+                # Create and append a new exporter subconfiguration with sane
+                # defaults to the sequence of such subconfigurations for this
                 # pipeline.
                 pipe_exporter_conf = pipe_exporters_conf.append_default()
-                pipe_exporter_conf.name = pipe_exporter_name
+
+                # If this subconfiguration does *NOT* define the "kind"
+                # property accessed below, raise an exception.
+                objects.die_unless_instance(
+                    obj=pipe_exporter_conf,
+                    cls=YamlListItemTypedBooledABC)
+
+                pipe_exporter_conf.kind = pipe_exporter_name
 
     # ..................{ PRIVATE ~ enablers : solver       }..................
     def _enable_solver_full_features(self) -> None:

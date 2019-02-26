@@ -290,7 +290,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         AnimVelocityIntracellular(
             phase=phase,
             conf=conf,
-            label='Velocity_gj',
+            kind='Velocity_gj',
             figure_title='Intracellular Fluid Velocity',
             colorbar_title='Fluid Velocity [nm/s]',
         )
@@ -311,7 +311,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         AnimVelocityExtracellular(
             phase=phase,
             conf=conf,
-            label='Velocity_ecm',
+            kind='Velocity_ecm',
             figure_title='Extracellular Fluid Velocity',
             colorbar_title='Fluid Velocity [um/s]',
         )
@@ -359,7 +359,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
             phase=phase,
             conf=conf,
             time_series=phase.sim.gjopen_time,
-            label='Vmem_gj',
+            kind='Vmem_gj',
             figure_title='Gap Junction State over Vmem',
             colorbar_title='Voltage [mV]',
         )
@@ -407,7 +407,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
             phase=phase,
             conf=conf,
             time_series=phase.sim.P_cells_time,
-            label='Pcell',
+            kind='Pcell',
             figure_title='Pressure in Cells',
             colorbar_title='Pressure [Pa]',
         )
@@ -428,7 +428,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
             phase=phase,
             conf=conf,
             time_series=phase.sim.osmo_P_delta_time,
-            label='Osmotic Pcell',
+            kind='Osmotic Pcell',
             figure_title='Osmotic Pressure in Cells',
             colorbar_title='Pressure [Pa]',
         )
@@ -449,7 +449,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
     #         phase=phase,
     #         conf=conf,
     #         time_series=phase.sim.rho_pump_time,
-    #         label='rhoPump',
+    #         kind='rhoPump',
     #         figure_title='Pump Density Factor',
     #         colorbar_title='mol fraction/m2',
     #     )

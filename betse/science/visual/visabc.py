@@ -68,7 +68,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     _conf : SimConfVisualCellsABC
         Configuration for this visual, synchronized with the user-defined
         YAML-backed simulation configuration file for this phase.
-    _label : str
+    _kind : str
         Basename of the subdirectory in the phase-specific results directory
         to which all files exported for this visual are saved *and*
         the basename prefix of these files.
@@ -145,12 +145,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         conf: SimConfVisualCellsABC,
         is_save: bool,
         is_show: bool,
-
-        #FIXME: For orthogonality with nomenclature elsewhere -- including the
-        #the "conf.name" attribute -- rename both this parameter and the
-        #corresponding "_label" attribute to "name" and "_name" respectively.
-        label: str,
-
+        kind: str,
         figure_title: str,
 
         # Optional parameters.
@@ -177,8 +172,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             ``True`` only if non-interactively saving this visual.
         is_show : bool
             ``True`` only if interactively displaying this visual.
-        label : str
+        kind : str
             Terse machine-readable string (e.g., ``Vmem``) serving as both:
+
             * The basename of the subdirectory of the phase-specific results
               directory containing all files saved by this visual.
             * The basename prefix of these files.
@@ -188,11 +184,11 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             Text displayed above the figure axes but below the figure title.
             Defaults to `None`, in which case no such text is displayed.
         axes_x_label : optional[str]
-            Text displayed below this figure's X axis. Defaults to `None`, in
+            Text displayed below this figure's X axis. Defaults to ``None``, in
             which case a general-purpose string is defaulted to.
         axes_y_label : optional[str]
             Text displayed to the left of this figure's Y axis. Defaults to
-            `None`, in which case a general-purpose string is defaulted to.
+            ``None``, in which case a general-purpose string is defaulted to.
         colorbar_title: optional[str]
             Text displayed above the figure colorbar if any *or* ``None``
             otherwise. If this parameter is ``None`` *and* at least one layer
@@ -229,7 +225,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         self._is_save = is_save
         self._is_show = is_show
         self._figure_title = figure_title
-        self._label = label
+        self._kind = kind
 
         # Convert the passed sequence of layers into a new list of layers,
         # permitting this sequence to be safely modified *WITHOUT* modifying
@@ -476,13 +472,13 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
 
     @property
-    def name(self) -> str:
+    def kind(self) -> str:
         '''
-        Non-human-readable name identifying this type of visual (e.g.,
+        Machine-readable name identifying this type of visual (e.g.,
         ``voltage_extra``).
         '''
 
-        return self._label
+        return self._kind
 
     # ..................{ PROPERTIES ~ read-only : mpl      }..................
     @property
@@ -554,7 +550,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         if not self._colorbar_title:
             raise BetseSimVisualException(
                 'Animation "{}" parameter "colorbar_title" '
-                'undefined or empty.'.format(self._label))
+                'undefined or empty.'.format(self._kind))
 
         # Create and configure this colorbar.
         colorbar = self._figure.colorbar(color_mappable)
@@ -583,7 +579,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         If this simulation configuration requests that cells be labelled by
         their 0-based indices, a layer doing so is appended to the current
-        layer sequence. Since this method is called _after_ all user-defined
+        layer sequence. Since this method is called *after* all user-defined
         layers have been appended, these labels are guaranteed to be layered
         over rather than under all plotted cell data.
         '''
@@ -847,7 +843,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Log this animation frame.
         logs.log_debug(
             'Exporting "%s" frame %d / %d...',
-            self._label, time_step_absolute, self._time_step_last)
+            self._kind, time_step_absolute, self._time_step_last)
 
         # Classify this time step for subsequent access by subclasses.
         self._time_step = time_step
@@ -1046,7 +1042,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # *AFTER* instructing these writers to write this frame.
         if time_step_absolute == self._time_step_last:
             logs.log_debug(
-                'Finalizing animation "%s" saving...', self._label)
+                'Finalizing animation "%s" saving...', self._kind)
             self._close_writers()
 
     # ..................{ SUBCLASS                          }..................
