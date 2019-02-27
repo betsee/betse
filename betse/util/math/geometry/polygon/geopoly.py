@@ -184,13 +184,18 @@ def is_convex(polygon: SequenceTypes) -> bool:
 #parameter rather than four separate vertex parameters. Luminescent tree slime!
 #FIXME: Consider raising an exception unless the four passed vertices are
 #oriented counterclockwise. Fearless furballs without peers!
+#FIXME: Type check the return value properly by:
+#
+#* Defining a new "betse.util.type.types.BoolTypes" tuple ala:
+#  BoolTypes = (bool, np.bool_)
+#* Importing and referencing that tupe below rather than "np.bool_".
 @type_check
 def is_cyclic_quad(
     A: SequenceTypes,
     B: SequenceTypes,
     C: SequenceTypes,
     D: SequenceTypes,
-) -> bool:
+) -> np.bool_:
     '''
     ``True`` only if the quadrilateral represented by the passed four vertices
     is **cyclic** (i.e., counterclockwise-oriented).
