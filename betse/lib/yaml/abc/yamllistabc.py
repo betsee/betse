@@ -275,6 +275,11 @@ class YamlList(YamlABC, MutableSequence):
         return conf_wrap
 
     # ..................{ GETTERS                           }..................
+    #FIXME: Generalize this method into a new
+    #betse.util.type.iterable.iterables.uniquify_item_attr_value() function
+    #accepting a new "iterable: IterableTypes" first parameter for generality.
+    #For convenience, retain this method rewritten in terms of that newly
+    #defined function.
     @type_check
     def uniquify_item_attr_value(
         self, attr_name: str, attr_value_format: str) -> str:
@@ -313,6 +318,9 @@ class YamlList(YamlABC, MutableSequence):
             If this format specifier contains no ``{}`` substring.
         '''
 
+        # Avoid circular import dependencies.
+        from betse.util.type.obj import objects
+
         # Log this formatting.
         logs.log_debug(
             'Uniquifying YAML list item key "%s" with template "%s"...',
@@ -336,31 +344,39 @@ class YamlList(YamlABC, MutableSequence):
         strs.die_unless_substr(text=attr_value_format, substr='{}')
 
         # Arbitrary unique identifier with which to uniquify (i.e., guarantee
-        # the uniqueness of) the name of a new item in this list, defaulting to
-        # the number of existing items in this list.
+        # the uniqueness of) an arbitrary string attribute of a new item in
+        # this list, defaulting to the number of existing items in this list.
         yaml_list_item_id = len(self._confs_wrap)
 
-        # Name of this tissue profile, unique in this list.
-        yaml_list_item_name = None
+        # Arbitrary string attribute of a new item in this list.
+        yaml_list_item_attr = None
 
-        # While this name is *NOT* unique in this list, iteratively (re)search
-        # this list until obtaining a unique name. This iteration is guaranteed
-        # to (eventually) terminate successfully with a unique name.
+        # While this attribute is *NOT* unique across this list, iteratively
+        # (re)search this list until obtaining a unique attribute. This
+        # iteration is guaranteed to terminate successfully.
         while True:
-            yaml_list_item_name = attr_value_format.format(yaml_list_item_id)
+            yaml_list_item_attr = attr_value_format.format(yaml_list_item_id)
 
             # For each existing item of this list...
             for yaml_list_item_other in self._confs_wrap:
-                # If this item already has this name, this name is non-unique.
-                # In this case, increment this identifier, format a new name
-                # via this identifier, and repeat this search.
-                if yaml_list_item_name == yaml_list_item_other.name:
+                # String value of the attribute with this name defined by this
+                # item if such an attribute exists *OR* raise an exception.
+                yaml_list_item_other_attr = objects.get_attr(
+                    obj=yaml_list_item_other,
+                    attr_name=attr_name,
+                    attr_type=str,
+                )
+
+                # If this item already has this attribute, this attribute is
+                # non-unique. In this case, increment this identifier, format a
+                # new attribute via this identifier, and continue this search.
+                if yaml_list_item_attr == yaml_list_item_other_attr:
                     yaml_list_item_id += 1
                     break
-            # If no item already has this name, this name is unique. In that
-            # case, cease searching.
+            # If no item already has this attribute, this attribute is unique.
+            # In this case, cease searching.
             else:
                 break
 
-        # Return this name.
-        return yaml_list_item_name
+        # Return this attribute.
+        return yaml_list_item_attr

@@ -94,14 +94,14 @@ def die_unless_items_unique(iterable: IterableTypes) -> None:
 @type_check
 def is_reversible(iterable: IterableTypes) -> bool:
     '''
-    `True` only if the passed iterable is **reversible** (i.e., successfully
+    ``True`` only if the passed iterable is **reversible** (i.e., successfully
     passable to the :func:`reversed` builtin).
 
-    Specifically, this function returns `True` if this iterable either:
+    Specifically, this function returns ``True`` only if this iterable either:
 
-    * Defines the `__reversed__()` special method.
-    * Defines the `__len__()` and `__getitem__()` special methods, satisfying
-      the sequence protocol.
+    * Defines the ``__reversed__()`` special method.
+    * Defines the ``__len__()`` *and* ``__getitem__()`` special methods,
+      satisfying the sequence protocol.
 
     Parameters
     ----------
@@ -111,21 +111,18 @@ def is_reversible(iterable: IterableTypes) -> bool:
     Returns
     ----------
     bool
-        `True` only if this iterable is reversible.
+        ``True`` only if this iterable is reversible.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.type.obj import objects
 
-    # Return True only if this iterable either...
+    # Return True only if this iterable defines either...
     return (
-        # Defines the __reversed__() special method.
-        objects.is_method(iterable, '__reversed__') or (
-            # Defines the __len__() and __getitem__() special methods.
-            objects.is_method(iterable, '__len__') and
-            objects.is_method(iterable, '__getitem__')
-        )
-    )
+        # The __reversed__() special method *OR*...
+        objects.has_method(iterable, '__reversed__') or
+        # The __len__() *AND* __getitem__() special methods.
+        objects.has_method(iterable, '__len__', '__getitem__'))
 
 # ....................{ TESTERS ~ items                   }....................
 @type_check

@@ -13,7 +13,7 @@ Low-level object facilities.
 # ....................{ IMPORTS                           }....................
 import platform
 from betse.exceptions import (
-    BetseAttributeException, BetseMethodException, BetseTypeException)
+    BetseAttrException, BetseMethodException, BetseTypeException)
 from betse.util.type import types
 from betse.util.type.types import (
     type_check,
@@ -21,6 +21,7 @@ from betse.util.type.types import (
     CallableOrNoneTypes,
     ClassType,
     TestableTypes,
+    TestableOrNoneTypes,
 )
 
 # ....................{ EXCEPTIONS                        }....................
@@ -74,20 +75,48 @@ def die_unless_instance(obj: object, cls: TestableTypes) -> None:
             'Object {!r} not an instance of {!r}.'.format(obj, cls))
 
 # ....................{ EXCEPTIONS ~ attr                 }....................
-#FIXME: Rename to die_unless_has_class() for clarity. The current name is
-#functionally insane.
 @type_check
-def die_unless_class(obj: object, *class_names: str) -> None:
+def die_unless_has_attr(obj: object, *attr_names: str) -> None:
     '''
-    Raise an exception unless the passed object provides all classes with the
+    Raise an exception unless the passed object defines all attributes with the
     passed names.
 
     Parameters
     ----------
     obj : object
-        Object to test for these classes.
+        Object to be validated.
+    attr_names : tuple[str]
+        Tuple of the names of all attributes to validate this object to define.
+
+    Raises
+    ----------
+    BetseAttrException
+        If one or more such attributes are *not* bound to this object.
+    '''
+
+    # If this object fails to define one or more of these attributes...
+    if not has_attr(obj, *attr_names):
+        # For the name of each such attribute...
+        for attr_name in attr_names:
+            # If this object fails to define a attribute with this name, raise
+            # an exception describing this failure. For simplicity, reuse the
+            # existing exception raising implementation of get_attr().
+            if not has_attr(obj, attr_name):
+                get_attr(obj, attr_name)
+
+
+@type_check
+def die_unless_has_class(obj: object, *class_names: str) -> None:
+    '''
+    Raise an exception unless the passed object defines all classes with the
+    passed names.
+
+    Parameters
+    ----------
+    obj : object
+        Object to be validated.
     class_names : tuple[str]
-        Tuple of the names of all classes to test this object for.
+        Tuple of the names of all classes to validate this object to define.
 
     Raises
     ----------
@@ -95,27 +124,30 @@ def die_unless_class(obj: object, *class_names: str) -> None:
         If one or more such classes are *not* bound to this object.
     '''
 
-    #FIXME: Inefficient. Refactor to use the any() builtin instead.
-    for class_name in class_names:
-        if not is_class(obj=obj, class_name=class_name):
-            raise BetseTypeException(
-                'Object "{}" class "{}" undefined.'.format(obj, class_name))
+    # If this object fails to define one or more of these classes...
+    if not has_class(obj, *class_names):
+        # For the name of each such class...
+        for class_name in class_names:
+            # If this object fails to define a class with this name, raise an
+            # exception describing this failure.
+            if not has_class(obj, class_name):
+                raise BetseTypeException(
+                    'Class "{}.{}" undefined.'.format(
+                        get_class_name_unqualified(obj), class_name))
 
 
-#FIXME: Rename to die_unless_has_method() for clarity. The current name is
-#functionally insane.
 @type_check
-def die_unless_method(obj: object, *method_names: str) -> None:
+def die_unless_has_method(obj: object, *method_names: str) -> None:
     '''
-    Raise an exception unless the passed object provides all methods with the
+    Raise an exception unless the passed object defines all methods with the
     passed names.
 
     Parameters
     ----------
     obj : object
-        Object to test for these methods.
+        Object to be validated.
     method_names : tuple[str]
-        Tuple of the names of all methods to test this object for.
+        Tuple of the names of all methods to validate this object to define.
 
     Raises
     ----------
@@ -123,91 +155,99 @@ def die_unless_method(obj: object, *method_names: str) -> None:
         If one or more such methods are *not* bound to this object.
     '''
 
-    #FIXME: Inefficient. Refactor to use the any() builtin instead.
-    for method_name in method_names:
-        if not is_method(obj=obj, method_name=method_name):
-            raise BetseMethodException(
-                'Object "{}" method {}() undefined.'.format(obj, method_name))
+    # If this object fails to define one or more of these methods...
+    if not has_method(obj, *method_names):
+        # For the name of each such method...
+        for method_name in method_names:
+            # If this object fails to define a method with this name, raise an
+            # exception describing this failure.
+            if not has_method(obj, method_name):
+                raise BetseMethodException(
+                    'Method "{}.{}" undefined.'.format(
+                        get_class_name_unqualified(obj), method_name))
 
-# ....................{ TESTERS                           }....................
-#FIXME: Rename to has_attr() for orthogonality with testers defined below.
+# ....................{ TESTERS ~ attr                    }....................
 @type_check
-def is_attr(obj: object, attr_name: str) -> bool:
+def has_attr(obj: object, *attr_names: str) -> bool:
     '''
-    ``True`` only if the passed object provides an attribute of arbitrary type
-    with the passed name.
-
-    This function is a convenient synonym of the :func:`hasattr` builtin,
-    provided entirely as a caller convenience.
+    ``True`` only if the passed object defines all attributes with the passed
+    names.
 
     Parameters
     ----------
     obj : object
-        Object to be tested for this attribute.
-    attr_name : str
-        Name of the attribute to be tested for.
+        Object to be tested.
+    attr_names : tuple[str]
+        Tuple of the names of all attributes to test this object for.
 
     Returns
     ----------
     bool
-        ``True`` only if this attribute is bound to this object.
+        ``True`` only if this object defines all such attributes.
     '''
 
-    return hasattr(obj, attr_name)
+    # Return true only if, for each such attribute name, this object defines an
+    # attribute with this name.
+    return all(hasattr(obj, attr_name) for attr_name in attr_names)
 
 
-#FIXME: Rename to has_class() for clarity. The current name is insane.
 @type_check
-def is_class(obj: object, class_name: str) -> bool:
+def has_class(obj: object, *class_names: str) -> bool:
     '''
-    ``True`` only if the passed object defines a class with the passed name.
+    ``True`` only if the passed object defines all classes with the passed
+    names.
 
     Parameters
     ----------
     obj : object
-        Object to test for this class.
-    class_name : str
-        Name of the class to test this object for.
+        Object to be tested.
+    class_names : tuple[str]
+        Tuple of the names of all classes to test this object for.
 
     Returns
     ----------
     bool
-        ``True`` only if a class with this name is bound to this object.
+        ``True`` only if this object defines all such classes.
     '''
 
-    # Attribute with this name in this object if any *OR* "None" otherwise.
-    cls = getattr(obj, class_name, None)
+    # Return true only if...
+    return all(
+        # This object defines a class with this name... Dismantled, this is:
+        #
+        # * getattr(), returning an attribute with this name bound to this
+        #   object if any *OR* "None" otherwise.
+        # * is_class(), returning True only if this attribute is a class. Since
+        #   "None" is guaranteed to *NOT* be a class, this test suffices.
+        types.is_class(getattr(obj, class_name, None))
+        # For each passed class name.
+        for class_name in class_names)
 
-    # Return whether this attribute is a class. Since "None" is guaranteed to
-    # *NOT* be a class, this simple test produces the expected result in all
-    # possible cases.
-    return types.is_class(cls)
 
-
-#FIXME: Rename to has_method() for clarity. The current name is insane.
 @type_check
-def is_method(obj: object, method_name: str) -> bool:
+def has_method(obj: object, *method_names: str) -> bool:
     '''
-    ``True`` only if the passed object provides a method with the passed name.
+    ``True`` only if the passed object defines all methods with the passed
+    names.
 
     Parameters
     ----------
     obj : object
-        Object to test for this method.
-    method_name : str
-        Name of the method to test this object for.
+        Object to be tested.
+    method_names : tuple[str]
+        Tuple of the names of all methods to test this object for.
 
     Returns
     ----------
     bool
-        ``True`` only if a method with this name is bound to this object.
+        ``True`` only if this object defines all such methods.
     '''
 
-    # Method with this name bound to this object if any or "None" otherwise.
-    method = get_method_or_none(obj=obj, method_name=method_name)
-
-    # Return true only if this method exists.
-    return method is not None
+    # Return true only if...
+    return all(
+        # This object defines a method with this name...
+        get_method_or_none(obj=obj, method_name=method_name) is not None
+        # For each passed method name.
+        for method_name in method_names)
 
 # ....................{ TESTERS ~ pure                    }....................
 # Tester distinguishing pure-Python from C-based class instances. Doing so is
@@ -236,10 +276,10 @@ def is_method(obj: object, method_name: str) -> bool:
 if platform.python_implementation() == 'CPython':
     _Py_TPFLAGS_HEAPTYPE = (1<<9)
     '''
-    Magic number defined by the `Include/object.h` C header in the official
+    Magic number defined by the ``Include/object.h`` C header in the official
     CPython codebase.
 
-    CPython ORs the `__flags__` bit field of the class object for each **heap
+    CPython ORs the ``__flags__`` bit field of the class object for each **heap
     type** (i.e., pure-Python class whose type structure is dynamically
     allocated at interpreter runtime rather than a C-based class whose type
     structure is statically preallocated at either interpreter or C extension
@@ -277,8 +317,8 @@ else:
         #     >>> hasattr(int, '__dict__')
         #     True
         #
-        # For unknown and presumably banal reasons, the dir() builtin strips
-        # the "__dict__" attribute name from its returned list only for C-based
+        # For unknown but probably banal reasons, the dir() builtin strips the
+        # "__dict__" attribute name from its returned list only for C-based
         # classes. Hence, detecting whether a class is pure-Python or C-based
         # in a cross-interpreter manner reduces to iteratively searching the
         # list returned by dir() for this name.
@@ -345,17 +385,32 @@ def is_c_based(obj: object) -> bool:
 
 # ....................{ GETTERS : attr                    }....................
 @type_check
-def get_attr(obj: object, attr_name: str) -> object:
+def get_attr(
+    # Mandatory parameters.
+    obj: object,
+    attr_name: str,
+
+    # Optional parameters.
+    attr_type: TestableOrNoneTypes = None,
+) -> object:
     '''
-    Attribute with the passed name bound to the passed object if any *or* raise
-    an exception otherwise.
+    Attribute with the passed name whose value is optionally of the passed type
+    defined by the passed object if this object defines such an attribute *or*
+    raise an exception otherwise (i.e., if this object defines no such
+    attribute).
 
     Parameters
     ----------
     obj : object
-        Object to obtain this attribute from.
+        Object to be queried for this attribute.
     attr_name : str
-        Name of the attribute to be obtained.
+        Name of the attribute to be retrieved.
+    attr_type : TestableOrNoneTypes
+        Expected type of the current value of this attribute. If this type is
+        non-``None`` and this value is not an instance of this type, an
+        exception is raised -- effectively performing the equivalent of the
+        :meth:`type_check` decorator at runtime. Defaults to ``None``, in which
+        case no such type checking is performed.
 
     Returns
     ----------
@@ -364,24 +419,33 @@ def get_attr(obj: object, attr_name: str) -> object:
 
     Raises
     ----------
-    BetseAttributeException
+    BetseAttrException
         If no such attribute is bound to this object.
+    BetseTypeException
+        If the ``attr_type`` parameter is non-``None`` and the type of the
+        current value of this attribute is *not* an instance of ``attr_type``.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.type.obj.sentinels import SENTINEL
 
-    # Attribute with this name in this object if any or the sentinel otherwise.
-    attr = get_attr_or_sentinel(obj, attr_name)
+    # Current value of the attribute with this name defined by this object if
+    # any *OR* the sentinel otherwise.
+    attr_value = get_attr_or_sentinel(obj, attr_name)
 
     # If no such attribute exists, raise an exception.
-    if attr is SENTINEL:
-        raise BetseAttributeException(
-            'Object attribute "{}.{}" undefined.'.format(
-                obj.__class__.__name__, attr_name))
+    if attr_value is SENTINEL:
+        raise BetseAttrException(
+            'Attribute "{}.{}" undefined.'.format(
+                get_class_name_unqualified(obj), attr_name))
+    # Else, this attribute exists.
 
-    # Else, this attribute exists. Return this attribute as is.
-    return attr
+    # If the caller requested that this attribute be type-checked, do so.
+    if attr_type is not None:
+        die_unless_instance(obj=attr_value, cls=attr_type)
+
+    # Return the current value of this attribute.
+    return attr_value
 
 
 @type_check

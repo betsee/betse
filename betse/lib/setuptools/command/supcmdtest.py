@@ -254,7 +254,7 @@ class test(Command):
 
         # If the private method to be monkey-patched no longer exists, py.test
         # is either broken or unsupported. In either case, raise an exception.
-        if not objects.is_method(CaptureManager, '_getcapture'):
+        if not objects.has_method(CaptureManager, '_getcapture'):
             raise BetseTestException(
                 'Method pytest.capture.CaptureManager._getcapture() '
                 'not found. The current version of py.test is either '

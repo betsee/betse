@@ -580,6 +580,31 @@ strings.)
 # dependencies. For safety, all such types default to ``None`` here and are
 # subsequently redefined by the try-except block below.
 
+BoolTypes = None
+'''
+Tuple of all strictly boolean types, including both the standard :class:`bool`
+builtin *and* the non-standard NumPy-specific boolean type (when NumPy is
+importable in the active Python interpreter).
+
+Caveats
+----------
+Non-standard boolean types are typically *not* interoperable with the standard
+standard :class:`bool` type. In particular, it is typically *not* the case, for
+any variable ``my_bool`` of non-standard boolean type and truthy value,
+that either ``my_bool is True`` or ``my_bool == True`` yield the desired
+results. Rather, such variables should *always* be coerced into the standard
+:class:`bool` type before being compared -- either:
+
+* Implicitly (e.g., ``if my_bool: pass``).
+* Explicitly (e.g., ``if bool(my_bool): pass``).
+
+See Also
+----------
+:class:`SequenceTypes`
+    Further details.
+'''
+
+
 IterableTypes = None
 '''
 Tuple of all container base classes conforming to (but *not* necessarily
@@ -667,14 +692,16 @@ except:
 
 # If NumPy is importable, conditionally define NumPy-specific types.
 try:
-    from numpy import dtype, ndarray
+    from numpy import bool_, dtype, ndarray
 
+    BoolTypes = (bool, bool_)
     NumpyArrayType = ndarray
     NumpyDataTypes = (dtype,) + NumericlikeTypes
     IterableTypes = (Iterable, NumpyArrayType)
     SequenceTypes = (Sequence, NumpyArrayType)
 # Else, Numpy is unimportable. Define these tuples to contain only stock types.
 except:
+    BoolTypes = (bool,)
     IterableTypes = (Iterable,)
     SequenceTypes = (Sequence,)
 

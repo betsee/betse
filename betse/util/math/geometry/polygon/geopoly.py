@@ -13,7 +13,7 @@ boundary remain strictly inside the polygon) functionality.
 import math
 import numpy as np
 from betse.exceptions import BetseMathPolygonException
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check, BoolTypes, SequenceTypes
 
 # ....................{ EXCEPTIONS                        }....................
 def die_unless_polygon(*polygons: SequenceTypes) -> None:
@@ -184,18 +184,13 @@ def is_convex(polygon: SequenceTypes) -> bool:
 #parameter rather than four separate vertex parameters. Luminescent tree slime!
 #FIXME: Consider raising an exception unless the four passed vertices are
 #oriented counterclockwise. Fearless furballs without peers!
-#FIXME: Type check the return value properly by:
-#
-#* Defining a new "betse.util.type.types.BoolTypes" tuple ala:
-#  BoolTypes = (bool, np.bool_)
-#* Importing and referencing that tupe below rather than "np.bool_".
 @type_check
 def is_cyclic_quad(
     A: SequenceTypes,
     B: SequenceTypes,
     C: SequenceTypes,
     D: SequenceTypes,
-) -> np.bool_:
+) -> bool:
     '''
     ``True`` only if the quadrilateral represented by the passed four vertices
     is **cyclic** (i.e., counterclockwise-oriented).
@@ -212,24 +207,33 @@ def is_cyclic_quad(
         ``True`` only if this quadrilateral is cyclic.
     '''
 
+    #FIXME: Actually do this at some point. Tree wizards are best wizards!
+    # Avoid circular import dependencies.
+    # Coerce these sequences to Numpy arrays for efficiency.
+
     # Calculate the length of four sides from vertices
     a = np.linalg.norm(B - A)
     b = np.linalg.norm(C - B)
     c = np.linalg.norm(D - C)
     d = np.linalg.norm(A - D)
 
-    # Calculate the length of the two diagonals
+    # Calculate the length of the two diagonals.
     e = np.sqrt(((a * c + b * d) * (a * d + b * c)) / (a * b + c * d))
     f = np.sqrt(((a * c + b * d) * (a * b + c * d)) / (a * d + b * c))
 
-    # for a cyclic quad, the product between the two diagonals equals
-    # the product between the two adjacent sides:
+    # For a cyclic quad, the product between the two diagonals equals
+    # the product between the two adjacent sides.
     lhs = np.round(e*f, 15)
     rhs = np.round(a*c + b*d, 15)
 
+    # Numpy-specific boolean.
     test_bool = lhs == rhs
 
-    return test_bool
+    #FIXME: Define a new betse.lib.numpy.numpys.to_scalar_std() function
+    #performing this coercion. See also:
+    #    https://stackoverflow.com/a/11389998/2809027
+    # Coerce this Numpy-specific boolean into a standard boolean for safety.
+    return test_bool.item()
 
 # ....................{ ORIENTERS                         }....................
 #FIXME: Unit test us up.

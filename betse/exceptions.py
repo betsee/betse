@@ -28,8 +28,7 @@ class BetseException(Exception, metaclass=ABCMeta):
     pass
 
 
-#FIXME: Rename to merely "BetseAttrException".
-class BetseAttributeException(BetseException):
+class BetseAttrException(BetseException):
     '''
     **Attribute** (i.e., variable or method bound to an object)-specific
     exception.

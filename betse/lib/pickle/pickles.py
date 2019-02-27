@@ -257,7 +257,7 @@ def init() -> None:
 
     # If this submodule does *NOT* contain the expected "Pickler" base class,
     # raise an exception.
-    objects.die_unless_class(dill_core_submodule, 'Pickler')
+    objects.die_unless_has_class(dill_core_submodule, 'Pickler')
 
     # Instruct "dill" to pickle with our application-specific pickler subclass.
     dill_core_submodule.Pickler = BetsePickler
