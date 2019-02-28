@@ -14,7 +14,6 @@ import numpy as np
 from betse.util.type.iterable import sequences
 from betse.util.type.types import (
     type_check, ClassType, IterableTypes, NumpyArrayType,)
-from numpy import ndarray
 
 # ....................{ GLOBALS                           }....................
 DTYPE_UNSIGNED_TO_SIGNED = {

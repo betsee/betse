@@ -520,22 +520,24 @@ objects *and* bound methods, which require specific handling.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # CAUTION: Order is significant here. See commentary in the docstring below.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 NumericSimpleTypes = (float, int,)
 '''
 Tuple of all **builtin simple numeric types** (i.e., classes whose instances
 are trivial scalar numbers), comprising both integer and real number types.
 
-This tuple intentionally excludes complex number types, whose non-trivial
-encapsulation of two scalar numbers often requires special-purpose handling.
+This tuple intentionally excludes complex number types - whose non-trivial
+encapsulation of a pair of real numbers *usually* necessitates non-trivial
+special handling.
 
 Caveats
 ----------
-For obscure reasons, this tuple intentionally lists the :class:`float` class
-*BEFORE* the :class:`int` class. (Downstream BETSEE requirements coerce
-GUI-based numeric string values into numbers by casting these strings into
-instances of the first item of this tuple. Reversing the order of these items
-in this tuple would adversely strip the decimal portion from real number
-strings.)
+Note that this tuple intentionally lists the :class:`float` type *before* the
+:class:`int` type. Why/ Downstream consumers (e.g., BETSEE) coerce GUI-based
+numeric string values into numbers by casting these strings into instances of
+the first item of this tuple. Reversing the order of these items in this tuple
+would adversely strip the decimal portion from real number strings. In simpler
+words: "Just 'cause."
 '''
 
 
@@ -562,17 +564,8 @@ implementation, the "standard" implementation trivially converts:
 
 ScalarTypes = (str,) + NumericlikeTypes
 '''
-Tuple of all **builtin scalar classes** (i.e., classes whose instances are
-single scalar numbers), comprising all boolean, numeric, and textual types.
-
-Caveats
-----------
-For obscure reasons, this tuple intentionally lists the :class:`float` class
-*BEFORE* the :class:`int` class. (Downstream BETSEE requirements coerce
-GUI-based numeric string values into numbers by casting these strings into
-instances of the first item of this tuple. Reversing the order of these items
-in this tuple would adversely strip the decimal portion from real number
-strings.)
+Tuple of all **builtin scalar types** (i.e., classes whose instances are
+single scalar primitives), comprising all boolean, numeric, and textual types.
 '''
 
 # ....................{ TUPLES : lib                      }....................
@@ -655,9 +648,19 @@ permitting callers to avoid importing that class.
 # ....................{ TUPLES : lib ~ numpy              }....................
 NumpyArrayType = None
 '''
-Type of Numpy arrays if :mod:`numpy` is importable *or* ``None`` otherwise.
+Type of all Numpy arrays if :mod:`numpy` is importable *or* ``None`` otherwise.
 
 This class is a synonym of the :class:`numpy.ndarray` class, permitting callers
+to avoid importing that class.
+'''
+
+
+NumpyScalarType = None
+'''
+Superclass of all Numpy scalar subclasses (e.g., :class:`numpy.bool_`) if
+:mod:`numpy` is importable *or* ``None`` otherwise.
+
+This class is a synonym of the :class:`numpy.generic` class, permitting callers
 to avoid importing that class.
 '''
 
@@ -692,13 +695,18 @@ except:
 
 # If NumPy is importable, conditionally define NumPy-specific types.
 try:
-    from numpy import bool_, dtype, ndarray
+    import numpy
 
-    BoolTypes = (bool, bool_)
-    NumpyArrayType = ndarray
-    NumpyDataTypes = (dtype,) + NumericlikeTypes
+    BoolTypes = (bool, numpy.bool_)
+    NumpyArrayType = numpy.ndarray
+    NumpyScalarType = numpy.generic
+    NumpyDataTypes = (numpy.dtype,) + NumericlikeTypes
     IterableTypes = (Iterable, NumpyArrayType)
     SequenceTypes = (Sequence, NumpyArrayType)
+
+    # Delete all of the Numpy-specific imports imported above to avoid
+    # polluting the namespace of this module with these irrelevant names.
+    del numpy
 # Else, Numpy is unimportable. Define these tuples to contain only stock types.
 except:
     BoolTypes = (bool,)

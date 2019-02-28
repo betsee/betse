@@ -207,11 +207,16 @@ def is_cyclic_quad(
         ``True`` only if this quadrilateral is cyclic.
     '''
 
-    #FIXME: Actually do this at some point. Tree wizards are best wizards!
     # Avoid circular import dependencies.
-    # Coerce these sequences to Numpy arrays for efficiency.
+    from betse.lib.numpy import nparray, npscalar
 
-    # Calculate the length of four sides from vertices
+    # Coerce these sequences to Numpy arrays for efficiency.
+    A = nparray.from_iterable(A)
+    B = nparray.from_iterable(B)
+    C = nparray.from_iterable(C)
+    D = nparray.from_iterable(D)
+
+    # Lengths of the four edges constructed from these vertices.
     a = np.linalg.norm(B - A)
     b = np.linalg.norm(C - B)
     c = np.linalg.norm(D - C)
@@ -226,14 +231,11 @@ def is_cyclic_quad(
     lhs = np.round(e*f, 15)
     rhs = np.round(a*c + b*d, 15)
 
-    # Numpy-specific boolean.
+    # Non-standard Numpy-specific boolean encapsulating this truth value.
     test_bool = lhs == rhs
 
-    #FIXME: Define a new betse.lib.numpy.numpys.to_scalar_std() function
-    #performing this coercion. See also:
-    #    https://stackoverflow.com/a/11389998/2809027
-    # Coerce this Numpy-specific boolean into a standard boolean for safety.
-    return test_bool.item()
+    # Coerce this into a standard Numpy-agnostic boolean for safety.
+    return npscalar.to_python(test_bool)
 
 # ....................{ ORIENTERS                         }....................
 #FIXME: Unit test us up.
