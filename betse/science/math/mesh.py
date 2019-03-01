@@ -1921,6 +1921,97 @@ class DECMesh(object):
 
         return cPsi_x, cPsi_y, gPhi_x, gPhi_y
 
+    def biharmonic(self, S, gtype = 'tri'):
+        if gtype == 'tri':
+
+            sflux_n = self.sflux_n
+            # ensure passed array is of the correct length:
+            assert (len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+
+            # calculate gradient of S:
+            gS = self.gradient(S, gtype='tri')
+
+            # calculate the divergence of the gradient, which is the laplacian:
+            lapS = self.div(sflux_n*gS, gtype = 'tri')
+
+            glapS = self.gradient(lapS, gtype = 'tri')
+
+            bihS = self.div(glapS*self.sflux_n, gtype='tri')
+
+        elif gtype == 'vor':
+
+            assert(len(S) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+            # calculate gradient of S:
+            gS = self.gradient(S, gtype='vor')
+
+            # calculate the divergence of the gradient, which is the Laplacian:
+            lapSo = self.div(gS, gtype = 'vor')
+
+            lapS = np.zeros(len(self.vor_verts))
+            lapS[self.inner_vvert_i] = lapSo
+
+            glapS = self.gradient(lapS, gtype='vor')
+
+            bihS = self.div(glapS, gtype='vor')
+
+        else:
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+        return bihS
+
+    def biharmonic_inv(self, S, gtype = 'tri'):
+
+        """
+        Computes an inverse scalar Laplacian on a scalar variable S as the inverse div of the inverse gradient of the
+        scalar.
+
+        If gtype = 'tri', the gradient is taken with respect to the tri_mesh edges with vor_mesh control volumes,
+        and if gtype = 'vor', the gradient is taken with respect to the vor_mesh edges with tri_mesh control volumes.
+
+        Note that due to the structure of the grids, the gtype tri lap is closed boundary (zero flux) while the
+        gtype vor lap is a 'free'/'open' boundary.
+
+        Parameters
+        -----------
+        S   -- a scalar array defined on tri_verts or vor_verts, depending on gtype
+        gtype -- specifies if laplacian is taken with respect to tri mesh or vor mesh
+
+        Returns
+        ----------
+        lapS  -- the Laplacian of S with 'natural' boundary conditions.
+
+        """
+        if gtype == 'tri':
+
+            # ensure passed array is of the correct length:
+            assert(len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+
+            # calculate the divergence of the gradient, which is the laplacian:
+            lapinvS = self.lap_inv(S, gtype='tri')
+
+            bihS_inv = self.lap_inv(lapinvS, gtype = 'tri')
+
+        elif gtype == 'vor':
+
+            # ensure passed array is of the correct length:
+            assert(len(S) == len(self.tri_ccents)), "Length of array passed to gradient is not tri_faces length"
+
+            # calculate the divergence of the gradient, which is the laplacian:
+            lapinvSo = self.lap_inv(S, gtype='vor')
+
+            lapinvS = lapinvSo[self.inner_vvert_i]
+            # lapinvS[self.inner_vvert_i] = lapinvSo
+
+            bihS_inv = self.lap_inv(lapinvS, gtype='vor')
+
+        else:
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+        return bihS_inv
+
     #----Mesh Refinement-------------------------------
 
     def calc_tri(self):
