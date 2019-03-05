@@ -14,6 +14,7 @@ from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamlmixin import YamlTypedBooledMixin
 from betse.util.io.log import logs
 from betse.util.type.cls import classes
+from betse.util.type.iterable import iterget
 from betse.util.type.obj import objects
 from betse.util.type.text.string import strs
 from betse.util.type.types import type_check, ClassType, SequenceTypes
@@ -126,7 +127,7 @@ class YamlList(YamlABC, MutableSequence):
         '''
         Initialize this low-level YAML-backed list.
 
-        Attributes
+        Parameters
         ----------
         item_type : ClassType
             Subclass of the :class:`YamlListItemABC` abstract base class
@@ -273,110 +274,3 @@ class YamlList(YamlABC, MutableSequence):
 
         # Return this list item.
         return conf_wrap
-
-    # ..................{ GETTERS                           }..................
-    #FIXME: Generalize this method into a new
-    #betse.util.type.iterable.iterables.uniquify_item_attr_value() function
-    #accepting a new "iterable: IterableTypes" first parameter for generality.
-    #For convenience, retain this method rewritten in terms of that newly
-    #defined function.
-    @type_check
-    def uniquify_item_attr_value(
-        self, attr_name: str, attr_value_format: str) -> str:
-        '''
-        Create and return a machine-readable string guaranteed to be unique
-        across all items of this list when set as the value of the settable
-        attribute (e.g., YAML alias) with the passed name of any such item,
-        including an item that has yet to be created.
-
-        This method requires each item of this list to declare an attribute
-        with the passed name whose value is an arbitrary string. This method
-        then returns a string suitable for use by the caller as the value of
-        that attribute for a newly created item of this list. Hence, callers
-        typically call this method from subclass :meth:`make_default`
-        implementations.
-
-        Parameters
-        ----------
-        attr_name : str
-            Name of the attribute declared by all items of this list whose
-            string value is to be uniquified.
-        attr_value_format : str
-            Format specifier containing a ``{}`` substring (e.g.,
-            ``tissue ({})``), iteratively interpolated by this function with an
-            arbitrary integer to produce this unique list item attribute value.
-
-        Returns
-        ----------
-        str
-            Value of this attribute guaranteed to both match this format *and*
-            be unique across all items of this list.
-
-        Raises
-        ----------
-        BetseStrException
-            If this format specifier contains no ``{}`` substring.
-        '''
-
-        # Avoid circular import dependencies.
-        from betse.util.type.obj import objects
-
-        # Log this formatting.
-        logs.log_debug(
-            'Uniquifying YAML list item key "%s" with template "%s"...',
-            attr_name, attr_value_format)
-
-        #FIXME: Ideally, we would also raise exceptions if this format
-        #specifier contains two or more ``{}`` substrings. Sadly, there appears
-        #no trivial and/or efficient means of doing so. While we suppose we
-        #*COULD* define a new
-        #betse.util.type.text.string.strs.get_substrs_count() function doing
-        #so, the lack of any benefit to doing so hardly seems worth it. Note
-        #also that genuinely testing this is effectively infeasible due to
-        #false positives (e.g., the string "{}{}" should raise exceptions but
-        #the string "{}{{}}" should *NOT*).
-
-        # If this specifier contains no "{}" substring, raise an exception.
-        #
-        # Note that this simplistic logic fails to account for "{{" and "}}"
-        # escaping and hence *COULD* fail to raise exceptions when passed
-        # worst-case format specifiers, but that we mostly do not care.
-        strs.die_unless_substr(text=attr_value_format, substr='{}')
-
-        # Arbitrary unique identifier with which to uniquify (i.e., guarantee
-        # the uniqueness of) an arbitrary string attribute of a new item in
-        # this list, defaulting to the number of existing items in this list.
-        yaml_list_item_id = len(self._confs_wrap)
-
-        # Arbitrary string attribute of a new item in this list.
-        yaml_list_item_attr = None
-
-        # While this attribute is *NOT* unique across this list, iteratively
-        # (re)search this list until obtaining a unique attribute. This
-        # iteration is guaranteed to terminate successfully.
-        while True:
-            yaml_list_item_attr = attr_value_format.format(yaml_list_item_id)
-
-            # For each existing item of this list...
-            for yaml_list_item_other in self._confs_wrap:
-                # String value of the attribute with this name defined by this
-                # item if such an attribute exists *OR* raise an exception.
-                yaml_list_item_other_attr = objects.get_attr(
-                    obj=yaml_list_item_other,
-                    attr_name=attr_name,
-                    attr_type=str,
-                )
-
-                # If this item already has this attribute, this attribute is
-                # non-unique. In this case, increment this identifier, format a
-                # new attribute via this identifier, and continue this search.
-                if yaml_list_item_attr == yaml_list_item_other_attr:
-                    yaml_list_item_id += 1
-                    break
-            # If no item already has this attribute, this attribute is unique.
-            # In this case, cease searching.
-            else:
-                break
-
-        # Return this attribute.
-        return yaml_list_item_attr

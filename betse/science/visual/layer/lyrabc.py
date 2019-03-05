@@ -8,7 +8,7 @@ Abstract base classes of all matplotlib-based layer subclasses  spatially
 plotting onto the cell cluster.
 '''
 
-#FIXME: The current approach to implementing animation overlays is totally BALLS
+#FIXME: The current approach to implementing animation overlays is totally
 #fundamentally flawed. We currently attempt to provide a crude form of plot
 #composition (i.e., merging two or more types of plots together into a single
 #plot) by adding new booleans to the "AnimCellsABC" base class (e.g.,
@@ -46,7 +46,7 @@ from betse.exceptions import BetseSimVisualLayerException
 from betse.util.io.log import logs
 from betse.util.py import pyref
 from betse.util.type import types
-from betse.util.type.iterable import iterables
+from betse.util.type.iterable import iterget
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceOrNoneTypes,)
@@ -435,7 +435,7 @@ class LayerCellsColorfulABC(LayerCellsABC):
         self._scale_color_mappables()
 
         # First color mappable defined by this subclass.
-        color_mappable_first = iterables.get_item_first(self._color_mappables)
+        color_mappable_first = iterget.get_item_first(self._color_mappables)
 
         # Create a colorbar associated with this color mappable.
         self._visual.make_colorbar(color_mappable_first)

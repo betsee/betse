@@ -68,13 +68,13 @@ def make_named_subclass(
     # Avoid circular import dependencies.
     from betse.util.py import pyident
     from betse.util.type.call import callers
-    from betse.util.type.iterable import iterables
+    from betse.util.type.iterable import itertest
 
     # If the passed class name is syntactically invalid, raise an exception.
     pyident.die_unless_unqualified(class_name)
 
     # If any passed item name is *NOT* a string, raise an exception.
-    iterables.die_unless_items_instance_of(iterable=item_names, cls=str)
+    itertest.die_unless_items_instance_of(iterable=item_names, cls=str)
 
     # Fully-qualified name of the module defining this enumeration type.
     module_name = callers.get_caller_module_name()

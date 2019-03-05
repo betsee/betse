@@ -108,7 +108,7 @@ from betse.science.visual.layer.vectorfield.lyrvecfldstream import (
 from betse.science.visual.visabc import VisualCellsABC
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
-from betse.util.type.iterable import iterables
+from betse.util.type.iterable import itertest
 from betse.util.type.types import type_check, BoolOrNoneTypes, IntOrNoneTypes
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
@@ -486,7 +486,7 @@ class AnimCellsABC(VisualCellsABC):
             not self._is_current_overlayable or
 
             # A layer in the layer sequence already plots a vector field.
-            iterables.is_item_instance_of(
+            itertest.is_item_instance_of(
                 iterable=self._layers, cls=LayerCellsFieldColorlessABC)
         # ...then silently noop.
         ):

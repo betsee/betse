@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,11 +9,11 @@ Unit tests exercising various simpler classes defined by the
 dedicated unit test submodule.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from collections import OrderedDict
 import pytest
 
-# ....................{ TESTS ~ default                    }....................
+# ....................{ TESTS ~ default                   }....................
 def test_defaultdict_pass() -> None:
     '''
     Test aspects of the :class:`betse.util.type.mapping.mapcls.DefaultDict`
@@ -41,7 +41,7 @@ def test_defaultdict_pass() -> None:
     assert lake_isle_of_innisfree['I hear it in'] == (
         'I hear it in the deep heart’s core.')
 
-# ....................{ TESTS ~ ordered                    }....................
+# ....................{ TESTS ~ ordered                   }....................
 def test_orderedargsdict_pass() -> None:
     '''
     Test aspects of the :class:`betse.util.type.mapping.mapcls.OrderedArgsDict`

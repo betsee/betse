@@ -20,6 +20,7 @@ from betse.lib.yaml.abc.yamllistabc import YamlList, YamlListItemABC
 from betse.lib.yaml.abc.yamlmixin import YamlNamedMixin
 from betse.science.enum.enumconf import CellsPickerType
 # from betse.util.io.log import logs
+from betse.util.type.iterable import iterget
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ SUPERCLASSES ~ tissue             }....................
@@ -148,8 +149,11 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Name of this tissue profile unique to this list.
-        tissue_name = yaml_list.uniquify_item_attr_value(
-            attr_name='name', attr_value_format='tissue ({})')
+        tissue_name = iterget.get_item_var_uniquified_str(
+            iterable=yaml_list,
+            item_var_name='name',
+            item_var_format='tissue ({})',
+        )
 
         # Create and return the equivalent YAML-backed tissue profile list
         # item, duplicating the first such item in our default YAML file.
@@ -201,8 +205,11 @@ class SimConfCutListItem(YamlNamedMixin, YamlListItemABC):
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Name of this cut profile unique to this list.
-        cut_name = yaml_list.uniquify_item_attr_value(
-            attr_name='name', attr_value_format='cut ({})')
+        cut_name = iterget.get_item_var_uniquified_str(
+            iterable=yaml_list,
+            item_var_name='name',
+            item_var_format='cut ({})',
+        )
 
         # Create and return the equivalent YAML-backed cut profile list item,
         # duplicating the first such item in our default YAML file.

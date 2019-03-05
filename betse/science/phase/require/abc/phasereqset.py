@@ -13,7 +13,7 @@ simulation phase).
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require.abc.phasereqabc import SimPhaseRequirementABC
 # from betse.util.io.log import logs
-from betse.util.type.iterable import iterables
+from betse.util.type.iterable import itertest
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.iterable.sets import FrozenSetSubclassable
 from betse.util.type.text.string import strjoin
@@ -96,7 +96,7 @@ class SimPhaseRequirements(SimPhaseRequirementABC, FrozenSetSubclassable):
 
         # If any item of the passed iterable is *NOT* a requirement, raise an
         # exception.
-        iterables.die_unless_items_instance_of(
+        itertest.die_unless_items_instance_of(
             iterable=iterable, cls=SimPhaseRequirementABC)
 
         # Create, initialize, and return a new instance of this class

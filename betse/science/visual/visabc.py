@@ -27,7 +27,7 @@ from betse.science.visual.layer.lyrtext import LayerCellsIndex
 from betse.util.io.log import logs
 from betse.util.py import pyref
 from betse.util.type import types
-from betse.util.type.iterable import iterables
+from betse.util.type.iterable import iterget
 from betse.util.type.obj import objiter
 from betse.util.type.types import (
     type_check,
@@ -769,14 +769,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         '''
 
         # Classify this sequence of mappables.
-        assert types.is_iterable_nonstr(color_mappables), (
-            types.assert_not_iterable_nonstr(color_mappables))
         self._color_mappables = color_mappables
 
         self._rescale_color_mappables()
 
         # First mappable safely retrieved from this iterable of mappables.
-        color_mappable_first = iterables.get_item_first(self._color_mappables)
+        color_mappable_first = iterget.get_item_first(self._color_mappables)
+
+        #FIXME: Convert this assertion into a proper exception.
         assert types.is_matplotlib_mappable(color_mappable_first), (
             types.assert_not_matplotlib_mappable(color_mappable_first))
 

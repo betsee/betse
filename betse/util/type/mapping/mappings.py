@@ -36,13 +36,13 @@ def die_unless_values_unique(mapping: MappingType) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.iterable import iterables
+    from betse.util.type.iterable import iterget
     from betse.util.type.text.string import strjoin
 
     # If one or more values of this dictionary are duplicates...
     if not is_values_unique(mapping):
         # Set of all duplicate values in this dictionary.
-        values_duplicate = iterables.get_items_duplicate(mapping.values())
+        values_duplicate = iterget.get_items_duplicate(mapping.values())
 
         # Raise an exception embedding this set.
         raise BetseMappingException(
@@ -97,10 +97,10 @@ def is_values_unique(mapping: MappingType) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.iterable import iterables
+    from betse.util.type.iterable import itertest
 
     # For sanity, defer to an existing low-level tester.
-    return iterables.is_items_unique(mapping.values())
+    return itertest.is_items_unique(mapping.values())
 
 # ....................{ FORMATTERS                        }....................
 @type_check

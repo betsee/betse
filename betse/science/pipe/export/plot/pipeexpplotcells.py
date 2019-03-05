@@ -19,7 +19,7 @@ from betse.science.pipe.export.plot.pipeexpplotabc import SimPipeExportPlotABC
 from betse.science.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
 from betse.util.io.log import logs
-from betse.util.type.iterable import iterables
+from betse.util.type.iterable import iterget
 from betse.util.type.descriptor.descs import classproperty_readonly
 from betse.util.type.types import type_check, IterableTypes
 from collections import OrderedDict
@@ -229,7 +229,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         ax_cb = None
         if dyna.tissue_name_to_profile:
             # Name of the first tissue profile.
-            tissue_first_name = iterables.get_item_first(
+            tissue_first_name = iterget.get_item_first(
                 dyna.tissue_name_to_profile.keys())
 
             # Color mappable associated with this tissue profile, guaranteed in

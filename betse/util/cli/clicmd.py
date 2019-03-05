@@ -17,7 +17,6 @@ Subcommands accepted by this application's command line interface (CLI).
 
 from abc import ABCMeta
 from betse.util.py import pyident
-from betse.util.type.iterable import iterables
 from betse.util.type.types import (
     type_check, ArgParserType, ArgSubparsersType, SequenceTypes,)
 
@@ -101,16 +100,19 @@ Exactly one of the following subcommands must be passed:
         help_description : optional[str]
             Human-readable description to be printed *before* a
             programmatically generated list of these subcommands in help
-            output. As in the ``help_title`` parameter, all format substrings
-            are globally replaced as expected. Defaults to a sensible
+            output. All format substrings of this string are globally replaced
+            as with the ``help_title`` parameter. Defaults to a sensible
             general-purpose string.
         '''
+
+        # Avoid circular import dependencies.
+        from betse.util.type.iterable import itertest
 
         # If this name is *NOT* a valid variable name, raise an exception.
         pyident.die_unless_unqualified(subcommand_var_name)
 
         # If any passed subcommand is *NOT* a subcommand, raise an exception..
-        iterables.die_unless_items_instance_of(
+        itertest.die_unless_items_instance_of(
             iterable=subcommands, cls=CLISubcommandABC)
 
         # Classify all passed parameters.
