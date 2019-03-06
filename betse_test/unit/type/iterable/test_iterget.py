@@ -10,7 +10,7 @@ Unit tests exercising the :mod:`betse.util.type.iterable.iterget` submodule.
 # ....................{ IMPORTS                           }....................
 
 # ....................{ CLASSES                           }....................
-class RunicBells(object):
+class BellType(object):
     '''
     Type of each item of the iterable to be tested by the
     :func:`test_get_item_var_uniquified_str` unit test.
@@ -41,22 +41,23 @@ def test_get_item_var_uniquified_str() -> None:
     from betse.util.type.iterable import iterget
 
     # Iterable to be tested.
-    the_bells = (
-        RunicBells(
+    the_bells = [
+        BellType(
             name='Silver bells !',
             stanza='What a world of merriment their melody foretells !'),
-        RunicBells(
+        BellType(
             name='Golden bells!',
             stanza='What a world of happiness their harmony foretells !'),
-        RunicBells(
+        BellType(
             name='Brazen bells !',
             stanza='What tale of terror, now, their turbulency tells !'),
-        RunicBells(
+        BellType(
             name='Iron bells !',
             stanza='What a world of solemn thought their monody compels !'),
-    )
+    ]
 
-    # Exercise this getter function.
+    # Exercise the edge case when this iterable contains no item whose "name"
+    # variable matches the passed format specifier.
     the_fifth_bell = iterget.get_item_var_uniquified_str(
         iterable=the_bells,
         item_var_name='name',
@@ -64,4 +65,20 @@ def test_get_item_var_uniquified_str() -> None:
     )
 
     # Assert this getter function to have synthesized the expected string.
-    assert the_fifth_bell == 'Runic bells ! (4)'
+    assert the_fifth_bell == 'Runic bells ! (5)'
+
+    # Add a new item whose "name" variable is this string to this iterable.
+    the_bells.append(BellType(
+        name=the_fifth_bell,
+        stanza='In a clamorous appealing to the mercy of the fire,'))
+
+    # Exercise the edge case when this iterable contains one item whose "name"
+    # variable matches the passed format specifier.
+    the_sixth_bell = iterget.get_item_var_uniquified_str(
+        iterable=the_bells,
+        item_var_name='name',
+        item_var_format='Runic bells ! ({})',
+    )
+
+    # Assert this getter function to have synthesized the expected string.
+    assert the_sixth_bell == 'Runic bells ! (6)'

@@ -193,7 +193,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
     #    BetseSequenceException: Column "FFT_Vmem" length 9 differs from length
     #    5 of prior columns.
     @piperunner(
-        categories=('Single Cell', 'Vmem FFT'),
+        categories=('Single Cell', 'Voltage', 'FFT'),
 
         #FIXME: Eliminate this requirement after resolving the above issue.
         requirements=phasereqs.VOLTAGE_EXTRA,
@@ -247,7 +247,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
         )
 
     # ..................{ EXPORTERS ~ cells : vmem          }..................
-    @piperunner(categories=('Cell Cluster', 'Transmembrane Voltages'))
+    @piperunner(categories=('Cell Cluster', 'Voltage', 'Transmembrane',))
     def export_cells_vmem(
         self, phase: SimPhase, conf: SimConfExportCSV) -> None:
         '''

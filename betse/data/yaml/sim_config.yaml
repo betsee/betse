@@ -223,11 +223,11 @@ tissue profile definition:
                                         # pure-black pixels define the cell cluster shape.
       diffusion constants: # Membrane diffusion constants applied to all unprofiled cells.
         Dm_Na: 2.0e-18     # Na+ membrane diffusion constant [m2/s]
-        Dm_K: 1.0e-18     # K+ membrane diffusion constant [m2/s]
+        Dm_K:  1.0e-18     # K+ membrane diffusion constant [m2/s]
         Dm_Cl: 1.0e-18     # Cl- membrane diffusion constant [m2/s]
         Dm_Ca: 1.0e-18     # Ca2+ membrane diffusion constant [m2/s]
-        Dm_M: 1.0e-18      # M- membrane diffusion constant [m2/s]
-        Dm_P: 0.0          # proteins- membrane diffusion constant [m2/s]
+        Dm_M:  1.0e-18     # M- membrane diffusion constant [m2/s]
+        Dm_P:  0.0         # proteins- membrane diffusion constant [m2/s]
 
     profiles: # List of all non-default tissue profiles. Ignored if "profiles enabled" is False.
 
@@ -236,11 +236,11 @@ tissue profile definition:
         insular: False
         diffusion constants:
           Dm_Na: 2.0e-18   # Na+ membrane diffusion constant [m2/s]
-          Dm_K: 1.0e-18    # K+ membrane diffusion constant [m2/s]
+          Dm_K:  1.0e-18   # K+ membrane diffusion constant [m2/s]
           Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
           Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-          Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
-          Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
+          Dm_M:  1.0e-18   # M- membrane diffusion constant [m2/s]
+          Dm_P:  0.0       # proteins membrane diffusion constant [m2/s]
         cell targets:
           type: image   # Cell population type as any following string:
                         # * "all", uniformly applying this tissue profile to all cells.
@@ -802,29 +802,22 @@ results options:
   plot masked geometry: True      # plot the geometry using the overall shape as a mask
 
 
-  # FIXME allow each plot to have its own colormap
-  default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
-                             # options include
-                             # coolwarm, hot, rainbow, jet, Blues, Greens, bone
-                             # to reverse a colormap add _r to the name (e.g. cm.jet_r)
-                             # for all options please see
-                             # http://matplotlib.org/examples/color/colormaps_reference.html
+  #FIXME: Allow each plot to have its own colormap.
 
-  background colormap: RdBu_r     # Specify colormap to be used for data with vector overlays and 0 --> + data,
-                                  # including:
-                                  # currents, flow, electric field and deformation.
+  # Colormaps for different types of plots and animations. Valid colormap names are listed at:
+  #     http://matplotlib.org/examples/color/colormaps_reference.html
+  # Any such colormap may be reversed by appending "_r" to the name (e.g., "jet_r" reverses "jet").
+  default colormap:    RdBu_r # Colormap used for main data (spanning - to +).
+  background colormap: RdBu_r # Colormap used for data with vector overlays and 0 -> + data (e.g.,
+                              # currents, fluid flow, electric fields, deformations).
+  network colormap: rainbow   # Colormap used for concentration nodes of reaction network graphs.
+  gj colormap: bone_r         # Colormap used for plotting gj currents on top of default colormap.
 
-  network colormap: rainbow       # colormap used for concentration nodes of reaction network graphs
+  vector and stream color: 'k' # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
+                               # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
 
-  gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
-
-  vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
-                                 # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
-
-  plot networks: True               # export regulatory networks to
-                                    # interconnected graph images?
-  plot networks single cell: True   # export regulatory networks for single cell to
-                                    # interconnected graph images?
+  plot networks: True             # Export regulatory networks to interconnected graph images?
+  plot networks single cell: True # Export regulatory networks for single cell to such images?
 
   #FIXME allow each one to have its own colormap
   while solving:          # Results exported during simulation computation.
@@ -847,7 +840,8 @@ results options:
 
       pipeline:           # List of all CSV files. Ignored if "save" is False.
         # Example single-cell time series CSV file.
-        - type: cell_series  # CSV file type, including any following string:
+        - name: "Single Cell: Time Series" # Arbitrary unique CSV name.
+          type: cell_series # CSV file type, including any following string:
           # * "cell_series" for single-cell time series (Vmem, ion concentrations,
           #   voltage-gated ion channel pump rates) for "plot cell index" cell.
           #   Ignored if full solver disabled.
@@ -858,20 +852,22 @@ results options:
           #   one CSV file containing all Vmem voltages for each time step.
           enabled: True      # Enable this CSV file?
         # Example all-cells transmembrane voltage (Vmem) time series CSV files.
-        - type: cells_vmem
+        - name: "Cell Cluster: Voltage: Transmembrane"
+          type: cells_vmem
           enabled: True
 
-    plots:                # Plots exported after simulating.
-      show: False         # Display plots after simulating?
-      save: True          # Save plots after simulating with save options defined below?
+    plots:        # Plots exported after simulating.
+      show: False # Display plots after simulating?
+      save: True  # Save plots after simulating with save options defined below?
 
       # FIXME allow these to plot multiple trendlines
       # FIXME add in I-V current plots
-      single cell pipeline:   # List of all single-cell plots for the cell selected by
-                              # "plot cell index" for all time steps. Ignored if
-                              # "show" and "save" are False.
+      single cell pipeline: # List of all single-cell plots for the cell selected by the
+                            # "plot cell index" setting for all time steps.
+                            # Ignored if "show" and "save" are False.
         # Example single-cell average transmembrane voltage (Vmem) plot.
-        - type: voltage_membrane   # Plot type, as any following string:
+        - name: "Voltage: Transmembrane" # Arbitrary unique plot name.
+          type: voltage_membrane # Plot type, as any following string:
           # * "currents_membrane" for single-cell transmembrane current density.
           # * "deform_total" for total cellular deformation = osmotic + galvanotropic.
           #   Ignored if either full solver or deformation disabled.
@@ -903,14 +899,15 @@ results options:
           #   Fourier transform (FFT).
           enabled: True   # Enable this plot?
         # Example single-cell transmembrane current density plot.
-        - type: currents_membrane
+        - name: "Current Density: Transmembrane"
+          type: currents_membrane
           enabled: True
 
-      cell cluster pipeline:   # List of all cell cluster plots for all cells
-                               # at the last time step. Ignored if "show" and
-                               # "save" are False.
+      cell cluster pipeline: # List of all cell cluster plots for all cells at the last time step.
+                             # Ignored if "show" and "save" are False.
         # Example final cell cluster transmembrane voltage (Vmem) plot.
-        - type: voltage_membrane   # Plot type, as any following string:
+        - name: "Voltage: Transmembrane" # Arbitrary unique plot name.
+          type: voltage_membrane # Plot type, as any following string:
           # * "cluster_mask" for the all-cells image mask defining the cell cluster shape.
           # * "currents_intra" for final all-cells intracellular current density.
           #   Ignored if full solver disabled.
@@ -963,7 +960,8 @@ results options:
             maximum:  10.0    # Maximum fixed colorbar value. Ignored if
                               # "autoscale" is True.
         # Example final cell cluster intracellular electric field plot.
-        - type: electric_intra
+        - name: "Electric Field: Intracellular"
+          type: electric_intra
           enabled: True
           colorbar:
             autoscale: True
@@ -976,7 +974,8 @@ results options:
 
       pipeline:      # List of all animations. Ignored if "show" and "save" are False.
         # Example transmembrane voltage (Vmem) animation.
-        - type: voltage_membrane  # Animation type, including any following string:
+        - name: "Voltage: Transmembrane" # Arbitrary unique animation name.
+          type: voltage_membrane # Animation type, including any following string:
           # * "currents_intra" for intracellular current density.
           #   Ignored if full solver disabled.
           # * "currents_extra" for extracellular current density.
@@ -1015,7 +1014,8 @@ results options:
             maximum:  10.0    # Maximum fixed colorbar value. Ignored if
                               # "autoscale" is True.
         # Example intracellular electric field animation.
-        - type: electric_intra
+        - name: "Electric Field: Intracellular"
+          type: electric_intra
           enabled: True
           colorbar:
             autoscale: True

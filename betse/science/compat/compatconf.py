@@ -64,7 +64,7 @@ def upgrade_sim_conf(p: Parameters) -> None:
     _upgrade_sim_conf_to_0_7_1(p)
     _upgrade_sim_conf_to_0_9_3(p)
 
-# ....................{ UPGRADERS ~ 0.5.0                 }....................
+# ....................{ UPGRADERS ~ 0.5.x                 }....................
 @type_check
 def _upgrade_sim_conf_to_0_5_0(p: Parameters) -> None:
     '''
@@ -257,7 +257,7 @@ def _upgrade_sim_conf_to_0_5_0(p: Parameters) -> None:
         elif anim_conf['type'] == 'junction_state':
             anim_conf['type'] = 'gj_permeability'
 
-# ....................{ UPGRADERS ~ 0.5.2                 }....................
+
 @type_check
 def _upgrade_sim_conf_to_0_5_2(p: Parameters) -> None:
     '''
@@ -296,7 +296,7 @@ def _upgrade_sim_conf_to_0_5_2(p: Parameters) -> None:
     elif general_dict['ion profile'] == 'customized':
         general_dict['ion profile'] = 'custom'
 
-# ....................{ UPGRADERS ~ 0.6.0                 }....................
+# ....................{ UPGRADERS ~ 0.6.x                 }....................
 @type_check
 def _upgrade_sim_conf_to_0_6_0(p: Parameters) -> None:
     '''
@@ -381,7 +381,7 @@ def _upgrade_sim_conf_to_0_6_0(p: Parameters) -> None:
         if isinstance(profile['image'], MappingType):
             profile['image'] = profile['image']['file']
 
-
+# ....................{ UPGRADERS ~ 0.7.x                 }....................
 @type_check
 def _upgrade_sim_conf_to_0_7_1(p: Parameters) -> None:
     '''
@@ -446,7 +446,7 @@ def _upgrade_sim_conf_to_0_7_1(p: Parameters) -> None:
     if grn_dict['sim-grn settings']['load from'] == 'None':
         grn_dict['sim-grn settings']['load from'] = None
 
-
+# ....................{ UPGRADERS ~ 0.9.x                 }....................
 @type_check
 def _upgrade_sim_conf_to_0_9_3(p: Parameters) -> None:
     '''
@@ -459,6 +459,7 @@ def _upgrade_sim_conf_to_0_9_3(p: Parameters) -> None:
     logs.log_debug('Upgrading simulation configuration to 0.9.3 format...')
 
     # Localize configuration subdictionaries for convenience.
+    results_dict = p._conf['results options']
     tissue_dict = p._conf['tissue profile definition']
 
     # For each tissue profile, define the "color" cell targets type if needed.

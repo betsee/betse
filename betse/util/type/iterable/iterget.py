@@ -577,46 +577,47 @@ def get_item_var_uniquified_str(
     # worst-case format specifiers, but that we mostly do not care.
     strs.die_unless_substr(text=item_var_format, substr='{}')
 
-    # Arbitrary unique identifier with which to uniquify (i.e., guarantee
-    # the uniqueness of) an arbitrary string attribute of a new item in
-    # this list, defaulting to the number of existing items in this list.
-    item_id = len(iterable)
-
-    # Current string value of the instance variable with this name of the
-    # current item of this iterable.
-    item_var = None
+    # Arbitrary integer to be formatted into the string to be returned. To
+    # reduce the likelihood of collisions with existing items of this iterable,
+    # this integer defaults to the 0-based index of the next item to add to
+    # this iterable.
+    #
+    # Iteration below increments this integer until the string created by
+    # formatting this integer into the passed format specifier produces a
+    # string guaranteed to be unique across all items of this iterable.
+    item_var_id = len(iterable) + 1
 
     # Uniquified string to be created and returned by this function.
-    item_var_new = None
+    item_var = None
 
-    # While this string is *NOT* unique across this iterable, iteratively
-    # (re)search this iterable until obtaining a unique string. Assuming this
-    # iterable does *not* define special methods in non-sane ways, iteration
-    # is guaranteed to terminate successfully.
-    while True:
-        item_var_new = item_var_format.format(item_id)
+    # "True" only if the "item_var" string still collides with at least one
+    # string value of an instance variable with this name of an item of this
+    # iterable and hence has yet to be uniquified.
+    is_item_var_collides = True
 
-        # For each existing item of this iterable...
-        for item in iterable:
-            # Current string value of the instance variable with this name of
-            # the current item of this iterable if this item defines such a
-            # variable *OR* raise an exception otherwise.
-            item_var = objects.get_attr(
-                obj=item, attr_name=item_var_name, attr_type=str)
+    # Unordered set of all string values of each instance variable with this
+    # name of all items of this iterable if each item declares such a variable
+    # *OR* raise an exception otherwise.
+    item_vars = set(
+        objects.get_attr(obj=item, attr_name=item_var_name, attr_type=str)
+        for item in iterable)
 
-            # If this value collides with the uniquified string to be created
-            # and returned by this function, this string is non-unique. In this
-            # case, increment this identifier, format a new attribute with this
-            # identifier, and continue searching.
-            if item_var == item_var_new:
-                item_id += 1
-                break
-        # If the above iteration terminated successfully, this string is
-        # unique. In this case, halt searching and return this string.
-        else:
-            break
-        # Else, the above iteration terminated prematurely, implying this
-        # string to be non-unique. In this case, continue searching.
+    # While the string value to be returned still collides with at least one
+    # string value of an instance variable with this name of an item of this
+    # iterable and hence has yet to be uniquified...
+    while is_item_var_collides:
+        # Uniquified string to be created and returned by this function.
+        item_var = item_var_format.format(item_var_id)
 
-    # Return this string.
-    return item_var_new
+        # If this value collides with the uniquified string to be created
+        # and returned by this function, this string is non-unique. In this
+        # case, increment this identifier, format a new attribute with this
+        # identifier, and continue searching.
+        is_item_var_collides = item_var in item_vars
+
+        # Unconditionally increment the integer to be formatted into the
+        # "item_var" string by the next iteration of this loop.
+        item_var_id += 1
+
+    # Return this uniquified string.
+    return item_var
