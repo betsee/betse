@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-Unit tests exercising the :class:`betse.util.type.mappings.DynamicValueType`
-type.
+Unit tests exercising the
+:class:`betse.util.type.iterable.mapping.mapcls.DynamicValueType` type.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import pytest
 import sys
 from pytest import fixture
 
-# ....................{ GLOBALS                            }....................
-# Global variables whose values are referenced by the dictionary returned by the
-# "betse_dynamicvaluedict" fixture.
+# ....................{ GLOBALS                           }....................
+# Global variables whose values are referenced by the dictionary returned by
+# the "betse_dynamicvaluedict" fixture.
 
 module = sys.modules[__name__]
 '''
-Current module object, for use in setattr() calls below.
+Current module object, for use in :func:`setattr` calls below.
 '''
 
 
@@ -44,7 +44,7 @@ yavanna = (
     "and punish those that wrong them!'",
 )
 
-# ....................{ FIXTURES                           }....................
+# ....................{ FIXTURES                          }....................
 @fixture(scope='session')
 def betse_dynamicvaluedict() -> 'DynamicValueDict':
     '''
@@ -53,7 +53,8 @@ def betse_dynamicvaluedict() -> 'DynamicValueDict':
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type.mapping.mapcls import DynamicValue, DynamicValueDict
+    from betse.util.type.iterable.mapping.mapcls import (
+        DynamicValue, DynamicValueDict)
 
     # Create and return an instance of this type.
     return DynamicValueDict({
@@ -70,7 +71,7 @@ def betse_dynamicvaluedict() -> 'DynamicValueDict':
         ),
     })
 
-# ....................{ TESTS                              }....................
+# ....................{ TESTS                             }....................
 def test_dynamicvaluedict_pass(betse_dynamicvaluedict) -> None:
     '''
     Test all aspects of the :class:`DynamicValueDict` type intended to succeed.

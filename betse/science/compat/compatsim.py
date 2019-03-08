@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,12 +9,12 @@ Facilities guaranteeing backward compatibility with prior file formats for
 simulation files).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import sys
 from betse.util.io.log import logs
 # from betse.util.type.types import type_check
 
-# ....................{ UPGRADERS                          }....................
+# ....................{ UPGRADERS                         }....................
 def upgrade_sim_imports() -> None:
     '''
     Upgrade the in-memory module and class structure of the active Python
@@ -22,8 +22,8 @@ def upgrade_sim_imports() -> None:
     expected by the current version of this application.
 
     This function preserves backward importability (and hence compatibility)
-    with all prior supported pickled simulation formats, converting the obsolete
-    module and class names imported by these formats into their modern
+    with all prior supported pickled simulation formats, converting the
+    obsolete module and class names imported by these formats into their modern
     equivalents. Specifically, for each obsolete module or class name imported
     by a prior supported pickled simulation format, this function injects an
     in-memory alias mapping from the obselete to modern such name.
@@ -32,8 +32,8 @@ def upgrade_sim_imports() -> None:
     function modifies the in-memory module and class structure of the active
     Python interpreter *before* the :mod:`pickle` API is invoked to deserialize
     pickled simulation files. Failing to call this function *before*
-    deserializing simulation files pickled by older versions of this application
-    reliably induces the :mod:`pickle` API to raise obscure and
+    deserializing simulation files pickled by older versions of this
+    application reliably induces the :mod:`pickle` API to raise obscure and
     non-human-readable :class:`ImportError` exceptions.
 
     Ideally, leveraging the third-party :mod:`dill` dependency would
@@ -52,8 +52,9 @@ def upgrade_sim_imports() -> None:
     _upgrade_sim_imports_to_0_5_2()
     _upgrade_sim_imports_to_0_6_0()
     _upgrade_sim_imports_to_0_7_1()
+    _upgrade_sim_imports_to_0_9_3()
 
-# ....................{ UPGRADERS ~ 0.5.2                  }....................
+# ....................{ UPGRADERS ~ 0.5.2                 }....................
 def _upgrade_sim_imports_to_0_5_2() -> None:
     '''
     Upgrade the in-memory module and class structure of the active Python
@@ -69,12 +70,14 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
     from betse.science import channels
     from betse.science.math import finitediff
     from betse.science.phase import phasecls
-    from betse.science.config.export.visual import confanim, confplot, confvisabc
-    from betse.util.type.mapping import mapcls
+    from betse.science.config.export.visual import (
+        confanim, confplot, confvisabc)
+    from betse.util.type.iterable.mapping import mapcls
 
     # Alias obsolete module names to current module objects.
     sys.modules['betse.science.config.confabc'] = yamlabc
-    sys.modules['betse.science.config.export.visual.confvisualabc'] = confvisabc
+    sys.modules['betse.science.config.export.visual.confvisualabc'] = (
+        confvisabc)
     sys.modules['betse.science.finitediff'] = finitediff
     sys.modules['betse.science.tissue.channels'] = channels
     sys.modules['betse.science.plot.plotconfig'] = confplot
@@ -103,7 +106,7 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
     sys.modules['betse.science.visual.plot.plotconfig'].PlotConfig = (
         confplot.SimConfPlotAll)
 
-# ....................{ UPGRADERS ~ 0.6.0                  }....................
+# ....................{ UPGRADERS ~ 0.6.x                 }....................
 def _upgrade_sim_imports_to_0_6_0() -> None:
     '''
     Upgrade the in-memory module and class structure of the active Python
@@ -117,7 +120,8 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     # Import all modules whose fully-qualified names have been modified.
     from betse.lib.yaml.abc import yamlabc
     from betse.science.config.model import conftis
-    from betse.science.config.export.visual import confanim, confplot, confvisabc
+    from betse.science.config.export.visual import (
+        confanim, confplot, confvisabc)
     from betse.science.tissue import tisprofile, tishandler
     from betse.science.tissue.event import tisevecut, tisevevolt
     from betse.science.tissue.picker import tispickcls, tispickimage
@@ -146,7 +150,7 @@ def _upgrade_sim_imports_to_0_6_0() -> None:
     tispickimage.BitMapper = TissuePickerImageMask
     tisprofile.TissueCut = CutProfile
 
-# ....................{ UPGRADERS ~ 0.7.1                  }....................
+# ....................{ UPGRADERS ~ 0.7.x                 }....................
 def _upgrade_sim_imports_to_0_7_1() -> None:
     '''
     Upgrade the in-memory module and class structure of the active Python
@@ -169,3 +173,20 @@ def _upgrade_sim_imports_to_0_7_1() -> None:
 
     # Alias obsolete to current class names.
     # phasecls.SimPhaseKind = SimPhaseKind
+
+# ....................{ UPGRADERS ~ 0.9.x                 }....................
+def _upgrade_sim_imports_to_0_9_3() -> None:
+    '''
+    Upgrade the in-memory module and class structure of the active Python
+    interpreter to reflect the newest structure of these modules and classes
+    expected by version 0.9.3 of this application.
+    '''
+
+    # Log this upgrade attempt.
+    logs.log_debug('Upgrading simulation imports to 0.9.3 format...')
+
+    # Import all modules whose fully-qualified names have been modified.
+    from betse.util.type.iterable import mapping
+
+    # Alias obsolete module names to current module objects.
+    sys.modules['betse.util.type.mapping'] = mapping

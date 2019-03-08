@@ -96,6 +96,15 @@ class BetseLambdaException(BetseCallableException):
     pass
 
 
+class BetseParamException(BetseCallableException):
+    '''
+    **Parameter** (i.e., positional or keyword argument passed to a
+    callable)-specific exception.
+    '''
+
+    pass
+
+# ....................{ EXCEPTIONS ~ call : method        }....................
 class BetseMethodException(BetseCallableException):
     '''
     Method-specific exception.
@@ -105,7 +114,7 @@ class BetseMethodException(BetseCallableException):
 
 
 class BetseMethodUnimplementedException(
-    BetseCallableException, NotImplementedError):
+    BetseMethodException, NotImplementedError):
     '''
     Unimplemented method-specific exception.
 
@@ -409,7 +418,8 @@ class BetseEnumException(BetseTypeException):
 
 class BetseNumericException(BetseTypeException):
     '''
-    Exception generally applicable to both integer and float types and values.
+    Exception generally applicable to both integer *and* float types and
+    values.
     '''
 
     pass
@@ -422,15 +432,7 @@ class BetseIntException(BetseTypeException):
 
     pass
 
-
-class BetseMappingException(BetseTypeException):
-    '''
-    Dictionary-specific type or value exception.
-    '''
-
-    pass
-
-
+# ....................{ EXCEPTIONS ~ type                 }....................
 class BetseIterableException(BetseTypeException):
     '''
     Iterable-specific type or value exception.
@@ -439,13 +441,28 @@ class BetseIterableException(BetseTypeException):
     pass
 
 
-class BetseSequenceException(BetseTypeException):
+class BetseSequenceException(BetseIterableException):
     '''
     Sequence-specific type or value exception.
     '''
 
     pass
 
+# ....................{ EXCEPTIONS ~ type : iter : map    }....................
+class BetseMappingException(BetseIterableException):
+    '''
+    Dictionary-specific type or value exception.
+    '''
+
+    pass
+
+
+class BetseMappingKeyException(BetseMappingException):
+    '''
+    Dictionary key-specific type or value exception.
+    '''
+
+    pass
 
 # ....................{ EXCEPTIONS ~ type : str           }....................
 class BetseStrException(BetseTypeException):

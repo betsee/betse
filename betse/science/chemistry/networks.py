@@ -39,7 +39,7 @@ from betse.science.visual.anim.anim import (
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
-from betse.util.type.mapping.mapcls import DynamicValue, DynamicValueDict
+from betse.util.type.iterable.mapping.mapcls import DynamicValue, DynamicValueDict
 from betse.util.type.types import type_check, SequenceTypes
 from collections import OrderedDict
 from matplotlib import cm

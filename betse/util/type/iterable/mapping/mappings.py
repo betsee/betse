@@ -10,9 +10,9 @@ types and instances).
 
 # ....................{ IMPORTS                           }....................
 import pprint
-from betse.exceptions import BetseMappingException
+from betse.exceptions import BetseMappingException, BetseMappingKeyException
 from betse.util.type.types import (
-    type_check, MappingType, HashableType,)
+    type_check, MappingType, HashableType, TestableOrNoneTypes,)
 from copy import deepcopy
 
 # ....................{ EXCEPTIONS                        }....................
@@ -102,6 +102,117 @@ def is_values_unique(mapping: MappingType) -> bool:
     # For sanity, defer to an existing low-level tester.
     return itertest.is_items_unique(mapping.values())
 
+# ....................{ GETTERS                           }....................
+@type_check
+def get_key_value(
+    mapping: MappingType, key: HashableType, **kwargs) -> object:
+    '''
+    Value of the passed key in the passed mapping if this mapping contains this
+    key *or* raise an exception otherwise (i.e., if this mapping contains no
+    such key), optionally validated to be of the passed type.
+
+    Parameters
+    ----------
+    mapping : MappingType
+        Dictionary to be inspected.
+    key : HashableType
+        Key whose value is to be retrieved.
+
+    All remaining keyword arguments are passed as is to the
+    :func:`get_key_value_or_sentinel` function.
+
+    Returns
+    ----------
+    object
+        Value of this key in this mapping.
+
+    Raises
+    ----------
+    BetseMappingKeyException
+        If this mapping contains no such key.
+    BetseTypeException
+        If the ``value_type`` parameter is non-``None`` and the type of the
+        current value of this key is *not* an instance of ``value_type``.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
+
+    # Value of this key in this mapping if any *OR* the sentinel otherwise.
+    key_value = get_key_value_or_sentinel(
+        mapping=mapping, key=key, **kwargs)
+
+    # If this mapping contains no such key, raise an exception.
+    if key_value is SENTINEL:
+        raise BetseMappingKeyException(
+            'Mapping key "{}" not found.'.format(key))
+    # Else, this mapping contains this key.
+
+    # Return this value.
+    return key_value
+
+
+@type_check
+def get_key_value_or_sentinel(
+    # Mandatory parameters.
+    mapping: MappingType,
+    key: HashableType,
+
+    # Optional parameters.
+    value_type: TestableOrNoneTypes = None,
+) -> object:
+    '''
+    Value of the passed key in the passed mapping if this mapping contains this
+    key *or* the sentinel singleton otherwise (i.e., if this mapping contains
+    no such key), optionally validated to be of the passed type.
+
+    This function enables callers to safely distinguish between non-existing
+    keys and existing keys whose values are ``None``.
+
+    Parameters
+    ----------
+    mapping : MappingType
+        Dictionary to be inspected.
+    key : HashableType
+        Key whose value is to be retrieved.
+    value_type : TestableOrNoneTypes
+        Expected type of the current value of this key. If this type is
+        non-``None`` and this value is not an instance of this type, an
+        exception is raised -- effectively performing the equivalent of the
+        :meth:`type_check` decorator at runtime. Defaults to ``None``, in which
+        case no such type checking is performed.
+
+    Returns
+    ----------
+    object
+        Either:
+
+        * If this dictionary contains this key, this key's value.
+        * Else, the **sentinel singleton** (i.e.,
+          :attr:`betse.util.type.obj.sentinels.SENTINEL`).
+
+    Raises
+    ----------
+    BetseTypeException
+        If the ``value_type`` parameter is non-``None`` and the type of the
+        current value of this key is *not* an instance of ``value_type``.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj import objects
+    from betse.util.type.obj.sentinels import SENTINEL
+
+    # Value of this key in this mapping if any *OR* the sentinel otherwise.
+    key_value = mapping.get(key, SENTINEL)
+
+    # If this mapping contains this key *AND* this value is to be type-checked,
+    # do so.
+    if key_value is not SENTINEL and value_type is not None:
+        objects.die_unless_instance(obj=key_value, cls=value_type)
+
+    # Return this value.
+    return key_value
+
 # ....................{ FORMATTERS                        }....................
 @type_check
 def format_map(mapping: MappingType) -> str:
@@ -112,6 +223,7 @@ def format_map(mapping: MappingType) -> str:
     return pprint.pformat(mapping)
 
 # ....................{ COPIERS                           }....................
+#FIXME: Rename to copy_deep() for disambiguity.
 @type_check
 def copy_map(mapping: MappingType) -> MappingType:
     '''
@@ -141,6 +253,15 @@ def copy_map(mapping: MappingType) -> MappingType:
     return deepcopy(mapping)
 
 
+#FIXME: Well, this is rather awkward. Rather than define a completely separate
+#function, it would be dramatically preferable to simply pass a new optional
+#"keys_remove: IterableOrNoneTypes = None" parameter to the copy_deep()
+#function defined above. When this parameter is:
+#
+#* "None", the copy_deep() function should reduce to its current one-liner.
+#* Non-"None", the copy_deep() function should generalize to this function's
+#  current implementation -- with the obvious caveat that the remove_key()
+#  function should be generalized to accept an iterable of keys to be removed.
 @type_check
 def copy_map_sans_key(mapping: MappingType, key: HashableType) -> MappingType:
     '''
@@ -183,6 +304,7 @@ def copy_map_sans_key(mapping: MappingType, key: HashableType) -> MappingType:
     return mapping_copy
 
 # ....................{ INVERTERS                         }....................
+#FIXME: Rename to simply invert_unique().
 @type_check
 def invert_map_unique(mapping: MappingType) -> MappingType:
     '''

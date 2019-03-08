@@ -12,7 +12,7 @@ High-level operating system (OS)-specific display facilities.
 
 # ....................{ IMPORTS                           }....................
 from betse.util.type.decorator.decmemo import func_cached
-from betse.util.type.mapping.mapcls import OrderedArgsDict
+from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 
 # ....................{ TESTERS ~ head                    }....................
 @func_cached

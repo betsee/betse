@@ -394,15 +394,15 @@ def get_attr(
     attr_type: TestableOrNoneTypes = None,
 ) -> object:
     '''
-    Attribute with the passed name whose value is optionally of the passed type
-    defined by the passed object if this object defines such an attribute *or*
-    raise an exception otherwise (i.e., if this object defines no such
-    attribute).
+    Value of the attribute with the passed name whose value is defined by the
+    passed object if this object defines such an attribute *or* raise an
+    exception otherwise (i.e., if this object defines no such attribute),
+    optionally validated to be of the passed type.
 
     Parameters
     ----------
     obj : object
-        Object to be queried for this attribute.
+        Object to be inspected.
     attr_name : str
         Name of the attribute to be retrieved.
     attr_type : TestableOrNoneTypes
@@ -415,7 +415,7 @@ def get_attr(
     Returns
     ----------
     object
-        Attribute with this name bound to this object.
+        Value of the attribute with this name bound to this object.
 
     Raises
     ----------
@@ -429,8 +429,8 @@ def get_attr(
     # Avoid circular import dependencies.
     from betse.util.type.obj.sentinels import SENTINEL
 
-    # Current value of the attribute with this name defined by this object if
-    # any *OR* the sentinel otherwise.
+    # Value of the attribute with this name defined by this object if any *OR*
+    # the sentinel otherwise.
     attr_value = get_attr_or_sentinel(obj, attr_name)
 
     # If no such attribute exists, raise an exception.
@@ -440,11 +440,11 @@ def get_attr(
                 get_class_name_unqualified(obj), attr_name))
     # Else, this attribute exists.
 
-    # If the caller requested that this attribute be type-checked, do so.
+    # If type checking this value, do so.
     if attr_type is not None:
         die_unless_instance(obj=attr_value, cls=attr_type)
 
-    # Return the current value of this attribute.
+    # Return this value.
     return attr_value
 
 
@@ -465,7 +465,7 @@ def get_attr_or_none(obj: object, attr_name: str) -> object:
     Parameters
     ----------
     obj : object
-        Object to obtain this attribute from.
+        Object to be inspected.
     attr_name : str
         Name of the attribute to be obtained.
 
@@ -484,21 +484,25 @@ def get_attr_or_none(obj: object, attr_name: str) -> object:
 def get_attr_or_sentinel(obj: object, attr_name: str) -> object:
     '''
     Value of the attribute with the passed name bound to the passed object if
-    any *or* :attr:`betse.util.type.obj.sentinels.SENTINEL` otherwise,
-    permitting callers to distinguish between attributes that do *not* exist
-    and attributes that do exist but whose values are ``None``.
+    any *or* the sentinel singleton otherwise (i.e., if this object declares
+    no such attribute), enabling callers to distinguish between non-existing
+    attributes and existing attributes whose values are ``None``.
 
     Parameters
     ----------
     obj : object
-        Object to obtain this attr from.
+        Object to be inspected.
     attr_name : str
         Name of the attribute to be obtained.
 
     Returns
     ----------
     object
-        Value of this attribute if any *or* the sentinel singleton otherwise.
+        Either:
+
+        * If this object declares this attribute, this attribute's value.
+        * Else, the **sentinel singleton** (i.e.,
+          :attr:`betse.util.type.obj.sentinels.SENTINEL`).
     '''
 
     # Avoid circular import dependencies.

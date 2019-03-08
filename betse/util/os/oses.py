@@ -16,7 +16,7 @@ import os, platform, sys
 from betse import metadata
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import func_cached
-from betse.util.type.mapping.mapcls import OrderedArgsDict
+from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 
 # ....................{ INITIALIZERS                      }....................
 def init() -> None:

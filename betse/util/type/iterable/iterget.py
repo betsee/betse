@@ -10,10 +10,15 @@ or more items contained within non-string objects implementing the abstract
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse.exceptions import BetseIterableException
+from betse.exceptions import BetseIterableException, BetseParamException
 from betse.util.io.log import logs
 from betse.util.type.types import (
-    type_check, CallableTypes, IterableTypes, TestableTypes)
+    type_check,
+    CallableTypes,
+    IterableTypes,
+    StrOrNoneTypes,
+    TestableTypes,
+)
 
 # ....................{ GETTERS                           }....................
 @type_check
@@ -502,63 +507,103 @@ def get_item_last_satisfying(
 
 # ....................{ GETTERS ~ str                     }....................
 @type_check
-def get_item_var_uniquified_str(
+def get_item_str_uniquified(
+    # Mandatory parameters.
     iterable: IterableTypes,
-    item_var_name: str,
-    item_var_format: str,
+    item_str_format: str,
+
+    # Mutually exclusive parameters.
+    item_attr_name: StrOrNoneTypes = None,
+    item_key: StrOrNoneTypes = None,
 ) -> str:
     '''
     Create and return a new machine-readable string guaranteed to be unique
-    across each instance variable with the passed name of each item of the
-    passed iterable, typically to enforce uniqueness of an instance variable
-    employed by the caller as a **primary key** (i.e., attribute uniquely
-    identifying each item of this iterable).
+    across each attribute with the passed name of each item of the
+    passed iterable if the ``item_attr_name`` parameter is non-``None`` *or*
+    across each dictionary key with the passed name of each item of the passed
+    iterable if the ``item_key`` parameter is non-``None``.
 
-    This function requires each item of this iterable to declare an attribute
-    with the passed name whose value is an arbitrary string. This function then
-    synthesizes a string suitable for use by callers as the value of that
-    attribute for a currently non-existing item of this iterable (to be
-    presumably created by the caller after calling this function).
+    This function enforces uniqueness of an attribute *or* dictionary
+    key employed by the caller as an SQL-like primary key uniquely identifying
+    each item of this iterable. Specifically, this function:
+
+    * If the ``item_attr_name`` parameter is non-``None``, requires each item of
+      this iterable to declare an attribute with the passed name whose
+      value is an arbitrary string.
+
+    * If the ``item_key`` parameter is non-``None``, requires each item of this
+      iterable to be a dictionary defining a key with the passed name whose
+      value is an arbitrary string.
+
+    This function then synthesizes a string suitable for use by callers as the
+    value of that variable or key for a currently non-existing item of this
+    iterable assumed to be created by the caller after calling this function.
+
+    Caveats
+    ----------
+    Exactly one of the mutually exclusive ``item_attr_name`` and ``item_key``
+    parameters *must* be passed. If neither *or* both of these parameters are
+    passed, an exception is raised.
 
     Parameters
     ----------
     iterable : IterableTypes
         Iterable to be inspected.
-    item_var_name : str
-        Name of the instance variable declared by *all* items of this list,
-        whose string values are to be uniquified.
-    item_var_format : str
+    item_str_format : str
         Format specifier containing a ``{}`` substring (e.g., ``Item ({}).``),
         iteratively interpolated by this function with an arbitrary integer to
         produce the returned string.
+    item_attr_name : StrOrNoneTypes
+        Name of the attribute declared by *all* items of this list whose string
+        values are to be uniquified. Defaults to ``None``, in which case the
+        optional ``item_key`` parameter *must* be non-``None``.
+    item_key : StrOrNoneTypes
+        Key declared by *all* dictionary items of this list whose string values
+        are to be uniquified. Defaults to ``None``, in which case the optional
+        ``item_attr_name`` parameter *must* be non-``None``.
 
     Returns
     ----------
     str
         New machine-readable string guaranteed to both match this format *and*
-        be unique across all instance variables with this name of all items of
+        be unique across all attributes with this name of all items of
         this iterable.
 
     Raises
     ----------
-    BetseObjectException
-        If, for some item of this iterable, either:
+    BetseException
+        If either:
 
-        * This item contains no instance variable with this name.
-        * This item contains an instance variable with this name whose value is
-          *not* a string.
+        * The ``item_attr_name`` parameter is non-``None`` and, for one or more
+          items of this iterable, either:
+
+          * This item contains no attribute with this name.
+          * The value of this attribute in this item is *not* a string.
+
+        * The ``item_key`` parameter is non-``None`` and, for one or more items
+          of this iterable, either:
+
+          * This item is *not* a dictionary.
+          * This item does *not* contain this key.
+          * The value of this key in this item is *not* a string.
+    BetseParamException
+        If either:
+
+        * Both of the ``item_attr_name`` nor ``item_key`` parameters are passed.
+        * Neither the ``item_attr_name`` nor ``item_key`` parameters are passed.
     BetseStrException
         If the passed format specifier contains no ``{}`` substring.
     '''
 
     # Avoid circular import dependencies.
+    from betse.util.type.iterable.mapping import mappings
     from betse.util.type.obj import objects
     from betse.util.type.text.string import strs
 
     # Log this formatting.
     logs.log_debug(
         'Uniquifying iterable item variable "%s" with template "%s"...',
-        item_var_name, item_var_format)
+        item_attr_name, item_str_format)
 
     #FIXME: Ideally, we would also raise exceptions if this format
     #specifier contains two or more ``{}`` substrings. Sadly, there appears
@@ -575,7 +620,35 @@ def get_item_var_uniquified_str(
     # Note that this simplistic logic fails to account for "{{" and "}}"
     # escaping and hence *COULD* fail to raise exceptions when passed
     # worst-case format specifiers, but that we mostly do not care.
-    strs.die_unless_substr(text=item_var_format, substr='{}')
+    strs.die_unless_substr(text=item_str_format, substr='{}')
+
+    # Callable accepting an arbitrary item of this iterable and returning the
+    # string value of the desired attribute or dictionary key from this
+    # item. The signature of this callable resembles:
+    #     def item_attr_getter(item: object) -> str
+    item_str_getter = None
+
+    # If uniquifying an attribute of these items...
+    if item_attr_name is not None:
+        # If uniquifying a dictionary key of these items, raise an exception.
+        # There can only be one true item query paradigm.
+        if item_key is not None:
+            raise BetseParamException(
+                '"item_attr_name" and "item_key" parameters both passed.')
+
+        # Callable retrieving this string attribute from the passed item.
+        item_str_getter = lambda item: objects.get_attr(
+            obj=item, attr_name=item_attr_name, attr_type=str)
+    # Else if uniquifying a dictionary key of these items...
+    elif item_key is not None:
+        # Callable retrieving this string value from the passed dictionary.
+        item_str_getter = lambda item: mappings.get_key_value(
+            mapping=item, key=item_key, value_type=str)
+    # Else, neither an attribute nor dictionary key of these items is
+    # being uniquified. In this case, raise an exception.
+    else:
+        raise BetseParamException(
+            '"item_attr_name" and "item_key" parameters not passed.')
 
     # Arbitrary integer to be formatted into the string to be returned. To
     # reduce the likelihood of collisions with existing items of this iterable,
@@ -585,39 +658,37 @@ def get_item_var_uniquified_str(
     # Iteration below increments this integer until the string created by
     # formatting this integer into the passed format specifier produces a
     # string guaranteed to be unique across all items of this iterable.
-    item_var_id = len(iterable) + 1
+    item_id = len(iterable) + 1
 
     # Uniquified string to be created and returned by this function.
-    item_var = None
+    item_str = None
 
-    # "True" only if the "item_var" string still collides with at least one
-    # string value of an instance variable with this name of an item of this
+    # "True" only if the "item_str" string still collides with at least one
+    # string value of an attribute with this name of an item of this
     # iterable and hence has yet to be uniquified.
-    is_item_var_collides = True
+    is_item_str_collides = True
 
-    # Unordered set of all string values of each instance variable with this
-    # name of all items of this iterable if each item declares such a variable
-    # *OR* raise an exception otherwise.
-    item_vars = set(
-        objects.get_attr(obj=item, attr_name=item_var_name, attr_type=str)
-        for item in iterable)
+    # Unordered set of all string values of each desired attribute or
+    # dictionary key  of all items of this iterable if each item declares such
+    # a variable or key *OR* raise an exception otherwise.
+    item_strs = set(item_str_getter(item) for item in iterable)
 
     # While the string value to be returned still collides with at least one
-    # string value of an instance variable with this name of an item of this
+    # string value of an attribute with this name of an item of this
     # iterable and hence has yet to be uniquified...
-    while is_item_var_collides:
+    while is_item_str_collides:
         # Uniquified string to be created and returned by this function.
-        item_var = item_var_format.format(item_var_id)
+        item_str = item_str_format.format(item_id)
 
         # If this value collides with the uniquified string to be created
         # and returned by this function, this string is non-unique. In this
         # case, increment this identifier, format a new attribute with this
         # identifier, and continue searching.
-        is_item_var_collides = item_var in item_vars
+        is_item_str_collides = item_str in item_strs
 
         # Unconditionally increment the integer to be formatted into the
-        # "item_var" string by the next iteration of this loop.
-        item_var_id += 1
+        # "item_str" string by the next iteration of this loop.
+        item_id += 1
 
     # Return this uniquified string.
-    return item_var
+    return item_str

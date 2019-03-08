@@ -47,7 +47,7 @@ from betse.util.path import dirs, files, pathnames
 from betse.util.py.module import pymodname, pymodule
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.iterable import itersort
-from betse.util.type.mapping.mapcls import OrderedArgsDict
+from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 from betse.util.type.numeric import versions
 from betse.util.type.text import regexes
 from betse.util.type.types import BoolOrNoneTypes, ModuleType

@@ -33,7 +33,7 @@ class BellType(object):
 def test_get_item_var_uniquified_str() -> None:
     '''
     Unit test the
-    :func:`betse.util.type.iterable.iterget.get_item_var_uniquified_str`
+    :func:`betse.util.type.iterable.iterget.get_item_str_uniquified`
     function.
     '''
 
@@ -58,10 +58,10 @@ def test_get_item_var_uniquified_str() -> None:
 
     # Exercise the edge case when this iterable contains no item whose "name"
     # variable matches the passed format specifier.
-    the_fifth_bell = iterget.get_item_var_uniquified_str(
+    the_fifth_bell = iterget.get_item_str_uniquified(
         iterable=the_bells,
-        item_var_name='name',
-        item_var_format='Runic bells ! ({})',
+        item_attr_name='name',
+        item_str_format='Runic bells ! ({})',
     )
 
     # Assert this getter function to have synthesized the expected string.
@@ -74,10 +74,10 @@ def test_get_item_var_uniquified_str() -> None:
 
     # Exercise the edge case when this iterable contains one item whose "name"
     # variable matches the passed format specifier.
-    the_sixth_bell = iterget.get_item_var_uniquified_str(
+    the_sixth_bell = iterget.get_item_str_uniquified(
         iterable=the_bells,
-        item_var_name='name',
-        item_var_format='Runic bells ! ({})',
+        item_attr_name='name',
+        item_str_format='Runic bells ! ({})',
     )
 
     # Assert this getter function to have synthesized the expected string.

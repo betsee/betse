@@ -149,10 +149,10 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Name of this tissue profile unique to this list.
-        tissue_name = iterget.get_item_var_uniquified_str(
+        tissue_name = iterget.get_item_str_uniquified(
             iterable=yaml_list,
-            item_var_name='name',
-            item_var_format='tissue ({})',
+            item_attr_name='name',
+            item_str_format='Tissue ({})',
         )
 
         # Create and return the equivalent YAML-backed tissue profile list
@@ -205,10 +205,10 @@ class SimConfCutListItem(YamlNamedMixin, YamlListItemABC):
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
         # Name of this cut profile unique to this list.
-        cut_name = iterget.get_item_var_uniquified_str(
+        cut_name = iterget.get_item_str_uniquified(
             iterable=yaml_list,
-            item_var_name='name',
-            item_var_format='cut ({})',
+            item_attr_name='name',
+            item_str_format='Cut ({})',
         )
 
         # Create and return the equivalent YAML-backed cut profile list item,

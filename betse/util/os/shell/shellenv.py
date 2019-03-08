@@ -76,7 +76,7 @@ def is_var(*names: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.mapping import mappings
+    from betse.util.type.iterable.mapping import mappings
 
     # Return True only if the names of these environment variables are all keys
     # of the corresponding dictionary global.

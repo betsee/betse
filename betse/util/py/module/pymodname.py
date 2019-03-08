@@ -25,7 +25,7 @@ See Also
 
 import importlib, sys
 from betse.util.io.log import logs
-from betse.util.type.mapping.mapcls import DefaultDict
+from betse.util.type.iterable.mapping.mapcls import DefaultDict
 from betse.util.type.types import type_check, ModuleType, StrOrNoneTypes
 from collections import defaultdict
 from importlib import util as importlib_util

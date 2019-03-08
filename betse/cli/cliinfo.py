@@ -24,7 +24,7 @@ from betse import metadata
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
 from betse.util.py import pyimpl, pys
-from betse.util.type.mapping.mapcls import OrderedArgsDict
+from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 from collections import OrderedDict
 
 # ..................{ GETTERS                               }..................

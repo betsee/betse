@@ -52,7 +52,7 @@ import subprocess
 from betse.exceptions import BetseCommandException
 from betse.util.io.log import logs
 from betse.util.io.log.logenum import LogLevel
-from betse.util.type.mapping import mappings
+from betse.util.type.iterable.mapping import mappings
 from betse.util.type.types import (
     type_check,
     MappingType,

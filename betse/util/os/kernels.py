@@ -16,7 +16,7 @@ Caveats
 import platform
 
 from betse.util.type.decorator.decmemo import func_cached
-from betse.util.type.mapping.mapcls import OrderedArgsDict
+from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 
 
 # ....................{ GETTERS                            }....................

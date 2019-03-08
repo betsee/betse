@@ -183,7 +183,7 @@ def invert_iterable_unique(iterable: IterableTypes) -> MappingType:
     Specifically:
 
     * If this iterable is a dictionary, the
-      :func:`betse.util.type.mapping.mappings.invert_dict_unique` function is
+      :func:`betse.util.type.iterable.mapping.mappings.invert_dict_unique` function is
       silently deferred to. The type of the returned dictionary is guaranteed
       to be the same as the type of the passed dictionary.
     * Else, the returned dictionary maps from each item of this iterable to the
@@ -208,7 +208,7 @@ def invert_iterable_unique(iterable: IterableTypes) -> MappingType:
 
     # Avoid circular import dependencies.
     from betse.util.type.iterable import itertest
-    from betse.util.type.mapping import mappings
+    from betse.util.type.iterable.mapping import mappings
 
     # If this iterable is a mapping...
     if mappings.is_mapping(iterable):
@@ -271,7 +271,8 @@ def iter_items(*iterables: IterableTypes) -> GeneratorType:
     # Pure Python 3.x. Join the party.
     #
     # Note that the itertools.chain.from_iterable() could also be called here,
-    # but that doing so is less Pythonic than the current approach.
+    # but that doing so would be both less Pythonic *AND* no more efficient
+    # than the current approach. Ergo, simplicity wins.
     for iterable in iterables:
         yield from iterable
 

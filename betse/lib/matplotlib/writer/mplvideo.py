@@ -16,7 +16,7 @@ from betse.util.io.log import logs
 from betse.util.os.shell import shellstr
 from betse.util.path.command import cmdrun
 from betse.util.type.cls import classes
-from betse.util.type.mapping.mapcls import ReversibleDict
+from betse.util.type.iterable.mapping.mapcls import ReversibleDict
 from betse.util.type.text import regexes
 from betse.util.type.text.string import strjoin
 from betse.util.type.types import (

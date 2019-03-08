@@ -466,3 +466,28 @@ def _upgrade_sim_conf_to_0_9_3(p: Parameters) -> None:
     for profile in tissue_dict['tissue']['profiles']:
         if 'color' not in profile['cell targets']:
             profile['cell targets']['color'] = 'ff0000'  # Red. Just 'cause.
+
+    #FIXME: Implement us up. Sadly, doing so will prove non-trivial, because:
+    #
+    #* *WAIT.* Calling the iterget.get_item_str_uniquified() function will
+    #  require adding yet another optional "item_str_default" parameter to that
+    #  function. Rather than doing that, let's instead just manually kludge
+    #  this as follows:
+    #  * Let's make the simplistic assumption that, if any export dictionary
+    #    does *NOT* contain the "name" key, then no export dictionary contains
+    #    that key. Under this reasonably safe assumption, iteratively defining
+    #    each such key to be "'Export ({})'.format(export_id)" should suffice.
+    #  * Define a local "export_id" integer variable defaulting to "1".
+    #  * Iteratively interpolate this integer into each missing "name" key of
+    #    each export dictionary. Trivial, actually.
+
+    # # For each pipelined export (e.g., CSV, plot, animation)...
+    # for export in iterables.iter_items(
+    #     results_dict['after solving']['animations']['pipeline'],
+    #     results_dict['after solving']['csvs']['pipeline'],
+    #     results_dict['after solving']['plots']['cell cluster pipeline'],
+    #     results_dict['after solving']['plots']['single cell pipeline'],
+    # ):
+    #     # If this export does *NOT* define a name, do so in a manner guaranteed
+    #     # to preserve uniqueness.
+    #     pass

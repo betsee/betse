@@ -17,7 +17,7 @@ from betse.exceptions import BetseSimConfException
 from betse.lib import libs
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
-from betse.util.type.mapping.mapcls import DynamicValue, DynamicValueDict
+from betse.util.type.iterable.mapping.mapcls import DynamicValue, DynamicValueDict
 from collections import OrderedDict
 from matplotlib import colors
 

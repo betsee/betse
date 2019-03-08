@@ -315,7 +315,7 @@ class OrderedArgsDict(OrderedDict):
 
     Examples
     ----------
-    >>> from betse.util.type.mapping.mapcls import OrderedArgsDict
+    >>> from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
     >>> from collections import OrderedDict
     >>> tuatha_de_danann = OrderedArgsDict(
     ...     'Nuada', 'Nodens',

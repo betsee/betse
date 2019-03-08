@@ -59,7 +59,7 @@ def get_metadata():
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.mapping.mapcls import OrderedArgsDict
+    from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 
     # Return this dictionary.
     return OrderedArgsDict(

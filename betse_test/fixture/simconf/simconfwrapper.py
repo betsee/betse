@@ -514,7 +514,7 @@ class SimConfigTestWrapper(object):
         sodium_membrane_permeability['change rate']   =  1.0e-3
         sodium_membrane_permeability['change start']  =  5.0e-3
         sodium_membrane_permeability['change finish'] = 30.0e-3
-        sodium_membrane_permeability['apply to'] = ['spot',]
+        sodium_membrane_permeability['apply to'] = ['Spot',]
 
         #FIXME: Refactor this to use the new networks formalism.
         # # Enable the voltage-gated sodium (Na+) channel Nav1p2.

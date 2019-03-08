@@ -23,7 +23,7 @@ from betse.science.visual.plot.plotutil import cell_ave
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from betse.util.type.descriptor.descs import classproperty_readonly
-from betse.util.type.mapping.mapcls import OrderedArgsDict
+from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 from betse.util.type.types import (
     type_check, IterableTypes, NumpyArrayType, SequenceTypes, StrOrNoneTypes,)
 

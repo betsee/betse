@@ -203,7 +203,7 @@ def get_metadata() -> 'OrderedArgsDict':
 
     # Avoid circular import dependencies.
     from betse.util.py import pyfreeze
-    from betse.util.type.mapping.mapcls import OrderedArgsDict
+    from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 
     # Return this dictionary.
     return OrderedArgsDict(

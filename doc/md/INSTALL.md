@@ -141,9 +141,7 @@ Automatically Tuned Linear Algebra Software (ATLAS) is the standard baseline
 for all optimized BLAS and LAPACK implementations. ATLAS is installable in a
 system-wide manner as follows:
 
-    $ sudo apt-get install build-essential libatlas-base-dev &&
-      sudo update-alternatives --set libblas.so.3 /usr/lib/atlas-base/atlas/libblas.so.3 &&
-      sudo update-alternatives --set liblapack.so.3 /usr/lib/atlas-base/atlas/liblapack.so.3
+    $ sudo apt-get install build-essential libatlas-base-dev
 
 Note that OpenBLAS and ATLAS *cannot* be installed at the same time.
 
@@ -154,11 +152,9 @@ LAPACK implementation. While ATLAS is recommended for new users, experienced
 users requiring improved performance may benefit from installing OpenBLAS
 instead. OpenBLAS is installable in a system-wide manner as follows:
 
-    $ sudo apt-get install build-essential libopenblas-dev &&
-      sudo update-alternatives --set libblas.so.3 /usr/lib/openblas-base/libblas.so.3 &&
-      sudo update-alternatives --set liblapack.so.3 /usr/lib/lapack/liblapack.so.3
+    $ sudo apt-get install build-essential libopenblas-dev
 
-Note that OpenBLAS and ATLAS _cannot_ be installed at the same time.
+Note that OpenBLAS and ATLAS *cannot* be installed at the same time.
 
 ### Gentoo
 

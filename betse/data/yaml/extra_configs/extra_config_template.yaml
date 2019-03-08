@@ -71,7 +71,8 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     growth and decay:    # settings for production/decay of substances (standard GRN model)
       production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
       decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm
-      apply to: ['spot']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+      apply to: ["Spot"]       # Apply growth only to one or more specific tissue profiles (e.g.,
+                               # ["Spot", "Crest"]) or "all" for everything.
       modulator function: gradient_x  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
       activators: None         # list of defined substances or simulation ions activating expression
       Km activators: None      # list of half-maximum values for activators
@@ -140,12 +141,13 @@ reactions:
     inhibitor n: None
     inhibitor zone: None
 
-
-
-#-----------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
 # CUSTOM TRANSPORTERS
-#-----------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
 # Positive flux moves out of the cell
+#
+# Note that transporter activators/inhibitors only work from intracellular concentrations at the
+# membrane.
 transporters:
 
   - name: Transport_A         # unique identifier for the transporter **DO NOT** end with '_growth' or '_decay'
@@ -160,7 +162,7 @@ transporters:
     transfered into cell: ['Substance_A']     # items of reaction moved into cell during forwards reaction
     max rate: 1.0e-5          # maximum rate of transport [mol/(m2*s)]
     standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
-    apply to: ['nerves', 'spot']      # apply transporter only on certain profiles?
+    apply to: ['nerves', "Spot"]      # apply transporter only on certain profiles?
     ignore ECM: True
     transporter activators: None   # additional defined substances or ions increasing activity of transporter
     activator Km: None
@@ -168,7 +170,7 @@ transporters:
     transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
     inhibitor Km: None
     inhibitor n: None
-    # Note: transporter activators/inhibitors only work from intracellular concentrations at the membrane
+
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM CHANNELS
 #-----------------------------------------------------------------------------------------------------------------------

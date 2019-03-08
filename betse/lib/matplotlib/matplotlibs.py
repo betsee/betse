@@ -71,7 +71,7 @@ from betse.util.os import displays, kernels, oses
 from betse.util.py.module import pymodname
 from betse.util.type.iterable import itersort
 from betse.util.type.decorator.decmemo import property_cached
-from betse.util.type.mapping.mapcls import OrderedArgsDict
+from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 from betse.util.type.numeric import versions
 from betse.util.type.types import (
     type_check, MappingType, SequenceTypes, SetType, StrOrNoneTypes,)

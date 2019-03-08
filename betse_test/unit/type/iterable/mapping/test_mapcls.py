@@ -5,7 +5,7 @@
 
 '''
 Unit tests exercising various simpler classes defined by the
-:mod:`betse.util.type.mapping.mapcls` submodule *not* warranting their own
+:mod:`betse.util.type.iterable.mapping.mapcls` submodule *not* warranting their own
 dedicated unit test submodule.
 '''
 
@@ -16,12 +16,12 @@ import pytest
 # ....................{ TESTS ~ default                   }....................
 def test_defaultdict_pass() -> None:
     '''
-    Test aspects of the :class:`betse.util.type.mapping.mapcls.DefaultDict`
+    Test aspects of the :class:`betse.util.type.iterable.mapping.mapcls.DefaultDict`
     type intended to succeed.
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type.mapping.mapcls import DefaultDict
+    from betse.util.type.iterable.mapping.mapcls import DefaultDict
 
     # Default dictionary to be tested.
     lake_isle_of_innisfree = DefaultDict(
@@ -44,12 +44,12 @@ def test_defaultdict_pass() -> None:
 # ....................{ TESTS ~ ordered                   }....................
 def test_orderedargsdict_pass() -> None:
     '''
-    Test aspects of the :class:`betse.util.type.mapping.mapcls.OrderedArgsDict`
+    Test aspects of the :class:`betse.util.type.iterable.mapping.mapcls.OrderedArgsDict`
     type intended to succeed.
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type.mapping.mapcls import OrderedArgsDict
+    from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 
     # Custom ordered dictionary to be tested.
     tuatha_de_danann = OrderedArgsDict(
@@ -77,13 +77,13 @@ def test_orderedargsdict_pass() -> None:
 
 def test_orderedargsdict_fail() -> None:
     '''
-    Test aspects of the :class:`betse.util.type.mapping.mapcls.OrderedArgsDict`
+    Test aspects of the :class:`betse.util.type.iterable.mapping.mapcls.OrderedArgsDict`
     type intended to fail.
     '''
 
     # Defer heavyweight imports.
     from betse.exceptions import BetseMappingException
-    from betse.util.type.mapping.mapcls import OrderedArgsDict
+    from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 
     # Test whether initializing this dictionary with an odd rather than even
     # number of positional arguments fails.
