@@ -481,13 +481,28 @@ def _upgrade_sim_conf_to_0_9_3(p: Parameters) -> None:
     #  * Iteratively interpolate this integer into each missing "name" key of
     #    each export dictionary. Trivial, actually.
 
-    # # For each pipelined export (e.g., CSV, plot, animation)...
-    # for export in iterables.iter_items(
-    #     results_dict['after solving']['animations']['pipeline'],
-    #     results_dict['after solving']['csvs']['pipeline'],
-    #     results_dict['after solving']['plots']['cell cluster pipeline'],
-    #     results_dict['after solving']['plots']['single cell pipeline'],
-    # ):
-    #     # If this export does *NOT* define a name, do so in a manner guaranteed
-    #     # to preserve uniqueness.
-    #     pass
+    # Unique identifier to be formatted into the name of the current pipelined
+    # export iterated below.
+    export_id = 1
+
+    # Format specifier for the name of the current pipelined export.
+    export_name_format = 'Export ({})'
+
+    # For each pipelined export (e.g., CSV, plot, animation)...
+    for export in iterables.iter_items(
+        results_dict['after solving']['animations']['pipeline'],
+        results_dict['after solving']['csvs']['pipeline'],
+        results_dict['after solving']['plots']['cell cluster pipeline'],
+        results_dict['after solving']['plots']['single cell pipeline'],
+    ):
+        #FIXME: Guarantee uniqueness by generalizing the
+        #iterget.get_item_str_uniquified() function to and then calling that function.
+        # If this export does *NOT* define a name, do so in a manner intended
+        # to preserve uniqueness.
+        #
+        # Note that, as the verb "intended" implies, this simplistic
+        # implementation does *NOT* necessarily guarantee this name to be
+        # unique across all exports of the same pipeline. Although this
+        # implementation could be generalized to do so, harsh time constraints
+        # currently favour the simplistic. (Such is code life.)
+        pass

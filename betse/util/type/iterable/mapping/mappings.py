@@ -119,7 +119,7 @@ def get_key_value(
         Key whose value is to be retrieved.
 
     All remaining keyword arguments are passed as is to the
-    :func:`get_key_value_or_sentinel` function.
+    :func:`get_key_value_or_default` function.
 
     Returns
     ----------
@@ -154,13 +154,7 @@ def get_key_value(
 
 @type_check
 def get_key_value_or_sentinel(
-    # Mandatory parameters.
-    mapping: MappingType,
-    key: HashableType,
-
-    # Optional parameters.
-    value_type: TestableOrNoneTypes = None,
-) -> object:
+    mapping: MappingType, key: HashableType, **kwargs) -> object:
     '''
     Value of the passed key in the passed mapping if this mapping contains this
     key *or* the sentinel singleton otherwise (i.e., if this mapping contains
@@ -175,12 +169,9 @@ def get_key_value_or_sentinel(
         Dictionary to be inspected.
     key : HashableType
         Key whose value is to be retrieved.
-    value_type : TestableOrNoneTypes
-        Expected type of the current value of this key. If this type is
-        non-``None`` and this value is not an instance of this type, an
-        exception is raised -- effectively performing the equivalent of the
-        :meth:`type_check` decorator at runtime. Defaults to ``None``, in which
-        case no such type checking is performed.
+
+    All remaining keyword arguments are passed as is to the
+    :func:`get_key_value_or_default` function.
 
     Returns
     ----------
@@ -199,15 +190,74 @@ def get_key_value_or_sentinel(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.obj import objects
     from betse.util.type.obj.sentinels import SENTINEL
 
-    # Value of this key in this mapping if any *OR* the sentinel otherwise.
-    key_value = mapping.get(key, SENTINEL)
+    # Return the current value of this key in this mapping if any *OR* the
+    # sentinel otherwise.
+    return get_key_value_or_default(
+        mapping=mapping, key=key, value_default=SENTINEL, **kwargs)
 
-    # If this mapping contains this key *AND* this value is to be type-checked,
-    # do so.
-    if key_value is not SENTINEL and value_type is not None:
+
+@type_check
+def get_key_value_or_default(
+    # Mandatory parameters.
+    mapping: MappingType,
+    key: HashableType,
+    value_default: object,
+
+    # Optional parameters.
+    value_type: TestableOrNoneTypes = None,
+) -> object:
+    '''
+    Value of the passed key in the passed mapping if this mapping contains this
+    key *or* the passed default value otherwise (i.e., if this mapping contains
+    no such key), optionally validated to be of the passed type.
+
+    Parameters
+    ----------
+    mapping : MappingType
+        Dictionary to be inspected.
+    key : HashableType
+        Key to return the current value of.
+    value_default : object
+        Default value to be returned if this dictionary contains no such key.
+    value_type : TestableOrNoneTypes
+        Expected type of the current value of this key. This function
+        effectively performs the equivalent of the :meth:`type_check` decorator
+        at runtime by raising an exception if all of the following apply:
+
+        * This type is *not* ``None``.
+        * This value is *not* this default value, implying this dictionary to
+          contain this key.
+        * This value is *not* an instance of this type.
+
+        Defaults to ``None``, in which case no such type checking is performed.
+
+    Returns
+    ----------
+    object
+        Either:
+
+        * If this dictionary contains this key, this key's value.
+        * Else, this default value.
+
+    Raises
+    ----------
+    BetseTypeException
+        If the ``value_type`` parameter is non-``None`` and the type of the
+        current value of this key is *not* an instance of ``value_type``.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj import objects
+
+    # Value of this key in this mapping if any *OR* this default value.
+    key_value = mapping.get(key, value_default)
+
+    # If this value is to be type-checked *AND* is *NOT* this default value
+    # (which by definition already satisfies caller requirements regardless of
+    # type), type-check this value.
+    if value_type is not None and key_value is not value_default:
         objects.die_unless_instance(obj=key_value, cls=value_type)
 
     # Return this value.

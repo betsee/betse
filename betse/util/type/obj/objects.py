@@ -385,19 +385,12 @@ def is_c_based(obj: object) -> bool:
 
 # ....................{ GETTERS : attr                    }....................
 @type_check
-def get_attr(
-    # Mandatory parameters.
-    obj: object,
-    attr_name: str,
-
-    # Optional parameters.
-    attr_type: TestableOrNoneTypes = None,
-) -> object:
+def get_attr(obj: object, attr_name: str, **kwargs) -> object:
     '''
-    Value of the attribute with the passed name whose value is defined by the
-    passed object if this object defines such an attribute *or* raise an
-    exception otherwise (i.e., if this object defines no such attribute),
-    optionally validated to be of the passed type.
+    Value of the attribute with the passed name bound to the passed object if
+    this object defines this attribute *or* raise an exception otherwise (i.e.,
+    if this object defines no such attribute), optionally validated to be of
+    the passed type.
 
     Parameters
     ----------
@@ -405,12 +398,9 @@ def get_attr(
         Object to be inspected.
     attr_name : str
         Name of the attribute to be retrieved.
-    attr_type : TestableOrNoneTypes
-        Expected type of the current value of this attribute. If this type is
-        non-``None`` and this value is not an instance of this type, an
-        exception is raised -- effectively performing the equivalent of the
-        :meth:`type_check` decorator at runtime. Defaults to ``None``, in which
-        case no such type checking is performed.
+
+    All remaining keyword arguments are passed as is to the
+    :func:`get_attr_or_default` function.
 
     Returns
     ----------
@@ -431,7 +421,7 @@ def get_attr(
 
     # Value of the attribute with this name defined by this object if any *OR*
     # the sentinel otherwise.
-    attr_value = get_attr_or_sentinel(obj, attr_name)
+    attr_value = get_attr_or_sentinel(obj, attr_name, **kwargs)
 
     # If no such attribute exists, raise an exception.
     if attr_value is SENTINEL:
@@ -440,19 +430,17 @@ def get_attr(
                 get_class_name_unqualified(obj), attr_name))
     # Else, this attribute exists.
 
-    # If type checking this value, do so.
-    if attr_type is not None:
-        die_unless_instance(obj=attr_value, cls=attr_type)
-
     # Return this value.
     return attr_value
 
 
 @type_check
-def get_attr_or_none(obj: object, attr_name: str) -> object:
+def get_attr_or_none(obj: object, attr_name: str, **kwargs) -> object:
     '''
-    Attribute with the passed name bound to the passed object if any *or*
-    ``None`` otherwise.
+    Attribute with the passed name bound to the passed object if this object
+    defines this attribute *or* ``None`` otherwise (i.e., if this object
+    defines no such attribute), optionally validated to be of
+    the passed type.
 
     Caveats
     ----------
@@ -469,23 +457,37 @@ def get_attr_or_none(obj: object, attr_name: str) -> object:
     attr_name : str
         Name of the attribute to be obtained.
 
+    All remaining keyword arguments are passed as is to the
+    :func:`get_attr_or_default` function.
+
     Returns
     ----------
     object
         Attribute with this name bound to this object if any *or* ``None``
         otherwise.
+
+    Raises
+    ----------
+    BetseTypeException
+        If the ``attr_type`` parameter is non-``None`` and the type of the
+        current value of this attribute is *not* an instance of ``attr_type``.
     '''
 
-    # All that which glitters is not gold.
-    return getattr(obj, attr_name, None)
+    # Return the current value of the attribute with this name defined by this
+    # object if any *OR* "None" otherwise.
+    return get_attr_or_default(
+        obj=obj, attr_name=attr_name, attr_default=None, **kwargs)
 
 
 @type_check
-def get_attr_or_sentinel(obj: object, attr_name: str) -> object:
+def get_attr_or_sentinel(obj: object, attr_name: str, **kwargs) -> object:
     '''
     Value of the attribute with the passed name bound to the passed object if
-    any *or* the sentinel singleton otherwise (i.e., if this object declares
-    no such attribute), enabling callers to distinguish between non-existing
+    this object defines this attribute *or* the sentinel singleton otherwise
+    (i.e., if this object defines no such attribute), optionally validated to
+    be of the passed type.
+
+    This function enables callers to safely distinguish between non-existing
     attributes and existing attributes whose values are ``None``.
 
     Parameters
@@ -495,6 +497,9 @@ def get_attr_or_sentinel(obj: object, attr_name: str) -> object:
     attr_name : str
         Name of the attribute to be obtained.
 
+    All remaining keyword arguments are passed as is to the
+    :func:`get_attr_or_default` function.
+
     Returns
     ----------
     object
@@ -503,13 +508,86 @@ def get_attr_or_sentinel(obj: object, attr_name: str) -> object:
         * If this object declares this attribute, this attribute's value.
         * Else, the **sentinel singleton** (i.e.,
           :attr:`betse.util.type.obj.sentinels.SENTINEL`).
+
+    Raises
+    ----------
+    BetseTypeException
+        If the ``attr_type`` parameter is non-``None`` and the type of the
+        current value of this attribute is *not* an instance of ``attr_type``.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.type.obj.sentinels import SENTINEL
 
-    # Return this attribute if any or the sentinel otherwise.
-    return getattr(obj, attr_name, SENTINEL)
+    # Return the current value of the attribute with this name defined by this
+    # object if any *OR* the sentinel otherwise.
+    return get_attr_or_default(
+        obj=obj, attr_name=attr_name, attr_default=SENTINEL, **kwargs)
+
+
+@type_check
+def get_attr_or_default(
+    # Mandatory parameters.
+    obj: object,
+    attr_name: str,
+    attr_default: object,
+
+    # Optional parameters.
+    attr_type: TestableOrNoneTypes = None,
+) -> object:
+    '''
+    Value of the attribute with the passed name bound to the passed object if
+    this object defines this attribute *or* the passed default value otherwise
+    (i.e., if this object defines no such attribute), optionally validated to
+    be of the passed type.
+
+    Parameters
+    ----------
+    obj : object
+        Object to be inspected.
+    attr_name : str
+        Name of the attribute to return the current value of.
+    attr_default : object
+        Default value to be returned if this object defines no such attribute.
+    attr_type : TestableOrNoneTypes
+        Expected type of the current value of this attribute. This function
+        effectively performs the equivalent of the :meth:`type_check` decorator
+        at runtime by raising an exception if all of the following apply:
+
+        * This type is *not* ``None``.
+        * This value is *not* this default value, implying this attribute to be
+          defined by this object.
+        * This value is *not* an instance of this type.
+
+        Defaults to ``None``, in which case no such type checking is performed.
+
+    Returns
+    ----------
+    object
+        Either:
+
+        * If this object defines this attribute, this attribute's value.
+        * Else, this default value.
+
+    Raises
+    ----------
+    BetseTypeException
+        If the ``attr_type`` parameter is non-``None`` and the type of the
+        current value of this attribute is *not* an instance of ``attr_type``.
+    '''
+
+    # Value of the attribute with this name defined by this object if any *OR*
+    # this default value otherwise.
+    attr_value = getattr(obj, attr_name, attr_default)
+
+    # If this value is to be type-checked *AND* is *NOT* this default value
+    # (which by definition already satisfies caller requirements regardless of
+    # type), type-check this value.
+    if attr_type is not None and attr_value is not attr_default:
+        die_unless_instance(obj=attr_value, cls=attr_type)
+
+    # Return this value.
+    return attr_value
 
 # ....................{ GETTERS ~ class                   }....................
 def get_class(obj: object) -> ClassType:

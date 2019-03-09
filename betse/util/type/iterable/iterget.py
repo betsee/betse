@@ -506,6 +506,8 @@ def get_item_last_satisfying(
     )
 
 # ....................{ GETTERS ~ str                     }....................
+#FIXME: Exercise both the "item_key" and "is_defaultable" parameters with
+#exhaustive unit tests. This function has become astonishingly complex.
 @type_check
 def get_item_str_uniquified(
     # Mandatory parameters.
@@ -515,6 +517,7 @@ def get_item_str_uniquified(
     # Mutually exclusive parameters.
     item_attr_name: StrOrNoneTypes = None,
     item_key: StrOrNoneTypes = None,
+    is_defaultable: bool = False,
 ) -> str:
     '''
     Create and return a new machine-readable string guaranteed to be unique
@@ -523,27 +526,27 @@ def get_item_str_uniquified(
     across each dictionary key with the passed name of each item of the passed
     iterable if the ``item_key`` parameter is non-``None``.
 
-    This function enforces uniqueness of an attribute *or* dictionary
-    key employed by the caller as an SQL-like primary key uniquely identifying
-    each item of this iterable. Specifically, this function:
+    Design
+    ----------
+    This function enforces uniqueness of either an object attribute *or*
+    dictionary key assumed to be used by the caller as an SQL-like primary key
+    uniquely identifying each item of this iterable. Specifically, this
+    function:
 
-    * If the ``item_attr_name`` parameter is non-``None``, requires each item of
-      this iterable to declare an attribute with the passed name whose
-      value is an arbitrary string.
-
+    * If the ``item_attr_name`` parameter is non-``None``, requires each item
+      of this iterable to declare an attribute with the passed name whose value
+      is an arbitrary string.
     * If the ``item_key`` parameter is non-``None``, requires each item of this
       iterable to be a dictionary defining a key with the passed name whose
       value is an arbitrary string.
 
-    This function then synthesizes a string suitable for use by callers as the
-    value of that variable or key for a currently non-existing item of this
-    iterable assumed to be created by the caller after calling this function.
-
-    Caveats
-    ----------
     Exactly one of the mutually exclusive ``item_attr_name`` and ``item_key``
     parameters *must* be passed. If neither *or* both of these parameters are
     passed, an exception is raised.
+
+    This function then synthesizes a string suitable for use by callers as the
+    value of that variable or key for a currently non-existing item of this
+    iterable assumed to be created by the caller after calling this function.
 
     Parameters
     ----------
@@ -561,6 +564,21 @@ def get_item_str_uniquified(
         Key declared by *all* dictionary items of this list whose string values
         are to be uniquified. Defaults to ``None``, in which case the optional
         ``item_attr_name`` parameter *must* be non-``None``.
+    is_defaultable : bool
+        ``True`` only if this function implicitly accepts **non-compliant
+        items** (i.e., items *not* declaring either an attribute with the name
+        ``item_attr_name`` if that parameter is non-``None`` *or* the key
+        ``item_key`` if that parameter is non-``None``). Specifically, if this
+        boolean is:
+
+        * ``True``, this function silently synthesizes a default string value
+          for each non-compliant item of this iterable (e.g.,
+          ``item_str_format.format(item_index)``, where ``item_index`` is the
+          0-based index of that item in this iterable).
+        * ``False``, this function raises an exception on visiting the first
+          non-compliant item of this iterable.
+
+        Defaults to ``False``.
 
     Returns
     ----------
@@ -574,23 +592,27 @@ def get_item_str_uniquified(
     BetseException
         If either:
 
-        * The ``item_attr_name`` parameter is non-``None`` and, for one or more
-          items of this iterable, either:
+        * The ``item_attr_name`` parameter is non-``None`` *and*, for one or
+          more items of this iterable, either:
 
-          * This item contains no attribute with this name.
+          * The ``is_defaultable`` parameter is ``False`` *and* this
+            item contains no attribute with this name.
           * The value of this attribute in this item is *not* a string.
 
-        * The ``item_key`` parameter is non-``None`` and, for one or more items
-          of this iterable, either:
+        * The ``item_key`` parameter is non-``None`` *and*, for one or more
+          items of this iterable, either:
 
           * This item is *not* a dictionary.
-          * This item does *not* contain this key.
-          * The value of this key in this item is *not* a string.
+          * The ``is_defaultable`` parameter is ``False`` *and* this
+            dictionary does *not* contain this key.
+          * The value of this key in this dictionary is *not* a string.
     BetseParamException
         If either:
 
-        * Both of the ``item_attr_name`` nor ``item_key`` parameters are passed.
-        * Neither the ``item_attr_name`` nor ``item_key`` parameters are passed.
+        * Both of the ``item_attr_name`` *and* ``item_key`` parameters are
+          passed.
+        * Neither the ``item_attr_name`` *nor* ``item_key`` parameters are
+          passed.
     BetseStrException
         If the passed format specifier contains no ``{}`` substring.
     '''
@@ -622,10 +644,10 @@ def get_item_str_uniquified(
     # worst-case format specifiers, but that we mostly do not care.
     strs.die_unless_substr(text=item_str_format, substr='{}')
 
-    # Callable accepting an arbitrary item of this iterable and returning the
-    # string value of the desired attribute or dictionary key from this
-    # item. The signature of this callable resembles:
-    #     def item_attr_getter(item: object) -> str
+    # Callable accepting an arbitrary item and 0-based index of this item in
+    # this iterable and returning the string value of the desired attribute or
+    # dictionary key from this item. The signature of this callable resembles:
+    #     def item_attr_getter(item: object, item_index: int) -> str
     item_str_getter = None
 
     # If uniquifying an attribute of these items...
@@ -636,14 +658,48 @@ def get_item_str_uniquified(
             raise BetseParamException(
                 '"item_attr_name" and "item_key" parameters both passed.')
 
-        # Callable retrieving this string attribute from the passed item.
-        item_str_getter = lambda item: objects.get_attr(
-            obj=item, attr_name=item_attr_name, attr_type=str)
+        # If this function implicitly accepts non-compliant items, define a
+        # lambda retrieving this string attribute from the passed item in a
+        # manner defaulting to a string formatted with this item's index.
+        if is_defaultable:
+            item_str_getter = lambda item, item_index: (
+                objects.get_attr_or_default(
+                    obj=item,
+                    attr_name=item_attr_name,
+                    attr_default=item_str_format.format(item_index),
+                    attr_type=str,
+                ))
+        # Else, this function explicitly rejects non-compliant items. In this
+        # case, define a lambda retrieving this string attribute from the
+        # passed item *WITHOUT* defaulting if this attribute is undefined.
+        else:
+            item_str_getter = lambda item, item_index: objects.get_attr(
+                obj=item,
+                attr_name=item_attr_name,
+                attr_type=str,
+            )
     # Else if uniquifying a dictionary key of these items...
     elif item_key is not None:
-        # Callable retrieving this string value from the passed dictionary.
-        item_str_getter = lambda item: mappings.get_key_value(
-            mapping=item, key=item_key, value_type=str)
+        # If this function implicitly accepts non-compliant items, define a
+        # lambda retrieving this string value from the passed dictionary in a
+        # manner defaulting to a string formatted with this dictionary's index.
+        if is_defaultable:
+            item_str_getter = lambda item, item_index: (
+                mappings.get_key_value_or_default(
+                    mapping=item,
+                    key=item_key,
+                    value_default=item_str_format.format(item_index),
+                    value_type=str,
+                ))
+        # Else, this function explicitly rejects non-compliant items. In this
+        # case, define a lambda retrieving this string value from the
+        # passed dictionary *WITHOUT* defaulting if this key is undefined.
+        else:
+            item_str_getter = lambda item, item_index: mappings.get_key_value(
+                mapping=item,
+                key=item_key,
+                value_type=str,
+            )
     # Else, neither an attribute nor dictionary key of these items is
     # being uniquified. In this case, raise an exception.
     else:
@@ -671,7 +727,9 @@ def get_item_str_uniquified(
     # Unordered set of all string values of each desired attribute or
     # dictionary key  of all items of this iterable if each item declares such
     # a variable or key *OR* raise an exception otherwise.
-    item_strs = set(item_str_getter(item) for item in iterable)
+    item_strs = set(
+        item_str_getter(item, item_index)
+        for item_index, item in enumerate(iterable))
 
     # While the string value to be returned still collides with at least one
     # string value of an attribute with this name of an item of this
