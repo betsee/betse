@@ -11,7 +11,8 @@ simulation configurations.
 # ....................{ IMPORTS                           }....................
 from betse.science.parameters import Parameters
 from betse.util.io.log import logs
-from betse.util.type.iterable import iterables
+from betse.util.type.iterable import iterables, iterget
+from betse.util.type.obj.sentinels import SENTINEL
 from betse.util.type.types import type_check, MappingType
 
 # ....................{ UPGRADERS                         }....................
@@ -459,7 +460,6 @@ def _upgrade_sim_conf_to_0_9_3(p: Parameters) -> None:
     logs.log_debug('Upgrading simulation configuration to 0.9.3 format...')
 
     # Localize configuration subdictionaries for convenience.
-    results_dict = p._conf['results options']
     tissue_dict = p._conf['tissue profile definition']
 
     # For each tissue profile, define the "color" cell targets type if needed.
@@ -467,42 +467,60 @@ def _upgrade_sim_conf_to_0_9_3(p: Parameters) -> None:
         if 'color' not in profile['cell targets']:
             profile['cell targets']['color'] = 'ff0000'  # Red. Just 'cause.
 
-    #FIXME: Implement us up. Sadly, doing so will prove non-trivial, because:
-    #
-    #* *WAIT.* Calling the iterget.get_item_str_uniquified() function will
-    #  require adding yet another optional "item_str_default" parameter to that
-    #  function. Rather than doing that, let's instead just manually kludge
-    #  this as follows:
-    #  * Let's make the simplistic assumption that, if any export dictionary
-    #    does *NOT* contain the "name" key, then no export dictionary contains
-    #    that key. Under this reasonably safe assumption, iteratively defining
-    #    each such key to be "'Export ({})'.format(export_id)" should suffice.
-    #  * Define a local "export_id" integer variable defaulting to "1".
-    #  * Iteratively interpolate this integer into each missing "name" key of
-    #    each export dictionary. Trivial, actually.
+    # Define a default uniquified name for each pipelined export.
+    _upgrade_sim_conf_to_0_9_3_exports_name(p)
 
-    # Unique identifier to be formatted into the name of the current pipelined
-    # export iterated below.
-    export_id = 1
 
-    # Format specifier for the name of the current pipelined export.
-    export_name_format = 'Export ({})'
+@type_check
+def _upgrade_sim_conf_to_0_9_3_exports_name(p: Parameters) -> None:
+    '''
+    Define a default uniquified name for each **pipelined export** (e.g., CSV,
+    plot, animation) defined by the passed simulation configuration to reflect
+    assumptions expected by version 0.9.3 of this application.
+    '''
 
-    # For each pipelined export (e.g., CSV, plot, animation)...
-    for export in iterables.iter_items(
+    # Localize configuration subdictionaries for convenience.
+    results_dict = p._conf['results options']
+
+    # Tuple of all export pipelines defined by this configuration.
+    export_pipelines = (
         results_dict['after solving']['animations']['pipeline'],
         results_dict['after solving']['csvs']['pipeline'],
         results_dict['after solving']['plots']['cell cluster pipeline'],
         results_dict['after solving']['plots']['single cell pipeline'],
-    ):
-        #FIXME: Guarantee uniqueness by generalizing the
-        #iterget.get_item_str_uniquified() function to and then calling that function.
-        # If this export does *NOT* define a name, do so in a manner intended
-        # to preserve uniqueness.
-        #
-        # Note that, as the verb "intended" implies, this simplistic
-        # implementation does *NOT* necessarily guarantee this name to be
-        # unique across all exports of the same pipeline. Although this
-        # implementation could be generalized to do so, harsh time constraints
-        # currently favour the simplistic. (Such is code life.)
-        pass
+    )
+
+    # First pipelined export (e.g., CSV, plot, animation) defined by this
+    # simulation configuration if at least one such pipeline is non-empty *OR*
+    # the sentinel placeholder otherwise.
+    export_first = iterget.get_item_first_or_sentinel(*export_pipelines)
+
+    # If either all such pipelines are empty *OR* this export is already named,
+    # silently reduce to a noop to reduce time complexity.
+    #
+    # In the former case, we simplistically assume *ALL* pipelined exports to
+    # be similarly named. Declaring uniquified names for pipelined exports is
+    # highly inefficient and hence *MUST* be avoided for the common case of
+    # newer simulation configurations already defining these names.
+    if export_first is SENTINEL or 'name' in export_first:
+        return
+    # Else, this export is *NOT* named. Let's do this.
+
+    # Format specifier for the name of the current pipelined export.
+    export_name_format = 'Export ({})'
+
+    # For each export pipeline...
+    for export_pipeline in export_pipelines:
+        # For each export defined by this pipeline...
+        for export in export_pipeline:
+            # If this export is unnamed, uniquely name this export.
+            if 'name' not in export:
+                export['name'] = iterget.get_item_str_uniquified(
+                    iterable=export_pipeline,
+                    item_key='name',
+                    item_str_format=export_name_format,
+
+                    # Internally fallback to a sane name rather than raise
+                    # exceptions on unnamed exports in this pipeline.
+                    is_defaultable=True,
+                )

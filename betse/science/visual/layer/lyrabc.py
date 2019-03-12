@@ -48,8 +48,10 @@ from betse.util.py import pyref
 from betse.util.type import types
 from betse.util.type.iterable import iterget
 from betse.util.type.decorator.deccls import abstractproperty
+from betse.util.type.obj import objects
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceOrNoneTypes,)
+from matplotlib.cm import ScalarMappable
 
 # ....................{ SUPERCLASS                        }....................
 class LayerCellsABC(object, metaclass=ABCMeta):
@@ -486,10 +488,15 @@ class LayerCellsColorfulABC(LayerCellsABC):
             types.assert_not_numeric(self._color_max))
 
 
+    #FIXME: DRY: this method exactly recapitulates the existing
+    #VisualCellsABC._rescale_color_mappables() method. Excise one or the other.
     def _scale_color_mappables(self) -> None:
         '''
-        Scale all color mappables defined by this layer subclass to the current
-        minimum and maximum color values.
+        Clip all color mappables defined by this layer subclass to the current
+        minimum and maximum colormap values.
+
+        This method has the beneficial side-effect of establishing the range of
+        this visual's colorbar.
         '''
 
         # Log this attempt.
@@ -497,13 +504,11 @@ class LayerCellsColorfulABC(LayerCellsABC):
             'Rescaling "%s" colors to [%d, %d]...',
             self._visual.kind, self._color_min, self._color_max)
 
-        # For each color mappable, clip that mappable to the minimum and
-        # maximum values discovered above. Note this also has the beneficial
-        # side-effect of establishing the colorbar's range.
+        # For each previously passed color mappable...
         for color_mappable in self._color_mappables:
-            # Ensure sanity.
-            assert types.is_matplotlib_mappable(color_mappable), (
-                types.assert_not_matplotlib_mappable(color_mappable))
+            # If this is *NOT* actually a mappable, raise an exception.
+            objects.die_unless_instance(
+                obj=color_mappable, cls=ScalarMappable)
 
-            # Clip this mappable.
+            # Clip this mappable to the minimum and maximum colormap values.
             color_mappable.set_clim(self._color_min, self._color_max)

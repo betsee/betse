@@ -28,7 +28,7 @@ from betse.util.io.log import logs
 from betse.util.py import pyref
 from betse.util.type import types
 from betse.util.type.iterable import iterget
-from betse.util.type.obj import objiter
+from betse.util.type.obj import objects, objiter
 from betse.util.type.types import (
     type_check,
     IterableTypes,
@@ -771,27 +771,42 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Classify this sequence of mappables.
         self._color_mappables = color_mappables
 
+        # Clip this mappable to the minimum and maximum colormap values *AFTER*
+        # classifying this sequence.
         self._rescale_color_mappables()
 
-        # First mappable safely retrieved from this iterable of mappables.
+        # First mappable in this iterable of mappables.
         color_mappable_first = iterget.get_item_first(self._color_mappables)
 
-        #FIXME: Convert this assertion into a proper exception.
-        assert types.is_matplotlib_mappable(color_mappable_first), (
-            types.assert_not_matplotlib_mappable(color_mappable_first))
+        # If this is *NOT* actually a mappable, raise an exception.
+        objects.die_unless_instance(
+            obj=color_mappable_first, cls=ScalarMappable)
 
         # Create a colorbar associated with this mappable.
         self.make_colorbar(color_mappable_first)
 
 
+    #FIXME: DRY: this method exactly recapitulates the existing
+    #LayerCellsColorfulABC._scale_color_mappables() method. Consider excising
+    #this method in favour of that more general-purpose method -- once we've
+    #converted everything to leverage layers, anyway.
     def _rescale_color_mappables(self) -> None:
+        '''
+        Clip each color mappable previously passed to the
+        :meth:`_automap_colors` method to the minimum and maximum colormap
+        values.
 
-        # For each color mappable, clip that mappable to the minimum and
-        # maximum values discovered above. Note this also has the beneficial
-        # side-effect of establishing the colorbar's range.
+        This method has the beneficial side-effect of establishing the range of
+        this visual's colorbar.
+        '''
+
+        # For each previously passed color mappable...
         for color_mappable in self._color_mappables:
-            assert types.is_matplotlib_mappable(color_mappable), (
-                types.assert_not_matplotlib_mappable(color_mappable))
+            # If this is *NOT* actually a mappable, raise an exception.
+            objects.die_unless_instance(
+                obj=color_mappable, cls=ScalarMappable)
+
+            # Clip this mappable to the minimum and maximum colormap values.
             color_mappable.set_clim(self._color_min, self._color_max)
 
     # ..................{ PLOTTERS                          }..................

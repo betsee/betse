@@ -238,13 +238,16 @@ def iter_items(*iterables: IterableTypes) -> GeneratorType:
     internal order of each iterable and the passed order of iterables),
     effectively "chaining" these iterables together.
 
-    This function is preferable for pure iteration over multiple iterables, in
-    which case a composite iterable of the same type is *not* required.
+    This function avoids instantiating any objects (other than the returned
+    generator) and hence is *probably* the maximally space and time efficient
+    implementation of this task. In particular, this function is preferable for
+    pure iteration over multiple iterables, in which case a composite iterable
+    of the same or different type is neither required nor desired.
 
     Parameters
     ----------
     iterables : tuple[IterableTypes]
-        Tuple of all iterables whose items are to be iterated over.
+        Tuple of all iterables to be iterated over.
 
     Yields
     ----------

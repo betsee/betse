@@ -24,7 +24,7 @@ from betse.util.type.types import (
 @type_check
 def get_items_duplicate(iterable: IterableTypes) -> set:
     '''
-    Unordered set of all duplicate items in the passed iterable.
+    Unordered set of all duplicate items of the passed iterable.
 
     Parameters
     ----------
@@ -34,7 +34,7 @@ def get_items_duplicate(iterable: IterableTypes) -> set:
     Returns
     ----------
     set
-        Unordered set of all duplicate items in this iterable.
+        Unordered set of all duplicate items of this iterable.
 
     See Also
     ----------
@@ -62,59 +62,103 @@ def get_items_duplicate(iterable: IterableTypes) -> set:
 
 # ....................{ GETTERS ~ first                   }....................
 @type_check
-def get_item_first(iterable: IterableTypes) -> object:
+def get_item_first(*iterables: IterableTypes) -> object:
     '''
-    First item non-destructively retrieved from the passed iterable if this
-    iterable is non-empty *or* raise an exception otherwise (i.e., if this
-    iterable is empty).
-
-    If the passed iterable is a:
-
-    * Sequence, this is guaranteed to be the first item of this sequence.
-    * Non-sequence (e.g., :class:`set`, :class:`dict`), this should be assumed
-      to be a random item. While most non-sequences guarantee predictable order
-      of retrieval assuming no intervening changes, this is a fairly unreliable
-      assumption.
+    First item non-destructively retrieved from the first passed non-empty
+    iterable if at least one such iterable is non-empty *or* raise an exception
+    otherwise (i.e., if all passed iterables are empty).
 
     Parameters
     ----------
-    iterable : IterableTypes
-        Iterable to be inspected.
+    iterables : tuple[IterableTypes]
+        Tuple of all iterables to be inspected.
 
     Returns
     ----------
     object
-        First element non-destructively retrieved from this iterable.
+        First item of the first passed non-empty iterable.
 
     Raises
     ----------
     BetseIterableException
-        If this iterable is empty.
+        If all passed iterables are empty.
+
+    See Also
+    ----------
+    :func:`get_item_first_or_sentinel`
+        Further details.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
+
+    # First item of these iterables if any *OR* the sentinel placeholder,
+    item_first = get_item_first_or_sentinel(*iterables)
+
+    # If no such item exists, raise an exception.
+    if item_first is SENTINEL:
+        raise BetseIterableException('Iterables empty.')
+    # Else, this item exists.
+
+    # Return this item.
+    return item_first
+
+
+@type_check
+def get_item_first_or_sentinel(*iterables: IterableTypes) -> object:
+    '''
+    First item non-destructively retrieved from the first passed non-empty
+    iterable if at least one such iterable is non-empty *or* the sentinel
+    placeholder otherwise (i.e., if all passed iterables are empty).
+
+    Specifically, if the first passed non-empty iterable is a:
+
+    * Sequence (e.g., :class:`list`, :class:`tuple`), this function returns the
+      first item of this sequence.
+    * Non-sequence (e.g., :class:`set`, :class:`dict`), this function returns a
+      pseudo-random item of this non-sequence. While most non-sequences
+      guarantee predictable order of retrieval assuming no intervening changes,
+      this is a fairly unreliable assumption.
+
+    Parameters
+    ----------
+    iterables : tuple[IterableTypes]
+        Tuple of all iterables to be inspected.
+
+    Returns
+    ----------
+    object
+        Either:
+
+        * If at least one such iterable is non-empty, the first item of this
+          iterable.
+        * Else, the sentinel singleton.
 
     See Also
     ----------
     https://stackoverflow.com/a/40054478/2809027
-        Cecil's Stackoverflow answer strongly inspiring this implementation,
-        complete with detailed timings of all alternative solutions.
+        Stackoverflow answer strongly inspiring this implementation, complete
+        with detailed timings of all alternative solutions.
     '''
 
-    # If this iterable is empty, raise an exception. Since iteration of empty
-    # iterables always succeeds, this condition must be manually tested
-    # beforehand. Failing to do so would result Python raising the following
-    # non-human-readable exception below:
-    #
-    #     NameError: name 'first_item' is not defined
-    if not iterable:
-        raise BetseIterableException('Iterable "{}" empty.'.format(iterable))
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
+    from betse.util.type.iterable import iterables as itermod
 
-    # Yup! Shockingly, the most verbose and unwieldy solution is the fastest.
-    # Break immediately after the first iteration of this iterable.
-    first_item = None
-    for first_item in iterable:
+    # First item of these iterables if any *OR* the sentinel placeholder,
+    # defaulting to the latter for implementation simplicity.
+    item_first = SENTINEL
+
+    # If at least one such iterable is non-empty, iterate this iterable once
+    # and assign the first item of this iterable to this local when doing so.
+    #
+    # Note that this implementation, despite being verbose and unwieldy, has
+    # been meticulously timed to be the most space and time efficient... Yup!
+    for item_first in itermod.iter_items(*iterables):
         break
 
-    # Return the first element iterated above.
-    return first_item
+    # Return this item.
+    return item_first
 
 # ....................{ GETTERS ~ first : instance        }....................
 @type_check
@@ -201,51 +245,6 @@ def get_item_first_not_instance_of(
 
 # ....................{ GETTERS ~ first : satisfying      }....................
 @type_check
-def get_item_first_satisfying_or_sentinel(
-    iterable: IterableTypes, predicate: CallableTypes) -> object:
-    '''
-    First item of the passed iterable satisfying the passed **predicate**
-    (i.e., callable accepting one parameter, returning ``True`` only if this
-    parameter suffices) if this iterable contains such an item *or* the
-    :attr:`betse.util.type.obj.sentinels.SENTINEL` placeholder constant
-    otherwise.
-
-    If the passed iterable is a:
-
-    * Sequence, this is guaranteed to be the first such element.
-    * Non-sequence (e.g., :class:`set`, :class:`dict`), this should be assumed
-      to be a random such element. While most non-sequences guarantee
-      predictable order of retrieval assuming no intervening changes, this is a
-      fairly unreliable assumption.
-
-    Parameters
-    ----------
-    iterable : IterableTypes
-        Iterable to be inspected.
-    predicate : CallableTypes
-        Callable accepting one parameter and returning ``True`` only if this
-        parameter suffices.
-
-    Returns
-    ----------
-    object
-        First element satisfying this predicate in this iterable if any *or*
-        :attr:`betse.util.type.obj.sentinels.SENTINEL` otherwise.
-
-    Raises
-    ----------
-    BetseIterableException
-        If this iterable contains no such item.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.type.obj.sentinels import SENTINEL
-
-    # Collective efficiency is our middle names.
-    return next((item for item in iterable if predicate(item)), SENTINEL)
-
-
-@type_check
 def get_item_first_satisfying(
     iterable: IterableTypes,
     predicate: CallableTypes,
@@ -304,6 +303,49 @@ def get_item_first_satisfying(
 
     # Else, return this element.
     return first_item
+
+
+@type_check
+def get_item_first_satisfying_or_sentinel(
+    iterable: IterableTypes, predicate: CallableTypes) -> object:
+    '''
+    First item of the passed iterable satisfying the passed **predicate**
+    (i.e., callable accepting one parameter, returning ``True`` only if this
+    parameter suffices) if this iterable contains such an item *or* the
+    **sentinel singleton** (i.e.,
+    :attr:`betse.util.type.obj.sentinels.SENTINEL`) otherwise.
+
+    If the passed iterable is a:
+
+    * Sequence, this is guaranteed to be the first such element.
+    * Non-sequence (e.g., :class:`set`, :class:`dict`), this should be assumed
+      to be a random such element. While most non-sequences guarantee
+      predictable order of retrieval assuming no intervening changes, this is a
+      fairly unreliable assumption.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    predicate : CallableTypes
+        Callable accepting one parameter and returning ``True`` only if this
+        parameter suffices.
+
+    Returns
+    ----------
+    object
+        Either:
+
+        * If one or more items of this iterable satisfy this predicate, the
+          first such item.
+        * Else, the sentinel singleton.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj.sentinels import SENTINEL
+
+    # Collective efficiency is our middle names.
+    return next((item for item in iterable if predicate(item)), SENTINEL)
 
 # ....................{ GETTERS ~ last : instance         }....................
 @type_check
@@ -398,59 +440,6 @@ def get_item_last_instance_of_or_none(
 
 # ....................{ GETTERS ~ last : satisfying       }....................
 @type_check
-def get_item_last_satisfying_or_sentinel(
-    iterable: IterableTypes, predicate: CallableTypes) -> object:
-    '''
-    Last element of the passed iterable satisfying the passed **predicate**
-    (i.e., callable accepting one parameter, returning ``True`` only if this
-    parameter suffices) if this iterable contains such an element *or* the
-    :attr:`betse.util.type.obj.sentinels.SENTINEL` placeholder constant
-    otherwise.
-
-    If the passed iterable is a:
-
-    * Sequence, this is guaranteed to be the last such element.
-    * Non-sequence (e.g., :class:`set`, :class:`dict`), this should be assumed
-      to be a random such element. While most non-sequences guarantee
-      predictable order of retrieval assuming no intervening changes, this is a
-      fairly unreliable assumption.
-
-    Parameters
-    ----------
-    iterable : IterableTypes
-        Iterable to be inspected.
-    predicate : CallableTypes
-        Callable accepting one parameter and returning ``True`` only if this
-        parameter suffices.
-
-    Returns
-    ----------
-    object
-        Last element satisfying this predicate in this iterable if any *or*
-        :attr:`betse.util.type.obj.sentinels.SENTINEL` otherwise.
-
-    Raises
-    ----------
-    BetseIterableException
-        If this iterable contains no such element.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.type.iterable import iterables
-
-    # For simplicity, the existing get_item_first_satisfying_or_sentinel()
-    # function is deferred to by returning the first element in the reverse of
-    # this iterable satisfying this predicate.
-    return get_item_first_satisfying_or_sentinel(
-        # For safety, this iterable is reversed via the high-level reverse()
-        # function rather than the low-level reversed() builtin; the latter
-        # fails to generically support all possible iterable types.
-        iterable=iterables.reverse(iterable),
-        predicate=predicate,
-    )
-
-
-@type_check
 def get_item_last_satisfying(
     iterable: IterableTypes,
     predicate: CallableTypes,
@@ -503,6 +492,59 @@ def get_item_last_satisfying(
         iterable=iterables.reverse(iterable),
         predicate=predicate,
         exception_message=exception_message,
+    )
+
+
+@type_check
+def get_item_last_satisfying_or_sentinel(
+    iterable: IterableTypes, predicate: CallableTypes) -> object:
+    '''
+    Last element of the passed iterable satisfying the passed **predicate**
+    (i.e., callable accepting one parameter, returning ``True`` only if this
+    parameter suffices) if this iterable contains such an element *or* the
+    :attr:`betse.util.type.obj.sentinels.SENTINEL` placeholder constant
+    otherwise.
+
+    If the passed iterable is a:
+
+    * Sequence, this is guaranteed to be the last such element.
+    * Non-sequence (e.g., :class:`set`, :class:`dict`), this should be assumed
+      to be a random such element. While most non-sequences guarantee
+      predictable order of retrieval assuming no intervening changes, this is a
+      fairly unreliable assumption.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    predicate : CallableTypes
+        Callable accepting one parameter and returning ``True`` only if this
+        parameter suffices.
+
+    Returns
+    ----------
+    object
+        Last element satisfying this predicate in this iterable if any *or*
+        :attr:`betse.util.type.obj.sentinels.SENTINEL` otherwise.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable contains no such element.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.iterable import iterables
+
+    # For simplicity, the existing get_item_first_satisfying_or_sentinel()
+    # function is deferred to by returning the first element in the reverse of
+    # this iterable satisfying this predicate.
+    return get_item_first_satisfying_or_sentinel(
+        # For safety, this iterable is reversed via the high-level reverse()
+        # function rather than the low-level reversed() builtin; the latter
+        # fails to generically support all possible iterable types.
+        iterable=iterables.reverse(iterable),
+        predicate=predicate,
     )
 
 # ....................{ GETTERS ~ str                     }....................

@@ -1678,16 +1678,6 @@ def is_simrunner(obj: object) -> bool:
     return isinstance(obj, SimRunner)
 
 # ....................{ TESTERS ~ lib : matplotlib         }....................
-def is_matplotlib_mappable(obj: object) -> bool:
-    '''
-    ``True`` only if the passed object is a Matplotlib mappable.
-    '''
-
-    # Avoid importing third-party packages at the top level.
-    from matplotlib.cm import ScalarMappable
-    return isinstance(obj, ScalarMappable)
-
-
 def is_matplotlib_polycollection(obj: object) -> bool:
     '''
     ``True`` only if the passed object is a Matplotlib **polygon collection**
@@ -1785,14 +1775,6 @@ def is_str(obj: object) -> bool:
     return isinstance(obj, str)
 
 
-def is_str_or_none(obj: object) -> bool:
-    '''
-    ``True`` only if the passed object is either a string *or* `None`.
-    '''
-
-    return isinstance(obj, str) or obj is None
-
-
 def is_str_nonempty(obj: object) -> bool:
     '''
     ``True`` only if the passed object is a **nonempty string* (i.e., string
@@ -1800,14 +1782,6 @@ def is_str_nonempty(obj: object) -> bool:
     '''
 
     return is_str(obj) and len(obj)
-
-
-def is_str_nonempty_or_none(obj: object) -> bool:
-    '''
-    ``True`` only if the passed object is either a nonempty string *or* `None`.
-    '''
-
-    return is_str_nonempty(obj) or obj is None
 
 # ....................{ FORMATTERS                         }....................
 # This string-centric function is defined in this module rather than in the
@@ -1983,13 +1957,6 @@ def assert_not_simulator(obj: object) -> str:
     return '"{}" not a "Simulator" instance.'.format(trim(obj))
 
 # ....................{ ASSERTERS ~ lib : matplotlib       }....................
-def assert_not_matplotlib_mappable(obj: object) -> bool:
-    '''
-    String asserting the passed object to _not_ be a Matplotlib mappable.
-    '''
-    return '"{}" not a Matplotlib mappable.'.format(trim(obj))
-
-
 def assert_not_matplotlib_polycollection(obj: object) -> bool:
     '''
     String asserting the passed object to _not_ be a Matplotlib polygon
@@ -2068,14 +2035,6 @@ def assert_not_str(obj: object) -> str:
     return '"{}" not a string.'.format(trim(obj))
 
 
-def assert_not_str_or_none(obj: object) -> str:
-    '''
-    String asserting the passed object to be neither a string _nor_ `None`.
-    '''
-
-    return '"{}" not a string or "None".'.format(trim(obj))
-
-
 def assert_not_str_nonempty(obj: object, label: str) -> str:
     '''
     String asserting the passed object labeled by the passed human-readable
@@ -2086,15 +2045,3 @@ def assert_not_str_nonempty(obj: object, label: str) -> str:
         return assert_not_str(obj)
     else:
         return '{} empty.'.format(label.capitalize())
-
-
-def assert_not_str_nonempty_or_none(obj: object, label: str) -> str:
-    '''
-    String asserting the passed object labeled by the passed human-readable
-    name to be neither a nonempty string _nor_ `None`.
-    '''
-
-    if not is_str_or_none(obj):
-        return assert_not_str_or_none(obj)
-    else:
-        return assert_not_str_nonempty(obj, label)
