@@ -13,8 +13,8 @@ exporting) post-simulation animations.
 #the generation of each animation to its own Python process. Verdant shimmers!
 
 # ....................{ IMPORTS                           }....................
-from betse.science.config.export.visual.confvisabc import (
-    SimConfVisualCellsListItem)
+from betse.science.config.export.visual.confexpvisabc import (
+    SimConfExportVisualCells)
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require import phasereqs
@@ -71,7 +71,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.ELECTRIC_CURRENT,
     )
     def export_currents_intra(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all intracellular current densities for the cell cluster for
         all time steps.
@@ -113,7 +113,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.ELECTRIC_CURRENT_EXTRA,
     )
     def export_currents_extra(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all extracellular current densities for the cell cluster
         environment over all sampled time steps.
@@ -155,7 +155,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.DEFORM,
     )
     def export_deform_total(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all **total cellular displacements** (i.e., summations of all
         cellular deformations due to galvanotropic and osmotic pressure body
@@ -196,7 +196,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.ELECTRIC_FIELD,
     )
     def export_electric_intra(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all intracellular electric field lines for the cell cluster
         over all sampled time steps.
@@ -238,7 +238,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.ELECTRIC_FIELD_EXTRA,
     )
     def export_electric_extra(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all extracellular electric field lines for the cell cluster
         environment over all sampled time steps.
@@ -280,7 +280,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.FLUID,
     )
     def export_fluid_intra(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all intracellular fluid flow field lines for the cell cluster
         over all sampled time steps.
@@ -301,7 +301,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.FLUID_EXTRA,
     )
     def export_fluid_extra(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all extracellular fluid flow field lines for the cell cluster
         environment over all sampled time steps.
@@ -322,7 +322,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.ION_CALCIUM,
     )
     def export_ion_calcium_intra(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all intracellular calcium ion (Ca2+) concentrations over all
         sampled time steps.
@@ -347,7 +347,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
     # This exporter is solver- and feature-agnostic.
     @piperunner(categories=('Gap Junction', 'Relative Permeability',))
     def export_gj_permeability(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all **gap junction connectivity states** (i.e., relative
         permeabilities of the gap junctions connecting all cell membranes) for
@@ -370,7 +370,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.MICROTUBULE,
     )
     def export_microtubule(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate the coherence of all cellular microtubules for the cell cluster
         over all sampled time steps.
@@ -395,7 +395,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.PRESSURE_TOTAL,
     )
     def export_pressure_total(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all **cellular pressure totals** (i.e., summations of all
         cellular mechanical and osmotic pressures) for the cell cluster over
@@ -418,7 +418,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.PRESSURE_OSMOTIC,
     )
     def export_pressure_osmotic(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate the cellular osmotic pressure over all sampled time steps.
         '''
@@ -438,7 +438,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
     #     categories=('Ion Pump', 'Density Factor',),
     #     requirements={phasereqs.ELECTROOSMOSIS,},
     # )
-    # def export_pump_density(self, conf: SimConfVisualCellsListItem) -> None:
+    # def export_pump_density(self, conf: SimConfExportVisualCells) -> None:
     #     '''
     #     Animate all cell membrane ion pump density factors for the cell cluster
     #     over all sampled time steps.
@@ -460,7 +460,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.VOLTAGE_EXTRA,
     )
     def export_voltage_extra(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all extracellular voltages for the cell cluster environment
         over all sampled time steps.
@@ -483,7 +483,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
 
     @piperunner(categories=('Voltage', 'Transmembrane',))
     def export_voltage_membrane(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all transmembrane voltages (Vmem) for the cell cluster over all
         time steps.
@@ -503,7 +503,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         requirements=phasereqs.VOLTAGE_POLARITY,
     )
     def export_voltage_polarity(
-        self, phase: SimPhase, conf: SimConfVisualCellsListItem) -> None:
+        self, phase: SimPhase, conf: SimConfExportVisualCells) -> None:
         '''
         Animate all cellular voltage polarities for the cell cluster over all
         time steps.

@@ -44,7 +44,7 @@ isolated, simulation actions to be run iteratively) functionality.
 # ....................{ IMPORTS                           }....................
 from abc import ABCMeta
 from betse.exceptions import BetseSimPipeException
-from betse.lib.yaml.abc.yamllistabc import YamlListItemTypedBooledABC
+from betse.science.config.export.confexpabc import SimConfExportABC
 from betse.science.phase.phasecls import SimPhase
 from betse.util.io.log import logs
 from betse.util.type.decorator.deccls import abstractmethod #, abstractproperty
@@ -322,9 +322,9 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
     def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
         '''
         Iterable of all **runner configurations** (i.e.,
-        :class:`YamlListItemTypedBooledABC` instances encapsulating all input
-        parameters to be passed to the corresponding pipeline runner) for the
-        passed simulation phase.
+        :class:`SimConfExportABC` instances encapsulating all input parameters
+        to be passed to the corresponding pipeline runner) for the passed
+        simulation phase.
 
         Pipeline subclasses typically implement this property to return an
         instance of the :class:``YamlList`` class listing all runners listed
@@ -334,9 +334,9 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         ----------
         The existence of a runner configuration does *not* imply the
         corresponding pipeline runner to be unconditionally enabled. Instead,
-        the :attr:`YamlListItemTypedBooledABC.is_enabled` data descriptor defined by
-        all runner configurations returned by this method specifies whether or
-        not that runner is to be enabled or disabled.
+        the :attr:`SimConfExportABC.is_enabled` data descriptor defined by all
+        runner configurations returned by this method specifies whether or not
+        that runner is to be enabled or disabled.
 
         Parameters
         ----------
@@ -410,7 +410,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
 
         Yields
         ----------
-        (runner_method : MethodType, runner_conf : YamlListItemTypedBooledABC)
+        (runner_method : MethodType, runner_conf : SimConfExportABC)
             2-tuple where:
 
             * ``runner_method`` is the method implementing this runner, whose
@@ -443,8 +443,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         # For each runner configuration specified for this pipeline...
         for runner_conf in self.iter_runners_conf(phase):
             # If this configuration is *NOT* YAML-backed, raise an exception.
-            objects.die_unless_instance(
-                obj=runner_conf, cls=YamlListItemTypedBooledABC)
+            objects.die_unless_instance(obj=runner_conf, cls=SimConfExportABC)
 
             # If this runner is disabled, log this fact and ignore this runner.
             if not runner_conf.is_enabled:

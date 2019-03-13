@@ -10,10 +10,29 @@ nomenclature for common YAML design patterns.
 
 # ....................{ IMPORTS                           }....................
 from betse.lib.yaml.yamlalias import yaml_alias
-# from betse.lib.yaml.abc.yamlabc import YamlABC
 # from betse.util.type.types import type_check, ClassType, SequenceTypes
 
 # ....................{ MIXINS                            }....................
+class YamlBooledMixin(object):
+    '''
+    Mixin of all **YAML-backed booled configuration** (i.e., backed by a YAML
+    dictionary with top-level key ``enabled`` whose value is a boolean
+    specifying whether this configuration is enabled or disabled) subclasses.
+
+    This class is suitable for use as a multiple-inheritance mixin. To preserve
+    the expected method resolution order (MRO) semantics, this class should
+    typically be inherited *first* rather than *last* in subclasses.
+
+    Attributes
+    ----------
+    is_enabled : bool
+        ``True`` only if this list item is enabled.
+    '''
+
+    # ..................{ ALIASES                           }..................
+    is_enabled = yaml_alias("['enabled']", bool)
+
+
 class YamlNamedMixin(object):
     '''
     Mixin of all **YAML-backed named configuration** (i.e., backed by a YAML
@@ -59,7 +78,9 @@ class YamlTypedMixin(object):
     kind = yaml_alias("['type']", str)
 
 
-class YamlTypedBooledMixin(YamlTypedMixin):
+#FIXME: This entirely defeats the point. Reduce to a simple
+#"YamlBooledMixin(object)" subclass and mix-and-match as needed elsewhere.
+class YamlTypedBooledMixin(YamlBooledMixin, YamlTypedMixin):
     '''
     Mixin of all **YAML-backed typed booled configuration** (i.e., backed by a
     YAML dictionary with top-level key ``type`` whose value is a
@@ -70,12 +91,6 @@ class YamlTypedBooledMixin(YamlTypedMixin):
     This class is suitable for use as a multiple-inheritance mixin. To preserve
     the expected method resolution order (MRO) semantics, this class should
     typically be inherited *first* rather than *last* in subclasses.
-
-    Attributes
-    ----------
-    is_enabled : bool
-        ``True`` only if this list item is enabled.
     '''
 
-    # ..................{ ALIASES                           }..................
-    is_enabled = yaml_alias("['enabled']", bool)
+    pass

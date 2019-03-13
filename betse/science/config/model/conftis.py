@@ -20,7 +20,6 @@ from betse.lib.yaml.abc.yamllistabc import YamlList, YamlListItemABC
 from betse.lib.yaml.abc.yamlmixin import YamlNamedMixin
 from betse.science.enum.enumconf import CellsPickerType
 # from betse.util.io.log import logs
-from betse.util.type.iterable import iterget
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ SUPERCLASSES ~ tissue             }....................
@@ -148,18 +147,11 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     @type_check
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
-        # Name of this tissue profile unique to this list.
-        tissue_name = iterget.get_item_str_uniquified(
-            iterable=yaml_list,
-            item_attr_name='name',
-            item_str_format='Tissue ({})',
-        )
-
         # Create and return the equivalent YAML-backed tissue profile list
         # item, duplicating the first such item in our default YAML file.
         yaml_list_item = SimConfTissueListItem()
         yaml_list_item.load(conf={
-            'name': tissue_name,
+            'name': yaml_list.get_item_name_uniquified('Tissue ({})'),
             'insular': True,
             'diffusion constants': {
                 'Dm_Na': 1.0e-18,
@@ -204,18 +196,11 @@ class SimConfCutListItem(YamlNamedMixin, YamlListItemABC):
     @type_check
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
-        # Name of this cut profile unique to this list.
-        cut_name = iterget.get_item_str_uniquified(
-            iterable=yaml_list,
-            item_attr_name='name',
-            item_str_format='Cut ({})',
-        )
-
         # Create and return the equivalent YAML-backed cut profile list item,
         # duplicating the first such item in our default YAML file.
         yaml_list_item = SimConfTissueListItem()
         yaml_list_item.load(conf={
-            'name': cut_name,
+            'name': yaml_list.get_item_name_uniquified('Cut ({})'),
             'image': 'geo/circle/wedge.png',
         })
         return yaml_list_item

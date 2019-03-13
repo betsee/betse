@@ -597,7 +597,7 @@ class SimConfigTestWrapper(object):
         '''
 
         # Defer heavyweight imports.
-        from betse.lib.yaml.abc.yamllistabc import YamlListItemTypedBooledABC
+        from betse.science.config.export.confexpabc import SimConfExportABC
         from betse.util.type.obj import objects
 
         # Log this action.
@@ -618,24 +618,24 @@ class SimConfigTestWrapper(object):
             logs.log_debug(
                 'Analyzing pipeline "%s" exporters...', pipe_export.name)
 
-            # Sequence of all exporter configurations for this pipeline.
+            # Sequence of all export subconfigurations for this pipeline.
             pipe_exporters_conf = pipe_export.iter_runners_conf(self._phase)
 
-            # Remove all exporter configurations from this sequence, permitting
-            # newly test-specific configurations to be added to this sequence
+            # Remove all export subconfigurations from this sequence, enabling
+            # new test-specific subconfigurations to be added to this sequence
             # below without needless concern over conflicts and redundancy.
             pipe_exporters_conf.clear()
 
-            # For the name of each exporter supported by this pipeline,
-            # including those currently disabled...
+            # For the name of each export supported by this pipeline (including
+            # those currently disabled)...
             for pipe_exporter_name, pipe_exporter_metadata in (
                 pipe_export.iter_runners_metadata()):
-                # Log this pipeline exporter.
+                # Log this iteration.
                 logs.log_debug(
                     'Analyzing pipeline "%s" exporter "%s"...',
                     pipe_export.name, pipe_exporter_name)
 
-                # If this exporter requires one or more simulation features
+                # If this export requires one or more simulation features
                 # omitted by the caller...
                 if pipe_exporter_metadata.requirements.isintersection(
                     requirements_omit):
@@ -645,26 +645,25 @@ class SimConfigTestWrapper(object):
                         'due to unsatisfied test requirements...',
                         pipe_export.name, pipe_exporter_name)
 
-                    # Continue to the next possible exporter.
+                    # Continue to the next export.
                     continue
-                # Else, this exporter requires no omitted simulation features.
+                # Else, this export requires no omitted simulation features.
 
                 # Log this inclusion.
                 logs.log_debug(
                     'Including pipeline "%s" exporter "%s"...',
                     pipe_export.name, pipe_exporter_name)
 
-                # Create and append a new exporter subconfiguration with sane
-                # defaults to the sequence of such subconfigurations for this
-                # pipeline.
+                # Create and append a new default subconfiguration of this
+                # export to the sequence of these subconfigurations.
                 pipe_exporter_conf = pipe_exporters_conf.append_default()
 
-                # If this subconfiguration does *NOT* define the "kind"
-                # property accessed below, raise an exception.
+                # If this is *NOT* actually an export subconfiguration, raise
+                # an exception.
                 objects.die_unless_instance(
-                    obj=pipe_exporter_conf,
-                    cls=YamlListItemTypedBooledABC)
+                    obj=pipe_exporter_conf, cls=SimConfExportABC)
 
+                # Copy across the type of this export subconfiguration.
                 pipe_exporter_conf.kind = pipe_exporter_name
 
     # ..................{ PRIVATE ~ enablers : solver       }..................

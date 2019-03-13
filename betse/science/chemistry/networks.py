@@ -26,7 +26,7 @@ from betse.science.channels import vg_k as vgk
 from betse.science.channels import vg_na as vgna
 from betse.science.channels import vg_morrislecar as vgml
 from betse.science.chemistry.netplot import plot_master_network, set_net_opts
-from betse.science.config.export.visual.confvisabc import (
+from betse.science.config.export.visual.confexpvisabc import (
     SimConfVisualCellsNonYAML)
 from betse.science.math import finitediff as fd
 from betse.science.math import modulate as mods

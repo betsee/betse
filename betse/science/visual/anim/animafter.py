@@ -9,7 +9,7 @@
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse.science.config.export.visual.confvisabc import SimConfVisualCellsABC
+from betse.science.config.export.visual.confexpvisabc import SimConfVisualCellsABC
 from betse.science.phase.phasecls import SimPhase
 from betse.science.visual.anim.animabc import AnimCellsABC
 from betse.util.type.types import type_check, SequenceTypes

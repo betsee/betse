@@ -8,11 +8,13 @@ YAML-backed simulation subconfigurations for exporting comma-separated value
 (CSV) files.
 '''
 
+#FIXME: Rename this submodule to "confexpcsv" for orthogonality.
+
 # ....................{ IMPORTS                           }....................
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
-from betse.lib.yaml.abc.yamllistabc import (
-    YamlList, YamlListItemABC, YamlListItemTypedBooledABC)
+from betse.lib.yaml.abc.yamllistabc import YamlList, YamlListItemABC
+from betse.science.config.export.confexpabc import SimConfExportABC
 from betse.util.type.types import type_check
 # from betse.util.type.types import type_check, MappingType, SequenceTypes
 
@@ -27,8 +29,8 @@ class SimConfExportCSVs(YamlABC):
     ----------
     is_after_sim_save : bool
         ``True`` only if this configuration saves post-simulation CSV files.
-    anims_after_sim : YamlList
-        YAML-backed list of all post-simulation CSV files to be animated.
+    csvs_after_sim : YamlList
+        YAML-backed list of all post-simulation CSV files to be exported.
         Ignored if :attr:`is_after_sim_save` is ``False``.
 
     Attributes (Save)
@@ -75,11 +77,11 @@ class SimConfExportCSVs(YamlABC):
         self.csvs_after_sim.unload()
 
 # ....................{ SUBCLASSES : item                 }....................
-class SimConfExportCSV(YamlListItemTypedBooledABC):
+class SimConfExportCSV(SimConfExportABC):
     '''
-    YAML-backed subconfiguration list item for exporting a comma-separated
-    value (CSV) file enabled by a list of these exports in the current
-    YAML-formatted simulation configuration file.
+    **CSV export subconfiguration** (i.e., YAML-backed list item configuring
+    the exportation of one comma-separated value (CSV) file from the simulation
+    configuration file containing this item).
     '''
 
     # ..................{ MAKERS                            }..................
@@ -90,6 +92,7 @@ class SimConfExportCSV(YamlListItemTypedBooledABC):
         # Duplicate the default CSV file listed first in our default YAML file.
         yaml_list_item = SimConfExportCSV()
         yaml_list_item.load(conf={
+            'name': yaml_list.get_item_name_uniquified('CSV ({})'),
             'type': 'cell_Series',
             'enabled': True,
         })

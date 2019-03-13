@@ -12,11 +12,10 @@ on-disk lists and list items.
 from abc import abstractmethod
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.lib.yaml.abc.yamlmixin import YamlTypedBooledMixin
-from betse.util.io.log import logs
+# from betse.util.io.log import logs
 from betse.util.type.cls import classes
 from betse.util.type.iterable import iterget
 from betse.util.type.obj import objects
-from betse.util.type.text.string import strs
 from betse.util.type.types import type_check, ClassType, SequenceTypes
 from collections.abc import MutableSequence
 
@@ -73,18 +72,6 @@ class YamlListItemABC(YamlABC):
         '''
 
         pass
-
-
-class YamlListItemTypedBooledABC(YamlTypedBooledMixin, YamlListItemABC):
-    '''
-    Abstract base class of all **YAML-backed typed booled list item** (i.e.,
-    YAML-backed list item whose value is a YAML dictionary defining a top-level
-    key ``type`` whose value is a machine-readable string identifying that
-    item's type *and* a top-level key ``enabled`` whose value is a boolean
-    specifying whether that item is enabled or disabled) subclasses.
-    '''
-
-    pass
 
 # ....................{ SUPERCLASSES ~ list               }....................
 class YamlList(YamlABC, MutableSequence):
@@ -274,3 +261,41 @@ class YamlList(YamlABC, MutableSequence):
 
         # Return this list item.
         return conf_wrap
+
+    # ..................{ GETTERS                           }..................
+    @type_check
+    def get_item_name_uniquified(self, item_name_format: str) -> str:
+        '''
+        Create and return a new **uniquified list item name** (i.e.,
+        machine-readable string formatted from the passed format specifier,
+        guaranteed to be unique across the YAML-backed ``name`` alias of each
+        YAML-backed list item of this list).
+
+        This method is typically called be subclass implementations of the
+        :class:`YamlListItemABC.make_default` class method to enforce
+        uniqueness of the default name of the newly created list item.
+
+        Parameters
+        ----------
+        item_name_format : str
+            Format specifier containing a ``{}`` substring (e.g.,
+            ``Item ({}).``), interpolated by this function with an arbitrary
+            integer to create the returned string.
+
+        Returns
+        ----------
+        str
+            Uniquified list item name formatted from this format specifier.
+
+        Raises
+        ----------
+        BetseStrException
+            If the passed format specifier contains no ``{}`` substring.
+        '''
+
+        # By hook or by crook, we will.
+        return iterget.get_item_str_uniquified(
+            iterable=self,
+            item_attr_name='name',
+            item_str_format=item_name_format,
+        )

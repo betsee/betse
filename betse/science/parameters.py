@@ -12,9 +12,9 @@ from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.enum.enumconf import (
     CellLatticeType, GrnUnpicklePhaseType, IonProfileType, SolverType)
-from betse.science.config.export.confcsv import SimConfExportCSVs
-from betse.science.config.export.visual.confanim import SimConfAnimAll
-from betse.science.config.export.visual.confplot import SimConfPlotAll
+from betse.science.config.export.confexpcsv import SimConfExportCSVs
+from betse.science.config.export.visual.confexpvisanim import SimConfExportAnims
+from betse.science.config.export.visual.confexpvisplot import SimConfExportPlots
 from betse.science.config.grn.confgrn import SimConfGrnFile
 from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
@@ -290,11 +290,11 @@ class Parameters(YamlFileABC):
 
     Attributes (Exports)
     ----------
-    anim : SimConfAnimAll
+    anim : SimConfExportAnims
         Subconfiguration configuring exported animations.
     csv : SimConfExportCSVs
         Subconfiguration configuring exported comma-separated value (CSV) files.
-    plot : SimConfPlotAll
+    plot : SimConfExportPlots
         Subconfiguration configuring exported plots.
     plot_cell : int
         0-based index of the cell to isolate all single-cell time plots to.
@@ -414,9 +414,9 @@ class Parameters(YamlFileABC):
         self.tissue_profiles = SimConfTissueListItem.make_list()
 
         # Classify unloaded export subconfigurations.
-        self.anim = SimConfAnimAll()
+        self.anim = SimConfExportAnims()
         self.csv = SimConfExportCSVs()
-        self.plot = SimConfPlotAll()
+        self.plot = SimConfExportPlots()
 
         # Classify unloaded GRN subconfigurations.
         self.grn = SimConfGrnFile()

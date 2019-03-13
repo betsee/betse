@@ -12,7 +12,7 @@ spreadsheets in comma-separated value (CSV) format.
 # ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.lib.numpy import nparray, npcsv
-from betse.science.config.export.confcsv import SimConfExportCSV
+from betse.science.config.export.confexpcsv import SimConfExportCSV
 from betse.science.math import mathunit
 from betse.science.phase.phasecls import SimPhase
 from betse.science.enum.enumphase import SimPhaseKind

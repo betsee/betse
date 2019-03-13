@@ -12,8 +12,8 @@ plots, animations).
 from abc import ABCMeta
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.abc.yamlabc import YamlABC
-from betse.lib.yaml.abc.yamllistabc import (
-    YamlList, YamlListItemABC, YamlListItemTypedBooledABC)
+from betse.lib.yaml.abc.yamllistabc import YamlList, YamlListItemABC
+from betse.science.config.export.confexpabc import SimConfExportABC
 # from betse.util.io.log import logs
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import type_check, NumericSimpleTypes
@@ -29,11 +29,11 @@ class SimConfVisualCellsABC(object, metaclass=ABCMeta):
     Attributes (Colorbar)
     ----------
     color_max : NumericSimpleTypes
-        Maximum color value to be displayed by this visual's colorbar.
-        Ignored if :attr:`is_color_autoscaled` is ``True``.
+        Maximum color value to be displayed by this visual's colorbar. Ignored
+        if :attr:`is_color_autoscaled` is ``True``.
     color_min : NumericSimpleTypes
-        Minimum color value to be displayed by this visual's colorbar.
-        Ignored if :attr:`is_color_autoscaled` is ``True``.
+        Minimum color value to be displayed by this visual's colorbar. Ignored
+        if :attr:`is_color_autoscaled` is ``True``.
     is_color_autoscaled : bool
         ``True`` if dynamically setting the minimum and maximum colorbar values
         for this visual to the minimum and maximum values flattened from
@@ -111,7 +111,7 @@ class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
         return self._color_max
 
 # ....................{ SUBCLASSES                        }....................
-class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
+class SimConfExportVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
     '''
     YAML-backed cell cluster visual subconfiguration, configuring a single
     visual applicable to all cells parsed from a dictionary specifying at least
@@ -125,12 +125,12 @@ class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
     pass
 
 # ....................{ SUBCLASSES : item                 }....................
-class SimConfVisualCellsListItem(
-    SimConfVisualCellsYAMLMixin, YamlListItemTypedBooledABC):
+class SimConfExportVisualCells(
+    SimConfVisualCellsYAMLMixin, SimConfExportABC):
     '''
-    YAML-backed cell cluster visual subconfiguration list item, configuring a
-    single visual applicable to all cells parsed from a list of these visuals
-    in the current YAML-formatted simulation configuration file.
+    **Cell cluster visual export subconfiguration** (i.e., YAML-backed list
+    item configuring the exportation of one or more graphical files applicable
+    to all cells from the simulation configuration file containing this item).
     '''
 
     # ..................{ MAKERS                            }..................
@@ -140,8 +140,10 @@ class SimConfVisualCellsListItem(
 
         # Duplicate the default animation listed first in our default YAML
         # configuration file.
-        yaml_list_item = SimConfVisualCellsListItem()
+        yaml_list_item = SimConfExportVisualCells()
         yaml_list_item.load(conf={
+            'name': yaml_list.get_item_name_uniquified(
+                'Cell Cluster Visual ({})'),
             'type': 'voltage_membrane',
             'enabled': True,
             'colorbar': {
@@ -153,12 +155,12 @@ class SimConfVisualCellsListItem(
         return yaml_list_item
 
 
-class SimConfVisualCellListItem(YamlListItemTypedBooledABC):
+class SimConfExportVisualCell(SimConfExportABC):
     '''
-    YAML-backed single-cell visual subconfiguration list item, configuring a
-    single visual (either in- or post-simulation plot or animation) specific to
-    a single cell parsed from the list of all such visuals in the current
-    YAML-formatted simulation configuration file.
+    **Single-cell visual export subconfiguration** (i.e., YAML-backed list
+    item configuring the exportation of one or more graphical files applicable
+    to a single cell from the simulation configuration file containing this
+    item).
     '''
 
     # ..................{ MAKERS                            }..................
@@ -168,8 +170,10 @@ class SimConfVisualCellListItem(YamlListItemTypedBooledABC):
 
         # Duplicate the default animation listed first in our default YAML
         # configuration file.
-        yaml_list_item = SimConfVisualCellListItem()
+        yaml_list_item = SimConfExportVisualCell()
         yaml_list_item.load(conf={
+            'name': yaml_list.get_item_name_uniquified(
+                'Single-cell Visual ({})'),
             'type': 'voltage_membrane',
             'enabled': True,
         })
