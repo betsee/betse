@@ -11,8 +11,8 @@ simulated data of a single cell of the cell cluster).
 # ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.exceptions import BetseSimConfException
-from betse.science.config.export.visual.confexpvisabc import (
-    SimConfExportVisualCell)
+from betse.science.config.export.visual.confexpvisplot import (
+    SimConfExportPlotCell)
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require import phasereqs
 from betse.science.pipe.export.plot.pipeexpplotabc import SimPipeExportPlotABC
@@ -63,7 +63,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         requirements=phasereqs.ELECTRIC_CURRENT_MEMBRANE,
     )
     def export_currents_membrane(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot all transmembrane current densities for the single cell indexed by
         the current simulation configuration over all sampled time steps.
@@ -130,7 +130,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         requirements=phasereqs.DEFORM,
     )
     def export_deform_total(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot all **total cellular displacements** (i.e., summations of all
         cellular deformations due to galvanotropic and osmotic pressure body
@@ -169,7 +169,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         requirements=phasereqs.ION_M_ANION,
     )
     def export_ion_m_anion(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot all M anion (i.e., M-) ion concentrations for the single cell
         indexed by the current simulation configuration over all sampled time
@@ -200,7 +200,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         requirements=phasereqs.ION_POTASSIUM,
     )
     def export_ion_potassium(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot all potassium (i.e., K+) ion concentrations for the single cell
         indexed by the current simulation configuration over all sampled time
@@ -232,7 +232,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         requirements=phasereqs.ION_SODIUM,
     )
     def export_ion_sodium(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot all sodium (i.e., Na+) ion concentrations for the single cell
         indexed by the current simulation configuration over all sampled time
@@ -265,7 +265,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         requirements=phasereqs.ION_CALCIUM,
     )
     def export_ion_calcium(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot all calcium (i.e., Ca2+) ion concentrations for the single cell
         indexed by the current simulation configuration over all sampled time
@@ -297,7 +297,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         requirements=phasereqs.ION_CALCIUM_DYNAMICS,
     )
     def export_ion_calcium_er(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot all calcium (i.e., Ca2+) ion concentrations for the endoplasmic
         reticulum of the single cell indexed by the current simulation
@@ -327,7 +327,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         requirements=phasereqs.ION_CALCIUM_DYNAMICS,
     )
     def export_voltage_membrane_er(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot all transmembrane voltages across the endoplasmic reticulum of the
         single cell indexed by the current simulation configuration over all
@@ -357,7 +357,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         requirements=phasereqs.PRESSURE_OSMOTIC,
     )
     def export_pressure_osmotic(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot the osmotic cellular pressure for the single cell indexed by the
         current simulation configuration over all sampled time steps.
@@ -387,7 +387,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         requirements=phasereqs.PRESSURE_TOTAL,
     )
     def export_pressure_total(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot the **total cellular pressure** (i.e., summation of the cellular
         mechanical and osmotic pressure) for the single cell indexed by the
@@ -420,7 +420,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         requirements=phasereqs.PUMP_NAKATPASE,
     )
     def export_pump_nakatpase(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot the averages of the Na-K-ATPase membrane pump rates for the single
         cell indexed by the current simulation configuration over all time
@@ -459,7 +459,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
     #only plots Vmems for a single arbitrarily selected membrane of this cell.
     @piperunner(categories=('Voltage', 'Transmembrane', 'Average',))
     def export_voltage_membrane(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot the averages of all transmembrane voltages for the single cell
         indexed by the current simulation configuration over all sampled time
@@ -492,7 +492,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
     @piperunner(categories=(
         'Voltage', 'Transmembrane', 'Fast Fourier Transform (FFT)',))
     def export_voltage_membrane_fft(
-        self, phase: SimPhase, conf: SimConfExportVisualCell) -> None:
+        self, phase: SimPhase, conf: SimConfExportPlotCell) -> None:
         '''
         Plot the fast Fourier transform (FFT) of the averages of all
         transmembrane voltages for the single cell indexed by the current

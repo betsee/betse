@@ -10,8 +10,10 @@ YAML-backed simulation subconfigurations for exporting animations.
 # ....................{ IMPORTS                           }....................
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_alias_int_positive
 from betse.lib.yaml.abc.yamlabc import YamlABC
+from betse.lib.yaml.abc.yamllistabc import YamlList, YamlListItemABC
+from betse.science.config.export.confexpabc import SimConfExportABC
 from betse.science.config.export.visual.confexpvisabc import (
-    SimConfExportVisualCells, SimConfExportVisualCellsEmbedded)
+    SimConfVisualCellsYAMLMixin)
 from betse.util.type.types import type_check, MappingType, SequenceTypes
 
 # ....................{ SUBCLASSES                        }....................
@@ -36,7 +38,7 @@ class SimConfExportAnims(YamlABC):
         ``True`` only if this configuration saves in-simulation animations.
     is_while_sim_show : bool
         ``True`` only if this configuration displays in-simulation animations.
-    anim_while_sim : SimConfExportVisualCellsEmbedded
+    anim_while_sim : SimConfExportAnimCellsEmbedded
         Generic configuration applicable to all in-simulation animations.
         Ignored if :attr:``is_while_sim`` is ``False``.
 
@@ -181,10 +183,10 @@ class SimConfExportAnims(YamlABC):
         super().__init__(*args, **kwargs)
 
         # Encapsulate low-level dictionaries with high-level wrappers.
-        self.anim_while_sim = SimConfExportVisualCellsEmbedded()
+        self.anim_while_sim = SimConfExportAnimCellsEmbedded()
 
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
-        self.anims_after_sim = SimConfExportVisualCells.make_list()
+        self.anims_after_sim = SimConfExportAnimCells.make_list()
 
     # ..................{ LOADERS                           }..................
     #FIXME: Default the "copyright" entry of video metadata to
@@ -233,3 +235,44 @@ class SimConfExportAnims(YamlABC):
     def is_after_sim(self, is_after_sim: bool) -> None:
         self.is_after_sim_save = is_after_sim
         self.is_after_sim_show = is_after_sim
+
+# ....................{ SUBCLASSES ~ item                 }....................
+class SimConfExportAnimCells(
+    SimConfVisualCellsYAMLMixin, SimConfExportABC):
+    '''
+    **Exported cell cluster animation subconfiguration** (i.e., YAML-backed
+    list item configuring the exportation of one or more video files applicable
+    to all cells from the simulation configuration file containing this item).
+    '''
+
+    # ..................{ SUPERCLASS                        }..................
+    @classmethod
+    @type_check
+    def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
+
+        # Duplicate the first animation in our default configuration file.
+        return cls._make_loaded(conf={
+            'name': yaml_list.get_item_name_uniquified(
+                'Cell Cluster Plot ({})'),
+            'type': 'voltage_membrane',
+            'enabled': True,
+            'colorbar': {
+                'autoscale': True,
+                'minimum': -70.0,
+                'maximum':  10.0,
+            },
+        })
+
+
+class SimConfExportAnimCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
+    '''
+    **Exported embedded cell cluster animation subconfiguration** (i.e.,
+    YAML-backed dictionary configuring the exportation of one or more video
+    files applicable to all cells from the simulation configuration file
+    containing this item).
+
+    This subconfiguration unconditionally enables only a single animation and
+    thus contains no distinguishing ``name``, ``type``, or ``enabled`` keys.
+    '''
+
+    pass

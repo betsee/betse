@@ -76,21 +76,3 @@ class YamlTypedMixin(object):
 
     # ..................{ ALIASES                           }..................
     kind = yaml_alias("['type']", str)
-
-
-#FIXME: This entirely defeats the point. Reduce to a simple
-#"YamlBooledMixin(object)" subclass and mix-and-match as needed elsewhere.
-class YamlTypedBooledMixin(YamlBooledMixin, YamlTypedMixin):
-    '''
-    Mixin of all **YAML-backed typed booled configuration** (i.e., backed by a
-    YAML dictionary with top-level key ``type`` whose value is a
-    machine-readable string identifying this configuration's type *and*
-    top-level key ``enabled`` whose value is a boolean specifying whether this
-    configuration is enabled or disabled) subclasses.
-
-    This class is suitable for use as a multiple-inheritance mixin. To preserve
-    the expected method resolution order (MRO) semantics, this class should
-    typically be inherited *first* rather than *last* in subclasses.
-    '''
-
-    pass

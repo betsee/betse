@@ -21,6 +21,7 @@ from betse.util.type.types import type_check, NumericSimpleTypes
 # ....................{ SUPERCLASSES                      }....................
 #FIXME: Non-ideal. Ideally, all networks subconfigurations should be refactored
 #to leverage the YAML format specified by "SimConfVisualCellsYAMLMixin".
+#FIXME: Rename to "SimConfColorbarABC" for clarity.
 class SimConfVisualCellsABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all cell cluster visual subconfiguration subclasses,
@@ -55,14 +56,12 @@ class SimConfVisualCellsABC(object, metaclass=ABCMeta):
         pass
 
 
+#FIXME: Rename to "SimConfColorbarMixin" for clarity.
 class SimConfVisualCellsYAMLMixin(SimConfVisualCellsABC):
     '''
     Mixin of all **YAML-backed cell cluster visual subconfiguration** (i.e.,
     configuration of a single visual export parsed from the current
     YAML-formatted simulation configuration file) subclasses.
-
-    For generality, this mixin provides no support for a top-level YAML key
-    ``type`` or corresponding :attr:`kind` property.
     '''
 
     # ..................{ ALIASES ~ colorbar                }..................
@@ -109,72 +108,3 @@ class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
     @property
     def color_max(self) -> NumericSimpleTypes:
         return self._color_max
-
-# ....................{ SUBCLASSES                        }....................
-class SimConfExportVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
-    '''
-    YAML-backed cell cluster visual subconfiguration, configuring a single
-    visual applicable to all cells parsed from a dictionary specifying at least
-    this visual in the current YAML-formatted simulation configuration file.
-
-    This is the *only* visual configured by this dictionary. Hence, this
-    dictionary contains no distinguishing ``type`` entry and this
-    subconfiguration class no corresponding :attr:`name` property.
-    '''
-
-    pass
-
-# ....................{ SUBCLASSES : item                 }....................
-class SimConfExportVisualCells(
-    SimConfVisualCellsYAMLMixin, SimConfExportABC):
-    '''
-    **Cell cluster visual export subconfiguration** (i.e., YAML-backed list
-    item configuring the exportation of one or more graphical files applicable
-    to all cells from the simulation configuration file containing this item).
-    '''
-
-    # ..................{ MAKERS                            }..................
-    @classmethod
-    @type_check
-    def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
-
-        # Duplicate the default animation listed first in our default YAML
-        # configuration file.
-        yaml_list_item = SimConfExportVisualCells()
-        yaml_list_item.load(conf={
-            'name': yaml_list.get_item_name_uniquified(
-                'Cell Cluster Visual ({})'),
-            'type': 'voltage_membrane',
-            'enabled': True,
-            'colorbar': {
-                'autoscale': True,
-                'minimum': -70.0,
-                'maximum':  10.0,
-            },
-        })
-        return yaml_list_item
-
-
-class SimConfExportVisualCell(SimConfExportABC):
-    '''
-    **Single-cell visual export subconfiguration** (i.e., YAML-backed list
-    item configuring the exportation of one or more graphical files applicable
-    to a single cell from the simulation configuration file containing this
-    item).
-    '''
-
-    # ..................{ MAKERS                            }..................
-    @classmethod
-    @type_check
-    def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
-
-        # Duplicate the default animation listed first in our default YAML
-        # configuration file.
-        yaml_list_item = SimConfExportVisualCell()
-        yaml_list_item.load(conf={
-            'name': yaml_list.get_item_name_uniquified(
-                'Single-cell Visual ({})'),
-            'type': 'voltage_membrane',
-            'enabled': True,
-        })
-        return yaml_list_item

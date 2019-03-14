@@ -142,15 +142,13 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
     picker_image_filename = yaml_alias(
         "['cell targets']['image']", str)
 
-    # ..................{ CLASS                             }..................
+    # ..................{ SUPERCLASS                        }..................
     @classmethod
     @type_check
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
-        # Create and return the equivalent YAML-backed tissue profile list
-        # item, duplicating the first such item in our default YAML file.
-        yaml_list_item = SimConfTissueListItem()
-        yaml_list_item.load(conf={
+        # Duplicate the first tissue profile in our default configuration file.
+        return cls._make_loaded(conf={
             'name': yaml_list.get_item_name_uniquified('Tissue ({})'),
             'insular': True,
             'diffusion constants': {
@@ -169,7 +167,6 @@ class SimConfTissueListItem(SimConfTissueABC, YamlListItemABC):
                 'percent': 50,
             },
         })
-        return yaml_list_item
 
 # ....................{ SUBCLASSES ~ cut                  }....................
 class SimConfCutListItem(YamlNamedMixin, YamlListItemABC):
@@ -191,16 +188,13 @@ class SimConfCutListItem(YamlNamedMixin, YamlListItemABC):
     # ..................{ ALIASES                           }..................
     picker_image_filename = yaml_alias("['image']", str)
 
-    # ..................{ CLASS                             }..................
+    # ..................{ SUPERCLASS                        }..................
     @classmethod
     @type_check
     def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
 
-        # Create and return the equivalent YAML-backed cut profile list item,
-        # duplicating the first such item in our default YAML file.
-        yaml_list_item = SimConfTissueListItem()
-        yaml_list_item.load(conf={
+        # Duplicate the first tissue profile in our default configuration file.
+        return cls._make_loaded(conf={
             'name': yaml_list.get_item_name_uniquified('Cut ({})'),
             'image': 'geo/circle/wedge.png',
         })
-        return yaml_list_item

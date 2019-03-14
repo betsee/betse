@@ -7,13 +7,13 @@
 YAML-backed simulation subconfigurations for exporting plots.
 '''
 
-#FIXME: Define saving-ordiented methods.
-
 # ....................{ IMPORTS                           }....................
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_alias_int_positive
 from betse.lib.yaml.abc.yamlabc import YamlABC
+from betse.lib.yaml.abc.yamllistabc import YamlList, YamlListItemABC
+from betse.science.config.export.confexpabc import SimConfExportABC
 from betse.science.config.export.visual.confexpvisabc import (
-    SimConfExportVisualCells, SimConfExportVisualCell)
+    SimConfVisualCellsYAMLMixin)
 from betse.util.type.types import type_check
 
 # ....................{ SUBCLASSES                        }....................
@@ -74,8 +74,8 @@ class SimConfExportPlots(YamlABC):
         super().__init__(*args, **kwargs)
 
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
-        self.plots_cell_after_sim  = SimConfExportVisualCell .make_list()
-        self.plots_cells_after_sim = SimConfExportVisualCells.make_list()
+        self.plots_cell_after_sim  = SimConfExportPlotCell .make_list()
+        self.plots_cells_after_sim = SimConfExportPlotCells.make_list()
 
     # ..................{ LOADERS                           }..................
     def load(self, *args, **kwargs) -> None:
@@ -114,3 +114,51 @@ class SimConfExportPlots(YamlABC):
     def is_after_sim(self, is_after_sim: bool) -> None:
         self.is_after_sim_save = is_after_sim
         self.is_after_sim_show = is_after_sim
+
+# ....................{ SUBCLASSES ~ item                 }....................
+class SimConfExportPlotCell(SimConfExportABC):
+    '''
+    **Exported single-cell plot subconfiguration** (i.e., YAML-backed list item
+    configuring the exportation of one or more images specific to a single cell
+    from the simulation configuration file containing this item).
+    '''
+
+    # ..................{ SUPERCLASS                        }..................
+    @classmethod
+    @type_check
+    def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
+
+        # Duplicate the first plot in our default configuration file.
+        return cls._make_loaded(conf={
+            'name': yaml_list.get_item_name_uniquified(
+                'Single Cell Plot ({})'),
+            'type': 'voltage_membrane',
+            'enabled': True,
+        })
+
+
+class SimConfExportPlotCells(
+    SimConfVisualCellsYAMLMixin, SimConfExportABC):
+    '''
+    **Exported cell cluster plot subconfiguration** (i.e., YAML-backed list
+    item configuring the exportation of one or more images applicable to all
+    cells from the simulation configuration file containing this item).
+    '''
+
+    # ..................{ SUPERCLASS                        }..................
+    @classmethod
+    @type_check
+    def make_default(cls, yaml_list: YamlList) -> YamlListItemABC:
+
+        # Duplicate the first plot in our default configuration file.
+        return cls._make_loaded(conf={
+            'name': yaml_list.get_item_name_uniquified(
+                'Cell Cluster Plot ({})'),
+            'type': 'voltage_membrane',
+            'enabled': True,
+            'colorbar': {
+                'autoscale': True,
+                'minimum': -70.0,
+                'maximum':  10.0,
+            },
+        })

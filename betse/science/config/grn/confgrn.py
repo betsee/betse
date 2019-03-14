@@ -36,7 +36,7 @@ class SimConfGrnFile(YamlFileABC):
         super().__init__(*args, **kwargs)
 
         # Encapsulate low-level dictionaries with high-level wrappers.
-        # self.anim_while_sim = SimConfExportVisualCellsEmbedded()
+        # self.anim_while_sim = SimConfExportAnimCellsEmbedded()
 
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
         # self.anims_after_sim = SimConfExportVisualCells.make_list()

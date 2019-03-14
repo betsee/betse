@@ -11,12 +11,12 @@ on-disk lists and list items.
 # ....................{ IMPORTS                           }....................
 from abc import abstractmethod
 from betse.lib.yaml.abc.yamlabc import YamlABC
-from betse.lib.yaml.abc.yamlmixin import YamlTypedBooledMixin
 # from betse.util.io.log import logs
 from betse.util.type.cls import classes
 from betse.util.type.iterable import iterget
 from betse.util.type.obj import objects
-from betse.util.type.types import type_check, ClassType, SequenceTypes
+from betse.util.type.types import (
+    type_check, ClassType, MappingOrSequenceTypes, SequenceTypes)
 from collections.abc import MutableSequence
 
 # ....................{ SUPERCLASSES ~ list item          }....................
@@ -49,14 +49,13 @@ class YamlListItemABC(YamlABC):
         return YamlList(*args, item_type=cls, **kwargs)
 
     # ..................{ MAKERS ~ abstract                 }..................
-    # Subclasses are required to implement the following abstract class
-    # methods.
+    # Subclasses *MUST* implement the following abstract class methods.
 
     @classmethod
     @abstractmethod
     def make_default(
-        cls, yaml_list: 'betse.lib.yaml.abc.yamllistabc.YamlList',
-    ) -> 'betse.lib.yaml.abc.yamllistabc.YamlListItemABC':
+        cls, yaml_list: 'betse.lib.yaml.abc.yamllistabc.YamlList') -> (
+        'betse.lib.yaml.abc.yamllistabc.YamlListItemABC'):
         '''
         Create and return an instance of this subclass encapsulating a new
         dictionary containing default configuration settings.
@@ -72,6 +71,46 @@ class YamlListItemABC(YamlABC):
         '''
 
         pass
+
+    # ..................{ MAKERS ~ concrete                 }..................
+    @classmethod
+    @type_check
+    def _make_loaded(cls, conf: MappingOrSequenceTypes) -> (
+        'betse.lib.yaml.abc.yamllistabc.YamlListItemABC'):
+        '''
+        Create and return an instance of this subclass encapsulating the passed
+        YAML-backed container of all configuration settings required by this
+        subclass.
+
+        Specifically, this method (in order):
+
+        #. Instantiates a new instance of this class.
+        #. Passes this container unmodified to the :meth:`YamlListItemABC.load`
+           method bound to this instance.
+        #. Returns this loaded instance.
+
+        Design
+        ----------
+        This class method is a convenience helper *only* intended to be called
+        by subclass implementations of the :meth:`make_default` method. While
+        technically optional, this helper reduces boilerplate duplication and
+        is thus preferable to the manual approach.
+
+        Parameters
+        ----------
+        conf : MappingOrSequenceTypes
+            Low-level container of related configuration settings loaded from
+            and saved back to a YAML-formatted configuration file.
+        '''
+
+        # Instance of this subclass to be returned.
+        yaml_list_item = cls()
+
+        # Load this instance from this container.
+        yaml_list_item.load(conf=conf)
+
+        # Return this loaded instance.
+        return yaml_list_item
 
 # ....................{ SUPERCLASSES ~ list               }....................
 class YamlList(YamlABC, MutableSequence):

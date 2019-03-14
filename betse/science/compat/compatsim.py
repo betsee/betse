@@ -72,6 +72,10 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
     from betse.science.phase import phasecls
     from betse.science.config.export.visual import (
         confexpvisanim, confexpvisplot, confexpvisabc)
+    from betse.science.config.export.visual.confexpvisanim import (
+        SimConfExportAnimCells, SimConfExportAnimCellsEmbedded)
+    from betse.science.config.export.visual.confexpvisplot import (
+        SimConfExportPlotCells)
     from betse.util.type.iterable.mapping import mapcls
 
     # Alias obsolete module names to current module objects.
@@ -88,14 +92,14 @@ def _upgrade_sim_imports_to_0_5_2() -> None:
 
     # Alias obsolete to current class names.
     yamlabc.SimConfList = yamllistabc.YamlList
-    confexpvisanim.SimConfAnimOne       = confexpvisabc.SimConfExportVisualCells
+    confexpvisanim.SimConfAnimOne       = SimConfExportAnimCells
     confexpvisabc.SimConfVisualABC      = confexpvisabc.SimConfVisualCellsABC
     confexpvisabc.SimConfVisualMixin    = confexpvisabc.SimConfVisualCellsYAMLMixin
     confexpvisabc.SimConfVisualMolecule = confexpvisabc.SimConfVisualCellsNonYAML
-    confexpvisabc.SimConfVisualGeneric  = confexpvisabc.SimConfExportVisualCellsEmbedded
-    confexpvisabc.SimConfVisualListable = confexpvisabc.SimConfExportVisualCells
-    confexpvisabc.SimConfVisual         = confexpvisabc.SimConfExportVisualCells
-    confexpvisabc.SimConfListableVisual = confexpvisabc.SimConfExportVisualCells
+    confexpvisabc.SimConfVisualGeneric  = SimConfExportAnimCellsEmbedded
+    confexpvisabc.SimConfVisualListable = SimConfExportPlotCells
+    confexpvisabc.SimConfVisual         = SimConfExportPlotCells
+    confexpvisabc.SimConfListableVisual = SimConfExportPlotCells
     phasecls.SimPhaseType = phasecls.SimPhaseKind
     sys.modules['betse.science.config.export.visual.confexpvisanim'].SimConfAnim = (
         confexpvisanim.SimConfExportAnims)
@@ -184,15 +188,10 @@ def _upgrade_sim_imports_to_0_9_3() -> None:
     from betse.science.config.export import confexpcsv
     from betse.science.config.export.visual import (
         confexpvisabc, confexpvisanim, confexpvisplot)
-    from betse.science.config.export.visual.confexpvisabc import (
-        SimConfExportVisualCell,
-        SimConfExportVisualCells,
-        SimConfExportVisualCellsEmbedded,
-    )
     from betse.science.config.export.visual.confexpvisanim import (
-        SimConfExportAnims)
+        SimConfExportAnims, SimConfExportAnimCellsEmbedded)
     from betse.science.config.export.visual.confexpvisplot import (
-        SimConfExportPlots)
+        SimConfExportPlots, SimConfExportPlotCell, SimConfExportPlotCells)
     from betse.util.type.iterable import mapping
 
     # Alias obsolete module names to current module objects.
@@ -204,8 +203,8 @@ def _upgrade_sim_imports_to_0_9_3() -> None:
         confexpvisabc)
 
     # Alias obsolete to current class names.
-    confexpvisabc.SimConfVisualCellListItem = SimConfExportVisualCell
-    confexpvisabc.SimConfVisualCellsListItem = SimConfExportVisualCells
-    confexpvisabc.SimConfVisualCellsEmbedded = SimConfExportVisualCellsEmbedded
+    confexpvisabc.SimConfVisualCellListItem  = SimConfExportPlotCell
+    confexpvisabc.SimConfVisualCellsListItem = SimConfExportPlotCells
+    confexpvisabc.SimConfVisualCellsEmbedded = SimConfExportAnimCellsEmbedded
     confexpvisanim.SimConfAnimAll = SimConfExportAnims
     confexpvisplot.SimConfPlotAll = SimConfExportPlots
