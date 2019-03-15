@@ -30,8 +30,9 @@ class SimConfExportCSVs(YamlABC):
     is_after_sim_save : bool
         ``True`` only if this configuration saves post-simulation CSV files.
     csvs_after_sim : YamlList
-        YAML-backed list of all post-simulation CSV files to be exported.
-        Ignored if :attr:`is_after_sim_save` is ``False``.
+        YAML-backed list of all **post-simulation CSV exports** (i.e.,
+        :class:`SimConfExportCSV` instances) to be exported. Ignored if
+        :attr:`is_after_sim_save` is ``False``.
 
     Attributes (Save)
     ----------

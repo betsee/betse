@@ -188,17 +188,6 @@ called).
 '''
 
 # ....................{ TYPES ~ container                 }....................
-ContainerType = Container
-'''
-Abstract interface implemented by all **containers** (i.e., objects
-implementing the standard `__contains__()` method internally called by the
-`in` operator).
-
-This class is a synonym of the :class:`collections.abc.Container` class,
-permitting callers to avoid importing that class.
-'''
-
-
 IteratorType = Iterator
 '''
 Abstract interface implemented by all **iterators** (i.e., objects implementing
@@ -598,6 +587,20 @@ See Also
 '''
 
 
+ContainerTypes = None
+'''
+Tuple of all container base classes conforming to (but *not* necessarily
+subclassing) the canonical :class:`collections.abc.Container` API and hence
+defining the special ``__contains__()`` method internally called by the ``in``
+operator.
+
+See Also
+----------
+:class:`SequenceTypes`
+    Further details.
+'''
+
+
 IterableTypes = None
 '''
 Tuple of all container base classes conforming to (but *not* necessarily
@@ -701,6 +704,7 @@ try:
     NumpyArrayType = numpy.ndarray
     NumpyScalarType = numpy.generic
     NumpyDataTypes = (numpy.dtype,) + NumericlikeTypes
+    ContainerTypes = (Container, NumpyArrayType)
     IterableTypes = (Iterable, NumpyArrayType)
     SequenceTypes = (Sequence, NumpyArrayType)
 
@@ -710,6 +714,7 @@ try:
 # Else, Numpy is unimportable. Define these tuples to contain only stock types.
 except:
     BoolTypes = (bool,)
+    ContainerTypes = (Container,)
     IterableTypes = (Iterable,)
     SequenceTypes = (Sequence,)
 

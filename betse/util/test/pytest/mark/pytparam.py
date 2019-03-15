@@ -17,7 +17,7 @@ keywords inspected *only* by custom :mod:`pytest` hooks defined by custom
 import itertools, pytest
 from betse.exceptions import BetseTestParamException
 from betse.util.type.types import (
-    type_check, CallableTypes, ContainerType, MappingType, SequenceTypes,)
+    type_check, CallableTypes, ContainerTypes, MappingType, SequenceTypes,)
 
 # ....................{ PARAMS                            }....................
 # Outer decorator accepting all parameters explicitly passed to this decorator.
@@ -267,7 +267,7 @@ def parametrize_test_setwise(
 
 @type_check
 def parametrize_test_paramwise(
-    fixture_names: ContainerType = None,
+    fixture_names: ContainerTypes = None,
     parametrizations: MappingType = None,
 ) -> CallableTypes:
     '''

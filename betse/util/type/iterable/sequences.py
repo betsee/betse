@@ -9,24 +9,26 @@ abstract base class `collections.abc.Sequence`) facilities.
 
 See Also
 ----------
-betse.util.type.types.is_sequence
+:func:`betse.util.type.types.is_sequence`
     Further details on what constitutes sequences and non-string sequences.
 '''
 
-#FIXME: Most if not all of the existing functionality provided by this submodule
-#should be generalized to support higher-level iterable rather than lower-level
-#sequence types and then shifted into the existing "iterables" submodule.
-#Ideally, this submodule could then be excised entirely.
+#FIXME: Most if not all of the existing functionality provided by this
+#submodule should be generalized to support higher-level iterable rather than
+#lower-level sequence types and then shifted into the existing "iterables"
+#submodule.
 
 # ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseSequenceException
 from betse.util.type import types
 from betse.util.type.types import (
-    type_check, CallableTypes, MappingType, SequenceTypes, StrOrNoneTypes)
-
-#FIXME: Replace with "betse.util.type.types.ContainerTypes" -- which may need
-#to be newly (re)defined to include the NumPy array type.
-from collections.abc import Container
+    type_check,
+    CallableTypes,
+    ContainerTypes,
+    MappingType,
+    SequenceTypes,
+    StrOrNoneTypes,
+)
 
 # ....................{ EXCEPTIONS                        }....................
 @type_check
@@ -241,6 +243,40 @@ def is_numpy_array(*objs: object) -> bool:
     return all(isinstance(obj, ndarray) for obj in objs)
 
 # ....................{ GETTERS                           }....................
+@type_check
+def get_index(sequence: SequenceTypes, index: int) -> object:
+    '''
+    Item with the passed index in this sequence if this index **indexes**
+    (i.e., is a non-negative integer strictly greater than -1 and less than the
+    length of) this sequence *or*  raise an exception otherwise (i.e., if this
+    index does *not* index this sequence).
+
+    Parameters
+    ----------
+    sequence : SequenceTypes
+        Sequence to be inspected.
+    index : int
+        0-based index to return the item in this sequence of.
+
+    Returns
+    ----------
+    object
+        Item with this index in this sequence.
+
+    Raises
+    ----------
+    BetseSequenceException
+        If this index does *not* index this sequence.
+    '''
+
+    # If this index does *NOT* index this sequence, raise an exception.
+    die_unless_index(sequence=sequence, index=index)
+    # Else, this index indexes this sequence.
+
+    # Return the item with this index in this sequence.
+    return sequence[index]
+
+# ....................{ GETTERS ~ items                   }....................
 #FIXME: Generalize into a function of the same name accepting an iterable rather
 #than sequence and shift into the "iterables" submodule. When doing so, rename
 #the "item_satisfier" parameter to "predicate" for orthogonality and clarity.
@@ -279,7 +315,7 @@ def get_items_satisfying(
     # Return a generator-based shallow copy of this sequence.
     return sequence_type(item for item in sequence if item_satisfier(item))
 
-# ....................{ GETTERS ~ str                     }....................
+
 #FIXME: Generalize into a function of the same name accepting an iterable rather
 #than sequence and shift into the "iterables" submodule. When doing so, rename
 #the "item_prefix" parameter to simply "prefix".
@@ -340,9 +376,10 @@ def omit_item(sequence: SequenceTypes, item: object) -> SequenceTypes:
 
 
 @type_check
-def omit_items(sequence: SequenceTypes, items: Container) -> SequenceTypes:
+def omit_items(
+    sequence: SequenceTypes, items: ContainerTypes) -> SequenceTypes:
     '''
-    New non-string sequence containing all elements of the passed non-string
+    New non-string sequence containing all items of the passed non-string
     sequence *not* contained in the passed non-string container.
 
     Parameters
@@ -350,9 +387,8 @@ def omit_items(sequence: SequenceTypes, items: Container) -> SequenceTypes:
     sequence : SequenceTypes
         Original sequence to return a proper subset of. For safety, this
         function does *not* modify this sequence.
-    items : Container
-        Container containing all elements to be omitted from the returned
-        sequence.
+    items : ContainerTypes
+        Container of all items to be omitted from the returned sequence.
 
     Returns
     ----------
@@ -385,7 +421,7 @@ def remove_item(sequence: SequenceTypes, item: object) -> None:
 
 
 @type_check
-def remove_items(sequence: SequenceTypes, items: Container) -> None:
+def remove_items(sequence: SequenceTypes, items: ContainerTypes) -> None:
     '''
     Remove all items contained in the passed non-string container from the
     passed mutable non-string sequence in-place.
@@ -394,8 +430,8 @@ def remove_items(sequence: SequenceTypes, items: Container) -> None:
     ----------
     sequence : SequenceTypes
         Sequence to remove items from in-place.
-    items : Container
-        Container containing all items to be remove from this sequence.
+    items : ContainerTypes
+        Container of all items to be removed from this sequence.
     '''
 
     # Slice assignment implicitly modifies the original sequence, permitting

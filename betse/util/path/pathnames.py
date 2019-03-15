@@ -12,7 +12,7 @@ import errno, os
 from betse.exceptions import BetsePathnameException
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import func_cached
-from betse.util.type.types import type_check, ContainerType, StrOrNoneTypes
+from betse.util.type.types import type_check, ContainerTypes, StrOrNoneTypes
 from os import path as os_path
 
 # ....................{ CONSTANTS                         }....................
@@ -394,7 +394,7 @@ def is_filetype_equals(pathname: str, filetype: str) -> bool:
 
 @type_check
 def is_filetype_undotted_in(
-    pathname: str, filetypes_undotted: ContainerType) -> bool:
+    pathname: str, filetypes_undotted: ContainerTypes) -> bool:
     '''
     ``True`` only if the passed pathname has a filetype *and* the **last
     undotted filetype** (i.e., last ``.``-prefixed substring of the basename
@@ -405,7 +405,7 @@ def is_filetype_undotted_in(
     ----------
     pathname : str
         Pathname to be tested.
-    filetypes: ContainerType
+    filetypes: ContainerTypes
         Container of all undotted filetypes to test this pathname against. Each
         element of this container should be a string *not* prefixed the ``.``
         character.
