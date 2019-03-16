@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -15,10 +15,21 @@ https://matplotlib.org/examples/color/colormaps_reference.html
     with matplotlib.
 '''
 
-#FIXME: Document all application-specific colormaps registered by this submodule
-#in our default "sim_config.yaml" file.
+#FIXME: Define a new iter_colormaps() function returning a generator
+#iteratively yielding the 2-tuple "(colormap_name: str, colormap: Colormap)"
+#for each colormap currently registered with matplotlib. Presumably, the
+#"matplotlib.cm" submodule imported below as "colormaps" exposes some means of
+#retrieving this metadata.
+#FIXME: Indeed. The canonical solution as of matplotlib >= 1.5.0 is as follows:
+#    from matplotlib import pyplot
+#    pyplot.colormaps()
+#See the following StackOverflow self-post, which we should probably cite:
+#    https://stackoverflow.com/a/55193797/2809027
 
-# ....................{ IMPORTS                            }....................
+#FIXME: Document all application-specific colormaps registered by this
+#submodule in our default "sim_config.yaml" file.
+
+# ....................{ IMPORTS                           }....................
 import numpy as np
 from matplotlib import cm as colormaps
 from matplotlib.colors import Colormap, LinearSegmentedColormap
@@ -28,13 +39,13 @@ from betse.util.type.iterable import sequences
 from betse.util.type.numeric import ints
 from betse.util.type.types import type_check, SequenceTypes
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 class MplColormapScheme(object):
     '''
     Matplotlib-specific **colormap scheme** (i.e., collection of parameters
-    sufficient to subsequently define a customary linear-segmented colormap).
+    sufficient to subsequently define a standard linear-segmented colormap).
 
-    An instances of this class is typically passed to the :func:`add_colormap`
+    Instances of this class are typically passed to the :func:`add_colormap`
     function, which both creates and registers a new colormap from the passed
     colormap scheme.
 
@@ -44,6 +55,7 @@ class MplColormapScheme(object):
         Name of the colormap to be created.
     colors : SequenceTypes
         Two-dimensional sequence whose:
+
         * First dimension indexes each color defining this colormap's gradient.
           This dimension *must* be a sequence containing two or more colors.
         * Second dimension is a 3-sequence indexing the red, green, and blue
@@ -53,11 +65,11 @@ class MplColormapScheme(object):
         **endpoint colors** (i.e., the colors at the bottom and top of this
         colormap). Specifically, matplotlib documentation internally states:
 
-            colormap values are modified as c^gamma, where gamma is (1-beta) for
-            beta>0 and 1/(1+beta) for beta<=0
+            colormap values are modified as c^gamma, where gamma is (1-beta)
+            for beta>0 and 1/(1+beta) for beta<=0
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(
         self,
 
@@ -94,21 +106,23 @@ class MplColormapScheme(object):
         -----------
         BetseSequenceException
             If either:
+
             * The first dimension of ``colors`` contains less than two colors
-            (i.e., is either empty *or* contains only one color).
+              (i.e., is either empty *or* contains only one color).
             * Any second dimension of ``colors`` does *not* contain exactly
-            three color values.
+              three color values.
         BetseIntException
             If any color value in any second dimension of ``colors`` is *not*
             a valid color value in the range ``[0, 255]``.
         '''
 
         #FIXME: Raise an exception if this colormap name conflicts with that
-        #of an existing colormap -- probably by defining a new die_if_colormap()
-        #utility function in this submodule.
+        #of an existing colormap -- probably by defining a new
+        #die_if_colormap() utility function in this submodule.
 
         # If this colormap defines less than two colors, raise an exception.
         if len(colors) < 2:
+            #FIXME: Raise a less ambiguous "BetseMplColormapException" instead.
             raise BetseSequenceException(
                 'Colormap scheme defines less than two colors: {!r}'.format(
                     colors))
@@ -127,7 +141,7 @@ class MplColormapScheme(object):
         self._colors = colors
         self._gamma = gamma
 
-    # ....................{ REGISTER...ERS                     }....................
+    # ..................{ REGISTERERS                       }..................
     @type_check
     def register(self) -> Colormap:
         '''
@@ -140,15 +154,15 @@ class MplColormapScheme(object):
         #     'Registering colormap "%s": %s',
         #     self.colormap_name, self.colors_normalized)
 
-        # Two-dimensional Numpy array, normalizing each of each color's values from
-        # [0, 255] to [0.0, 1.0] (while preserving the order of colors).
+        # Two-dimensional Numpy array, normalizing each of each color's values
+        # from [0, 255] to [0.0, 1.0] (while preserving the order of colors).
         colors_normalized = np.array(self._colors) / 255
 
         # Colormap synthesized from this colormap name and colors.
         #
-        # Unfortunately, as the names of the first two parameters accepted by this
-        # function have changed across matplotlib versions, these parameters *MUST*
-        # be passed positionally for safety.
+        # Unfortunately, as the names of the first two parameters accepted by
+        # this function have changed across matplotlib versions, these
+        # parameters *MUST* be passed positionally for safety.
         colormap = LinearSegmentedColormap.from_list(
             self._name, colors_normalized, N=256, gamma=self._gamma)
 
@@ -158,7 +172,7 @@ class MplColormapScheme(object):
         # Return this colormap.
         return colormap
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS                           }....................
 @type_check
 def get_colormap(name: str) -> Colormap:
     '''
@@ -195,12 +209,12 @@ def get_colormap(name: str) -> Colormap:
 
     return colormaps.get_cmap(name)
 
-# ....................{ INITIALIZERS                       }....................
+# ....................{ INITIALIZERS                      }....................
 def init() -> None:
     '''
     Initialize this module by registering all application-specific colormaps
-    with matplotlib, enabling these colormaps to be trivially retrieved with the
-    standard :func:`matplotlib.cm.get_cmap` function.
+    with matplotlib, enabling these colormaps to be trivially retrieved with
+    the standard :func:`matplotlib.cm.get_cmap` function.
 
     This function is intended to be called at matplotlib initialization time.
     '''
@@ -208,7 +222,7 @@ def init() -> None:
     # Log this initialization attempt.
     logs.log_debug('Registering custom matplotlib colormaps...')
 
-    # ..................{ COLOURS                            }..................
+    # ..................{ COLOURS                           }..................
     # Primary colours.
     BLACK = (  0,   0,   0)
     GREEN = (  0, 255,   0)
@@ -238,8 +252,8 @@ def init() -> None:
     SALMON  = (255, 111, 54)
     SALMON2 = (255, 117, 71)
 
-    # ..................{ COLORMAPS                          }..................
-    # Tuple of all application-specific colormaps, iteratively registered below.
+    # ..................{ COLORMAPS                         }..................
+    # Tuple of all application-specific colormaps iteratively registered below.
     COLORMAP_SCHEMES = (
         # Black-based colormaps.
         MplColormapScheme(name='betse_electric_cyan',    colors=(BLACK, CYAN)),
@@ -273,7 +287,7 @@ def init() -> None:
         MplColormapScheme(name='betse_red_blue_solid',      colors=(BLUE, BLACK, RED)),
     )
 
-    # ..................{ REGISTRATION                       }..................
+    # ..................{ REGISTRATION                      }..................
     # Register each such colormap with matplotlib.
     for colormap_scheme in COLORMAP_SCHEMES:
         colormap_scheme.register()

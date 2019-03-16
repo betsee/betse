@@ -780,33 +780,50 @@ variable settings:
 
 results options:
 
-  enumerate cells: False         # number the cells on 2D plots with their simulation index?
+  show cells: True           # Visualize discrete cells or only a homogeneous gradient of cell data?
+  enumerate cells: False     # Number the cells on 2D plots with their simulation index?
 
-  # FIXME do this as a profile list, add plots with legend to 1D plots
-  plot cell index: 0              # State the cell index to use for single-cell time plots
-                                  # the index of cells can be seen using enumerate cells feature.
+  #FIXME: Refactor this into a profile list and add plots with legends to 1D plots.
+  plot cell index: 0         # 0-based index of cell to visualize for single-cell time plots.
+                             # (Set "enumerate cells: True" above to display cell indices).
 
-  show cells: True                # if True, plots and animations show individual cells,
-                                  # each displayed with color-coded data.
+  overlay currents: False    # Overlay electric current or concentration flux streamlines on 2D plotted data?
+  streamline density: 2.0    # For current plots, density of streamlines in the range [0.5, 5.0].
+  plot total current: True   # For currents and morphgen fluxing, if simulating extracellular spaces,
+                             # plot total current if True or plot gap junction current if False.
 
-  overlay currents: False         # overlay electric current or concentration
-                                  # flux streamlines on 2D plotted data?
+  plot cutlines: True        # Plot any scheduled cut-lines on the cell cluster plot as black regions.
+  plot masked geometry: True # Plot the geometry using the overall shape as a mask.
 
-  streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
-
-  plot total current: True      # for currents and morphgen fluxing, if simululating extracellular spaces, plot
-                                  # total current if true, plot gap junction current if false
-
-  plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
-
-  plot masked geometry: True      # plot the geometry using the overall shape as a mask
-
-
-  #FIXME: Allow each plot to have its own colormap.
-
-  # Colormaps for different types of plots and animations. Valid colormap names are listed at:
-  #     http://matplotlib.org/examples/color/colormaps_reference.html
-  # Any such colormap may be reversed by appending "_r" to the name (e.g., "jet_r" reverses "jet").
+  #FIXME: Allow each plot and animation to declare its own colormap.
+  # Names of matplotlib-specific colormaps used to color cell data visualized by different types of
+  # plots and animations, including any following string:
+  #
+  # * The name of any default matplotlib colormap listed at:
+  #   http://matplotlib.org/examples/color/colormaps_reference.html
+  #   Any such colormap may be reversed by appending "_r" to its name (e.g., "jet_r", the reverse of
+  #   "jet"). Note that this does *NOT* apply to custom matplotlib colormaps listed below.
+  # * The name of any custom matplotlib colormap specific to this application, including:
+  #   * "betse_electric_cyan", a linear-segmented gradient from black to cyan.
+  #   * "betse_electric_green", a linear-segmented gradient from black to green.
+  #   * "betse_electric_magenta", a linear-segmented gradient from black to magenta.
+  #   * "betse_electric_orange", a linear-segmented gradient from black to orange.
+  #   * "betse_electric_blue", a linear-segmented gradient from black to blue.
+  #   * "betse_blue_chalkboard", a linear-segmented gradient from dark grey to blue.
+  #   * "betse_cyan_chalkboard", a linear-segmented gradient from dark grey to cyan.
+  #   * "betse_gold_chalkboard", a linear-segmented gradient from dark grey to gold.
+  #   * "betse_green_chalkboard", a linear-segmented gradient from dark grey to green.
+  #   * "betse_magenta_chalkboard", a linear-segmented gradient from dark grey to magenta.
+  #   * "betse_orange_chalkboard", a linear-segmented gradient from dark grey to orange.
+  #   * "betse_alien_chalkboard", a linear-segmented gradient from orange to dark grey to aquamarine.
+  #   * "betse_alien_pale", a linear-segmented gradient from orange to black to light aquamarine.
+  #   * "betse_alien_solid", a linear-segmented gradient from orange to black to aquamarine.
+  #   * "betse_purple_green_chalkboard", a linear-segmented gradient from magenta to dark grey to green.
+  #   * "betse_purple_green_pale", a linear-segmented gradient from light purple to black to light green.
+  #   * "betse_purple_green_solid", a linear-segmented gradient from magenta to black to green.
+  #   * "betse_red_blue_chalkboard", a linear-segmented gradient from blue to dark grey to red.
+  #   * "betse_red_blue_pale", a linear-segmented gradient from light blue to black to light red.
+  #   * "betse_red_blue_solid", a linear-segmented gradient from blue to black to red.
   default colormap:    RdBu_r # Colormap used for main data (spanning - to +).
   background colormap: RdBu_r # Colormap used for data with vector overlays and 0 -> + data (e.g.,
                               # currents, fluid flow, electric fields, deformations).
@@ -819,7 +836,6 @@ results options:
   plot networks: True             # Export regulatory networks to interconnected graph images?
   plot networks single cell: True # Export regulatory networks for single cell to such images?
 
-  #FIXME: Allow each plot and animation to configure its own colormap.
   while solving:          # Results exported during simulation computation.
     animations:           # Animations exported during simulation computation.
       show: True          # Display animations during simulation computation?
@@ -968,11 +984,11 @@ results options:
             minimum: -70.0
             maximum:  10.0
 
-    animations:      # Animations exported after simulating.
-      show: False    # Display animations after simulating?
-      save: False    # Save animations after simulating with save options defined below?
+    animations:   # Animations exported after simulating.
+      show: False # Display animations after simulating?
+      save: False # Save animations after simulating with save options defined below?
 
-      pipeline:      # List of all animations. Ignored if "show" and "save" are False.
+      pipeline:   # List of all animations. Ignored if "show" and "save" are False.
         # Example transmembrane voltage (Vmem) animation.
         - name: "Transmembrane Voltage Animation" # Arbitrary unique animation name.
           type: voltage_membrane # Animation type, including any following string:

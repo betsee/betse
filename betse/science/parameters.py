@@ -415,7 +415,7 @@ class Parameters(YamlFileABC):
 
         # Classify unloaded export subconfigurations.
         self.anim = SimConfExportAnims()
-        self.csv = SimConfExportCSVs()
+        self.csv  = SimConfExportCSVs()
         self.plot = SimConfExportPlots()
 
         # Classify unloaded GRN subconfigurations.
