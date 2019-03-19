@@ -15,29 +15,15 @@ https://matplotlib.org/examples/color/colormaps_reference.html
     with matplotlib.
 '''
 
-#FIXME: Define a new iter_colormaps() function returning a generator
-#iteratively yielding the 2-tuple "(colormap_name: str, colormap: Colormap)"
-#for each colormap currently registered with matplotlib. Presumably, the
-#"matplotlib.cm" submodule imported below as "colormaps" exposes some means of
-#retrieving this metadata.
-#FIXME: Indeed. The canonical solution as of matplotlib >= 1.5.0 is as follows:
-#    from matplotlib import pyplot
-#    pyplot.colormaps()
-#See the following StackOverflow self-post, which we should probably cite:
-#    https://stackoverflow.com/a/55193797/2809027
-
-#FIXME: Document all application-specific colormaps registered by this
-#submodule in our default "sim_config.yaml" file.
-
 # ....................{ IMPORTS                           }....................
 import numpy as np
-from matplotlib import cm as colormaps
-from matplotlib.colors import Colormap, LinearSegmentedColormap
 from betse.exceptions import BetseSequenceException
 from betse.util.io.log import logs
 from betse.util.type.iterable import sequences
 from betse.util.type.numeric import ints
 from betse.util.type.types import type_check, SequenceTypes
+from matplotlib import cm as colormaps
+from matplotlib.colors import Colormap, LinearSegmentedColormap
 
 # ....................{ CLASSES                           }....................
 class MplColormapScheme(object):
@@ -172,43 +158,6 @@ class MplColormapScheme(object):
         # Return this colormap.
         return colormap
 
-# ....................{ GETTERS                           }....................
-@type_check
-def get_colormap(name: str) -> Colormap:
-    '''
-    Matplotlib colormap with the passed name, including both standard colormaps
-    bundled with matplotlib *and* application-specific colormaps registered by
-    this submodule.
-
-    This function is a convenience wrapper for the
-    :func:`matplotlib.cm.get_cmap` function, provided only as a slightly
-    better-named utility to callers.
-
-    Parameters
-    ----------
-    name : str
-        Name of the colormap to be retrieved. If this is:
-        * A standard colormap bundled with matplotlib, this should be the name
-          of the attribute in the :mod:`matplotlib.cm` module corresponding to
-          the desired colormap (e.g., ``Blues``, ``jet``, ``rainbow``).
-        * An application-specific colormap registered by this submodule, this
-          should be the ``name`` parameter initializing an
-          :class:`MplColormapScheme` instance contained in the
-          ``COLORMAP_SCHEMES`` tuple defined within the :func:`init` function.
-
-    Returns
-    ----------
-    Colormap
-        Matplotlib colormap with this name.
-
-    See Also
-    ----------
-    http://matplotlib.org/examples/color/colormaps_reference.html
-        List of supported colormaps.
-    '''
-
-    return colormaps.get_cmap(name)
-
 # ....................{ INITIALIZERS                      }....................
 def init() -> None:
     '''
@@ -291,3 +240,76 @@ def init() -> None:
     # Register each such colormap with matplotlib.
     for colormap_scheme in COLORMAP_SCHEMES:
         colormap_scheme.register()
+
+# ....................{ GETTERS                           }....................
+@type_check
+def get_colormap(name: str) -> Colormap:
+    '''
+    Matplotlib colormap with the passed name, including both standard colormaps
+    bundled with matplotlib *and* application-specific colormaps registered by
+    this submodule.
+
+    This function is a convenience wrapper for the
+    :func:`matplotlib.cm.get_cmap` function, provided only as a slightly
+    better-named utility to callers.
+
+    Parameters
+    ----------
+    name : str
+        Name of the colormap to be retrieved. If this is:
+
+        * A standard colormap bundled with matplotlib, this should be the name
+          of the attribute in the :mod:`matplotlib.cm` module corresponding to
+          the desired colormap (e.g., ``Blues``, ``jet``, ``rainbow``).
+        * An application-specific colormap registered by this submodule, this
+          should be the ``name`` parameter initializing an
+          :class:`MplColormapScheme` instance contained in the
+          ``COLORMAP_SCHEMES`` tuple defined within the :func:`init` function.
+
+    Returns
+    ----------
+    Colormap
+        Matplotlib colormap with this name.
+
+    See Also
+    ----------
+    http://matplotlib.org/examples/color/colormaps_reference.html
+        List of supported colormaps.
+    '''
+
+    return colormaps.get_cmap(name)
+
+# ....................{ ITERATORS                         }....................
+def iter_colormap_names() -> SequenceTypes:
+    '''
+    Sequence of the names of all colormaps currently registered with matplotlib
+    (in sorted lexicographic order).
+
+    Caveats
+    -----------
+    **This function should be called only after this submodule has been
+    initialized** (i.e., after the :func:`init` function has been called).
+    While this function *is* safely callable beforehand, doing so prevents this
+    function from returning the names of all application-specific colormaps
+    registered by that function.
+
+    **This function does not memoize this sequence** (e.g., by decorating this
+    function with :func:`betse.util.type.decorator.decmemo.func_cached`). This
+    sequence may change over the lifetime of this application and hence
+    *cannot* be implicitly cached on the first call to this function. Instead,
+    callers may prefer to manually cache this sequence for efficiency.
+    '''
+
+    # In theory, this implementation would simply defer to the existing
+    # matplotlib.pyplot.colormaps() function returning the exact same sequence.
+    # In practice, doing so is infeasible in the general case. Why? Because
+    # merely importing the "matplotlib.pyplot" submodule incurs non-trivial,
+    # non-deterministic, and irreversible side effects -- notably, the
+    # selection of a default backend.
+    #
+    # Inevitably, some external caller will call this function *BEFORE*
+    # selecting a default backend, implying that this function *CANNOT* import
+    # from the "matplotlib.pyplot" submodule. Instead, this function inlines
+    # the body of the matplotlib.pyplot.colormaps() function here. Fortunately,
+    # the body of this function reduces to a trivial one-liner.
+    return sorted(colormaps.cmap_d)
