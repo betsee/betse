@@ -1154,7 +1154,7 @@ class DECMesh(object):
 
     #----Mathematical operator functions-----------
 
-    def gradient_xy(self, S, gtype = 'tri'):
+    def gradient_xy(self, Sv, gtype = 'tri'):
         """
         Gradient of scalar quantity 'S' with respect to the
         tangent vectors of tri_mesh (gtype = 'tri') or vor_mesh
@@ -1177,9 +1177,65 @@ class DECMesh(object):
 
         if gtype == 'tri':
 
-            assert(len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            assert(len(Sv) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
 
-            gS = np.dot(self.delta_tri_0, S)
+            Sd = self.verts_to_verts(Sv, gtype = 'tri') # interpolate to verts of dual mesh
+
+            gS_tri = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, Sv) # gradient with respect to tri mesh
+            gS_vor = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, Sd) # gradient with respect to vor mesh
+
+            # gradSx = (1/self.tri_edge_len)*gS*self.tri_tang[:,0]
+            # gradSy = (1 / self.tri_edge_len)*gS*self.tri_tang[:, 1]
+
+        elif gtype == 'vor':
+
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+            assert(len(Sv) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+
+            Sd = self.verts_to_verts(Sv, gtype = 'vor') # interpolate to verts of dual mesh
+
+            gS_tri = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, Sd) # gradient with respect to tri mesh
+            gS_vor = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, Sv) # gradient with respect to vor mesh
+
+            # gradSx = (1/self.vor_edge_len)*gS*self.vor_tang[:,0]
+            # gradSy = (1/self.vor_edge_len)*gS*self.vor_tang[:, 1]
+
+        else:
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+        gradSx = self.tri_tang[:,0]*gS_tri + self.tri_tang[:,1]*gS_vor
+        gradSy = self.vor_tang[:,0]*gS_tri + self.vor_tang[:,1]*gS_vor
+
+
+        return gradSx, gradSy
+
+    def gradient_uv(self, Sv, gtype = 'tri'):
+        """
+        Gradient of scalar quantity 'S' with respect to the
+        tangent vectors of tri_mesh (gtype = 'tri') or vor_mesh
+        (gtype = 'vor').
+
+        Note that this discrete gradient is a directional derivative with
+        respect to the tangents of the mesh, and is not a true gradient in the x- and y-
+        coordinate system.
+
+        Parameters
+        -----------
+        S   -- a scalar array defined on tri_verts or vor_verts, depending on gtype
+        gtype -- specifies if gradient is taken with respect to tri mesh or vor mesh
+
+        Returns
+        ----------
+        gradSx, gradSy  -- the x and y components of the directional derivative of S
+
+        """
+
+        if gtype == 'tri':
+
+            assert(len(Sv) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+
+            gS = np.dot(self.delta_tri_0, Sv) # gradient with respect to tri mesh
 
             gradSx = (1/self.tri_edge_len)*gS*self.tri_tang[:,0]
             gradSy = (1 / self.tri_edge_len)*gS*self.tri_tang[:, 1]
@@ -1188,9 +1244,10 @@ class DECMesh(object):
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
 
-            assert(len(S) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+            assert(len(Sv) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
 
-            gS = np.dot(self.delta_vor_0, S)
+            gS = np.dot(self.delta_vor_0, Sv) # gradient with respect to vor mesh
+
             gradSx = (1/self.vor_edge_len)*gS*self.vor_tang[:,0]
             gradSy = (1/self.vor_edge_len)*gS*self.vor_tang[:, 1]
 
@@ -1466,6 +1523,36 @@ class DECMesh(object):
 
         return curlFz_x, curlFz_y
 
+    def curl_z2(self, Fz, gtype = 'tri'):
+
+        # Vector Laplacians can only be computed for
+        assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+
+        if gtype == 'tri':
+
+            assert (len(Fz) == self.n_tverts), "Length of array passed to curl is not tri verts length!"
+
+            gfx, gfy = self.gradient_xy(Fz, gtype='tri')
+
+            curlFz_x = -gfy
+            curlFz_y = gfx
+
+
+        elif gtype == 'vor':
+
+            assert (len(Fz) == self.n_vverts), "Length of array passed to curl is not vor verts length!"
+
+
+            gfx, gfy = self.gradient_xy(Fz, gtype='vor')
+
+            curlFz_x = -gfy
+            curlFz_y = gfx
+
+        else:
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+        return curlFz_x, curlFz_y
+
     def curl_xy(self, Fx, Fy, gtype = 'tri'):
         """
         Calculates the curl of an Fx, Fy vector field and returns the curl = Phi_z component.
@@ -1575,13 +1662,70 @@ class DECMesh(object):
 
         return Sv
 
-    # def verts_to_cent(self, Sv):
-    #
-    #     assert (len(Sv) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
-    #
-    #     Sc = np.dot(self.M_verts_to_cents, Sv)
-    #
-    #     return Sc
+    def verts_to_verts(self, Sv, gtype ='tri', bval = 0.0):
+        """
+        Maps quantity from vertices of one grid (e.g. tri) to the
+        dual (e.g. vor).
+
+        Parameters
+        ------------
+        Sv    Variable defined on tri or vor mesh verts
+        bval  Values for the boundary (converting from tri to vor grid only)
+        gtype Type of starting mesh
+
+        Return
+        --------
+        Sd     Variable defined on opposite mesh to what was input
+
+        """
+
+        if gtype == 'vor':
+            Sv_edges = self.verts_to_mids(Sv, gtype='vor')
+            path_len_tri = np.dot(np.abs(self.delta_tri_0.T), self.vor_edge_len)
+            Sd = np.dot(np.abs(self.delta_tri_0.T), self.vor_edge_len * Sv_edges) / path_len_tri
+
+        elif gtype == 'tri':
+            Sv_edges = self.verts_to_mids(Sv, gtype='tri')
+            path_len_vor = np.dot(np.abs(self.delta_tri_1), self.tri_edge_len)
+            Sd = np.ones(self.n_vverts)*bval
+            Sd[self.inner_vvert_i] = np.dot(np.abs(self.delta_tri_1), self.tri_edge_len*Sv_edges)/path_len_vor
+
+        else:
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+
+        return Sd
+
+    def mids_to_verts2(self, Sm, gtype ='tri', bval = 0.0):
+        """
+        Maps quantity from mids to vertices of a grid (e.g. tri).
+
+        Parameters
+        ------------
+        Sv    Variable defined on tri or vor mesh verts
+        bval  Values for the boundary (converting from tri to vor grid only)
+        gtype Type of starting mesh
+
+        Return
+        --------
+        Sd     Variable defined on opposite mesh to what was input
+
+        """
+
+        if gtype == 'tri':
+            path_len_tri = np.dot(np.abs(self.delta_tri_0.T), self.vor_edge_len)
+            Sv = np.dot(np.abs(self.delta_tri_0.T), self.vor_edge_len * Sm) / path_len_tri
+
+        elif gtype == 'vor':
+            path_len_vor = np.dot(np.abs(self.delta_tri_1), self.tri_edge_len)
+            Sv = np.ones(self.n_vverts)*bval
+            Sv[self.inner_vvert_i] = np.dot(np.abs(self.delta_tri_1), self.tri_edge_len*Sm)/path_len_vor
+
+        else:
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+
+        return Sv
 
     def curl_of_curl(self, Fz, gtype = 'tri'):
         """
@@ -1907,7 +2051,7 @@ class DECMesh(object):
         Phi = self.lap_inv(divF, gtype=gtype)
 
         # Where the curl-free vector field is given by:
-        gPhi_x, gPhi_y = self.gradient_xy(Phi, gtype=gtype)
+        gPhi_x, gPhi_y = self.gradient_uv(Phi, gtype=gtype)
 
         # Solving for the divergence-free vector field:
         # take the curl of the vector field:
@@ -2419,16 +2563,24 @@ class DECMesh(object):
         else:
             raise Exception("valid gtype is 'tri' or 'vor'")
 
+        xm = self.tri_mids[:,0]
+        ym = self.tri_mids[:,1]
+
         # Test function on vor_verts:
         self.foo = np.sin((a * xo * yo) / b ** 2)
 
         amin = self.foo.min()
         amax = self.foo.max()
 
+        self.gfxm = ((a * ym) / b ** 2) * np.cos((a * xm * ym) / b ** 2)
+        self.gfym = ((a * xm) / b ** 2) * np.cos((a * xm * ym) / b ** 2)
+
         self.gfx = ((a * yo) / b ** 2) * np.cos((a * xo * yo) / b ** 2)
         self.gfy = ((a * xo) / b ** 2) * np.cos((a * xo * yo) / b ** 2)
 
         self.gf_mag = np.sqrt(self.gfx ** 2 + self.gfy ** 2)
+        # self.gf_mmag = self.verts_to_mids(self.gf_mag, gtype=gtype)
+        self.gf_mmag = np.sqrt(self.gfxm**2 + self.gfym**2)
 
         bmin = self.gf_mag.min()
         bmax = self.gf_mag.max()
@@ -2443,20 +2595,20 @@ class DECMesh(object):
         cmax = self.div_foo.max()
 
         # Curl of foo as phi_z = foo
-        self.cfx = self.gfy
-        self.cfy = -self.gfx
+        self.cfx = self.gfym
+        self.cfy = -self.gfxm
         self.cf_mag = np.sqrt(self.cfx** 2 + self.cfy**2)
 
 
         # Generate DEC-computed quantities (denoted by '_')-------------------------------------
 
         # Gradient at edges, in xy components, and div, also using xy components:
-        gfxmv, gfymv = self.gradient_xy(self.foo, gtype=gtype)
-        self.div_foo_ = self.div_xy(gfxmv, gfymv, gtype=gtype)
+        self.gfx_, self.gfy_ = self.gradient_xy(self.foo, gtype=gtype)
+        self.div_foo_ = self.div_xy(self.gfx_, self.gfy_, gtype=gtype)
 
-        # Interpolate gradient to verts and get components
-        self.gfx_ = self.mids_to_verts(gfxmv, gtype=gtype)
-        self.gfy_ = self.mids_to_verts(gfymv, gtype=gtype)
+        # # Interpolate gradient to verts and get components
+        # self.gfx_ = self.mids_to_verts(gfxmv, gtype=gtype)
+        # self.gfy_ = self.mids_to_verts(gfymv, gtype=gtype)
         self.gf_mag_ = np.sqrt(self.gfx_**2 + self.gfy_** 2)
 
         self.lap_foo_ = self.lap(self.foo, gtype=gtype)
@@ -2469,13 +2621,13 @@ class DECMesh(object):
             self.lap_inv_ = self.lap_inv(self.div_foo, gtype=gtype)
 
         # Curl on the vor grid with Phi_z = foov
-        cfxm, cfym = self.curl_z(self.foo, gtype=gtype)
-        self.cfx_ = self.mids_to_verts(cfxm, gtype = gtype)
-        self.cfy_ = self.mids_to_verts(cfym, gtype = gtype)
-        self.cf_mag_ = np.sqrt(self.cfx_ ** 2 + self.cfy_ ** 2)
+        self.cfx_, self.cfy_ = self.curl_z2(self.foo, gtype=gtype)
+        # self.cfx_ = self.mids_to_verts(cfxm, gtype = gtype)
+        # self.cfy_ = self.mids_to_verts(cfym, gtype = gtype)
+        self.cf_mag_ = np.sqrt(self.cfx_**2 + self.cfy_**2)
 
         # RMS errors between quantities:
-        self.error_grad = np.sqrt((self.gf_mag - self.gf_mag_)**2)
+        self.error_grad = np.sqrt((self.gf_mmag - self.gf_mag_)**2)
 
         if gtype == 'vor':
             self.error_div = np.sqrt((self.div_foo[self.inner_vvert_i] - self.div_foo_)**2)
@@ -2529,7 +2681,7 @@ class DECMesh(object):
 
         # ---------------------
 
-        tp2 = axarr[0, 1].tripcolor(xo, yo, self.gf_mag)
+        tp2 = axarr[0, 1].tripcolor(xm, ym, self.gf_mmag)
         cb2 = fig.colorbar(tp2, ax=axarr[0, 1], orientation='horizontal',
                            fraction=0.025, pad=0.01)
         axarr[0, 1].quiver(xo, yo, self.gfx, self.gfy, headwidth = 5)
@@ -2554,10 +2706,10 @@ class DECMesh(object):
         axarr[1, 0].axis('equal')
         axarr[1, 0].axis('off')
 
-        tp5 = axarr[1, 1].tripcolor(xo, yo, self.gf_mag_)
+        tp5 = axarr[1, 1].tripcolor(xm, ym, self.gf_mag_)
         cb5 = fig.colorbar(tp5, ax=axarr[1, 1], orientation='horizontal',
                            fraction=0.025, pad=0.01)
-        axarr[1, 1].quiver(xo, yo, self.gfx_, self.gfy_, headwidth = 5)
+        axarr[1, 1].quiver(xm, ym, self.gfx_, self.gfy_, headwidth = 5)
         axarr[1, 1].set_title(r'$\nabla F (DEC)$')
         axarr[1, 1].axis('equal')
         axarr[1, 1].axis('off')
@@ -2616,17 +2768,11 @@ class DECMesh(object):
         # yo = self.tri_verts[:, 1]
 
         if gtype == 'tri':
-            xu = self.vor_verts[:, 0]
-            yu = self.vor_verts[:, 1]
-
             xo = self.tri_verts[:, 0]
             yo = self.tri_verts[:, 1]
             opgtype = 'vor' # opposite (dual) grid
 
         elif gtype == 'vor':
-            xu = self.tri_verts[:, 0]
-            yu = self.tri_verts[:, 1]
-
             xo = self.vor_verts[:, 0]
             yo = self.vor_verts[:, 1]
             opgtype = 'tri'  # opposite (dual) grid
@@ -2634,46 +2780,51 @@ class DECMesh(object):
         else:
             raise Exception("valid gtype is 'tri' or 'vor'")
 
+        xm = self.tri_mids[:, 0]
+        ym = self.tri_mids[:, 1]
+
         # Test function on vor_verts:
         self.foo = np.sin((a * xo * yo) / b ** 2)
 
-        self.gfx = ((a * yo) / b ** 2) * np.cos((a * xo * yo) / b ** 2)
-        self.gfy = ((a * xo) / b ** 2) * np.cos((a * xo * yo) / b ** 2)
+        self.gfx = ((a * ym) / b ** 2) * np.cos((a * xm * ym) / b ** 2)
+        self.gfy = ((a * xm) / b ** 2) * np.cos((a * xm * ym) / b ** 2)
 
         self.gf_mag = np.sqrt(self.gfx ** 2 + self.gfy ** 2)
 
         # Gradient of the gradient:
-        self.gfxx = -(((a * yo) / b ** 2) ** 2) * np.sin((a * xo * yo) / b ** 2)
-        self.gfxy = (a * np.cos((a * xo * yo) / b ** 2)) / b ** 2 - (
-                    a ** 2 * xo * yo * np.sin((a * xo * yo) / b ** 2)) / b ** 4
-        self.gfyx = (a * np.cos((a * xo * yo) / b ** 2)) / b ** 2 - (
-                    a ** 2 * xo * yo * np.sin((a * xo * yo) / b ** 2)) / b ** 4
-        self.gfyy = -(((a * xo) / b ** 2) ** 2) * np.sin((a * xo * yo) / b ** 2)
+        self.gfxx = -(((a * ym) / b ** 2) ** 2) * np.sin((a * xm * ym) / b ** 2)
+        self.gfxy = (a * np.cos((a * xm * ym) / b ** 2)) / b ** 2 - (
+                    a ** 2 * xm * ym * np.sin((a * xm * ym) / b ** 2)) / b ** 4
+        self.gfyx = (a * np.cos((a * xm * ym) / b ** 2)) / b ** 2 - (
+                    a ** 2 * xm * ym * np.sin((a * xm * ym) / b ** 2)) / b ** 4
+        self.gfyy = -(((a * xm) / b ** 2) ** 2) * np.sin((a * xm * ym) / b ** 2)
 
         #---------
         # Discrete calcs
 
         # Gradient at edges, in xy components, and div, also using xy components:
-        gfxmv, gfymv = self.gradient_xy(self.foo, gtype=gtype)
+        self.gfx_, self.gfy_ = self.gradient_xy(self.foo, gtype=gtype)
 
         # Interpolate gradient to verts of the dual mesh and get components
-        self.gfxi = self.mids_to_verts(gfxmv, gtype=opgtype)
-        self.gfyi = self.mids_to_verts(gfymv, gtype=opgtype)
+        self.gfxi = self.mids_to_verts(self.gfx_, gtype=gtype)
+        self.gfyi = self.mids_to_verts(self.gfy_, gtype=gtype)
 
-        # Interpolate gradient to verts of the original mesh (for plotting)
-        self.gfx_ = self.mids_to_verts(gfxmv, gtype=gtype)
-        self.gfy_ = self.mids_to_verts(gfymv, gtype=gtype)
+        # # Interpolate gradient to verts of the original mesh (for plotting)
+        # self.gfx_ = self.mids_to_verts(gfxmv, gtype=gtype)
+        # self.gfy_ = self.mids_to_verts(gfymv, gtype=gtype)
 
         # Gradient of the gradient taken from the dual mesh (from verts mapping):
-        gfxxm, gfxym = self.gradient_xy(self.gfxi, gtype=opgtype)
-        gfyxm, gfyym = self.gradient_xy(self.gfyi, gtype=opgtype)
+        self.gfxx_, self.gfxy_ = self.gradient_xy(self.gfxi, gtype=gtype)
+        self.gfyx_, self.gfyy_ = self.gradient_xy(self.gfyi, gtype=gtype)
 
-        # each component needs to be mapped to verts (of tri grid type for nice plotting):
-        self.gfxx_ = self.mids_to_verts(gfxxm, gtype=gtype)
-        self.gfxy_ = self.mids_to_verts(gfxym, gtype=gtype)
-        self.gfyx_ = self.mids_to_verts(gfyxm, gtype=gtype)
-        self.gfyy_ = self.mids_to_verts(gfyym, gtype=gtype)
+        # # each component needs to be mapped to verts (of tri grid type for nice plotting):
+        # self.gfxx_ = self.mids_to_verts(gfxxm, gtype=gtype)
+        # self.gfxy_ = self.mids_to_verts(gfxym, gtype=gtype)
+        # self.gfyx_ = self.mids_to_verts(gfyxm, gtype=gtype)
+        # self.gfyy_ = self.mids_to_verts(gfyym, gtype=gtype)
 
+        self.error_gfx = np.sqrt((self.gfx - self.gfx_) ** 2)
+        self.error_gfy = np.sqrt((self.gfy - self.gfy_) ** 2)
         self.error_gfxx = np.sqrt((self.gfxx - self.gfxx_)**2)
         self.error_gfxy = np.sqrt((self.gfxy - self.gfxy_)**2)
         self.error_gfyx = np.sqrt((self.gfyx - self.gfyx_)**2)
@@ -2683,6 +2834,8 @@ class DECMesh(object):
                             'gfxy': self.error_gfxy.mean()/np.abs(self.gfxy).max(),
                             'gfyx': self.error_gfyx.mean()/np.abs(self.gfyx).max(),
                             'gfyy': self.error_gfyy.mean()/np.abs(self.gfyy).max(),
+                            'gfx': self.error_gfx.mean() / np.abs(self.gfx).max(),
+                            'gfy': self.error_gfy.mean() / np.abs(self.gfy).max(),
                             }
 
         if print_errors:
@@ -2711,37 +2864,37 @@ class DECMesh(object):
         axarr[1, 2].xaxis.set_ticklabels([])
         axarr[1, 2].yaxis.set_ticklabels([])
 
-        axarr[0, 0].quiver(xo, yo, self.gfx, self.gfx, color = 'purple', zorder = 10, headwidth = 5)
+        axarr[0, 0].quiver(xm, ym, self.gfx, self.gfx, color = 'purple', zorder = 10, headwidth = 5)
         axarr[0, 0].set_title(r'$\nabla\,F\,(exact)$ ')
         # axarr[0, 0].axis('tight')
         axarr[0, 0].axis('off')
         axarr[0, 0].axis('equal')
 
-        axarr[0, 1].quiver(xo, yo, self.gfxx, self.gfxy, color = 'red', zorder = 10, headwidth = 5)
+        axarr[0, 1].quiver(xm, ym, self.gfxx, self.gfxy, color = 'red', zorder = 10, headwidth = 5)
         axarr[0, 1].set_title(r'$\nabla_{x}\nabla_{x}\,Fx (exact)$')
         # axarr[0, 1].axis('tight')
         axarr[0, 1].axis('off')
         axarr[0, 1].axis('equal')
 
-        axarr[0, 2].quiver(xo, yo, self.gfyx, self.gfyy, color = 'blue', zorder = 10, headwidth = 5)
+        axarr[0, 2].quiver(xm, ym, self.gfyx, self.gfyy, color = 'blue', zorder = 10, headwidth = 5)
         axarr[0, 2].set_title(r'$\nabla_{y}\nabla_{x}\,F (exact) $')
         # axarr[0, 2].axis('tight')
         axarr[0, 2].axis('off')
         axarr[0, 2].axis('equal')
 
-        axarr[1, 0].quiver(xo, yo, self.gfx_, self.gfy_, color = 'purple', zorder = 10, headwidth = 5)
+        axarr[1, 0].quiver(xm, ym, self.gfx_, self.gfy_, color = 'purple', zorder = 10, headwidth = 5)
         axarr[1, 0].set_title(r'$\nabla\,F\,(DEC)$ ')
         # axarr[1, 0].axis('tight')
         axarr[1, 0].axis('off')
         axarr[1, 0].axis('equal')
 
-        axarr[1, 1].quiver(xo, yo, self.gfxx_, self.gfxy_, color = 'red', zorder = 10, headwidth = 5)
+        axarr[1, 1].quiver(xm, ym, self.gfxx_, self.gfxy_, color = 'red', zorder = 10, headwidth = 5)
         axarr[1, 1].set_title(r'$\nabla_{x}\nabla_{x}\,Fx (DEC)$')
         # axarr[1, 1].axis('tight')
         axarr[1, 1].axis('off')
         axarr[1, 1].axis('equal')
 
-        axarr[1, 2].quiver(xo, yo, self.gfyx_, self.gfyy_, color = 'blue', zorder = 10, headwidth = 5)
+        axarr[1, 2].quiver(xm, ym, self.gfyx_, self.gfyy_, color = 'blue', zorder = 10, headwidth = 5)
         axarr[1, 2].set_title(r'$\nabla_{y}\nabla_{x}\,F (DEC) $')
         # axarr[1, 2].axis('tight')
         axarr[1, 2].axis('off')
