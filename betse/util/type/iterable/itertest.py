@@ -12,7 +12,7 @@ validating non-string objects implementing the abstract
 # ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseIterableException
 from betse.util.type.types import (
-    type_check, CallableTypes, IterableTypes, TestableTypes)
+    type_check, CallableTypes, IterableTypes, SetType, TestableTypes)
 
 # ....................{ EXCEPTIONS                        }....................
 @type_check
@@ -139,11 +139,33 @@ def is_items_instance_of(iterable: IterableTypes, cls: TestableTypes) -> bool:
     return all(isinstance(item, cls) for item in iterable)
 
 
+#FIXME: This function currently assumes all items of this iterable to be
+#hashable (i.e., implement the "collections.abc.Hashable" interface). If this
+#is *NOT* the case, exceptions and/or non-deterministic behaviour is likely.
+#Ergo, this function must be generalized to:
+#
+#* Efficiently detect whether this iterable contains one or more non-hashable
+#  items.
+#* In that case, either:
+#  * Raise an exception.
+#  * Reduce to a less efficient approach supporting non-hashable items.
+#    Notably, while "set" objects require hashability, "tuple" objects do not.
+#    Ergo, leveraging a "tuple" rather than "set" should suffice here.
 @type_check
 def is_items_unique(iterable: IterableTypes) -> bool:
     '''
     ``True`` only if *all* items of the passed iterable are **unique** (i.e.,
     no two distinct items are equal).
+
+    Specifically, this function:
+
+    * If this iterable implements the :class:`collections.abc.Set` interface,
+      returns ``True`` immediately.
+    * Else if this iterable is sufficiently small (e.g., contains less than
+      approximately 50 items), reduces this iterable to a :class:`set` and
+      compares the length of these two containers for equality.
+    * Else, efficiently iterates this iterable at most once and hence has
+      worst-case time complexity ``O(len(iterable))``.
 
     Parameters
     ----------
@@ -161,14 +183,36 @@ def is_items_unique(iterable: IterableTypes) -> bool:
         ``True`` only if *all* items of this iterable are unique.
     '''
 
+    # If this iterable is a set and hence guarantees uniqueness, efficiently
+    # reduce to a noop.
+    if isinstance(iterable, SetType):
+        return True
+    # Else, this iterable is *NOT* a set and hence does *NOT* guarantee
+    # uniqueness.
+
+    # Number of items in this iterable.
+    iterable_len = len(iterable)
+
+    # If this iterable is sufficiently small (where "sufficiently small" has
+    # yet to be quantitatively measured and hence is qualitatively arbitrary),
+    # return true only if this iterable contains exactly as many items as the
+    # corresponding set of the same items, in which case no such item is a
+    # duplicate of any other such item.
+    if iterable_len < 64:
+        return iterable_len == len(set(iterable))
+    # Else, this iterable is sufficiently large to warrant an efficient
+    # approach guaranteed to short circuit (i.e., "early exit") on the first
+    # non-unique item of this iterable.
+
     # Set of all unique items of this iterable previously visited below.
     items_unique = set()
 
-    # Return True only if no items in this iterable are duplicates (i.e., have
+    # Return true only if no items in this iterable are duplicates (i.e., have
     # already been visited by a prior iteration of this test).
     return not any(
-        # If this item is unique, add this item to this set as a side effect.
+        # If this item is unique, add this item to this set as a side effect...
         item in items_unique or items_unique.add(item)
+        # For each item of this iterable.
         for item in iterable)
 
 # ....................{ TESTERS ~ item                    }....................

@@ -35,23 +35,62 @@ class Parameters(YamlFileABC):
         Type of **simulation solver** (i.e., numerical technique iteratively
         computing simulation time steps) with which to solve this simulation.
 
+    Attributes (Exports)
+    ----------
+    anim : SimConfExportAnims
+        Subconfiguration configuring exported animations.
+    csv : SimConfExportCSVs
+        Subconfiguration configuring exported comma-separated value (CSV)
+        files.
+    plot : SimConfExportPlots
+        Subconfiguration configuring exported plots.
+    plot_cell : int
+        0-based index of the cell to isolate all single-cell time plots to.
+        Defaults to 0, the index assigned to the first cell guaranteed to
+        exist.  Note that cell indices are seed-specific and may be visualized
+        via the :attr:`enumerate_cells` boolean.
+
+    Attributes (Export: Colormap)
+    ----------
+    colormap_diverging_name : str
+        Matplotlib-specific name of the default **diverging colormap** (i.e.,
+        object mapping zero-centered cell data deviating both above and below 0
+        in equal measure to color values in visual exports). Since most cell
+        data is zero-centered, this is effectively the default colormap.
+    colormap_sequential_name : str
+        Matplotlib-specific name of the default **sequential colormap** (i.e.,
+        object mapping zero-based cell data monotonically increasing from 0 to
+        positive infinity to color values in visual exports). Since most
+        vectorial cell data (e.g., deformations, fluid flow, electromagnetic
+        currents and fields) is zero-based, this is effectively the default
+        colormap for such data.
+    colormap_gj_name : str
+        Matplotlib-specific name of the default **gap junction colormap**
+        (i.e., object mapping gap junction data, including currents, to color
+        values in visual exports).
+    colormap_grn_name : str
+        Matplotlib-specific name of the default **gene regulatory network (GRN)
+        colormap** (i.e., object mapping GRN data, including concentration
+        nodes of reaction network graphs, to color values in visual exports).
+
     Attributes (Path: Export)
     ----------
     init_export_dirname : str
-        Absolute pathname of the directory containing results exported from this
-        simulation's most recent initialization run, guaranteed to exist.
+        Absolute pathname of the directory containing results exported from
+        this simulation's most recent initialization run, guaranteed to exist.
     init_export_dirname_relative : str
-        Relative pathname of the directory containing results exported from this
-        simulation's most recent initialization run, relative to the absolute
+        Relative pathname of the directory containing results exported from
+        this simulation's most recent initialization run, relative to the
+        absolute path of the directory containing this simulation
+        configuration's YAML file.
+    sim_export_dirname : str
+        Absolute pathname of the directory containing results exported from
+        this simulation's most recent simulation run, guaranteed to exist.
+    sim_export_dirname_relative : str
+        Relative pathname of the directory containing results exported from
+        this simulation's most recent simulation run, relative to the absolute
         path of the directory containing this simulation configuration's YAML
         file.
-    sim_export_dirname : str
-        Absolute pathname of the directory containing results exported from this
-        simulation's most recent simulation run, guaranteed to exist.
-    sim_export_dirname_relative : str
-        Relative pathname of the directory containing results exported from this
-        simulation's most recent simulation run, relative to the absolute path
-        of the directory containing this simulation configuration's YAML file.
 
     Attributes (Path: Pickle: Seed)
     ----------
@@ -114,15 +153,15 @@ class Parameters(YamlFileABC):
         :attr:`conf_dirname` directory.
     grn_unpickle_filename : StrOrNoneTypes
         Absolute filename of the pickled file providing a prior gene regulatory
-        network (GRN) run for this simulation if restarting the current such run
-        from where this prior run left off *or* ``None`` otherwise (i.e., if
-        starting the current such run from scratch).
+        network (GRN) run for this simulation if restarting the current such
+        run from where this prior run left off *or* ``None`` otherwise (i.e.,
+        if starting the current such run from scratch).
     grn_unpickle_filename_relative : StrOrNoneTypes
         Relative filename of the pickled file providing a prior gene regulatory
         network (GRN) run for this simulation, relative to the
         :attr:`conf_dirname` directory, if restarting the current such run from
-        where this prior run left off *or* ``None`` otherwise (i.e., if starting
-        the current such run from scratch).
+        where this prior run left off *or* ``None`` otherwise (i.e., if
+        starting the current such run from scratch).
 
     Attributes (Space: Cell)
     ----------
@@ -153,9 +192,9 @@ class Parameters(YamlFileABC):
         2)``). This should typically reside in the range ``[10, 60]``.
     is_ecm : bool
         ``True`` only if the extracellular matrix (ECM) simulating
-        **extracellular spaces** (i.e., the environment surrounding each cell in
-        the cluster) is enabled. Disabling this reduces simulation accuracy at a
-        substantial reduction in space and time costs.
+        **extracellular spaces** (i.e., the environment surrounding each cell
+        in the cluster) is enabled. Disabling this reduces simulation accuracy
+        at a substantial reduction in space and time costs.
     world_len : float
         Length in meters of both the X and Y dimensions of this simulation's
         square environment. This should typically reside in the range ``[80e-6,
@@ -287,20 +326,6 @@ class Parameters(YamlFileABC):
     cell_polarizability : NumericSimpleTypes
         Constant defining the rate of cell polarizability change in electric
         fields, typically ranging ``[0.0, 1.0e-3]``.
-
-    Attributes (Exports)
-    ----------
-    anim : SimConfExportAnims
-        Subconfiguration configuring exported animations.
-    csv : SimConfExportCSVs
-        Subconfiguration configuring exported comma-separated value (CSV) files.
-    plot : SimConfExportPlots
-        Subconfiguration configuring exported plots.
-    plot_cell : int
-        0-based index of the cell to isolate all single-cell time plots to.
-        Defaults to 0, the index assigned to the first cell guaranteed to
-        exist.  Note that cell indices are seed-specific and may be visualized
-        via the :attr:`enumerate_cells` boolean.
     '''
 
     # ..................{ ALIASES                           }..................
@@ -312,6 +337,20 @@ class Parameters(YamlFileABC):
 
     # ..................{ ALIASES ~ solver                  }..................
     solver_type = yaml_enum_alias("['solver options']['type']", SolverType)
+
+    # ..................{ ALIASES ~ export : colormap       }..................
+    #FIXME: Define a new yaml_set_alias() data descriptor constraining the
+    #value of the passed YAML key to a finite set of permissible values -- in
+    #this case, colormap names in the set returned by the
+    #betse.lib.matplotlib.mplcolormap.iter_colormap_names() iterator. For now,
+    #we avoid constraining these names for simplicity.
+    colormap_diverging_name = yaml_alias(
+        "['results options']['default colormap']", str)
+    colormap_sequential_name = yaml_alias(
+        "['results options']['background colormap']", str)
+    colormap_gj_name = yaml_alias("['results options']['gj colormap']", str)
+    colormap_grn_name = yaml_alias(
+        "['results options']['network colormap']", str)
 
     # ..................{ ALIASES ~ path : seed             }..................
     seed_pickle_basename = yaml_alias("['init file saving']['worldfile']", str)
@@ -901,10 +940,22 @@ class Parameters(YamlFileABC):
             self.grad_bm_fn = None
             self.grad_bm_offset = None
 
-        # ................{ EXPORTS                            }................
+        # ................{ EXPORTS                           }................
         ro = self._conf['results options']
 
-        # ................{ EXPORTS ~ plot                     }................
+        # ................{ EXPORTS ~ colormap                }................
+        #FIXME: Non-ideal. Ideally, *ONLY* the name of each such colormap would
+        #be stored in this object. Storing the actual colormap object as we do
+        #here requires us to also pickle these actual colormap objects with
+        #every seed, initialization, and simulation. (Which is bad.)
+        self.default_cm    = mplcolormap.get_colormap(
+            self.colormap_diverging_name)
+        self.background_cm = mplcolormap.get_colormap(
+            self.colormap_sequential_name)
+        self.gj_cm         = mplcolormap.get_colormap(self.colormap_gj_name)
+        self.network_cm    = mplcolormap.get_colormap(self.colormap_grn_name)
+
+        # ................{ EXPORTS ~ plot                    }................
         #FIXME: Replace all instances of "p.turn_all_plots_off" in the codebase
         #by "not p.plot.is_after_sim_show" and remove this attribute entirely.
         self.turn_all_plots_off = not self.plot.is_after_sim_show
@@ -915,16 +966,8 @@ class Parameters(YamlFileABC):
 
         self.plot_cutlines = ro['plot cutlines']
 
-        # Colormaps.
-        self.default_cm    = mplcolormap.get_colormap(ro['default colormap'])
-        self.background_cm = mplcolormap.get_colormap(ro['background colormap'])
-
-        # Colormap for plotting gj currents on top of default colormap.
-        self.gj_cm = mplcolormap.get_colormap(ro['gj colormap'])
-
         # new options for plotting reaction network graphs:
         self.plot_network = ro['plot networks']
-        self.network_cm = mplcolormap.get_colormap(ro['network colormap'])
 
         # Colors.
         self.vcolor = ro['vector and stream color']  # color of vector and streamlines

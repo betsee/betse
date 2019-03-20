@@ -216,7 +216,11 @@ corresponding abstract interface to formalize queue types, this type applies
 
 SetType = Set
 '''
-Abstract interface implemented by all set-like objects.
+Abstract interface implemented by all **set-like containers** (i.e., containers
+guaranteeing uniqueness across all items in these containers), including both
+the standard :class:`set` and :class:`frozenset` types *and* the types of the
+:class:`dict`-specific views returned by the :meth:`dict.items` and
+:meth:`dict.keys` (but *not* :meth:`dict.values`) methods.
 
 This class is a synonym of the :class:`collections.abc.Set` class, provided
 merely as a convenience to callers preferring to avoid importing that class.
@@ -226,7 +230,7 @@ merely as a convenience to callers preferring to avoid importing that class.
 SizedType = Sized
 '''
 Abstract interface implemented by all containers defining the special
-`__len__()` method internally called by the :func:`len` builtin.
+``__len__()`` method internally called by the :func:`len` builtin.
 
 This class is a synonym of the `collections.abc.Sized` class, provided merely
 as a convenience to callers preferring to avoid importing that class.
