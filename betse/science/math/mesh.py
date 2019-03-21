@@ -2553,6 +2553,33 @@ class DECMesh(object):
 
         return R, area, cx, cy
 
+    def inter_pt(self, line1, line2):
+        """
+        Returns the intersection point of two lines in 2D.
+        :param line1: array of arrays representing two points on the first line
+        :param line2: array of arrays representing two points on the second line
+        :return: ptx, pty, the point of intersection
+        """
+
+        x1 = line1[0][0]
+        y1 = line1[0][1]
+
+        x2 = line1[1][0]
+        y2 = line1[1][1]
+
+        x3 = line2[0][0]
+        y3 = line2[0][1]
+
+        x4 = line2[1][0]
+        y4 = line2[1][1]
+
+        ptx = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / (
+                    (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
+        pty = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / (
+                    (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
+
+        return ptx, pty
+
     #----Tests of DEC computations--------------------
 
     def plot_test_A(self, a=0.02, b=5.0e-6, gtype = 'vor', size = (10, 8), print_errors = True):
