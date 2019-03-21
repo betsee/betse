@@ -1154,35 +1154,32 @@ class DECMesh(object):
 
     #----Mathematical operator functions-----------
 
-    def gradient_xy(self, Sv, gtype = 'tri'):
+    def grad_xy(self, Sv, gtype ='tri'):
         """
-        Gradient of scalar quantity 'S' with respect to the
-        tangent vectors of tri_mesh (gtype = 'tri') or vor_mesh
-        (gtype = 'vor').
 
-        Note that this discrete gradient is a directional derivative with
-        respect to the tangents of the mesh, and is not a true gradient in the x- and y-
-        coordinate system.
+        Calculates the true grad in the x- and y-
+        coordinate system by using the orthogonal components of grad taken
+        on both the tri and vor meshes.
 
         Parameters
         -----------
         S   -- a scalar array defined on tri_verts or vor_verts, depending on gtype
-        gtype -- specifies if gradient is taken with respect to tri mesh or vor mesh
+        gtype -- specifies if grad is taken with respect to tri mesh or vor mesh
 
         Returns
         ----------
-        gradSx, gradSy  -- the x and y components of the directional derivative of S
+        gradSx, gradSy  -- the x and y components of the grad of S
 
         """
 
         if gtype == 'tri':
 
-            assert(len(Sv) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            assert(len(Sv) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
             Sd = self.verts_to_verts(Sv, gtype = 'tri') # interpolate to verts of dual mesh
 
-            gS_tri = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, Sv) # gradient with respect to tri mesh
-            gS_vor = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, Sd) # gradient with respect to vor mesh
+            gS_tri = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, Sv) # grad with respect to tri mesh
+            gS_vor = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, Sd) # grad with respect to vor mesh
 
             # gradSx = (1/self.tri_edge_len)*gS*self.tri_tang[:,0]
             # gradSy = (1 / self.tri_edge_len)*gS*self.tri_tang[:, 1]
@@ -1191,12 +1188,12 @@ class DECMesh(object):
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
 
-            assert(len(Sv) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+            assert(len(Sv) == self.n_vverts), "Length of array passed to grad is not vor_verts length"
 
             Sd = self.verts_to_verts(Sv, gtype = 'vor') # interpolate to verts of dual mesh
 
-            gS_tri = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, Sd) # gradient with respect to tri mesh
-            gS_vor = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, Sv) # gradient with respect to vor mesh
+            gS_tri = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, Sd) # grad with respect to tri mesh
+            gS_vor = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, Sv) # grad with respect to vor mesh
 
             # gradSx = (1/self.vor_edge_len)*gS*self.vor_tang[:,0]
             # gradSy = (1/self.vor_edge_len)*gS*self.vor_tang[:, 1]
@@ -1210,20 +1207,20 @@ class DECMesh(object):
 
         return gradSx, gradSy
 
-    def gradient_uv(self, Sv, gtype = 'tri'):
+    def grad_uv(self, Sv, gtype ='tri'):
         """
         Gradient of scalar quantity 'S' with respect to the
         tangent vectors of tri_mesh (gtype = 'tri') or vor_mesh
         (gtype = 'vor').
 
-        Note that this discrete gradient is a directional derivative with
-        respect to the tangents of the mesh, and is not a true gradient in the x- and y-
+        Note that this discrete grad is a directional derivative with
+        respect to the tangents of the mesh, and is not a true grad in the x- and y-
         coordinate system.
 
         Parameters
         -----------
         S   -- a scalar array defined on tri_verts or vor_verts, depending on gtype
-        gtype -- specifies if gradient is taken with respect to tri mesh or vor mesh
+        gtype -- specifies if grad is taken with respect to tri mesh or vor mesh
 
         Returns
         ----------
@@ -1233,9 +1230,9 @@ class DECMesh(object):
 
         if gtype == 'tri':
 
-            assert(len(Sv) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            assert(len(Sv) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
-            gS = np.dot(self.delta_tri_0, Sv) # gradient with respect to tri mesh
+            gS = np.dot(self.delta_tri_0, Sv) # grad with respect to tri mesh
 
             gradSx = (1/self.tri_edge_len)*gS*self.tri_tang[:,0]
             gradSy = (1 / self.tri_edge_len)*gS*self.tri_tang[:, 1]
@@ -1244,9 +1241,9 @@ class DECMesh(object):
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
 
-            assert(len(Sv) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+            assert(len(Sv) == self.n_vverts), "Length of array passed to grad is not vor_verts length"
 
-            gS = np.dot(self.delta_vor_0, Sv) # gradient with respect to vor mesh
+            gS = np.dot(self.delta_vor_0, Sv) # grad with respect to vor mesh
 
             gradSx = (1/self.vor_edge_len)*gS*self.vor_tang[:,0]
             gradSy = (1/self.vor_edge_len)*gS*self.vor_tang[:, 1]
@@ -1257,21 +1254,21 @@ class DECMesh(object):
 
         return gradSx, gradSy
 
-    def gradient(self, S, gtype = 'tri'):
+    def grad(self, S, gtype ='tri'):
         """
         Gradient of scalar quantity 'S' with respect to the
         tangent vectors of tri_mesh (gtype = 'tri') or vor_mesh
         (gtype = 'vor').
 
-        Note that this discrete gradient is a directional derivative with
+        Note that this discrete grad is a directional derivative with
         respect to the tangents of the mesh, and returns the component of the
-        gradient with respect to the tangent vectors of the mesh on which it was
+        grad with respect to the tangent vectors of the mesh on which it was
         computed.
 
         Parameters
         -----------
         S   -- a scalar array defined on tri_verts or vor_verts, depending on gtype
-        gtype -- specifies if gradient is taken with respect to tri mesh or vor mesh
+        gtype -- specifies if grad is taken with respect to tri mesh or vor mesh
 
         Returns
         ----------
@@ -1281,7 +1278,7 @@ class DECMesh(object):
 
         if gtype == 'tri':
 
-            assert(len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            assert(len(S) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
             gradS = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, S)
 
@@ -1289,7 +1286,7 @@ class DECMesh(object):
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
 
-            assert(len(S) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+            assert(len(S) == self.n_vverts), "Length of array passed to grad is not vor_verts length"
 
             gradS = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, S)
 
@@ -1392,11 +1389,11 @@ class DECMesh(object):
 
     def lap(self, S, gtype = 'tri'):
         """
-        Computes a scalar forwards Laplacian on a scalar variable S as the divergence of the gradient of the
+        Computes a scalar forwards Laplacian on a scalar variable S as the divergence of the grad of the
         scalar.
 
-        If gtype = 'tri', the gradient is taken with respect to the tri_mesh edges with vor_mesh control volumes,
-        and if gtype = 'vor', the gradient is taken with respect to the vor_mesh edges with tri_mesh control volumes.
+        If gtype = 'tri', the grad is taken with respect to the tri_mesh edges with vor_mesh control volumes,
+        and if gtype = 'vor', the grad is taken with respect to the vor_mesh edges with tri_mesh control volumes.
 
         Note that due to the structure of the grids, the gtype tri lap is closed boundary (zero flux) while the
         gtype vor lap is open boundary.
@@ -1416,24 +1413,24 @@ class DECMesh(object):
 
             sflux_n = self.sflux_n
             # ensure passed array is of the correct length:
-            assert (len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            assert (len(S) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
-            # calculate gradient of S:
-            gS = self.gradient(S, gtype='tri')
+            # calculate grad of S:
+            gS = self.grad(S, gtype='tri')
 
-            # calculate the divergence of the gradient, which is the laplacian:
+            # calculate the divergence of the grad, which is the laplacian:
             lapS = self.div(sflux_n*gS, gtype = 'tri')
 
         elif gtype == 'vor':
 
-            assert(len(S) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+            assert(len(S) == self.n_vverts), "Length of array passed to grad is not vor_verts length"
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
 
-            # calculate gradient of S:
-            gS = self.gradient(S, gtype='vor')
+            # calculate grad of S:
+            gS = self.grad(S, gtype='vor')
 
-            # calculate the divergence of the gradient, which is the Laplacian:
+            # calculate the divergence of the grad, which is the Laplacian:
             lapS = self.div(gS, gtype = 'vor')
 
         else:
@@ -1444,11 +1441,11 @@ class DECMesh(object):
     def lap_inv(self, S, gtype = 'tri'):
 
         """
-        Computes an inverse scalar Laplacian on a scalar variable S as the inverse div of the inverse gradient of the
+        Computes an inverse scalar Laplacian on a scalar variable S as the inverse div of the inverse grad of the
         scalar.
 
-        If gtype = 'tri', the gradient is taken with respect to the tri_mesh edges with vor_mesh control volumes,
-        and if gtype = 'vor', the gradient is taken with respect to the vor_mesh edges with tri_mesh control volumes.
+        If gtype = 'tri', the grad is taken with respect to the tri_mesh edges with vor_mesh control volumes,
+        and if gtype = 'vor', the grad is taken with respect to the vor_mesh edges with tri_mesh control volumes.
 
         Note that due to the structure of the grids, the gtype tri lap is closed boundary (zero flux) while the
         gtype vor lap is a 'free'/'open' boundary.
@@ -1468,9 +1465,9 @@ class DECMesh(object):
             sflux_n =  self.sflux_n
 
             # ensure passed array is of the correct length:
-            assert(len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            assert(len(S) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
-            # calculate the divergence of the gradient, which is the laplacian:
+            # calculate the divergence of the grad, which is the laplacian:
             lapS_inv = np.dot(self.delta_tri_0_inv,
                               (self.tri_edge_len/
                                (self.vor_edge_len*sflux_n))*np.dot(-self.delta_tri_0_inv.T, S*(self.vor_sa)))
@@ -1478,7 +1475,7 @@ class DECMesh(object):
         elif gtype == 'vor':
 
             # ensure passed array is of the correct length:
-            assert(len(S) == len(self.tri_ccents)), "Length of array passed to gradient is not tri_faces length"
+            assert(len(S) == len(self.tri_ccents)), "Length of array passed to grad is not tri_faces length"
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
 
@@ -1492,6 +1489,11 @@ class DECMesh(object):
         return lapS_inv
 
     def curl_z(self, Fz, gtype = 'tri'):
+        """
+        Calculates the tri mesh or vor mesh coordinates of the curl of a quantity
+        defined only in the z-direction.
+
+        """
 
         # Vector Laplacians can only be computed for
         assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
@@ -1503,8 +1505,7 @@ class DECMesh(object):
 
             curlFt = (1/self.tri_edge_len)*np.dot(self.delta_tri_0, Fz)
 
-            # the x, y components of curl are the skew gradient:
-
+            # the x, y components of curl are the skew grad:
             curlFz_x = curlFt*self.vor_tang[:,0]
             curlFz_y = curlFt*self.vor_tang[:,1]
 
@@ -1524,6 +1525,10 @@ class DECMesh(object):
         return curlFz_x, curlFz_y
 
     def curl_z2(self, Fz, gtype = 'tri'):
+        '''
+        Calculates the x, y coordinates of the curl of a quantity defined only in the z-direction.
+
+        '''
 
         # Vector Laplacians can only be computed for
         assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
@@ -1532,10 +1537,10 @@ class DECMesh(object):
 
             assert (len(Fz) == self.n_tverts), "Length of array passed to curl is not tri verts length!"
 
-            gfx, gfy = self.gradient_xy(Fz, gtype='tri')
+            gfx, gfy = self.grad_xy(Fz, gtype='tri')
 
-            curlFz_x = -gfy
-            curlFz_y = gfx
+            curlFz_x = gfy
+            curlFz_y = -gfx
 
 
         elif gtype == 'vor':
@@ -1543,10 +1548,10 @@ class DECMesh(object):
             assert (len(Fz) == self.n_vverts), "Length of array passed to curl is not vor verts length!"
 
 
-            gfx, gfy = self.gradient_xy(Fz, gtype='vor')
+            gfx, gfy = self.grad_xy(Fz, gtype='vor')
 
-            curlFz_x = -gfy
-            curlFz_y = gfx
+            curlFz_x = gfy
+            curlFz_y = -gfx
 
         else:
             raise Exception("valid gtype is 'tri' or 'vor'")
@@ -1607,7 +1612,7 @@ class DECMesh(object):
         """
 
         if gtype == 'tri':
-            assert(len(Sv) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            assert(len(Sv) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
             MM = np.abs(self.delta_tri_0)*(1/2)
 
             Sm = np.dot(MM, Sv)
@@ -1615,7 +1620,7 @@ class DECMesh(object):
         elif gtype == 'vor':
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
-            assert(len(Sv) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+            assert(len(Sv) == self.n_vverts), "Length of array passed to grad is not vor_verts length"
 
             MM = np.abs(self.delta_vor_0)*(1/2)
 
@@ -1626,9 +1631,9 @@ class DECMesh(object):
 
         return Sm
 
-    def mids_to_verts(self, Sm, gtype = 'tri'):
+    def mids_to_verts_o(self, Sm, gtype = 'tri'):
         """
-        Maps property Sm from edge mids of mesh to vertices using barycentric interpolation.
+        Maps property Sm from edge mids of mesh to vertices using Whitney 1-forms.
 
         Parameters
         ------------
@@ -1642,7 +1647,7 @@ class DECMesh(object):
         """
 
         if gtype == 'tri':
-            assert(len(Sm) == self.n_tedges), "Length of array passed to gradient is not edges length"
+            assert(len(Sm) == self.n_tedges), "Length of array passed to grad is not edges length"
             MM_inv = np.abs(self.delta_tri_0.T)*(1/2)
 
             Sv = np.dot(MM_inv, Sm)
@@ -1650,11 +1655,52 @@ class DECMesh(object):
         elif gtype == 'vor':
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
-            assert(len(Sm) == self.n_vedges), "Length of array passed to gradient is not edges length"
+            assert(len(Sm) == self.n_vedges), "Length of array passed to grad is not edges length"
 
             MM_inv = np.abs(self.delta_vor_0.T)*(1/2)
 
             Sv = np.dot(MM_inv, Sm)
+
+        else:
+
+            raise Exception("valid gtype is 'tri' or 'vor'")
+
+        return Sv
+
+    def mids_to_verts(self, Sm, gtype = 'tri'):
+        """
+        Maps property Sm from edge mids of mesh to vertices using integration to take an average of the
+        function.
+
+        Parameters
+        ------------
+        Sm -- property at edge mids
+        gtype  -- if transformation is from triverts to trimids or vorverts to vormids
+
+        Returns
+        --------
+        Sv  -- property defined at vertices (final verts correspond to gtype)
+
+        """
+
+        if gtype == 'tri':
+            assert(len(Sm) == self.n_tedges), "Length of array passed to grad is not edges length"
+            MM_inv = np.abs(self.delta_tri_0.T)
+
+            path_len = np.dot(MM_inv, self.vor_edge_len)
+
+            Sv = np.dot(MM_inv, Sm*self.vor_edge_len)/(path_len + 1.0e-20)
+
+        elif gtype == 'vor':
+
+            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+            assert(len(Sm) == self.n_vedges), "Length of array passed to grad is not edges length"
+
+            MM_inv = np.abs(self.delta_vor_0.T)
+
+            path_len = np.dot(MM_inv, self.tri_edge_len)
+
+            Sv = np.dot(MM_inv, Sm*self.tri_edge_len)/(path_len + 1.0e-20)
 
         else:
 
@@ -1696,41 +1742,10 @@ class DECMesh(object):
 
         return Sd
 
-    def mids_to_verts2(self, Sm, gtype ='tri', bval = 0.0):
-        """
-        Maps quantity from mids to vertices of a grid (e.g. tri).
-
-        Parameters
-        ------------
-        Sv    Variable defined on tri or vor mesh verts
-        bval  Values for the boundary (converting from tri to vor grid only)
-        gtype Type of starting mesh
-
-        Return
-        --------
-        Sd     Variable defined on opposite mesh to what was input
-
-        """
-
-        if gtype == 'tri':
-            path_len_tri = np.dot(np.abs(self.delta_tri_0.T), self.vor_edge_len)
-            Sv = np.dot(np.abs(self.delta_tri_0.T), self.vor_edge_len * Sm) / path_len_tri
-
-        elif gtype == 'vor':
-            path_len_vor = np.dot(np.abs(self.delta_tri_1), self.tri_edge_len)
-            Sv = np.ones(self.n_vverts)*bval
-            Sv[self.inner_vvert_i] = np.dot(np.abs(self.delta_tri_1), self.tri_edge_len*Sm)/path_len_vor
-
-        else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
-
-
-        return Sv
-
     def curl_of_curl(self, Fz, gtype = 'tri'):
         """
         Calculates the Vector Laplacian for the curl of the curl of a vector field Fx, Fy minus the
-        gradient of the divergence of Fx, Fy.
+        grad of the divergence of Fx, Fy.
 
         :param Fx:
         :param Fy:
@@ -1745,14 +1760,14 @@ class DECMesh(object):
 
             # For the Curl of curl, the initial Fz is defined on the opposite points to the mesh you are
             # working with:
-            assert(len(Fz) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+            assert(len(Fz) == self.n_vverts), "Length of array passed to grad is not vor_verts length"
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
 
-            # calculate gradient of Fz with respect to the vor mesh; the skew gradient is the curl:
-            gS = self.gradient(-Fz, gtype='vor')
+            # calculate grad of Fz with respect to the vor mesh; the skew grad is the curl:
+            gS = self.grad(-Fz, gtype='vor')
 
-            # calculate the divergence of the gradient on the vor mesh, which is the curl of the curl on
+            # calculate the divergence of the grad on the vor mesh, which is the curl of the curl on
             # the tri mesh:
             ccS = self.div(gS, gtype = 'vor')
 
@@ -1760,12 +1775,12 @@ class DECMesh(object):
 
             sflux_n = self.sflux_n
             # ensure passed array is of the correct length:
-            assert (len(Fz) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            assert (len(Fz) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
-            # calculate gradient of Fz on the tri mesh:
-            gS = self.gradient(Fz, gtype='tri')
+            # calculate grad of Fz on the tri mesh:
+            gS = self.grad(Fz, gtype='tri')
 
-            # calculate the divergence of the gradient on the tri mesh, which is the curl of the curl on
+            # calculate the divergence of the grad on the tri mesh, which is the curl of the curl on
             # the vor mesh:
             ccS = self.div(sflux_n * gS, gtype='tri')
 
@@ -1795,9 +1810,9 @@ class DECMesh(object):
             sflux_n =  self.sflux_n
 
             # ensure passed array is of the correct length:
-            assert(len(Fz) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            assert(len(Fz) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
-            # calculate the divergence of the gradient, which is the laplacian:
+            # calculate the divergence of the grad, which is the laplacian:
             ccS_inv = np.dot(self.delta_tri_0_inv,
                               (self.tri_edge_len/
                                (self.vor_edge_len*sflux_n))*np.dot(-self.delta_tri_0_inv.T, Fz*(self.vor_sa)))
@@ -1805,7 +1820,7 @@ class DECMesh(object):
         elif gtype == 'tri':
 
             # ensure passed array is of the correct length:
-            assert(len(Fz) == len(self.tri_ccents)), "Length of array passed to gradient is not tri_faces length"
+            assert(len(Fz) == len(self.tri_ccents)), "Length of array passed to grad is not tri_faces length"
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
 
@@ -1820,7 +1835,7 @@ class DECMesh(object):
 
     def grad_of_div(self, Fx, Fy, gtype = 'tri'):
         """
-        Calculates the gradient of the divergence of a vector field Fx, Fy.
+        Calculates the grad of the divergence of a vector field Fx, Fy.
 
         :param Fx:
         :param Fy:
@@ -1828,8 +1843,8 @@ class DECMesh(object):
         :return:
         """
         # as there are an equal number of edges in tri and vor grids, check once:
-        assert (len(Fx) == self.n_tedges), "Length of array passed to gradient is not edges length!"
-        assert (len(Fy) == self.n_tedges), "Length of array passed to gradient is not edges length!"
+        assert (len(Fx) == self.n_tedges), "Length of array passed to grad is not edges length!"
+        assert (len(Fy) == self.n_tedges), "Length of array passed to grad is not edges length!"
 
         # Vector Laplacians can only be computed for
         assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
@@ -1867,7 +1882,7 @@ class DECMesh(object):
 
     def grad_of_div_inv(self, Fx, Fy, gtype = 'tri'):
         """
-        Calculates the inverse gradient of the divergence of a vector field Fx, Fy.
+        Calculates the inverse grad of the divergence of a vector field Fx, Fy.
 
         :param Fx:
         :param Fy:
@@ -1875,8 +1890,8 @@ class DECMesh(object):
         :return:
         """
         # as there are an equal number of edges in tri and vor grids, check once:
-        assert (len(Fx) == self.n_tedges), "Length of array passed to gradient is not edges length!"
-        assert (len(Fy) == self.n_tedges), "Length of array passed to gradient is not edges length!"
+        assert (len(Fx) == self.n_tedges), "Length of array passed to grad is not edges length!"
+        assert (len(Fy) == self.n_tedges), "Length of array passed to grad is not edges length!"
 
         # Vector Laplacians can only be computed for case where all operators are made:
         assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
@@ -1923,8 +1938,8 @@ class DECMesh(object):
         :return:
         """
         # as there are an equal number of edges in tri and vor grids, check once:
-        assert (len(Fx) == self.n_tedges), "Length of array passed to gradient is not edges length!"
-        assert (len(Fy) == self.n_tedges), "Length of array passed to gradient is not edges length!"
+        assert (len(Fx) == self.n_tedges), "Length of array passed to grad is not edges length!"
+        assert (len(Fy) == self.n_tedges), "Length of array passed to grad is not edges length!"
 
         # Vector Laplacians can only be computed for
         assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
@@ -1972,8 +1987,8 @@ class DECMesh(object):
         :return:
         """
         # as there are an equal number of edges in tri and vor grids, check once:
-        assert (len(Fx) == self.n_tedges), "Length of array passed to gradient is not edges length!"
-        assert (len(Fy) == self.n_tedges), "Length of array passed to gradient is not edges length!"
+        assert (len(Fx) == self.n_tedges), "Length of array passed to grad is not edges length!"
+        assert (len(Fy) == self.n_tedges), "Length of array passed to grad is not edges length!"
 
         # Vector Laplacians can only be computed for
         assert (self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
@@ -2013,7 +2028,7 @@ class DECMesh(object):
     def helmholtz_hodge(self, Fx, Fy, gtype = 'tri'):
         """
         Decomposes a vector field Fx, Fy into curl-free (gPhi_x, gPhi_y) and div-free (cPsi_x, cPsi_y) components
-        using the Helmholtz-Hodge (HH) decomposition, where F is constructed in terms of the gradient of a scalar
+        using the Helmholtz-Hodge (HH) decomposition, where F is constructed in terms of the grad of a scalar
         potential Phi and the curl of a (z-axis oriented) vector potential Psi_z:
 
         F = grad Phi + curl Psi_z + H
@@ -2051,7 +2066,7 @@ class DECMesh(object):
         Phi = self.lap_inv(divF, gtype=gtype)
 
         # Where the curl-free vector field is given by:
-        gPhi_x, gPhi_y = self.gradient_uv(Phi, gtype=gtype)
+        gPhi_x, gPhi_y = self.grad_uv(Phi, gtype=gtype)
 
         # Solving for the divergence-free vector field:
         # take the curl of the vector field:
@@ -2070,34 +2085,34 @@ class DECMesh(object):
 
             sflux_n = self.sflux_n
             # ensure passed array is of the correct length:
-            assert (len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            assert (len(S) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
-            # calculate gradient of S:
-            gS = self.gradient(S, gtype='tri')
+            # calculate grad of S:
+            gS = self.grad(S, gtype='tri')
 
-            # calculate the divergence of the gradient, which is the laplacian:
+            # calculate the divergence of the grad, which is the laplacian:
             lapS = self.div(sflux_n*gS, gtype = 'tri')
 
-            glapS = self.gradient(lapS, gtype = 'tri')
+            glapS = self.grad(lapS, gtype ='tri')
 
             bihS = self.div(glapS*self.sflux_n, gtype='tri')
 
         elif gtype == 'vor':
 
-            assert(len(S) == self.n_vverts), "Length of array passed to gradient is not vor_verts length"
+            assert(len(S) == self.n_vverts), "Length of array passed to grad is not vor_verts length"
 
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
 
-            # calculate gradient of S:
-            gS = self.gradient(S, gtype='vor')
+            # calculate grad of S:
+            gS = self.grad(S, gtype='vor')
 
-            # calculate the divergence of the gradient, which is the Laplacian:
+            # calculate the divergence of the grad, which is the Laplacian:
             lapSo = self.div(gS, gtype = 'vor')
 
             lapS = np.zeros(len(self.vor_verts))
             lapS[self.inner_vvert_i] = lapSo
 
-            glapS = self.gradient(lapS, gtype='vor')
+            glapS = self.grad(lapS, gtype='vor')
 
             bihS = self.div(glapS, gtype='vor')
 
@@ -2109,11 +2124,11 @@ class DECMesh(object):
     def biharmonic_inv(self, S, gtype = 'tri'):
 
         """
-        Computes an inverse scalar Laplacian on a scalar variable S as the inverse div of the inverse gradient of the
+        Computes an inverse scalar Laplacian on a scalar variable S as the inverse div of the inverse grad of the
         scalar.
 
-        If gtype = 'tri', the gradient is taken with respect to the tri_mesh edges with vor_mesh control volumes,
-        and if gtype = 'vor', the gradient is taken with respect to the vor_mesh edges with tri_mesh control volumes.
+        If gtype = 'tri', the grad is taken with respect to the tri_mesh edges with vor_mesh control volumes,
+        and if gtype = 'vor', the grad is taken with respect to the vor_mesh edges with tri_mesh control volumes.
 
         Note that due to the structure of the grids, the gtype tri lap is closed boundary (zero flux) while the
         gtype vor lap is a 'free'/'open' boundary.
@@ -2131,9 +2146,9 @@ class DECMesh(object):
         if gtype == 'tri':
 
             # ensure passed array is of the correct length:
-            assert(len(S) == self.n_tverts), "Length of array passed to gradient is not tri_verts length"
+            assert(len(S) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
-            # calculate the divergence of the gradient, which is the laplacian:
+            # calculate the divergence of the grad, which is the laplacian:
             lapinvS = self.lap_inv(S, gtype='tri')
 
             bihS_inv = self.lap_inv(lapinvS, gtype = 'tri')
@@ -2141,9 +2156,9 @@ class DECMesh(object):
         elif gtype == 'vor':
 
             # ensure passed array is of the correct length:
-            assert(len(S) == len(self.tri_ccents)), "Length of array passed to gradient is not tri_faces length"
+            assert(len(S) == len(self.tri_ccents)), "Length of array passed to grad is not tri_faces length"
 
-            # calculate the divergence of the gradient, which is the laplacian:
+            # calculate the divergence of the grad, which is the laplacian:
             lapinvSo = self.lap_inv(S, gtype='vor')
 
             lapinvS = lapinvSo[self.inner_vvert_i]
@@ -2542,7 +2557,7 @@ class DECMesh(object):
 
     def plot_test_A(self, a=0.02, b=5.0e-6, gtype = 'vor', size = (10, 8), print_errors = True):
         """
-        Generates an analytical test function with analytical gradient, laplacian,
+        Generates an analytical test function with analytical grad, laplacian,
         and curl for comparison with discrete calculations.
 
         As the 'vor' mesh represents an open/free boundary, this condition best
@@ -2569,9 +2584,6 @@ class DECMesh(object):
         # Test function on vor_verts:
         self.foo = np.sin((a * xo * yo) / b ** 2)
 
-        amin = self.foo.min()
-        amax = self.foo.max()
-
         self.gfxm = ((a * ym) / b ** 2) * np.cos((a * xm * ym) / b ** 2)
         self.gfym = ((a * xm) / b ** 2) * np.cos((a * xm * ym) / b ** 2)
 
@@ -2582,17 +2594,12 @@ class DECMesh(object):
         # self.gf_mmag = self.verts_to_mids(self.gf_mag, gtype=gtype)
         self.gf_mmag = np.sqrt(self.gfxm**2 + self.gfym**2)
 
-        bmin = self.gf_mag.min()
-        bmax = self.gf_mag.max()
-
         # second derivatives
         self.d2fx = -(((a * yo) / b ** 2) ** 2) * np.sin((a * xo * yo) / b ** 2)
         self.d2fy = -(((a * xo) / b ** 2) ** 2) * np.sin((a * xo * yo) / b ** 2)
 
         self.div_foo = self.d2fx + self.d2fy
 
-        cmin = self.div_foo.min()
-        cmax = self.div_foo.max()
 
         # Curl of foo as phi_z = foo
         self.cfx = self.gfym
@@ -2603,10 +2610,10 @@ class DECMesh(object):
         # Generate DEC-computed quantities (denoted by '_')-------------------------------------
 
         # Gradient at edges, in xy components, and div, also using xy components:
-        self.gfx_, self.gfy_ = self.gradient_xy(self.foo, gtype=gtype)
+        self.gfx_, self.gfy_ = self.grad_xy(self.foo, gtype=gtype)
         self.div_foo_ = self.div_xy(self.gfx_, self.gfy_, gtype=gtype)
 
-        # # Interpolate gradient to verts and get components
+        # # Interpolate grad to verts and get components
         # self.gfx_ = self.mids_to_verts(gfxmv, gtype=gtype)
         # self.gfy_ = self.mids_to_verts(gfymv, gtype=gtype)
         self.gf_mag_ = np.sqrt(self.gfx_**2 + self.gfy_** 2)
@@ -2756,7 +2763,7 @@ class DECMesh(object):
 
     def plot_test_B(self, a=0.02, b=5.0e-6, size = (10, 6), gtype = 'vor', print_errors = True):
         """
-        Compare DEC-based calculation of gradient of gradient with an
+        Compare DEC-based calculation of grad of grad with an
         analytical solution.
 
         Also, all vector fields are ultimately mapped to 'tri' verts because this makes for
@@ -2791,7 +2798,7 @@ class DECMesh(object):
 
         self.gf_mag = np.sqrt(self.gfx ** 2 + self.gfy ** 2)
 
-        # Gradient of the gradient:
+        # Gradient of the grad:
         self.gfxx = -(((a * ym) / b ** 2) ** 2) * np.sin((a * xm * ym) / b ** 2)
         self.gfxy = (a * np.cos((a * xm * ym) / b ** 2)) / b ** 2 - (
                     a ** 2 * xm * ym * np.sin((a * xm * ym) / b ** 2)) / b ** 4
@@ -2803,19 +2810,19 @@ class DECMesh(object):
         # Discrete calcs
 
         # Gradient at edges, in xy components, and div, also using xy components:
-        self.gfx_, self.gfy_ = self.gradient_xy(self.foo, gtype=gtype)
+        self.gfx_, self.gfy_ = self.grad_xy(self.foo, gtype=gtype)
 
-        # Interpolate gradient to verts of the dual mesh and get components
+        # Interpolate grad to verts of the dual mesh and get components
         self.gfxi = self.mids_to_verts(self.gfx_, gtype=gtype)
         self.gfyi = self.mids_to_verts(self.gfy_, gtype=gtype)
 
-        # # Interpolate gradient to verts of the original mesh (for plotting)
+        # # Interpolate grad to verts of the original mesh (for plotting)
         # self.gfx_ = self.mids_to_verts(gfxmv, gtype=gtype)
         # self.gfy_ = self.mids_to_verts(gfymv, gtype=gtype)
 
-        # Gradient of the gradient taken from the dual mesh (from verts mapping):
-        self.gfxx_, self.gfxy_ = self.gradient_xy(self.gfxi, gtype=gtype)
-        self.gfyx_, self.gfyy_ = self.gradient_xy(self.gfyi, gtype=gtype)
+        # Gradient of the grad taken from the dual mesh (from verts mapping):
+        self.gfxx_, self.gfxy_ = self.grad_xy(self.gfxi, gtype=gtype)
+        self.gfyx_, self.gfyy_ = self.grad_xy(self.gfyi, gtype=gtype)
 
         # # each component needs to be mapped to verts (of tri grid type for nice plotting):
         # self.gfxx_ = self.mids_to_verts(gfxxm, gtype=gtype)
@@ -2930,12 +2937,12 @@ class DECMesh(object):
 
         # Define an analytical function representing a scalar potential:
         self.Phi_o = (xo - ax) ** 2 + (yo - ay) ** 2
-        self.gPhix_o = 2 * (xo - ax) # analytical gradient of the scalar potential
+        self.gPhix_o = 2 * (xo - ax) # analytical grad of the scalar potential
         self.gPhiy_o = 2 * (yo - ay)
 
         # Define an analytical function representing a vector potential (oriented in the z-axis direction):
         self.Psi_o = xo * yo
-        self.gPsix_o = xo # analytical gradient of the vector potential
+        self.gPsix_o = xo # analytical grad of the vector potential
         self.gPsiy_o = yo
 
         self.Fxo = self.gPhix_o - self.gPsiy_o # Construct an analytic vector field F = grad Phi + curl Psi
@@ -2949,11 +2956,11 @@ class DECMesh(object):
         # Use the Helmholtz Hodge (HH) decomposition of the field on the DEC grids:
         cPsixm, cPsiym, gPhixm, gPhiym = self.helmholtz_hodge(Fxom, Fyom, gtype=gtype)
 
-        self.gPhix_ = self.mids_to_verts(gPhixm, gtype=gtype)
-        self.gPhiy_ = self.mids_to_verts(gPhiym, gtype=gtype)
+        self.gPhix_ = self.mids_to_verts_o(gPhixm, gtype=gtype)
+        self.gPhiy_ = self.mids_to_verts_o(gPhiym, gtype=gtype)
 
-        self.cPsix_ = self.mids_to_verts(cPsixm, gtype=gtype)
-        self.cPsiy_ = self.mids_to_verts(cPsiym, gtype=gtype)
+        self.cPsix_ = self.mids_to_verts_o(cPsixm, gtype=gtype)
+        self.cPsiy_ = self.mids_to_verts_o(cPsiym, gtype=gtype)
 
         # Attempt to reconstruct the force-field F using the DEC-derived HH components:
         self.Fx_ = self.gPhix_ + self.cPsix_
@@ -3040,6 +3047,189 @@ class DECMesh(object):
 
     #
         return fig, axarr
+
+    def plot_test_D(self, a=0.02, b=5.0e-6, gtype = 'vor', size = (10, 8), print_errors = True):
+        """
+        Generates an analytical test function with tests of interpolation functions for scalars
+        and vectors, working between different meshes and mesh structures.
+
+        """
+
+        # Generate analytical math:
+
+        xt = self.tri_verts[:, 0]
+        yt = self.tri_verts[:, 1]
+
+        xv = self.vor_verts[:, 0]
+        yv = self.vor_verts[:, 1]
+
+        xvi = self.vor_verts[self.inner_vvert_i, 0]
+        yvi = self.vor_verts[self.inner_vvert_i, 1]
+
+        xm = self.tri_mids[:,0]
+        ym = self.tri_mids[:,1]
+
+        # Test function on vor_verts:
+        self.foot = np.sin((a * xt * yt) / b ** 2)
+        self.foov = np.sin((a * xv * yv) / b ** 2)
+        self.foom = np.sin((a * xm * ym) / b ** 2)
+
+        self.gfxm = ((a * ym) / b ** 2) * np.cos((a * xm * ym) / b ** 2)
+        self.gfym = ((a * xm) / b ** 2) * np.cos((a * xm * ym) / b ** 2)
+        self.gf_magm = np.sqrt(self.gfxm ** 2 + self.gfym ** 2)
+
+        self.gfxt = ((a * yt) / b ** 2) * np.cos((a * xt * yt) / b ** 2)
+        self.gfyt = ((a * xt) / b ** 2) * np.cos((a * xt * yt) / b ** 2)
+        self.gf_magt = np.sqrt(self.gfxt ** 2 + self.gfyt ** 2)
+
+        self.gfxv = ((a * yv) / b ** 2) * np.cos((a * xv * yv) / b ** 2)
+        self.gfyv = ((a * xv) / b ** 2) * np.cos((a * xv * yv) / b ** 2)
+        self.gf_magv = np.sqrt(self.gfxv ** 2 + self.gfyv ** 2)
+
+        self.gf_mag = np.sqrt(self.gfx ** 2 + self.gfy ** 2)
+        self.gf_mmag = np.sqrt(self.gfxm**2 + self.gfym**2)
+
+
+        # Generate DEC-computed quantities (denoted by '_')-------------------------------------
+
+        # Gradient at edges, in xy components, and div, also using xy components:
+        self.gfxmt_, self.gfymt_ = self.grad_xy(self.foot, gtype='tri')
+        self.gfxmv_, self.gfymv_ = self.grad_xy(self.foov, gtype='vor')
+
+        # # # Interpolate grad to verts and get components
+        # # self.gfx_ = self.mids_to_verts(gfxmv, gtype=gtype)
+        # # self.gfy_ = self.mids_to_verts(gfymv, gtype=gtype)
+        #
+        #
+        #
+        #
+        # # RMS errors between quantities:
+        # self.error_grad = np.sqrt((self.gf_mmag - self.gf_mag_)**2)
+        #
+        # if gtype == 'vor':
+        #     self.error_div = np.sqrt((self.div_foo[self.inner_vvert_i] - self.div_foo_)**2)
+        #     self.error_lap = np.sqrt((self.div_foo[self.inner_vvert_i] - self.lap_foo_)**2)
+        #
+        # else:
+        #     self.error_div = np.sqrt((self.div_foo - self.div_foo_) ** 2)
+        #     self.error_lap = np.sqrt((self.div_foo - self.lap_foo_) ** 2)
+        #
+        # self.error_lap_inv = np.sqrt((self.foo - self.lap_inv_)**2)
+        # self.error_curl = np.sqrt((self.cf_mag - self.cf_mag_)**2)
+        #
+        # self.test_errors = {'grad': self.error_grad.mean()/np.abs(self.gf_mag).max(),
+        #                     'div': self.error_div.mean()/np.abs(self.div_foo).max(),
+        #                     'lap': self.error_lap.mean()/np.abs(self.div_foo).max(),
+        #                     'lap_inv': self.error_lap_inv.mean()/np.abs(self.foo).max(),
+        #                     'curl': self.error_curl.mean()/np.abs(self.cf_mag).max()}
+        #
+        # if print_errors:
+        #     print("Percent error on estimates:")
+        #     for k, v in self.test_errors.items():
+        #         print(k, np.round(v*100, 4))
+        #
+        # # Plot the results:
+        # fig, axarr = plt.subplots(2, 3, figsize=size)
+        #
+        # axarr[0, 0].xaxis.set_ticklabels([])
+        # axarr[0, 0].yaxis.set_ticklabels([])
+        #
+        # axarr[0, 1].xaxis.set_ticklabels([])
+        # axarr[0, 1].yaxis.set_ticklabels([])
+        #
+        # axarr[0, 2].xaxis.set_ticklabels([])
+        # axarr[0, 2].yaxis.set_ticklabels([])
+        #
+        # axarr[1, 0].xaxis.set_ticklabels([])
+        # axarr[1, 0].yaxis.set_ticklabels([])
+        #
+        # axarr[1, 1].xaxis.set_ticklabels([])
+        # axarr[1, 1].yaxis.set_ticklabels([])
+        #
+        # axarr[1, 2].xaxis.set_ticklabels([])
+        # axarr[1, 2].yaxis.set_ticklabels([])
+        #
+        # tp1 = axarr[0, 0].tripcolor(xo, yo, self.foo)
+        # cb1 = fig.colorbar(tp1, ax=axarr[0, 0], orientation='horizontal',
+        #                    fraction=0.025, pad=0.01)
+        # axarr[0, 0].set_title('F (exact)')
+        # axarr[0, 0].axis('equal')
+        # axarr[0, 0].axis('off')
+        #
+        # # ---------------------
+        #
+        # tp2 = axarr[0, 1].tripcolor(xm, ym, self.gf_mmag)
+        # cb2 = fig.colorbar(tp2, ax=axarr[0, 1], orientation='horizontal',
+        #                    fraction=0.025, pad=0.01)
+        # axarr[0, 1].quiver(xo, yo, self.gfx, self.gfy, headwidth = 5)
+        # axarr[0, 1].set_title(r'$\nabla F (exact)$')
+        # axarr[0, 1].axis('equal')
+        # axarr[0, 1].axis('off')
+        #
+        # # ---------------------
+        # tp3 = axarr[0, 2].tripcolor(xo, yo, self.div_foo)
+        # cb3 = fig.colorbar(tp3, ax=axarr[0, 2], orientation='horizontal',
+        #                    fraction=0.025, pad=0.01)
+        # axarr[0, 2].set_title(r'$\nabla^{2}F$ (exact)')
+        # axarr[0, 2].axis('equal')
+        # axarr[0, 2].axis('off')
+        #
+        # # ---------------------
+        #
+        # tp4 = axarr[1, 0].tripcolor(xo, yo, self.lap_inv_)
+        # cb4 = fig.colorbar(tp4, ax=axarr[1, 0], orientation='horizontal',
+        #                    fraction=0.025, pad=0.01)
+        # axarr[1, 0].set_title(r'$(\nabla^{2})^{-1}(\nabla\cdot\nabla F)_{exact} (DEC)$')
+        # axarr[1, 0].axis('equal')
+        # axarr[1, 0].axis('off')
+        #
+        # tp5 = axarr[1, 1].tripcolor(xm, ym, self.gf_mag_)
+        # cb5 = fig.colorbar(tp5, ax=axarr[1, 1], orientation='horizontal',
+        #                    fraction=0.025, pad=0.01)
+        # axarr[1, 1].quiver(xm, ym, self.gfx_, self.gfy_, headwidth = 5)
+        # axarr[1, 1].set_title(r'$\nabla F (DEC)$')
+        # axarr[1, 1].axis('equal')
+        # axarr[1, 1].axis('off')
+        #
+        # if gtype == 'vor':
+        #     if self.use_centroids:
+        #         tp6 = axarr[1, 2].tripcolor(self.tri_cents[:, 0], self.tri_cents[:, 1], self.lap_foo_)
+        #
+        #     else:
+        #         tp6 = axarr[1, 2].tripcolor(self.tri_ccents[:, 0], self.tri_ccents[:, 1], self.lap_foo_)
+        #
+        # else:
+        #     tp6 = axarr[1, 2].tripcolor(xo, yo, self.lap_foo_)
+        #
+        # cb6 = fig.colorbar(tp6, ax=axarr[1, 2], orientation='horizontal',
+        #                    fraction=0.025, pad=0.01)
+        # axarr[1, 2].set_title(r'$\nabla^{2}F$ (DEC)')
+        # axarr[1, 2].axis('equal')
+        # axarr[1, 2].axis('off')
+        #
+        # tick_locator = ticker.MaxNLocator(nbins=1)
+        #
+        # cb1.locator = tick_locator
+        # cb1.update_ticks()
+        #
+        # cb2.locator = tick_locator
+        # cb2.update_ticks()
+        #
+        # cb3.locator = tick_locator
+        # cb3.update_ticks()
+        #
+        # cb4.locator = tick_locator
+        # cb4.update_ticks()
+        #
+        # cb5.locator = tick_locator
+        # cb5.update_ticks()
+        #
+        # cb6.locator = tick_locator
+        # cb6.update_ticks()
+        #
+        # fig.subplots_adjust(wspace=0.0)
+        #
+        # return fig, axarr
 
 
 
