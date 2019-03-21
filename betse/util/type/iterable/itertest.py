@@ -35,6 +35,11 @@ def die_unless_items_instance_of(
     BetseIterableException
         If at least one item of this iterable is *not* an instance of this
         class or tuple of classes.
+
+    See Also
+    ----------
+    :func:`is_items_instance_of`
+        Further details.
     '''
 
     # Avoid circular import dependencies.
@@ -66,6 +71,11 @@ def die_unless_items_unique(iterable: IterableTypes) -> None:
     ----------
     BetseIterableException
         If at least one item of this iterable is a duplicate.
+
+    See Also
+    ----------
+    :func:`is_items_unique`
+        Further details.
     '''
 
     # Avoid circular import dependencies.
@@ -90,8 +100,8 @@ def is_reversible(iterable: IterableTypes) -> bool:
     Specifically, this function returns ``True`` only if this iterable either:
 
     * Defines the ``__reversed__()`` special method.
-    * Defines the ``__len__()`` *and* ``__getitem__()`` special methods,
-      satisfying the sequence protocol.
+    * Defines the ``__len__()`` *and* ``__getitem__()`` special methods, thus
+      satisfying the :class:`collections.abc.Sequence` protocol.
 
     Parameters
     ----------
@@ -107,7 +117,7 @@ def is_reversible(iterable: IterableTypes) -> bool:
     # Avoid circular import dependencies.
     from betse.util.type.obj import objects
 
-    # Return True only if this iterable defines either...
+    # Return true only if this iterable defines either...
     return (
         # The __reversed__() special method *OR*...
         objects.has_method(iterable, '__reversed__') or
@@ -198,6 +208,13 @@ def is_items_unique(iterable: IterableTypes) -> bool:
     # return true only if this iterable contains exactly as many items as the
     # corresponding set of the same items, in which case no such item is a
     # duplicate of any other such item.
+    #
+    # Note that substituting "frozenset" for "set" here would yield no tangible
+    # improvements to space or time complexity. The current "frozenset"
+    # implementation is sadly naive and hence fails to exploit obvious
+    # optimization opportunities (e.g., generation of a perfect hash function
+    # specific to each "frozenset"). See also this StackOverflow thread:
+    #     https://stackoverflow.com/questions/36555214/set-vs-frozenset-performance
     if iterable_len < 64:
         return iterable_len == len(set(iterable))
     # Else, this iterable is sufficiently large to warrant an efficient

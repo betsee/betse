@@ -13,7 +13,7 @@ from betse.util.type.types import (
     type_check,
     CallableTypes,
     ClassOrNoneTypes,
-    ClassOrStaticMethodTypes,
+    ClassBoundMethodTypes,
 )
 
 # ....................{ CLASSES                           }....................
@@ -42,19 +42,19 @@ class ClassPropertyReadOnly(object):
 
     Attributes
     ----------
-    _getter : ClassOrStaticMethodTypes
+    _getter : ClassBoundMethodTypes
         Class-bound getter method underlying this property.
     '''
 
     # ..................{ INITIALIZERS                      }..................
     @type_check
-    def __init__(self, getter: ClassOrStaticMethodTypes) -> None:
+    def __init__(self, getter: ClassBoundMethodTypes) -> None:
         '''
         Initialize this read-only class property.
 
         Attributes
         ----------
-        getter : ClassOrStaticMethodTypes
+        getter : ClassBoundMethodTypes
             Class-bound getter method underlying this property.
         '''
 
@@ -106,7 +106,7 @@ def classproperty_readonly(getter: CallableTypes) -> ClassPropertyReadOnly:
 
     # If this getter is already a class-bound method wrapping an underlying
     # unbound function, raise an exception.
-    objects.die_if_instance(obj=getter, cls=ClassOrStaticMethodTypes)
+    objects.die_if_instance(obj=getter, cls=ClassBoundMethodTypes)
 
     # Class method wrapping this getter.
     abstract_getter = classmethod(getter)
@@ -134,7 +134,7 @@ def abstractclassproperty_readonly(getter: CallableTypes) -> None:
 
     # If this getter is already a class-bound method wrapping an underlying
     # unbound function, raise an exception.
-    objects.die_if_instance(obj=getter, cls=ClassOrStaticMethodTypes)
+    objects.die_if_instance(obj=getter, cls=ClassBoundMethodTypes)
 
     # Abstract class method wrapping this getter.
     abstract_getter = abstractclassmethod(getter)

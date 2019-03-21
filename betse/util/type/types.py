@@ -398,8 +398,7 @@ Tuple of all callable classes *and* the string type.
 '''
 
 
-#FIXME: Rename to "ClassBoundMethodTypes" for clarity.
-ClassOrStaticMethodTypes = (ClassMethodType, StaticMethodType)
+ClassBoundMethodTypes = (ClassMethodType, StaticMethodType)
 '''
 Tuple of all **class-bound method classes** (i.e., classes whose instances are
 callable objects bound to a class rather than instance of a class).
@@ -433,6 +432,23 @@ MethodTypes = (BuiltinMethodType, MethodType,)
 '''
 Tuple of all **method classes** (i.e., classes whose instances are either
 built-in or user-defined methods).
+'''
+
+# ....................{ TUPLES ~ container                }....................
+# Note that most tuples of container base classes are defined in the "lib"
+# subsection below, due to conditionally containing classes from third-party
+# dependencies. Tuples defined here only contain classes from Python's stdlib.
+
+SequenceStandardTypes = (list, tuple)
+'''
+Tuple of all **standard container base classes** (i.e., classes defined by
+Python's stdlib and hence guaranteed to exist) both conforming to *and*
+subclassing the canonical :class:`collections.abc.Sequence` API.
+
+See Also
+----------
+:class:`SequenceTypes`
+    Further details.
 '''
 
 # ....................{ TUPLES ~ version                  }....................
