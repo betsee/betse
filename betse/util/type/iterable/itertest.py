@@ -193,6 +193,9 @@ def is_items_unique(iterable: IterableTypes) -> bool:
         ``True`` only if *all* items of this iterable are unique.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.type.obj import objects
+
     # If this iterable is a set and hence guarantees uniqueness, efficiently
     # reduce to a noop.
     if isinstance(iterable, SetType):
@@ -200,26 +203,31 @@ def is_items_unique(iterable: IterableTypes) -> bool:
     # Else, this iterable is *NOT* a set and hence does *NOT* guarantee
     # uniqueness.
 
-    # Number of items in this iterable.
-    iterable_len = len(iterable)
+    # If this iterable implements the "collections.abc.Sized" interface and
+    # hence defines the __len__ dunder method implicitly called by the len()
+    # builtin explicitly called here...
+    if objects.has_method(iterable, '__len__'):
+        # Number of items in this iterable.
+        iterable_len = len(iterable)
 
-    # If this iterable is sufficiently small (where "sufficiently small" has
-    # yet to be quantitatively measured and hence is qualitatively arbitrary),
-    # return true only if this iterable contains exactly as many items as the
-    # corresponding set of the same items, in which case no such item is a
-    # duplicate of any other such item.
-    #
-    # Note that substituting "frozenset" for "set" here would yield no tangible
-    # improvements to space or time complexity. The current "frozenset"
-    # implementation is sadly naive and hence fails to exploit obvious
-    # optimization opportunities (e.g., generation of a perfect hash function
-    # specific to each "frozenset"). See also this StackOverflow thread:
-    #     https://stackoverflow.com/questions/36555214/set-vs-frozenset-performance
-    if iterable_len < 64:
-        return iterable_len == len(set(iterable))
-    # Else, this iterable is sufficiently large to warrant an efficient
-    # approach guaranteed to short circuit (i.e., "early exit") on the first
-    # non-unique item of this iterable.
+        # If this iterable is sufficiently small (where "sufficiently small"
+        # has yet to be quantitatively measured and hence is qualitatively
+        # arbitrary), return true only if this iterable contains exactly as
+        # many items as the corresponding set of the same items, in which case
+        # no such item is a duplicate of any other such item.
+        #
+        # Note that substituting "frozenset" for "set" here would yield no
+        # tangible improvements to space or time complexity. The current
+        # "frozenset" implementation is sadly naive and hence fails to exploit
+        # obvious optimization opportunities (e.g., generation of a perfect
+        # hash function specific to each "frozenset"). See also this pertinent
+        # StackOverflow thread:
+        #     https://stackoverflow.com/questions/36555214/set-vs-frozenset-performance
+        if iterable_len < 64:
+            return iterable_len == len(set(iterable))
+        # Else, this iterable is sufficiently large to warrant an efficient
+        # approach guaranteed to short circuit (i.e., "early exit") on the
+        # first non-unique item of this iterable.
 
     # Set of all unique items of this iterable previously visited below.
     items_unique = set()

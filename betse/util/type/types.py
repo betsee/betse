@@ -132,9 +132,10 @@ instance of a class and implicitly passed that class as their first parameter).
 '''
 
 
-# Since Python appears to expose no explicit method descriptor type via any
-# standard module (e.g., "types", "collections.abc"), the type of an arbitrary
-# method descriptor guaranteed to *ALWAYS* exist is obtained instead.
+# Although Python >= 3.7 now exposes an explicit method wrapper type via the
+# standard "types.MethodDescriptorType" object, this is of no benefit to older
+# versions of Python. Ergo, the type of an arbitrary method descriptor
+# guaranteed to *ALWAYS* exist is obtained instead.
 MethodDescriptorType = type(str.upper)
 '''
 Type of all **method descriptors** (i.e., unbound functions accessed as class
@@ -142,6 +143,17 @@ rather than instance attributes).
 
 Note that, despite being unbound, method descriptors remain callable (e.g., by
 explicitly passing the intended ``self`` object as the first parameter).
+'''
+
+
+# Although Python >= 3.7 now exposes an explicit method wrapper type via the
+# standard "types.MethodWrapperType" object, this is of no benefit to older
+# versions of Python. Ergo, the type of an arbitrary method wrapper guaranteed
+# to *ALWAYS* exist is obtained instead.
+MethodWrapperType = type(''.__add__)
+'''
+Type of all **method wrappers** (i.e., bound special methods of a small subset
+of builtin types).
 '''
 
 
@@ -383,6 +395,7 @@ CallableTypes = (
     FunctionType,
     MethodType,
     MethodDescriptorType,
+    MethodWrapperType,
     SlotWrapperType,
 )
 '''
