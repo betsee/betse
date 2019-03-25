@@ -2580,6 +2580,65 @@ class DECMesh(object):
 
         return ptx, pty
 
+    def rot_line(self, line1):
+        """
+        Rotates a given line segment (defined by two input points)
+        by 90-degrees clockwise.
+
+        """
+
+        x1 = line1[0][0]
+        y1 = line1[0][1]
+
+        x2 = line1[1][0]
+        y2 = line1[1][1]
+
+        # find the midpoint of the line
+        mx = (x1 + x2) / 2
+        my = (y1 + y2) / 2
+
+        # move the line to originate at the midpoint
+        x1 -= mx
+        y1 -= my
+        x2 -= mx
+        y2 -= my
+
+        # rotate both points
+        xtemp = x1
+        ytemp = y1
+        x1 = -ytemp
+        y1 = xtemp
+
+        xtemp = x2
+        ytemp = y2
+        x2 = -ytemp
+        y2 = xtemp
+
+        # move the center point back to where it was
+        x1 += mx
+        y1 += my
+        x2 += mx
+        y2 += my
+
+        line1r = np.asarray([[x1, y1], [x2, y2]])
+
+        return line1r
+
+    def cc_sort_inds(self, points_o):
+        """
+        Takes an assortment of points and sorts them counterclockwise to the
+        mean of the point cloud.
+
+        Returns indices requried to sort the points counterclockwise.
+        """
+
+        # sort the mids counter-clockwise:
+        cent = points_o.mean(axis=0)  # calculate the centre point
+        angles = np.arctan2(points_o[:, 1] - cent[1], points_o[:, 0] - cent[0])  # calculate point angles
+        inds_sort = np.argsort(angles)  # sort indices counter-clockwise
+
+        return inds_sort
+
     #----Tests of DEC computations--------------------
 
     def plot_test_A(self, a=0.02, b=5.0e-6, gtype = 'vor', size = (10, 8), print_errors = True):
