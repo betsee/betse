@@ -155,7 +155,7 @@ class SimPipesExport(object):
                 phase.callbacks.progressed_next(
                     status='Exported {} "{}".'.format(
                         runner_metadata.noun_singular_lowercase,
-                        runner_metadata.name))
+                        runner_metadata.kind))
             # If this runner's requirements are unsatisfied (e.g., due to the
             # current simulation configuration disabling fluid flow), notify
             # the caller of this non-fatal condition and continue.
@@ -163,7 +163,7 @@ class SimPipesExport(object):
                 phase.callbacks.progressed_next(
                     status='Excluding {} "{}", as {}.'.format(
                         runner_metadata.noun_singular_lowercase,
-                        runner_metadata.name,
+                        runner_metadata.kind,
                         exception.reason))
             # Else if this runner raises any other exception, permit this
             # exception to propagate up the callstack without intervention.

@@ -58,6 +58,7 @@ from betse.util.type.types import (
     GeneratorType,
     IterableTypes,
     MappingType,
+    SequenceTypes,
 )
 
 # ....................{ METACLASSES                       }....................
@@ -103,9 +104,9 @@ class SimPipeABCMeta(ABCMeta):
             # Metadata associated with this runner.
             runner_metadata = runner_method.metadata
 
-            # Set this runner's name to be this method name excluding this
+            # Set this runner's type to the name of this method excluding this
             # pipeline's runner prefix.
-            runner_metadata.name = strs.remove_prefix(
+            runner_metadata.kind = strs.remove_prefix(
                 text=runner_method_name,
                 prefix=subcls._RUNNER_METHOD_NAME_PREFIX)
 
@@ -172,7 +173,9 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         implemented by this subclass (e.g., ``animations``, ``plots``).
     '''
 
-    # ..................{ SUBCLASS ~ properties : private   }..................
+    # ..................{ SUBCLASS ~ properties             }..................
+    # Subclasses are required to implement the following abstract properties.
+
     @abstractclassproperty_readonly
     def _NOUN_SINGULAR(cls) -> str:
         '''
@@ -224,7 +227,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
     @classmethod
     def iter_runners_metadata(cls) -> GeneratorType:
         '''
-        Generator yielding the name and metadata of each **simulation pipeline
+        Generator yielding the metadata annotating each **simulation pipeline
         runner** (i.e., method bound to this pipeline decorated by the
         :func:`piperunner` decorator).
 
@@ -233,32 +236,17 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
 
         Yields
         ----------
-        (runner_name : str, runner_metadata : SimPipeRunnerMetadata)
-            2-tuple such that:
-
-            * ``runner_name`` is the name of the method underlying this runner,
-              excluding the substring :attr:`_RUNNER_METHOD_NAME_PREFIX`
-              prefixing this name.
-            * ``runner_metadata`` is the :class:`SimPipeRunnerMetadata`
-              instance collecting all metadata for this runner.
+        runner_metadata : SimPipeRunnerMetadata
+            :class:`SimPipeRunnerMetadata` instance collecting all metadata for
+            this runner.
         '''
 
-        # Return a generator comprehension...
+        # Return a generator comprehension iteratively yielding...
         return (
-            # Iteratively yielding a 2-tuple of:
-            #
-            # * The name of this method excluding the runner prefix.
-            # * The metadata associated with this method.
-            (
-                strs.remove_prefix(
-                    text=runner_method_name,
-                    prefix=cls._RUNNER_METHOD_NAME_PREFIX),
-                runner_method.metadata
-            )
-
-            # For the name of each runner method and that method defined by
-            # this pipeline subclass...
-            for runner_method_name, runner_method in cls.iter_runners_method()
+            # Metadata annotating this runner.
+            runner_method.metadata
+            # For each runner method defined by this pipeline subclass...
+            for _, runner_method in cls.iter_runners_method()
         )
 
 
@@ -318,13 +306,15 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         pass
 
     # ..................{ SUBCLASS ~ methods                }..................
+    # Subclasses are required to implement the following abstract methods.
+
     @abstractmethod
-    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    def iter_runners_conf(self, phase: SimPhase) -> SequenceTypes:
         '''
-        Iterable of all **runner configurations** (i.e.,
+        Sequence of all **runner configurations** (i.e.,
         :class:`SimConfExportABC` instances encapsulating all input parameters
-        to be passed to the corresponding pipeline runner) for the passed
-        simulation phase.
+        passed to the corresponding pipeline runner) for the passed simulation
+        phase.
 
         Pipeline subclasses typically implement this property to return an
         instance of the :class:``YamlList`` class listing all runners listed

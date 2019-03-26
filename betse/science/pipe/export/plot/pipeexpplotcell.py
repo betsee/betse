@@ -19,7 +19,7 @@ from betse.science.pipe.export.plot.pipeexpplotabc import SimPipeExportPlotABC
 from betse.science.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
 from betse.util.type.descriptor.descs import classproperty_readonly
-from betse.util.type.types import type_check, IterableTypes
+from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import pyplot
 
 # ....................{ SUBCLASSES                        }....................
@@ -54,7 +54,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
 
     # ..................{ SUPERCLASS                        }..................
     @type_check
-    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    def iter_runners_conf(self, phase: SimPhase) -> SequenceTypes:
         return phase.p.plot.plots_cell_after_sim
 
     # ..................{ EXPORTERS ~ cell : current        }..................

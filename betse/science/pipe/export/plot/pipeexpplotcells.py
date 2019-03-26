@@ -21,7 +21,7 @@ from betse.science.visual.plot import plotutil
 from betse.util.io.log import logs
 from betse.util.type.iterable import iterget
 from betse.util.type.descriptor.descs import classproperty_readonly
-from betse.util.type.types import type_check, IterableTypes
+from betse.util.type.types import type_check, SequenceTypes
 from collections import OrderedDict
 from matplotlib import pyplot
 from matplotlib.collections import LineCollection, PolyCollection
@@ -42,7 +42,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
 
     # ..................{ SUPERCLASS                        }..................
     @type_check
-    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    def iter_runners_conf(self, phase: SimPhase) -> SequenceTypes:
         return phase.p.plot.plots_cells_after_sim
 
     # ..................{ EXPORTERS ~ channel               }..................

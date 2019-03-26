@@ -626,14 +626,13 @@ class SimConfigTestWrapper(object):
             # below without needless concern over conflicts and redundancy.
             pipe_exporters_conf.clear()
 
-            # For the name of each export supported by this pipeline (including
+            # For each possible export supported by this pipeline (including
             # those currently disabled)...
-            for pipe_exporter_name, pipe_exporter_metadata in (
-                pipe_export.iter_runners_metadata()):
+            for pipe_exporter_metadata in pipe_export.iter_runners_metadata():
                 # Log this iteration.
                 logs.log_debug(
                     'Analyzing pipeline "%s" exporter "%s"...',
-                    pipe_export.name, pipe_exporter_name)
+                    pipe_export.name, pipe_exporter_metadata.kind)
 
                 # If this export requires one or more simulation features
                 # omitted by the caller...
@@ -643,7 +642,7 @@ class SimConfigTestWrapper(object):
                     logs.log_debug(
                         'Excluding pipeline "%s" exporter "%s", '
                         'due to unsatisfied test requirements...',
-                        pipe_export.name, pipe_exporter_name)
+                        pipe_export.name, pipe_exporter_metadata.kind)
 
                     # Continue to the next export.
                     continue
@@ -652,7 +651,7 @@ class SimConfigTestWrapper(object):
                 # Log this inclusion.
                 logs.log_debug(
                     'Including pipeline "%s" exporter "%s"...',
-                    pipe_export.name, pipe_exporter_name)
+                    pipe_export.name, pipe_exporter_metadata.kind)
 
                 # Create and append a new default subconfiguration of this
                 # export to the sequence of these subconfigurations.
@@ -664,7 +663,7 @@ class SimConfigTestWrapper(object):
                     obj=pipe_exporter_conf, cls=SimConfExportABC)
 
                 # Copy across the type of this export subconfiguration.
-                pipe_exporter_conf.kind = pipe_exporter_name
+                pipe_exporter_conf.kind = pipe_exporter_metadata.kind
 
     # ..................{ PRIVATE ~ enablers : solver       }..................
     def _enable_solver_full_features(self) -> None:

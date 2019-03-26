@@ -8,6 +8,13 @@ High-level **simulation pipeline runner** (i.e., simulation activity
 iteratively run by its parent pipeline) functionality.
 '''
 
+#FIXME: Refactor the "SimPipeRunnerMetadata.kind" instance variable from a
+#non-type-safe string to a type-safe enumeration. Since the set of all types of
+#runner methods supported by a given pipeline is dynamically defined by the
+#current implementation of the subclass for that pipeline, we'll need to
+#dynamically define one eneumeration type for each pipeline subclass at runtime
+#in a presumably clever manner.
+
 # ....................{ IMPORTS                           }....................
 import functools
 from betse.exceptions import (
@@ -26,7 +33,7 @@ class SimPipeRunnerMetadata(object):
     subclass decorated by the :func:`piperunner` decorator) metadata.
 
     This metadata is available via the ``metadata`` instance variable of each
-    such runner.
+    such runner method.
 
     Attributes (Pipeline)
     ----------
@@ -52,12 +59,14 @@ class SimPipeRunnerMetadata(object):
         Sequence of one or more human-readable strings iteratively naming all
         arbitrary categories to which this runner belongs (in descending order
         of hierarchical taxonomy).
+    kind : str
+        Machine-readable type of this runner as a raw string. Although this
+        string is currently equivalent to :attr:`method_name` excluding the
+        :attr:`SimPipeABC._RUNNER_METHOD_NAME_PREFIX` substring required by the
+        parent pipeline of this runner, callers should *not* assume this
+        low-level implementation detail to always be.
     method_name : str
         Machine-readable name of the method implementing this runner.
-    name : str
-        Machine-readable name of this runner, equivalent to :attr:`method_name`
-        excluding the :attr:`SimPipeABC._RUNNER_METHOD_NAME_PREFIX` substring
-        required by the parent pipeline of this runner.
     requirements : SimPhaseRequirements
         Immutable set of zero or more :class:`SimPhaseRequirement` instances
         specifying all simulation features required by this runner.
@@ -118,7 +127,7 @@ class SimPipeRunnerMetadata(object):
         # Nullify all remaining instance variables, subsequently defined by the
         # "SimPipeABCMeta" metaclass at "SimPipeABC" subclass definition time
         # following the definition of this runner method.
-        self.name = None
+        self.kind = None
         self.noun_singular_lowercase = None
         self.noun_singular_uppercase = None
         self.verb_continuous = None
@@ -301,7 +310,7 @@ def piperunner(
                     raise BetseSimPipeRunnerUnsatisfiedException(
                         result='{} "{}" requirement unsatisfied'.format(
                             runner_metadata.noun_singular_uppercase,
-                            runner_metadata.name),
+                            runner_metadata.kind),
                         reason='{} disabled'.format(requirement.name),
                     )
             # Else, all runner requirements are satisfied.
@@ -311,7 +320,7 @@ def piperunner(
                 '%s %s "%s"...',
                 runner_metadata.verb_continuous,
                 runner_metadata.noun_singular_lowercase,
-                runner_metadata.name)
+                runner_metadata.kind)
 
             # Else, this runner is satisfied. Since the prior call already
             # logged the attempt to run this runner, avoid redoing so here.

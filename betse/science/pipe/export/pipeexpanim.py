@@ -41,7 +41,7 @@ from betse.science.visual.layer.vectorfield.lyrvecfldquiver import (
 from betse.science.visual.layer.vectorfield.lyrvecfldstream import (
     LayerCellsFieldStream)
 from betse.util.type.descriptor.descs import classproperty_readonly
-from betse.util.type.types import type_check, IterableTypes
+from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ SUBCLASSES                        }....................
 class SimPipeExportAnimCells(SimPipeExportABC):
@@ -58,7 +58,7 @@ class SimPipeExportAnimCells(SimPipeExportABC):
 
     # ..................{ SUPERCLASS ~ methods              }..................
     @type_check
-    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    def iter_runners_conf(self, phase: SimPhase) -> SequenceTypes:
         return phase.p.anim.anims_after_sim
 
     @type_check

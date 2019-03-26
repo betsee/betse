@@ -25,7 +25,7 @@ from betse.util.path import dirs, pathnames
 from betse.util.type.descriptor.descs import classproperty_readonly
 from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 from betse.util.type.types import (
-    type_check, IterableTypes, NumpyArrayType, SequenceTypes, StrOrNoneTypes,)
+    type_check, NumpyArrayType, SequenceTypes, StrOrNoneTypes,)
 
 # ....................{ SUBCLASSES                        }....................
 class SimPipeExportCSVs(SimPipeExportABC):
@@ -42,7 +42,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
 
     # ..................{ SUPERCLASS                        }..................
     @type_check
-    def iter_runners_conf(self, phase: SimPhase) -> IterableTypes:
+    def iter_runners_conf(self, phase: SimPhase) -> SequenceTypes:
         return phase.p.csv.csvs_after_sim
 
     @type_check
