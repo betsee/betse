@@ -199,6 +199,8 @@ class DECMesh(object):
         if self.allow_merging or self.mesh_type == 'quad':
             # merge tri elements as required:
             self.merge_tri_mesh(mark_for_merge)
+            # Create an updated mapping of which triangle each vertex belongs to:
+            self.create_tri_map()
 
         # process the edges and boundaries:
         self.process_primary_edges(mesh_version = self.mesh_type)
@@ -2470,8 +2472,16 @@ class DECMesh(object):
 
         aa = (1 / 2) * np.sum(ai)  # signed area
 
-        cx = (1 / (6 * aa)) * np.sum((foo[:, 0] + foo_p[:, 0]) * (foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]))
-        cy = (1 / (6 * aa)) * np.sum((foo[:, 1] + foo_p[:, 1]) * (foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]))
+        if aa != 0.0:
+
+            cx = (1 / (6 * aa)) * np.sum((foo[:, 0] + foo_p[:, 0]) * (foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]))
+            cy = (1 / (6 * aa)) * np.sum((foo[:, 1] + foo_p[:, 1]) * (foo[:, 0] * foo_p[:, 1] - foo_p[:, 0] * foo[:, 1]))
+
+        else:
+
+            mid = np.mean(p, axis=1)
+            cx = mid[0]
+            cy = mid[1]
 
         return cx, cy
 
