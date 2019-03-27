@@ -50,6 +50,7 @@ from betse.util.io.log import logs
 from betse.util.type.decorator.deccls import abstractmethod #, abstractproperty
 from betse.util.type.descriptor.descs import (
     abstractclassproperty_readonly, classproperty_readonly)
+from betse.util.type.iterable import itersort
 from betse.util.type.obj import objects, objiter
 from betse.util.type.text.string import strs
 from betse.util.type.types import (
@@ -225,6 +226,31 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
 
     # ..................{ CLASS ~ iterators                 }..................
     @classmethod
+    def iter_runners_method(cls) -> GeneratorType:
+        '''
+        Generator yielding the method name and method of each **simulation
+        pipeline runner** (i.e., method bound to this pipeline decorated by the
+        :func:`piperunner` decorator).
+
+        This generator excludes all methods defined by this pipeline subclass
+        *not* decorated by that decorator.
+
+        Yields
+        ----------
+        (runner_method_name : str, runner_method : MethodType)
+            2-tuple where:
+
+            * ``runner_method_name`` is the name of the method underlying this
+              runner, identical to the ``runner_method.__name__`` attribute.
+            * ``runner_method`` is this method.
+        '''
+
+        # Defer to this generator.
+        yield from objiter.iter_methods_prefixed(
+            obj=cls, prefix=cls._RUNNER_METHOD_NAME_PREFIX)
+
+    # ..................{ CLASS ~ iterators : metadata      }..................
+    @classmethod
     def iter_runners_metadata(cls) -> GeneratorType:
         '''
         Generator yielding the metadata annotating each **simulation pipeline
@@ -251,28 +277,20 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
 
 
     @classmethod
-    def iter_runners_method(cls) -> GeneratorType:
+    def iter_runners_metadata_kind(cls) -> SequenceTypes:
         '''
-        Generator yielding the method name and method of each **simulation
-        pipeline runner** (i.e., method bound to this pipeline decorated by the
-        :func:`piperunner` decorator).
-
-        This generator excludes all methods defined by this pipeline subclass
-        *not* decorated by that decorator.
-
-        Yields
-        ----------
-        (runner_method_name : str, runner_method : MethodType)
-            2-tuple where:
-
-            * ``runner_method_name`` is the name of the method underlying this
-              runner, identical to the ``runner_method.__name__`` attribute.
-            * ``runner_method`` is this method.
+        Sequence of each **machine-readable type** (i.e., string value of the
+        :attr:`SimPipeRunnerMetadata.kind` instance variable) of all runners
+        supported by this pipeline (in sorted lexicographic order).
         '''
 
-        # Defer to this generator.
-        yield from objiter.iter_methods_prefixed(
-            obj=cls, prefix=cls._RUNNER_METHOD_NAME_PREFIX)
+        # Return a lexicographically sorted sequence of...
+        return itersort.sort_ascending(
+            # The machine-readable type of this runner.
+            runner_metadata.kind
+            # For each runner defined by this pipeline subclass...
+            for runner_metadata in cls.iter_runners_metadata()
+        )
 
     # ..................{ INITIALIZERS                      }..................
     @type_check
