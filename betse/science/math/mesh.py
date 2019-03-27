@@ -82,10 +82,7 @@ class DECMesh(object):
 
     def init_mesh(self):
 
-        self.create_tri_mesh()
-        self.create_mappings()
-        self.process_voredges()
-        self.process_vorcells()
+        self.pre_mesh()
         self.create_core_operators()
 
         if self.make_all_operators:
@@ -98,8 +95,8 @@ class DECMesh(object):
         """
         self.create_tri_mesh()
         self.create_mappings()
+        self.define_vorverts()
         self.process_voredges()
-        self.process_vorcells()
 
     def init_and_refine(self, smoothing = None, refinement = True,
                         max_steps=25, convergence=7.5, fix_bounds=True):
@@ -170,6 +167,7 @@ class DECMesh(object):
 
         """
 
+        logs.log_info("Creating triangular mesh...")
         self.trimesh_core_calcs()
 
         self.sanity_check() # check for bad triverts (triverts belonging to no simplexes)
@@ -539,8 +537,6 @@ class DECMesh(object):
         self.tri_edge_len = np.asarray(tri_edge_len)
         self.tri_tang = np.asarray(tri_tang)
 
-        self.inner_vvert_i = np.linspace(0, len(self.tri_ccents), len(self.tri_ccents), dtype=np.int)
-
     def create_tri_map(self):
         """
         Creates the basic mapping between triverts and simplices
@@ -602,27 +598,12 @@ class DECMesh(object):
         self.bflags_tcells = np.asarray(np.unique(bflags_tcells))  # trimesh faces on boundary
         self.tverts_to_tedges = np.asarray(verts_to_edges) # for each tever, what edges does it belong to?
 
-    def map_tvert_to_vorcell(self):
-        """
-        Create a rudimentary mapping between a trivert and the
-        vor cell verts associated with it.
+        tedges_to_tcell = [[] for xi in self.tri_edges]
+        for tcell_i, edge_inds in enumerate(self.tcell_to_tedges):
+            for ei in edge_inds:
+                tedges_to_tcell[ei].append(tcell_i)
 
-        """
-        # For each trivert, find the vor verts for cell surrounding it:
-        triverts_to_vorverts = []
-
-        # Points search tree with respect to tri_mids points of edges:
-        vor_tree = cKDTree(self.vor_verts)
-
-        # For the set of edges associated with each trivert:
-        for vi, edge_inds_o in enumerate(self.tverts_to_tedges):
-            edge_inds = np.unique(edge_inds_o) # make the set of edge verts unique!
-            mid_pts = self.tri_mids[edge_inds]
-            dd, vort_indi_o = vor_tree.query(mid_pts, k=2) # this finds 2 vor 'ridge points' per tri edge
-            vort_indis = np.unique(vort_indi_o) # get the unique vor vert inds from set of all ridge inds
-            triverts_to_vorverts.append(vort_indis)  # append it to the list of vor verts at the tri vert
-
-        self.triverts_to_vorverts = np.asarray(triverts_to_vorverts)
+        self.tedges_to_tcell = np.asarray(tedges_to_tcell)
 
     def define_vorverts(self):
         """
@@ -632,111 +613,228 @@ class DECMesh(object):
 
         """
 
-        # Make a search tree of interior vor vertices
-        if self.use_centroids:
-            vor_tree = cKDTree(self.tri_cents)
-            vor_points = self.tri_cents
+        logs.log_info("Calculating Voronoi cells...")
 
-        else:
-            vor_tree = cKDTree(self.tri_ccents)
-            vor_points = self.tri_ccents
-
-        vor_verts_bound = [] # vertices at the boundary
-
-        for si, edge_inds in enumerate(self.tcell_to_tedges):
-
-            for ei in edge_inds:
-
-                if ei in self.bflags_tedges:  # If this edge is on the hull/boundary, need to calc bound vorcell points
-
-                    tri_edge_mid = self.tri_mids[ei] # midpoint of tri_edge
-                    tri_edge_tang = self.tri_tang[ei] # tangent of tri_edge
-
-                    if self.use_centroids:
-                        tri_cell_cent = self.tri_cents[si] # get the ccent or cent point of this tri cell
-                    else:
-                        tri_cell_cent = self.tri_ccents[si]
-
-                    d_cent_to_mid = np.linalg.norm(tri_edge_mid - tri_cell_cent) # get the distance from cell center
-                                                                                 # to the edge midpoint (to use as
-                                                                                 # potentially anisotropic radius)
-
-                    # query the interior vor points for the vor index of the nearest neigh vor point to the edge mid:
-                    d_va, i_va = vor_tree.query(tri_edge_mid)
-
-                    # get coordinates of the first point of the missing vor ridge at the boundary:
-                    vor_pt_a = vor_points[i_va]
-
-                    # get the vor edge tangent vector as the 90o rotation of tri_edge tangent (x --> y, y --> -x):
-                    vor_tang = tri_edge_tang*1
-                    vor_tang_x = vor_tang[1]
-                    vor_tang_y = -vor_tang[0]
-
-                    # calculate the boundary vor verts from hull edge properties:
-                    vor_pt_b = vor_pt_a*1
-
-                    vor_pt_b[0] = vor_tang_x*d_cent_to_mid*2 + vor_pt_a[0]
-                    vor_pt_b[1] = vor_tang_y*d_cent_to_mid*2 + vor_pt_a[1]
-
-                    vor_verts_bound.append(vor_pt_b)
-
-        # define vor_verts:
-        self.vor_verts_bound = np.asarray(vor_verts_bound)
-
-        if self.use_centroids:
-            self.vor_verts = np.vstack((self.tri_cents, self.vor_verts_bound))
-        else:
-            self.vor_verts = np.vstack((self.tri_ccents, self.vor_verts_bound))
-
-    def process_vorcells(self):
-
-        vor_cells = []  # vor_vert inds specifying dual cell for each tri_vert
         vcell_verts = []
-        vor_cents = []  # centroid of voronoi polygons
-        vor_sa = []  # surface area of voronoi polygons
+        vor_verts = []
+        vor_sa = []
+        vor_cents = []
 
-        tvert_to_vorcell = [] # updated mapping between tverts and vorcells
+        vor_edge_verts = []
 
-        for tvi, tedge_inds_o in enumerate(self.tverts_to_tedges):
-            # make the edge inds for this trivert unique:
-            tedge_inds = np.unique(tedge_inds_o)
+        for ti, tc_indso in enumerate(self.tverts_to_tcell):
 
-            # find the vor verts that match these edges
-            vort_indis = np.unique(self.vor_edges[tedge_inds].ravel())
+            # get verts for trimesh edges of this neighbourhood and sort them counterclockwise:
+            # tedge_vertso = self.tri_verts[self.tri_edges[np.unique(self.tverts_to_tedges[ti])]]
+            # mids_o = np.mean(tedge_vertso, axis=1)
+            # sorted_tinds = self.cc_sort_inds(mids_o)
+            # tedge_verts = tedge_vertso[sorted_tinds]  # sort edges counter-clockwise
 
-            if len(vort_indis) > 2: # if there's more than 2 vor verts in the dual cell (enough to make a polygon:
-                # get voronoi verts corresponding to each voronoi dual-cell simplex:
-                vor_pts = self.vor_verts[vort_indis] # unsorted!
+            tc_inds = np.unique(tc_indso)
 
-                # sort the points counter-clockwise:
-                cent = vor_pts.mean(axis=0)  # calculate the centre point
-                angles = np.arctan2(vor_pts[:, 1] - cent[1], vor_pts[:, 0] - cent[0])  # calculate point angles
-                sorted_region = vort_indis[np.argsort(angles)]  # sort indices counter-clockwise
+            if self.use_centroids:
+                vvertso = self.tri_cents[tc_inds]
 
-                vor_cells.append(sorted_region)  # add sorted list to the regions structure
-
-                vpts = self.vor_verts[sorted_region]  # x,y coordinates, sorted
-                vcell_verts.append(vpts)
-
-                # Calculate centroid and area of the voronoi polygon:
-                cx, cy = self.poly_centroid(vpts)
-                vor_cents.append([cx, cy])
-
-                sa = self.area(vpts)
-                vor_sa.append(sa)
-
-                # update the map between tvert and vorcell:
-                tvert_to_vorcell.append(sorted_region)
 
             else:
-                logs.log_warning("Warning! Non-polygonal Voronoi cell detected!")
+                vvertso = self.tri_ccents[tc_inds]
+
+            if ti in self.bflags_tverts:  # if the trivert is on the hull
+                # get verts for trimesh edges of this neighbourhood and sort them counterclockwise:
+                # edge vertices:
+                tedge_inds = np.unique(self.tverts_to_tedges[ti])
+
+                for tei in tedge_inds:
+                    if tei in self.bflags_tedges:
+                        # get the vertices of the boundary edge of the trimesh:
+                        bedge_verts = self.tri_verts[self.tri_edges[tei]]
+
+                        bedge_mid = np.mean(bedge_verts, axis =0)
+                        # rotate the line 90 degrees clockwise:
+                        # vedge_verts_r = self.rot_line(bedge_verts)
+
+                        # rot_tang = vedge_verts_r[1] - vedge_verts_r[0]
+
+                        simp_i = self.tedges_to_tcell[tei]
+
+                        if self.use_centroids:
+                            pt_o = self.tri_cents[simp_i[0]]
 
 
-        self.triverts_to_vorverts = np.asarray(tvert_to_vorcell)
-        self.vor_cells = np.asarray(vor_cells)
+                        else:
+                            pt_o = self.tri_ccents[simp_i[0]]
+
+
+                        dist_diff = bedge_mid - pt_o
+
+                        intpt = bedge_mid + dist_diff
+
+
+
+                        # FIXME the missing point should be function of 2*bedge_mid - tricc of this faucet!
+                        # the missing voronoi point corresponds to the
+                        # first point of the 90 degree rotated boundary tri-edge:
+                        # intpt = vedge_verts_r[0] #FIXME this is where one needs to calculate the point
+                        # intpt = 2*bedge_mid - pt_o
+
+                        vvertso = np.vstack((vvertso, intpt))
+
+            # sort the voronoi verts counter-clockwise:
+            inds_vsort = self.cc_sort_inds(vvertso)
+            vverts = vvertso[inds_vsort]
+
+            vor_verts.extend(vverts)
+            vcell_verts.append(vverts)
+            vor_sa.append(self.area(vverts))
+            vor_cents.append(self.poly_centroid(vverts))
+
+            # Calculate vor edge verts:
+            vedge_verts = np.asarray([[vi, vj] for vi, vj in zip(vverts,
+                                                                 np.roll(vverts, -1, axis=0
+                                                                         ))])
+
+            vor_edge_verts.extend(vedge_verts)
+
         self.vcell_verts = np.asarray(vcell_verts)
-        self.vor_cents = np.asarray(vor_cents)
+        self.vor_verts = np.unique(np.asarray(vor_verts), axis=0)
         self.vor_sa = np.asarray(vor_sa)
+        self.vor_cents = np.asarray(vor_cents)
+
+        self.vor_edge_verts = np.unique(np.asarray(vor_edge_verts), axis=0)
+
+    def process_voredges(self):
+
+        logs.log_info("Calculating Voronoi edges...")
+
+        # find edges of Voronoi dual mesh:
+        # Want vor edges to have the same index as tri_edges and to be
+        # perpendicular bisectors; therefore we're going to have one vor_edge vert pair for each tri-edge
+        all_edges = set()
+        vedge_set = set()
+        hull_points = []
+        hull_edges = []
+
+        vor_mids = []
+        vor_tang = []
+        vor_edge_len = []
+
+        vor_cells = []
+
+        # vor_norm = [] # normals to vor cell surfaces (outwards pointing)
+        # tri_norm = [] # normals to tri cell surfaces (outwards pointing)
+        # sflux_n = [] # dot product between voronoi cell surface normal (outwards) and tri-tangent
+
+        vor_tree = cKDTree(self.vor_verts)
+
+        # Find vor vert inds corresponding to tri_ccents
+        # self.inner_vvert_i = np.delete(self.vor_vert_i, self.bflags_vverts)
+        if self.use_centroids:
+            _, self.inner_vvert_i = vor_tree.query(self.tri_cents)
+
+        else:
+            _, self.inner_vvert_i = vor_tree.query(self.tri_ccents)
+
+        for vpts in self.vcell_verts:
+            di, vi = vor_tree.query(vpts) # get inds of the cell verts from the tree
+            vor_cells.append(vi) # append vor inds to vor verts making up the vor cell
+
+        for vedge in self.vor_edge_verts:
+            di, vi = vor_tree.query(vedge)
+            all_edges.add((vi[0], vi[1]))
+
+        for va, vb in all_edges:
+            if (va, vb) in all_edges and (vb, va) not in all_edges:
+                # if there isn't a double-pair, then add these edges to the hull:
+                # (this is based on the logic that when traversing the points of the
+                # triangular simplices, only the boundary edges are traversed once,
+                # since they don't have a neighbouring simplex at the bounds.)
+                hull_points.append(va)
+                hull_points.append(vb)
+
+                hull_edges.append([va, vb])
+
+            if (vb, va) not in vedge_set:  # otherwise add the edge to the set
+                vedge_set.add((va, vb))
+
+        self.bflags_vverts = np.unique(hull_points)
+        vor_edges = np.asarray(list(vedge_set))
+        n_vedges = len(vor_edges)  # number of edges in trimesh
+
+        # Process edges to create flags of edge indices:
+        vor_edges_i = vor_edges.tolist()
+
+        bflags_vedges = []
+
+        for vi, vj in hull_edges:
+            if [vi, vj] in vor_edges:
+                kk = vor_edges_i.index([vi, vj])
+            elif [vj, vi] in vor_edges:
+                kk = vor_edges_i.index([vj, vi])
+            bflags_vedges.append(kk)
+
+        self.bflags_vedges = np.asarray(bflags_vedges)  # indices of edges on the boundary
+
+        self.vor_edge_i = np.linspace(0, n_vedges - 1, n_vedges, dtype=np.int)
+
+        # Finally, go through and calculate mids, len, and tangents of tri_edges, and prepare a mapping between
+        # each vertices and edges:
+        for ei, (vi, vj) in enumerate(vor_edges):
+            # get coordinates associated with each edge
+            vpi = self.vor_verts[vi]
+            vpj = self.vor_verts[vj]
+
+            tan_v = vpj - vpi
+
+            vor_len = np.linalg.norm(tan_v)
+
+            tan_vi = tan_v / vor_len
+
+            assert (np.round(vor_len, 15) != 0.0), "Tri-edge length equal to zero! Duplicate seed points exist!"
+
+            ppvm = (vpi + vpj) / 2  # calculate midpoint of tri-edge:
+
+            vor_mids.append(ppvm)
+            vor_edge_len.append(vor_len)
+            vor_tang.append(tan_vi)
+
+        vor_mids = np.asarray(vor_mids)
+        vor_edge_len = np.asarray(vor_edge_len)
+        vor_tang = np.asarray(vor_tang)
+
+        self.vor_cells = np.asarray(vor_cells)
+
+        # last step is to map each vor_edge to its dual tri_edge
+        # this is done using edge midpoints, which are nearly identical for
+        # the two edge types:
+        vor_tree = cKDTree(vor_mids)
+        di, map_vedge_to_tedge = vor_tree.query(self.tri_mids)
+
+        vor_edges = np.asarray(vor_edges)
+
+        # reduce the final set of vor_edges to match with respective tri edges:
+        self.vor_edges = vor_edges[map_vedge_to_tedge]
+        self.vor_mids = vor_mids[map_vedge_to_tedge]
+        self.vor_edge_len = vor_edge_len[map_vedge_to_tedge]
+        self.vor_tang = vor_tang[map_vedge_to_tedge]
+
+        # Finally, need to correct the orientation of the voronoi edges to make them all 90 degree
+        # rotations of the tri mesh:
+        for ei, (vti, tti) in enumerate(zip(self.vor_tang, self.tri_tang)):
+
+            sign = np.sign(np.cross(tti, vti))
+
+            if sign == 1.0:
+                self.vor_tang[ei] = -vti
+                va, vb = self.vor_edges[ei]
+                self.vor_edges[ei] = [vb, va]
+
+
+        self.n_vedges = len(self.vor_edges)
+        self.vor_edge_i = np.linspace(0, self.n_vedges - 1, self.n_vedges, dtype=np.int)
+
+        # self.vor_norm = np.asarray(vor_norm) # normals to vor cell surfaces (outwards pointing)
+        # self.tri_norm = np.asarray(tri_norm) # normals to tri cell surfaces (outwards pointing)
+        # self.sflux_n = np.asarray(sflux_n) # dot product between voronoi cell surface normal (outwards) and tri-tangent
 
         self.n_vverts = len(self.vor_verts)
         self.n_vcells = len(self.vor_cells)
@@ -746,142 +844,16 @@ class DECMesh(object):
         self.vor_cell_i = np.linspace(0, self.n_vcells - 1, self.n_vcells, dtype=np.int)
 
         # get final bounds for the cluster:
-        xmin = self.vor_verts[:,0].min()
-        xmax = self.vor_verts[:,0].max()
+        xmin = self.vor_verts[:, 0].min()
+        xmax = self.vor_verts[:, 0].max()
         ymin = self.vor_verts[:, 1].min()
         ymax = self.vor_verts[:, 1].max()
 
-        self.xyaxis = [xmin*1.1, xmax*1.1, ymin*1.1, ymax*1.1]
-
-    def process_voredges(self):
-
-        vor_edges = []
-        vor_tang = []  # tangent vectors to vor_edges
-        vor_edge_len = []  # length of vor_edge
-        vor_mids = [] # mids of vor edges
-
-        vor_norm = [] # normals to vor cell surfaces (outwards pointing)
-        tri_norm = [] # normals to tri cell surfaces (outwards pointing)
-        sflux_n = [] # dot product between voronoi cell surface normal (outwards) and tri-tangent
-
-        # Add in Voronoi points on the outer boundary and define total vor_verts:
-        self.define_vorverts()
-
-        # create an initial mapping between triverts and surrounding vor cell verts
-        self.map_tvert_to_vorcell()
-
-        # find edges of Voronoi dual mesh:
-        # Want vor edges to have the same index as tri_edges and to be
-        # perpendicular bisectors; therefore we're going to have one vor_edge vert pair for each tri-edge
-        for tei, (ti, tj) in enumerate(self.tri_edges):
-
-            # get the voronoi indices (each sorted counter clockwise) for
-            # defining voronoi dual cells surrounding each tri vert point:
-            vor_reg_i = self.triverts_to_vorverts[ti]
-            vor_reg_j = self.triverts_to_vorverts[tj]
-
-            # find the common inds between the two cells,
-            # representing the shared edge:
-            # print(vor_reg_i, vor_reg_j)
-            shared_ij = np.intersect1d(vor_reg_i, vor_reg_j)
-
-
-            if len(shared_ij) > 2: # We have a multiple-intersecting vor cell issue to deal with...
-
-                # get tangent vector for tri_edge:
-                tan_t = self.tri_tang[tei]
-
-                # get vor vert coords of the polygonal intersection:
-                poly_pts = self.vor_verts[shared_ij]
-
-                cent = poly_pts.mean(axis=0)  # calculate the centre point
-                angles = np.arctan2(poly_pts[:, 1] - cent[1], poly_pts[:, 0] - cent[0])  # calculate point angles
-                sorted_reg = shared_ij[np.argsort(angles)]  # sort indices counter-clockwise
-
-                # get edge pairs for newly defined polygon:
-                sorted_reg_i = np.roll(sorted_reg, -1)
-
-                dot_check_vals = [] # array to store dot product checks between each vor edge and tri tangent
-
-                for i, ptsi in enumerate(zip(sorted_reg, sorted_reg_i)):
-                    ptsa = self.vor_verts[ptsi[0]]
-                    ptsb = self.vor_verts[ptsi[1]]
-
-                    tan_vo = ptsb - ptsa
-                    len_v = np.linalg.norm(tan_vo)
-                    tan_v = tan_vo / len_v
-                    dot_test = np.dot(tan_t, tan_v)
-
-                    dot_check_vals.append(dot_test)
-
-                sorted_dot_check = np.argsort(np.abs(dot_check_vals))
-
-                # redefine shared ij pair in terms of most orthogonal vor edge to tri edge:
-                shared_ij = np.asarray([sorted_reg[sorted_dot_check][0], sorted_reg_i[sorted_dot_check][0]])
-
-                vor_edge_ij = shared_ij*1
-
-            elif len(shared_ij) == 2:
-
-                vor_edge_ij = shared_ij*1
-
-            else:
-                raise Exception("Empty Voronoi edge.")
-
-
-            # find points representing vor and tri edges:
-            tan_t = self.tri_tang[tei]
-
-            tri_norm.append([tan_t[1], -tan_t[0]])
-
-            vpi = self.vor_verts[vor_edge_ij[0]]
-            vpj = self.vor_verts[vor_edge_ij[1]]
-
-            tan_vo = vpj - vpi
-
-            vor_len = np.linalg.norm(tan_vo)
-
-            tan_v = tan_vo/vor_len
-
-            ppvm = (vpi + vpj)/2 # midpoint of voronoi edge
-            vor_mids.append(ppvm)
-
-            assert (vor_len != 0.0), "Vor-edge length equal to zero!"
-
-            vor_edge_len.append(vor_len)
-
-            cross_tp = tan_t[0]*tan_v[1] - tan_v[0]*tan_t[1]
-
-            if np.sign(cross_tp) == -1.0:
-
-                vor_edges.append([vor_edge_ij[0], vor_edge_ij[1]])
-                vor_tang.append(tan_v)
-                norm_v = [tan_v[1], -tan_v[0]]
-                vor_norm.append(norm_v)
-                sflux_n.append(-(norm_v[0]*tan_t[0] + norm_v[1]*tan_t[1]))
-
-            elif np.sign(cross_tp) == 1.0:
-
-                vor_edges.append([vor_edge_ij[1], vor_edge_ij[0]])
-                vor_tang.append(-tan_v)
-                norm_v = [-tan_v[1], tan_v[0]]
-                vor_norm.append(norm_v)
-                sflux_n.append(-(norm_v[0]*tan_t[0] + norm_v[1]*tan_t[1]))
-
-        self.vor_edges = np.asarray(vor_edges)
-        self.vor_tang = np.asarray(vor_tang)
-
-        self.vor_edge_len = np.asarray(vor_edge_len)  # length of vor_edge
-        self.vor_mids = np.asarray(vor_mids) # edge midpoints
-
-        self.n_vedges = len(self.vor_edges)
-        self.vor_edge_i = np.linspace(0, self.n_vedges - 1, self.n_vedges, dtype=np.int)
-
-        self.vor_norm = np.asarray(vor_norm) # normals to vor cell surfaces (outwards pointing)
-        self.tri_norm = np.asarray(tri_norm) # normals to tri cell surfaces (outwards pointing)
-        self.sflux_n = np.asarray(sflux_n) # dot product between voronoi cell surface normal (outwards) and tri-tangent
+        self.xyaxis = [xmin * 1.1, xmax * 1.1, ymin * 1.1, ymax * 1.1]
 
     def sanity_check(self):
+
+        logs.log_info("Mesh sanity check...")
 
         # Check to see if some vertices are not used in any simplex:
         unused_tverts = []
@@ -918,13 +890,15 @@ class DECMesh(object):
         connectivity of the meshes are not changing.
 
         """
+
+        logs.log_info("Updating metric quantities...")
         # Update tri_ccents, tri_cents as well!
         vor_cents = []  # centroid of voronoi polygons
         vor_sa = []  # surface area of voronoi polygons
         vor_edge_mids = []  # mids of tri cell edges
         vor_edge_len = []  # length of vor_edge
         vor_tang = []  # tangent vectors to vor_edges
-        vor_norm = [] # normal vectors to vor_edges
+        # vor_norm = [] # normal vectors to vor_edges
 
 
         tri_cents = [] # center of triangular cells #FIXME implement this!
@@ -934,7 +908,7 @@ class DECMesh(object):
         tri_edge_mids = []  # mids of tri cell edges
         tri_edge_len = []  # length of tri_edge
         tri_tang = []  # tangent vectors to tri_edges
-        tri_norm = []  # tangent vectors to vor_edges
+        # tri_norm = []  # tangent vectors to vor_edges
 
         sflux_n = [] # dot product between vor cell normal and tricell tangents
 
@@ -969,7 +943,7 @@ class DECMesh(object):
 
             tri_edge_len.append(tri_len * 1)
             tri_tang.append(1 * tan_t)
-            tri_norm.append([tan_t[1], -tan_t[0]])
+            # tri_norm.append([tan_t[1], -tan_t[0]])
 
             vi, vj = self.vor_edges[tei]
 
@@ -990,10 +964,10 @@ class DECMesh(object):
 
             vor_edge_len.append(vor_len * 1)
             vor_tang.append(tan_v)
-            norm_v = [tan_v[1], -tan_v[0]]
-            vor_norm.append(norm_v)
+            # norm_v = [tan_v[1], -tan_v[0]]
+            # vor_norm.append(norm_v)
 
-            sflux_n.append(-(norm_v[0] * tan_t[0] + norm_v[1] * tan_t[1]))
+            # sflux_n.append(-(norm_v[0] * tan_t[0] + norm_v[1] * tan_t[1]))
 
         for si, verti in enumerate(self.tri_cells):
             tripts = self.tri_verts[verti]
@@ -1026,9 +1000,9 @@ class DECMesh(object):
         self.tri_mids = np.asarray(tri_edge_mids)  # edge midpoints
         self.vor_mids = np.asarray(vor_edge_mids) # edge midpoints
 
-        self.vor_norm = np.asarray(vor_norm) # normals to vor cell surfaces (outwards pointing)
-        self.tri_norm = np.asarray(tri_norm) # normals to tri cell surfaces (outwards pointing)
-        self.sflux_n = np.asarray(sflux_n) # dot product between voronoi cell surface normal (outwards) and tri-tang
+        # self.vor_norm = np.asarray(vor_norm) # normals to vor cell surfaces (outwards pointing)
+        # self.tri_norm = np.asarray(tri_norm) # normals to tri cell surfaces (outwards pointing)
+        # self.sflux_n = np.asarray(sflux_n) # dot product between voronoi cell surface normal (outwards) and tri-tang
 
         # Calculate the centroid of the whole shape:
         self.centroid = np.mean(self.tri_verts, axis=0)
@@ -1041,6 +1015,8 @@ class DECMesh(object):
         boundary operators, where bount_1 = (delta_0).T and bound_2 = (delta_1).T.
 
         """
+
+        logs.log_info("Creating core operators...")
 
         # exterior derivative operator for tri mesh: operates on verts to return edges:
         delta_tri_0 = np.zeros((self.n_tedges, self.n_tverts))
@@ -1060,6 +1036,7 @@ class DECMesh(object):
         needed for the main mesh, but not for the 'mu-mesh' that is required for tensor work...
 
         """
+        logs.log_info("Creating auxiliary operators...")
 
         # exterior derivative operator for tri mesh operating on edges to return faces:
         delta_tri_1 = np.zeros((self.n_tcell, self.n_tedges))
@@ -1373,9 +1350,9 @@ class DECMesh(object):
 
         if gtype == 'tri':
 
-            sflux_n =  self.sflux_n
+            # sflux_n =  self.sflux_n
 
-            divF = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T, sflux_n*self.vor_edge_len*Ft)
+            divF = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T, self.vor_edge_len*Ft)
 
         elif gtype == 'vor':
 
@@ -1413,7 +1390,7 @@ class DECMesh(object):
 
         if gtype == 'tri':
 
-            sflux_n = self.sflux_n
+            # sflux_n = self.sflux_n
             # ensure passed array is of the correct length:
             assert (len(S) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
@@ -1421,7 +1398,7 @@ class DECMesh(object):
             gS = self.grad(S, gtype='tri')
 
             # calculate the divergence of the grad, which is the laplacian:
-            lapS = self.div(sflux_n*gS, gtype = 'tri')
+            lapS = self.div(gS, gtype = 'tri')
 
         elif gtype == 'vor':
 
@@ -1464,7 +1441,7 @@ class DECMesh(object):
         """
         if gtype == 'tri':
 
-            sflux_n =  self.sflux_n
+            # sflux_n =  self.sflux_n
 
             # ensure passed array is of the correct length:
             assert(len(S) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
@@ -1472,7 +1449,7 @@ class DECMesh(object):
             # calculate the divergence of the grad, which is the laplacian:
             lapS_inv = np.dot(self.delta_tri_0_inv,
                               (self.tri_edge_len/
-                               (self.vor_edge_len*sflux_n))*np.dot(-self.delta_tri_0_inv.T, S*(self.vor_sa)))
+                               (self.vor_edge_len))*np.dot(-self.delta_tri_0_inv.T, S*(self.vor_sa)))
 
         elif gtype == 'vor':
 
@@ -1775,7 +1752,7 @@ class DECMesh(object):
 
         elif gtype == 'vor':
 
-            sflux_n = self.sflux_n
+            # sflux_n = self.sflux_n
             # ensure passed array is of the correct length:
             assert (len(Fz) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
@@ -1784,7 +1761,7 @@ class DECMesh(object):
 
             # calculate the divergence of the grad on the tri mesh, which is the curl of the curl on
             # the vor mesh:
-            ccS = self.div(sflux_n * gS, gtype='tri')
+            ccS = self.div(gS, gtype='tri')
 
         else:
             raise Exception("valid gtype is 'tri' or 'vor'")
@@ -1809,7 +1786,7 @@ class DECMesh(object):
         """
         if gtype == 'vor':
 
-            sflux_n =  self.sflux_n
+            # sflux_n =  self.sflux_n
 
             # ensure passed array is of the correct length:
             assert(len(Fz) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
@@ -1817,7 +1794,7 @@ class DECMesh(object):
             # calculate the divergence of the grad, which is the laplacian:
             ccS_inv = np.dot(self.delta_tri_0_inv,
                               (self.tri_edge_len/
-                               (self.vor_edge_len*sflux_n))*np.dot(-self.delta_tri_0_inv.T, Fz*(self.vor_sa)))
+                               (self.vor_edge_len))*np.dot(-self.delta_tri_0_inv.T, Fz*(self.vor_sa)))
 
         elif gtype == 'tri':
 
@@ -2085,7 +2062,7 @@ class DECMesh(object):
     def biharmonic(self, S, gtype = 'tri'):
         if gtype == 'tri':
 
-            sflux_n = self.sflux_n
+            # sflux_n = self.sflux_n
             # ensure passed array is of the correct length:
             assert (len(S) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
@@ -2093,11 +2070,11 @@ class DECMesh(object):
             gS = self.grad(S, gtype='tri')
 
             # calculate the divergence of the grad, which is the laplacian:
-            lapS = self.div(sflux_n*gS, gtype = 'tri')
+            lapS = self.div(gS, gtype = 'tri')
 
             glapS = self.grad(lapS, gtype ='tri')
 
-            bihS = self.div(glapS*self.sflux_n, gtype='tri')
+            bihS = self.div(glapS, gtype='tri')
 
         elif gtype == 'vor':
 
