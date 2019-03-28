@@ -664,7 +664,6 @@ class DECMesh(object):
                         else:
                             pt_o = self.tri_ccents[simp_i[0]]
 
-
                         dist_diff = bedge_mid - pt_o
 
                         intpt = bedge_mid + dist_diff
@@ -1446,7 +1445,7 @@ class DECMesh(object):
             # ensure passed array is of the correct length:
             assert(len(S) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
-            # calculate the divergence of the grad, which is the laplacian:
+            # calculate the inverse divergence of the grad, which is the laplacian:
             lapS_inv = np.dot(self.delta_tri_0_inv,
                               (self.tri_edge_len/
                                (self.vor_edge_len))*np.dot(-self.delta_tri_0_inv.T, S*(self.vor_sa)))
@@ -2388,8 +2387,6 @@ class DECMesh(object):
         #
         # self.tri_verts[:, 0] = self.tri_verts[:, 0] + delx*stepsize
         # self.tri_verts[:, 1] = self.tri_verts[:, 1] + dely*stepsize
-
-
 
     #-----Utility functions--------------------------
 
