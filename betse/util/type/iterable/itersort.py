@@ -33,9 +33,9 @@ def sort_ascending(iterable: IterableTypes) -> IterableTypes:
     ----------
     If the passed iterable is a generator, this function:
 
-    * Internally coerces this generator into a tuple *before* attempting to
+    * Internally coerces this generator into a list *before* attempting to
       sort the items yielded by this generator.
-    * Externally returns a new tuple rather than a new generator.
+    * Externally returns a new list rather than a new generator.
 
     This constraint is mandated by the :func:`sorted` builtin, which raises the
     following exception on receiving a generator:
@@ -242,7 +242,7 @@ def _sort_iterable(iterable: IterableTypes, **kwargs) -> IterableTypes:
     #   inefficient type coercion (e.g., from a list to a tuple).
     # * A non-generator, reuse this iterable as is.
     iterable_sortable = (
-        tuple(iterable) if generators.is_generator(iterable) else iterable)
+        list(iterable) if generators.is_generator(iterable) else iterable)
 
     # Type of both this iterable *AND* the output iterable to be returned.
     iterable_type = type(iterable_sortable)

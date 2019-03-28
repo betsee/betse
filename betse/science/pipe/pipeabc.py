@@ -277,6 +277,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
 
 
     @classmethod
+    @type_check
     def iter_runners_metadata_kind(cls) -> SequenceTypes:
         '''
         Sequence of each **machine-readable type** (i.e., string value of the

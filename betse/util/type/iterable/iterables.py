@@ -20,69 +20,13 @@ from betse.util.type import types
 from betse.util.type.types import (
     type_check,
     ClassType,
+    ClassOrNoneTypes,
     GeneratorType,
     IterableTypes,
     MappingType,
     SizedType,
 )
 from collections import deque
-
-# ....................{ CONVERTERS                        }....................
-@type_check
-def to_iterable(iterable: IterableTypes, cls: ClassType) -> IterableTypes:
-    '''
-    Convert the passed iterable into an iterable of the passed type.
-
-    If this iterable is:
-
-    * Of the same type as the passed type, this iterable is returned as is.
-    * A non-Numpy iterable (e.g., :class:`list`) and the passed type is that
-      of:
-      * Another non-Numpy iterable (e.g., :class:`tuple`), this iterable is
-        converted into an instance of this type. To do so, this type's
-        ``__init__`` method is expected to accept this :class:`list` as a
-        single positional argument.
-      * A Numpy array, this iterable is converted to a Numpy array via the
-        :func:`betse.lib.numpy.nparray.from_iterable` function.
-    * A Numpy array, this array is converted to the passed type via the
-      :func:`betse.lib.numpy.nparray.to_iterable` function.
-
-    Parameters
-    ----------
-    iterable: IterableTypes
-        Source iterable to be converted.
-    cls : ClassType
-        Type of the target iterable to convert this source iterable into.
-
-    Returns
-    ----------
-    IterableTypes
-        Target iterable converted from this source iterable.
-    '''
-
-    # Avoid importing third-party packages at the top level, for safety.
-    from betse.lib.numpy import nparray
-    from numpy import ndarray
-
-    # Type of the source iterable.
-    iterable_src_type = type(iterable)
-
-    # If the source and target iterables are of the same type, return this
-    # source iterable as is.
-    if iterable_src_type is cls:
-        return iterable
-
-    # Else if the source iterable is a Numpy array, defer to logic elsewhere.
-    if iterable_src_type is ndarray:
-        return nparray.to_iterable(array=iterable, cls=cls)
-
-    # Else if the target iterable is a Numpy array, defer to logic elsewhere.
-    if cls is ndarray:
-        return nparray.from_iterable(iterable)
-
-    # Else, the source iterable is a non-Numpy iterable. Defer to the
-    # constructor of the target iterable for conversion.
-    return cls(iterable)
 
 # ....................{ CONSUMERS                         }....................
 @type_check
@@ -172,6 +116,130 @@ def exhaust(iterable: IterableTypes) -> object:
     # Else, this iterable was already exhausted. Return nothing.
     else:
         return None
+
+# ....................{ CONVERTERS                        }....................
+@type_check
+def to_iterable(
+    # Mandatory parameters.
+    iterable: IterableTypes,
+
+    # Optional parameters.
+    cls: ClassOrNoneTypes = None,
+    item_cls: ClassOrNoneTypes = None,
+) -> IterableTypes:
+    '''
+    Convert the passed input iterable into an output iterable of the passed
+    iterable type and/or convert each item of this input iterable into an item
+    of this output iterable of the passed item type.
+
+    Specifically, if this iterable type is:
+
+    * Either ``None`` *or* of the same type as the passed iterable type, then:
+
+      * If this item type is non-``None``, this input iterable is converted
+        into an instance of the same iterable type whose items are converted
+        into instances of this item type.
+      * Else, this input iterable is returned as is (i.e., unmodified).
+
+    * A non-Numpy iterable (e.g., :class:`list`) and the passed iterable type
+      is that of:
+
+      * Another non-Numpy iterable (e.g., :class:`tuple`), then:
+
+        * If this item type is non-``None``, this input iterable is converted
+          into an instance of this iterable type whose items are converted into
+          instances of this item type.
+        * Else, this input iterable is merely converted into an instance of
+          this iterable type.
+
+        In either case, this output iterable's ``__init__`` method is required
+        to accept this input iterable as a single positional argument.
+
+      * A Numpy array, then:
+
+        * If this item type is non-``None``, an exception is raised. Numpy
+          scalar types map poorly to Python scalar types.
+        * Else, this input iterable is converted to a Numpy array via the
+          :func:`betse.lib.numpy.nparray.from_iterable` function.
+
+    * A Numpy array, then:
+
+      * If this item type is non-``None``, an exception is raised. Numpy
+        scalar types map poorly to Python scalar types.
+      * Else, this input iterable is converted to a Numpy array via the
+        :func:`betse.lib.numpy.nparray.from_iterable` function.
+
+    Parameters
+    ----------
+    iterable: IterableTypes
+        Input iterable to be converted.
+    cls : ClassOrNoneTypes
+        Type of the output iterable to convert this input iterable into.
+        Defaults to ``None``, in which case the same type as that of this input
+        iterable is defaulted to.
+    item_cls : ClassOrNoneTypes
+        Type to convert each item of the output iterable into. Defaults to
+        ``None``, in which case these items are preserved as is.
+
+    Returns
+    ----------
+    IterableTypes
+        Output iterable converted from this input iterable.
+
+    Raises
+    ----------
+    BetseIterableException
+        If converting either to or from a Numpy array *and* this item type is
+        non-``None``.
+    '''
+
+    # Avoid importing third-party packages at the top level, for safety.
+    from betse.lib.numpy import nparray
+    from betse.util.type.cls import classes
+    from numpy import ndarray
+
+    # Type of the input iterable.
+    iterable_src_cls = type(iterable)
+
+    # Type of the output iterable, defaulting to that of the input iterable.
+    iterable_trg_cls = cls if cls is not None else iterable_src_cls
+
+    # If the input and output iterables are of the same type *AND* no item
+    # conversion was requested, efficiently reduce to a noop.
+    if iterable_src_cls is iterable_trg_cls and item_cls is None:
+        return iterable
+
+    # Else if the input iterable is a Numpy array...
+    if iterable_src_cls is ndarray:
+        # If the caller requested item conversion, raise an exception.
+        if item_cls is not None:
+            raise BetseIterableException(
+                'Numpy array not convertible to item class "{}".'.format(
+                    classes.get_name_unqualified(item_cls)))
+
+        # Defer to logic elsewhere.
+        return nparray.to_iterable(array=iterable, cls=iterable_trg_cls)
+
+    # Else if the output iterable is a Numpy array, defer to logic elsewhere.
+    if iterable_trg_cls is ndarray:
+        # If the caller requested item conversion, raise an exception.
+        if item_cls is not None:
+            raise BetseIterableException(
+                'Numpy array not convertible to item class "{}".'.format(
+                    classes.get_name_unqualified(item_cls)))
+
+        return nparray.from_iterable(iterable)
+
+    # Else, both the input and output iterables are *NOT* Numpy arrays. In
+    # this case, return an output iterable of the desired type containing the
+    # items of this input iterable either...
+    return iterable_trg_cls(
+        # Unmodified...
+        iterable
+        # If no item conversion was requested; else...
+        if item_cls is None else (
+            # Converted to this item type otherwise.
+            item_cls(item) for item in iterable))
 
 # ....................{ INVERTERS                         }....................
 @type_check

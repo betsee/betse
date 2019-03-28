@@ -13,7 +13,7 @@ boundary remain strictly inside the polygon) functionality.
 import math
 import numpy as np
 from betse.exceptions import BetseMathPolygonException
-from betse.util.type.types import type_check, BoolTypes, SequenceTypes
+from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ EXCEPTIONS                        }....................
 def die_unless_polygon(*polygons: SequenceTypes) -> None:

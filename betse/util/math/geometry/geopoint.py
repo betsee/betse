@@ -10,9 +10,11 @@ Primitive two-dimensional point functionality.
 # ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseMathLineException, BetseMathPointException
 from betse.util.type.iterable import iterables
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import (
+    type_check, BoolTypes, NumericTypes, NumpyArrayType, SequenceTypes)
 
 # ....................{ EXCEPTIONS                        }....................
+@type_check
 def die_unless_point(*points: SequenceTypes) -> None:
     '''
     Raise an exception unless all passed sequences are two-dimensional points.
@@ -33,12 +35,27 @@ def die_unless_point(*points: SequenceTypes) -> None:
         Further details.
     '''
 
+    # If one or more of the passed objects are *NOT* points...
     if not is_point(*points):
+        # For each such object...
         for point in points:
+            # If this object is *NOT* a point...
             if not is_point(point):
-                raise BetseMathPointException(
-                    'Sequence not a two-dimensional point '
-                    '(i.e., length != 2): {!r}'.format(point))
+                # If this object does *NOT* contain a coordinate pair, raise an
+                # appropriate exception.
+                if len(point) != 2:
+                    raise BetseMathPointException(
+                        'Sequence not a two-dimensional point '
+                        '(i.e., length != 2): {!r}'.format(point))
+                # Else, this object contains a coordinate pair. By definition
+                # of the is_point() function, it must be the case that one or
+                # more of these coordinates are *NOT* numbers. In this case,
+                # raise an appropriate exception.
+                else:
+                    raise BetseMathPointException(
+                        'Sequence not a two-dimensional point '
+                        '(i.e., one or more coordinates '
+                        'not numbers): {!r}'.format(point))
 
 # ....................{ TESTERS                           }....................
 @type_check
@@ -59,17 +76,29 @@ def is_point(*points: SequenceTypes) -> bool:
         ``True`` only if these sequences are all two-dimensional points.
     '''
 
-    # For efficiency, avoid testing whether these items are actually numbers.
-    # While we could certainly do so, doing so is largely unhelpful; points
-    # failing to contain numbers will generate readable exceptions elsewhere.
-    return all(len(point) == 2 for point in points)
+    # Return true only if...
+    return all(
+        # This point contains exactly two coordinates *AND*...
+        len(point) == 2 and (
+            # This point is either a Numpy array presumably containing numbers
+            # *OR* a Python sequence such that...
+            isinstance(point, NumpyArrayType) or all(
+                # This coordinate is a number...
+                isinstance(point_coordinate, NumericTypes)
+                # For each coordinate of this point.
+                for point_coordinate in point
+            )
+        )
+        # For each passed point.
+        for point in points)
 
 
+@type_check
 def is_left_of_vector(
     subject_point: SequenceTypes,
     vector_head_point: SequenceTypes,
     vector_tail_point: SequenceTypes,
-) -> bool:
+) -> BoolTypes:
     '''
     ``True`` only if the passed two-dimensional subject point is spatially
     situated to the left of the two-dimensional vector defined by the passed
@@ -228,12 +257,17 @@ def is_left_of_vector(
 
     Returns
     ----------
-    bool
-        ``True`` only if this vector is to the right of this subject point.
+    BoolTypes
+        True only if this vector is to the right of this subject point. Note
+        that this is a Numpy-style boolean if the passed sequences are Numpy
+        arrays rather than builtin Python objects.
     '''
 
     # If any passed sequence is *NOT* a point, raise an exception.
     die_unless_point(subject_point, vector_head_point, vector_tail_point)
+    # die_unless_point(subject_point)
+    # die_unless_point(vector_head_point)
+    # die_unless_point(vector_tail_point)
 
     # See the above derivation for details. Math, you win all the efficiency.
     return (
@@ -409,8 +443,7 @@ def intersect_lines(
     '''
 
     # If any passed sequence is *NOT* a point, raise an exception.
-    die_unless_point(
-        line1_point1, line1_point2, line2_point1, line2_point2)
+    die_unless_point(line1_point1, line1_point2, line2_point1, line2_point2)
 
     # X coordinates of these points in the nomenclature documented above.
     cx = line1_point1[0]
@@ -464,7 +497,13 @@ def intersect_lines(
         (detdc*tsy - detts*dcy) / detM,
     )
 
-    # Return this intersection as a sequence of the same type as the first
-    # passed point.
-    return iterables.to_iterable(
+    # This intersection as a sequence of the same type as the first passed
+    # point.
+    intersection_point_sequence = iterables.to_iterable(
         iterable=intersection_point, cls=type(line1_point1))
+
+    # If this intersection is *NOT* a point, raise an exception.
+    die_unless_point(intersection_point_sequence)
+
+    # Return this point.
+    return intersection_point_sequence

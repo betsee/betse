@@ -247,6 +247,30 @@ def join_as_conjunction_double_quoted(*texts: str) -> str:
     # Conjunctively join these strings.
     return join_as_conjunction(*texts_quoted)
 
+
+@type_check
+def join_iterable_as_conjunction_double_quoted(iterable: IterableTypes) -> str:
+    '''
+    Conjunctively double-quote and join all string items of the passed iterable
+    in a human-readable manner, implicitly converting each item of this
+    iterable to a string as needed.
+
+    See Also
+    ----------
+    :func:`join_as_conjunction_double_quoted`
+        Further details.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.iterable import iterables
+
+    # Iterable of the same type as that of the passed iterable, implicitly
+    # converting each item of this iterable to a string as needed.
+    iterable_strs = iterables.to_iterable(iterable=iterable, item_cls=str)
+
+    # Return these strings conjunctively double-quoted and joined.
+    return join_as_conjunction_double_quoted(*iterable_strs)
+
 # ....................{ JOINERS ~ as : conjunction        }....................
 @type_check
 def join_as_disjunction(*texts: str) -> str:

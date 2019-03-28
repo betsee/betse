@@ -72,6 +72,7 @@ def get_subarray_indices(
         StackOverflow answer strongly inspiring this implementation.
     '''
 
+    #FIXME: Document this non-trivial behaviour, please.
     superarray_sorted_indices = np.argsort(superarray)
     superarray_sorted = superarray[superarray_sorted_indices]
     superarray_sorted_subarray_indices = np.searchsorted(

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,15 +8,15 @@ Low-level **numeric** (i.e., number in the general sense and hence equally
 applicable to both integers and floats) facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseNumericException
-from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import (
-    type_check, IterableTypes, NumericSimpleTypes, RegexCompiledType)
+    type_check, IterableTypes, NumericSimpleTypes)
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 @type_check
-def die_unless_positive(*numbers: NumericSimpleTypes, label: str = 'Number') -> None:
+def die_unless_positive(
+    *numbers: NumericSimpleTypes, label: str = 'Number') -> None:
     '''
     Raise an exception prefixed by the passed label unless all passed objects
     are positive integers or floats.
@@ -26,8 +26,8 @@ def die_unless_positive(*numbers: NumericSimpleTypes, label: str = 'Number') -> 
     numbers : tuple
         Tuple of all objects to be validated.
     label : optional[str]
-        Human-readable label prefixing exception messages raised by this method.
-        Defaults to a general-purpose string.
+        Human-readable label prefixing exception messages raised by this
+        method. Defaults to a general-purpose string.
 
     Raises
     ----------
@@ -43,7 +43,7 @@ def die_unless_positive(*numbers: NumericSimpleTypes, label: str = 'Number') -> 
             raise BetseNumericException(
                 '{} "{}" not positive.'.format(label.capitalize(), number))
 
-# ....................{ SUMMERS                            }....................
+# ....................{ SUMMERS                           }....................
 @type_check
 def sum_by_index(iterable: IterableTypes, subiterable_index: object) -> (
     NumericSimpleTypes):
@@ -52,14 +52,14 @@ def sum_by_index(iterable: IterableTypes, subiterable_index: object) -> (
     index of each subiterable of the passed iterable.
 
     Each number at the passed key or index of each subiterable of this iterable
-    is summed with the `+` operator, implicitly calling the `__sum__()`
+    is summed with the ``+`` operator, implicitly calling the ``__sum__()``
     special method of these numbers. The type of the resulting number is the
     widest type of these numbers. Specifically:
 
     * If any such number is a float, the returned number is also a float.
     * Else, the returned number is an integer.
 
-    For disambiguity, each number is ideally but _not_ necessarily of the same
+    For disambiguity, each number is ideally but *not* necessarily of the same
     numeric type: namely, either all integers or all floats.
 
     Parameters
@@ -68,11 +68,14 @@ def sum_by_index(iterable: IterableTypes, subiterable_index: object) -> (
         Iterable of subiterables to be summed.
     subiterable_index : object
         Object with which to index each subiterable of this iterable. The type
-        of this object _must_ be a type accepted by the `__getitem__()` special
-        method of each subiterable. Specifically, if each subiterable is a:
+        of this object _must_ be a type accepted by the ``__getitem__()``
+        special method of each subiterable. Specifically, if each subiterable
+        is a:
+
         * **Mapping** (e.g., :class:`dict`), this object _must_ be hashable.
         * **Sequence** (e.g., :class:`list`, :class:`tuple`), this object
-          _must_ be either:
+          *must* be either:
+
           * An integer.
           * A :func:`slice` object.
 

@@ -62,6 +62,9 @@ def die_unless_items_unique(iterable: IterableTypes) -> None:
     Raise an exception unless *all* items of the passed iterable are **unique**
     (i.e., no two distinct items are equal).
 
+    Equivalently, this function raises an exception if one or more items of the
+    passed iterable are duplicates and hence non-unique.
+
     Parameters
     ----------
     iterable: IterableTypes
@@ -70,7 +73,7 @@ def die_unless_items_unique(iterable: IterableTypes) -> None:
     Raises
     ----------
     BetseIterableException
-        If at least one item of this iterable is a duplicate.
+        If one or more items of this iterable are duplicates.
 
     See Also
     ----------
@@ -79,16 +82,33 @@ def die_unless_items_unique(iterable: IterableTypes) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.iterable import iterget
+    from betse.util.type.iterable import generators, iterget
+    from betse.util.type.text.string import strjoin
+
+    # Iterable to be tested.
+    #
+    # If this iterable is a generator, coerce this generator into a tuple
+    # *BEFORE* passing this generator to the is_items_unique() function, which
+    # would internally consume and hence reduce this generator to the empty
+    # generator, which would prevent the subsequent logic from detecting which
+    # duplicate items of the original generator.
+    iterable_testable = (
+        tuple(iterable) if generators.is_generator(iterable) else iterable)
 
     # If one or more items of this iterable are duplicates...
-    if not is_items_unique(iterable):
+    if not is_items_unique(iterable_testable):
         # Set of all such duplicates.
-        items_duplicate = iterget.get_items_duplicate(iterable)
+        items_duplicate = iterget.get_items_duplicate(iterable_testable)
+
+        # Human-readable conjunction of these duplicates, implicitly
+        # converting each item of this set to a string as needed.
+        items_duplicate_text = (
+            strjoin.join_iterable_as_conjunction_double_quoted(
+                items_duplicate))
 
         # Raise an exception embedding this set.
         raise BetseIterableException(
-            'Iterable items {} duplicate.'.format(items_duplicate))
+            'Iterable items non-unique: {}'.format(items_duplicate_text))
 
 # ....................{ TESTERS                           }....................
 @type_check

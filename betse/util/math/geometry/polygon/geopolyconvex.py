@@ -21,6 +21,7 @@ boundary remain strictly inside the polygon) functionality.
 #possibly be our first avenue of inquiry.
 
 # ....................{ IMPORTS                           }....................
+from betse.util.io.log import logs
 from betse.util.math.geometry import geopoint
 from betse.util.math.geometry.polygon import geopoly
 from betse.util.type.iterable import iterables
@@ -62,7 +63,6 @@ from betse.util.type.types import type_check, SequenceTypes
 #     pass
 
 # ....................{ CLIPPERS                          }....................
-#FIXME: Unit test us up.
 @type_check
 def clip(
     subject_polygon: SequenceTypes, clip_polygon: SequenceTypes,
@@ -121,8 +121,6 @@ def clip(
     return clip_counterclockwise(subject_polygon, clip_polygon)
 
 
-#FIXME: Optimize. At the least, the geopoint.is_left_of_vector() function
-#should be inlined; ideally, so should geopoint.intersect_lines()
 @type_check
 def clip_counterclockwise(
     subject_polygon: SequenceTypes, clip_polygon: SequenceTypes,
