@@ -62,7 +62,7 @@ class CationABC(ChannelsABC, metaclass=ABCMeta):
         self._init_state(V)
 
         self.ions = ['Na', 'K', 'Ca']
-        self.rel_perm = [self._PmNa, 1.0, self._PmCa]
+        self.rel_perm = [self._pmNa, 1.0, self._pmCa]
 
 
     def run(self, vm, p):
