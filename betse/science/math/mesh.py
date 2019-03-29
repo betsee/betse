@@ -1498,6 +1498,27 @@ class DECMesh(object):
 
         return lapS_inv
 
+    def line_lap(self, S, gtype='vor'):
+        """
+        Calculates a 1D laplacian along tangents of
+        the mesh edges.
+
+        :param S:
+        :param gtype:
+        :return:
+        """
+
+        # take the directional derivative of S:
+        gS = self.grad(S, gtype=gtype)
+
+        # map S to vertices of the lattice:
+        Sv = self.mids_to_verts(gS, gtype=gtype)
+
+        # take the directional derivative a second time:
+        lapS = self.grad(Sv, gtype=gtype)
+
+        return lapS
+
     def curl_z(self, Fz, gtype = 'tri'):
         '''
         Calculates the x, y coordinates of the curl of a quantity defined only in the z-direction.
