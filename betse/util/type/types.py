@@ -19,7 +19,7 @@ types.
 # and third-party packages.)
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import inspect, logging, pkg_resources, re
+import functools, inspect, logging, pkg_resources, re
 from argparse import ArgumentParser, _SubParsersAction
 from collections import deque
 from collections.abc import (
@@ -34,7 +34,6 @@ from collections.abc import (
     Sized,
 )
 from enum import Enum, EnumMeta
-from functools import partial, wraps  # @wraps is dynamically called below.
 from io import IOBase
 from inspect import Parameter, Signature
 from pkg_resources import Distribution
@@ -118,10 +117,10 @@ permitting callers to avoid importing that private class.
 '''
 
 # ....................{ TYPES ~ callable                  }....................
-CallablePartialType = partial
+CallablePartialType = functools.partial
 '''
 Type of all **partial callables** (i.e., callables dynamically produced by the
-function-like :class:`partial` class).
+function-like :class:`functools.partial` class).
 '''
 
 
@@ -931,7 +930,9 @@ Tuple of both the regular expression match object type *and* the type of the
 ``None`` singleton.
 '''
 
-# ....................{ SETS : private                    }....................
+# ....................{ PRIVATE ~ @type_check             }....................
+# Private global constants required by the @type_check decorator.
+
 #FIXME: Type-check variadic keyword arguments as well.
 _PARAMETER_KIND_IGNORED = {
     Parameter.POSITIONAL_ONLY, Parameter.VAR_KEYWORD,
@@ -988,8 +989,8 @@ if __debug__:
         * Tuples of classes (e.g., ``(int, OrderedDict)``).
 
         If optimizations are enabled by the active Python interpreter (e.g.,
-        due to option ``-O`` passed to this interpreter), this decorator reduces
-        to a noop.
+        due to option ``-O`` passed to this interpreter), this decorator
+        reduces to a noop.
 
         Raises
         ----------
@@ -997,18 +998,32 @@ if __debug__:
             If any parameter has the reserved name ``__beartype_func``.
         TypeError
             If either:
+
             * Any parameter or return value annotation is neither:
+
               * A type.
               * A tuple of types.
+
             * The kind of any parameter is unrecognized. This should *never*
               happen, assuming no significant changes to Python semantics.
         '''
 
+        # Human-readable name of this function for use in exceptions.
+        func_name = func.__name__ + '()'
+
+        # Machine-readable name of the type-checking function to be dynamically
+        # created and returned by this decorator. To efficiently (albeit
+        # non-perfectly) avoid clashes with existing attributes of the module
+        # defining this function, this name is mildly obfuscated while still
+        # preserving human-readability.
+        func_type_checked_name = '__{}_type_checked__'.format(func.__name__)
+
+        # "inspect.Signature" instance encapsulating this callable's signature.
+        func_sig = inspect.signature(func)
+
         # Raw string of Python statements comprising the body of this wrapper,
         # including (in order):
         #
-        # * A "@wraps" decorator propagating the name, docstring, and other
-        #   identifying metadata of the original function to this wrapper.
         # * A private "__beartype_func" parameter initialized to this function.
         #   In theory, the "func" parameter passed to this decorator should be
         #   accessible as a closure-style local in this wrapper. For unknown
@@ -1024,22 +1039,15 @@ if __debug__:
         #   callable.
         #
         # While there exist numerous alternatives (e.g., appending to a list or
-        # bytearray before joining the elements of that iterable into a string),
-        # these alternatives are either slower (as in the case of a list, due to
-        # the high up-front cost of list construction) or substantially more
-        # cumbersome (as in the case of a bytearray). Since string concatenation
-        # is heavily optimized by the official CPython interpreter, the simplest
-        # approach is (curiously) the most ideal.
+        # bytearray before joining the elements of that iterable into a
+        # string), these alternatives are either slower (as in the case of a
+        # list, due to the high up-front cost of list construction) or
+        # substantially more cumbersome (as in the case of a bytearray). Since
+        # string concatenation is heavily optimized by the official CPython
+        # interpreter, the simplest approach is (curiously) the most ideal.
         func_body = '''
-@wraps(__beartype_func)
-def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
-'''
-
-        # "inspect.Signature" instance encapsulating this callable's signature.
-        func_sig = inspect.signature(func)
-
-        # Human-readable name of this function for use in exceptions.
-        func_name = func.__name__ + '()'
+def {func_type_checked_name}(*args, __beartype_func=__beartype_func, **kwargs):
+'''.format(func_type_checked_name=func_type_checked_name)
 
         # For the name of each parameter passed to this callable and the
         # "inspect.Parameter" instance encapsulating this parameter (in the
@@ -1082,8 +1090,8 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
                 # passed as a keyword.
                 func_arg_value_key_expr = 'kwargs[{!r}]'.format(func_arg.name)
 
-                # Replace all classnames in this annotation by the corresponding
-                # classes.
+                # Replace all classnames in this annotation by the
+                # corresponding classes.
                 func_body += _get_code_replacing_annotation_by_types(
                     annotation=func_arg_annotation,
                     annotation_expr=func_arg_type_expr,
@@ -1201,6 +1209,30 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
         # copied from the current namespace. (See below.)
         local_attrs = {'__beartype_func': func}
 
+        #FIXME: Actually, we absolutely *DO* want to leverage the example
+        #documented below of leveraging the compile() builtin. We want to do so
+        #explicitly to pass something other than "<string>" here -- ideally,
+        #"func.__code__.co_filename", ensuring that this wrapper function
+        #shares the same absolute filename as that of the original function.
+        #Note that a similar example (also leveraging the exec() builtin, which
+        #frankly seems excessive) is also given by:
+        #    https://stackoverflow.com/a/42478041/2809027
+        #
+        #Failure to do so reduces tracebacks induced by exceptions raised by
+        #this wrapper to non-human-readability, which is less than ideal: e.g.,
+        #
+        #    ModuleNotFoundError: No module named 'betsee.util.widget.abc.guiwdgabc'
+        #
+        #    Traceback (most recent call last):
+        #      File "/home/leycec/py/betsee/betsee/gui/simconf/stack/widget/mixin/guisimconfwdgeditscalar.py", line 313, in _set_alias_to_widget_value_if_sim_conf_open
+        #        widget=self, value_old=self._widget_value_last)
+        #      File "<string>", line 25, in func_type_checked
+        #      File "/home/leycec/py/betsee/betsee/gui/simconf/stack/widget/mixin/guisimconfwdgeditscalar.py", line 409, in __init__
+        #        *args, widget=widget, synopsis=widget.undo_synopsis, **kwargs)
+        #      File "<string>", line 13, in func_type_checked
+        #
+        #Note the final traceback line, which is effectively useless.
+
         # Attempt to define this wrapper as a closure of this decorator. For
         # obscure and presumably uninteresting reasons, Python fails to locally
         # declare this closure when the locals() dictionary is passed; to
@@ -1233,9 +1265,24 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
             # Re-raise this exception.
             raise
 
-        # Return this wrapper.
-        return local_attrs['func_type_checked']
+        # This wrapper.
+        #
+        # Note that, as the above logic successfully compiled this wrapper,
+        # this dictionary is guaranteed to contain a key with this wrapper's
+        # name whose value is this wrapper. Ergo, no additional validation of
+        # the existence of this key or type of this wrapper need be performed.
+        func_type_checked = local_attrs[func_type_checked_name]
 
+        # Propagate identifying metadata (stored as special attributes) from
+        # the original function to this wrapper for debuggability, including:
+        #
+        # * "__name__", the unqualified name of this function.
+        # * "__doc__", the docstring of this function (if any).
+        # * "__module__", the fully-qualified name of this function's module.
+        functools.update_wrapper(wrapper=func_type_checked, wrapped=func)
+
+        # Return this wrapper.
+        return func_type_checked
 # Else, the active Python interpreter is optimized. In this case, disable type
 # checking by reducing this decorator to the identity decorator.
 else:
@@ -1271,7 +1318,7 @@ def _get_code_replacing_annotation_by_types(
         Annotation to be inspected, assumed to be either a class,
         fully-qualified classname, or tuple of classes and/or classnames. Since
         the previously called :func`_check_type_annotation` function already
-        validates this to be the case, this assumption is guaranteed to be safe.
+        validates this to be the case, this assumption is *always* safe.
     annotation_expr : str
         Python expression evaluating to the annotation to be replaced.
     annotation_label : str
@@ -1283,12 +1330,17 @@ def _get_code_replacing_annotation_by_types(
     assert isinstance(annotation_label, str), (
         '"{!r}" not a string.'.format(annotation_label))
 
-    #FIXME: Validate that all classnames are valid Python identifiers *BEFORE*
-    #generating code embedding these classnames. Sadly, doing so will require
-    #duplicating existing "betse.util.py.pyident" code.
+    #FIXME: Validate that all string classnames are valid Python identifiers
+    #*BEFORE* generating code embedding these classnames. Sadly, doing so will
+    #require duplicating existing "betse.util.py.pyident" code -- or, rather,
+    #usage of the "IDENTIFIER_QUALIFIED_REGEX" global in that submodule.
+    #
+    #Note that efficiency is *NOT* a concern here, as less than 1% of all
+    #parameter types to be validated will be specified as raw strings requiring
+    #validation by regular expression here. Make it so, in other words.
 
     # If this annotation is a classname...
-    if is_str(annotation):
+    if isinstance(annotation, str):
         # Import statement importing the module defining this class if any
         # (i.e., if this classname contains at least one ".") *OR* the empty
         # string otherwise (i.e., if this class is a builtin type requiring no
@@ -1306,7 +1358,8 @@ def _get_code_replacing_annotation_by_types(
             # Import statement importing this module.
             annotation_type_import_code = '''
         # Attempt to import this attribute from this module, implicitly
-        # raising a human-readable "ImportError" exception on failure.
+        # raising a human-readable "ImportError" or "ModuleNotFoundError"
+        # exception on failure.
         from {annotation_type_module_name} import {annotation_type_basename}
 '''.format(
                 annotation_type_module_name=annotation_type_module_name,
@@ -1321,8 +1374,8 @@ def _get_code_replacing_annotation_by_types(
         # Block of Python code to be returned.
         return '''
     # If this annotation is still a classname, this annotation has yet to be
-    # replaced by the corresponding class, implying this to be the first call to
-    # this callable. Perform this replacement in this call, preventing
+    # replaced by the corresponding class, implying this to be the first call
+    # to this callable. Perform this replacement in this call, preventing
     # subsequent calls to this callable from repeatedly doing so.
     if isinstance({annotation_expr}, str):
         {annotation_type_import_code}
@@ -1336,10 +1389,10 @@ def _get_code_replacing_annotation_by_types(
             is_str_valid=False,
         )
 
-        # Replace the external copy of this annotation stored in this function's
-        # signature by this class -- guaranteeing that subsequent access of this
-        # annotation via "__beartype_func.__annotations__" accesses this class
-        # rather than this classname.
+        # Replace the external copy of this annotation stored in this
+        # function's signature by this class -- guaranteeing that subsequent
+        # access of this annotation via "__beartype_func.__annotations__"
+        # accesses this class rather than this classname.
         {annotation_expr} = {annotation_type_basename}
 '''.format(
             annotation_expr=annotation_expr,
@@ -1353,11 +1406,11 @@ def _get_code_replacing_annotation_by_types(
         annotation_type_name_indices = tuple(
             subannotation_index
             for subannotation_index, subannotation in enumerate(annotation)
-            if is_str(subannotation)
+            if isinstance(subannotation, str)
         )
 
-        # If this annotation contains no classnames, this annotation requires no
-        # replacement at runtime. Return the empty string signifying a noop.
+        # If this annotation contains no classnames, this annotation requires
+        # no replacement at runtime. Return the empty string signifying a noop.
         if not annotation_type_name_indices:
             return ''
         # Else, this annotation contains one or more classnames...
@@ -1380,8 +1433,8 @@ def _get_code_replacing_annotation_by_types(
     # If the first classname in this annotation is still a classname, this
     # annotation has yet to be replaced by a tuple containing classes rather
     # than classnames, implying this to be the first call to this callable.
-    # Perform this replacement in this call, preventing subsequent calls to this
-    # callable from repeatedly doing so.
+    # Perform this replacement in this call, preventing subsequent calls to
+    # this callable from repeatedly doing so.
     if isinstance({subannotation_type_name_expr}, str):
         # List replacing all classnames in this tuple with the classes with
         # these classnames with which this tuple will be subsequently replaced.
@@ -1396,15 +1449,15 @@ def _get_code_replacing_annotation_by_types(
                 annotation_expr, subannotation_index)
 
             # If this member is a classname...
-            if is_str(subannotation):
+            if isinstance(subannotation, str):
                 # If this classname contains at least one "." delimiter...
                 #
                 # Note that the following logic is similar to but subtly
                 # different enough from similar logic above that the two cannot
-                # reasonably be unified into a general-purpose utility function.
+                # reasonably be unified into a general-purpose function.
                 if '.' in subannotation:
-                    # Fully-qualified module name and unqualified attribute basename
-                    # parsed from this classname. It is good.
+                    # Fully-qualified module name and unqualified attribute
+                    # basename parsed from this classname. It is good.
                     subannotation_type_module_name, \
                     subannotation_type_basename = (
                         subannotation.rsplit(sep='.', maxsplit=1))
@@ -1450,11 +1503,12 @@ def _get_code_replacing_annotation_by_types(
 
         # Block of Python code to be returned.
         annotation_replacement_code += '''
-        # Replace the external copy of this annotation stored in this function's
-        # signature by this list coerced back into a tuple for conformance with
-        # isinstance() constraints -- guaranteeing that subsequent access of
-        # this annotation via "__beartype_func.__annotations__" accesses this
-        # class rather than this classname.
+        # Replace the external copy of this annotation stored in this
+        # function's signature by this list coerced back into a tuple for
+        # conformance with isinstance() constraints -- guaranteeing that
+        # subsequent access of this annotation via
+        # "__beartype_func.__annotations__" accesses this class rather than
+        # this classname.
         {annotation_expr} = tuple(__beartype_func_annotation_list)
 
         # Nullify this list for safety.
@@ -1490,9 +1544,8 @@ def _check_type_annotation(
         Defaults to ``True``. If this boolean is:
 
         * ``True``, this annotation is valid if this annotation's value is
-          either a class, fully-qualified ``.``-delimited classname, or tuple of
-          classes and/or classnames.
-
+          either a class, fully-qualified ``.``-delimited classname, or tuple
+          of classes and/or classnames.
         * ``False``, this annotation is valid if this annotation's value is
           either a class or tuple of classes.
 
@@ -1500,6 +1553,7 @@ def _check_type_annotation(
     ----------
     TypeError
         If this annotation is none of the following:
+
         * A class.
         * A fully-qualified classname.
         * A tuple of classes and/or classnames.
@@ -1531,12 +1585,13 @@ def _check_type_annotation(
         # usually transitively rather than directly). Validating this module to
         # be importable and contain this attribute would necessitate importing
         # this module here. Since the @type_check decorator calling this
-        # function is typically invoked via the global scope of a source module,
-        # importing this target module here would be functionally equivalent to
-        # importing that target module from that source module -- triggering a
-        # circular import dependency in susceptible source modules. Ergo, that
-        # validation *MUST* be deferred to function call time.
-        elif not is_str(annotation):
+        # function is typically invoked via the global scope of a source
+        # module, importing this target module here would be functionally
+        # equivalent to importing that target module from that source module --
+        # triggering a circular import dependency in susceptible source
+        # modules. So, that validation *MUST* be deferred to function call
+        # time.
+        elif not isinstance(annotation, str):
             raise TypeError(
                 '{} {} unsupported (i.e., neither a class, '
                 'fully-qualified classname, nor '
@@ -1558,12 +1613,12 @@ def _check_type_annotation(
             '{} {} unsupported (i.e., neither a class nor '
             'tuple of classes).'.format(annotation_label, annotation))
 
-# ....................{ OBSOLETE                           }....................
+# ....................{ OBSOLETE                          }....................
 #FIXME: *ALL OF THE FOLLOWING FUNCTIONALITY SHOULD EVENTUALLY BE REMOVED.* The
 #@type_check decorator defined above provides a substantially superior
 #solution to this decidedly... unsavoury approach.
 
-# ....................{ TESTERS ~ class                    }....................
+# ....................{ TESTERS ~ class                   }....................
 def is_class(obj: object) -> bool:
     '''
     ``True`` only if the passed object is a class.

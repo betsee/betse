@@ -118,6 +118,12 @@ def die_unless_unqualified(*texts: str) -> None:
                 'valid unqualified Python identifier.'.format(text))
 
 # ....................{ TESTERS                           }....................
+#FIXME: The current implementation is rather unspecial. Instead, we should:
+#
+#* Create a new "_IDENTIFIER_SPECIAL_REGEX_COMPILED" global whose value is a
+#  compiled regular expression matching all syntactically valid special Python
+#  identifiers.
+#* Refactor this function to match the passed string against this global.
 @type_check
 def is_special(text: str) -> bool:
     '''
@@ -127,9 +133,9 @@ def is_special(text: str) -> bool:
 
     Caveats
     ----------
-    For efficiency, this function does *not* test whether this string is a
-    syntactically valid Python identifier – merely whether this string is a
-    special if this string is a syntactically valid Python identifier.
+    **This function does not test whether this string is a syntactically valid
+    Python identifier.** For efficiency, this function only tests whether this
+    string is special.
     '''
 
     return text.startswith('__') and text.endswith('__')
