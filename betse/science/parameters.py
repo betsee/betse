@@ -519,6 +519,7 @@ class Parameters(YamlFileABC):
         self.vol_env = volmult*self.wsx*self.wsy*self.cell_height  # environmental volume for "no ECM" simulation
 
         # Parameters for Lloyd's Voronoi mesh optimization settings during seed:
+        # FIXME need to be put into betse.science.compat:
         mesh_refine = self._conf['world options'].get('mesh refinement', None)
 
         if mesh_refine is not None:
@@ -528,10 +529,11 @@ class Parameters(YamlFileABC):
 
         else:
             self.refine_mesh = False
-            self.maximum_voronoi_steps = 20
-            self.voronoi_convergence = 1.0e-9
+            self.maximum_voronoi_steps = 10
+            self.voronoi_convergence = 2.5
 
         # Parameters for import of cell seed centers and clipping curve from user-defined svg files:
+        # FIXME need to be put into betse.science.compat:
         svg_import = self._conf['world options'].get('import from svg', None)
 
         if svg_import is not None:
@@ -547,6 +549,16 @@ class Parameters(YamlFileABC):
             self.svg_override = False
             self.svg_cells_fname = None
             self.svg_size = None
+
+        # simulate only a single cell # FIXME need to be put into betse.science.compat:
+        self.single_cell = self._conf['world options'].get('simulate single cell', False)
+
+        # define the alpha shape threshholds # FIXME need to be put into betse.science.compat:
+        self.alpha_shape = self._conf['world options'].get('alpha shape', 0.05)
+
+        # allow user to use geometric centers of mesh triangles or circumcenters:
+        # FIXME need to be put into betse.science.compat:
+        self.use_centroids = self._conf['world options'].get('use centers', False)
 
 
         #---------------------------------------------------------------------------------------------------------------

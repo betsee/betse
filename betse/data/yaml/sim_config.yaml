@@ -169,6 +169,8 @@ world options:
   cell spacing: 26.0e-9       # the spacing between cells [m]
                               # recommended 26.0e-9 m for animal cells
 
+  simulate single cell: False  # ignore all geometry and simulate a single hexagonal cell
+
 
   lattice type: hex           # Type of base cell lattice (i.e., uniform grid to
                               # which cells are situated before random lattice
@@ -184,13 +186,17 @@ world options:
 
   mesh refinement:                  # Use Llyod's algorithm to optimize the Voronoi mesh?
     refine mesh: True              # Turn optimization on? (Only works for Convex model shapes)
-    maximum steps: 25              # Maximum number of itterations (models typically converge in <30 steps)
-    convergence threshold: 10.0   # Threshhold above which optimization is considered complete (minimum of 5.0).
+    maximum steps: 10              # Maximum number of itterations (models typically converge in <30 steps)
+    convergence threshold: 2.5   # Threshhold above which optimization is considered complete (minimum of 5.0).
 
   import from svg:  # Import individual cell centres and clipping curve from an svg file
     svg override: False  # Turn to True to enable imports from SVG files
     cells from svg: geo/root/root_cells.svg # read in exact cell centre locations from 'circles' in svg file
     svg size: 500  # size of the svg page area in mm
+
+  alpha shape: 0.05    # alpha shape threshhold (used for working with non-convex shapes) 0.0 to 0.9
+  use centers: False  # use cell centroids instead of circumcentres when building meshes?
+
 
 #---------------------------------------------------------------------------------------------------
 # TISSUE PROFILE DESIGNATION
@@ -1132,4 +1138,4 @@ internal parameters:
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.
-version: "0.7.0"
+version: "0.9.3"

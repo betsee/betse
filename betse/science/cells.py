@@ -11,14 +11,12 @@ from scipy import interpolate as interp
 from scipy import ndimage
 from scipy.spatial import Voronoi, cKDTree
 from betse.exceptions import BetseSequenceException, BetseSimConfException
-from betse.lib import libs
-from betse.lib.numpy import nparray
 from betse.science import filehandling as fh
 from betse.science.enum.enumconf import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
 from betse.util.math.geometry.polygon.geopolyconvex import clip_counterclockwise
-from betse.util.math.geometry.polygon.geopoly import orient_counterclockwise
+from betse.util.math.geometry.polygon.geopoly import orient_counterclockwise, is_convex
 from betse.science.phase.phasecls import SimPhase
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import property_cached
@@ -27,6 +25,8 @@ from betse.util.type.types import (
     type_check, NumericOrSequenceTypes, SequenceTypes)
 from betse.lib.numpy import nparray
 from betse.util.type.text import regexes
+from betse.science.tissue.picker.tispickimage import TissuePickerImage
+from betse.science.math.mesh import DECMesh
 
 # ....................{ CLASSES                           }....................
 #FIXME: Create a new option for seed points: Fibonacci radial-spiral array.
@@ -440,22 +440,22 @@ class Cells(object):
 
 
         # Define the initial seed point collection:
-        seed_points_o = np.vstack((self.clust_xy, self.bbox))
+        # seed_points_o = np.vstack((self.clust_xy, self.bbox))
         # seed_points_o = np.vstack((self.clust_xy))
 
         # Create the initial Voronoi diagram after making the initial seed
         # points of the cell lattice.
-        self._make_voronoi(seed_points_o, phase)
+        self._make_voronoi(phase)
 
         # Clean the Voronoi diagram of empty data structures.
-        self._clean_voronoi(phase.p)
+        # self._clean_voronoi(phase.p)
 
         # Calculate the centroids of all Voronoi cells.
         self.cell_index(phase.p)
 
         # If optionally refining the Voronoi mesh, do so.
-        if phase.p.refine_mesh:
-            self._refine_voronoi(phase)
+        # if phase.p.refine_mesh:
+        #     self._refine_voronoi(phase)
 
         # Notify the sink callback of the current state of progress.
         phase.callbacks.progressed_next(
@@ -473,8 +473,6 @@ class Cells(object):
 
         # Calculate the volume of each cell and its internal regions.
         self.cell_vols(phase.p)
-        # self.cellDivM(p)    # create matrix to invert divergence
-        # self.memLaplacian()   # creates an inverse matrix to calculate voltage on individual membranes
 
         # Calculate membrane nearest neighbours, ECM interaction, boundary
         # tags, and so forth.
@@ -482,7 +480,7 @@ class Cells(object):
 
         # Calculate the nearest neighbour array for each cell.
         self.near_neigh(phase.p)
-        self.voronoiGrid(phase.p)
+        # self.voronoiGrid(phase.p)
 
         # Notify the sink callback of the current state of progress.
         phase.callbacks.progressed_next(
@@ -513,32 +511,6 @@ class Cells(object):
         bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
         _, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
 
-        #FIXME: Do we still want this? If not, let's consider removing this. Two
-        #pounds of flax!
-
-        # if p.is_ecm:
-            # logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
-            # self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
-
-            # logs.log_info('Creating environmental Poisson solver for voltage...')
-            # bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
-            # self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
-            # self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
-
-            # logs.log_info('Creating environmental Poisson solver for currents...')
-            # bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
-            # self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
-            #
-            # self.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
-
-            # logs.log_info('Creating environmental Screened Poisson Equation solver...')
-            # self.lapENVScreen, self.lapENVScreen_inv = self.grid_obj.makeScreenedLaplacian(ko = 1.0e9)
-
-            # logs.log_info('Creating finite volume grid integrator...')
-            # self.gridInt = self.grid_obj.makeIntegrator()
-        # else:
-        #     self.is_ecm = False
-
         # Set all Laplacian matrices to "None" to allow for flexible creation
         # of Laplacians and inverses on the cell grid (i.e., two boundary
         # conditions sets).
@@ -546,9 +518,6 @@ class Cells(object):
         self.lapGJ_P_inv = None
         self.lapGJ = None
         self.lapGJ_P = None
-
-        # Lapalcian inverses on the env grid
-        # self.lapENVinv = None
 
         # Other matrices.
         self.M_sum_mem_to_ecm = None   # used for deformation
@@ -884,7 +853,7 @@ class Cells(object):
 
 
     @type_check
-    def _make_voronoi(self, seed_points, phase: SimPhase) -> None:
+    def _make_voronoi(self, phase: SimPhase) -> None:
         '''
         Calculate, close, and clip the Voronoi diagram from the cell lattice
         previously created by the :func:`_make_cell_lattice` method.
@@ -944,296 +913,78 @@ class Cells(object):
         # user-defined image file.
         image_mask = image_picker.get_image_mask(cells=self)
 
-        # define the Voronoi diagram from the seed points:
-        vor = Voronoi(seed_points)
+        #FIXME: Let's refactor "DECMesh" to use "CellLatticeType" directly.
 
-        # round the x,y values of the vertices so that duplicates aren't formed when we use search algorithms later:
-        vor.vertices = np.round(vor.vertices,6)
+        # Dictionary mapping from cell lattice enumeration members to
+        # corresponding low-level DEC-specific strings.
+        lattice_to_mesh_type = {
+            CellLatticeType.HEX:    'tri',
+            CellLatticeType.SQUARE: 'rect',
+        }
 
-        # calculate the centre of the diagram
-        cluster_center = vor.points.mean(axis=0)
+        if phase.p.single_cell: # if simulating only a single cell:
 
-        # complete the Voronoi diagram by adding in undefined vertices to ridges and regions
-        i = -1   # enumeration index
+            self.mesh = DECMesh(cell_radius=phase.p.cell_radius,
+                                seed_points=None,
+                                use_alpha_shape=False,
+                                allow_merging=False,
+                                single_cell_noise=0.1,
+                                single_cell_sides=6,
+                                image_mask=None,
+                                mesh_type=lattice_to_mesh_type[phase.p.cell_lattice_type])
 
-        for pnt_indx, vor_edge in zip(vor.ridge_points, vor.ridge_vertices):
-            vor_edge = np.asarray(vor_edge)
+            self.mesh.init_mesh()
 
-            i = i+1 # update the count-through index
 
-            if np.any(vor_edge == -1): # if either of the two ridge values are undefined (-1)
+        else: # otherwise, create a whole mesh of cells:
 
-                # find the ridge vertice that's not equal to -1
-                new_edge = vor_edge[vor_edge != -1][0]
+            if phase.p.svg_override: # If using an svg file, make the mesh directly from the points:
 
-                # calculate the tangent of two seed points sharing that ridge
-                tang = vor.points[pnt_indx[1]] - vor.points[pnt_indx[0]]
-                tang /= np.linalg.norm(tang)  # make the tangent a unit vector
-                norml = np.array([-tang[1], tang[0]])  # calculate the normal of the two points sharing the ridge
+                self.mesh = DECMesh(cell_radius = None,
+                         seed_points=self.clust_xy,
+                         alpha_shape = phase.p.alpha_shape,
+                         use_centroids = phase.p.use_centroids,
+                         use_alpha_shape = True,
+                         single_cell_noise = 0.5,
+                         single_cell_sides = 6,
+                         image_mask = None,
+                         allow_merging = True,
+                         merge_thresh = 0.2,
+                         mesh_type = lattice_to_mesh_type[phase.p.cell_lattice_type])
 
-                # calculate the midpoint between the two points of the ridge
-                midpoint = vor.points[pnt_indx].mean(axis=0)
-                # now there's enough information to calculate the missing direction and location of missing point
-                direction = np.sign(np.dot(midpoint - cluster_center, norml)) * norml
-                #far_point = self.vor.vertices[new_edge] + direction * self.cluster_axis.max()
-                far_point = vor.vertices[new_edge] + direction * phase.p.d_cell
+            else: # Otherwise, make and clip a point cloud to the base shape:
+                # Initialize the Discrete Exterior Calculus (DEC) mesh object:
+                self.mesh = DECMesh(
+                    cell_radius=phase.p.cell_radius,
+                    seed_points=self.clust_xy,
+                    alpha_shape=phase.p.alpha_shape,
+                    use_centroids=phase.p.use_centroids,
+                    use_alpha_shape=True,
+                    single_cell_noise=0.5,
+                    single_cell_sides=6,
+                    image_mask=None,
+                    allow_merging=True,
+                    merge_thresh=0.1,
+                    close_thresh=0.1,
+                    mesh_type=lattice_to_mesh_type[phase.p.cell_lattice_type],
+                )
 
-                # get the current size of the voronoi vertices array, this will be the n+1 index after adding point
-                vor_ind = vor.vertices.shape[0]
+                # mesh refinement:
+                self.mesh.clip_and_refine(image_mask, smoothing=None, refinement=phase.p.refine_mesh,
+                                     max_steps=phase.p.maximum_voronoi_steps,
+                                     convergence=phase.p.voronoi_convergence,
+                                     fix_bounds=True)
 
-                vor.vertices = np.vstack((vor.vertices,far_point)) # add the new point to the vertices array
-                vor.ridge_vertices[i] = [new_edge,vor_ind]  # add the new index at the right spot
-
-                for j, region in enumerate(vor.regions):    # step through each polygon region
-
-                    if len(region):
-
-                        if -1 in region and new_edge in region:  # if the region has edge of interest...
-                            a = region.index(-1)              # find index in the region that is undefined (-1)
-                            vor.regions[j][a] = vor_ind # add in the new vertex index to the appropriate region
-
-                        verts = vor.vertices[region]   # get the vertices for this region
-                        region = np.asarray(region)      # convert region to a numpy array so it can be sorted
-
-                        cent = verts.mean(axis=0)     # calculate the centre point
-                        angles = np.arctan2(verts[:,1]-cent[1], verts[:,0] - cent[0])  # calculate point angles
-                        #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
-                        sorted_region = region[np.argsort(angles)]   # sort indices counter-clockwise
-                        sorted_region_b = sorted_region.tolist()
-                        vor.regions[j] = sorted_region_b   # add sorted list to the regions structure
 
         # Clip the Voronoi cluster to the shape of the clipping bitmap -------------------------------------------------
-        self.ecm_verts = [] # voronoi verts of clipped cluster
+        self.ecm_verts = self.mesh.vcell_verts # voronoi verts of clipped cluster, nested as polygons defining each cell
 
-        self.voronoi_verts = []  # track all voronoi cells, even those not in cluster (used as grid for masking)
-
-
-        for poly_ind in vor.regions:  # step through the regions of the voronoi diagram
-
-            if len(poly_ind) >= 3:
-                cell_poly = vor.vertices[poly_ind]
-                cell_polya = cell_poly.tolist()
-                point_check = np.zeros(len(cell_poly))
-
-                for i, pnt in enumerate(cell_poly):
-
-                    point_val = image_mask.clipping_function(pnt[0], pnt[1])
-
-                    if point_val != 0.0:
-                        point_check[i] = 1.0
-
-                if point_check.sum() <= 1.0e-15:  # if all points are outside of the clipping zone
-
-                    self.voronoi_verts.append(cell_polya)  # Append the whole cell poly to the list
-
-                elif point_check.sum() == len(cell_poly):  # if all points are all inside the clipping zone
-
-                    self.ecm_verts.append(np.array(cell_polya))
-                    self.voronoi_verts.append(cell_polya)
-
-                elif point_check.sum() > 0.0 and point_check.sum() < len(
-                        cell_poly):  # the region's points are in the clipping func range
-
-                    clip_poly = clip_counterclockwise(
-                        cell_poly, image_mask.clipcurve)
-
-                    if len(clip_poly):
-
-                        # For inside voronoi cell: augment old_poly_pts with keeper_pts
-                        old_poly_pts, new_poly_pts = self.search_point_cloud(clip_poly, cell_poly)
-
-                        throw_away_pts, keeper_pts = self.search_point_cloud(new_poly_pts, image_mask.clipcurve)
-
-                        # For outside voronoi cell: augment outside_cell_b with keeper_pts
-                        outside_cell_a, outside_cell_b = self.search_point_cloud(cell_poly, clip_poly)
-
-                        #                     print(len(old_poly_pts), len(keeper_pts), len(outside_cell_b))
-                        #                     print('----')
-
-                        if len(keeper_pts) == 0:
-
-                            out_stack = []
-                            in_stack = old_poly_pts * 1
-
-                        else:
-
-                            out_stack = np.vstack((outside_cell_b, keeper_pts))
-                            in_stack = np.vstack((old_poly_pts, keeper_pts))
-
-                        if len(out_stack) >= 3:
-                            out_vor_cell = orient_counterclockwise(out_stack)
-                            self.voronoi_verts.append(out_vor_cell)
-
-                        if len(in_stack) >= 3:
-                            in_vor_cell = orient_counterclockwise(in_stack)
-                            self.ecm_verts.append(in_vor_cell)
-                            self.voronoi_verts.append(in_vor_cell)
-
-                    else:  # else if the clip_poly is empty:
-
-                        self.voronoi_verts.append(cell_polya)  # Append the whole cell poly to the list
-
-
-                else:
-
-                    self.voronoi_verts.append(cell_polya)  # Append the whole cell poly to the list
+        # self.voronoi_verts = []  # track all voronoi cells, even those not in cluster (used as grid for masking)
 
         self.cluster_mask = image_mask.clipping_matrix  # keep track of cluster mask and its size
         self.msize = image_mask.msize
 
-        # next obtain the set of *unique* vertex points from the total ecm_verts arrangement:
-        ecm_verts_flat,_,_ = tb.flatten(self.ecm_verts)
-
-        ecm_verts_set = set()
-
-        for vert in ecm_verts_flat:
-            ptx = vert[0]
-            pty = vert[1]
-            ecm_verts_set.add((ptx,pty))
-
-        self.ecm_verts_unique = [
-            list(ecm_verts) for ecm_verts in list(ecm_verts_set)]
-        self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
-
-
-    def search_point_cloud(self, pts, pt_cloud):
-
-        if len(pts) == 0:
-
-            matched_pts = []
-            unmatched_pts = []
-
-        elif len(pt_cloud) == 0:
-
-            matched_pts = []
-            unmatched_pts = []
-
-        else:
-
-            search_M = 99 * np.ones((len(pts), len(pt_cloud)))
-
-            pts_inds = np.asarray([i for i, cc in enumerate(pts)])
-
-            for i, pt in enumerate(pts):
-
-                for j, ptc in enumerate(pt_cloud):
-
-                    dist = np.sqrt((pt[0] - ptc[0]) ** 2 + (pt[1] - ptc[1]) ** 2)
-
-                    if dist < 1.0e-15:
-
-                        search_M[i, j] = 1.0
-
-                    else:
-
-                        search_M[i, j] = 0.0
-
-            matched_inds, matched_inds_cloud = (search_M == 1).nonzero()
-
-            unmatched_inds = np.setdiff1d(pts_inds, matched_inds)
-
-            matched_pts = pts[matched_inds]
-            unmatched_pts = pts[unmatched_inds]
-
-        return matched_pts, unmatched_pts
-
-    def mesh_quality_calc(self):
-
-        edge_lengths = []
-
-        for verto in self.ecm_verts:
-            verto = np.asarray(verto)
-            verti = np.roll(verto, 1, axis=0)
-            e_len = np.sqrt((verti[:, 0] - verto[:, 0]) ** 2 + (verti[:, 1] - verto[:, 1]) ** 2)
-            edge_lengths.extend(e_len)
-
-        edge_lengths = np.asarray(edge_lengths)
-        mean_edge = edge_lengths.mean()
-
-        edge_qual = (edge_lengths / mean_edge) * 100
-        mesh_qual_metric = edge_qual.min()
-
-        return mesh_qual_metric
-
-    def _clean_voronoi(self, p) -> None:
-        """
-        Removes empty data structures from the Voronoi object
-        and defines a set of unique ecm vertices.
-        """
-
-
-        #-----clipping out redundant points--------------------------------------------------------
-        ecm_verts_2 = []
-        #
-        for poly in self.ecm_verts:  # step through each closed and clipped region of the Voronoi
-            hold_verts = []
-
-            for i, vert in enumerate(poly):
-
-                xo = poly[i - 1][0]
-                yo = poly[i - 1][1]
-                x1 = vert[0]
-                y1 = vert[1]
-
-                length = math.sqrt((x1 - xo) ** 2 + (y1 - yo) ** 2)
-
-                if length > 0.0:
-                    hold_verts.append(poly[i - 1])
-
-            ecm_verts_2.append(hold_verts)
-
-        self.ecm_verts = ecm_verts_2
-
-        #--------------------------------------------------------------------------------------------------------
-
-        # next redefine the set of unique vertex points from ecm_verts arrangement
-        ecm_verts_flat, _, _ = tb.flatten(self.ecm_verts)
-
-        ecm_verts_set = set()
-
-        for vert in ecm_verts_flat:
-            ptx = vert[0]
-            pty = vert[1]
-            ecm_verts_set.add((ptx, pty))
-
-        self.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
-
-        self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
-
-    def _refine_voronoi(self, phase):
-
-        p = phase.p
-
-        logs.log_info("Initializing Voronoi mesh optimization...")
-
-        # optimization vector:
-        opti_steps = np.arange(p.maximum_voronoi_steps)
-
-        seed_points2 = np.vstack((self.cell_centres, self.bbox))
-        # convergence = np.ones(len(seed_points2))
-
-        mesh_qual_metric = self.mesh_quality_calc()
-
-        for i in opti_steps:
-
-            if mesh_qual_metric < p.voronoi_convergence:
-                self.clust_xy = seed_points2 * 1
-                self._make_voronoi(seed_points2, phase)
-                self._clean_voronoi(p)
-                self.cell_index(p)
-
-                seed_points2 = np.vstack((self.cell_centres, self.bbox))
-
-                mesh_qual_metric = self.mesh_quality_calc()
-
-                conv_mess = "Step {}: mesh quality {}".format(i, mesh_qual_metric)
-                logs.log_info(conv_mess)
-
-            else:
-                logs.log_info("Convergence condition met for Voronoi mesh optimization.")
-                final_mess = "Final mesh quality {}".format(mesh_qual_metric)
-                logs.log_info(final_mess)
-                break
+        self.ecm_verts_unique = self.mesh.vor_verts  # convert to numpy array
 
     def cell_index(self, p) -> None:
         '''
@@ -1246,31 +997,9 @@ class Cells(object):
         extracellular matrix (ECM)-driven polygons and segments.
         '''
 
-        cell_centres = []
-        cell_vol = []
+        self.cell_centres = self.mesh.vor_cents
 
-        for polypts in self.ecm_verts:
-
-            cx, cy = tb.poly_centroid(polypts)
-            aa = tb.area(polypts)
-
-            cell_centres.append([cx,cy])
-            cell_vol.append(aa*p.cell_height)
-
-        self.cell_centres = np.asarray(cell_centres)
-
-        self.cell_vol = np.asarray(cell_vol)
-
-
-
-        # self.cell_centres = np.array([0,0])
-        #
-        # for poly in self.ecm_verts:
-        #     aa = np.asarray(poly)
-        #     aa = np.mean(aa,axis=0)
-        #     self.cell_centres = np.vstack((self.cell_centres,aa))
-        #
-        # self.cell_centres = np.delete(self.cell_centres, 0, 0)
+        self.cell_vol = self.mesh.vor_sa*p.cell_height
 
     def cellVerts(self,p):
         """
@@ -1297,20 +1026,6 @@ class Cells(object):
         The Voronoi diagram returns a connected graph. For this simulation, each cell needs unique vertices and edges.
         This method takes the vertices of the original diagram and scales them in to make unique cells.
         """
-
-        # Voronoi mesh refinement works by calculating cell centroids and using those as seeds in the next
-        # itteration of Voronoi graph preparation. However, Discrete Exterior Calculus requires cell centres
-        # to be the Voronoi seeds. Therefore, redefine cell_centers in terms of the last clust_xy values.
-        # Sort the seed_fills to the new indexing of cell_centres:=
-        cellTree = cKDTree(self.clust_xy)  # search tree from clust_xy points
-        _, celli = cellTree.query(self.cell_centres)  # indices of clust_xy corresponding to cell_centres
-        self.tri_verts = self.clust_xy[celli] # get the vertices in the cluster corresponding to Voronoi seed points
-
-        if p.svg_override: # if we're defining cells from an svg file:
-            self.seed_fills = self.seed_fills[celli] # sort the seed_fills to match cell_centres organization
-
-        else:
-            self.seed_fills = None # else set this quantity to None by default
 
         self.gj_len = p.cell_space      # distance between gap junction (as "pipe length")
 
@@ -1467,7 +1182,6 @@ class Cells(object):
 
         #----------------------------------------------------------------------
         # Construct an array indexing vertices of the membrane vertices array.
-
         cellVertTree = cKDTree(self.mem_verts)
 
         self.index_to_mem_verts = []
@@ -2226,6 +1940,38 @@ class Cells(object):
         self.lapGJ = lapGJ
         self.lapGJ_P = lapGJ_P
 
+
+        # #----DEC matrix creation
+        # # Hodge star for edge length ratios:
+        # star_eij = np.diag(self.mesh.vor_edge_len/self.mesh.tri_edge_len)
+        #
+        # # First term in the laplacian matrix:
+        # L1 = np.dot(star_eij, self.mesh.delta_tri_0)
+        #
+        # star_a = np.diag(1/self.mesh.vor_sa)
+        #
+        # L2 = np.dot(star_a, -self.mesh.delta_tri_0.T)
+        #
+        # # Inverse terms:
+        # # Hodge star for edge length ratios:
+        # star_eij_inv = np.diag(self.mesh.tri_edge_len/self.mesh.vor_edge_len)
+        #
+        # # First term in the laplacian matrix:
+        # L1_inv = np.dot(self.mesh.delta_tri_0_inv, star_eij_inv)
+        #
+        # star_a_inv = np.diag(self.mesh.vor_sa)
+        #
+        # L2_inv = np.dot(-self.mesh.delta_tri_0_inv.T, star_a_inv)
+        #
+        #
+        # self.lapGJinv = np.dot(L1_inv, L2_inv)
+        # self.lapGJ_P_inv = np.dot(L1_inv, L2_inv) # FIXME this is not the correct boundary condition!
+        #
+        # # if p.td_deform is True:
+        # #     # if time0dependent deformation is selected, also save the direct Laplacian operator:
+        # self.lapGJ = np.dot(L2, L1)
+        # self.lapGJ_P = np.dot(L2, L1) # FIXME This is not correct boundary condition!
+
         # weighting function for the voronoi lattice:
         self.geom_weight = np.dot(self.M_sum_mems, self.mem_sa / self.mem_vol) * p.cell_height
 
@@ -2272,79 +2018,6 @@ class Cells(object):
 
         # calculate the inverse of the divergence matrix:
         self.divCell_inv = np.linalg.pinv(divCell)
-
-    def maxwellCapMatrix(self, p):
-        """
-        This method defines the Maxwell Capacitance matrix
-        for the collection of cells with their structured
-        Voronoi lattice.
-
-        Each cell and respective extracellular space are
-        considered to be conductors separated by the insulating
-        region of the cell membrane.
-
-        Each cell interacts with its N nearest ecm spaces.
-        Likewise, each ecm space interacts with two neighbouring cells,
-        or if the ecm space is on an external boundary, with one
-        neighbouring cell.
-
-        The Maxwell Capacitance matrix is created by solving for the
-        charge in each cell or ecm space, given the voltages of the space
-        and the capacitive connections between spaces. The matrix is
-        then inverted, so that we can use it to solve for voltages
-        knowing charges.
-
-        """
-
-        envLen = self.envInds_inClust
-
-        data_length = len(self.mem_i) + len(envLen)
-        # define ranges within the total data length where we can
-        # work with cell centres or ecm mids specifically:
-        self.mem_range_a = 0
-        self.mem_range_b = len(self.mem_i)
-        self.env_range_a = self.mem_range_b
-        self.env_range_b = len(envLen) + len(self.mem_i)
-
-        M_max_cap = np.zeros((data_length, data_length))
-
-        # first do cells -- where index of Maxwell vector is equal to cell index
-        for mem_i in range(self.mem_range_a, self.mem_range_b):
-            cm_mem = p.cm * self.mem_sa[mem_i]  # capacitance for cell diagonal term
-            cs_mem = p.electrolyte_screening * self.mem_sa[mem_i]  # calculate self-capacitance
-
-            # get the raw env spaces for each membrane in Max Cap matrix index format:
-            raw_env_i = self.map_mem2ecm[mem_i]
-
-            # get the index of the environnmental square:
-            env_i_o = int((self.envInds_inClust == raw_env_i).nonzero()[0])
-
-            # convert the index to the Max Cap indexing format:
-            env_i = env_i_o + len(self.mem_i)
-
-            # set the diagonal element for cells:
-            M_max_cap[mem_i, mem_i] = cm_mem + cs_mem  # membrane plus self-capacitance
-
-            # set the off-diagonal elements for cells:
-            M_max_cap[mem_i, env_i] = - cm_mem
-
-        # next do ecm spaces -- index of maxwell vector equal to ecm index - len(cell_i)
-        for env_i in range(self.env_range_a, self.env_range_b):
-            env_i_o = env_i - len(self.mem_i)  # get the ecm index wrt to the envInds_inClust
-
-            raw_env_i = self.envInds_inClust[env_i_o]  # get the env index wrt to the Env Grid
-
-            mem_set = self.map_ecm2mem[raw_env_i]  # get the set of mem inds corresponding to each ecm space
-
-            cm_set = p.cm * self.mem_sa[mem_set]  # get the capacitance of the individual membranes
-            cs_set = p.electrolyte_screening * self.mem_sa[mem_set]  # get the self-capacitance of the ecm spaces
-
-            M_max_cap[env_i, env_i] = cm_set.sum() + cs_set.sum()  # plus self capacitance
-            M_max_cap[env_i, mem_set] = -cm_set
-
-        # get the inverse of the matrix:
-        self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
-        # self.M_max_cap = M_max_cap
 
     @type_check
     def redo_gj(self, phase: SimPhase) -> None:
@@ -2450,11 +2123,7 @@ class Cells(object):
             pt1_mem = self.mem_mids_flat[mem_i]
             pt2_mem = self.mem_mids_flat[mem_j]
 
-            # pt1_cell = self.tri_verts[cell_i]  # FIXME change these back
-            # pt2_cell = self.tri_verts[cell_j]
-
-
-            pt1_cell = self.cell_centres[cell_i]  # FIXME change these back
+            pt1_cell = self.cell_centres[cell_i]
             pt2_cell = self.cell_centres[cell_j]
 
             tang_o = pt2_mem - pt1_mem
@@ -2510,10 +2179,7 @@ class Cells(object):
 
         for cell_i, cell_j in self.cell_nn_i:
 
-            # pt1 = self.tri_verts[cell_i] # FIXME change these back
-            # pt2 = self.tri_verts[cell_j]
-
-            pt1 = self.cell_centres[cell_i] # FIXME change these back
+            pt1 = self.cell_centres[cell_i]
             pt2 = self.cell_centres[cell_j]
 
             tang_o = pt2 - pt1
@@ -2566,70 +2232,16 @@ class Cells(object):
         datadump = [self, phase.p]
         fh.saveSim(phase.p.seed_pickle_filename, datadump)
 
-    def voronoiGrid(self, p) -> None:
-        """
-        Creates a set of unique, flat points corresponding to cells in the
-        cluster in addition to "ghost" points of cell centres present in the
-        original Voronoi diagram but removed due to cluster shape.
-        """
-
-        # first process voronoi_verts to clip out structures larger than the desired size:
-        voronoi_verts = []
-
-        for verts in self.voronoi_verts:
-            verts_clip = clip_counterclockwise(verts, self.bbox)
-            voronoi_verts.append(verts_clip)
-
-
-        self.voronoi_verts = np.asarray(voronoi_verts)
-
-
-        #----------------------------------------------
-        voronoi_grid = set()
-
-        for verts in self.voronoi_verts:
-            for v in verts:
-                voronoi_grid.add((v[0],v[1]))
-
-        voronoi_grid = [list(x) for x in voronoi_grid]
-        self.voronoi_grid = np.asarray(voronoi_grid)
-
-        # Create cell centres for the whole voronoi grid:
-        self.voronoi_centres = np.array([0,0])
-        # self.voronoi_centres = []
-
-        for poly in self.voronoi_verts:
-            aa = np.asarray(poly)
-
-            # Center point of this Voronoi region, defined as a 2-element array
-            # whose first and second elements are the X and Y coordinates of
-            # this center point.
-            if len(aa):
-                aa = np.mean(aa,axis=0)
-
-                #FIXME: Inefficient. Consider optimizing by redefining
-                #"self.voronoi_centres = []", appending to that list here, and then
-                #converting that list to a proper Numpy array below.
-
-                # Append this center point to this array of these points.
-                self.voronoi_centres = np.vstack((self.voronoi_centres,aa))
-
-        self.voronoi_centres = np.delete(self.voronoi_centres, 0, 0)
-
-        # define a mapping between the voronoi cell centres and the cluster cell centres:
-        vertTree = cKDTree(self.voronoi_centres)
-        _, self.cell_to_grid = vertTree.query(self.cell_centres)
-
     def make_maskM(self,p):
         """
         Create structures for plotting interpolated data on cell centres
         and differentiating between the cell cluster and environment.
         """
 
-        voronoiTree = cKDTree(self.voronoi_grid)
+        voronoiTree = cKDTree(self.xypts)
         _, self.map_voronoi2ecm = voronoiTree.query(self.ecm_verts_unique)
 
-        self.voronoi_mask = np.zeros(len(self.voronoi_grid))
+        self.voronoi_mask = np.zeros(len(self.xypts))
         self.voronoi_mask[self.map_voronoi2ecm]=1
 
         xv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
@@ -2641,7 +2253,7 @@ class Cells(object):
         self.Ygrid = Y
 
         self.maskM = interp.griddata(
-            (self.voronoi_grid[:,0],self.voronoi_grid[:,1]),
+            (self.xypts[:,0],self.xypts[:,1]),
             self.voronoi_mask,(self.Xgrid,self.Ygrid),
             method='linear',fill_value=0)
 
@@ -2658,23 +2270,10 @@ class Cells(object):
         self.inds_env = list(*(self.maskECM.ravel() == 0).nonzero())
         self.inds_clust = list(*(self.maskECM.ravel() == 1).nonzero())
 
-    def quick_maskM(self,p):
+        self.voronoi_centres = self.xypts
 
-        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),self.voronoi_mask,
-                                     (self.Xgrid,self.Ygrid),method='linear',fill_value=0)
-
-        self.maskM = ndimage.filters.gaussian_filter(self.maskM, 2, mode='nearest')
-        self.maskM = np.round(self.maskM,0)
-
-
-        maskECM = interp.griddata((self.Xgrid.ravel(),self.Ygrid.ravel()),self.maskM.ravel(), (self.X, self.Y),
-                                  method='linear',fill_value=0)
-        maskECM = ndimage.filters.gaussian_filter(maskECM, 2, mode='nearest')
-        maskECM = np.round(maskECM,0)
-
-        self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
-
-        self.inds_clust = list(*(self.maskECM.ravel() == 1).nonzero())
+        vertTree = cKDTree(self.voronoi_centres)
+        _, self.cell_to_grid = vertTree.query(self.cell_centres)
 
     def intra_updater(self,p):
         """
@@ -3036,12 +2635,6 @@ class Cells(object):
         Fy = fyo - gPy
 
         Fn = Fx*self.cell_vects_flat[:,2] + Fy*self.cell_vects_flat[:,3]
-
-        # # assign the boundary condition:
-        # Fn[self.bflags_mems] = bc
-
-        # Fx = Fn * self.mem_vects_flat[:, 2]
-        # Fy = Fn * self.mem_vects_flat[:, 3]
 
 
         # calculate the net displacement of cell centres under the applied force under incompressible conditions:

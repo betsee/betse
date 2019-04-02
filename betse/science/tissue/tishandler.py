@@ -1159,7 +1159,7 @@ class TissueHandler(object):
         cells.cell_vols(p)  # calculate the volume of cell and its internal regions
         cells.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
         cells.near_neigh(p)  # Calculate the nn array for each cell
-        cells.voronoiGrid(p)
+        # cells.voronoiGrid(p)
         cells.calc_gj_vects(p)
         cells.environment(p)  # define features of the ecm grid
         cells.make_maskM(p)

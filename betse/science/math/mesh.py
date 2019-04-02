@@ -61,6 +61,8 @@ class DECMesh(object):
         self.use_centroids = use_centroids
         self.close_thresh = close_thresh
 
+        self.single_cell = False
+
         self.removed_bad_verts = False # flag to bad tri-vert removal (only do case once!)
 
         if cell_radius is None and seed_points is not None:
@@ -77,6 +79,7 @@ class DECMesh(object):
 
         if seed_points is None:
             self.make_single_cell_points()
+            self.single_cell = True
         else:
             self.tri_verts = seed_points
 
@@ -153,6 +156,8 @@ class DECMesh(object):
 
         """
 
+        logs.log_info("Creating single cell points")
+
         angles = [(2 * n * np.pi) / self.single_cell_sides
                   for n in range(self.single_cell_sides)]
 
@@ -176,7 +181,8 @@ class DECMesh(object):
         logs.log_info("Creating triangular mesh...")
         self.trimesh_core_calcs()
 
-        self.sanity_check() # check for bad triverts (triverts belonging to no simplexes)
+        if self.single_cell is False:
+            self.sanity_check() # check for bad triverts (triverts belonging to no simplexes)
 
         # Next check for triverts with really close circumcenters, and, if necessary, merge to quads,
         # or if requested, try merging as much of the mesh to quads as possible
@@ -305,6 +311,8 @@ class DECMesh(object):
         Merge cells of the tri_mesh into a (potentially) mixed quad-tri mesh.
 
         """
+
+        logs.log_info("Merging close circumcenters...")
 
         quad_cells = []
         quad_ccents = []
@@ -462,6 +470,8 @@ class DECMesh(object):
         :return:
         """
 
+        logs.log_info("Defining edges of tri mesh...")
+
         # Calculate edges for cells trimesh, and the hull:
         all_edges = set()  # set of all vertex pairs
         unique_edges = set()  # set of unique vertex pairs
@@ -506,6 +516,7 @@ class DECMesh(object):
         bflags_tedges = []
 
         for vi, vj in hull_edges:
+
             if [vi, vj] in tri_edges:
                 kk = tri_edges.index([vi, vj])
             elif [vj, vi] in tri_edges:
@@ -516,7 +527,6 @@ class DECMesh(object):
 
         self.tri_edge_i = np.linspace(0, self.n_tedges - 1, self.n_tedges, dtype=np.int)
         self.inner_tedge_i = np.delete(self.tri_edge_i, self.bflags_tedges)
-
 
         # Finally, go through and calculate mids, len, and tangents of tri_edges, and prepare a mapping between
         # each vertices and edges:
@@ -544,11 +554,13 @@ class DECMesh(object):
         self.tri_edge_len = np.asarray(tri_edge_len)
         self.tri_tang = np.asarray(tri_tang)
 
+
     def create_tri_map(self):
         """
         Creates the basic mapping between triverts and simplices
         :return:
         """
+
         # create an array giving a list of simplex indices for each tri_vert
         verts_to_simps = [[] for i in range(len(self.tri_verts))]
 
@@ -568,7 +580,7 @@ class DECMesh(object):
 
 
         # make the face-to-edge indices mapping for the tri_mesh:
-        tri_edges = self.tri_edges.tolist()
+        # tri_edges = self.tri_edges.tolist()
 
         face_to_edges = [[] for ii in range(self.n_tcell)]
         # bflags_tcells = []
@@ -576,29 +588,20 @@ class DECMesh(object):
         # mapping giving list of edge inds for each tri vert
         verts_to_edges = [[] for i in range(len(self.tri_verts))]
 
+        edge_tree = cKDTree(self.tri_edges)
+
         for ci, vertsi_o in enumerate(self.tri_cells):
 
             vertsi_i = np.roll(vertsi_o, -1)
 
             for vi, vj in zip(vertsi_o, vertsi_i):
 
-                if [vi, vj] not in tri_edges:
-                    # get the index of the opposite sign edge:
-                    ea = tri_edges.index([vj, vi])
+                dist_e, ea = edge_tree.query([vi, vj])
+
+                if dist_e == 0.0: # If the search tree has found the matching vertices, then use the edge index ea:
                     face_to_edges[ci].append(ea) # append the edge index to the array at the cell index
                     verts_to_edges[vi].append(ea) # append the edge index to each vertex ind as well
                     verts_to_edges[vj].append(ea)
-
-                else:
-                    # get the forward sign edge:
-                    ea = tri_edges.index([vi, vj])
-                    face_to_edges[ci].append(ea)
-                    verts_to_edges[vi].append(ea) # append the edge index to each vertex ind as well
-                    verts_to_edges[vj].append(ea)
-
-                # # if any edge is on the boundary, mark the cell
-                # if ea in self.bflags_tedges:
-                #     bflags_tcells.append(ci)
 
 
         self.tcell_to_tedges = np.asarray(face_to_edges) # tri_face index to tri_edges indices mapping
@@ -606,6 +609,7 @@ class DECMesh(object):
         self.tverts_to_tedges = np.asarray(verts_to_edges) # for each tever, what edges does it belong to?
 
         tedges_to_tcell = [[] for xi in self.tri_edges]
+
         for tcell_i, edge_inds in enumerate(self.tcell_to_tedges):
             for ei in edge_inds:
                 tedges_to_tcell[ei].append(tcell_i)
@@ -614,6 +618,7 @@ class DECMesh(object):
 
         bcellso = self.tedges_to_tcell[self.bflags_tedges]
         self.bflags_tcells = np.asarray([b[0] for b in bcellso])
+
 
     def define_vorverts(self):
         """
@@ -770,15 +775,20 @@ class DECMesh(object):
         vor_edges = np.asarray(list(vedge_set))
 
         # Process edges to create flags of edge indices:
-        vor_edges_i = vor_edges.tolist()
+        # vor_edges_i = vor_edges.tolist() # FIXME do this as a cKDTree search
+        vedge_tree = cKDTree(vor_edges)
 
         bflags_vedges = []
 
         for vi, vj in hull_edges:
-            if [vi, vj] in vor_edges:
-                kk = vor_edges_i.index([vi, vj])
-            elif [vj, vi] in vor_edges:
-                kk = vor_edges_i.index([vj, vi])
+
+            dedgea, ea = vedge_tree.query([vi, vj])
+            dedgeb, eb = vedge_tree.query([vj, vi])
+
+            if dedgea == 0.0:
+                kk = ea
+            elif dedgeb == 0.0:
+                kk = eb
             bflags_vedges.append(kk)
 
         self.bflags_vedges = np.asarray(bflags_vedges)  # indices of edges on the boundary
@@ -860,7 +870,7 @@ class DECMesh(object):
 
     def sanity_check(self):
 
-        logs.log_info("Mesh sanity check...")
+        logs.log_info("Check for unused vertices...")
 
         # Check to see if some vertices are not used in any simplex:
         unused_tverts = []
@@ -1048,7 +1058,7 @@ class DECMesh(object):
         # exterior derivative operator for tri mesh operating on edges to return faces:
         delta_tri_1 = np.zeros((self.n_tcell, self.n_tedges))
 
-        tri_edges = self.tri_edges.tolist()
+        tedge_tree = cKDTree(self.tri_edges)
 
         for ic, vertis_o in enumerate(self.tri_cells):
 
@@ -1056,14 +1066,17 @@ class DECMesh(object):
 
             for vi, vj in zip(vertis_o, vertis_1):
 
-                if [vi, vj] not in tri_edges:
-                    # get the index of the opposite sign edge:
-                    ea = tri_edges.index([vj, vi])
-                    delta_tri_1[ic, ea] = -1
-                else:
-                    # get the forward sign edge:
-                    ea = tri_edges.index([vi, vj])
+                disttea, ea = tedge_tree.query([vi, vj])
+                distteb, eb = tedge_tree.query([vj, vi])
+
+                if disttea == 0.0 and distteb != 0.0:
                     delta_tri_1[ic, ea] = 1
+
+                elif distteb == 0.0 and disttea != 0.0:
+
+                    delta_tri_1[ic, eb] = -1
+
+
 
         self.delta_tri_1 = np.asarray(delta_tri_1)
 
@@ -1086,7 +1099,8 @@ class DECMesh(object):
         # a natural open boundary condition on the tri mesh.
         delta_vor_1 = np.zeros((len(self.inner_tvert_i), self.n_vedges))
 
-        vor_edges = self.vor_edges.tolist()
+        # vor_edges = self.vor_edges.tolist()
+        vedge_tree = cKDTree(self.vor_edges)
 
         for ic, cell_verts in enumerate(self.vor_cells[self.inner_tvert_i]):
 
@@ -1094,15 +1108,14 @@ class DECMesh(object):
 
             for (vi, vj) in zip(cell_verts, cell_verts_roll):
 
-                if [vi, vj] in vor_edges:
-                    # get the index of the opposite sign edge:
-                    ea = vor_edges.index([vi, vj])
+                distvea, ea = vedge_tree.query([vi, vj])
+                distveb, eb = vedge_tree.query([vj, vi])
+
+                if distvea == 0.0 and distveb != 0.0:
                     delta_vor_1[ic, ea] = 1  # Check which sign these should be depending on desired relations!
 
-                elif [vj, vi] in vor_edges:
-                    # get the forward sign edge:
-                    ea = vor_edges.index([vj, vi])
-                    delta_vor_1[ic, ea] = -1
+                elif distveb == 0.0 and distvea != 0.0:
+                    delta_vor_1[ic, eb] = -1
 
         self.delta_vor_1 = np.asarray(delta_vor_1)
 
@@ -1626,41 +1639,41 @@ class DECMesh(object):
 
         return Sm
 
-    def mids_to_verts_o(self, Sm, gtype = 'tri'):
-        """
-        Maps property Sm from edge mids of mesh to vertices using Whitney 1-forms.
-
-        Parameters
-        ------------
-        Sm -- property at edge mids
-        gtype  -- if transformation is from triverts to trimids or vorverts to vormids
-
-        Returns
-        --------
-        Sv  -- property defined at vertices (verts depend on gtype)
-
-        """
-
-        if gtype == 'tri':
-            assert(len(Sm) == self.n_tedges), "Length of array passed to grad is not edges length"
-            MM_inv = np.abs(self.delta_tri_0.T)*(1/2)
-
-            Sv = np.dot(MM_inv, Sm)
-
-        elif gtype == 'vor':
-
-            assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
-            assert(len(Sm) == self.n_vedges), "Length of array passed to grad is not edges length"
-
-            MM_inv = np.abs(self.delta_vor_0.T)*(1/2)
-
-            Sv = np.dot(MM_inv, Sm)
-
-        else:
-
-            raise Exception("valid gtype is 'tri' or 'vor'")
-
-        return Sv
+    # def mids_to_verts_o(self, Sm, gtype = 'tri'):
+    #     """
+    #     Maps property Sm from edge mids of mesh to vertices using Whitney 1-forms.
+    #
+    #     Parameters
+    #     ------------
+    #     Sm -- property at edge mids
+    #     gtype  -- if transformation is from triverts to trimids or vorverts to vormids
+    #
+    #     Returns
+    #     --------
+    #     Sv  -- property defined at vertices (verts depend on gtype)
+    #
+    #     """
+    #
+    #     if gtype == 'tri':
+    #         assert(len(Sm) == self.n_tedges), "Length of array passed to grad is not edges length"
+    #         MM_inv = np.abs(self.delta_tri_0.T)*(1/2)
+    #
+    #         Sv = np.dot(MM_inv, Sm)
+    #
+    #     elif gtype == 'vor':
+    #
+    #         assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor grad"
+    #         assert(len(Sm) == self.n_vedges), "Length of array passed to grad is not edges length"
+    #
+    #         MM_inv = np.abs(self.delta_vor_0.T)*(1/2)
+    #
+    #         Sv = np.dot(MM_inv, Sm)
+    #
+    #     else:
+    #
+    #         raise Exception("valid gtype is 'tri' or 'vor'")
+    #
+    #     return Sv
 
     def mids_to_verts(self, Sm, gtype = 'tri'):
         """

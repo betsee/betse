@@ -931,14 +931,6 @@ class Simulator(object):
 
             cells.deform_tools(p)
 
-            #FIXME: "cellso" is pretty... wierd. Do we still need this and, if
-            #so, can we better document why? If we do ultimately need this,
-            #we'll probably want to privatize this attribute to the less
-            #ambiguous name "_cells_deformed". External callers should never
-            #access or care about this. Ultimate sunrise of the free dreamer!
-
-            # Deepy copy of the current cell cluster, to isolate deformations to
-            # for visualization purposes only.
             self.cellso = copy.deepcopy(cells)
 
             #FIXME: "td_deform" is currently forced to "False", implying this
@@ -1092,7 +1084,7 @@ class Simulator(object):
                     time_steps=time_steps,
                     time_steps_sampled=time_steps_sampled,
 
-                    #FIXME: Horrible hack. Ideally, we instead want to:
+                    #FIXME: Ideally, we instead want to:
                     #
                     #* Define a "AnimCellsWhileSolvingNoop" subclass such that:
                     #  * The plot_frame() method simply reduces to "pass".
@@ -1917,7 +1909,7 @@ class Simulator(object):
         #it. Maybe we can try commenting this out and giving it a go? Forests!
         phase.cells.points_tree = None
 
-        #FIXME: This is... odd. Do we still need this extra copy of "cells"?
+        #FIXME: Do we still need this extra copy of "cells"?
         # get rid of the extra copy of cells
         if phase.p.deformation:
             phase.cells = copy.deepcopy(self.cellso)
@@ -2492,14 +2484,7 @@ class Simulator(object):
 
         # If this animation is enabled...
         if phase.p.anim.is_while_sim:
-            #FIXME: This is terrible. Ideally, all deformations should already
-            #be properly incorporated into the current cell cluster *WITHOUT*
-            #requiring "cellso" shenanigans. (Wake me up when Utopia arrives.)
 
-            # Deformed simulation phase, replacing the current cell cluster
-            # with the deformed cell cluster *ONLY* for this animation. If
-            # deformations are disabled, this is a noop; if deformations are
-            # enabled, this is required to animate deformations while solving.
             phase_deformed = SimPhase(
                 kind=phase.kind, sim=phase.sim, cells=self.cellso, p=phase.p)
 
