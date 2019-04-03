@@ -1150,11 +1150,6 @@ class TissueHandler(object):
 
         cells.mesh.cut_mesh(target_inds_cell)
 
-        # cells.ecm_verts = cells.mesh.vcell_verts # voronoi verts of clipped cluster, nested as polygons defining each cell
-        # cells.ecm_verts_unique = cells.mesh.vor_verts  # convert to numpy array
-
-        # cells.cell_index(p)
-
         cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
         cells.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
         cells.intra_updater(p)  # creates matrix used for finite volume integration on cell patch

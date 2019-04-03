@@ -1938,7 +1938,7 @@ class Cells(object):
         # self.lapGJ_P = lapGJ_P
 
 
-        #----DEC matrix creation
+        #----DEC matrix creation # FIXME we don't need this!
         # Hodge star for edge length ratios:
         star_eij = np.diag(self.mesh.vor_edge_len/self.mesh.tri_edge_len)
 
