@@ -34,7 +34,7 @@ def osmotic_P(sim, cells, p):
     sim.div_u_osmo = sim.u_osmo*(cells.cell_sa/cells.cell_vol)
 
     # calculate pressure in whole network resulting from divergence :
-    sim.PP = np.dot(cells.lapGJ_P_inv, -sim.div_u_osmo * p.rho * p.dt)
+    sim.PP = np.dot(cells.lapGJinv, -sim.div_u_osmo * p.rho * p.dt)
 
     # ------------------------------------------------------------------------------------------------------------
     # actual volume change is amount of flow over the cell surface area per unit time:

@@ -515,9 +515,7 @@ class Cells(object):
         # of Laplacians and inverses on the cell grid (i.e., two boundary
         # conditions sets).
         self.lapGJinv = None
-        self.lapGJ_P_inv = None
         self.lapGJ = None
-        self.lapGJ_P = None
 
         # Other matrices.
         self.M_sum_mem_to_ecm = None   # used for deformation
@@ -630,14 +628,6 @@ class Cells(object):
 
         # Finish up by creating indices vectors and converting to Numpy arrays
         # where needed:
-
-        #FIXME: Reduce the following two assignments to simply:
-        #
-        #    self.cell_i = np.asarray(range(len(self.cell_centres)))
-        #    self.mem_i =  np.asarray(range(len(self.mem_mids_flat)))
-        #
-        #No need for intermediate list comprehensions. Fire-beast flagons!
-
         self.cell_i = [x for x in range(0, len(self.cell_centres))]
         self.mem_i =  [x for x in range(0, len(self.mem_mids_flat))]
 
@@ -883,26 +873,6 @@ class Cells(object):
         # Log this action.
         logs.log_info('Creating Voronoi geometry... ')
 
-        #FIXME: Non-ideal. The cell cluster image mask should ideally be
-        #instantiated via the existing "TissueHandler.tissue_default.picker"
-        #object. Unfortunately, the "TissueHandler" object and hence that
-        #"picker" object is inaccessible at this early point. But there's no
-        #rational reason for this to be the case. The "TissueHandler" object
-        #absolutely should be accessible at this early point. To enable this to
-        #be the case, perform the following refactorings:
-        #
-        #* Add a new "dyna" instance variable to the "SimPhase" class. This
-        #  variable's value should be the "TissueHandler" object for this phase.
-        #* Generalize the "simrunner" submodule to:
-        #  * Instantiate the "TissueHandler" object earlier.
-        #  * Pass this object to each instantiation of the "SimPhase" class.
-        #* Generalize all initialization methods of this class (notably, this
-        #  and the parent make_world() method) to accept higher-level "SimPhase"
-        #  rather than lower-level "Parameters" objects.
-        #* Rewrite the cell cluster image mask line below to resemble:
-        #
-        #    image_mask = phase.dyna.tissue_default.picker.get_image_mask(cells=self)
-
         # Cell cluster image picker, producing the cell cluster image mask.
         from betse.science.tissue.picker.tispickimage import TissuePickerImage
         image_picker = TissuePickerImage(
@@ -912,8 +882,6 @@ class Cells(object):
         # Cell cluster image mask, clipping the cell cluster against a
         # user-defined image file.
         image_mask = image_picker.get_image_mask(cells=self)
-
-        #FIXME: Let's refactor "DECMesh" to use "CellLatticeType" directly.
 
         # Dictionary mapping from cell lattice enumeration members to
         # corresponding low-level DEC-specific strings.
@@ -951,6 +919,8 @@ class Cells(object):
                          allow_merging = True,
                          merge_thresh = 0.2,
                          mesh_type = lattice_to_mesh_type[phase.p.cell_lattice_type])
+
+                self.mesh.init_mesh()
 
             else: # Otherwise, make and clip a point cloud to the base shape:
                 # Initialize the Discrete Exterior Calculus (DEC) mesh object:
@@ -1883,62 +1853,14 @@ class Cells(object):
 
         Creates
         ----------
-        self.lapGJinv          Solver for Poisson equation with Dirchlet (zero value) boundary
-        self.lapGJ_P_inv       Solver for Poisson equation with Neumann (zero gradient) boundary
+        self.lapGJinv          Solver for Poisson equation with Neumann (zero gradient) boundary
         '''
 
         # Log this action.
         logs.log_debug('Creating cell network Poisson solver...')
 
-        # # zero-value fixed boundary version (Dirchlet condition)
-        # lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
-        # # zero-gradient, free boundary version (Neumann condition)
-        # lapGJ_P = np.zeros((len(self.cell_i,), len(self.cell_i)))
-        #
-        # cell_nn_pairs = self.cell_nn_i.tolist()
-        #
-        # for cell_i, cell_inds in enumerate(self.cell_nn):
-        #
-        #     vol = self.cell_vol[cell_i]
-        #
-        #     for cell_j in cell_inds:
-        #
-        #         # get the distance between the tri_mesh vertices of the pair:
-        #         lx = self.cell_centres[cell_j, 0] - self.cell_centres[cell_i, 0]
-        #         ly = self.cell_centres[cell_j, 1] - self.cell_centres[cell_i, 1]
-        #
-        #         len_ij = np.sqrt(lx ** 2 + ly ** 2)
-        #
-        #         # find the shared membrane index for the pair:
-        #         mem_ij = cell_nn_pairs.index([cell_i, cell_j])
-        #
-        #         mem_sa = self.mem_sa[mem_ij]
-        #
-        #         # # correction constant as membrane normals and segments connecting centers aren't quite parallel:
-        #         # norm_cor = 0.5*(self.nn_tx[mem_ij]*self.mem_vects_flat[mem_ij, 2] +
-        #         #                 self.nn_ty[mem_ij]*self.mem_vects_flat[mem_ij, 3])
-        #         norm_cor = 1.0
-        #
-        #         lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
-        #         lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + (1 / (len_ij)) * (mem_sa / vol) * norm_cor
-        #
-        #         lapGJ_P[cell_i, cell_i] = lapGJ_P[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
-        #         lapGJ_P[cell_i, cell_j] = lapGJ_P[cell_i, cell_j] + (1 / (len_ij)) * (mem_sa / vol) * norm_cor
-        #
-        #     # deal with boundary values:
-        #     if cell_i in self.bflags_cells:
-        #         lapGJ[cell_i, cell_i] += - 1.0 * (1 / (len_ij)) * (mem_sa / vol) * norm_cor
-        #
-        # self.lapGJinv = np.linalg.pinv(lapGJ)
-        # self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
-        #
-        # # if p.td_deform is True:
-        # #     # if time0dependent deformation is selected, also save the direct Laplacian operator:
-        # self.lapGJ = lapGJ
-        # self.lapGJ_P = lapGJ_P
 
-
-        #----DEC matrix creation # FIXME we don't need this!
+        #----DEC matrix creation
         # Hodge star for edge length ratios:
         star_eij = np.diag(self.mesh.vor_edge_len/self.mesh.tri_edge_len)
 
@@ -1962,12 +1884,10 @@ class Cells(object):
 
 
         self.lapGJinv = np.dot(L1_inv, L2_inv)
-        self.lapGJ_P_inv = np.dot(L1_inv, L2_inv) # FIXME this is not the correct boundary condition!
 
         # if p.td_deform is True:
         #     # if time0dependent deformation is selected, also save the direct Laplacian operator:
         self.lapGJ = np.dot(L2, L1)
-        self.lapGJ_P = np.dot(L2, L1) # FIXME This is not correct boundary condition!
 
         # weighting function for the voronoi lattice:
         self.geom_weight = np.dot(self.M_sum_mems, self.mem_sa / self.mem_vol) * p.cell_height
@@ -2615,12 +2535,7 @@ class Cells(object):
         fxo = Fn*self.nn_tx
         fyo = Fn*self.nn_ty
 
-        if open_bounds is True:
-            Phi = np.dot(self.lapGJinv, div_F + rho)
-
-        else:
-            Phi = np.dot(self.lapGJ_P_inv, div_F + rho)
-
+        Phi = np.dot(self.lapGJinv, div_F + rho)
 
         gPhi = (Phi[self.cell_nn_i[:, 1]] - Phi[self.cell_nn_i[:, 0]]) / (self.nn_len)
 
@@ -2674,10 +2589,6 @@ class Cells(object):
 
         AA = np.dot(self.lapGJinv, -curlF)
 
-        # else:
-
-             # AA = np.dot(self.lapGJ_P_inv, -curlF)
-
         Ax, Ay, _ = self.curl(0, 0, AA)
 
         # -----------------
@@ -2691,7 +2602,7 @@ class Cells(object):
 
             divF = np.dot(self.M_sum_mems, Fn * self.mem_sa) / self.cell_vol
 
-            BB = np.dot(self.lapGJ_P_inv, divF)
+            BB = np.dot(self.lapGJinv, divF)
 
             gBB = (BB[self.cell_nn_i[:, 1]] - BB[self.cell_nn_i[:, 0]]) / (self.nn_len)
 

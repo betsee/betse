@@ -159,20 +159,10 @@ def timeDeform(sim, cells, t, p):
         logs.log_info('Try a world size of at least: ' + str(round((5 / 3) * (wave_speed / 500) * 1e6))
                       + ' um for resonance.')
 
-        if p.fixed_cluster_bound is True:
-
-            sim.d_cells_x = k_const * np.dot(cells.lapGJ, sim.dx_time[-1]) + (k_const / p.lame_mu) * F_cell_x + \
-                            sim.dx_time[-1]
-            sim.d_cells_y = k_const * np.dot(cells.lapGJ, sim.dy_time[-1]) + (k_const / p.lame_mu) * F_cell_y + \
-                            sim.dy_time[-1]
-
-        else:
-
-            sim.d_cells_x = k_const * np.dot(cells.lapGJ_P, sim.dx_time[-1]) + (k_const / p.lame_mu) * F_cell_x + \
-                            sim.dx_time[-1]
-            sim.d_cells_y = k_const * np.dot(cells.lapGJ_P, sim.dy_time[-1]) + (k_const / p.lame_mu) * F_cell_y + \
-                            sim.dy_time[-1]
-
+        sim.d_cells_x = k_const * np.dot(cells.lapGJ, sim.dx_time[-1]) + (k_const / p.lame_mu) * F_cell_x + \
+                        sim.dx_time[-1]
+        sim.d_cells_y = k_const * np.dot(cells.lapGJ, sim.dy_time[-1]) + (k_const / p.lame_mu) * F_cell_y + \
+                        sim.dy_time[-1]
 
     elif t > 0.0:
 
@@ -184,21 +174,11 @@ def timeDeform(sim, cells, t, p):
 
         gamma = ((p.dt ** 2) * (p.mu_tissue * p.lame_mu)) / (1000 * (2 * p.cell_radius))
 
-        if p.fixed_cluster_bound is True:
+        sim.d_cells_x = k_const * np.dot(cells.lapGJ, sim.dx_time[-1]) - gamma * d_ux_dt + \
+                         (k_const / p.lame_mu) * F_cell_x + 2 * sim.dx_time[-1] - sim.dx_time[-2]
 
-            sim.d_cells_x = k_const * np.dot(cells.lapGJ, sim.dx_time[-1]) - gamma * d_ux_dt + \
-                             (k_const / p.lame_mu) * F_cell_x + 2 * sim.dx_time[-1] - sim.dx_time[-2]
-
-            sim.d_cells_y = k_const * np.dot(cells.lapGJ, sim.dy_time[-1]) - gamma * d_uy_dt + \
-                             (k_const / p.lame_mu) * F_cell_y + 2 * sim.dy_time[-1] - sim.dy_time[-2]
-
-        else:
-
-            sim.d_cells_x = k_const * np.dot(cells.lapGJ_P, sim.dx_time[-1]) - gamma * d_ux_dt + \
-                             (k_const / p.lame_mu) * F_cell_x + 2 * sim.dx_time[-1] - sim.dx_time[-2]
-
-            sim.d_cells_y = k_const * np.dot(cells.lapGJ_P, sim.dy_time[-1]) - gamma * d_uy_dt + \
-                             (k_const / p.lame_mu) * F_cell_y + 2 * sim.dy_time[-1] - sim.dy_time[-2]
+        sim.d_cells_y = k_const * np.dot(cells.lapGJ, sim.dy_time[-1]) - gamma * d_uy_dt + \
+                         (k_const / p.lame_mu) * F_cell_y + 2 * sim.dy_time[-1] - sim.dy_time[-2]
 
 
     # Flow must be made divergence-free: use the Helmholtz-Hodge decomposition method:
@@ -223,10 +203,9 @@ def timeDeform(sim, cells, t, p):
     # # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
     # div_u = (np.dot(cells.M_sum_mems, u_n * cells.mem_sa) / cells.cell_vol)
     #
-    # if p.fixed_cluster_bound is True:
     #
-    #     # calculate the reaction pressure required to counter-balance the flow field:
-    #     P_react = np.dot(cells.lapGJ_P_inv, div_u)
+    # calculate the reaction pressure required to counter-balance the flow field:
+    # P_react = np.dot(cells.lapGJinv, div_u)
     #
     # else:
     #

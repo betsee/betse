@@ -2238,30 +2238,34 @@ class DECMesh(object):
         stepsize: How much smoothing to apply (2.0e-6 x cell_radius is good)
 
         """
-        self.removed_bad_verts = False # reset flag for empty tri_vert removal
 
-        II = np.diag(np.ones(self.n_tverts)) # Identity matrix
-        HH2 = np.diag(1 / self.vor_sa)  # Hodge star 20
-        HH1 = np.diag(self.vor_edge_len / self.tri_edge_len) # Hodge star 11
+        if stepsize is not None:
 
-        term1 = np.dot(HH2, -self.delta_tri_0.T)
-        term2 = np.dot(HH1, self.delta_tri_0)
+            logs.log_info("Smoothing mesh...")
+            self.removed_bad_verts = False # reset flag for empty tri_vert removal
 
-        LL = np.dot(term1, term2) # Forwards Laplacian operator
+            II = np.diag(np.ones(self.n_tverts)) # Identity matrix
+            HH2 = np.diag(1 / self.vor_sa)  # Hodge star 20
+            HH1 = np.diag(self.vor_edge_len / self.tri_edge_len) # Hodge star 11
 
-        MM = (II - stepsize * LL)    # Matrix equation from diffusion equation
-        MM_inv = np.linalg.pinv(MM)  # Least-squares solution matrix
+            term1 = np.dot(HH2, -self.delta_tri_0.T)
+            term2 = np.dot(HH1, self.delta_tri_0)
 
-        self.tri_verts[:,0] = np.dot(MM_inv, self.tri_verts[:,0]) # Implicit Euler update solution
-        self.tri_verts[:,1] = np.dot(MM_inv, self.tri_verts[:,1])
+            LL = np.dot(term1, term2) # Forwards Laplacian operator
+
+            MM = (II - stepsize * LL)    # Matrix equation from diffusion equation
+            MM_inv = np.linalg.pinv(MM)  # Least-squares solution matrix
+
+            self.tri_verts[:,0] = np.dot(MM_inv, self.tri_verts[:,0]) # Implicit Euler update solution
+            self.tri_verts[:,1] = np.dot(MM_inv, self.tri_verts[:,1])
 
 
-        # # # Laplacian smoothing of the mesh using explicit Euler:
-        # delx = self.lap(self.tri_verts[:, 0])
-        # dely = self.lap(self.tri_verts[:, 1])
-        #
-        # self.tri_verts[:, 0] = self.tri_verts[:, 0] + delx*stepsize
-        # self.tri_verts[:, 1] = self.tri_verts[:, 1] + dely*stepsize
+            # # # Laplacian smoothing of the mesh using explicit Euler:
+            # delx = self.lap(self.tri_verts[:, 0])
+            # dely = self.lap(self.tri_verts[:, 1])
+            #
+            # self.tri_verts[:, 0] = self.tri_verts[:, 0] + delx*stepsize
+            # self.tri_verts[:, 1] = self.tri_verts[:, 1] + dely*stepsize
 
     #-----Utility functions--------------------------
 
@@ -2504,7 +2508,15 @@ class DECMesh(object):
         Delete tri_verts from the DEC mesh system and
         rebuilt core operators.
 
+        Parameters
+        -----------
         tvert_targets: indices of tri_verts to remove
+
+        Returns
+        ---------
+        tedge_targets: indices to *restructure* (not delete) data on edges (used as foo2 = foo[tedge_targets])
+        tcell_targets: indices to *remove* from data structure defined on tri-cells
+                       (used as foo2 = np.delete(foo, tcell_targets)
 
         """
 
@@ -2516,12 +2528,6 @@ class DECMesh(object):
         for sublist in self.tverts_to_tcell[tvert_targets]:
             tcell_targets.extend(sublist)
         tcell_targets = np.unique(tcell_targets)
-
-        # Get edge indices for edges that will be removed:
-        tedge_targets = []
-        for sublist in self.tverts_to_tedges[tvert_targets]:
-            tedge_targets.extend(sublist)
-        tedge_targets = np.unique(tedge_targets)
 
         self.tri_verts = np.delete(self.tri_verts, tvert_targets, axis=0)
 
@@ -2560,6 +2566,15 @@ class DECMesh(object):
         self.create_core_operators()
         self.create_aux_operators()
 
+        tmids_tree = cKDTree(self.tri_mids_o)
+        dist_pt, n_pt = tmids_tree.query(self.tri_mids)
+
+        tedge_targets = []
+        for di, ni in zip(dist_pt, n_pt):
+            if di == 0.0:
+                tedge_targets.append(ni)
+
+        tedge_targets = np.asarray(tedge_targets)
 
         logs.log_info("Mesh successfully cut!")
 

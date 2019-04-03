@@ -935,7 +935,7 @@ class Simulator(object):
 
             #FIXME: "td_deform" is currently forced to "False", implying this
             #branch to currently reduce to a noop. Is this still desired?
-            if p.td_deform and (cells.lapGJ is None or cells.lapGJ_P is None):
+            if p.td_deform and (cells.lapGJ is None):
                 # Make a laplacian and solver for discrete transfers on closed,
                 # irregular cell network.
                 logs.log_info('Creating cell network Poisson solver...')
@@ -1329,7 +1329,7 @@ class Simulator(object):
                 self.grn.core.run_loop(phase=phase, t=t)
 
             # dynamic noise handling-------------------------------------------
-            if p.dynamic_noise == 1 and p.ions_dict['P'] == 1:
+            if p.dynamic_noise == 1 and p.ions_dict['P'] == 1 and phase.kind is SimPhaseKind.SIM:
 
                 # Add a random walk on protein concentration to generate
                 # dynamic noise.

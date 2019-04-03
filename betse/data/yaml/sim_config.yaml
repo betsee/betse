@@ -187,14 +187,14 @@ world options:
   mesh refinement:                  # Use Llyod's algorithm to optimize the Voronoi mesh?
     refine mesh: True              # Turn optimization on? (Only works for Convex model shapes)
     maximum steps: 10              # Maximum number of itterations (models typically converge in <30 steps)
-    convergence threshold: 2.5   # Threshhold above which optimization is considered complete (minimum of 5.0).
+    convergence threshold: 1.5   # Threshhold above which optimization is considered complete (minimum of 5.0).
 
   import from svg:  # Import individual cell centres and clipping curve from an svg file
     svg override: False  # Turn to True to enable imports from SVG files
     cells from svg: geo/root/root_cells.svg # read in exact cell centre locations from 'circles' in svg file
     svg size: 500  # size of the svg page area in mm
 
-  alpha shape: 0.05    # alpha shape threshhold (used for working with non-convex shapes) 0.0 to 0.9
+  alpha shape: 0.01    # alpha shape threshhold (used for working with non-convex shapes) 0.01 to 0.9
   use centers: False  # use cell centroids instead of circumcentres when building meshes?
 
 
@@ -751,7 +751,6 @@ variable settings:
   adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
 
-  # FIXME move out to networks
   microtubules:
 
     use microtubules: False      # compute microtubule dynamics?
@@ -765,7 +764,6 @@ variable settings:
     initial y-coorinate: None # bitmap allowing forced alignment as initial state (None defaults to randomization)
     rotate initialization axis: 0.0 # angle (in degrees) rotating the x-y axis of the initialization coords
 
-  # FIXME: add network substances to Goldman calculator, also add in pumps
   use Goldman calculator: False   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK)
                                  # voltage equation for comparison purposes?
 
