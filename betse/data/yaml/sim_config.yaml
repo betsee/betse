@@ -365,11 +365,6 @@ cutting event:
     break TJ: True           # break tight junctions? (otherwise assumes instant barrier healing)
     wound TJ: 1.0e-1         # how leaky are the tight junctions at the wound (max 1.0)
 
-    #FIXME: This setting is currently problematic. For now, please avoid changing this setting.
-    #This issue will be resolved in the next stable release of BETSE.
-    cut time: 0.0         # time at which cutting occurs durring simulation.
-    # cut time: 10.0e-3   # time at which cutting occurs durring simulation.
-
 #-----------------------------------------------------------------------------------------------------------------------
 # MODULATOR FUNCTION PROPERTIES
 #-----------------------------------------------------------------------------------------------------------------------
@@ -510,9 +505,6 @@ interventions:
 general network:
 
   implement network: True     # Turn the entire network defined below on (True) or off (False)
-
-  # FIXME CHECK OUT MITOCHONDRIA!
-  enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
 
   # FIXME: FIX THE OPTIMIZER
   # FIXME: Make sure this isn't needing networkx by default!

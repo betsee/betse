@@ -213,12 +213,7 @@ class DECMesh(object):
             self.create_tri_map()
 
         # process the edges and boundaries:
-        self.process_primary_edges(mesh_version = self.mesh_type)
-
-        # inds to full voronoi cells only (these are the official cells of cluster):
-        self.inner_tvert_i = np.delete(self.tri_vert_i, self.bflags_tverts)
-        # Calculate the centroid of the whole shape:
-        self.centroid = np.mean(self.tri_verts, axis=0)
+        self.process_primary_edges()
 
     def trimesh_core_calcs(self):
 
@@ -305,6 +300,18 @@ class DECMesh(object):
 
         # Create an updated mapping of which triangle each vertex belongs to:
         self.create_tri_map()
+
+    def remake_nums(self):
+        """
+        Calculates numerics and index arrays for all data structures
+        :return:
+        """
+        self.n_tverts = len(self.tri_verts)  # number of tri_verts
+        self.tri_vert_i = np.linspace(0, self.n_tverts - 1,
+                                      self.n_tverts, dtype=np.int)
+
+        self.n_tcell = len(self.tri_cells)  # number of simplexes in trimesh
+        self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])  # indices vector of trimesh
 
     def merge_tri_mesh(self, merge_list):
         """
@@ -464,7 +471,7 @@ class DECMesh(object):
 
         self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])
 
-    def process_primary_edges(self, mesh_version = 'tri'):
+    def process_primary_edges(self):
         """
         Processes the edges and boundary of the primary mesh.
         :return:
@@ -554,6 +561,10 @@ class DECMesh(object):
         self.tri_edge_len = np.asarray(tri_edge_len)
         self.tri_tang = np.asarray(tri_tang)
 
+        # inds to inner triverts:
+        self.inner_tvert_i = np.delete(self.tri_vert_i, self.bflags_tverts)
+        # Calculate the centroid of the whole shape:
+        self.centroid = np.mean(self.tri_verts, axis=0)
 
     def create_tri_map(self):
         """
@@ -619,7 +630,6 @@ class DECMesh(object):
         bcellso = self.tedges_to_tcell[self.bflags_tedges]
         self.bflags_tcells = np.asarray([b[0] for b in bcellso])
 
-
     def define_vorverts(self):
         """
         When constructing a voronoi diagram, the vor mesh edges intersecting the incredible hull of the
@@ -637,69 +647,71 @@ class DECMesh(object):
 
         vor_edge_verts = []
 
-        tri_sa_i = [] # extended tri_sa (with elements for voronoi verts on boundary)
+        tri_sa_o = [] # extended tri_sa (with elements for voronoi verts on boundary)
 
         for ti, tc_indso in enumerate(self.tverts_to_tcell):
 
             tc_inds = np.unique(tc_indso)
 
-            if self.use_centroids:
-                vvertso = self.tri_cents[tc_inds]
+            if len(tc_inds):
 
-            else:
-                vvertso = self.tri_ccents[tc_inds]
+                if self.use_centroids:
+                    vvertso = self.tri_cents[tc_inds]
 
-            trisai = self.tri_sa[tc_inds] # collect tri surface areas for these faucets
+                else:
+                    vvertso = self.tri_ccents[tc_inds]
 
-            if ti in self.bflags_tverts:  # if the trivert is on the hull
-                # get verts for trimesh edges of this neighbourhood and sort them counterclockwise:
-                # edge vertices:
-                tedge_inds = np.unique(self.tverts_to_tedges[ti])
+                trisai = self.tri_sa[tc_inds] # collect tri surface areas for these faucets
 
-                for tei in tedge_inds:
-                    if tei in self.bflags_tedges:
-                        # get the vertices of the boundary edge of the trimesh:
-                        bedge_verts = self.tri_verts[self.tri_edges[tei]]
+                if ti in self.bflags_tverts:  # if the trivert is on the hull
+                    # get verts for trimesh edges of this neighbourhood and sort them counterclockwise:
+                    # edge vertices:
+                    tedge_inds = np.unique(self.tverts_to_tedges[ti])
 
-                        # midpoint of the boundary tri-edge:
-                        bedge_mid = np.mean(bedge_verts, axis =0)
+                    for tei in tedge_inds:
+                        if tei in self.bflags_tedges:
+                            # get the vertices of the boundary edge of the trimesh:
+                            bedge_verts = self.tri_verts[self.tri_edges[tei]]
 
-                        simp_i = self.tedges_to_tcell[tei]
+                            # midpoint of the boundary tri-edge:
+                            bedge_mid = np.mean(bedge_verts, axis =0)
 
-                        if self.use_centroids:
-                            pt_o = self.tri_cents[simp_i[0]]
+                            simp_i = self.tedges_to_tcell[tei]
+
+                            if self.use_centroids:
+                                pt_o = self.tri_cents[simp_i[0]]
 
 
-                        else:
-                            pt_o = self.tri_ccents[simp_i[0]]
+                            else:
+                                pt_o = self.tri_ccents[simp_i[0]]
 
-                        dist_diff = bedge_mid - pt_o
+                            dist_diff = bedge_mid - pt_o
 
-                        intpt = bedge_mid + dist_diff
+                            intpt = bedge_mid + dist_diff
 
-                        # surface area of the boundary triangle faucet:
-                        bsa = self.tri_sa[simp_i[0]]
+                            # surface area of the boundary triangle faucet:
+                            bsa = self.tri_sa[simp_i[0]]
 
-                        vvertso = np.vstack((vvertso, intpt))
-                        trisai = np.hstack((trisai, bsa))
+                            vvertso = np.vstack((vvertso, intpt))
+                            trisai = np.hstack((trisai, bsa))
 
-            # sort the voronoi verts counter-clockwise:
-            inds_vsort = self.cc_sort_inds(vvertso)
-            vverts = vvertso[inds_vsort]
-            trisaj = trisai[inds_vsort]
+                # sort the voronoi verts counter-clockwise:
+                inds_vsort = self.cc_sort_inds(vvertso)
+                vverts = vvertso[inds_vsort]
+                trisaj = trisai[inds_vsort]
 
-            vor_verts.extend(vverts)
-            tri_sa_i.extend(trisaj)
-            vcell_verts.append(vverts)
-            vor_sa.append(self.area(vverts))
-            vor_cents.append(self.poly_centroid(vverts))
+                vor_verts.extend(vverts)
+                tri_sa_o.extend(trisaj)
+                vcell_verts.append(vverts)
+                vor_sa.append(self.area(vverts))
+                vor_cents.append(self.poly_centroid(vverts))
 
-            # Calculate vor edge verts:
-            vedge_verts = np.asarray([[vi, vj] for vi, vj in zip(vverts,
-                                                                 np.roll(vverts, -1, axis=0
-                                                                         ))])
+                # Calculate vor edge verts:
+                vedge_verts = np.asarray([[vi, vj] for vi, vj in zip(vverts,
+                                                                     np.roll(vverts, -1, axis=0
+                                                                             ))])
 
-            vor_edge_verts.extend(vedge_verts)
+                vor_edge_verts.extend(vedge_verts)
 
         self.vcell_verts = np.asarray(vcell_verts)
         self.vor_verts_duplicates = vor_verts*1
@@ -710,10 +722,10 @@ class DECMesh(object):
         self.vor_edge_verts = np.unique(np.asarray(vor_edge_verts), axis=0)
 
         # Finally, process triangle mesh surface areas for use with all Voronoi verts in mesh:
-        tri_sa_i = np.asarray(tri_sa_i)
+        tri_sa_o = np.asarray(tri_sa_o)
         vord_tree = cKDTree(self.vor_verts_duplicates)
         _, vi = vord_tree.query(self.vor_verts)
-        self.tri_sa_i = tri_sa_i[vi]  # Surface area of triangular simplices, with triangles repeated at boundary
+        self.tri_sa_o = tri_sa_o[vi]  # Surface area of triangular simplices, with triangles repeated at boundary
                                       # so that boundary Voronoi verts have surrounding reference surface area
                                       # control volume!
 
@@ -1310,7 +1322,7 @@ class DECMesh(object):
             FF = Fx*self.vor_tang[:,0] + Fy*self.vor_tang[:,1]
 
             if btype == 2:
-                divF = (1/self.tri_sa_i)*np.dot(-self.delta_vor_0.T, self.tri_edge_len*FF)
+                divF = (1 / self.tri_sa_o) * np.dot(-self.delta_vor_0.T, self.tri_edge_len * FF)
 
             elif btype == 1:
                 divFo = (1/self.tri_sa)*np.dot(self.delta_tri_1, self.tri_edge_len*FF)
@@ -1373,7 +1385,7 @@ class DECMesh(object):
             assert(self.make_all_operators), "This mesh hasn't computed auxillary operators to calculate vor div!"
 
             if btype == 2:
-                divF = (1/self.tri_sa_i)*np.dot(-self.delta_vor_0.T, self.tri_edge_len*Ft)
+                divF = (1 / self.tri_sa_o) * np.dot(-self.delta_vor_0.T, self.tri_edge_len * Ft)
 
             elif btype == 1:
 
@@ -1495,7 +1507,7 @@ class DECMesh(object):
             if btype == 2:
                 # calculate inverse Laplacian of S:
                 lapS_inv = np.dot(self.delta_vor_0_inv,
-                       (self.vor_edge_len/self.tri_edge_len)*np.dot(-self.delta_vor_0_inv.T, S*(self.tri_sa_i)))
+                                  (self.vor_edge_len/self.tri_edge_len) * np.dot(-self.delta_vor_0_inv.T, S * (self.tri_sa_o)))
 
             elif btype == 1:
                 # calculate inverse Laplacian of S:
@@ -1588,7 +1600,7 @@ class DECMesh(object):
             Ft = Fx*self.tri_tang[:,0] + Fy*self.tri_tang[:,1]
 
             # calculate the curl (which is a vector in the z-direction with + representing out of page):
-            curl_F = (1/self.tri_sa_i)*np.dot(-self.delta_vor_0.T, (self.tri_edge_len)*Ft)
+            curl_F = (1 / self.tri_sa_o) * np.dot(-self.delta_vor_0.T, (self.tri_edge_len) * Ft)
 
 
         elif gtype == 'vor':
@@ -1843,7 +1855,7 @@ class DECMesh(object):
             if btype == 1:
                 # calculate inverse Laplacian of S:
                 ccS_inv = np.dot(self.delta_vor_0_inv,
-                       (self.vor_edge_len/self.tri_edge_len)*np.dot(self.delta_vor_0_inv.T, Fz*(self.tri_sa_i)))
+                                 (self.vor_edge_len/self.tri_edge_len) * np.dot(self.delta_vor_0_inv.T, Fz * (self.tri_sa_o)))
 
             elif btype == 2:
                 # calculate inverse Laplacian of S:
@@ -2485,6 +2497,74 @@ class DECMesh(object):
         inds_sort = np.argsort(angles)  # sort indices counter-clockwise
 
         return inds_sort
+
+    #---Removing Points from mesh---------------------
+    def cut_mesh(self, tvert_targets):
+        """
+        Delete tri_verts from the DEC mesh system and
+        rebuilt core operators.
+
+        tvert_targets: indices of tri_verts to remove
+
+        """
+
+        self.tri_mids_o = self.tri_mids*1
+        self.tri_edge_i_o = self.tri_edge_i*1
+
+        # Get tri-cell indices for tri-cells that will be removed:
+        tcell_targets = []
+        for sublist in self.tverts_to_tcell[tvert_targets]:
+            tcell_targets.extend(sublist)
+        tcell_targets = np.unique(tcell_targets)
+
+        # Get edge indices for edges that will be removed:
+        tedge_targets = []
+        for sublist in self.tverts_to_tedges[tvert_targets]:
+            tedge_targets.extend(sublist)
+        tedge_targets = np.unique(tedge_targets)
+
+        self.tri_verts = np.delete(self.tri_verts, tvert_targets, axis=0)
+
+        self.tcell_verts = np.delete(self.tcell_verts, tcell_targets, axis=0)
+
+        # Reassign all relevant quantities from original tri-mesh:
+        self.tri_ccents = np.delete(self.tri_ccents, tcell_targets, axis=0)  # circumcenters
+        self.tri_rcircs = np.delete(self.tri_rcircs, tcell_targets, axis=0)
+        self.tri_cents = np.delete(self.tri_cents, tcell_targets, axis=0)  # centroids
+        self.tri_sa = np.delete(self.tri_sa, tcell_targets, axis=0)  # surface area of triangle
+        #
+        # # Reconstruct index packages in terms of new tri vertice indices:
+        tri_vtree = cKDTree(self.tri_verts)
+
+        self.tri_cells = []
+
+        for tvrts in self.tcell_verts:
+            self.tri_cells.append(tri_vtree.query(tvrts)[1])
+
+        self.tri_cells = np.asarray(self.tri_cells)
+
+
+        self.n_tverts = len(self.tri_verts)  # number of tri_verts
+        self.tri_vert_i = np.linspace(0, self.n_tverts - 1,
+                                      self.n_tverts, dtype=np.int)
+
+        self.n_tcell = len(self.tri_cells)  # number of simplexes in trimesh
+        self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])  # indices vector of trimesh
+
+        # # Recalculate all data structures:
+        self.create_tri_map()
+        self.process_primary_edges()
+        self.create_mappings()
+        self.define_vorverts()
+        self.process_voredges()
+        self.create_core_operators()
+        self.create_aux_operators()
+
+
+        logs.log_info("Mesh successfully cut!")
+
+        return tedge_targets, tcell_targets
+
 
     #----Tests of DEC computations--------------------
 

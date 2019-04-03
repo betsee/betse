@@ -445,7 +445,7 @@ class Cells(object):
 
         # Create the initial Voronoi diagram after making the initial seed
         # points of the cell lattice.
-        self._make_voronoi(phase)
+        self.make_voronoi(phase)
 
         # Clean the Voronoi diagram of empty data structures.
         # self._clean_voronoi(phase.p)
@@ -853,7 +853,7 @@ class Cells(object):
 
 
     @type_check
-    def _make_voronoi(self, phase: SimPhase) -> None:
+    def make_voronoi(self, phase: SimPhase) -> None:
         '''
         Calculate, close, and clip the Voronoi diagram from the cell lattice
         previously created by the :func:`_make_cell_lattice` method.
@@ -1890,87 +1890,84 @@ class Cells(object):
         # Log this action.
         logs.log_debug('Creating cell network Poisson solver...')
 
-        # zero-value fixed boundary version (Dirchlet condition)
-        lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
-        # zero-gradient, free boundary version (Neumann condition)
-        lapGJ_P = np.zeros((len(self.cell_i,), len(self.cell_i)))
-
-        cell_nn_pairs = self.cell_nn_i.tolist()
-
-        for cell_i, cell_inds in enumerate(self.cell_nn):
-
-            vol = self.cell_vol[cell_i]
-
-            for cell_j in cell_inds:
-
-                # get the distance between the tri_mesh vertices of the pair:
-                # lx = self.tri_verts[cell_j, 0] - self.tri_verts[cell_i, 0]  # FIXME! Change these back
-                # ly = self.tri_verts[cell_j, 1] - self.tri_verts[cell_i, 1]
-
-                lx = self.cell_centres[cell_j, 0] - self.cell_centres[cell_i, 0]  # FIXME! Change these back
-                ly = self.cell_centres[cell_j, 1] - self.cell_centres[cell_i, 1]
-
-                len_ij = np.sqrt(lx ** 2 + ly ** 2)
-
-                # find the shared membrane index for the pair:
-                mem_ij = cell_nn_pairs.index([cell_i, cell_j])
-
-                mem_sa = self.mem_sa[mem_ij]
-
-                # # correction constant as membrane normals and segments connecting centers aren't quite parallel:
-                # norm_cor = 0.5*(self.nn_tx[mem_ij]*self.mem_vects_flat[mem_ij, 2] +
-                #                 self.nn_ty[mem_ij]*self.mem_vects_flat[mem_ij, 3])
-                norm_cor = 1.0
-
-                lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
-                lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + (1 / (len_ij)) * (mem_sa / vol) * norm_cor
-
-                lapGJ_P[cell_i, cell_i] = lapGJ_P[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
-                lapGJ_P[cell_i, cell_j] = lapGJ_P[cell_i, cell_j] + (1 / (len_ij)) * (mem_sa / vol) * norm_cor
-
-            # deal with boundary values:
-            if cell_i in self.bflags_cells:
-                lapGJ[cell_i, cell_i] += - 1.0 * (1 / (len_ij)) * (mem_sa / vol) * norm_cor
-
-        self.lapGJinv = np.linalg.pinv(lapGJ)
-        self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
-
-        # if p.td_deform is True:
-        #     # if time0dependent deformation is selected, also save the direct Laplacian operator:
-        self.lapGJ = lapGJ
-        self.lapGJ_P = lapGJ_P
-
-
-        # #----DEC matrix creation
-        # # Hodge star for edge length ratios:
-        # star_eij = np.diag(self.mesh.vor_edge_len/self.mesh.tri_edge_len)
+        # # zero-value fixed boundary version (Dirchlet condition)
+        # lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
+        # # zero-gradient, free boundary version (Neumann condition)
+        # lapGJ_P = np.zeros((len(self.cell_i,), len(self.cell_i)))
         #
-        # # First term in the laplacian matrix:
-        # L1 = np.dot(star_eij, self.mesh.delta_tri_0)
+        # cell_nn_pairs = self.cell_nn_i.tolist()
         #
-        # star_a = np.diag(1/self.mesh.vor_sa)
+        # for cell_i, cell_inds in enumerate(self.cell_nn):
         #
-        # L2 = np.dot(star_a, -self.mesh.delta_tri_0.T)
+        #     vol = self.cell_vol[cell_i]
         #
-        # # Inverse terms:
-        # # Hodge star for edge length ratios:
-        # star_eij_inv = np.diag(self.mesh.tri_edge_len/self.mesh.vor_edge_len)
+        #     for cell_j in cell_inds:
         #
-        # # First term in the laplacian matrix:
-        # L1_inv = np.dot(self.mesh.delta_tri_0_inv, star_eij_inv)
+        #         # get the distance between the tri_mesh vertices of the pair:
+        #         lx = self.cell_centres[cell_j, 0] - self.cell_centres[cell_i, 0]
+        #         ly = self.cell_centres[cell_j, 1] - self.cell_centres[cell_i, 1]
         #
-        # star_a_inv = np.diag(self.mesh.vor_sa)
+        #         len_ij = np.sqrt(lx ** 2 + ly ** 2)
         #
-        # L2_inv = np.dot(-self.mesh.delta_tri_0_inv.T, star_a_inv)
+        #         # find the shared membrane index for the pair:
+        #         mem_ij = cell_nn_pairs.index([cell_i, cell_j])
         #
+        #         mem_sa = self.mem_sa[mem_ij]
         #
-        # self.lapGJinv = np.dot(L1_inv, L2_inv)
-        # self.lapGJ_P_inv = np.dot(L1_inv, L2_inv) # FIXME this is not the correct boundary condition!
+        #         # # correction constant as membrane normals and segments connecting centers aren't quite parallel:
+        #         # norm_cor = 0.5*(self.nn_tx[mem_ij]*self.mem_vects_flat[mem_ij, 2] +
+        #         #                 self.nn_ty[mem_ij]*self.mem_vects_flat[mem_ij, 3])
+        #         norm_cor = 1.0
+        #
+        #         lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
+        #         lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + (1 / (len_ij)) * (mem_sa / vol) * norm_cor
+        #
+        #         lapGJ_P[cell_i, cell_i] = lapGJ_P[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
+        #         lapGJ_P[cell_i, cell_j] = lapGJ_P[cell_i, cell_j] + (1 / (len_ij)) * (mem_sa / vol) * norm_cor
+        #
+        #     # deal with boundary values:
+        #     if cell_i in self.bflags_cells:
+        #         lapGJ[cell_i, cell_i] += - 1.0 * (1 / (len_ij)) * (mem_sa / vol) * norm_cor
+        #
+        # self.lapGJinv = np.linalg.pinv(lapGJ)
+        # self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
         #
         # # if p.td_deform is True:
         # #     # if time0dependent deformation is selected, also save the direct Laplacian operator:
-        # self.lapGJ = np.dot(L2, L1)
-        # self.lapGJ_P = np.dot(L2, L1) # FIXME This is not correct boundary condition!
+        # self.lapGJ = lapGJ
+        # self.lapGJ_P = lapGJ_P
+
+
+        #----DEC matrix creation
+        # Hodge star for edge length ratios:
+        star_eij = np.diag(self.mesh.vor_edge_len/self.mesh.tri_edge_len)
+
+        # First term in the laplacian matrix:
+        L1 = np.dot(star_eij, self.mesh.delta_tri_0)
+
+        star_a = np.diag(1/self.mesh.vor_sa)
+
+        L2 = np.dot(star_a, -self.mesh.delta_tri_0.T)
+
+        # Inverse terms:
+        # Hodge star for edge length ratios:
+        star_eij_inv = np.diag(self.mesh.tri_edge_len/self.mesh.vor_edge_len)
+
+        # First term in the laplacian matrix:
+        L1_inv = np.dot(self.mesh.delta_tri_0_inv, star_eij_inv)
+
+        star_a_inv = np.diag(self.mesh.vor_sa)
+
+        L2_inv = np.dot(-self.mesh.delta_tri_0_inv.T, star_a_inv)
+
+
+        self.lapGJinv = np.dot(L1_inv, L2_inv)
+        self.lapGJ_P_inv = np.dot(L1_inv, L2_inv) # FIXME this is not the correct boundary condition!
+
+        # if p.td_deform is True:
+        #     # if time0dependent deformation is selected, also save the direct Laplacian operator:
+        self.lapGJ = np.dot(L2, L1)
+        self.lapGJ_P = np.dot(L2, L1) # FIXME This is not correct boundary condition!
 
         # weighting function for the voronoi lattice:
         self.geom_weight = np.dot(self.M_sum_mems, self.mem_sa / self.mem_vol) * p.cell_height

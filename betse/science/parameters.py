@@ -662,7 +662,8 @@ class Parameters(YamlFileABC):
         # Parameterize the cutting event if enabled.
         self.break_TJ = self._conf['cutting event'].get('break TJ', True)
         self.wound_TJ = float(self._conf['cutting event'].get('wound TJ', 0.1))
-        self.event_cut_time = float(self._conf['cutting event'].get('cut time', 0.0))
+        # self.event_cut_time = float(self._conf['cutting event'].get('cut time', 0.0))
+        self.event_cut_time = 0.0
         self.event_cut_profile_names = self._conf['cutting event']['apply to']
 
         #---------------------------------------------------------------------------------------------------------------
@@ -756,7 +757,8 @@ class Parameters(YamlFileABC):
 
         if self.network_config is not None:
             self.molecules_enabled = self.network_config['implement network']
-            self.mol_mit_enabled = self.network_config['enable mitochondria']
+            # self.mol_mit_enabled = self.network_config['enable mitochondria']
+            self.mol_mit_enabled = False
 
         else:
             self.mol_mit_enabled = False

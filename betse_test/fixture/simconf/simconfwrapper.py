@@ -263,10 +263,13 @@ class SimConfigTestWrapper(object):
         #                      self._p.sim_time_total * event_time_old
         #                      ---------------------------------------
         #     event_time_new = sim_time_total_old
-        event_cut = self._p._conf['cutting event']
-        event_cut['cut time'] = (
-            self._p.sim_time_total * event_cut['cut time'] /
-            sim_time_total_old)
+        #FIXME: Well, we've eliminated the "event_cut['cut time']" key entirely.
+        #Nonetheless, the above commentary still holds for the general case.
+
+        # event_cut = self._p._conf['cutting event']
+        # event_cut['cut time'] = (
+        #     self._p.sim_time_total * event_cut['cut time'] /
+        #     sim_time_total_old)
 
         # Minify the physical dimensions of the cell cluster in meters. By
         # experimentation, the default simulation configuration both:

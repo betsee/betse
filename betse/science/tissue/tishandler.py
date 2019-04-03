@@ -1081,11 +1081,6 @@ class TissueHandler(object):
                                 del data[index]
                             data2.append(data[index])
 
-                        # elif len(data) == len(cells.nn_i):
-                        #     for index in sorted(target_inds_gj, reverse=True):
-                        #         del data[index]
-                        #     data2.append(data[index])
-
                     super_data2.append(data2)
 
                 if type(super_data) == np.ndarray:
@@ -1153,13 +1148,19 @@ class TissueHandler(object):
         #-----------------------------------------------------------------
         logs.log_info('Recalculating cluster variables for new configuration...')
 
+        cells.mesh.cut_mesh(target_inds_cell)
+
+        # cells.ecm_verts = cells.mesh.vcell_verts # voronoi verts of clipped cluster, nested as polygons defining each cell
+        # cells.ecm_verts_unique = cells.mesh.vor_verts  # convert to numpy array
+
+        # cells.cell_index(p)
+
         cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
         cells.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
         cells.intra_updater(p)  # creates matrix used for finite volume integration on cell patch
         cells.cell_vols(p)  # calculate the volume of cell and its internal regions
         cells.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
         cells.near_neigh(p)  # Calculate the nn array for each cell
-        # cells.voronoiGrid(p)
         cells.calc_gj_vects(p)
         cells.environment(p)  # define features of the ecm grid
         cells.make_maskM(p)
