@@ -192,6 +192,7 @@ def _upgrade_sim_imports_to_0_9_3() -> None:
         SimConfExportAnims, SimConfExportAnimCellsEmbedded)
     from betse.science.config.export.visual.confexpvisplot import (
         SimConfExportPlots, SimConfExportPlotCell, SimConfExportPlotCells)
+    from betse.science.enum import enumphase
     from betse.util.type.iterable import mapping
 
     # Alias obsolete module names to current module objects.
@@ -201,6 +202,7 @@ def _upgrade_sim_imports_to_0_9_3() -> None:
     sys.modules['betse.science.config.export.visual.confplot'] = confexpvisplot
     sys.modules['betse.science.config.export.visual.confvisabc'] = (
         confexpvisabc)
+    sys.modules['betse.science.phase.phaseenum'] = enumphase
 
     # Alias obsolete to current class names.
     confexpvisabc.SimConfVisualCellListItem  = SimConfExportPlotCell

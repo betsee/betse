@@ -1148,7 +1148,9 @@ class TissueHandler(object):
         #-----------------------------------------------------------------
         logs.log_info('Recalculating cluster variables for new configuration...')
 
-        cells.mesh.cut_mesh(target_inds_cell)
+        # Cut the DEC meshes and save the inds to modify data defined on DEC edges, verts, and simplices
+        self.targets_dec_edges, self.targets_dec_tcells = cells.mesh.cut_mesh(target_inds_cell)
+        self.targets_dec_tverts = target_inds_cell
 
         cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
         cells.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations

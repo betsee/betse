@@ -8,6 +8,7 @@ import numpy as np
 from betse.util.app.meta import metaappton
 from betse.exceptions import BetseSimConfException
 from betse.lib.matplotlib import mplcolormap
+from betse.lib.yaml import yamls
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.enum.enumconf import (
@@ -759,7 +760,12 @@ class Parameters(YamlFileABC):
             self.molecules_enabled = self.network_config['implement network']
             # self.mol_mit_enabled = self.network_config['enable mitochondria']
             self.mol_mit_enabled = False
-
+            self.expression_data_path = self.network_config.get('expression data file', None)
+            if self.expression_data_path is not None and self.expression_data_path != "None":
+                #FIXME: Implement this properly when time permits, please. Ideally, a new "YamlABC" subclass exposing
+                #this low-level dictionary via high-level yaml_alias-based data desriptors should be created. Until
+                #then, ancient tree spirits arise!
+                self.expression_data = yamls.load(filename=self.expression_data_path)
         else:
             self.mol_mit_enabled = False
 
