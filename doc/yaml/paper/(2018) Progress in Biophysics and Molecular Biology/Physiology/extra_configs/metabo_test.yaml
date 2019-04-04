@@ -1,0 +1,808 @@
+%YAML 1.1
+---
+# This file examines glycolysis metabolism where the metabolite profile is fit to normal, healthy red blood cells.
+
+# Mitochondria and oxydative phosphorylation are not modelled.
+
+# This model contains a G6PP pathway and redox molecules, and 10 uM oxidative stress in environment
+
+#-----------------------------------------------------------------------------------------------------------------------
+#  GENERAL NETWORK FEATURES
+#----------------------------------------------------------------------------------------------------------------------
+
+enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
+
+optimization:
+  optimize network: False   # run an optimization of the network to obtain max rates at steady state concentrations?
+  optimization steps: 50 # number of itteration steps to run with basinhopper
+  optimization method: L-BFGS-B  # optimization algorithm to run ('COBYLA', 'L-BFGS-B', 'CG')
+                                                    # (Nelder-Mead, Powell, BFGS, 'TNC', 'SLSQP')
+  optimization T: 1.0
+  optimization step: 0.5
+  target Vmem: -50e-3     # Vmem to use in optimization
+
+#-----------------------------------------------------------------------------------------------------------------------
+#  MOLECULES
+#-----------------------------------------------------------------------------------------------------------------------
+
+biomolecules:  # specify the properties of all molecules participating in metabolism
+
+  - name: 'ATP'    # adenosine tri-phosphate
+
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -2               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 1.85     # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.5             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0                # if autoscale is False, max value to use for plot in umol/L
+      min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+  - name: 'ADP'    # adenosine di-phosphate
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -1               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.15    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 2.0             # initial concentration in the mitochondria [mmol/L] based on ANT eq'm
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'AMP'    # adenosine mono-phosphate
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -1               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.012    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'Pi'    # inorganic phosphate (H2PO4-)
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -1               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 1.0    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 10.0             # based on Pi/H transporter eq'm (Nazaret 2009 says 2.5)
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'NAD'    # NAD redox molecule
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -1               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 1.30    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.940             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'NADH'    # NAD redox molecule
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -2               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.005    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.121    #0.121         # initial concentration in the mitochondria [mmol/L] (ratios from Veech 1969)
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  # ---redox signalling molecules -------------------------------
+
+  - name: 'NADPH'    # NADPH redox molecule
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -2               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 1.5    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 1.0             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'NADP'    # NADP redox molecule
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -1               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.00    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.01             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'GSH'    # Glutathione
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 0               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 5.00    # initial concentration in the cytoplasm [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'GSSG'    # Glutathion oxidized
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 0               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.01    # initial concentration in the cytoplasm [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+#  - name: 'Ribulose'    # Ribulose 5 phosphate
+#    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+#    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+#    z: 0               # charge (oxidation state)
+#    env conc: 0.0        # initial concentration in the environment [mmol/L]
+#    cell conc: 0.0    # initial concentration in the cytoplasm [mmol/L]
+#    TJ permeable: False     # Can the substance pass through tight junctions?
+#    GJ impermeable: False   # is the substance impermeable through gap junctions?
+#    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+#    ignore ECM: True      # Ignore small extracellular space volume?
+#    plotting:
+#      plot 2D: True         # create a unique set of plots for the substance
+#      animate: True        # animate the substance during the sampled time-steps of the simulation
+#      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+#      max val: 2.0               # if autoscale is False, max value to use for plot
+#      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'G3P'    # Glycerol 3 phosphate
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 2               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.0    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autosca
+
+  # gases -------------------------------
+
+#  - name: 'O2'    # Dissolved oxygen
+#    Dm: 1.0e-12          #  membrane diffusion coefficient [m2/s]
+#    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+#    z: 0               # charge (oxidation state)
+#    env conc: 0.27        # initial concentration in the environment [mmol/L]
+#    cell conc: 0.27    # initial concentration in the cytoplasm [mmol/L]
+#    mit conc: 0.27             # initial concentration in the mitochondria [mmol/L]
+#    TJ permeable: True     # Can the substance pass through tight junctions?
+#    GJ impermeable: False   # is the substance impermeable through gap junctions?
+#    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+#    ignore ECM: True      # Ignore small extracellular space volume?
+#    plotting:
+#      plot 2D: True         # create a unique set of plots for the substance
+#      animate: True        # animate the substance during the sampled time-steps of the simulation
+#      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+#      max val: 2.0               # if autoscale is False, max value to use for plot
+#      min val: 0.0                    # if autoscale is False, min value to use for plot
+#
+  - name: 'CO2'    # Dissolved carbon dioxide
+    Dm: 1.0e-12          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 0               # charge (oxidation state)
+    env conc: 1.2        # initial concentration in the environment [mmol/L]
+    cell conc: 1.2    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 1.2             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: True     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'HCO3'    # Bicarbonate
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -1               # charge (oxidation state)
+    env conc: 9.53        # initial concentration in the environment [mmol/L]
+    cell conc: 9.53    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 19.06             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  #-----Metabolism metabolites--------------------------------------------------------------------------
+  - name: 'Gluc'    # Glucose molecule
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 0               # charge (oxidation state)
+    env conc: 5.0        # initial concentration in the environment [mmol/L]
+    cell conc: 5.0    # initial concentration in the cytoplasm [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'G6P'    # Glucose-6-phosphate molecule
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -2               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.083    # initial concentration in the cytoplasm [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'F6P'    # Fructose-6-phosphate molecule
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -2               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.014    # initial concentration in the cytoplasm [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'F16BP'    # Fructose-16-Bi-phosphate molecule
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -4               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.031    # initial concentration in the cytoplasm [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'PEP'    # Phosphoenolpyruvate
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -3               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.023    # initial concentration in the cytoplasm [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'Pyr'    # Pyruvate
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -1               # charge (oxidation state)
+    env conc: 0.0
+    cell conc: 0.107    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.107     #0.140        # initial concentration in the mitochondria [mmol/L] (Nazaret 2009)
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'Lac'    # Lactate
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -1               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.828    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'H+'    # Metabolic acid (needed for charge to balance in reactions...)
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 1               # charge (oxidation state)
+    env conc: 0.1        # initial concentration in the environment [mmol/L]
+    cell conc: 0.1    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.1             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'ROS'    # Reactive oxygen species
+    Dm: 1.0e-13          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 0               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.0    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: False   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+
+  #-----Gene products and enzymes--------------------------------------------------------------------------------------
+  - name: 'HIF'    # Hypoxia inducible factor
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 0               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.01    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: True   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True     # Ignore small extracellular space volume?
+#    growth and decay:
+#      production rate: 10.0    # maximum rate at which molecule is produced in the cytoplasm
+#      decay rate: 10.0          # maximum rate at which molecule is degraded in the cytoplasm
+#      Km: 1.0                  # Half-maximum value for decay [mmol/L]
+#      n: 3.0                   # Hill exponent for decay
+#      apply to: all       # apply growth only to a specific tissue profile, or 'all' for everything
+#      modulator function: None        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+#      activators: ['NAD']         # list of defined substances or simulation ions activating expression
+#      Km activators: [1.5]      # list of half-maximum values for activators
+#      n activators: [1.0]       # list of Hill exponent of activators
+#      inhibitors: None   # list of defined substances or simulation ions inhibiting expression
+#      Km inhibitors: None      # list of half-maximum values for inhibitors
+#      n inhibitors: None        # list of Hill exponent of inhibitors
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+#  - name: 'NOX'    # NADPH oxidase enzyme
+#    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+#    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+#    z: 0               # charge (oxidation state)
+#    env conc: 0.0        # initial concentration in the environment [mmol/L]
+#    cell conc: 1.0    # initial concentration in the cytoplasm [mmol/L]
+#    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+#    TJ permeable: False     # Can the substance pass through tight junctions?
+#    GJ impermeable: True   # is the substance impermeable through gap junctions?
+#    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+#    ignore ECM: True     # Ignore small extracellular space volume?
+#    growth and decay:
+#      production rate: 10.0    # maximum rate at which molecule is produced in the cytoplasm
+#      decay rate: 10.0          # maximum rate at which molecule is degraded in the cytoplasm
+#      Km: 1.0                  # Half-maximum value for decay [mmol/L]
+#      n: 3.0                   # Hill exponent for decay
+#      apply to: all       # apply growth only to a specific tissue profile, or 'all' for everything
+#      modulator function: None        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+#      activators: ['NAD']         # list of defined substances or simulation ions activating expression
+#      Km activators: [1.5]      # list of half-maximum values for activators
+#      n activators: [1.0]       # list of Hill exponent of activators
+#      inhibitors: None   # list of defined substances or simulation ions inhibiting expression
+#      Km inhibitors: None      # list of half-maximum values for inhibitors
+#      n inhibitors: None        # list of Hill exponent of inhibitors
+#    plotting:
+#      plot 2D: True         # create a unique set of plots for the substance
+#      animate: True        # animate the substance during the sampled time-steps of the simulation
+#      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+#      max val: 2.0               # if autoscale is False, max value to use for plot
+#      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+#   REACTIONS
+#-----------------------------------------------------------------------------------------------------------------------
+
+reactions:
+
+  - name: Consume ATP              # background metabolic rate
+
+    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+    reactants: ['ATP']              # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1]      # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [1.0]             # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['ADP', 'Pi']        # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1, 1]   # reaction coefficients for products, in same order as product definition
+    Km products: [0.1, 0.1]        # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 0.05  #0.0147              # list of half-max coefficients for reagents, in same order as reagents list
+    standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+
+  # adenylate kinase
+  - name: adenylate_kinase              # adenylate kinase enzyme reaction (params from Khoo and Russel 1970)
+
+    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+    reactants: ['ADP']              # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [2]      # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [0.05]             # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['ATP', 'AMP']        # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1, 1]    # reaction coefficients for products, in same order as product definition
+    Km products: [0.05, 0.05]        # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 0.25  #0.01              # list of half-max coefficients for reagents, in same order as reagents list
+    standard free energy: 0   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+
+#  # buffer reaction for H+
+#  - name: bicarb-cell              # background metabolic rate
+#
+#    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+#    reactants: ['H+', 'HCO3']              # list of reagents; must be from set of names defined for biomolecules in above
+#    reactant multipliers: [1, 1]      # reaction coefficients for reagents, in same order as reagent definition
+#    Km reactants: [5.0e-3, 1.0]             # list of half-max coefficients for reagents, in same order as reagents list
+#    products: ['CO2']        # list of products; must be from set of names defined for biomolecules in above
+#    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+#    Km products: [1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+#    max rate: 1.0    # 5.0           # list of half-max coefficients for reagents, in same order as reagents list
+#    standard free energy: -18.4e3   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+
+#  - name: bicarb-mit              # background metabolic rate
+#
+#    reaction zone: mit        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+#    reactants: ['H+', 'HCO3']              # list of reagents; must be from set of names defined for biomolecules in above
+#    reactant multipliers: [1, 1]      # reaction coefficients for reagents, in same order as reagent definition
+#    Km reactants: [5.0e-3, 1.0]             # list of half-max coefficients for reagents, in same order as reagents list
+#    products: ['CO2']        # list of products; must be from set of names defined for biomolecules in above
+#    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+#    Km products: [1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+#    max rate: 1.0    #5.0           # list of half-max coefficients for reagents, in same order as reagents list
+#    standard free energy: -18.4e3   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+
+    #------Redox status pathways------------------------------------------------------------------------------------------
+  - name: G6PP              # Glucose-6-phosphate pentophosphate pathway
+
+    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+    reactants: ['G6P', 'NADP']              # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1, 2]      # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [0.1, 0.05]             # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['NADPH', 'CO2', 'F6P', 'G3P', 'H+']
+    product multipliers: [2, 1, 2, 1, 2]   # reaction coefficients for products, in same order as product definition
+    Km products: [1.0, 1.0, 1.0, 1.0, 1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 0.5    #5.0          # list of half-max coefficients for reagents, in same order as reagents list
+    standard free energy: None   # dard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+
+  - name: Antioxidant              # oxidative stress
+
+    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+    reactants: ['ROS', 'GSH']              # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1, 2]      # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [5.0e-3, 1.0]             # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['GSSG']        # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+    Km products: [1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 10.0    #5.0          # list of half-max coefficients for reagents, in same order as reagents list
+    standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+
+  - name: Replenish-GSH              # oxidative stress
+
+    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+    reactants: ['NADPH', 'GSSG', 'H+']              # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1, 1, 1]      # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [0.5, 0.1, 0.1]             # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['NADP', 'GSH']        # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1, 2]   # reaction coefficients for products, in same order as product definition
+    Km products: [1.0, 1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 1.0    #5.0          # list of half-max coefficients for reagents, in same order as reagents list
+    standard free energy: -17.4e3   # standard free energy of reaction in Jard free energy of reaction in J/mol. 'None' creates non-reversible reacti
+
+
+  #-----------glycolysis pathway---------------------------------------------------------------------------------------
+
+  - name: HK         # Hexokinase enzyme (Martin-Hernandez et al 2011)
+
+    reaction zone: cell
+    reactants: ['Gluc', 'ATP']
+    reactant multipliers: [1, 1]
+    Km reactants: [0.18, 1.0]
+    products: ['G6P', 'ADP', 'H+']
+    product multipliers: [1, 1, 1]
+    Km products: [1, 1, 0.01]
+    max rate: 0.23   #0.23
+    standard free energy: None
+    reaction activators: ['HIF']
+    activator Km: [0.5]
+    activator n: [1.0]
+    activator zone: ['cell']
+    reaction inhibitors: ['G6P']
+    inhibitor Km: [0.150]
+    inhibitor n: [3.0]
+    inhibitor zone: ['cell']
+
+  - name: PGI              # Phosphoglucoisomerase enzyme reaction
+
+    reaction zone: cell
+    reactants: ['G6P']
+    reactant multipliers: [1]
+    Km reactants: [0.9]
+    products: ['F6P']
+    product multipliers: [1]
+    Km products: [0.07]
+    max rate: 0.45 # 2.67
+    standard free energy: -1.67e3
+
+  - name: PFK         # Phosphofructokinase enzyme (Martin-Hernandez et al 2011)
+
+    reaction zone: cell
+    reactants: ['F6P', 'ATP']
+    reactant multipliers: [1, 1]
+    Km reactants: [0.05, 0.05]
+    products: ['F16BP', 'ADP', 'H+']
+    product multipliers: [1, 1, 1]
+    Km products: [1, 1, 0.01]
+    max rate: 0.195   #43.74
+    standard free energy: None
+    reaction activators: ['AMP','HIF']
+    activator Km: [0.01, 0.5]           # from ATAULLAKHANOV 1980
+    activator n: [1.0, 1.0]
+    reaction inhibitors: ['ATP']
+    inhibitor Km: [1.5]    # Also approximated by ATAULLAKHANOV 1980 ~ 2.0
+    inhibitor n: [4.0]
+
+  - name: GL         # Lumped glycolysis reaction
+
+    reaction zone: cell
+    reactants: ['F16BP', 'NAD', 'ADP', 'Pi']
+    reactant multipliers: [1, 2, 2, 2]
+    Km reactants: [0.01, 0.08, 0.5, 0.1]
+    products: ['PEP', 'NADH','ATP','H+']
+    product multipliers: [2, 2, 2, 4]
+    Km products: [0.04, 0.004, 1.0, 0.01]
+    max rate: 0.77 # 1.18
+    standard free energy: None
+
+
+  - name: PYK         # Pyruvate kinase enzyme (Martin-Hernandez et al 2011)
+
+    reaction zone: cell
+    reactants: ['PEP', 'ADP', 'H+']
+    reactant multipliers: [2, 2, 2]
+    Km reactants: [0.4, 0.3, 0.01]
+    products: ['Pyr', 'ATP']
+    product multipliers: [2, 2]
+    Km products: [1, 1, 1]
+    max rate: 51.52 # 164.3
+    standard free energy: None
+#    reaction activators: ['HIF']
+#    activator Km: [0.5]
+#    activator n: [1.0]
+    reaction inhibitors: ['ATP']
+    inhibitor Km: [1.5]    # Also approximated by ATAULLAKHANOV 1980 ~ 2.0
+    inhibitor n: [4.0]
+
+
+  - name: LDH         # Lactate dehydrogenase enzyme (Schwartz 1973)
+
+    reaction zone: cell
+    reactants: ['Pyr', 'NADH', 'H+']
+    reactant multipliers: [1, 1, 1]
+    Km reactants: [1.0, 1.0e-3, 0.5]
+    products: ['Lac', 'NAD']
+    product multipliers: [1, 1]
+    Km products: [5.0, 1.5]
+    max rate: 0.25  # 2.5
+    standard free energy: -38.4e3  #-38.4e3
+    reaction activators: ['HIF!']
+    activator Km: [0.5]
+    activator n: [1.0]
+    activator zone: ['cell']
+    reaction inhibitors: None
+    inhibitor Km: None
+    inhibitor n: None
+    inhibitor zone: None
+
+
+
+  #-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM TRANSPORTERS
+#-----------------------------------------------------------------------------------------------------------------------
+# Positive flux moves out of the cell
+transporters:
+
+  - name: GLUT1         # glucose transporter
+
+    reaction zone: cell    # reaction zone identifier: 'cell' or 'mit'; where reaction takes place
+    reactants: ['Gluc']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1]  # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [0.52]   # (Marin-Hernandex 2011)
+    products: ['Gluc']         # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+    Km products: [5.0]        # list of half-max coefficients for reagents, in same order as reagents list
+    transfered out of cell: []   # items of reaction moved out of cell during forwards reaction
+    transfered into cell: ['Gluc']     # items of reaction moved into cell during forwards reaction
+    max rate: 5.0e-7       #6.85e-7    # maximum rate of transport [mol/(m2*s)]
+    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    apply to: all      # apply transporter only on certain profiles?
+    ignore ECM: True
+    transporter activators: ['HIF!']   # additional defined substances or ions increasing activity of transporter
+    activator Km: [0.5]
+    activator n: [1.0]
+    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: None
+    inhibitor n: None
+    inhibitor zone: None
+
+
+  - name: MCT-Lac         # lactate transporter
+
+    reaction zone: cell    # reaction zone identifier: 'cell' or 'mit'; where reaction takes place
+    reactants: ['Lac', 'H+']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1, 1]  # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [3.5, 1.0]
+    products: ['Lac','H+']         # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1, 1]   # reaction coefficients for products, in same order as product definition
+    Km products: [3.5, 1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+    transfered out of cell: ['Lac','H+']   # items of reaction moved out of cell during forwards reaction
+    transfered into cell: []     # items of reaction moved into cell during forwards reaction
+    max rate: 1.0e-7  #2.45e-7        # maximum rate of transport [mol/(m2*s)]
+    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    apply to: all      # apply transporter only on certain profiles?
+    ignore ECM: True
+    transporter activators: ['HIF']   # additional defined substances or ions increasing activity of transporter
+    activator Km: [0.5]
+    activator n: [1.0]
+    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: None
+    inhibitor n: None
+    inhibitor zone: None
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM CHANNELS
+#-----------------------------------------------------------------------------------------------------------------------
+#channels:
+#
+#  - name: ATP-K-channel
+#
+#    channel class: K       # class of the channels: Na, K, Ca, NaP, Kir, and Fun
+#    channel type: KLeak   # identify the channel as one of the available voltage gated types in each class
+#    max conductivity: 1.0e-8          # maximum membrane conductivity to ion when channel fully open
+#    apply to: all                   # list of profiles to apply channel to or 'all' for all cells
+#    channel activators: ['ADP']  # additional defined substances or ions increasing activity of transporter
+#    activator Km: [0.1]
+#    activator n: [3.0]
+#    activator zone: ['cell']
+#    channel inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
+#    inhibitor Km: [1.5]
+#    inhibitor n: [3.0]
+#    inhibitor zone: ['cell']
+
+    # type for channel class Na: Nav1p2, Nav1p3, NavRat1, NavRat2, NaLeak
+    #                        K: K_Slow, K_Fast, Kv1p1, Kv1p2, Kv1p5, Kv2p1, KLeak
+    #                        Kir: Kir2p1, Kv3p3, Kv3p4
+    #                        Ca: Ca_L, Ca_T, Ca_PQ, CaLeak
+    #                        NaP: Nav1p6
+    #                        Fun: HCN1, HCN2, HCN4
+
+
+
+

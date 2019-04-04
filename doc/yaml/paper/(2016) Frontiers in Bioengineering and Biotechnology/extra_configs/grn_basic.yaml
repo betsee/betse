@@ -1,0 +1,136 @@
+%YAML 1.1
+---
+# The BETSE basic gene regulatory network configuration file, which takes a coarse view of a
+# GNR set-up. This file reproduces the GRN results from Figure 2, page 774 of: Karlebach, G.
+# & Shamir, R. Modelling and analysis of gene regulatory networks Nature Reviews Molecular
+# Cell Biology, 2008, 9, 770-780.
+#
+# A Note on YAML
+# ----------
+# This file is formatted according to the YAML ([Y]AML [A]in't [M]arkup
+# [L]anguage) standard. YAML is a human-readable data serialization format
+# useful for configuration files -- like this one. For details, please see
+# https://en.wikipedia.org/wiki/YAML.
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+#  GENERAL NETWORK FEATURES
+#-----------------------------------------------------------------------------------------------------------------------
+enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
+
+optimization:
+  optimize network: False   # run an optimization of the network to obtain max rates at steady state concentrations?
+  optimization steps: 50 # number of itteration steps to run with basinhopper
+  optimization method: L-BFGS-B  # optimization algorithm to run ('COBYLA', 'L-BFGS-B', 'CG')
+                                                    # (Nelder-Mead, Powell, BFGS, 'TNC', 'SLSQP')
+  optimization T: 1.0
+  optimization step: 0.5
+  target Vmem: -50e-3     # Vmem to use in optimization
+
+#-----------------------------------------------------------------------------------------------------------------------
+# GENE REGULATORY NETWORK DEFINITION
+#-----------------------------------------------------------------------------------------------------------------------
+# Mini-simulations of biochemical substances that can electrodiffuse across cell membranes, between cells via GJ, or
+# in the environment. Also can be produced/consumed in the cytoplasm, act as gating ligand for a specific channel,
+# be actively pumped in or out of cells, changed at the boundary, or plotted/animated at the end of the simulation.
+
+biomolecules:  # specify the properties of any number of auxillary chemicals
+
+  # example of a biomolecule as gating ligand that depolarizes the membranes
+
+  - name: 'Gene 1'    # give the substance a unique identifier of your choice.
+
+    Dm: 0.0              #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-12           # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 0                 # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.0       # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: True   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    growth and decay:
+      production rate: 2.0    # maximum rate at which molecule is produced in the cytoplasm
+      decay rate: 1.0          # maximum rate at which molecule is degraded in the cytoplasm
+      Km: 1.0                  # Half-maximum value for decay [mmol/L]
+      n: 1.0                   # Hill exponent for decay
+      apply to: all      # apply production only to certain profiles?
+      modulator function: None        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+      activators: None         # list of defined substances or simulation ions activating expression
+      Km activators: None      # list of half-maximum values for activators
+      n activators: None       # list of Hill exponent of activators
+      inhibitors: ['Gene 3']   # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: [0.01]      # list of half-maximum values for inhibitors
+      n inhibitors: [1]        # list of Hill exponent of inhibitors
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0                # if autoscale is False, max value to use for plot in umol/L
+      min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+  - name: 'Gene 2'    # give the substance a unique identifier of your choice.
+
+    Dm: 0.0              #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-12           # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 0                 # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.0        # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: True   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    growth and decay:
+      production rate: 2.0    # maximum rate at which molecule is produced in the cytoplasm
+      decay rate: 1.0         # maximum rate at which molecule is degraded in the cytoplasm
+      Km: 1.0                  # Half-maximum value for decay [mmol/L]
+      n: 1.0                      # Hill exponent for decay
+      apply to: all      # apply production only to certain profiles?
+      modulator function: None        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+      activators: ['Gene 1']      # list of defined substances or simulation ions activating expression
+      Km activators: [1]      # list of half-maximum values for activators
+      n activators: [1]          # list of Hill exponent of activators
+      inhibitors: None            # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: [1]      # list of half-maximum values for inhibitors
+      n inhibitors: None           # list of Hill exponent of inhibitors
+    plotting:
+      plot 2D: False         # create a unique set of plots for the substance
+      animate: False         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0                # if autoscale is False, max value to use for plot in umol/L
+      min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+  - name: 'Gene 3'    # give the substance a unique identifier of your choice.
+
+    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-12          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 0               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.0    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False     # Can the substance pass through tight junctions?
+    GJ impermeable: True   # is the substance impermeable through gap junctions?
+    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
+    ignore ECM: True      # Ignore small extracellular space volume?
+    growth and decay:
+      production rate: 15.0    # rate at which molecule is produced in the cytoplasm
+      decay rate: 1.0          # rate at which molecule is consumed in the cytoplasm
+      Km: 1.0                  # Half-maximum value for self-growth and decay [mmol/L]
+      n: 1.0                      # Hill coefficient for self-growth
+      apply to: all      # apply production only to certain profiles?
+      modulator function: None        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+      activators: ['Gene 1', 'Gene 2']   # list of defined substances or simulation ions activating expression
+      Km activators: [1, 1]      # list of half-maximum values for activators
+      n activators: [1, 1]              # list of Hill exponent of activators
+      inhibitors: None                   # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: None      # list of half-maximum values for inhibitors
+      n inhibitors: None                # list of Hill exponent of inhibition
+    plotting:
+      plot 2D: False         # create a unique set of plots for the substance
+      animate: False         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0                # if autoscale is False, max value to use for plot in umol/L
+      min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+

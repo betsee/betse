@@ -46,6 +46,7 @@ class DECMesh(object):
                  allow_merging = True, # Allow tri-cells to be merged to quads if circumcenters are close?
                  merge_thresh = 0.2, # Distance threshhold (%of total radius) for merging close circumcenters
                  close_thresh = 0.25, # threshhold for removal of close tri vert neighour points
+                 center = None, # Optional center point for cluster (used to center a single cell)
                  ):
 
 
@@ -62,6 +63,14 @@ class DECMesh(object):
         self.close_thresh = close_thresh
 
         self.single_cell = False
+
+        if center is not None:
+            self.centx = center[0]
+            self.centy = center[1]
+
+        else:
+            self.centx = 0.0
+            self.centy = 0.0
 
         self.removed_bad_verts = False # flag to bad tri-vert removal (only do case once!)
 
@@ -167,8 +176,8 @@ class DECMesh(object):
         noisex = np.random.random(self.single_cell_sides + 1)
         noisey = np.random.random(self.single_cell_sides + 1)
 
-        xenv = np.hstack((xenv, 0.0)) + noisex * self.cell_radius * self.single_cell_noise
-        yenv = np.hstack((yenv, 0.0)) + noisey * self.cell_radius * self.single_cell_noise
+        xenv = np.hstack((xenv, 0.0)) + noisex * self.cell_radius * self.single_cell_noise + self.centx
+        yenv = np.hstack((yenv, 0.0)) + noisey * self.cell_radius * self.single_cell_noise + self.centy
 
         self.tri_verts = np.column_stack((xenv, yenv))
 

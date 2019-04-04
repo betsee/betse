@@ -1,0 +1,355 @@
+%YAML 1.1
+---
+# This file provides full examples of all features that can be used to define
+# Bioelectricity Integrated Gene and Reaction networks in BETSE
+
+# Note: All 'activator' or 'inhibitor' relationships between network substances and
+# other network elements are optional. Their gating relationship can further be specified
+# using character flags proceeding the network substance name:
+#   '*' means the gating relationship will be Vm-sensitive for channels and transporters (depending on substance charge)
+#   '!' means the gating relationship will be added to the total interaction term, rather than default multiplication
+#   '&' means the gating relationship will be specified by direct concentrations and no Hill function used.
+
+# If multiple end-flags are desired, they must be nested in order: substance_name&!*
+# Finally, do not name network substances with end-characters of '*', '&', '!', '_env', '_cell' or '_mit'.
+
+# A Note on YAML
+# ----------
+# This file is formatted according to the YAML ([Y]AML [A]in't [M]arkup
+# [L]anguage) standard. YAML is a human-readable data serialization format
+# useful for configuration files -- like this one. For details, please see
+# https://en.wikipedia.org/wiki/YAML.
+
+#-----------------------------------------------------------------------------------------------------------------------
+#  GENERAL NETWORK FEATURES
+#-----------------------------------------------------------------------------------------------------------------------
+
+enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
+
+optimization:
+  optimize network: False   # run an optimization of the network to obtain max rates at steady state concentrations?
+  optimization steps: 50 # number of itteration steps to run with basinhopper
+  optimization method: L-BFGS-B  # optimization algorithm to run ('COBYLA', 'L-BFGS-B', 'CG')
+                                                    # (Nelder-Mead, Powell, BFGS, 'TNC', 'SLSQP')
+  optimization T: 1.0
+  optimization step: 0.5
+  target Vmem: -50e-3     # Vmem to use in optimization
+
+time dilation factor: 144.0 #144     # Factor altering the simulation timestep for certain substances
+
+reset microtubules: False  # (sim-grn) reinitialize the MT to disorganized state at begining of network simulation?
+
+recalculate fluid: False
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM BIOMOLECULES
+#-----------------------------------------------------------------------------------------------------------------------
+
+biomolecules:  # specify the properties of all molecules participating in metabolism
+
+  - name: 'Substance_A'    # supply a unique name; **DO NOT** end name with '_cell', '_env' or '_mit' !
+
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-10          # free diffusion constant in extra and intracellular spaces [m2/s]
+    Dgj: 1.0e-16        # effective diffusion constant through gap junctions
+    Mu_mem: 0.0          # assumes substance embeds in membrane and has fininte electrophoretic mobility
+    u_mtube: 0.0           # rate of transport via motor proteins on microtubules (max of about 5.0e-6 m/s)
+    z: -2               # charge (oxidation state)
+    env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
+    cell conc: 1.5     # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L] (if mit enabled!)
+    transmem: False   # substance embeded in membrane (and therefore movable by extracellular fields, flow?)
+    update intracellular: False  # allows you to shut off intracellular transport for fast diffusion with stability
+    initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+    TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+    GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)
+    TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+    ignore ECM: True    # treat extracellular spaces as full grid square volume (True)?
+    scale factor: 1.0e-3  # amount to scale molecule concentration by
+    use time dilation: False  # use time dilation factor for transport and growth/decay of this substance?
+    growth and decay:    # settings for production/decay of substances (standard GRN model)
+      production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
+      decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm
+      apply to: ['spot']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+      modulator function: gradient_x  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+      activators: None         # list of defined substances or simulation ions activating expression
+      Km activators: None      # list of half-maximum values for activators
+      n activators: None       # list of Hill exponent of activators
+      inhibitors: ['B']   # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: [1.0]      # list of half-maximum values for inhibitors
+      n inhibitors: [3.0]        # list of Hill exponent of inhibitors
+    ion channel gating:
+      channel name: P2X          # supply a unique name for the channel (for inclusion on net graph)
+      ion channel target: ['Na', 'K']            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+      target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
+      target Hill exponent: 1.0     # Hill exponent; affects shape of opening-vs-concentration curve
+      peak channel opening: 1e-16    # max mem diffusion constant for target ion when channel fully open
+      acts extracellularly: False    # acts via extracellular (True) or intracellular (False) concentration?
+      activators: None         # list of defined substances or simulation ions activating expression
+      Km activators: None      # list of half-maximum values for activators
+      n activators: None       # list of Hill exponent of activators
+      zone activators: None   # location of concentration having an influence ('cell' or 'env')
+      inhibitors: None   # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: None      # list of half-maximum values for inhibitors
+      n inhibitors: None        # list of Hill exponent of inhibitors
+      zone inhibitors: None   # location of concentration having an influence ('cell' or 'env')
+    active pumping:      # use ATP driven pumps to actively move the substance across membranes?
+      turn on: False           # turn pumping on?
+      pump to cell: True      # pump from extracellular space to cell (True) or reverse (False)?
+      maximum rate: 1.0e-8   # maximum rate constant of pumping [mol/s]
+      pump Km: 1.0e-3       # 1/2 rate point coefficient for molecule in pump reaction
+      uses ATP: False      # uses ATP or facilitated transport?
+    change at bounds:      # Change the environmental concentration of molecule from the global boundary
+      event happens: False     # turn the event on (True) or off (False)
+      change start: 1.0          # time to start change [s]
+      change finish: 7.0        # time to end change and return to original [s]
+      change rate: 1.0           # rate of change [s]
+      concentration: 1e-3      # target concentration for duration of change [mmol/L]
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0                # if autoscale is False, max value to use for plot in umol/L
+      min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+#   REACTIONS
+#-----------------------------------------------------------------------------------------------------------------------
+
+reactions:
+
+  - name: consume_A              # unique identifier for the reaction **DO NOT** end with '_growth' or '_decay'
+
+    reaction zone: cell        # reaction zone identifier: 'cell', 'env', or 'mit'; where reaction takes place
+    reactants: ['Substance_A']              # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1]      # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [1.0]             # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['B', 'C']        # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1, 1]   # reaction coefficients for products, in same order as product definition
+    Km products: [0.1, 0.1]        # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 5.0e-3                # list of half-max coefficients for reagents, in same order as reagents list
+    standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    reaction activators: None   # additional defined substances or ions increasing activity of transporter
+    activator Km: None
+    activator n: None
+    activator zone: None   # location of concentration having an influence ('cell' or 'env')
+    reaction inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: None
+    inhibitor n: None
+    inhibitor zone: None
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM TRANSPORTERS
+#-----------------------------------------------------------------------------------------------------------------------
+# Positive flux moves out of the cell
+transporters:
+
+  - name: Transport_A         # unique identifier for the transporter **DO NOT** end with '_growth' or '_decay'
+    reaction zone: cell    # reaction zone identifier: 'cell' or 'mit'; where reaction takes place
+    reactants: ['Substance_A']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1]  # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [0.1]   # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['Substance_A']         # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+    Km products: [0.1]        # list of half-max coefficients for reagents, in same order as reagents list
+    transfered out of cell: []   # items of reaction moved out of cell during forwards reaction
+    transfered into cell: ['Substance_A']     # items of reaction moved into cell during forwards reaction
+    max rate: 1.0e-5          # maximum rate of transport [mol/(m2*s)]
+    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    apply to: ['nerves', 'spot']      # apply transporter only on certain profiles?
+    ignore ECM: True
+    transporter activators: None   # additional defined substances or ions increasing activity of transporter
+    activator Km: None
+    activator n: None
+    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: None
+    inhibitor n: None
+    # Note: transporter activators/inhibitors only work from intracellular concentrations at the membrane
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM CHANNELS
+#-----------------------------------------------------------------------------------------------------------------------
+channels:
+
+  - name: ATP-K-channel
+
+    channel class: K       # class of the channels: Na, K, Ca, Cl, Fun, and Cat
+    channel type: KLeak   # identify the channel as one of the available voltage gated types in each class
+    max conductivity: 1.0e-17          # maximum membrane diffusion constant of ion when channel fully open
+    apply to: all                   # list of profiles to apply channel to or 'all' for all cells
+    init active: False                # Is the channel active during the Init (True) or only during Sim (False)?
+    channel activators: ['ADP']  # additional defined substances or ions increasing activity of transporter
+    activator Km: [0.1]
+    activator n: [3.0]
+    activator zone: ['cell']
+    activator max: 0.75             # saturating fraction of the activation
+    channel inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: [1.5]
+    inhibitor n: [3.0]
+    inhibitor zone: ['cell']
+    inhibitor max: 0.3              # saturating fraction of inhibition
+
+    # type for channel class Na: Nav1p2, Nav1p3, NavRat1, NavRat2, Nav1p6, NaLeak
+    #                        K: K_Slow, K_Fast, Kv1p1, Kv1p2, Kv1p3, Kv1.4, Kv1.5, Kv1.6,
+    #                            Kv2p1, Kv2p2, Kv3p1, Kv3p2, Kv3p3, Kv3p4, Kir2p1, KLeak
+    #                        Ca: Cav1p2, Cav1p3, Cav2p1, Cav2p3, Cav3p1, Cav3p3, Cav_L2, Cav_L3, Cav_G, CaLeak
+    #                        Cl: ClLeak
+    #                        Fun: HCN1, HCN2, HCN4
+    #                        Cat: CatLeak
+    #                        ML: Kv_ML1, Kv_ML2, Nav_ML, Cav_L_ML, Cav_N_ML, Cav_T_ML, Kir_ML, HCN2_ML, HCN4_ML
+
+#-----------------------------------------------------------------------------------------------------------------------
+# SUBSTANCE MODULATING EFFECTS on SIMULATOR PUMPs and GAP JUNCTIONs
+#-----------------------------------------------------------------------------------------------------------------------
+modulators:
+
+  - name: GJ-block
+
+    target: GJ       # sim entity targeted: GJ (for gap junctions), Na/K-ATP, or MT (for microtubule dynamics)
+    max effect: 1.0        # maximum value of modulation
+    target ion: K         # specific ion to target (applicable to TJ modultion only)
+    activators: ['ADP']  # additional defined substances or ions increasing activity of transporter
+    activator Km: [0.1]
+    activator n: [3.0]
+    activator zone: ['cell']
+    inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: [1.5]
+    inhibitor n: [3.0]
+    inhibitor zone: ['cell']
+
+#-----------------------------------------------------------------------------------------------------------------------
+# DIRECTION SURFACE PLOTS
+#-----------------------------------------------------------------------------------------------------------------------
+
+direction surfaces:
+
+  - substance X name: 'Vmem'
+    range of X: [-70e-3, 10e-3]
+    substance Y name: 'A'
+    range of Y: [0.1, 1.0]
+    number of points: 25
+    cmap alpha: 0.2
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# NETWORK PLOTTING
+#-----------------------------------------------------------------------------------------------------------------------
+network plotting:
+
+  plot network: True     # Network plotting requires installation of optional dependancies networkx and pyplot
+  font name: 'Lato Black'  # Font for use throughout network 'Lato Black', 'Lato Heavy', 'DejaVu Sans',
+                                        # 'Latin Modern Roman Demi', 'Garuda'
+  node font size: 24            # Font size for all nodes
+  sub-net font size: 36     # Font size for sub-graph group titles
+  edge linewidth: 3.0       # linewidth of graph edges
+  layout: TB                # create graph left-to-right (LR) for a wide graph or top-to-bottom (TB) for a long one?
+
+  substances:
+    font color: Black
+    node color: PaleTurquoise
+    node shape: ellipse
+
+  reactions:
+    font color: White
+    node color: DarkSlateGrey
+    node shape: rect
+
+  transporters:
+    font color: White
+    node color: DarkSlateGrey
+    node shape: diamond
+
+  channels:
+    font color: White
+    node color: DarkSlateGrey
+    node shape: pentagon
+
+  electrodiffusion:
+    font color: White
+    node color: DarkSlateGrey
+    node shape: hexagon
+
+  Vmem:
+    font color: White
+    node color: Maroon
+    node shape: ellipse
+
+  additional relationships:         # specify any extra edges for the graph as node1, node2 and relationship
+                                    # relationship may be 'activation', 'inhibition' or 'None'
+#    - ['ClCa', 'Pmem_Cl', 'activation']
+#    - ['NaK-ATPase', '+Vmem', 'inhibition']
+#    - ['V-ATPase', '+Vmem', 'inhibition']
+
+  sub-nets:
+
+#    - name: Glycolysis Pathway
+#
+#      nodes: ['ATP', 'ADP', 'Pi']
+#      title font color: 'Black'
+#      box shading color: 'MistyRose'
+#
+#    - name: Serotonin Signalling
+#
+#      nodes: ['ATP', 'ADP', 'Pi']
+#      title font color: 'Black'
+#      box shading color: 'AliceBlue'
+#
+#    - name: Bioelectric Basis
+#
+#      nodes: ['+Vmem']
+#      title font color: 'Black'
+#      box shading color: 'Cornsilk'
+
+  # Node shapes: 'ellipse', 'oval', 'rect', 'hexagon', 'pentagon'
+  # Colors (html legal color names, see http://www.w3schools.com/colors/colors_names.asp):
+  # AliceBlue
+  # Aquamarine
+  # DarkSlateGrey
+  # CadetBlue
+  # Salmon
+  # Tangerine
+  # LightSalmon
+  # LightGrey
+  # LightCyan
+  # PaleTurquoise
+  # Maroon
+  # LightSeaGreen
+  # DarkSeaGreen
+  # Black
+  # White
+  # HoneyDew
+  # Cornsilk
+  # MistyRose
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Micellaneaous PUMP Parameters
+#-----------------------------------------------------------------------------------------------------------------------
+
+# self.alpha_HK = float(iu['alpha_HK'])  # pump rate for the H-K-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
+
+# self.KmHK_K = 0.6      # HKATPase enzyme K half-max sat value
+# self.KmHK_ATP = 0.15   # HKATPase enzyme ATP half-max sat value
+# self.KmHK_H = 0.5e-6   # HKATPase enzyme H half-max sat value
+# self.KmHK_M = 1.0       # HKATPase enzyme M half-max sat value
+#
+# self.alpha_V = float(iu['alpha_V'])  # pump rate for the V-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
+#
+# self.KmV_ATP = 0.15    # V-ATPase half-max sat value for ATP (0.13 to 0.5 )
+# self.KmV_H = 1.0e-5    # V-ATPase half-max sat value for H
+#
+# self.alpha_NaCaExch = float(iu['alpha_NaCa'])
+# self.KmNC_Na = 5.0
+# self.KmNC_Ca = 1.0e-3
+#
+# self.alpha_NaKCl = float(iu['alpha_NaKCl'])
+# self.KmNaKCl_Na = 1.0
+# self.KmNaKCl_K = 0.2
+# self.KmNaKCl_Cl = 1.0
+#
+# self.alpha_ClK = float(iu['alpha_ClK'])
+# self.KmClK_K = 1.0
+# self.KmClK_Cl = 1.0

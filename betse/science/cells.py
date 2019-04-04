@@ -899,7 +899,9 @@ class Cells(object):
                                 single_cell_noise=0.1,
                                 single_cell_sides=6,
                                 image_mask=None,
-                                mesh_type=lattice_to_mesh_type[phase.p.cell_lattice_type])
+                                make_all_operators=False, # FIXME: later fix this; for now set to False
+                                mesh_type=lattice_to_mesh_type[phase.p.cell_lattice_type],
+                                center = self.centre) # Optional center point for cluster (used to center a single cell)
 
             self.mesh.init_mesh()
 
@@ -918,6 +920,7 @@ class Cells(object):
                          image_mask = None,
                          allow_merging = True,
                          merge_thresh = 0.2,
+                         make_all_operators=False,  # FIXME: later fix this; for now set to False
                          mesh_type = lattice_to_mesh_type[phase.p.cell_lattice_type])
 
                 self.mesh.init_mesh()
@@ -936,6 +939,7 @@ class Cells(object):
                     allow_merging=True,
                     merge_thresh=0.1,
                     close_thresh=0.1,
+                    make_all_operators=False,  # FIXME: later fix this; for now set to False
                     mesh_type=lattice_to_mesh_type[phase.p.cell_lattice_type],
                 )
 
