@@ -244,7 +244,7 @@ class DECMesh(object):
                 not_merged.add(indi)
 
         mark_for_merge = np.asarray(list(mark_for_merge))
-        self.tri_verts = np.delete(self.tri_verts, mark_for_merge, axis = 1)
+        self.tri_verts = np.delete(self.tri_verts, mark_for_merge, axis = 0)
 
         # calculate the Delaunday triangulation based on the cluster-masked seed points:
         trimesh = Delaunay(self.tri_verts)  # Delaunay trianulation of cell centres
@@ -662,65 +662,65 @@ class DECMesh(object):
 
             tc_inds = np.unique(tc_indso)
 
-            if len(tc_inds):
+            assert len(tc_indso) != 0, "Tri-vert belongs to no simplices!"
 
-                if self.use_centroids:
-                    vvertso = self.tri_cents[tc_inds]
+            if self.use_centroids:
+                vvertso = self.tri_cents[tc_inds]
 
-                else:
-                    vvertso = self.tri_ccents[tc_inds]
+            else:
+                vvertso = self.tri_ccents[tc_inds]
 
-                trisai = self.tri_sa[tc_inds] # collect tri surface areas for these faucets
+            trisai = self.tri_sa[tc_inds] # collect tri surface areas for these faucets
 
-                if ti in self.bflags_tverts:  # if the trivert is on the hull
-                    # get verts for trimesh edges of this neighbourhood and sort them counterclockwise:
-                    # edge vertices:
-                    tedge_inds = np.unique(self.tverts_to_tedges[ti])
+            if ti in self.bflags_tverts:  # if the trivert is on the hull
+                # get verts for trimesh edges of this neighbourhood and sort them counterclockwise:
+                # edge vertices:
+                tedge_inds = np.unique(self.tverts_to_tedges[ti])
 
-                    for tei in tedge_inds:
-                        if tei in self.bflags_tedges:
-                            # get the vertices of the boundary edge of the trimesh:
-                            bedge_verts = self.tri_verts[self.tri_edges[tei]]
+                for tei in tedge_inds:
+                    if tei in self.bflags_tedges:
+                        # get the vertices of the boundary edge of the trimesh:
+                        bedge_verts = self.tri_verts[self.tri_edges[tei]]
 
-                            # midpoint of the boundary tri-edge:
-                            bedge_mid = np.mean(bedge_verts, axis =0)
+                        # midpoint of the boundary tri-edge:
+                        bedge_mid = np.mean(bedge_verts, axis =0)
 
-                            simp_i = self.tedges_to_tcell[tei]
+                        simp_i = self.tedges_to_tcell[tei]
 
-                            if self.use_centroids:
-                                pt_o = self.tri_cents[simp_i[0]]
+                        if self.use_centroids:
+                            pt_o = self.tri_cents[simp_i[0]]
 
 
-                            else:
-                                pt_o = self.tri_ccents[simp_i[0]]
+                        else:
+                            pt_o = self.tri_ccents[simp_i[0]]
 
-                            dist_diff = bedge_mid - pt_o
+                        dist_diff = bedge_mid - pt_o
 
-                            intpt = bedge_mid + dist_diff
+                        intpt = bedge_mid + dist_diff
 
-                            # surface area of the boundary triangle faucet:
-                            bsa = self.tri_sa[simp_i[0]]
+                        # surface area of the boundary triangle faucet:
+                        bsa = self.tri_sa[simp_i[0]]
 
-                            vvertso = np.vstack((vvertso, intpt))
-                            trisai = np.hstack((trisai, bsa))
+                        vvertso = np.vstack((vvertso, intpt))
+                        trisai = np.hstack((trisai, bsa))
 
-                # sort the voronoi verts counter-clockwise:
-                inds_vsort = self.cc_sort_inds(vvertso)
-                vverts = vvertso[inds_vsort]
-                trisaj = trisai[inds_vsort]
+            # sort the voronoi verts counter-clockwise:
+            inds_vsort = self.cc_sort_inds(vvertso)
+            vverts = vvertso[inds_vsort]
+            trisaj = trisai[inds_vsort]
 
-                vor_verts.extend(vverts)
-                tri_sa_o.extend(trisaj)
-                vcell_verts.append(vverts)
-                vor_sa.append(self.area(vverts))
-                vor_cents.append(self.poly_centroid(vverts))
+            vor_verts.extend(vverts)
+            tri_sa_o.extend(trisaj)
+            vcell_verts.append(vverts)
+            vor_sa.append(self.area(vverts))
+            vor_cents.append(self.poly_centroid(vverts))
 
-                # Calculate vor edge verts:
-                vedge_verts = np.asarray([[vi, vj] for vi, vj in zip(vverts,
-                                                                     np.roll(vverts, -1, axis=0
-                                                                             ))])
+            # Calculate vor edge verts:
+            vedge_verts = np.asarray([[vi, vj] for vi, vj in zip(vverts,
+                                                                 np.roll(vverts, -1, axis=0
+                                                                         ))])
 
-                vor_edge_verts.extend(vedge_verts)
+            vor_edge_verts.extend(vedge_verts)
 
         self.vcell_verts = np.asarray(vcell_verts)
         self.vor_verts_duplicates = vor_verts*1
