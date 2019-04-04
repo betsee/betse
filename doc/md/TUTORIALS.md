@@ -1,5 +1,8 @@
-Authors and Contributors
+BETSE Tutorial Simulations
 ===========
+
+Link to [Electrochemical Attractors 1](/doc/yaml/paper/2016_Frontiers/attractors_2016_1.yaml)
+
 
 BETSE is principally authored by [Alexis
 Pietak](https://www.researchgate.net/profile/Alexis_Pietak) and [Cecil
