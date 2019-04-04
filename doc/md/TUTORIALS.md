@@ -1,38 +1,30 @@
 BETSE Tutorial Simulations
 ===========
 
-Link to [Electrochemical Attractors 1](/doc/yaml/paper/2016_Frontiers/attractors_2016_1.yaml)
+## BETSE Model Config Files
+
+**How to Run Model Config Files**
+
+**Vmem and Ion Concentrations as Attractors of Bioelectrochemical System**
 
 
-BETSE is principally authored by [Alexis
-Pietak](https://www.researchgate.net/profile/Alexis_Pietak) and [Cecil
-Curry](https://gitlab.com/u/leycec) with **much-appreciated contributions**
-from (_in chronological order of first merge request_):
+Link to [Electrochemical Attractors](https://www.dropbox.com/s/m9jcon8wz8e1529/Attractors.zip?dl=0)
 
-* [**Douglas Moore**](https://gitlab.com/u/dglmoore) for:
-  * [REPL and scripting support](https://gitlab.com/betse/betse/merge_requests/2).
-  * [Windows integration](https://gitlab.com/betse/betse/merge_requests/1).
+**Exploring Emergent Bioelectrical Patterning Mechanisms**
 
-A rousing thanks to these illustrious contributors, without whom BETSE would
-only be a dim glimmer in the undocumented shallows of GitLab. **You are
-uniformly awesome. <sup>*</sup>**
+Link to [Electrochemical Patterning](https://www.dropbox.com/s/0z449tn6p9c3g14/Patterns.zip?dl=0)
 
-<sup>* _As evidenced by this footnote, we really mean it._</sup>
+**Working with Electrochemical Network Simulations**
 
-## GitLab
+Link to [Electrochemical Network](https://www.dropbox.com/s/7fme976yvq2kwhw/Physiology.zip?dl=0)
 
-For an HTML5-driven topology of all contributors, see our [Contributors
-Graph](https://gitlab.com/betse/betse/graphs/master/contributors).
+## BETSE Developer's Tutorial
 
-## Git
+**How to Use the Developer's Tutorial Script**
 
-For a CLI-driven list of all contributions to filename `${filename}` by:
+Link to [Developer's Tutorial](https://www.dropbox.com/s/f4ilizqnbmn2of5/developer.zip?dl=0)
 
-* High-level **commits** (tracked across file renames), run the following command in
-  local copies of BETSE's Git repository:
 
-        git log --follow ${filename}
 
-* Low-level **line numbers**,  run the following command in the same:
 
-        git blame ${filename}
+
