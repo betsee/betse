@@ -404,7 +404,7 @@ with BETSE modules, methods, and simulations in external code projects:
 
 - Official `BETSE Tutorial Simulation Packages <user_tutorial_>`__. (\ *YAML 
   format.*\ )
-- Official `BETSE Developer's Tutorial <user_tutorial_>`__. (\ *Jupyter
+- Official `BETSE Developer's Tutorial <dev_tutorial_>`__. (\ *Jupyter
   Notebook format.*\ )
 
 Introduction
