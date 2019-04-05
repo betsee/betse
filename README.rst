@@ -394,6 +394,18 @@ complete with explanatory examples, sample plots, and ample screenshots:
 - Official `BETSE 0.4 documentation`_. (\ *PDF format; 72 pages.*\ )
 - Official `BETSE 0.3 documentation`_. (\ *PDF format; 77 pages.*\ )
 
+Tutorials
+-------------
+
+BETSE provides a range of hands-on tutorial materials, including simulation 
+files to run key published simulations, as well as a Developer's Tutorial 
+script to demonstrate how to load and work with BETSE modules, methods, and 
+simulations in external code projects:
+
+- BETSE Tutorial Simulation Packages (link to doc/md/TUTORIALS.md)
+- BETSE Developer's Tutorial (link to doc/md/DEV_DEMO.md)
+
+
 Introduction
 ============
 
