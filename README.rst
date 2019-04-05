@@ -395,16 +395,17 @@ complete with explanatory examples, sample plots, and ample screenshots:
 - Official `BETSE 0.3 documentation`_. (\ *PDF format; 77 pages.*\ )
 
 Tutorials
--------------
+---------
 
-BETSE provides a range of hands-on tutorial materials, including simulation 
-files to run key published simulations, as well as a Developer's Tutorial 
-script to demonstrate how to load and work with BETSE modules, methods, and 
-simulations in external code projects:
+BETSE provides a range of `hands-on tutorial materials <user_tutorial_>`__,
+including simulation files to run key published simulations, as well as a
+`Developer's Tutorial <dev_tutorial_>`__ demonstrating how to load and work
+with BETSE modules, methods, and simulations in external code projects:
 
-- BETSE Tutorial Simulation Packages (link to doc/md/TUTORIALS.md)
-- BETSE Developer's Tutorial (link to doc/md/DEV_DEMO.md)
-
+- Official `BETSE Tutorial Simulation Packages <user_tutorial_>`__. (\ *YAML 
+  format.*\ )
+- Official `BETSE Developer's Tutorial <user_tutorial_>`__. (\ *Jupyter
+  Notebook format.*\ )
 
 Introduction
 ============
@@ -641,22 +642,16 @@ The logo prominently displayed on this `project page <project_>`__ is a flat
 compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
 
 .. # ------------------( LINKS ~ betse                      )------------------
-.. _author list:
-   doc/md/AUTHORS.md
 .. _codebase:
    https://gitlab.com/betse/betse/tree/master
 .. _conda package:
    https://anaconda.org/conda-forge/betse
 .. _contributors:
    https://gitlab.com/betse/betse/graphs/master
-.. _dependencies:
-   doc/md/INSTALL.md
 .. _issue submission:
    https://gitlab.com/betse/betse/issues/new?issue%5Bassignee_id%5D=&issue%5Bmilestone_id%5D=
 .. _issue tracker:
    https://gitlab.com/betse/betse/issues
-.. _license:
-   LICENSE
 .. _project:
    https://gitlab.com/betse/betse
 .. _testing:
@@ -669,6 +664,18 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
    https://www.dropbox.com/s/n8qfms2oks9cvv2/BETSE04_Documentation_Dec1st2016.pdf?dl=0
 .. _BETSE 0.3 documentation:
    https://www.dropbox.com/s/fsxhjpipbiog0ru/BETSE_Documentation_Nov1st2015.pdf?dl=0
+
+.. # ------------------( LINKS ~ betse : local              )------------------
+.. _author list:
+   doc/md/AUTHORS.md
+.. _dev_tutorial:
+   doc/md/DEV_DEMO.md
+.. _user_tutorial:
+   doc/md/TUTORIALS.md
+.. _dependencies:
+   doc/md/INSTALL.md
+.. _license:
+   LICENSE
 
 .. # ------------------( LINKS ~ betsee                     )------------------
 .. _BETSEE:
