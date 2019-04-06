@@ -1015,7 +1015,14 @@ class MasterOfNetworks(object):
 
             obj.channel_class = chan_dic['channel class']
             obj.channel_type = chan_dic['channel type']
-            obj.channelMax = chan_dic['max conductivity']
+
+            chan_Dmem = chan_dic.get('max conductivity', None)
+
+            if chan_Dmem is not None:
+                obj.channelMax = chan_dic['max conductivity']
+
+            else:
+                obj.channelMax = chan_dic['max Dm']
             obj.channel_profiles_list = chan_dic['apply to']
             obj.init_active = chan_dic.get('init active', True)
 
@@ -3245,8 +3252,8 @@ class MasterOfNetworks(object):
                 sim.gj_block = modulator
             elif obj.target_label == 'Na/K-ATPase':
                 sim.NaKATP_block = modulator
-            elif obj.target_label == 'MT':
-                sim.mtubes.modulator = modulator
+            # elif obj.target_label == 'MT':
+            #     sim.mtubes.modulator = modulator
             elif obj.target_label == 'TJ':
                 if obj.ion_i is None:
 
@@ -5677,13 +5684,14 @@ class Molecule(object):
         elif self.update_intra_conc is True:
 
 
-            if self.u_mt != 0.0:
-
-                # motor protein transport on microtubules:
-                # this is scaled to the "biological" cell size to allow for correct biological scaling
-                alpha_motor = (sim.mtubes.umtn*self.u_mt*(p.true_cell_size/p.cell_radius))
-            else:
-                alpha_motor = 0.0
+            # if self.u_mt != 0.0:
+            #
+            #     # motor protein transport on microtubules:
+            #     # this is scaled to the "biological" cell size to allow for correct biological scaling
+            #     alpha_motor = (sim.mtubes.umtn*self.u_mt*(p.true_cell_size/p.cell_radius))
+            # else:
+            #     alpha_motor = 0.0
+            alpha_motor = 0.0
 
             if self.transmem is False:
 
@@ -6546,8 +6554,8 @@ class Modulator(object):
             sim.gj_block_o = np.ones(sim.mdl)
         elif self.target_label == 'Na/K-ATPase':
             sim.NaKATP_block_o =  np.ones(sim.mdl)
-        elif self.target_label == 'MT':
-            sim.mtubes.modulator = np.ones(sim.mdl)
+        # elif self.target_label == 'MT':
+        #     sim.mtubes.modulator = np.ones(sim.mdl)
         elif self.target_label == 'TJ':
             # if tight junction modulation is requested, initialize the object by simply getting the ion index:
 

@@ -1,0 +1,27 @@
+# This expression_data.yaml file allows for specific expression levels of any biomolecule, reaction, 
+# channel, or transporter to be set across all tissue profiles of the model. Expression levels 
+# are relative to the maximum:
+# production rate (for biomolecules)
+# reaction rate (for reactions)
+# conductivity (for channels)
+# rate (for transporters)
+# Use the expression data 
+
+K_Leak:   # Name of the biomolecule, pump, channel, reaction, or transporter in your main config file
+  spot: 2.5  # Expression level on tissue profile 'spot'
+  zone: 1.0 # Expression level on tissue profile 'zone'
+
+Kv: # Name of the biomolecule, pump, channel, reaction, or transporter in your main config file
+  spot: 2.5
+  zone: 1.0
+
+Nav: # Name of the biomolecule, pump, channel, reaction, or transporter in your main config file
+  spot: 2.5
+  zone: 1.0
+
+X: # Name of the biomolecule, pump, channel, reaction, or transporter in your main config file
+  spot: 2.5
+  zone: 1.0
+
+
+

@@ -744,8 +744,8 @@ class Simulator(object):
         self.cc_at_mem = np.asarray([
             cc[cells.mem_to_cells] for cc in self.cc_cells])
 
-        # load in the microtubules object:
-        self.mtubes = Mtubes(self, cells, p)
+        # # load in the microtubules object:
+        # self.mtubes = Mtubes(self, cells, p)
 
         self.u_cells_x = 0.0
         self.u_cells_y = 0.0
@@ -967,8 +967,8 @@ class Simulator(object):
         # Initialize core user-specified interventions.
         phase.dyna.init_events(phase)
 
-        # update the microtubules dipole for the case user changed it between init and sim:
-        self.mtubes.reinit(cells, p)
+        # # update the microtubules dipole for the case user changed it between init and sim:
+        # self.mtubes.reinit(cells, p)
 
         # calculate an inverse electrical double layer based on internal and external concentrations:
         self.ko_env = (np.sqrt(np.dot((p.NAv * (p.q ** 2) * self.zs ** 2) / (p.er * p.eo * p.kb * p.T), self.cc_env))).mean()
@@ -1293,8 +1293,8 @@ class Simulator(object):
             #     self.acid_handler(cells, p)
 
             # update the microtubules:-----------------------------------------
-            if p.use_microtubules:
-                self.mtubes.update_mtubes(cells, self, p)
+            # if p.use_microtubules:
+            #     self.mtubes.update_mtubes(cells, self, p)
 
             # update the general molecules handler-----------------------------
             if p.molecules_enabled:
@@ -1515,8 +1515,8 @@ class Simulator(object):
                 phase.dyna.fire_events(phase=phase, t=t)
 
             # update the microtubules:-----------------------------------------
-            if p.use_microtubules:
-                self.mtubes.update_mtubes(cells, self, p)
+            # if p.use_microtubules:
+            #     self.mtubes.update_mtubes(cells, self, p)
 
             # update the general molecules handler-----------------------------
             if p.molecules_enabled:
@@ -1607,9 +1607,9 @@ class Simulator(object):
                 # Write data to time storage vectors.
                 self.vm_time.append(self.vm * 1)
 
-                # microtubules:
-                self.mtubes_x_time.append(self.mtubes.mtubes_x * 1)
-                self.mtubes_y_time.append(self.mtubes.mtubes_y * 1)
+                # # microtubules:
+                # self.mtubes_x_time.append(self.mtubes.mtubes_x * 1)
+                # self.mtubes_y_time.append(self.mtubes.mtubes_y * 1)
 
                 self.I_cell_x_time.append(self.J_cell_x * 1)
                 self.I_cell_y_time.append(self.J_cell_y * 1)
@@ -1745,9 +1745,9 @@ class Simulator(object):
 
         self.venv_time = []
 
-        # microtubules:
-        self.mtubes_x_time = []
-        self.mtubes_y_time = []
+        # # microtubules:
+        # self.mtubes_x_time = []
+        # self.mtubes_y_time = []
 
         if p.deformation:
             self.ecm_verts_unique_to = cells.ecm_verts_unique[:] # make a copy of original ecm verts as disp ref point
@@ -1839,8 +1839,8 @@ class Simulator(object):
             self.osmo_P_delta_time.append(self.osmo_P_delta)
 
         # microtubules:
-        self.mtubes_x_time.append(self.mtubes.mtubes_x*1)
-        self.mtubes_y_time.append(self.mtubes.mtubes_y*1)
+        # self.mtubes_x_time.append(self.mtubes.mtubes_x*1)
+        # self.mtubes_y_time.append(self.mtubes.mtubes_y*1)
 
         if p.deformation:
             # make a copy of cells to apply deformation to:

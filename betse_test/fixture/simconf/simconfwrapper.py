@@ -729,7 +729,7 @@ class SimConfigTestWrapper(object):
         self._p._conf['apply pressure']['event happens'] = True
         # variable['channel electroosmosis']['turn on'] = True  # This feature has been removed
         variable['deformation']['turn on'] = True
-        variable['fluid flow']['include fluid flow'] = True
+        # variable['fluid flow']['include fluid flow'] = True
         variable['pressures']['include osmotic pressure'] = True
         self._p.cell_polarizability = 1e-4
 

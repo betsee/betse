@@ -661,59 +661,60 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='final_gjState')
 
-    # ..................{ EXPORTERS ~ microtubule           }..................
-    @piperunner(
-        categories=('Microtubule', 'Coherence',),
-        requirements=phasereqs.MICROTUBULE,
-    )
-    def export_microtubule(
-        self, phase: SimPhase, conf: SimConfExportPlotCells) -> None:
-        '''
-        Plot the coherence of all cellular microtubules for the cell cluster at
-        the last time step.
-        '''
-
-        # Prepare to export the microtubules plot.
-        self._export_prep(phase)
-
-        umtx, umty = phase.sim.mtubes.mtubes_to_cell(
-            phase.cells, phase.p)
-
-        pyplot.figure()
-        ax = pyplot.subplot(111)
-
-        plotutil.plotVectField(
-            umtx,
-            umty,
-            phase.cells,
-            phase.p,
-            plot_ecm=False,
-            title='Final Microtubule Alignment Field',
-            cb_title='Aligned MT Fraction',
-            colorAutoscale=conf.is_color_autoscaled,
-            minColor=conf.color_min,
-            maxColor=conf.color_max,
-        )
-
-        # pyplot.figure()
-        # ax = pyplot.subplot(111)
-        # umtx, umty = phase.sim.mtubes.mtubes_to_cell(phase.cells, phase.p)
-        # plotutil.cell_quiver(umtx, umty, ax, phase.cells, phase.p)
-
-        # plotutil.mem_quiver(
-        #     phase.sim.mtubes.mtubes_x,
-        #     phase.sim.mtubes.mtubes_y,
-        #     ax,
-        #     phase.cells,
-        #     phase.p,
-        # )
-
-        ax.set_xlabel('X-Distance [um]')
-        ax.set_ylabel('Y-Distance [um]')
-        ax.set_title('Net microtubule alignment in cells')
-
-        # Export this plot to disk and/or display.
-        self._export(phase=phase, basename='Final_Microtubules')
+    # # ..................{ EXPORTERS ~ microtubule           }..................
+    #FIXME: Restore after proper support for microtubules is implemented.
+    # @piperunner(
+    #     categories=('Microtubule', 'Coherence',),
+    #     requirements=phasereqs.MICROTUBULE,
+    # )
+    # def export_microtubule(
+    #     self, phase: SimPhase, conf: SimConfExportPlotCells) -> None:
+    #     '''
+    #     Plot the coherence of all cellular microtubules for the cell cluster at
+    #     the last time step.
+    #     '''
+    #
+    #     # Prepare to export the microtubules plot.
+    #     self._export_prep(phase)
+    #
+    #     umtx, umty = phase.sim.mtubes.mtubes_to_cell(
+    #         phase.cells, phase.p)
+    #
+    #     pyplot.figure()
+    #     ax = pyplot.subplot(111)
+    #
+    #     plotutil.plotVectField(
+    #         umtx,
+    #         umty,
+    #         phase.cells,
+    #         phase.p,
+    #         plot_ecm=False,
+    #         title='Final Microtubule Alignment Field',
+    #         cb_title='Aligned MT Fraction',
+    #         colorAutoscale=conf.is_color_autoscaled,
+    #         minColor=conf.color_min,
+    #         maxColor=conf.color_max,
+    #     )
+    #
+    #     # pyplot.figure()
+    #     # ax = pyplot.subplot(111)
+    #     # umtx, umty = phase.sim.mtubes.mtubes_to_cell(phase.cells, phase.p)
+    #     # plotutil.cell_quiver(umtx, umty, ax, phase.cells, phase.p)
+    #
+    #     # plotutil.mem_quiver(
+    #     #     phase.sim.mtubes.mtubes_x,
+    #     #     phase.sim.mtubes.mtubes_y,
+    #     #     ax,
+    #     #     phase.cells,
+    #     #     phase.p,
+    #     # )
+    #
+    #     ax.set_xlabel('X-Distance [um]')
+    #     ax.set_ylabel('Y-Distance [um]')
+    #     ax.set_title('Net microtubule alignment in cells')
+    #
+    #     # Export this plot to disk and/or display.
+    #     self._export(phase=phase, basename='Final_Microtubules')
 
     # ..................{ EXPORTERS ~ pump                  }..................
     # @piperunner(

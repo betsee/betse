@@ -144,23 +144,23 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
                 times_grids_centre=self._phase.sim.efield_ecm_y_time),
         )
 
-    # ..................{ PROPERTIES ~ microtubule           }..................
-    @property_cached
-    def microtubule(self) -> VectorFieldCellsCache:
-        '''
-        Vector field cache of all cellular microtubules over all time steps of
-        the current simulation phase, originally spatially situated at cell
-        membrane midpoints.
-        '''
-
-        return VectorFieldCellsCache(
-            x=VectorCellsCache(
-                phase=self._phase,
-                times_membranes_midpoint=self._phase.sim.mtubes_x_time),
-            y=VectorCellsCache(
-                phase=self._phase,
-                times_membranes_midpoint=self._phase.sim.mtubes_y_time),
-        )
+    # # ..................{ PROPERTIES ~ microtubule           }..................
+    # @property_cached
+    # def microtubule(self) -> VectorFieldCellsCache:
+    #     '''
+    #     Vector field cache of all cellular microtubules over all time steps of
+    #     the current simulation phase, originally spatially situated at cell
+    #     membrane midpoints.
+    #     '''
+    #
+    #     return VectorFieldCellsCache(
+    #         x=VectorCellsCache(
+    #             phase=self._phase,
+    #             times_membranes_midpoint=self._phase.sim.mtubes_x_time),
+    #         y=VectorCellsCache(
+    #             phase=self._phase,
+    #             times_membranes_midpoint=self._phase.sim.mtubes_y_time),
+    #     )
 
     # ..................{ PROPERTIES ~ voltage               }..................
     @property_cached

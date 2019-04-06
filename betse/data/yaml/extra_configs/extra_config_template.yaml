@@ -180,7 +180,7 @@ channels:
 
     channel class: K       # class of the channels: Na, K, Ca, Cl, Fun, and Cat
     channel type: KLeak   # identify the channel as one of the available voltage gated types in each class
-    max conductivity: 1.0e-17          # maximum membrane diffusion constant of ion when channel fully open
+    max Dm: 1.0e-17          # maximum membrane diffusion constant of ion when channel fully open
     apply to: all                   # list of profiles to apply channel to or 'all' for all cells
     init active: False                # Is the channel active during the Init (True) or only during Sim (False)?
     channel activators: ['ADP']  # additional defined substances or ions increasing activity of transporter

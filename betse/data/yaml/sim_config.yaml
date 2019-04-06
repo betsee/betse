@@ -133,8 +133,6 @@ general options:
     cytosolic Ca2+ concentration: 2.0e-5            # intracellular calcium [mmol/L]
     cytosolic protein- concentration: 135.0         # intracellular protein [mmol/L]
 
-    endoplasmic reticulum Ca2+: 0.1             # starting level of Ca2+ in the ER store [mmol/L]
-
 # --------------------------------------------------------------------------------------------------
 # WORLD OPTIONS
 # --------------------------------------------------------------------------------------------------
@@ -265,6 +263,35 @@ tissue profile definition:
           percent: 50  # Percentage of all cells in this cluster to randomly apply this tissue
                        # profile to in the range [0, 100] (e.g., 50 selects 50% of all cells).
                        # Ignored unless "type: random" specified above,
+
+      - name: "Zone"
+        insular: False
+        diffusion constants:
+          Dm_Na: 2.0e-18   # Na+ membrane diffusion constant [m2/s]
+          Dm_K:  1.0e-18   # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
+          Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
+          Dm_M:  1.0e-18   # M- membrane diffusion constant [m2/s]
+          Dm_P:  0.0       # proteins membrane diffusion constant [m2/s]
+        cell targets:
+          type: image   # Cell population type as any following string:
+            # * "all", uniformly applying this tissue profile to all cells.
+            # * "color", matching only cells whose cell centres are simple circles with
+            #   a fill color (specified by the "color" setting below) of a vector image
+            #   (specified by the "cells from svg" setting above).
+            # * "image", matching only cells whose cell centres are pure-black pixels
+            #   in a raster image (specified by the "image" setting below).
+          # * "indices", matching only cells whose indices are listed below.
+          # * "percent", matching only a random subset of cells.
+          color: ff0000                # Color in hexadecimal format of simple circles within this
+          # vector image.
+          image: geo/circle/spot_2.png # Absolute or relative filename of this raster image.
+          indices: [3, 14, 15, 9, 265] # List of all positive integers uniquely identifying each
+          # cell in this cluster to apply this tissue profile to.
+          # Ignored unless "type: indices" specified above.
+          percent: 50  # Percentage of all cells in this cluster to randomly apply this tissue
+          # profile to in the range [0, 100] (e.g., 50 selects 50% of all cells).
+          # Ignored unless "type: random" specified above,
 
 
   cut profiles: # List of all cut profiles (i.e., cell cluster regions to be permanently
@@ -504,17 +531,11 @@ interventions:
 
 general network:
 
-  implement network: True     # Turn the entire network defined below on (True) or off (False)
+  implement network: True  # Turn the entire network defined below on (True) or off (False)
 
-  optimization:              # Not required by default. A tool to "best fit" your network to target data.
-    optimize network: False   # run an optimization of the network to obtain max rates at steady state concentrations?
-    optimization steps: 50 # number of itteration steps to run with basinhopper
-    optimization method: L-BFGS-B  # optimization algorithm to run ('L-BFGS' 'COBYLA')
-    optimization T: 1.0             # "temperature" for the basinhopping routine
-    optimization step: 0.5          # step-size of the basin hopping routine
-    target Vmem: -50e-3               # Vmem to use in optimization
+  expression data file: None
 
-  expression data file: None  # Optional relative path to a yaml file with custom channel/pump expression levels
+#  expression data file: extra_configs/expression_data.yaml  # Optional file with custom channel/pump expression levels
 
   #-----------------------------------------------------------------------------------------------------------------------
   # CUSTOM BIOMOLECULES
@@ -582,21 +603,21 @@ general network:
     - name: Nav
       channel class: Na        # class of the channels (Na, K, Ca, Cl, Fun, and Cat)
       channel type: Nav1p3    # channel type (see below)
-      max conductivity: 2.0e-14  #      maximum membrane diffusion constant to ion when channel fully open
+      max Dm: 2.0e-14  #      maximum membrane diffusion constant to ion when channel fully open [m2/s]
       apply to: all               #    list of profiles to apply channel to or 'all' for all cells
       init active: False                # Is the channel active during the Init (True) or only during Sim (False)?
 
     - name: Kv
       channel class: K        # class of the channels: Na, K, Ca, Cl, Fun, and Cat
       channel type: Kv1p5    # channel type (see below)
-      max conductivity: 1.0e-15  #         maximum membrane diffusion constant to ion when channel fully open
+      max Dm: 1.0e-15  #         maximum membrane diffusion constant to ion when channel fully open [m2/s]
       apply to: all               #    list of profiles to apply channel to or 'all' for all cells
       init active: False               # Is the channel active during the Init (True) or only during Sim (False)?
 
-    - name: K
+    - name: K_Leak
       channel class: K        #class of the channels: Na, K, Ca, Cl, Fun, and Cat
       channel type: KLeak    #identify the channel as one of the available voltage gated types in each class
-      max conductivity: 0.6e-17  #        maximum membrane diffusion constant to ion when channel fully open
+      max Dm: 0.6e-17  #        maximum membrane diffusion constant to ion when channel fully open [m2/s]
       apply to: all                #    list of profiles to apply channel to or 'all' for all cells
       init active: True            # Is the channel active during the initialization?
       channel inhibitors: ['X']    # additional defined substances or ions decreasing activity of transporter
@@ -621,16 +642,6 @@ general network:
   # junctions and the default Na/K-ATPase pump. See "extra_config_template.yaml" in the "extra_configs"
   # directory for examples.
   modulators:
-
-  #-----------------------------------------------------------------------------------------------------------------------
-  # DIRECTION SURFACE PLOTS
-  #-----------------------------------------------------------------------------------------------------------------------
-  # See "extra_config_template.yaml" in the "extra_configs"
-  # directory for examples.
-  
-  # FIXME: Fix direction surfaces, they're useful
-  # FIXME: Consider having I-V curves here too...
-  direction surfaces:
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -688,12 +699,6 @@ variable settings:
   temperature: 310            # system temperature [K]
 
 
-# FIXME: DECIDE on how to handle fluid flow, and if osmosis will be added
-  fluid flow:
-
-    include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
-    water viscocity: 1.0      # viscocity of water [Pa s] (applies to ease of flow)
-
 # FIXME: DECIDE on how to handle these deformations
   deformation:
 
@@ -709,8 +714,6 @@ variable settings:
     include osmotic pressure: False    # include osmotic pressure in flow & deformation?
     membrane water conductivity: 1e-2   # mem conductivity for osmotic inflow (aquaporin per unit surface) (~ 1e-3)
 
-
-  # FIXME remove this, or figure out how to do it better
   noise:
 
     static noise level: 0    # level of variance in K+ leaks on cell membranes
@@ -750,19 +753,6 @@ variable settings:
 
   adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
-
-  microtubules:
-
-    use microtubules: False      # compute microtubule dynamics?
-    charge per micrometer: -360   # charge of tubulin molecule in electron charge units per micrometer of length
-    radius: 15.0e-9        # microtubule radius in m
-    length: 1.0e-5         # average length of the microtubules in m
-    tethered tubule: True          # microtubule tethered to centrosome or free-floating?
-    time dilation factor: 1.0             # Alter the simulation timestep for microtubules, to slow or speed up movement
-    microtubule density: None # bitmap specifying density of microtubules in space (None defaults to homogeneous density)
-    initial x-coorinate: None # bitmap allowing forced alignment as initial state (None defaults to randomization)
-    initial y-coorinate: None # bitmap allowing forced alignment as initial state (None defaults to randomization)
-    rotate initialization axis: 0.0 # angle (in degrees) rotating the x-y axis of the initialization coords
 
   use Goldman calculator: False   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK)
                                  # voltage equation for comparison purposes?
@@ -873,7 +863,6 @@ results options:
       save: True  # Save plots after simulating with save options defined below?
 
       # FIXME allow these to plot multiple trendlines
-      # FIXME add in I-V current plots
       single cell pipeline: # List of all single-cell plots for the cell selected by the
                             # "plot cell index" setting for all time steps.
                             # Ignored if "show" and "save" are False.
@@ -945,8 +934,6 @@ results options:
           # * "ion_calcium_extra" for final all-cells extracellular calcium ion (Ca2+)
           #   concentration. Ignored if either full solver or extracellular spaces disabled or
           #   calcium ions disabled by ion profile.
-          # * "microtubule" for final all-cells microtubule orientation.
-          #   Ignored if full solver disabled.
           # * "pressure_total" for final all-cells total pressure = osmotic + mechanical.
           #   Ignored if either full solver, osmotic pressure, or mechanical pressure event
           #   disabled.
@@ -1005,8 +992,6 @@ results options:
           # * "gj_permeability" for gap junction connectivity state.
           # * "ion_calcium_intra" for intracellular calcium ion (Ca2+) concentration.
           #   Ignored if either full solver disabled or calcium ions disabled by ion profile.
-          # * "microtubule" for microtubule orientation.
-          #   Ignored if full solver disabled.
           # * "pressure_osmotic" for cellular osmotic pressure.
           #   Ignored if either full solver or osmotic pressure disabled.
           # * "pressure_total" for cellular total pressure = osmotic + mechanical.
@@ -1128,4 +1113,4 @@ internal parameters:
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.
-version: "0.9.3"
+version: "1.0"

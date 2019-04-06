@@ -197,20 +197,23 @@ class MasterOfGenes(object):
         # set plotting options for the network:
         set_net_opts(self.core, self.core.net_plot_opts, p)
 
-        # after primary initialization, check and see if optimization required:
-            # after primary initialization, check and see if optimization required:
-        opti = config_dic['optimization']['optimize network']
-        self.core.opti_N = config_dic['optimization']['optimization steps']
-        self.core.opti_method = config_dic['optimization']['optimization method']
-        self.core.target_vmem = float(config_dic['optimization']['target Vmem'])
-        self.core.opti_T = float(config_dic['optimization']['optimization T'])
-        self.core.opti_step = float(config_dic['optimization']['optimization step'])
-        # self.core.opti_run = config_dic['optimization']['run from optimization']
+        optim_exists = config_dic.get('optimization', None)
+        if optim_exists is not None:
 
-        if opti:
-            logs.log_info('Analyzing gene network for optimal rates...')
-            self.core.optimizer(sim, cells, p)
-            self.reinitialize(phase)
+            # after primary initialization, check and see if optimization required:
+                # after primary initialization, check and see if optimization required:
+            opti = config_dic['optimization']['optimize network']
+            self.core.opti_N = config_dic['optimization']['optimization steps']
+            self.core.opti_method = config_dic['optimization']['optimization method']
+            self.core.target_vmem = float(config_dic['optimization']['target Vmem'])
+            self.core.opti_T = float(config_dic['optimization']['optimization T'])
+            self.core.opti_step = float(config_dic['optimization']['optimization step'])
+            # self.core.opti_run = config_dic['optimization']['run from optimization']
+
+            if opti:
+                logs.log_info('Analyzing gene network for optimal rates...')
+                self.core.optimizer(sim, cells, p)
+                self.reinitialize(phase)
 
     # ..................{ RUNNERS                           }..................
     @type_check
@@ -287,16 +290,16 @@ class MasterOfGenes(object):
             sim.u_env_x = -sim.J_env_x / (p.F * cc * zz)
             sim.u_env_y = -sim.J_env_y / (p.F * cc * zz)
 
-        if p.use_microtubules:
-            sim.mtubes.reinit(cells, p)
-
-            self.mtubes_x_time = []
-            self.mtubes_y_time = []
-
-            if self.reset_MT:
-                logs.log_info(
-                    'Resetting microtubules for sim-grn simulation...')
-                sim.mtubes = Mtubes(sim, cells, p)
+        # if p.use_microtubules:
+        #     sim.mtubes.reinit(cells, p)
+        #
+        #     self.mtubes_x_time = []
+        #     self.mtubes_y_time = []
+        #
+        #     if self.reset_MT:
+        #         logs.log_info(
+        #             'Resetting microtubules for sim-grn simulation...')
+        #         sim.mtubes = Mtubes(sim, cells, p)
 
         for t in tt:
             if self.transporters:
@@ -304,8 +307,8 @@ class MasterOfGenes(object):
 
             self.core.run_loop(phase=phase, t=t)
 
-            if p.use_microtubules: # update the microtubules:
-                sim.mtubes.update_mtubes(cells, sim, p)
+            # if p.use_microtubules: # update the microtubules:
+            #     sim.mtubes.update_mtubes(cells, sim, p)
 
             # If...
             if (
@@ -344,7 +347,7 @@ class MasterOfGenes(object):
                         "Reinitializing the gene regulatory network for simulation...")
                     self.reinitialize(phase)
                     # self.core.clear_cache()
-                    sim.uxmt, self.uymt = sim.mtubes.mtubes_to_cell(cells, p)
+                    # sim.uxmt, self.uymt = sim.mtubes.mtubes_to_cell(cells, p)
 
                     self.mod_after_cut = True  # set the boolean to avoid repeat action
 
@@ -356,60 +359,60 @@ class MasterOfGenes(object):
                 self.core.write_data(sim, cells, p)
                 self.core.report(sim, p)
 
-                if p.use_microtubules:
-                    # microtubules:
-                    self.mtubes_x_time.append(sim.mtubes.mtubes_x * 1)
-                    self.mtubes_y_time.append(sim.mtubes.mtubes_y * 1)
+                # if p.use_microtubules:
+                #     # microtubules:
+                #     self.mtubes_x_time.append(sim.mtubes.mtubes_x * 1)
+                #     self.mtubes_y_time.append(sim.mtubes.mtubes_y * 1)
 
         logs.log_info('Saving simulation...')
         datadump = [self, cells, p]
         fh.saveSim(p.grn_pickle_filename, datadump)
         self.core.init_saving(cells, p, plot_type='grn', nested_folder_name='RESULTS')
 
-        # microtubules plot------------------------------------------------------------------------
-        if p.use_microtubules:
-
-            logs.log_info("Plotting microtubules used in GRN simulation...")
-
-            plt.figure()
-            ax = plt.subplot(111)
-
-            umtx, umty = sim.mtubes.mtubes_to_cell(cells, p)
-
-            plt.figure()
-            ax = plt.subplot(111)
-
-            viz.plotVectField(
-                umtx,
-                umty,
-                cells,
-                p,
-                plot_ecm=False,
-                title='Final Microtubule Alignment Field',
-                cb_title='Aligned MT Fraction',
-                colorAutoscale=False,
-                minColor=0.0,
-                maxColor=1.0,
-            )
-
-            # viz.mem_quiver(
-            #     sim.mtubes.mtubes_x,
-            #     sim.mtubes.mtubes_y,
-            #     ax,
-            #     cells,
-            #     p,
-            # )
-
-            ax.set_xlabel('X-Distance [um]')
-            ax.set_ylabel('Y-Distance [um]')
-            ax.set_title('Microtubule arrangement in cells')
-
-            if p.autosave is True:
-                savename = self.core.imagePath + 'Microtubules' + '.png'
-                plt.savefig(savename, format='png', transparent=True)
-
-            if p.turn_all_plots_off is False:
-                plt.show(block=False)
+        # # microtubules plot------------------------------------------------------------------------
+        # if p.use_microtubules:
+        #
+        #     logs.log_info("Plotting microtubules used in GRN simulation...")
+        #
+        #     plt.figure()
+        #     ax = plt.subplot(111)
+        #
+        #     umtx, umty = sim.mtubes.mtubes_to_cell(cells, p)
+        #
+        #     plt.figure()
+        #     ax = plt.subplot(111)
+        #
+        #     viz.plotVectField(
+        #         umtx,
+        #         umty,
+        #         cells,
+        #         p,
+        #         plot_ecm=False,
+        #         title='Final Microtubule Alignment Field',
+        #         cb_title='Aligned MT Fraction',
+        #         colorAutoscale=False,
+        #         minColor=0.0,
+        #         maxColor=1.0,
+        #     )
+        #
+        #     # viz.mem_quiver(
+        #     #     sim.mtubes.mtubes_x,
+        #     #     sim.mtubes.mtubes_y,
+        #     #     ax,
+        #     #     cells,
+        #     #     p,
+        #     # )
+        #
+        #     ax.set_xlabel('X-Distance [um]')
+        #     ax.set_ylabel('Y-Distance [um]')
+        #     ax.set_title('Microtubule arrangement in cells')
+        #
+        #     if p.autosave is True:
+        #         savename = self.core.imagePath + 'Microtubules' + '.png'
+        #         plt.savefig(savename, format='png', transparent=True)
+        #
+        #     if p.turn_all_plots_off is False:
+        #         plt.show(block=False)
 
         if self.recalc_fluid:
 

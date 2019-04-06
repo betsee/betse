@@ -797,8 +797,10 @@ class Parameters(YamlFileABC):
         self.GHK_calc = self._conf['variable settings']['use Goldman calculator']
 
         # electroosmotic fluid flow-----------------------------------------------------
-        self.fluid_flow = self._conf['variable settings']['fluid flow']['include fluid flow']
-        self.mu_water = float(self._conf['variable settings']['fluid flow']['water viscocity']) # visc water [Pa.s]
+        # self.fluid_flow = self._conf['variable settings']['fluid flow']['include fluid flow']
+        # self.mu_water = float(self._conf['variable settings']['fluid flow']['water viscocity']) # visc water [Pa.s]
+        self.fluid_flow = False
+        self.mu_water = 1.0e-2 # visc water [Pa.s]
 
         # electrodiffusive movement pumps and channels -----------------------------------
         self.sim_eosmosis = False
@@ -837,46 +839,47 @@ class Parameters(YamlFileABC):
 
         # Microtubule properties........................................................................................
 
-        mtb = self.config['variable settings'].get('microtubules', {})
+        # mtb = self.config['variable settings'].get('microtubules', {})
 
         # if mtb is not None:
 
-        self.use_microtubules = mtb.get('use microtubules', True)
+        # self.use_microtubules = mtb.get('use microtubules', True)
 
-        self.length_charge = float(mtb.get('charge per micrometer', -360.0))
-        self.mt_radius = float(mtb.get('radius', 15.0e-9))
-        self.mt_length = float(mtb.get('length', 5.0e-6))
-        self.tubulin_dipole = float(mtb.get('tubulin unit dipole', 1750))
-        self.tubulin_polar = float(mtb.get('tubulin polarizability', 50.0))
-
-        self.tethered_tubule = (mtb.get('tethered tubule', True))
-
-        self.cytoplasm_viscocity = 1.0e-2
-
-        self.D_mtube = float(mtb.get('microtubule diffusion', 1.0))
-
-        self.dilate_mtube_dt = float(mtb.get('time dilation factor', 1.0))
-
-        self.mtube_init_x = mtb.get('initial x-coorinate', None)   # bitmap forcing alignment as initial state
-        self.mtube_init_y = mtb.get('initial y-coorinate', None)  # bitmap forcing alignment as initial state
-        self.mtube_init_rotangle = float(mtb.get('rotate initialization axis', 0.0))  # angle (in degrees) rotating axis
-
-        if self.mtube_init_x == 'None':
-            self.mtube_init_x = None
-
-        if self.mtube_init_y == 'None':
-            self.mtube_init_y = None
-
-        if self.mtube_init_rotangle == 'None':
-            self.mtube_init_rotangle = 0.0
-
-        self.mt_space_density = mtb.get('microtubule density', None)
-
-        if self.mt_space_density == 'None':
-
-            self.mt_space_density = None
-
-        self.microtubules_orient_parallel = mtb.get('microtubules orient parallel', True)
+        # self.use_microtubules = False
+        # self.length_charge = float(mtb.get('charge per micrometer', -360.0))
+        # self.mt_radius = float(mtb.get('radius', 15.0e-9))
+        # self.mt_length = float(mtb.get('length', 5.0e-6))
+        # self.tubulin_dipole = float(mtb.get('tubulin unit dipole', 1750))
+        # self.tubulin_polar = float(mtb.get('tubulin polarizability', 50.0))
+        #
+        # self.tethered_tubule = (mtb.get('tethered tubule', True))
+        #
+        # self.cytoplasm_viscocity = 1.0e-2
+        #
+        # self.D_mtube = float(mtb.get('microtubule diffusion', 1.0))
+        #
+        # self.dilate_mtube_dt = float(mtb.get('time dilation factor', 1.0))
+        #
+        # self.mtube_init_x = mtb.get('initial x-coorinate', None)   # bitmap forcing alignment as initial state
+        # self.mtube_init_y = mtb.get('initial y-coorinate', None)  # bitmap forcing alignment as initial state
+        # self.mtube_init_rotangle = float(mtb.get('rotate initialization axis', 0.0))  # angle (in degrees) rotating axis
+        #
+        # if self.mtube_init_x == 'None':
+        #     self.mtube_init_x = None
+        #
+        # if self.mtube_init_y == 'None':
+        #     self.mtube_init_y = None
+        #
+        # if self.mtube_init_rotangle == 'None':
+        #     self.mtube_init_rotangle = 0.0
+        #
+        # self.mt_space_density = mtb.get('microtubule density', None)
+        #
+        # if self.mt_space_density == 'None':
+        #
+        #     self.mt_space_density = None
+        #
+        # self.microtubules_orient_parallel = mtb.get('microtubules orient parallel', True)
 
 
         #...............................................................................................................
@@ -1436,7 +1439,8 @@ class Parameters(YamlFileABC):
 
             assert self.z_M_cell == -1
 
-            self.cCa_er = float(cip['endoplasmic reticulum Ca2+'])
+            # self.cCa_er = float(cip['endoplasmic reticulum Ca2+'])
+            self.cCa_er = 0.1
             self.cM_er = self.cCa_er
 
             self.ions_dict = {'Na':1, 'K':1, 'Cl':1, 'Ca':1, 'H':0, 'P':1, 'M':1}

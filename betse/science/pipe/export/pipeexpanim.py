@@ -365,29 +365,30 @@ class SimPipeExportAnimCells(SimPipeExportABC):
         )
 
     # ..................{ EXPORTERS ~ microtubules          }..................
-    @piperunner(
-        categories=('Microtubules', 'Coherence',),
-        requirements=phasereqs.MICROTUBULE,
-    )
-    def export_microtubule(
-        self, phase: SimPhase, conf: SimConfExportAnimCells) -> None:
-        '''
-        Animate the coherence of all cellular microtubules for the cell cluster
-        over all sampled time steps.
-        '''
-
-        # Sequence containing only a layer animating the vector field of all
-        # cellular microtubules over all sampled time steps.
-        layers = (LayerCellsFieldQuiverMembranes(
-            field=phase.cache.vector_field.microtubule),)
-
-        # Animate these layers.
-        AnimCellsAfterSolvingLayered(
-            phase=phase,
-            conf=conf,
-            layers=layers,
-            figure_title='Microtubule arrangement in cells',
-        )
+    #FIXME: Restore after proper support for microtubules is implemented.
+    # @piperunner(
+    #     categories=('Microtubules', 'Coherence',),
+    #     requirements=phasereqs.MICROTUBULE,
+    # )
+    # def export_microtubule(
+    #     self, phase: SimPhase, conf: SimConfExportAnimCells) -> None:
+    #     '''
+    #     Animate the coherence of all cellular microtubules for the cell cluster
+    #     over all sampled time steps.
+    #     '''
+    #
+    #     # Sequence containing only a layer animating the vector field of all
+    #     # cellular microtubules over all sampled time steps.
+    #     layers = (LayerCellsFieldQuiverMembranes(
+    #         field=phase.cache.vector_field.microtubule),)
+    #
+    #     # Animate these layers.
+    #     AnimCellsAfterSolvingLayered(
+    #         phase=phase,
+    #         conf=conf,
+    #         layers=layers,
+    #         figure_title='Microtubule arrangement in cells',
+    #     )
 
     # ..................{ EXPORTERS ~ pressure              }..................
     @piperunner(

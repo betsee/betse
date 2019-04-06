@@ -1017,8 +1017,10 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         # mcc = cX_cells[cells.mem_to_cells]
 
         # mean value of u-field between cells, treating motor protein transport like convection field:
-        umtx = (sim.mtubes.mtubes_x[cells.nn_i] + sim.mtubes.mtubes_x[cells.mem_i])/2
-        umty = (sim.mtubes.mtubes_y[cells.nn_i] + sim.mtubes.mtubes_y[cells.mem_i])/2
+        # umtx = (sim.mtubes.mtubes_x[cells.nn_i] + sim.mtubes.mtubes_x[cells.mem_i])/2
+        # umty = (sim.mtubes.mtubes_y[cells.nn_i] + sim.mtubes.mtubes_y[cells.mem_i])/2
+        umtx = 0.0
+        umty = 0.0
 
         # umtx = sim.mtubes.uxmt[cells.mem_to_cells]
         # umty = sim.mtubes.uymt[cells.mem_to_cells]

@@ -181,79 +181,18 @@ class MasterOfMolecules(object):
         # set plotting options for the network:
         set_net_opts(self.core, self.core.net_plot_opts, p)
 
-        # plot up direction surfaces:  # FIXME move this to its own command in Simrunner
-        # dyna_surf = SimMaster(config_dic, p)
-
         # after primary initialization, check and see if optimization required:
-        opti = config_dic['optimization']['optimize network']
-        self.core.opti_N = config_dic['optimization']['optimization steps']
-        self.core.opti_method = config_dic['optimization']['optimization method']
-        self.core.target_vmem = float(config_dic['optimization']['target Vmem'])
-        self.core.opti_T = float(config_dic['optimization']['optimization T'])
-        self.core.opti_step = float(config_dic['optimization']['optimization step'])
+        optim_exists = config_dic.get('optimization', None)
+        if optim_exists is not None:
+            opti = config_dic['optimization']['optimize network']
+            self.core.opti_N = config_dic['optimization']['optimization steps']
+            self.core.opti_method = config_dic['optimization']['optimization method']
+            self.core.target_vmem = float(config_dic['optimization']['target Vmem'])
+            self.core.opti_T = float(config_dic['optimization']['optimization T'])
+            self.core.opti_step = float(config_dic['optimization']['optimization step'])
 
-        if opti:
-            logs.log_info(
-                'Analyzing the general network for optimal rates...')
-            self.core.optimizer(sim, cells, p)
-            self.reinitialize(phase)
-
-    #FIXME: This method no longer appears to be called anywhere. Is this
-    #vestigial or does my monocle simply need to be cleaned?
-    #FIXME: This method now appears to be broken. While repairing this method
-    #should be feasible, perhaps we simply want to remove it entirely? Dunebuggy!
-    # def run_core_sim(self, sim, cells, p):
-    #
-    #     sim.vm = -50e-3*np.ones(sim.mdl)
-    #     sim.time = []
-    #
-    #     # initialize key fields of simulator required to interface (dummy init)
-    #     sim.rho_pump = 1.0
-    #     sim.rho_channel = 1.0
-    #
-    #     # set molecules to not affect charge for sim-grn test-drives:
-    #     p.substances_affect_charge = False
-    #
-    #     # specify a time vector
-    #     loop_time_step_max = p.init_tsteps
-    #     # Maximum number of seconds simulated by the current run.
-    #     loop_seconds_max = loop_time_step_max * p.dt
-    #     # Time-steps vector appropriate for the current run.
-    #     tt = np.linspace(0, loop_seconds_max, loop_time_step_max)
-    #
-    #     tsamples = set()
-    #     i = 0
-    #     while i < len(tt) - p.t_resample:
-    #         i = int(i + p.t_resample)
-    #         tsamples.add(tt[i])
-    #
-    #     self.core.clear_cache()
-    #     self.time = []
-    #
-    #     for t in tt:
-    #         if self.transporters:
-    #             self.core.run_loop_transporters(t, sim, cells, p)
-    #
-    #         # if self.modulators:
-    #         #     self.core.run_loop_modulators(sim, self.core, cells, p)
-    #
-    #         self.core.run_loop(phase=phase, t=t)
-    #
-    #         if t in tsamples:
-    #             sim.time.append(t)
-    #
-    #             logs.log_info('------------------' + str(np.round(t,3)) +' s --------------------')
-    #             self.time.append(t)
-    #             self.core.write_data(sim, cells, p)
-    #             self.core.report(sim, p)
-    #
-    #     logs.log_info('Saving simulation...')
-    #     datadump = [self, cells, p]
-    #     fh.saveSim(p.grn_pickle_filename, datadump)
-    #     self.core.init_saving(cells, p, plot_type='init', nested_folder_name='Gene')
-    #     self.core.export_eval_strings(p)
-    #     self.core.export_equations(p)
-    #     message = 'Gene regulatory network simulation saved to' + ' ' + p.grn_pickle_filename
-    #     logs.log_info(message)
-    #
-    #     logs.log_info('-------------------Simulation Complete!-----------------------')
+            if opti:
+                logs.log_info(
+                    'Analyzing the general network for optimal rates...')
+                self.core.optimizer(sim, cells, p)
+                self.reinitialize(phase)
