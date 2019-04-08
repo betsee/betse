@@ -93,7 +93,7 @@ class MasterOfGenes(object):
 
         # initialize transporters, if defined:
         if transporters_config is not None:
-            self.core.read_transporters(transporters_config, sim, cells, p)
+            self.core.read_transporters(transporters_config, phase)
             self.core.write_transporters(sim, cells, p)
 
             self.transporters = True
@@ -103,7 +103,7 @@ class MasterOfGenes(object):
 
         # initialize channels, if desired:
         if channels_config is not None:
-            self.core.read_channels(channels_config, sim, cells, p)
+            self.core.read_channels(channels_config, phase)
             self.channels = True
 
         else:
@@ -169,7 +169,7 @@ class MasterOfGenes(object):
 
         # initialize transporters, if defined:
         if transporters_config is not None:
-            self.core.read_transporters(transporters_config, sim, cells, p)
+            self.core.read_transporters(transporters_config, phase)
             self.core.write_transporters(sim, cells, p)
 
             self.transporters = True
@@ -178,7 +178,7 @@ class MasterOfGenes(object):
 
         # initialize channels, if desired:
         if channels_config is not None:
-            self.core.read_channels(channels_config, sim, cells, p)
+            self.core.read_channels(channels_config, phase)
             self.channels = True
         else:
             self.channels = False

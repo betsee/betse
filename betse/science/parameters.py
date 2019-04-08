@@ -760,11 +760,10 @@ class Parameters(YamlFileABC):
             self.molecules_enabled = self.network_config['implement network']
             # self.mol_mit_enabled = self.network_config['enable mitochondria']
             self.mol_mit_enabled = False
-            self.expression_data_path = self.network_config.get('expression data file', None)
-            if self.expression_data_path is not None and self.expression_data_path != "None":
-                #FIXME: Implement this properly when time permits, please. Ideally, a new "YamlABC" subclass exposing
-                #this low-level dictionary via high-level yaml_alias-based data desriptors should be created. Until
-                #then, ancient tree spirits arise!
+            self.expression_data_path_rel = self.network_config.get('expression data file', None)
+            if self.expression_data_path_rel is not None and self.expression_data_path_rel != "None":
+                self.expression_data_path = pathnames.join(
+                    self.conf_dirname, self.expression_data_path_rel)
                 self.expression_data = yamls.load(filename=self.expression_data_path)
         else:
             self.mol_mit_enabled = False

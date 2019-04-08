@@ -100,7 +100,6 @@ sim time settings:
 # GENERAL OPTIONS
 # ---------------------------------------------------------------------------------------------------------------------
 # Specify general options to be used in the init and sim runs.
-#
 # File sync warning: you can't change any of these general options after running 'betse seed'.
 
 general options:
@@ -182,17 +181,17 @@ world options:
                               # hexagonal base grid. If equal to 0, a perfect
                               # hexagonal or rectangular grid is created.
 
-  mesh refinement:                  # Use Llyod's algorithm to optimize the Voronoi mesh?
-    refine mesh: True              # Turn optimization on? (Only works for Convex model shapes)
-    maximum steps: 10              # Maximum number of itterations (models typically converge in <30 steps)
-    convergence threshold: 1.5   # Threshhold above which optimization is considered complete (minimum of 5.0).
+  mesh refinement:             # Use Llyod's algorithm to optimize the Voronoi mesh?
+    refine mesh: True          # Turn optimization on? (Only works for Convex model shapes)
+    maximum steps: 10        # Maximum number of itterations)
+    convergence threshold: 1.5   # Threshhold below which optimization is considered complete
 
   import from svg:  # Import individual cell centres and clipping curve from an svg file
     svg override: False  # Turn to True to enable imports from SVG files
     cells from svg: geo/root/root_cells.svg # read in exact cell centre locations from 'circles' in svg file
     svg size: 500  # size of the svg page area in mm
 
-  alpha shape: 0.01    # alpha shape threshhold (used for working with non-convex shapes) 0.01 to 0.9
+  alpha shape: 0.01  # alpha shape threshhold (used for working with non-convex shapes) 0.01 to 0.9
   use centers: False  # use cell centroids instead of circumcentres when building meshes?
 
 
@@ -427,7 +426,7 @@ modulator function properties:   # set properties of modulating functions which 
     start frequency: 0.1e3   # start frequency
     end frequency: 1e3       # end frequency
 
-  gradient_bitmap:           # generate a spatial gradient of a property from an imported bitmap image (png)
+  gradient_bitmap:   # generate a spatial gradient of a property from an imported bitmap image (png)
     file: geo/ellipse/gradient.png
     z-offset: 0.0
 
@@ -533,9 +532,7 @@ general network:
 
   implement network: True  # Turn the entire network defined below on (True) or off (False)
 
-  expression data file: None
-
-#  expression data file: extra_configs/expression_data.yaml  # Optional file with custom channel/pump expression levels
+  expression data file: extra_configs/expression_data.yaml 
 
   #-----------------------------------------------------------------------------------------------------------------------
   # CUSTOM BIOMOLECULES
@@ -781,7 +778,6 @@ results options:
   plot cutlines: True        # Plot any scheduled cut-lines on the cell cluster plot as black regions.
   plot masked geometry: True # Plot the geometry using the overall shape as a mask.
 
-  #FIXME: Allow each plot and animation to declare its own colormap.
   # Names of matplotlib-specific colormaps used to color cell data visualized by different types of
   # plots and animations, including any following string:
   #
@@ -928,27 +924,6 @@ results options:
           #   Ignored if either full solver, fluid flow, or extracellular spaces disabled.
           # * "gj_connectivity" for the all-cells gap junction connectivity network.
           # * "gj_permeability" for final all-cells gap junction relative permeabilities.
-          # * "ion_calcium_intra" for final all-cells intracellular calcium ion (Ca2+)
-          #   concentration. Ignored if either full solver disabled or calcium ions disabled
-          #   by ion profile.
-          # * "ion_calcium_extra" for final all-cells extracellular calcium ion (Ca2+)
-          #   concentration. Ignored if either full solver or extracellular spaces disabled or
-          #   calcium ions disabled by ion profile.
-          # * "pressure_total" for final all-cells total pressure = osmotic + mechanical.
-          #   Ignored if either full solver, osmotic pressure, or mechanical pressure event
-          #   disabled.
-          # * "pump_nakatpase" for final all-cells cell membrane Na-K-ATPase pump rate.
-          #   Ignored if full solver disabled.
-          # * "tissue_cuts" for all-cells tissue and cut profiles.
-          # * "voltage_membrane" for final all-cells transmembrane voltage (Vmem).
-          # * "voltage_membrane_average" for final all-cells transmembrane
-          #   voltage (Vmem) average.
-          # * "voltage_membrane_ghk" for final all-cells transmembrane voltage
-          #   (Vmem) calculated by Goldman-Hodgkin-Katz (GHK) equation.
-          #   Ignored if either full solver or GHK calculation disabled.
-          # * "voltage_extra" for final all-cells extracellular voltage.
-          #   Ignored if either full solver or extracellular spaces disabled.
-          # * "voltage_polarity" for final all-cells cellular voltage polarization.
           #   Ignored if either full solver or cell polarizability disabled.
           enabled: True       # Enable this plot?
           colorbar:           # Plot colorbar settings.
@@ -1048,8 +1023,8 @@ results options:
 
         metadata:       # Video metadata embedded in each video file.
           artist: BETSE               # Video author name(s).
-          genre:   Bioinformatics     # Video target genre.
-          subject: Bioinformatics     # Video target subject.
+          genre:   Bioelectricity     # Video target genre.
+          subject: Bioelectricity     # Video target subject.
           comment: Produced by BETSE. # Video comment string.
           # copyright: 2017           # Video copyright. If commented,
                                       # defaults to the current year.

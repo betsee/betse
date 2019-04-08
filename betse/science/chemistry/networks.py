@@ -353,6 +353,8 @@ class MasterOfNetworks(object):
                 # Else, this molecule is recognized. Initialize this molecule.
                 mol = self.molecules[name]
 
+                mol.name = name # let molecule object have a string name
+
                 mol.Dm = float(mol_dic['Dm'])  # membrane diffusion coefficient [m2/s]
                 mol.Do = float(mol_dic['Do'])  # free diffusion constant in extra and intracellular spaces [m2/s]
                 mol.Dgj = float(mol_dic.get('Dgj', 1.0e-16))  # effective diffusion coefficient of substance through GJ
@@ -901,7 +903,11 @@ class MasterOfNetworks(object):
                 msg = "Including the mit-zone reaction: {}".format(name)
                 logs.log_info(msg)
 
-    def read_transporters(self, config_transporters, sim, cells, p):
+    def read_transporters(self, config_transporters, phase):
+
+        sim = phase.sim
+        cells = phase.cells
+        p = phase.p
 
         """
             Read in and initialize parameters for all user-defined transporters.
@@ -953,7 +959,7 @@ class MasterOfNetworks(object):
             obj.ignore_ECM_transporter = trans_dic['ignore ECM']
 
             obj.transporter_profiles_list = trans_dic['apply to']
-            obj.init_reaction(sim, cells, p)
+            obj.init_reaction(phase)
 
             if obj.delta_Go == 'None':
                 obj.delta_Go = None  # make the field a proper None variable
@@ -988,7 +994,10 @@ class MasterOfNetworks(object):
             msg = "Including the network transporter: {}".format(name)
             logs.log_info(msg)
 
-    def read_channels(self, config_channels, sim, cells, p):
+    def read_channels(self, config_channels, phase):
+        sim = phase.sim
+        cells = phase.cells
+        p = phase.p
 
         logs.log_info("Reading channel input data...")
 
@@ -1038,7 +1047,7 @@ class MasterOfNetworks(object):
             obj.channel_inhibitors_zone = chan_dic.get('inhibitor zone', None)
             obj.channel_inhibitors_max = chan_dic.get('inhibitor max', None)
 
-            obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, sim, cells, p)
+            obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, phase)
 
             # Fill in the blanks if zones aren't supplied:
             obj.channel_activators_zone, obj.channel_inhibitors_zone = self.default_zones(
@@ -4018,7 +4027,7 @@ class MasterOfNetworks(object):
         for name in self.transporters:
             obj = self.transporters[name]
 
-            obj.update_transporter(sim, cells, p)
+            obj.update_transporter(phase)
 
         for name in self.channels:
             obj = self.channels[name]
@@ -4026,7 +4035,7 @@ class MasterOfNetworks(object):
                 obj.channel_class,
                 obj.channel_type,
                 obj.channelMax,
-                sim, cells, p)
+                phase)
 
 
     def redefine_dynamic_dics(self, sim, cells, p):
@@ -5963,7 +5972,8 @@ class Molecule(object):
 
         if (
             self.growth_profiles_list is not None and
-            self.growth_profiles_list != 'all'
+            self.growth_profiles_list != 'all' and
+            self.growth_profiles_list != 'express'
         ):
             self.growth_targets_cell = []
             self.growth_targets_mem = []
@@ -5974,9 +5984,27 @@ class Molecule(object):
 
                 targets_mem = phase.dyna.tissue_target_inds[profile]
                 self.growth_targets_mem.extend(targets_mem)
+
+        elif self.growth_profiles_list == 'express':
+            # ascribe reaction to all model targets:
+            self.growth_targets_cell = phase.cells.cell_i
+            self.growth_targets_mem = phase.cells.mem_i
+
+            # create an expression map to modulate maximum rate:
+            self.expr_map_cell = np.zeros(phase.sim.cdl)
+            self.expr_map_mem = np.zeros(phase.sim.mdl)
+
+            for region, val in phase.p.expression_data[self.name].items():
+                tinds_mem = phase.dyna.tissue_target_inds[region]
+                tinds_cell = phase.dyna.cell_target_inds[region]
+                self.expr_map_mem[tinds_mem] = val
+                self.expr_map_cell[tinds_cell] = val
+
         else:
             self.growth_targets_cell = phase.cells.cell_i
             self.growth_targets_mem = phase.cells.mem_i
+
+
 
 
     def update_boundary(self, t, p):
@@ -6362,28 +6390,47 @@ class Transporter(object):
 
         self.flux = None
 
-    def init_reaction(self, sim, cells, p):
+    def init_reaction(self, phase):  # FIXME: THIS IS USING sim.dyna!!
+
+        sim = phase.sim
+        cells = phase.cells
+        p = phase.p
 
         if (self.transporter_profiles_list is not None and
-            self.transporter_profiles_list != 'all'):
+            self.transporter_profiles_list != 'all' and
+            self.transporter_profiles_list != 'express'):
             self.transporter_targets_mem = []
             self.transporter_targets_cell = []
             self.transporter_targets_env = []
 
             for profile in self.transporter_profiles_list:
-                targets_cell = sim.dyna.cell_target_inds[profile]
+                targets_cell = phase.dyna.cell_target_inds[profile]
                 self.transporter_targets_cell.extend(targets_cell)
 
-                targets_mem = sim.dyna.tissue_target_inds[profile]
+                targets_mem = phase.dyna.tissue_target_inds[profile]
                 self.transporter_targets_mem.extend(targets_mem)
 
-                targets_env = sim.dyna.env_target_inds[profile]
+                targets_env = phase.dyna.env_target_inds[profile]
                 self.transporter_targets_env.extend(targets_env)
+
+        elif self.transporter_profiles_list == 'express':
+            self.transporter_targets_mem = cells.mem_i
+            self.transporter_targets_cell = cells.cell_i
+            self.transporter_targets_env = cells.map_mem2ecm
+            # create an expression map to modulate maximum rate:
+            self.expr_map_cell = np.zeros(sim.cdl)
+            self.expr_map_mem = np.zeros(sim.mdl)
+
+            for region, val in p.expression_data[self.name].items():
+                tinds_mem = phase.dyna.tissue_target_inds[region]
+                tinds_cell = phase.dyna.cell_target_inds[region]
+                self.expr_map_mem[tinds_mem] = val
+                self.expr_map_cell[tinds_cell] = val
+
         else:
             self.transporter_targets_mem = cells.mem_i
             self.transporter_targets_cell = cells.cell_i
             self.transporter_targets_env = cells.map_mem2ecm
-
 
     def plot_1D(self, sim, cells, p, saveImagePath):
 
@@ -6428,9 +6475,9 @@ class Transporter(object):
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-    def update_transporter(self, sim, cells, p):
+    def update_transporter(self, phase):
 
-        self.init_reaction(sim, cells, p)
+        self.init_reaction(phase)
 
 
 class Channel(object):
@@ -6439,18 +6486,23 @@ class Channel(object):
 
         self.flux_time = []
 
+    def init_channel(self, ion_string, type_string, max_val, phase):
 
-    def init_channel(self, ion_string, type_string, max_val, sim, cells, p):
+        sim = phase.sim
+        cells = phase.cells
+        p = phase.p
 
         # Assign maximum channel effective diffusion constant.
         self.maxDm = max_val
 
         # Get targets for the reaction.
-        if self.channel_profiles_list is not None and self.channel_profiles_list != 'all':
+        if (self.channel_profiles_list is not None and
+                self.channel_profiles_list != 'all' and
+                self.channel_profiles_list != 'express'):
             targets = []
 
             for profile in self.channel_profiles_list:
-                targets_mem = sim.dyna.tissue_target_inds[profile]
+                targets_mem = sim.dyna.tissue_target_inds[profile]   #FIXME: THis is using sim.dyna!
                 targets.extend(targets_mem)
 
             targets = np.asarray(targets)
@@ -6458,6 +6510,16 @@ class Channel(object):
         elif self.channel_profiles_list is None or self.channel_profiles_list == 'all':
 
             targets = np.asarray(cells.mem_i)
+
+        elif self.channel_profiles_list == 'express':
+            targets = np.asarray(cells.mem_i)
+
+            self.expr_map_mem = np.zeros(sim.mdl)
+
+            for region, val in p.expression_data[self.name].items():
+                tinds_mem = phase.dyna.tissue_target_inds[region]
+                self.expr_map_mem[tinds_mem] = val
+
 
         if ion_string == 'Na':
 
