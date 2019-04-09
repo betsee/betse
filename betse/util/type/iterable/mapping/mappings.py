@@ -17,6 +17,63 @@ from copy import deepcopy
 
 # ....................{ EXCEPTIONS                        }....................
 @type_check
+def die_unless_keys_equal(*mappings: MappingType) -> None:
+    '''
+    Raise an exception unless all of the passed dictionaries contain the exact
+    same keys.
+
+    Equivalently, this function raises an exception if any key of any passed
+    dictionary is *not* a key of any other such dictionary.
+
+    Parameters
+    ----------
+    mapping : MappingType
+        Dictionary to be inspected.
+
+    Raises
+    ----------
+    BetseMappingException
+        If any key of any passed dictionary is *not* a key of any other such
+        dictionary.
+
+    See Also
+    ----------
+    :func:`is_keys_equal`
+        Further details.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text.string import strjoin
+
+    # If one or more of these dictionaries contain differing keys...
+    if not is_keys_equal(*mappings):
+        # First passed mapping. Since the is_keys_equal() function necessarily
+        # returns true if either no mappings or only one mapping are passed,
+        # this function returning false implies that two or more mappings are
+        # passed. Ergo, this mapping is guaranteed to exist.
+        mapping_first = mappings[0]
+
+        # For each mapping excluding the first...
+        for mapping in mappings[1:]:
+            # If the keys of this mapping differ from those of the first...
+            if not is_keys_equal(mapping, mapping_first):
+                # Set of all keys differing between these two mappings.
+                keys_unequal = mapping.keys().symmetric_difference(
+                    mapping_first.keys())
+
+                # Grammatically correct noun describing the number of such
+                # keys.
+                keys_noun = 'key' if len(keys_unequal) == 1 else 'keys'
+
+                # Raise an exception embedding this set.
+                raise BetseMappingException(
+                    'Dictionary {} {} differ.'.format(
+                        keys_noun,
+                        strjoin.join_as_conjunction_double_quoted(
+                            *keys_unequal)))
+
+
+@type_check
 def die_unless_values_unique(mapping: MappingType) -> None:
     '''
     Raise an exception unless all values of the passed dictionary are unique.
@@ -33,6 +90,11 @@ def die_unless_values_unique(mapping: MappingType) -> None:
     ----------
     BetseMappingException
         If at least one value of this dictionary is a duplicate.
+
+    See Also
+    ----------
+    :func:`is_values_unique`
+        Further details.
     '''
 
     # Avoid circular import dependencies.
@@ -44,12 +106,16 @@ def die_unless_values_unique(mapping: MappingType) -> None:
         # Set of all duplicate values in this dictionary.
         values_duplicate = iterget.get_items_duplicate(mapping.values())
 
+        # Grammatically correct noun describing the number of such values.
+        values_noun = 'value' if len(values_duplicate) == 1 else 'values'
+
         # Raise an exception embedding this set.
         raise BetseMappingException(
-            'Dictionary values {} duplicate.'.format(
+            'Dictionary {} {} duplicate.'.format(
+                values_noun,
                 strjoin.join_as_conjunction_double_quoted(*values_duplicate)))
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS ~ key                     }....................
 @type_check
 def is_key(mapping: MappingType, *keys: HashableType) -> bool:
     '''
@@ -79,6 +145,53 @@ def is_key(mapping: MappingType, *keys: HashableType) -> bool:
     )
 
 
+@type_check
+def is_keys_equal(*mappings: MappingType) -> bool:
+    '''
+    ``True`` only if all passed dictionaries contain the exact same keys.
+
+    Parameters
+    ----------
+    mappings : Tuple[MappingType]
+        Tuple of all dictionaries to be tested.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if these dictionaries contain the exact same keys.
+    '''
+
+    # If two mappings are passed, prematurely optimize this common case by
+    # directly testing the keys contained in these two mappings for equality.
+    if len(mappings) == 2:
+        return mappings[0].keys() == mappings[1].keys()
+    # Else if either no mappings or only one mapping are passed, return true.
+    # Why? Because:
+    #
+    # * If no mappings are passed, this edge case is functionally equivalent to
+    #   the edge case in which one or more empty mappings (i.e., mappings
+    #   containing no key-value pairs) are passed. Since the key containers for
+    #   empty mappings are themselves empty, these key containers contain the
+    #   exact same keys -- namely, none.
+    # * If only one mapping is passed, this mapping by definition contains the
+    #   exact same keys as itself.
+    elif len(mappings) < 2:
+        return True
+    # Else, three or more mappings are passed. In this case, defer to a general
+    # case algorithm.
+
+    # Keys of the first passed mapping.
+    mapping_first_keys = mappings[0].keys()
+
+    # Return true only if...
+    return all(
+        # This mapping contains the same keys as the first such mapping.
+        mapping.keys() == mapping_first_keys
+        # For each mapping excluding the first.
+        for mapping in mappings[1:]
+    )
+
+# ....................{ TESTERS ~ value                   }....................
 @type_check
 def is_values_unique(mapping: MappingType) -> bool:
     '''
