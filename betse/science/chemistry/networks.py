@@ -6000,11 +6000,12 @@ class Molecule(object):
                 self.expr_map_mem[tinds_mem] = val
                 self.expr_map_cell[tinds_cell] = val
 
+            self.vmax = self.vmax*self.expr_map_cell
+
+
         else:
             self.growth_targets_cell = phase.cells.cell_i
             self.growth_targets_mem = phase.cells.mem_i
-
-
 
 
     def update_boundary(self, t, p):
@@ -6028,7 +6029,6 @@ class Molecule(object):
                 self.c_env[:] = (
                     self.change_bounds_target*effector_MorphEnv +
                     self.c_envo*(1-effector_MorphEnv))
-
 
     #FIXME: Ideally, this method should be refactored to comply with the
     #new pipeline API.
@@ -6230,7 +6230,6 @@ class Molecule(object):
                 'Skipping environmental plot of %s '
                 'due to 100%% null values!', self.name)
 
-
     #FIXME: Ideally, this method should be refactored to comply with the
     #new pipeline API.
     @type_check
@@ -6427,6 +6426,8 @@ class Transporter(object):
                 self.expr_map_mem[tinds_mem] = val
                 self.expr_map_cell[tinds_cell] = val
 
+            self.vmax = self.vmax*self.expr_map_mem
+
         else:
             self.transporter_targets_mem = cells.mem_i
             self.transporter_targets_cell = cells.cell_i
@@ -6519,6 +6520,8 @@ class Channel(object):
             for region, val in p.expression_data[self.name].items():
                 tinds_mem = phase.dyna.tissue_target_inds[region]
                 self.expr_map_mem[tinds_mem] = val
+
+            self.channelMax = self.channelMax*self.expr_map_mem
 
 
         if ion_string == 'Na':
@@ -6685,15 +6688,20 @@ def tex_val(v):
     v_str      String expressing float in normal or sci notation
     '''
 
-    if v != 0.0:
-        v_check = int(math.log10(abs(v)))
-    else:
-        v_check = 0
+    if type(v) is float:
 
-    if v_check >= 3 or v_check <= -2:
-        v_str = "%.2e" % (v)
+        if v != 0.0:
+            v_check = int(math.log10(abs(v)))
+        else:
+            v_check = 0
+
+        if v_check >= 3 or v_check <= -2:
+            v_str = "%.2e" % (v)
+        else:
+            v_str = "%.2f" % (v)
+
     else:
-        v_str = "%.2f" % (v)
+        v_str = str(np.mean(v))
 
     return v_str
 
