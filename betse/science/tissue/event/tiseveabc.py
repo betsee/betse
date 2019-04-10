@@ -11,6 +11,7 @@ Abstract base classes of all timed event classes.
 from abc import ABCMeta  #, abstractmethod
 from betse.exceptions import BetseSimEventException
 from betse.science.phase.phasecls import SimPhase
+from betse.util.io.log import logs
 from betse.util.type.types import type_check
 
 # ....................{ SUPERCLASSES                      }....................
@@ -110,11 +111,17 @@ class SimEventSpikeABC(SimEventABC):
         # Initialize our superclass.
         super().__init__()
 
-        # If this time step is invalid, raise an exception.
+        # If this time step is invalid, log a non-fatal warning.
+        #
+        # While an invalid time step is arguably questionable, this
+        # invalidity is *NOT* fatal for most use cases and sublasses.
+        # Ergo, logging a non-fatal warning is saner than raising a
+        # fatal exception here.
         if not 0.0 <= time_step < p.sim_time_total:
-            raise BetseSimEventException(
-                'Event time {} invalid (i.e., not in range '
-                '[0.0, {})).'.format(time_step, p.sim_time_total))
+            logs.log_warning(
+                'Event time %f invalid '
+                '(i.e., not in range [0.0, %f)).',
+                time_step, p.sim_time_total)
 
         # Classify all passed parameters.
         self._time_step = time_step
