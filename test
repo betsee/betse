@@ -38,5 +38,11 @@ pushd "${betse_dirname}" >/dev/null
 # Run BETSE's test suite with all passed arguments.
 python3 setup.py test "${@}"
 
+# 0-based exit code reported by the prior command.
+exit_code=$?
+
 # Revert the current working directory to the prior such directory.
 popd >/dev/null
+
+# Report the same exit code from this script.
+exit ${exit_code}
