@@ -877,7 +877,7 @@ def streamingCurrent(
             linewidth=(3.0*Jmag_M/Jmag_M.max()) + 0.5,
             color='k',
             cmap=clrmap,
-            arrowsize=5.0,
+            # arrowsize=5.0,
         )
 
         ax.set_title('Final gap junction current density')
@@ -903,7 +903,7 @@ def streamingCurrent(
             linewidth=(3.0*Jmag_M/Jmag_M.max()) + 0.5,
             color='k',
             cmap=clrmap,
-            arrowsize=5.0,
+            # arrowsize=5.0,
         )
 
         ax.set_title('Final total currents')
@@ -1147,7 +1147,6 @@ def cell_stream(
         Fx, Fy,
         density=p.stream_density,
         linewidth=line_width,
-        arrowsize=5.0,
         color=stream_color,
         cmap=cmap,
     )
@@ -1226,7 +1225,7 @@ def env_stream(datax,datay,ax,cells,p, cmap=None):
 
     # if datax.shape == cells.X.shape:
 
-    streams = ax.streamplot(cells.X*p.um,cells.Y*p.um, Fx, Fy, arrowsize=5.0, density=p.stream_density,
+    streams = ax.streamplot(cells.X*p.um,cells.Y*p.um, Fx, Fy, density=p.stream_density,
             linewidth=lw,color=Fmag, cmap=cmap)
 
     # elif datax.shape == cells.X.shape:

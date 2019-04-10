@@ -918,10 +918,6 @@ results options:
           #   Ignored if full solver disabled.
           # * "electric_extra" for final all-cells extracellular electric field.
           #   Ignored if either full solver or extracellular spaces disabled.
-          # * "fluid_intra" for final all-cells intracellular fluid flow.
-          #   Ignored if either full solver or fluid flow disabled.
-          # * "fluid_extra" for final all-cells extracellular fluid flow.
-          #   Ignored if either full solver, fluid flow, or extracellular spaces disabled.
           # * "gj_connectivity" for the all-cells gap junction connectivity network.
           # * "gj_permeability" for final all-cells gap junction relative permeabilities.
           #   Ignored if either full solver or cell polarizability disabled.
@@ -960,9 +956,6 @@ results options:
           #   Ignored if full solver disabled.
           # * "electric_extra" for extracellular electric field.
           #   Ignored if either full solver or extracellular spaces disabled.
-          # * "fluid_intra" for intracellular fluid flow.
-          #   Ignored if either full solver or fluid flow disabled.
-          # * "fluid_extra" for extracellular fluid flow.
           #   Ignored if either full solver, fluid flow, or extracellular spaces disabled.
           # * "gj_permeability" for gap junction connectivity state.
           # * "ion_calcium_intra" for intracellular calcium ion (Ca2+) concentration.

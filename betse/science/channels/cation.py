@@ -173,7 +173,7 @@ class CatLeak2(CationABC):
 
         """
 
-        logs.log_info('You are using the cation leak channel Na 2:K 1')
+        logs.log_info('You are using the cation leak channel Na 1:K 1:Ca 1')
 
         self.time_unit = 1.0
 
@@ -188,8 +188,8 @@ class CatLeak2(CationABC):
         self._hpower = 0
 
         # ratio of Na to K membrane permeability of channel
-        self._pmNa = 2.0
-        self._pmCa = 0.0
+        self._pmNa = 1.0
+        self._pmCa = 1.0
 
 
     def _calculate_state(self, V):

@@ -116,7 +116,7 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
             #this is important enough to ever get to it. :)
 
             # Factor by which to upscale the size of all streamline arrowheads.
-            arrowsize=3.0,
+            # arrowsize=3.0,
 
             # Z-order of these streamlines with respect to other artists.
             zorder=self._zorder,

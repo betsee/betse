@@ -1508,7 +1508,14 @@ class MasterOfNetworks(object):
 
             vmax = "self.reactions['{}'].vmax".format(reaction_name)
 
-            reaction_eval_string = vmax + "*" + all_alpha + "*" + "(" + \
+            if self.reactions[reaction_name].delta_Go is not None:
+
+                reaction_eval_string = vmax + "*" + all_alpha + "*" + "(" + \
+                                   "1.0" + "-" + "(" + reversed_term + ")" + ")"
+
+            else:
+
+                reaction_eval_string = vmax + "*" + all_alpha + "*" + "(" + \
                                    forward_coeff + "-" + "(" + reversed_term + "*" + backward_coeff + ")" + ")"
 
             r_tex = "r_{%s}^{max}" % reaction_name
@@ -1516,8 +1523,8 @@ class MasterOfNetworks(object):
 
             if self.reactions[reaction_name].delta_Go is not None:
 
-                reaction_tex_string = r_main + r_tex + r"\," + alpha_tex + r"\,\left(" + fwd_coeff_tex + "-" +  \
-                                      reversed_term_tex + r"\," + bwd_coeff_tex + r"\right)"
+                reaction_tex_string = r_main + r_tex + r"\," + alpha_tex + r"\,\left(" + "1.0" + "-" +  \
+                                      reversed_term_tex + r"\," + r"\right)"
 
             else:
 
@@ -2018,8 +2025,15 @@ class MasterOfNetworks(object):
 
             vmax = "self.reactions_env['{}'].vmax".format(reaction_name)
 
-            reaction_eval_string = vmax + "*" + all_alpha + "*" + "(" + \
-                                   forward_coeff + "-" + "(" + reversed_term + "*" + backward_coeff + ")" + ")"
+            # if reaction is reversible deal calculate an equilibrium constant:
+            if self.reactions_env[reaction_name].delta_Go is not None:
+
+                reaction_eval_string = vmax + "*" + all_alpha + "*" + forward_coeff + "*" + "(" + \
+                                       "1.0" + "-" + "(" + reversed_term  + ")" + ")"
+
+            else:
+                reaction_eval_string = vmax + "*" + all_alpha + "*" + "(" + \
+                                       forward_coeff + "-" + "(" + reversed_term + "*" + backward_coeff + ")" + ")"
 
             r_tex = "r_{%s}^{max}" % reaction_name
             r_main = "r_{%s} = " % reaction_name
@@ -2606,12 +2620,12 @@ class MasterOfNetworks(object):
             # write the final LaTeX expressions:
             if self.transporters[transp_name].delta_Go is not None:
 
-                transporter_tex_string = vm_tex + " = " + v_texo + r"\," + alpha_tex + r"\,\left(" + fwd_tex_coeff + \
+                transporter_tex_string = vm_tex + " = " + v_texo + r"\," + alpha_tex + r"\,\left(" + "1.0" + \
                                          "-" + rev_term_tex + r"\," + bwd_tex_coeff + r"\right)"
 
                 # calculate the evaluation string expression for the transporter:
-                transporter_eval_string = vmax + "*" + all_alpha + "*" + "(" + \
-                                          forward_coeff + "-"  + reversed_term + "*" + backward_coeff  + ")"
+                transporter_eval_string = vmax + "*" + all_alpha + "*" + forward_coeff + "*" + "(" + \
+                                          "1.0" + "-"  + reversed_term  + ")"
 
 
             else:

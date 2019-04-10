@@ -37,19 +37,19 @@ def osmotic_P(sim, cells, p):
     sim.PP = np.dot(cells.lapGJinv, -sim.div_u_osmo * p.rho * p.dt)
 
     # ------------------------------------------------------------------------------------------------------------
-    # actual volume change is amount of flow over the cell surface area per unit time:
-    sim.delta_vol = p.dt*sim.u_osmo*cells.cell_sa
-
-    vol_ratio = cells.cell_vol / (cells.cell_vol - sim.delta_vol)
-
-    # new concentrations in cells from C1*V1 = C2*V2 expression:
-    sim.cc_cells = sim.cc_cells * vol_ratio
-
-    # reassign cell volume:
-    cells.cell_vol = cells.cell_vol - sim.delta_vol
-
-    # reassign mem volume:
-    cells.mem_vol = cells.mem_vol/vol_ratio[cells.mem_to_cells]
+    # # actual volume change is amount of flow over the cell surface area per unit time:
+    # sim.delta_vol = p.dt*sim.u_osmo*cells.cell_sa
+    #
+    # vol_ratio = cells.cell_vol / (cells.cell_vol - sim.delta_vol)
+    #
+    # # new concentrations in cells from C1*V1 = C2*V2 expression:
+    # sim.cc_cells = sim.cc_cells * vol_ratio
+    #
+    # # reassign cell volume:
+    # cells.cell_vol = cells.cell_vol - sim.delta_vol
+    #
+    # # reassign mem volume:
+    # cells.mem_vol = cells.mem_vol/vol_ratio[cells.mem_to_cells]
 
     # if p.is_ecm is True:
     #     vo_ecm = cells.ecm_vol[cells.map_cell2ecm]
