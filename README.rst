@@ -391,7 +391,7 @@ Documentation
 BETSE also provides external documentation optimized for offline reading –
 complete with explanatory examples, sample plots, and ample screenshots:
 
-- Official `BETSE 1.0.0 documentation`_. (\ *PDF format; 75 pages.*\ )
+- Official `BETSE 1.0 documentation`_. (\ *PDF format; 75 pages.*\ )
 - Official `BETSE 0.4 documentation`_. (\ *PDF format; 72 pages.*\ )
 - Official `BETSE 0.3 documentation`_. (\ *PDF format; 77 pages.*\ )
 
