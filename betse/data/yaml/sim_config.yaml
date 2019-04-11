@@ -480,41 +480,6 @@ block NaKATP pump:
   change finish: 25         # time to end change and return to original [s]
   change rate: 1.0          # rate of change [s]
 
-# ------------------------------------------------------------------------------
-# INTERVENTIONS
-# ------------------------------------------------------------------------------
-# Interventions are scheduled changes externally applied to some or all cells
-# in the cell cluster for some or all time steps of the simulation. All settings
-# in this section are safely modifiable at any time, including between the seed,
-# initialization, and simulation phases.
-interventions:
-  global:           # Global interventions globally applied to all cells.
-    ion pipeline:   # List of all global ion interventions, temporarily
-                    # increasing environmental concentrations of ions as
-                    # logistic functions centered around time steps.
-      # Example global potassium intervention, disabled by default.
-      - type: potassium   # Intervention type, as any following string:
-        # chloride  ->  Global chloride ion intervention
-        #   Ignored if chloride ions (Cl-) disabled by ion profile.
-        # potassium  ->  Global potassium ion intervention
-        #   Ignored if potassium ions (K+) disabled by ion profile.
-        # sodium  ->  Global sodium ion intervention
-        #   Ignored if sodium ions (Na+) disabled by ion profile.
-        enabled: False        # Enable this intervention?
-        start time:  1.00     # Time at which to begin intervening [s]
-        end time:   12.00     # Time at which to cease intervening [s]
-        peak duration: 1.00   # Time duration over which to increase ion
-                              # concentration after intervention begins [s]
-        multiplier: 20        # Factor by which to increase base level of ion
-                              # concentration during peak intervention duration
-      # Example global chloride intervention, disabled by default.
-      - type: chloride
-        enabled: False
-        start time:  5.00
-        end time:   25.00
-        peak duration: 2.00
-        multiplier: 10
-
 #-----------------------------------------------------------------------------------------------------------------------
 #  GENERAL NETWORK
 #-----------------------------------------------------------------------------------------------------------------------

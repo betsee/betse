@@ -457,40 +457,6 @@ block NaKATP pump:
   change finish: 3060         # time to end change and return to original [s]
   change rate: 10.0          # rate of change [s]
 
-# ------------------------------------------------------------------------------
-# INTERVENTIONS
-# ------------------------------------------------------------------------------
-# Interventions are scheduled changes externally applied to some or all cells
-# in the cell cluster for some or all time steps of the simulation. All settings
-# in this section are safely modifiable at any time, including between the seed,
-# initialization, and simulation phases.
-interventions:
-  global:           # Global interventions globally applied to all cells.
-    ion pipeline:   # List of all global ion interventions, temporarily
-                    # increasing environmental concentrations of ions as
-                    # logistic functions centered around time steps.
-      # Example global potassium intervention, disabled by default.
-      - type: potassium   # Intervention type, as any following string:
-        # chloride  ->  Global chloride ion intervention
-        #   Ignored if chloride ions (Cl-) disabled by ion profile.
-        # potassium  ->  Global potassium ion intervention
-        #   Ignored if potassium ions (K+) disabled by ion profile.
-        # sodium  ->  Global sodium ion intervention
-        #   Ignored if sodium ions (Na+) disabled by ion profile.
-        enabled: False        # Enable this intervention?
-        start time:  1.00     # Time at which to begin intervening [s]
-        end time:   12.00     # Time at which to cease intervening [s]
-        peak duration: 1.00   # Time duration over which to increase ion
-                              # concentration after intervention begins [s]
-        multiplier: 20        # Factor by which to increase base level of ion
-                              # concentration during peak intervention duration
-      # Example global chloride intervention, disabled by default.
-      - type: chloride
-        enabled: False
-        start time:  5.00
-        end time:   25.00
-        peak duration: 2.00
-        multiplier: 10
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  GENERAL NETWORK
@@ -509,18 +475,6 @@ general network:
 
   implement network: True     # Turn the entire network defined below on (True) or off (False)
 
-  # FIXME CHECK OUT MITOCHONDRIA!
-  enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
-
-  # FIXME: FIX THE OPTIMIZER
-  # FIXME: Make sure this isn't needing networkx by default!
-  optimization:              # Not required by default. A tool to "best fit" your network to target data.
-    optimize network: False   # run an optimization of the network to obtain max rates at steady state concentrations?
-    optimization steps: 50 # number of itteration steps to run with basinhopper
-    optimization method: L-BFGS-B  # optimization algorithm to run ('L-BFGS' 'COBYLA')
-    optimization T: 1.0             # "temperature" for the basinhopping routine
-    optimization step: 0.5          # step-size of the basin hopping routine
-    target Vmem: -50e-3               # Vmem to use in optimization
 
   #-----------------------------------------------------------------------------------------------------------------------
   # CUSTOM BIOMOLECULES
@@ -925,15 +879,6 @@ general network:
   # directory for examples.
   modulators:
 
-  #-----------------------------------------------------------------------------------------------------------------------
-  # DIRECTION SURFACE PLOTS
-  #-----------------------------------------------------------------------------------------------------------------------
-  # See "extra_config_template.yaml" in the "extra_configs"
-  # directory for examples.
-  
-  # FIXME: Fix direction surfaces, they're useful
-  # FIXME: Consider having I-V curves here too...
-  direction surfaces:
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -981,13 +926,7 @@ variable settings:
   temperature: 310            # system temperature [K]
 
 
-# FIXME: DECIDE on how to handle fluid flow, and if osmosis will be added
-  fluid flow:
 
-    include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
-    water viscocity: 1.0      # viscocity of water [Pa s] (applies to ease of flow)
-
-# FIXME: DECIDE on how to handle these deformations
   deformation:
 
     turn on: False       # include deformation under the osmotic pressure influx and electric fields?
@@ -996,14 +935,13 @@ variable settings:
     fixed cluster boundary: True   # Exterior cells of the cluster are fixed (True) or free to move (False)
     young modulus: 1.0e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
 
-# FIXME: FIX THESE
+
   pressures:
 
     include osmotic pressure: False    # include osmotic pressure in flow & deformation?
     membrane water conductivity: 1e-2   # mem conductivity for osmotic inflow (aquaporin per unit surface) (~ 1e-3)
 
 
-  # FIXME remove this, or figure out how to do it better
   noise:
 
     static noise level: 0    # level of variance in K+ leaks on cell membranes
@@ -1044,20 +982,7 @@ variable settings:
   adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
 
-  # FIXME move out to networks
-  microtubules:
 
-    use microtubules: False      # compute microtubule dynamics?
-    charge per micrometer: -360   # charge of tubulin molecule in electron charge units per micrometer of length
-    radius: 15.0e-9        # microtubule radius in m
-    tubulin unit dipole: 1750   # Permanent Dipole of tubulin molecule in Debye units
-    tubulin polarizability: 50.0    # tubulin polarizability x10-40 [C m2/ V]
-    tethered tubule: True          # microtubule tethered to centrosome or free-floating?
-    time dilation factor: 1.0             # Alter the simulation timestep for microtubules, to slow or speed up movement
-    microtubule initial x asymmetry: None # initial asymmetry of microtubules 'x' component
-    microtubule initial y asymmetry: None # initial asymmetry of microtubules 'y' component
-
-  # FIXME: add network substances to Goldman calculator, also add in pumps
   use Goldman calculator: True   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK)
                                  # voltage equation for comparison purposes?
 
@@ -1072,7 +997,7 @@ results options:
 
   enumerate cells: False         # number the cells on 2D plots with their simulation index?
 
-  # FIXME do this as a profile list, add plots with legend to 1D plots
+
   plot cell index: 0              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
@@ -1092,7 +1017,6 @@ results options:
   plot masked geometry: True      # plot the geometry using the overall shape as a mask
 
 
-  # FIXME allow each plot to have its own colormap
   default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
                              # options include
                              # coolwarm, hot, rainbow, jet, Blues, Greens, bone
@@ -1116,7 +1040,6 @@ results options:
   plot networks single cell: True   # export regulatory networks for single cell to
                                     # interconnected graph images?
 
-  #FIXME allow each one to have its own colormap
   while solving:          # Results exported during simulation computation.
     animations:           # Animations exported during simulation computation.
       show: True          # Display animations during simulation computation?
@@ -1137,8 +1060,6 @@ results options:
       save: True          # Save plots after simulation computation with
                           # plot saving options defined below?
 
-      # FIXME allow these to plot multiple trendlines
-      # FIXME add in I-V current plots
       single cell pipeline:   # List of all single-cell plots for the cell
                               # selected by "plot cell index" for all time
                               # steps. Ignored if "show" and "save" are False.
@@ -1332,7 +1253,6 @@ results options:
 # Simulation instability may result from poor choice of these more sensitive parameters.
 # BETSE requires these parameters for its internal use only.
 
-# FIXME, do these even exist?
 gated ion channel options:   # changing these will alter network dynamics -- but do so with caution!
 
     flux threshold: 1.0e-4     # flux cut off maximum
