@@ -148,8 +148,8 @@ class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
         '''
 
         # Container-creating method with this name defined by "frozenset".
-        frozenset_method = objects.get_method(
-            obj=frozenset, method_name=method_name)
+        frozenset_method = objects.get_callable(
+            obj=frozenset, callable_name=method_name)
 
         # Closure sanitizing this method to return instances of the concrete
         # subclass inheriting from this class rather than of "frozenset",

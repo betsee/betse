@@ -178,12 +178,12 @@ subcommand. For example, for help with the "{subcommand_name}" subcommand, run:
             subcommand_method_name = (
                 subcommand_method_name_prefix + subcommand_name_snakecase)
 
-            # Method running this subcommand. If this method does *NOT* exist,
-            # get_method() will raise a non-human-readable exception. Usually,
-            # that would be bad. In this case, argument parsing coupled with a
-            # reliable class implementation ensures this method to exist.
-            subcommand_method = objects.get_method(
-                obj=self, method_name=subcommand_method_name)
+            # Method running this subcommand if this method exists *OR* raise
+            # a non-human-readable exception otherwise. Usually, that would be
+            # bad. In this case, argument parsing coupled with a reliable class
+            # implementation ensures this method to exist.
+            subcommand_method = objects.get_callable(
+                obj=self, callable_name=subcommand_method_name)
 
             # Run this subcommand and return the result of doing so (if any).
             return subcommand_method()

@@ -734,5 +734,5 @@ class SimConfigTestWrapper(object):
         self._p.cell_polarizability = 1e-4
 
         # Enable all optional settings supported by these exports.
-        results['enumerate cells'] = True
+        results['visuals']['cell indices']['show'] = True
         results['overlay currents'] = True

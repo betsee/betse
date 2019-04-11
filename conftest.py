@@ -24,6 +24,11 @@ configuration. Hooks for which this is the case (e.g.,
 
 This file is the aforementioned ``conftest.py`` file "...situated at the tests
 root directory."
+
+See Also
+----------
+:mod:`betse_test.conftest`
+    Global test configuration applied after this configuration.
 '''
 
 # ....................{ IMPORTS                           }....................
@@ -48,7 +53,10 @@ def pytest_addoption(parser: '_pytest.config.Parser') -> None:
 
     * ``pytestconfig.getoption('export_sim_conf_dirname')``, the value of the
       ``--export-sim-conf-dir`` command-line option if passed *or* ``None``
-      otherwise.
+      otherwise. The subsequently run
+      :func:`betse_test.conftest.pytest_configure` hook then globalizes this
+      value as the global :attr:`betse_test.conftest.EXPORT_SIM_CONF_DIRNAME`
+      variable for subsequent lookup from module scope (e.g., pytest markers).
 
     Caveats
     ----------

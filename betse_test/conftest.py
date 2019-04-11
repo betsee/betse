@@ -4,10 +4,17 @@
 # See "LICENSE" for further details.
 
 '''
-Global test configuration for all tests.
+**Global test configuration** (i.e., early-time configuration guaranteed to be
+run by :mod:`pytest` *after* passed command-line arguments are parsed) for
+this test suite.
 
 :mod:`pytest` implicitly imports *all* functionality defined by this module
-into *all* :mod:`betse_test` submodules.
+into *all* submodules of this subpackage.
+
+See Also
+----------
+:mod:`conftest`
+    Root test configuration applied before this configuration.
 '''
 
 # ....................{ IMPORTS                           }....................
@@ -29,6 +36,19 @@ from betse_test.fixture.simconf.simconfer import (
     betse_sim_conf_compat,
 )
 
+# ....................{ GLOBALS                           }....................
+EXPORT_SIM_CONF_DIRNAME = None
+'''
+Absolute or relative dirname of the target directory to export (i.e.,
+recursively copy) each source simulation configuration directory into if any
+*or* ``None`` otherwise.
+
+See Also
+----------
+:func:`pytest_configure`
+    Further details.
+'''
+
 # ....................{ HOOKS ~ plugin                    }....................
 def pytest_configure(config) -> None:
     '''
@@ -37,6 +57,16 @@ def pytest_configure(config) -> None:
     application-specific ``conftest`` scripts).
 
     Specifically:
+
+    * The global :attr:`EXPORT_SIM_CONF_DIRNAME` variable is defined as follows
+      for subsequent lookup from module scope (e.g., pytest markers):
+
+      * If the custom ``--export-sim-conf-dir`` command-line option was passed
+        by the caller (as parsed by the root :mod:`conftest` module), this
+        variable's value is that of this option's (i.e., the absolute or
+        relative dirname of the target directory to export and hence
+        recursively copy each source simulation configuration directory into).
+      * Else, this variable's value is ``None``.
 
     * If the external ``${DISPLAY}`` environment variable is currently set
       (e.g., to the X11-specific socket to be connected to display GUI
@@ -50,6 +80,22 @@ def pytest_configure(config) -> None:
 
     # Defer heavyweight imports.
     from betse.util.os.shell import shellenv
+
+    # Global variables to be set below.
+    global EXPORT_SIM_CONF_DIRNAME
+
+    # Globalize the value of the application-specific "--export-sim-conf-dir"
+    # command-line option if any for subsequent lookup from module scope.
+    #
+    # This is required as the "pytest.config" object is no longer safely
+    # accessible from module scope. Attempting to do so now results in a
+    # deprecation warning resembling:
+    #     PytestDeprecationWarning: the `pytest.config` global is deprecated.  Please use `request.config` or `pytest_configure` (if you're a pytest plugin) instead.
+    #
+    # This ad-hoc circmvention is shamelessly inspired by the following
+    # exhaustive StackOverflow treatise on this subject:
+    #     https://stackoverflow.com/a/51884507/2809027
+    EXPORT_SIM_CONF_DIRNAME = config.getoption('export_sim_conf_dirname')
 
     #FIXME: This operation should be converted into autouse fixtures defined in
     #this plugin above. Such fixtures should require the builtin fixture

@@ -63,7 +63,7 @@ def upgrade_sim_conf(p: Parameters) -> None:
     _upgrade_sim_conf_to_0_5_2(p)
     _upgrade_sim_conf_to_0_6_0(p)
     _upgrade_sim_conf_to_0_7_1(p)
-    _upgrade_sim_conf_to_0_9_3(p)
+    _upgrade_sim_conf_to_1_0_0(p)
 
 # ....................{ UPGRADERS ~ 0.5.x                 }....................
 @type_check
@@ -449,17 +449,18 @@ def _upgrade_sim_conf_to_0_7_1(p: Parameters) -> None:
 
 # ....................{ UPGRADERS ~ 0.9.x                 }....................
 @type_check
-def _upgrade_sim_conf_to_0_9_3(p: Parameters) -> None:
+def _upgrade_sim_conf_to_1_0_0(p: Parameters) -> None:
     '''
     Upgrade the in-memory contents of the passed simulation configuration to
-    reflect the newest structure of these contents expected by version 0.9.3
+    reflect the newest structure of these contents expected by version 1.0.0
     of this application.
     '''
 
     # Log this upgrade attempt.
-    logs.log_debug('Upgrading simulation configuration to 0.9.3 format...')
+    logs.log_debug('Upgrading simulation configuration to 1.0.0 format...')
 
     # Localize configuration subdictionaries for convenience.
+    results_dict = p._conf['results options']
     tissue_dict = p._conf['tissue profile definition']
 
     # For each tissue profile, define the "color" cell targets type if needed.
@@ -468,15 +469,24 @@ def _upgrade_sim_conf_to_0_9_3(p: Parameters) -> None:
             profile['cell targets']['color'] = 'ff0000'  # Red. Just 'cause.
 
     # Define a default uniquified name for each pipelined export.
-    _upgrade_sim_conf_to_0_9_3_exports_name(p)
+    _upgrade_sim_conf_to_1_0_0_exports_name(p)
+
+    # If the "visuals" subsection is undefined, define this subsection.
+    if 'visuals' not in results_dict:
+        results_dict['visuals'] = {
+            'cell indices': {
+                'show':        results_dict['enumerate cells'],
+                'single cell': results_dict['plot cell index'],
+            }
+        }
 
 
 @type_check
-def _upgrade_sim_conf_to_0_9_3_exports_name(p: Parameters) -> None:
+def _upgrade_sim_conf_to_1_0_0_exports_name(p: Parameters) -> None:
     '''
     Define a default uniquified name for each **pipelined export** (e.g., CSV,
     plot, animation) defined by the passed simulation configuration to reflect
-    assumptions expected by version 0.9.3 of this application.
+    assumptions expected by version 1.0.0 of this application.
     '''
 
     # Localize configuration subdictionaries for convenience.

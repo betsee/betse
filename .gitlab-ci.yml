@@ -107,7 +107,7 @@
 #   circumventing several of the aforementioned issues. Unfortunately, this
 #   image is infrequently maintained and hence unreliable (which is terribad):
 #   https://github.com/vishnu2kmohan/anaconda3-docker
-image: continuumio/anaconda3
+image: continuumio/anaconda3:latest
 
 # ....................{ GLOBALS                            }....................
 # Dictionary mapping from the name to value of each environment variable to be
@@ -145,7 +145,7 @@ cache:
   # the build and test jobs defined below expect to share the same cache.
   #
   # For a human-readable list of permissible values for this setting, see also:
-  #     https://docs.gitlab.com/ce/ci/yaml/README.html#cache-key.
+  #     https://docs.gitlab.com/ce/ci/yaml/README.html#cache-key
   key: "$CI_BUILD_REF_NAME"
 
   # Cache all subdirectories and files of the build directory *NOT* already

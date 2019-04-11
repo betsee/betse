@@ -28,9 +28,9 @@
 # useful for configuration files -- like this one. For details, please see
 # https://en.wikipedia.org/wiki/YAML.
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # SOLVER SETTINGS
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # Settings specific to simulation solvers (i.e., numerical techniques internally employed by
 # BETSE to iteratively compute each time step of this simulation).
 
@@ -47,9 +47,9 @@ solver options:
              #   * Ion concentrations.
              #   These phenomena are silently ignored when this solver is enabled.
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # FILE HANDLING
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # Settings specific to saving simulations and results output.
 
 init file saving:              # Initialization paths to save and load.
@@ -74,9 +74,9 @@ results file saving:              # Initialization and simulation exports to sav
   sim directory: RESULTS/sim_1    # Directory of simulation exports created by
                                   # "betse plot sim" (e.g., plots, animations).
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # Settings specific to the initialization.
 
 automatically run initialization: True     # If init file is not found, do you wish to
@@ -87,18 +87,18 @@ init time settings:
   total time: 5.0             # end time [s]
   sampling rate: 1.0          # time interval to sample data [s] (at least value of time-step or larger)
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # SIMULATION SETTINGS
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 
 sim time settings:
   time step: 1.0e-4       # time step-size [s] (recommended 1.0e-2 or smaller)
   total time: 0.035       # time to end sim run [s]
   sampling rate: 1.0e-3   # period to sample data [s] (at least time step or larger)
 
-# ---------------------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # GENERAL OPTIONS
-# ---------------------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # Specify general options to be used in the init and sim runs.
 # File sync warning: you can't change any of these general options after running 'betse seed'.
 
@@ -116,10 +116,8 @@ general options:
                        # 'custom' (user-specified settings, see below)
                        # (all profiles contain an unidentified charge-balance anion, M-)
 
-  customized ion profile:      # set user-defined initial values of ion concentrations
-                               # for the initialization run
-                               # note both extracellular and cytosolic levels of all
-                               # ions must sum to zero charge.
+  customized ion profile:  # User-defined initial values of ion concentrations for the "init" phase.
+                           # Extracellular and cytosolic levels of all ions must sum to zero charge.
     extracellular Na+ concentration: 145.0          # extracellular sodium [mmol/L]
     extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
     extracellular Cl- concentration: 115.0          # extracellular chloride [mmol/L]
@@ -717,20 +715,15 @@ variable settings:
   use Goldman calculator: False   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK)
                                  # voltage equation for comparison purposes?
 
-# ----------------------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # RESULTS
-# ----------------------------------------------------------------------------------------------------------------------
-# Configure results viewing and saving options for simulations. All of the
-# parameters under 'results options' can be altered at any time between seed,
-# init and sim.
+# --------------------------------------------------------------------------------------------------
+# Configure results viewing and saving options for simulations. All options defined below may be
+# safely altered at any time between the seed, init, and sim phases.
 
 results options:
 
   show cells: True           # Visualize discrete cells or only a homogeneous gradient of cell data?
-  enumerate cells: False     # Number the cells on 2D plots with their simulation index?
-
-  plot cell index: 0         # 0-based index of cell to visualize for single-cell time plots.
-                             # (Set "enumerate cells: True" above to display cell indices).
 
   overlay currents: False    # Overlay electric current or concentration flux streamlines on 2D plotted data?
   streamline density: 2.0    # For current plots, density of streamlines in the range [0.5, 5.0].
@@ -779,6 +772,12 @@ results options:
 
   plot networks: True             # Export regulatory networks to interconnected graph images?
   plot networks single cell: True # Export regulatory networks for single cell to such images?
+
+  visuals:            # Settings globally applicable to all plots and animations.
+    cell indices:     # Settings indexing (i.e., enumerating, numbering) individual cells.
+      show: False     # Display each cell's 0-based index for all cell cluster visuals?
+      single cell: 0  # 0-based index of cell to visualize for all single cell visuals.
+                      # (Set "show: True" above to display cell indices for all cells.)
 
   while solving:          # Results exported during simulation computation.
     animations:           # Animations exported during simulation computation.

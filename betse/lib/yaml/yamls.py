@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -11,12 +11,12 @@ file format encapsulating most input and output data for this application.
 #FIXME: Consider contributing various portions of this submodule back to
 #"ruamel.yaml" -- particularly the Numpy-type-to-YAML-native-type conversions.
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To permit YAML implementations to be conditionally imported at
 # application startup, no implementations (e.g., the top-level "yaml" package
 # corresponding to PyYAML) are importable here.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse import metadeps
 from betse.exceptions import BetseYamlException
@@ -24,31 +24,49 @@ from betse.lib import libs
 from betse.util.io import iofiles
 from betse.util.io.log import logs
 from betse.util.path import pathnames
+from betse.util.type import enums
 from betse.util.type.obj import objects
 from betse.util.type.types import (
     type_check, FileType, MappingOrSequenceTypes, ModuleType)
-from enum import Enum
 
-# ....................{ ENUMS                              }....................
-YamlType = Enum('YamlType', ('PyYAML', 'ruamel_yaml',))
-'''
-Enumeration of all third-party YAML implementations supported by this submodule.
-'''
+# ....................{ ENUMS                             }....................
+YamlPackageType = enums.make_enum(
+    class_name='YamlPackageType',
+    member_names=('PYYAML', 'RUAMEL',),
+    doc='''
+Enumeration of all supported types of third-party **YAML implementations**
+(i.e., packages implementing the YAML-specific equivalent of the :mod:`pickle`
+API, permitting arbitrary Python containers to be serialized to and
+deserialized from YAML-formatted strings and files).
+
+Attributes
+----------
+PYYAML : enum
+    PyYAML, the standard (albeit largely obsolete and occasionally insecure)
+    YAML implementation imported as the :mod:`yaml` package.
+RUAMEL : enum
+    :mod:`ruamel.yaml`, a modern PyYAML fork supporting **YAML roundtripping**
+    (i.e., preservation of both whitespace and comments, such that serializing
+    a Python container deserialized from a YAML-formatted string or file
+    produces the exact same YAML-formatted string or file).
+''')
 
 
-YAML_TYPE_ACTIVE = None
+YAML_PACKAGE_TYPE = None
 '''
-:data:`YamlType` member corresponding to the currently active third-party YAML
-implementation if any *or* ``None`` if this submodule has yet to be initialized.
+:data:`YamlPackageType` member corresponding to the currently active
+third-party YAML implementation if this submodule has already been initialized
+(i.e., if the :func:`init` function has been called) *or* ``None`` otherwise
+(i.e., if this submodule has yet to be initialized).
 '''
 
-# ....................{ GLOBALS                            }....................
-FILETYPES = {'yaml', 'yml',}
+# ....................{ GLOBALS                           }....................
+YAML_FILETYPES = {'yaml', 'yml',}
 '''
 Set of all YAML-compliant filetypes.
 '''
 
-# ....................{ WARNERS                            }....................
+# ....................{ WARNERS                           }....................
 @type_check
 def warn_unless_filetype_yaml(filename: str) -> None:
     '''
@@ -65,7 +83,7 @@ def warn_unless_filetype_yaml(filename: str) -> None:
     filetype = pathnames.get_filetype_undotted_or_none(filename)
 
     # If this filetype is *NOT* YAML-compliant...
-    if filetype not in FILETYPES:
+    if filetype not in YAML_FILETYPES:
         # If this file has *NO* filetype, log an appropriate warning.
         if filetype is None:
             logs.log_warning('YAML file "%s" has no filetype.', filename)
@@ -75,7 +93,7 @@ def warn_unless_filetype_yaml(filename: str) -> None:
                 'YAML file "%s" filetype "%s" neither "yaml" nor "yml".',
                 filename, filetype)
 
-# ....................{ LOADERS                            }....................
+# ....................{ LOADERS                           }....................
 @type_check
 def load(filename: str) -> MappingOrSequenceTypes:
     '''
@@ -86,7 +104,7 @@ def load(filename: str) -> MappingOrSequenceTypes:
     Parameters
     ----------
     filename : str
-        Absolute or relative path of this file.
+        Absolute or relative filename of this file.
 
     Returns
     ----------
@@ -100,13 +118,13 @@ def load(filename: str) -> MappingOrSequenceTypes:
     # With this YAML file opened for character-oriented reading...
     with iofiles.reading_chars(filename) as yaml_file:
         # Load this YAML file via the active YAML implementation.
-        if YAML_TYPE_ACTIVE is YamlType.PyYAML:
+        if YAML_PACKAGE_TYPE is YamlPackageType.PYYAML:
             return _load_pyyaml(yaml_file)
-        elif YAML_TYPE_ACTIVE is YamlType.ruamel_yaml:
+        elif YAML_PACKAGE_TYPE is YamlPackageType.RUAMEL:
             return _load_ruamel(yaml_file)
         else:
             raise BetseYamlException(
-                'YAML type "{}" unrecognized.'.format(YAML_TYPE_ACTIVE))
+                'YAML type "{}" unrecognized.'.format(YAML_PACKAGE_TYPE))
 
 
 @type_check
@@ -114,13 +132,44 @@ def _load_pyyaml(yaml_file: FileType) -> MappingOrSequenceTypes:
     '''
     Load and return the contents of the YAML-formatted file with the passed
     readable file handle via the PyYAML parser (i.e., the :mod:`yaml` package).
+
+    See Also
+    ----------
+    :func:`load`
+        Further details.
     '''
 
     # PyYAML, validated and imported dynamically for safety.
     pyyaml = _import_pyyaml()
 
-    # Load and return the contents of this YAML file.
-    return pyyaml.load(yaml_file)
+    # PyYAML function loading and returning the contents of this YAML file,
+    # dynamically obtained in a version-agnostic manner preserving backward
+    # compatibility with obsolete (albeit commonplace) versions of PyYAML.
+    # Specifically:
+    #
+    # * If this version of PyYAML defines the full_load() function and is thus
+    #   sufficiently modern, this function is strongly preferred. This function
+    #   implements the default PyYAML loader (i.e., "yaml.FullLoader"), the
+    #   only PyYAML loader both supporting the full YAML specification *AND*
+    #   avoiding arbitrary code execution.
+    #
+    #   Note that this is effectively syntactic sugar for the following call:
+    #       return pyyaml.load(input, Loader=pyyaml.FullLoader)
+    #
+    #   Note that the pyyaml.load() function defaults to this loader but emits
+    #   a non-fatal (albeit frightening) deprecation warning on doing so. Ergo,
+    #   this loader *MUST* effectively be explicitly specified.
+    # * Else, this version of PyYAML is obsolete. In this case, the load()
+    #   function known to suffer security vulnerabilities is fallen back on.
+    #
+    # For exhaustive details, see also:
+    #     https://github.com/yaml/pyyaml/wiki/PyYAML-yaml.load(input)-Deprecation
+    pyyaml_loader = (
+        objects.get_callable_or_none(obj=pyyaml, callable_name='full_load') or
+        objects.get_callable_or_none(obj=pyyaml, callable_name='load'))
+
+    # Return the contents of this YAML file with this loader.
+    return pyyaml_loader(yaml_file)
 
 
 @type_check
@@ -128,6 +177,11 @@ def _load_ruamel(yaml_file: FileType) -> MappingOrSequenceTypes:
     '''
     Load and return the contents of the YAML-formatted file with the passed
     readable file handle via the :mod:`ruamel.yaml` parser.
+
+    See Also
+    ----------
+    :func:`load`
+        Further details.
     '''
 
     # Safe roundtripping YAML parser.
@@ -136,7 +190,7 @@ def _load_ruamel(yaml_file: FileType) -> MappingOrSequenceTypes:
     # Load and return the contents of this YAML file.
     return ruamel_parser.load(yaml_file)
 
-# ....................{ SAVERS                             }....................
+# ....................{ SAVERS                            }....................
 @type_check
 def save(
     # Mandatory parameters.
@@ -148,17 +202,23 @@ def save(
 ) -> None:
     '''
     Save (i.e., open and write, serialize) the passed dictionary or list to the
-    YAML-formatted file with the passed path via the active YAML implementation.
+    YAML-formatted file with the passed path via the active YAML
+    implementation.
 
     Parameters
     ----------
     container: MappingOrSequenceTypes
         Dictionary or list to be written as the contents of this file.
     filename : str
-        Absolute or relative path of this file.
+        Absolute or relative filename of this file.
     is_overwritable : optional[bool]
-        ``True`` if overwriting this file when this file already exists *or*
-        ``False`` if raising an exception when this file already exists.
+        Either:
+
+        * ``True`` if this function may silently overwrite this file when this
+          file already exists.
+        * ``False`` if this function should instead raise an exception when
+          this file already exists.
+
         Defaults to ``False`` for safety.
     '''
 
@@ -169,13 +229,14 @@ def save(
     with iofiles.writing_chars(
         filename=filename, is_overwritable=is_overwritable) as yaml_file:
         # Save this YAML file via the active YAML implementation.
-        if YAML_TYPE_ACTIVE is YamlType.PyYAML:
+        if YAML_PACKAGE_TYPE is YamlPackageType.PYYAML:
             return _save_pyyaml(container, yaml_file)
-        elif YAML_TYPE_ACTIVE is YamlType.ruamel_yaml:
+        elif YAML_PACKAGE_TYPE is YamlPackageType.RUAMEL:
             return _save_ruamel(container, yaml_file)
         else:
             raise BetseYamlException(
-                'YAML type "{}" unrecognized.'.format(YAML_TYPE_ACTIVE))
+                'YAML type "{}" unrecognized.'.format(YAML_PACKAGE_TYPE))
+
 
 @type_check
 def _save_pyyaml(
@@ -183,6 +244,11 @@ def _save_pyyaml(
     '''
     Save the passed container to the YAML-formatted file with the passed
     writable file handle via the PyYAML parser (i.e., the :mod:`yaml` package).
+
+    See Also
+    ----------
+    :func:`save`
+        Further details.
     '''
 
     # PyYAML, validated and imported dynamically for safety.
@@ -209,10 +275,16 @@ def _save_ruamel(
     '''
     Save the passed container to the YAML-formatted file with the passed
     writable file handle via the :mod:`ruamel.yaml` parser.
+
+    See Also
+    ----------
+    :func:`save`
+        Further details.
     '''
 
     # Fully-qualified name of the module defining this container's subclass.
-    container_class_module_name = objects.get_class_module_name_qualified(container)
+    container_class_module_name = objects.get_class_module_name_qualified(
+        container)
 
     # If this container is *NOT* a "ruamel.yaml"-specific object returned by a
     # prior call to the _load_ruamel() function, log a non-fatal warning. While
@@ -231,7 +303,7 @@ def _save_ruamel(
     # Save this container to this YAML file.
     ruamel_parser.dump(container, yaml_file)
 
-# ....................{ INITIALIZERS                       }....................
+# ....................{ INITIALIZERS                      }....................
 def init() -> None:
     '''
     Initialize both this submodule *and* the currently active YAML
@@ -243,7 +315,7 @@ def init() -> None:
     '''
 
     # Globals assigned to below.
-    global YAML_TYPE_ACTIVE
+    global YAML_PACKAGE_TYPE
 
     # Log this initialization.
     logs.log_debug(
@@ -253,9 +325,9 @@ def init() -> None:
     # Convert the non-typesafe setuptools-specific project name of this
     # implementation into a typesafe enumeration member.
     if metadeps.RUNTIME_MANDATORY_YAML_PROJECT_NAME == 'PyYAML':
-        YAML_TYPE_ACTIVE = YamlType.PyYAML
+        YAML_PACKAGE_TYPE = YamlPackageType.PYYAML
     elif metadeps.RUNTIME_MANDATORY_YAML_PROJECT_NAME == 'ruamel.yaml':
-        YAML_TYPE_ACTIVE = YamlType.ruamel_yaml
+        YAML_PACKAGE_TYPE = YamlPackageType.RUAMEL
     else:
         raise BetseYamlException(
             'YAML project name "{}" unrecognized.'.format(
@@ -266,7 +338,7 @@ def init() -> None:
     # Since "ruamel.yaml" prefers a modern object-oriented API and hence is
     # locally initialized on object construction rather than globally on module
     # importation, note that "ruamel.yaml" requires no such initialization.
-    if YAML_TYPE_ACTIVE is YamlType.PyYAML:
+    if YAML_PACKAGE_TYPE is YamlPackageType.PYYAML:
         _init_pyyaml()
 
 
@@ -289,7 +361,7 @@ def _init_pyyaml() -> None:
     # Numpy-specific warnings and thus does *NOT* require this monkeypatch.
     pyyaml.representer.SafeRepresenter.ignore_aliases = _pyyaml_ignore_aliases
 
-# ....................{ IMPORTERS                          }....................
+# ....................{ IMPORTERS                         }....................
 def _import_pyyaml() -> ModuleType:
     '''
     Dynamically validate, import, and return the top-level module for PyYAML.
@@ -306,7 +378,7 @@ def _import_ruamel() -> ModuleType:
 
     return libs.import_runtime_optional('ruamel.yaml')
 
-# ....................{ MAKERS                             }....................
+# ....................{ MAKERS                            }....................
 def _make_ruamel_parser() -> 'ruamel.yaml.YAML':
     '''
     Safe roundtripping :mod:`ruamel.yaml` parser, where:
@@ -353,7 +425,7 @@ def _make_ruamel_parser() -> 'ruamel.yaml.YAML':
     # Return this parser.
     return ruamel_parser
 
-# ....................{ MONKEYPATCHES                      }....................
+# ....................{ MONKEYPATCHES                     }....................
 def _pyyaml_ignore_aliases(self, data) -> bool:
     '''
     PyYAML-specific :meth:`yaml.representer.SafeRepresenter.ignore_aliases`
@@ -362,8 +434,8 @@ def _pyyaml_ignore_aliases(self, data) -> bool:
     This method has been refactored to eliminate future warnings resembling:
 
         /usr/lib64/python3.4/site-packages/yaml/representer.py:135:
-        FutureWarning: comparison to `None` will result in an elementwise object
-        comparison in the future.
+        FutureWarning: comparison to `None` will result in an elementwise
+        object comparison in the future.
           if data in [None, ()]:
     '''
 
@@ -375,8 +447,8 @@ def _pyyaml_ignore_aliases(self, data) -> bool:
     # * The non-singleton () object with the "==" rather than "is" operator is
     #   required. Bizarrely, despite the empty tuple being frozen, Python
     #   documentation notes that "...two occurrences of the empty tuple may or
-    #   may not yield the same object". Hence, the comparison "data is ()" could
-    #   unsafely return "False" even when "data" is the empty tuple!
+    #   may not yield the same object". Hence, the comparison "data is ()"
+    #   could unsafely return "False" even when "data" is the empty tuple!
     if data is None or data == ():
         return True
     if isinstance(data, (str, bytes, bool, int, float)):

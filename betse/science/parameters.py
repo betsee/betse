@@ -994,11 +994,13 @@ class Parameters(YamlFileABC):
         # Colors.
         self.vcolor = ro['vector and stream color']  # color of vector and streamlines
 
+        #FIXME: Extrapolate into a data descriptor of a new "p.visual" object.
         # True if numbering cells in plots and animations.
-        self.enumerate_cells = ro['enumerate cells']
+        self.enumerate_cells = ro['visuals']['cell indices']['show']
 
+        #FIXME: Extrapolate into a data descriptor of a new "p.visual" object.
         # FIXME, let this be a list!
-        self.plot_cell = ro['plot cell index'] # State the cell index to use for single-cell time plots
+        self.plot_cell = ro['visuals']['cell indices']['single cell'] # State the cell index to use for single-cell time plots
 
         self.plot_networks_single_cell = ro['plot networks single cell']
         self.showCells = ro['show cells']     # True = polygon patch plots, False = trimesh
@@ -1019,16 +1021,15 @@ class Parameters(YamlFileABC):
         self.interp_type = 'nearest'
 
         # self.bound_cell_clip_ratio = iu.get('boundary cell size cutoff', 0.5)
-
         self.substances_affect_charge = iu['substances affect Vmem']  # Do Network substances function bioelectrically?
 
-         # default free diffusion constants (cytoplasmic)
-        self.Do_Na = float(iu['Do_Na'])      # free diffusion constant sodium [m2/s]
-        self.Do_K = float(iu['Do_K'])      # free diffusion constant potassium [m2/s]
-        self.Do_Cl = float(iu['Do_Cl'])     # free diffusion constant chloride [m2/s]
-        self.Do_Ca = float(iu['Do_Ca'])     # free diffusion constant calcium [m2/s]
-        self.Do_M = float(iu['Do_M'])     # free diffusion constant mystery anchor ion [m2/s]
-        self.Do_P = float(iu['Do_P'])      # free diffusion constant protein [m2/s]
+        # default free diffusion constants (cytoplasmic)
+        self.Do_Na = float(iu['Do_Na'])    # free diffusion constant sodium [m2/s]
+        self.Do_K  = float(iu['Do_K'])     # free diffusion constant potassium [m2/s]
+        self.Do_Cl = float(iu['Do_Cl'])    # free diffusion constant chloride [m2/s]
+        self.Do_Ca = float(iu['Do_Ca'])    # free diffusion constant calcium [m2/s]
+        self.Do_M  = float(iu['Do_M'])     # free diffusion constant mystery anchor ion [m2/s]
+        self.Do_P  = float(iu['Do_P'])     # free diffusion constant protein [m2/s]
 
         # fixed levels of ATP, ADP and Pi, required for use in pump equations to get propper kinetics
         self.cATP = 1.5

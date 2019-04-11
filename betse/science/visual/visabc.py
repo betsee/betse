@@ -7,6 +7,24 @@
 Abstract base classes of all Matplotlib-based plot and animation subclasses.
 '''
 
+#FIXME: Visuals currently exhibit extremely non-ideal behaviour, including:
+#
+#* Repeated display of OS-level notifications resembling '"Figure 1" is ready'.
+#* Continually bringing the window containing the most recently created plot or
+#  animation frame to the front of the window stack, which then forcefully
+#  steals the keyboard focus.
+#
+#Altogether, these issues effectively render interactive plotting unusable.
+#Fortunately, the following StackOverflow post appears to have sufficiently
+#resolved this issue for relatively recent versions of Matplotlib:
+#    https://stackoverflow.com/a/55456635/2809027
+#Likewise, note the related discussion at the close of this issue thread:
+#    https://github.com/matplotlib/matplotlib/issues/596
+#
+#The core issue appears to be our use of the pyplot.pause() function, which we
+#will now need to globally replace across the entire codebase with calls to
+#fig.canvas.draw_idle() and fig.canvas.start_event_loop(0.001) instead.
+
 #FIXME: Refactor all procedural cell cluster-specific
 #"betse.science.visual.plot.plotutil" functions into subclasses of the
 #"LayerCellsABC" base class defined elsewhere. Ultimate power fights the dark deceit!

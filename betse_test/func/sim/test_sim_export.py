@@ -10,31 +10,8 @@ validate application backward compatibility).
 '''
 
 # ....................{ IMPORTS                           }....................
-import pytest
+from betse_test.conftest import EXPORT_SIM_CONF_DIRNAME
 from betse.util.test.pytest.mark.pytskip import skip_if
-
-# ....................{ OPTIONS                           }....................
-#FIXME: Resolve the following deprecation warning:
-#    PytestDeprecationWarning: the `pytest.config` global is deprecated.  Please use `request.config` or `pytest_configure` (if you're a pytest plugin) instead.
-#
-#*UGH.* We can't use "request.config", as we require this at global scope to
-#decide whether or not we need to skip the test_cli_sim_export() test -- which
-#ultimately means we need to probably set this global in a "pytest_configure"
-#hook in a "conftest" plugin... somewhere, or something.
-#
-#Since this is rapidly becoming a nightmare, let's simply ignore *ALL* of this
-#until we hopefully refactor this entire submodule away.
-EXPORT_SIM_CONF_DIRNAME = pytest.config.option.export_sim_conf_dirname
-'''
-Absolute or relative path of the target directory to export (i.e., recursively
-copy) each source simulation configuration directory into if any *or* ``None``
-otherwise.
-
-See Also
-----------
-:func:`betse_test.conftest.pytest_addoption`
-    Further details.
-'''
 
 # ....................{ DECORATORS                        }....................
 skip_unless_export_sim_conf_dir = skip_if(

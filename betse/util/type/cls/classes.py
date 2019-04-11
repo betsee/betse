@@ -276,7 +276,7 @@ def get_method(cls: ClassType, method_name: str) -> CallableTypes:
     from betse.util.type.obj import objects
 
     # It's so simple, my eyes bleed.
-    return objects.get_method(obj=cls, method_name=method_name)
+    return objects.get_callable(obj=cls, callable_name=method_name)
 
 # ....................{ ITERATORS                         }....................
 @type_check

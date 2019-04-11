@@ -468,8 +468,8 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
                 self._RUNNER_METHOD_NAME_PREFIX + runner_conf.kind)
 
             # Method running this runner if recognized *OR* "None" otherwise.
-            runner_method = objects.get_method_or_none(
-                obj=self, method_name=runner_method_name)
+            runner_method = objects.get_callable_or_none(
+                obj=self, callable_name=runner_method_name)
 
             # If this runner is unrecognized, raise an exception.
             if runner_method is None:
