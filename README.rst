@@ -391,6 +391,7 @@ Documentation
 BETSE also provides external documentation optimized for offline reading –
 complete with explanatory examples, sample plots, and ample screenshots:
 
+- Official `BETSE 1.0.0 documentation`_. (\ *PDF format; 75 pages.*\ )
 - Official `BETSE 0.4 documentation`_. (\ *PDF format; 72 pages.*\ )
 - Official `BETSE 0.3 documentation`_. (\ *PDF format; 77 pages.*\ )
 
@@ -660,6 +661,8 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
    https://gitlab.com/betse/betse/tags
 
 .. # ------------------( LINKS ~ betse : docs               )------------------
+.. _BETSE 1.0.0 documentation:
+   https://www.dropbox.com/s/3rsbrjq2ljal8dl/BETSE_Documentation_April10th2019.pdf?dl=0
 .. _BETSE 0.4 documentation:
    https://www.dropbox.com/s/n8qfms2oks9cvv2/BETSE04_Documentation_Dec1st2016.pdf?dl=0
 .. _BETSE 0.3 documentation:

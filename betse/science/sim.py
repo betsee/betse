@@ -697,17 +697,17 @@ class Simulator(object):
         self.molar_mass = np.asarray(self.molar_mass)
         self.fluxes_mem = np.asarray(self.fluxes_mem)
 
+        # boundary conditions for voltages:
+        # voltage (scheduled dynamics might vary these values)
+        self.bound_V = {}
+        self.bound_V['T'] = 0
+        self.bound_V['B'] = 0
+        self.bound_V['L'] = 0
+        self.bound_V['R'] = 0
+
         if p.is_ecm:  # items specific for extracellular spaces simulation:
             self.z_array_env = np.asarray(self.z_array_env)
             self.D_env = np.asarray(self.D_env)
-
-            # boundary conditions for voltages:
-            # voltage (scheduled dynamics might vary these values)
-            self.bound_V = {}
-            self.bound_V['T'] = 0
-            self.bound_V['B'] = 0
-            self.bound_V['L'] = 0
-            self.bound_V['R'] = 0
 
             # redo environmental protein handling so that it's only present in the cell cluster:
             # self.c_env_bound[self.iM] += 1*self.c_env_bound[self.iP]
@@ -1268,13 +1268,6 @@ class Simulator(object):
                 # add membrane flux to storage
                 self.fluxes_mem[i] += f_ED
 
-                # # update ion concentrations in cell and ecm:
-                # self.cc_cells[i], self.cc_at_mem[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
-                #                                                                     self.cc_at_mem[i],
-                #                                                                     self.cc_env[i], f_ED,
-                #                                                                     cells, p,
-                #                                                                     ignoreECM = self.ignore_ecm)
-
                 # update flux between cells due to gap junctions
                 self.update_gj(cells, p, t, i)
 
@@ -1288,9 +1281,6 @@ class Simulator(object):
             # ----transport and handling of special ions-----------------------
             if p.ions_dict['Ca'] == 1:
                 self.ca_handler(cells, p)
-
-            # if p.ions_dict['H'] == 1:
-            #     self.acid_handler(cells, p)
 
             # update the microtubules:-----------------------------------------
             # if p.use_microtubules:
@@ -1356,10 +1346,6 @@ class Simulator(object):
 
             if p.fluid_flow:
                 getFlow(self,cells, p)
-
-            # if desired, electroosmosis of membrane channels
-            # if p.sim_eosmosis:
-            #     self.move_pumps_channels.run(self, cells, p)
 
             if p.deformation:
                 if p.td_deform:
@@ -2034,7 +2020,8 @@ class Simulator(object):
             # In terms of intra and extracellular charge:
             rho_surf = self.rho_cells * cells.diviterm
 
-            self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells]
+            self.vm = (1/p.cm)*rho_surf[cells.mem_to_cells] -self.Phi_b[cells.map_mem2ecm]
+
 
             # if p.is_ecm:
             #

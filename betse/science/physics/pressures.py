@@ -13,6 +13,28 @@ def osmotic_P(sim, cells, p):
     sim.osmo_P_cell = np.sum(p.R * sim.T * sim.cc_cells, axis=0)
     sim.osmo_P_env = np.sum(p.R * sim.T * sim.cc_env, axis=0)
 
+    # add in other molecular substances to the net sum:
+    add_sum_cell = np.zeros(sim.cdl)
+
+    if p.is_ecm is False:
+        add_sum_env = np.zeros(sim.mdl)
+    else:
+        add_sum_env = np.zeros(sim.edl)
+
+    if p.molecules_enabled:
+        for nmol, mol in sim.molecules.core.molecules.items():
+            add_sum_cell += mol.c_cells*p.R*sim.T
+            add_sum_env += mol.c_env*p.R*sim.T
+
+    if p.grn_enabled:
+        for nmol, mol in sim.grn.core.molecules.items():
+            add_sum_cell += mol.c_cells*p.R*sim.T
+            add_sum_env += mol.c_env*p.R*sim.T
+
+    # Add in the additional molecular concentrations to the main arrays:
+    sim.osmo_P_cell += add_sum_cell
+    sim.osmo_P_env += add_sum_env
+
     if p.is_ecm is False:
 
         op_env = np.dot(cells.M_sum_mems, sim.osmo_P_env)/cells.num_mems

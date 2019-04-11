@@ -341,13 +341,13 @@ class TissueHandler(object):
         # If the voltage event is enabled...
         if bool(p._conf['apply external voltage']['event happens']):
             # If extracellular spaces are also enabled, enable this event.
-            if p.is_ecm:
-                self._event_voltage = SimEventPulseVoltage(p=p)
+            # if p.is_ecm:
+            self._event_voltage = SimEventPulseVoltage(p=p)
             # Else, log a non-fatal warning.
-            else:
-                logs.log_warning(
-                    'Ignoring voltage event, '
-                    'as extracellular spaces are disabled.')
+            # else:
+            #     logs.log_warning(
+            #         'Ignoring voltage event, '
+            #         'as extracellular spaces are disabled.')
 
     #FIXME: Refactor as follows:
     #

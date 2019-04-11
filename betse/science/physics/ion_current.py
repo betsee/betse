@@ -111,6 +111,8 @@ def get_current(sim, cells, p) -> None:
         sim.Eme = (sim.E_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
                sim.E_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
+        sim.Phi_b = Phi_b # Save the boundary voltage
+
     else:
         # divergence of current across membranes:
         vc = sim.vm/2
@@ -155,6 +157,18 @@ def get_current(sim, cells, p) -> None:
 
         # assign environmental voltage:
         sim.v_env =  (Phi).ravel()
+
+        # Boundary value problem:
+        div_Jb = np.zeros(cells.X.shape)
+
+        # add in extra boundary conditions for the case of an externally-applied voltage event:
+        div_Jb[:, -1] = -sim.bound_V['R'] / cells.delta ** 2
+        div_Jb[:, 0] = -sim.bound_V['L'] / cells.delta ** 2
+        div_Jb[-1, :] = -sim.bound_V['T'] / cells.delta ** 2
+        div_Jb[0, :] = -sim.bound_V['B'] / cells.delta ** 2
+
+        Phi_b = np.dot(cells.lapENVinv, -div_Jb.ravel())
+        sim.Phi_b = Phi_b # save the boundary value problem
 
 # WASTELANDS (Options)--------------------------------------------------------------------------------------------------
 

@@ -696,7 +696,6 @@ variable settings:
   temperature: 310            # system temperature [K]
 
 
-# FIXME: DECIDE on how to handle these deformations
   deformation:
 
     turn on: False       # include deformation under the osmotic pressure influx and electric fields?
@@ -705,7 +704,6 @@ variable settings:
     fixed cluster boundary: True   # Exterior cells of the cluster are fixed (True) or free to move (False)
     young modulus: 1.0e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
 
-# FIXME: FIX THESE
   pressures:
 
     include osmotic pressure: False    # include osmotic pressure in flow & deformation?
@@ -766,7 +764,6 @@ results options:
   show cells: True           # Visualize discrete cells or only a homogeneous gradient of cell data?
   enumerate cells: False     # Number the cells on 2D plots with their simulation index?
 
-  #FIXME: Refactor this into a profile list and add plots with legends to 1D plots.
   plot cell index: 0         # 0-based index of cell to visualize for single-cell time plots.
                              # (Set "enumerate cells: True" above to display cell indices).
 
@@ -858,7 +855,6 @@ results options:
       show: False # Display plots after simulating?
       save: True  # Save plots after simulating with save options defined below?
 
-      # FIXME allow these to plot multiple trendlines
       single cell pipeline: # List of all single-cell plots for the cell selected by the
                             # "plot cell index" setting for all time steps.
                             # Ignored if "show" and "save" are False.

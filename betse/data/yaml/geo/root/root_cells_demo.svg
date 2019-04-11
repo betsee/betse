@@ -16,7 +16,7 @@
    id="svg8"
    inkscape:version="0.92.3 (2405546, 2018-03-11)"
    sodipodi:docname="root_cells.svg"
-   inkscape:export-filename="/home/pietakio/Adipose/BETSE_Study/GiovanniPlants/geo/root/root.png"
+   inkscape:export-filename="/home/pietakio/Documents/BETSE_Documentation/Documentation4/Figs/NewFigs/svgroot_circles.png"
    inkscape:export-xdpi="25.4"
    inkscape:export-ydpi="25.4">
   <defs
@@ -28,9 +28,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.7"
-     inkscape:cx="978.74767"
-     inkscape:cy="498.47826"
+     inkscape:zoom="0.35"
+     inkscape:cx="689.46196"
+     inkscape:cy="1069.9068"
      inkscape:document-units="mm"
      inkscape:current-layer="layer4"
      showgrid="true"
@@ -48,7 +48,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>

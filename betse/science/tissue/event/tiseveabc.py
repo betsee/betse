@@ -193,15 +193,18 @@ class SimEventPulseABC(SimEventABC):
                 'Start event time {} exceeds stop event time {}.'.format(
                     start_time_step, stop_time_step))
 
-        # If this start or stop time step are invalid, raise an exception.
-        if not 0.0 <= start_time_step < p.sim_time_total:
-            raise BetseSimEventException(
-                'Start event time {} invalid (i.e., not in range '
-                '[0.0, {})).'.format(start_time_step, p.sim_time_total))
-        if not 0.0 <= stop_time_step < p.sim_time_total:
-            raise BetseSimEventException(
-                'Stop event time {} invalid (i.e., not in range '
-                '[0.0, {})).'.format(stop_time_step, p.sim_time_total))
+        # FIXME -- these might be warnings, but an exception is not feasible as these are somtimes
+        # desired states.
+
+        # # If this start or stop time step are invalid, raise an exception.
+        # if not 0.0 <= start_time_step < p.sim_time_total:
+        #     raise BetseSimEventException(
+        #         'Start event time {} invalid (i.e., not in range '
+        #         '[0.0, {})).'.format(start_time_step, p.sim_time_total))
+        # if not 0.0 <= stop_time_step < p.sim_time_total:
+        #     raise BetseSimEventException(
+        #         'Stop event time {} invalid (i.e., not in range '
+        #         '[0.0, {})).'.format(stop_time_step, p.sim_time_total))
 
         # Classify all passed parameters.
         self.start_time_step = start_time_step
