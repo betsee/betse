@@ -67,7 +67,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
         '''
 
         # 0-based index of the cell to serialize time data for.
-        cell_index = phase.p.plot_cell
+        cell_index = phase.p.visual.single_cell_index
 
         # Sequence of key-value pairs containing all simulation data to be
         # exported for this cell, suitable for passing to the
@@ -410,7 +410,7 @@ class SimPipeExportCSVs(SimPipeExportABC):
         '''
 
         # 0-based index of the cell to serialize time data for.
-        cell_index = phase.p.plot_cell
+        cell_index = phase.p.visual.single_cell_index
 
         if phase.p.is_ecm:
             cell_times_vmems = []

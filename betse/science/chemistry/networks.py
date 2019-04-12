@@ -787,7 +787,7 @@ class MasterOfNetworks(object):
         self.imagePath = pathnames.join(self.resultsPath, 'fig_')
 
         # check that the plot cell is in range of the available cell indices:
-        if p.plot_cell not in cells.cell_i:
+        if p.visual.single_cell_index not in cells.cell_i:
             raise BetseSimConfException(
                 'The "plot cell" defined in the "results" section of your '
                 'configuration file does not exist in your cluster. '
@@ -4351,7 +4351,7 @@ class MasterOfNetworks(object):
 
                 whole_graph = plot_master_network(self, p)
                 savename = '{}NetworkGraph_Cell_{}.svg'.format(
-                    self.imagePath, str(p.plot_cell))
+                    self.imagePath, str(p.visual.single_cell_index))
                 whole_graph.write_svg(savename)
             # Else, log a non-fatal warning rather than raising a fatal
             # exception. Plotting is non-essential and hence should *NEVER*
@@ -4391,7 +4391,7 @@ class MasterOfNetworks(object):
 
         for i, name in enumerate(self.molecules):
             obj = self.molecules[name]
-            c_cells = [arr[p.plot_cell] for arr in obj.c_cells_time]
+            c_cells = [arr[p.visual.single_cell_index] for arr in obj.c_cells_time]
             ax_all1D.plot(
                 sim.time,
                 c_cells,
@@ -4403,10 +4403,10 @@ class MasterOfNetworks(object):
         ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
         ax_all1D.set_xlabel('Time [s]')
         ax_all1D.set_ylabel('Concentration [mmol/L]')
-        ax_all1D.set_title('Concentration of all substances in cell ' + str(p.plot_cell))
+        ax_all1D.set_title('Concentration of all substances in cell ' + str(p.visual.single_cell_index))
 
         if p.autosave is True:
-            savename = self.imagePath + 'AllCellConcentrations_' + str(p.plot_cell) + '.png'
+            savename = self.imagePath + 'AllCellConcentrations_' + str(p.visual.single_cell_index) + '.png'
             plt.savefig(savename, format='png', transparent=True)
 
         if p.turn_all_plots_off is False:
@@ -4422,9 +4422,9 @@ class MasterOfNetworks(object):
             obj = self.molecules[name]
 
             if p.is_ecm:
-                c_env = [arr[cells.map_cell2ecm][p.plot_cell] for arr in obj.c_env_time]
+                c_env = [arr[cells.map_cell2ecm][p.visual.single_cell_index] for arr in obj.c_env_time]
             else:
-                mem_i = cells.cell_to_mems[p.plot_cell][0]
+                mem_i = cells.cell_to_mems[p.visual.single_cell_index][0]
                 c_env = [arr[mem_i] for arr in obj.c_env_time]
 
             ax_all1D.plot(
@@ -4439,10 +4439,10 @@ class MasterOfNetworks(object):
 
         ax_all1D.set_xlabel('Time [s]')
         ax_all1D.set_ylabel('Concentration [mmol/L]')
-        ax_all1D.set_title('Concentration of all substances in environment of cell ' + str(p.plot_cell))
+        ax_all1D.set_title('Concentration of all substances in environment of cell ' + str(p.visual.single_cell_index))
 
         if p.autosave is True:
-            savename = self.imagePath + 'AllEnvConcentrations_' + str(p.plot_cell) + '.png'
+            savename = self.imagePath + 'AllEnvConcentrations_' + str(p.visual.single_cell_index) + '.png'
             plt.savefig(savename, format='png', transparent=True)
 
         if p.turn_all_plots_off is False:
@@ -4452,7 +4452,7 @@ class MasterOfNetworks(object):
         if self.mit_enabled:
 
             # 1 D plot of mitochondrial voltage--------------------------------------------------------
-            vmit = [1e3 * arr[p.plot_cell] for arr in self.vmit_time]
+            vmit = [1e3 * arr[p.visual.single_cell_index] for arr in self.vmit_time]
 
             plt.figure()
             axVmit = plt.subplot(111)
@@ -4461,10 +4461,10 @@ class MasterOfNetworks(object):
 
             axVmit.set_xlabel('Time [s]')
             axVmit.set_ylabel('Vmit [mV]')
-            axVmit.set_title('Mitochondrial transmembrane voltage in cell: ' + str(p.plot_cell))
+            axVmit.set_title('Mitochondrial transmembrane voltage in cell: ' + str(p.visual.single_cell_index))
 
             if p.autosave is True:
-                savename = self.imagePath + 'Vmit_cell_' + str(p.plot_cell) + '.png'
+                savename = self.imagePath + 'Vmit_cell_' + str(p.visual.single_cell_index) + '.png'
                 plt.savefig(savename, format='png', transparent=True)
 
             if p.turn_all_plots_off is False:
@@ -4472,7 +4472,7 @@ class MasterOfNetworks(object):
 
             # 2D plot of mitochondrial voltage ---------------------------------------------------
             fig, ax, cb = viz.plotPolyData(sim, cells, p,
-                zdata=self.mit.Vmit * 1e3, number_cells=p.enumerate_cells, clrmap=p.default_cm)
+                zdata=self.mit.Vmit * 1e3, number_cells=p.visual.is_show_cell_indices, clrmap=p.default_cm)
 
             ax.set_title('Final Mitochondrial Transmembrane Voltage')
             ax.set_xlabel('Spatial distance [um]')
@@ -4495,7 +4495,7 @@ class MasterOfNetworks(object):
 
             for i, name in enumerate(self.molecules):
                 obj = self.molecules[name]
-                c_mit = [arr[p.plot_cell] for arr in obj.c_mit_time]
+                c_mit = [arr[p.visual.single_cell_index] for arr in obj.c_mit_time]
 
                 ax_all1D.plot(
                     sim.time,
@@ -4509,10 +4509,10 @@ class MasterOfNetworks(object):
 
             ax_all1D.set_xlabel('Time [s]')
             ax_all1D.set_ylabel('Concentration [mmol/L]')
-            ax_all1D.set_title('Substances in mitochondria of cell ' + str(p.plot_cell))
+            ax_all1D.set_title('Substances in mitochondria of cell ' + str(p.visual.single_cell_index))
 
             if p.autosave is True:
-                savename = self.imagePath + 'AllMitConcentrations_' + str(p.plot_cell) + '.png'
+                savename = self.imagePath + 'AllMitConcentrations_' + str(p.visual.single_cell_index) + '.png'
                 plt.savefig(savename, format='png', transparent=True)
 
             if p.turn_all_plots_off is False:
@@ -4551,7 +4551,7 @@ class MasterOfNetworks(object):
                 obj = self.reactions[name]
 
                 if len(obj.rate_time) > 0:
-                    r_rate = [arr[p.plot_cell] for arr in obj.rate_time]
+                    r_rate = [arr[p.visual.single_cell_index] for arr in obj.rate_time]
 
                     ax_all1D.plot(
                         sim.time,
@@ -4568,10 +4568,10 @@ class MasterOfNetworks(object):
 
             ax_all1D.set_xlabel('Time [s]')
             ax_all1D.set_ylabel('Rate [mM/s]')
-            ax_all1D.set_title('Reaction rates in cell ' + str(p.plot_cell))
+            ax_all1D.set_title('Reaction rates in cell ' + str(p.visual.single_cell_index))
 
             if p.autosave is True:
-                savename = self.imagePath + 'AllReactionRates_' + str(p.plot_cell) + '.png'
+                savename = self.imagePath + 'AllReactionRates_' + str(p.visual.single_cell_index) + '.png'
                 plt.savefig(savename, format='png', transparent=True)
 
             if p.turn_all_plots_off is False:
@@ -4579,7 +4579,7 @@ class MasterOfNetworks(object):
 
             react_dataM = np.asarray(react_dataM)
 
-            saveName = 'AllReactionRatesData_' + str(p.plot_cell) + '.csv'
+            saveName = 'AllReactionRatesData_' + str(p.visual.single_cell_index) + '.csv'
             saveDataReact = pathnames.join(self.resultsPath, saveName)
 
             np.savetxt(saveDataReact, react_dataM.T, delimiter=',', header=react_header)
@@ -4609,10 +4609,10 @@ class MasterOfNetworks(object):
                     # check the data structure size for this transporter:
                     if len(obj.flux_time[0]) == sim.cdl:
 
-                        t_rate = [arr[p.plot_cell] for arr in obj.flux_time]
+                        t_rate = [arr[p.visual.single_cell_index] for arr in obj.flux_time]
 
                     elif len(obj.flux_time[0]) == sim.mdl:
-                        mem_i = cells.cell_to_mems[p.plot_cell][0]
+                        mem_i = cells.cell_to_mems[p.visual.single_cell_index][0]
                         t_rate = [arr[mem_i] for arr in obj.flux_time]
 
                     else:
@@ -4637,16 +4637,16 @@ class MasterOfNetworks(object):
 
             ax_all1D.set_xlabel('Time [s]')
             ax_all1D.set_ylabel('Rate [mM/s]')
-            ax_all1D.set_title('Transporter rates in cell ' + str(p.plot_cell))
+            ax_all1D.set_title('Transporter rates in cell ' + str(p.visual.single_cell_index))
 
             if p.autosave is True:
-                savename = self.imagePath + 'AllTransporterRates_' + str(p.plot_cell) + '.png'
+                savename = self.imagePath + 'AllTransporterRates_' + str(p.visual.single_cell_index) + '.png'
                 plt.savefig(savename, format='png', transparent=True)
 
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-            saveName = 'AllTransporterRatesData_' + str(p.plot_cell) + '.csv'
+            saveName = 'AllTransporterRatesData_' + str(p.visual.single_cell_index) + '.csv'
             saveDataTransp = pathnames.join(self.resultsPath, saveName)
 
             transp_dataM = np.asarray(transp_dataM)
@@ -4659,7 +4659,7 @@ class MasterOfNetworks(object):
 
         # # energy charge plots:----------------------------------------------------------
         # # 1 D plot of mitochondrial voltage--------------------------------------------------------
-        # chio = [arr[p.plot_cell] for arr in self.chi_time]
+        # chio = [arr[p.visual.single_cell_index] for arr in self.chi_time]
         #
         # plt.figure()
         # axChi = plt.subplot(111)
@@ -4668,10 +4668,10 @@ class MasterOfNetworks(object):
         #
         # axChi.set_xlabel('Time [s]')
         # axChi.set_ylabel('Energy charge')
-        # axChi.set_title('Energy charge in cell: ' + str(p.plot_cell))
+        # axChi.set_title('Energy charge in cell: ' + str(p.visual.single_cell_index))
         #
         # if p.autosave is True:
-        #     savename = self.imagePath + 'EnergyCharge_cell_' + str(p.plot_cell) + '.png'
+        #     savename = self.imagePath + 'EnergyCharge_cell_' + str(p.visual.single_cell_index) + '.png'
         #     plt.savefig(savename, format='png', transparent=True)
         #
         # if p.turn_all_plots_off is False:
@@ -4679,7 +4679,7 @@ class MasterOfNetworks(object):
 
         # ---2D plot--------------------------------------------------------------------
         # fig, ax, cb = viz.plotPolyData(sim, cells, p,
-        #     zdata=self.chi, number_cells=p.enumerate_cells, clrmap=p.default_cm)
+        #     zdata=self.chi, number_cells=p.visual.is_show_cell_indices, clrmap=p.default_cm)
         #
         # ax.set_title('Final Energy Charge of Cell')
         # ax.set_xlabel('Spatial distance [um]')
@@ -6048,10 +6048,10 @@ class Molecule(object):
     #new pipeline API.
     def export_data(self, sim, cells, p, savePath):
 
-        saveName = 'ExportData_' + self.name + '_' + str(p.plot_cell) + '.csv'
+        saveName = 'ExportData_' + self.name + '_' + str(p.visual.single_cell_index) + '.csv'
         saveData = pathnames.join(savePath, saveName)
 
-        ci = p.plot_cell  # index of cell to get time-dependent data for
+        ci = p.visual.single_cell_index  # index of cell to get time-dependent data for
         ccell = [arr[ci] for arr in self.c_cells_time]
 
         # create the header, first entry will be time:
@@ -6097,32 +6097,32 @@ class Molecule(object):
         cell (params plot cell) as a function of simulation time.
         """
 
-        c_cells = [arr[p.plot_cell] for arr in self.c_cells_time]
+        c_cells = [arr[p.visual.single_cell_index] for arr in self.c_cells_time]
         plt.figure()
         ax = plt.subplot(111)
         ax.plot(sim.time, c_cells)
         ax.set_xlabel('Time [s]')
         ax.set_ylabel('Concentration [mmol/L]')
-        ax.set_title('Concentration of ' + self.name + ' in cell ' + str(p.plot_cell))
+        ax.set_title('Concentration of ' + self.name + ' in cell ' + str(p.visual.single_cell_index))
 
         if p.autosave is True:
-            savename = saveImagePath + 'CellConcentration_' + self.name + '_' + str(p.plot_cell) + '.png'
+            savename = saveImagePath + 'CellConcentration_' + self.name + '_' + str(p.visual.single_cell_index) + '.png'
             plt.savefig(savename, format='png', transparent=True)
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
         if self.mit_enabled:
-            c_mit = [arr[p.plot_cell] for arr in self.c_mit_time]
+            c_mit = [arr[p.visual.single_cell_index] for arr in self.c_mit_time]
             plt.figure()
             ax = plt.subplot(111)
             ax.plot(sim.time, c_mit)
             ax.set_xlabel('Time [s]')
             ax.set_ylabel('Concentration [mmol/L]')
-            ax.set_title('Mitochondrial concentration of ' + self.name + ' in cell ' + str(p.plot_cell))
+            ax.set_title('Mitochondrial concentration of ' + self.name + ' in cell ' + str(p.visual.single_cell_index))
 
             if p.autosave is True:
-                savename = saveImagePath + 'MitConcentration_' + self.name + '_' + str(p.plot_cell) + '.png'
+                savename = saveImagePath + 'MitConcentration_' + self.name + '_' + str(p.visual.single_cell_index) + '.png'
                 plt.savefig(savename, format='png', transparent=True)
 
             if p.turn_all_plots_off is False:
@@ -6137,20 +6137,20 @@ class Molecule(object):
 
         # fig, ax, cb = viz.plotPrettyPolyData(self.c_mems,
         #     sim, cells, p,
-        #     number_cells=p.enumerate_cells,
+        #     number_cells=p.visual.is_show_cell_indices,
         #     clrAutoscale=self.plot_autoscale,
         #     clrMin=self.plot_min,
         #     clrMax=self.plot_max,
         #     clrmap=p.default_cm)
 
         # fig, ax, cb = viz.plotPolyData(sim, cells, p,
-        #                                zdata=self.c_cells, number_cells=p.enumerate_cells, clrmap=p.default_cm,
+        #                                zdata=self.c_cells, number_cells=p.visual.is_show_cell_indices, clrmap=p.default_cm,
         #                                clrMin=self.plot_min, clrMax=self.plot_max, clrAutoscale=self.plot_autoscale)
 
         fig, ax, cb = viz.plotPrettyPolyData(
             self.cc_at_mem,
             sim, cells, p,
-            number_cells=p.enumerate_cells,
+            number_cells=p.visual.is_show_cell_indices,
             clrAutoscale=self.plot_autoscale,
             clrMin=self.plot_min,
             clrMax=self.plot_max,
@@ -6173,7 +6173,7 @@ class Molecule(object):
         if self.mit_enabled:
             fig, ax, cb = viz.plotPolyData(
                 sim, cells, p, zdata=self.c_mit,
-                number_cells=p.enumerate_cells,
+                number_cells=p.visual.is_show_cell_indices,
                 clrAutoscale=self.plot_autoscale,
                 clrMin=self.plot_min,
                 clrMax=self.plot_max,
@@ -6334,23 +6334,23 @@ class Reaction(object):
 
         if self.reaction_zone == 'cell':
 
-            r_rate = [arr[p.plot_cell] for arr in self.rate_time]
+            r_rate = [arr[p.visual.single_cell_index] for arr in self.rate_time]
             plt.figure()
             ax = plt.subplot(111)
             ax.plot(sim.time, r_rate)
             ax.set_xlabel('Time [s]')
             ax.set_ylabel('Rate [mM/s]')
-            ax.set_title('Rate of ' + self.name + ' in cell ' + str(p.plot_cell))
+            ax.set_title('Rate of ' + self.name + ' in cell ' + str(p.visual.single_cell_index))
 
         elif self.reaction_zone == 'mit' and self.mit_enabled is True:
 
-            r_rate = [arr[p.plot_cell] for arr in self.rate_time]
+            r_rate = [arr[p.visual.single_cell_index] for arr in self.rate_time]
             plt.figure()
             ax = plt.subplot(111)
             ax.plot(sim.time, r_rate)
             ax.set_xlabel('Time [s]')
             ax.set_ylabel('Rate [mM/s]')
-            ax.set_title('Rate of ' + self.name + ' in mitochondria ' + str(p.plot_cell))
+            ax.set_title('Rate of ' + self.name + ' in mitochondria ' + str(p.visual.single_cell_index))
 
         if p.autosave is True:
             savename = saveImagePath + 'ReactionRate_' + self.name + '.png'
@@ -6453,7 +6453,7 @@ class Transporter(object):
 
             fig, ax, cb = viz.plotPrettyPolyData(self.flux_time[-1],
                 sim, cells, p,
-                number_cells=p.enumerate_cells,
+                number_cells=p.visual.is_show_cell_indices,
                 clrAutoscale=True,
                 clrMin=0,
                 clrMax=1,
@@ -6471,9 +6471,9 @@ class Transporter(object):
                 plt.savefig(savename, format='png', transparent=True)
 
             if len(self.flux_time[0]) == sim.cdl:
-                r_rate = [arr[p.plot_cell] for arr in self.flux_time]
+                r_rate = [arr[p.visual.single_cell_index] for arr in self.flux_time]
             else:
-                mem_i = cells.cell_to_mems[p.plot_cell][0]
+                mem_i = cells.cell_to_mems[p.visual.single_cell_index][0]
                 r_rate = [arr[mem_i] for arr in self.flux_time]
 
             plt.figure()
@@ -6481,7 +6481,7 @@ class Transporter(object):
             ax.plot(sim.time, r_rate)
             ax.set_xlabel('Time [s]')
             ax.set_ylabel('Rate [mM/s]')
-            ax.set_title('Rate of ' + self.name + ' in cell ' + str(p.plot_cell))
+            ax.set_title('Rate of ' + self.name + ' in cell ' + str(p.visual.single_cell_index))
 
             if p.autosave is True:
                 savename = saveImagePath + 'TransporterRate_' + self.name + '.png'
@@ -6588,7 +6588,7 @@ class Channel(object):
 
         fig, ax, cb = viz.plotPrettyPolyData(flux_chan,
             sim, cells, p,
-            number_cells=p.enumerate_cells,
+            number_cells=p.visual.is_show_cell_indices,
             clrAutoscale=True,
             clrMin=0,
             clrMax=1,

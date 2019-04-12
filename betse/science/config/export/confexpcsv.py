@@ -4,11 +4,10 @@
 # See "LICENSE" for further details.
 
 '''
-YAML-backed simulation subconfigurations for exporting comma-separated value
-(CSV) files.
+**Comma-separated value (CSV) export subconfiguration** (i.e., YAML-backed
+wrapper exposing settings for exporting comma-separated value (CSV) files)
+functionality.
 '''
-
-#FIXME: Rename this submodule to "confexpcsv" for orthogonality.
 
 # ....................{ IMPORTS                           }....................
 from betse.lib.yaml.yamlalias import yaml_alias
@@ -21,9 +20,8 @@ from betse.util.type.types import type_check
 # ....................{ SUBCLASSES                        }....................
 class SimConfExportCSVs(YamlABC):
     '''
-    YAML-backed subconfiguration for exporting *all* comma-separated value
-    (CSV) files enabled by the current YAML-formatted simulation configuration
-    file.
+    **Comma-separated value (CSV) export subconfiguration** (i.e., YAML-backed
+    wrapper exposing settings for exporting comma-separated value (CSV) files).
 
     Attributes (After Solving)
     ----------

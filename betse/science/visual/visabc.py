@@ -604,7 +604,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # If labelling each cell with its 0-based index, append a layer doing
         # so *AFTER* all lower layers (e.g., cell data) have been appended,
-        if self._phase.p.enumerate_cells:
+        if self._phase.p.visual.is_show_cell_indices:
             self._append_layer(LayerCellsIndex())
 
         # For the 0-based index of each layer and layer in the layer sequence

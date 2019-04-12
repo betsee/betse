@@ -27,7 +27,7 @@ def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
     ax.plot(sim.time, tvect_data,lncolor,linewidth=2.0)
 
     if p.GHK_calc is True:
-        tvect_data_ghk = [x[p.plot_cell]*1000 for x in sim.vm_GHK_time]
+        tvect_data_ghk = [x[p.visual.single_cell_index]*1000 for x in sim.vm_GHK_time]
         ax.plot(sim.time, tvect_data_ghk,'r',linewidth=2.0)
 
     ax.set_xlabel('Time [s]')
@@ -80,7 +80,7 @@ def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',l
 
 def plotFFT(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',lab='Data'):
     """
-    Calculates the FFT for time-series data defined on a single cell (p.plot_cell)
+    Calculates the FFT for time-series data defined on a single cell (p.visual.single_cell_index)
     and returns a plot of the spectrum in frequency-space.
 
     Parameters

@@ -13,10 +13,6 @@ from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.abc.yamlabc import YamlFileABC
 from betse.science.enum.enumconf import (
     CellLatticeType, GrnUnpicklePhaseType, IonProfileType, SolverType)
-from betse.science.config.export.confexpcsv import SimConfExportCSVs
-from betse.science.config.export.visual.confexpvisanim import SimConfExportAnims
-from betse.science.config.export.visual.confexpvisplot import SimConfExportPlots
-from betse.science.config.grn.confgrn import SimConfGrnFile
 from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
 # from betse.util.io.log import logs
@@ -45,11 +41,9 @@ class Parameters(YamlFileABC):
         files.
     plot : SimConfExportPlots
         Subconfiguration configuring exported plots.
-    plot_cell : int
-        0-based index of the cell to isolate all single-cell time plots to.
-        Defaults to 0, the index assigned to the first cell guaranteed to
-        exist.  Note that cell indices are seed-specific and may be visualized
-        via the :attr:`enumerate_cells` boolean.
+    visual : SimConfExportVisual
+        Subconfiguration applicable to *all* exported visuals (i.e.,
+        animations, plots).
 
     Attributes (Export: Colormap)
     ----------
@@ -442,6 +436,16 @@ class Parameters(YamlFileABC):
     # ..................{ INITIALIZERS                      }..................
     def __init__(self, *args, **kwargs) -> None:
 
+        # Method-specific imports aggregated here for maintainability.
+        from betse.science.config.export.confexpcsv import SimConfExportCSVs
+        from betse.science.config.export.visual.confexpvisanim import (
+            SimConfExportAnims)
+        from betse.science.config.export.visual.confexpvisplot import (
+            SimConfExportPlots)
+        from betse.science.config.export.visual.confexpvisual import (
+            SimConfExportVisual)
+        from betse.science.config.grn.confgrn import SimConfGrnFile
+
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
@@ -457,6 +461,7 @@ class Parameters(YamlFileABC):
         self.anim = SimConfExportAnims()
         self.csv  = SimConfExportCSVs()
         self.plot = SimConfExportPlots()
+        self.visual = SimConfExportVisual()
 
         # Classify unloaded GRN subconfigurations.
         self.grn = SimConfGrnFile()
@@ -993,14 +998,6 @@ class Parameters(YamlFileABC):
 
         # Colors.
         self.vcolor = ro['vector and stream color']  # color of vector and streamlines
-
-        #FIXME: Extrapolate into a data descriptor of a new "p.visual" object.
-        # True if numbering cells in plots and animations.
-        self.enumerate_cells = ro['visuals']['cell indices']['show']
-
-        #FIXME: Extrapolate into a data descriptor of a new "p.visual" object.
-        # FIXME, let this be a list!
-        self.plot_cell = ro['visuals']['cell indices']['single cell'] # State the cell index to use for single-cell time plots
 
         self.plot_networks_single_cell = ro['plot networks single cell']
         self.showCells = ro['show cells']     # True = polygon patch plots, False = trimesh

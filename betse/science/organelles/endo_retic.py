@@ -148,8 +148,8 @@ class EndoRetic(object):
 
         self.Dm_er = self.Dm_er_base + self.Dm_channels
 
-        # print(sim.cc_er[sim.iCa][p.plot_cell], sim.cc_cells[sim.iCa][p.plot_cell],
-        # sim.molecules.IP3.c_cells[p.plot_cell])
+        # print(sim.cc_er[sim.iCa][p.visual.single_cell_index], sim.cc_cells[sim.iCa][p.visual.single_cell_index],
+        # sim.molecules.IP3.c_cells[p.visual.single_cell_index])
 
 
     def remove_ers(self, sim, target_inds_cell):

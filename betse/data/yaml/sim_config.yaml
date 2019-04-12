@@ -773,11 +773,11 @@ results options:
   plot networks: True             # Export regulatory networks to interconnected graph images?
   plot networks single cell: True # Export regulatory networks for single cell to such images?
 
-  visuals:            # Settings globally applicable to all plots and animations.
-    cell indices:     # Settings indexing (i.e., enumerating, numbering) individual cells.
-      show: False     # Display each cell's 0-based index for all cell cluster visuals?
-      single cell: 0  # 0-based index of cell to visualize for all single cell visuals.
-                      # (Set "show: True" above to display cell indices for all cells.)
+  visuals:            # Visualization settings globally applicable to all plots and animations.
+    cell indices:     # Visualization settings relating to cell indices. In the seed phase, each
+                      # cell is assigned an arbitrary index ranging from [0, ∞).
+      show: False     # Display cell indices overlaid onto all cell cluster visuals?
+      single cell: 0  # Index of cell to be visualized for all single cell visuals.
 
   while solving:          # Results exported during simulation computation.
     animations:           # Animations exported during simulation computation.

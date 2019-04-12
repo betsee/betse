@@ -44,11 +44,11 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         super().init(phase)
 
         # If this index is not that of an actual cell, raise an exception.
-        if phase.p.plot_cell not in phase.cells.cell_i:
+        if phase.p.visual.single_cell_index not in phase.cells.cell_i:
             raise BetseSimConfException(
                 'Plot cell index {} invalid '
                 '(i.e., not in range [{}, {}]).'.format(
-                    phase.p.plot_cell,
+                    phase.p.visual.single_cell_index,
                     phase.cells.cell_i[0],
                     phase.cells.cell_i[-1]))
 
@@ -81,7 +81,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
 
             # Indices of all membranes for this cell.
             mems_for_plotcell = phase.cells.cell_to_mems[
-                phase.p.plot_cell]
+                phase.p.visual.single_cell_index]
 
             for t in range(len(phase.sim.time)):
                 memArray = phase.sim.I_mem_time[t]
@@ -106,11 +106,11 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
                 # Current density, obtained by dividing the total magnitude of
                 # the net current by this cell's surface area.
                 Io = np.sqrt(Ix**2 + Iy**2) / phase.cells.cell_sa[
-                    phase.p.plot_cell]
+                    phase.p.visual.single_cell_index]
                 Imem.append(100*Io)
         else:
             Imem = [
-                100*memArray[phase.p.plot_cell]
+                100*memArray[phase.p.visual.single_cell_index]
                 for memArray in phase.sim.I_mem_time
             ]
 
@@ -119,7 +119,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         axI.set_ylabel('Current density [uA/cm2]')
         axI.set_title(
             'Transmembrane current density for cell {}'.format(
-                phase.p.plot_cell))
+                phase.p.visual.single_cell_index))
 
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='Imem_time')
@@ -143,10 +143,10 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
 
         # Extract time-series deformation data for the plot cell.
         dx = np.asarray([
-            arr[phase.p.plot_cell]
+            arr[phase.p.visual.single_cell_index]
             for arr in phase.sim.dx_cell_time])
         dy = np.asarray([
-            arr[phase.p.plot_cell]
+            arr[phase.p.visual.single_cell_index]
             for arr in phase.sim.dy_cell_time])
 
         # Get the total magnitude.
@@ -158,7 +158,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         axD.set_xlabel('Time [s]')
         axD.set_ylabel('Displacement [um]')
         axD.set_title('Displacement of cell {}'.format(
-            phase.p.plot_cell))
+            phase.p.visual.single_cell_index))
 
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='Displacement_time')
@@ -183,13 +183,13 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
             phase.sim.cc_time,
             phase.sim.time,
             phase.sim.iM,
-            phase.p.plot_cell,
+            phase.p.visual.single_cell_index,
             fig=None, ax=None,
             lncolor='r',
             ionname='M-',
         )
         axConcsM.set_title(
-            'M Anion concentration in cell {}'.format(phase.p.plot_cell))
+            'M Anion concentration in cell {}'.format(phase.p.visual.single_cell_index))
 
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='concM_time')
@@ -214,14 +214,14 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
             phase.sim.cc_time,
             phase.sim.time,
             phase.sim.iK,
-            phase.p.plot_cell,
+            phase.p.visual.single_cell_index,
             fig=None, ax=None,
             lncolor='b',
             ionname='K+',
         )
         axConcsK.set_title(
             'Potassium concentration in cell {}'.format(
-                phase.p.plot_cell))
+                phase.p.visual.single_cell_index))
 
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='concK_time')
@@ -247,14 +247,14 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
             phase.sim.cc_time,
             phase.sim.time,
             phase.sim.iNa,
-            phase.p.plot_cell,
+            phase.p.visual.single_cell_index,
             fig=None,
             ax=None,
             lncolor='g',
             ionname='Na+',
         )
         axConcsNa.set_title(
-            'Sodium concentration in cell {}'.format(phase.p.plot_cell))
+            'Sodium concentration in cell {}'.format(phase.p.visual.single_cell_index))
 
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='concNa_time')
@@ -279,14 +279,14 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
             phase.sim.cc_time,
             phase.sim.time,
             phase.sim.iCa,
-            phase.p.plot_cell,
+            phase.p.visual.single_cell_index,
             fig=None,
             ax=None,
             lncolor='g',
             ionname='Ca2+ cell',
         )
         axA.set_title('Cytosolic Ca2+ in cell {}'.format(
-            phase.p.plot_cell))
+            phase.p.visual.single_cell_index))
 
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='cytosol_Ca_time')
@@ -310,7 +310,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         # One-dimensional Numpy array of all ion concentrations for the
         # endoplasmic reticulum of this cell over all sampled time steps.
         times_cell_ion_calcium_er = [
-            cells_ion_calcium_er[phase.p.plot_cell]
+            cells_ion_calcium_er[phase.p.visual.single_cell_index]
             for cells_ion_calcium_er in phase.sim.endo_retic.Ca_er_time
         ]
 
@@ -340,7 +340,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         # One-dimensional Numpy array of all ion concentrations for the
         # endoplasmic reticulum of this cell over all sampled time steps.
         times_cell_vmem_er = [
-            cells_vmem_er[phase.p.plot_cell]
+            cells_vmem_er[phase.p.visual.single_cell_index]
             for cells_vmem_er in phase.sim.endo_retic.ver_time
         ]
 
@@ -367,7 +367,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         self._export_prep(phase)
 
         p_osmo = tuple(
-            arr[phase.p.plot_cell]
+            arr[phase.p.visual.single_cell_index]
             for arr in phase.sim.osmo_P_delta_time)
 
         pyplot.figure()
@@ -376,7 +376,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         axOP.set_xlabel('Time [s]')
         axOP.set_ylabel('Osmotic Pressure [Pa]')
         axOP.set_title(
-            'Osmotic pressure in cell {}'.format(phase.p.plot_cell))
+            'Osmotic pressure in cell {}'.format(phase.p.visual.single_cell_index))
 
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='OsmoticP_time')
@@ -398,7 +398,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         self._export_prep(phase)
 
         p_hydro = tuple(
-            arr[phase.p.plot_cell]
+            arr[phase.p.visual.single_cell_index]
             for arr in phase.sim.P_cells_time)
 
         pyplot.figure()
@@ -407,7 +407,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         axOP.set_xlabel('Time [s]')
         axOP.set_ylabel('Total Pressure [Pa]')
         axOP.set_title(
-            'Total pressure in cell {}'.format(phase.p.plot_cell))
+            'Total pressure in cell {}'.format(phase.p.visual.single_cell_index))
 
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='P_time')
@@ -436,9 +436,9 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         if phase.p.is_ecm:
             #FIXME: Generalize to average across all membranes of this cell.
             pump_array_index = phase.cells.cell_to_mems[
-                phase.p.plot_cell][0]
+                phase.p.visual.single_cell_index][0]
         else:
-            pump_array_index = phase.p.plot_cell
+            pump_array_index = phase.p.visual.single_cell_index
 
         pump_rate = tuple(
             pump_array[pump_array_index]
@@ -449,7 +449,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         axNaK.set_ylabel('Pumping Rate of Na+ Out of Cell [mol/(m2 s)]')
         axNaK.set_title(
             'Rate of NaK-ATPase pump in cell: {}'.format(
-                phase.p.plot_cell))
+                phase.p.visual.single_cell_index))
 
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='NaKATPase_rate')
@@ -470,7 +470,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         self._export_prep(phase)
 
         #FIXME: Generalize to average across all membranes of this cell.
-        mem_i = phase.cells.cell_to_mems[phase.p.plot_cell][0]
+        mem_i = phase.cells.cell_to_mems[phase.p.visual.single_cell_index][0]
 
         # Plot single cell Vmem vs time.
         figVt, axVt = plotutil.plotSingleCellVData(
@@ -481,7 +481,7 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
             lncolor='k',
         )
         axVt.set_title(
-            'Voltage (Vmem) in cell {}'.format(phase.p.plot_cell))
+            'Voltage (Vmem) in cell {}'.format(phase.p.visual.single_cell_index))
 
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='Vmem_time')
@@ -503,12 +503,12 @@ class SimPipeExportPlotCell(SimPipeExportPlotABC):
         self._export_prep(phase)
 
         #FIXME: Generalize to average across all membranes of this cell.
-        mem_i = phase.cells.cell_to_mems[phase.p.plot_cell][0]
+        mem_i = phase.cells.cell_to_mems[phase.p.visual.single_cell_index][0]
 
         figFFT, axFFT = plotutil.plotFFT(
             phase.sim.time, phase.sim.vm_time, mem_i, lab="Power")
         axFFT.set_title('Fourier transform of Vmem in cell {}'.format(
-            phase.p.plot_cell))
+            phase.p.visual.single_cell_index))
 
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='Vmem_FFT_time')

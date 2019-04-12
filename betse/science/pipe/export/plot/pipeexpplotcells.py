@@ -239,7 +239,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
             ax_cb = fig.colorbar(tissue_first_mappable, ax=ax, ticks=cb_ticks)
             ax_cb.ax.set_yticklabels(cb_tick_labels)
 
-        if p.enumerate_cells:
+        if p.visual.is_show_cell_indices:
             for i, cll in enumerate(cells.cell_centres):
                 ax.text(
                     p.um*cll[0], p.um*cll[1], i,
@@ -536,7 +536,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         figCa, axCa, cbCa = plotutil.plotPolyData(
             phase.sim, phase.cells, phase.p,
             zdata=phase.sim.cc_time[-1][phase.sim.iCa]*1e6,
-            number_cells=phase.p.enumerate_cells,
+            number_cells=phase.p.visual.is_show_cell_indices,
             clrmap=phase.p.default_cm,
             clrAutoscale=conf.is_color_autoscaled,
             clrMin=conf.color_min,
@@ -761,7 +761,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         figPump, axPump, cbPump = plotutil.plotPrettyPolyData(
             pumpData,
             phase.sim, phase.cells, phase.p,
-            number_cells=phase.p.enumerate_cells,
+            number_cells=phase.p.visual.is_show_cell_indices,
             clrmap=phase.p.default_cm,
         )
 
@@ -792,7 +792,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         figP, axP, cbP = plotutil.plotPolyData(
             phase.sim, phase.cells, phase.p,
             zdata=phase.sim.P_cells,
-            number_cells=phase.p.enumerate_cells,
+            number_cells=phase.p.visual.is_show_cell_indices,
             clrmap=phase.p.default_cm,
             clrAutoscale=conf.is_color_autoscaled,
             clrMin=conf.color_min,
@@ -858,7 +858,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         fig, ax, cb = plotutil.plotPrettyPolyData(
             1000*phase.sim.vm_time[-1],
             phase.sim, phase.cells, phase.p,
-            number_cells=phase.p.enumerate_cells,
+            number_cells=phase.p.visual.is_show_cell_indices,
             current_overlay=False,
             plotIecm=phase.p.IecmPlot,
             clrmap=phase.p.default_cm,
@@ -904,7 +904,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         figV, axV, cbV = plotutil.plotPrettyPolyData(
             1000*phase.sim.vm_time[-1],
             phase.sim, phase.cells, phase.p,
-            number_cells=phase.p.enumerate_cells,
+            number_cells=phase.p.visual.is_show_cell_indices,
             current_overlay=False,
             plotIecm=phase.p.IecmPlot,
             clrmap=phase.p.default_cm,
@@ -936,7 +936,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         figVa, axVa, cbVa = plotutil.plotPolyData(
             phase.sim, phase.cells, phase.p,
             zdata=1000*phase.sim.vm_ave,
-            number_cells=phase.p.enumerate_cells,
+            number_cells=phase.p.visual.is_show_cell_indices,
             current_overlay=False,
             plotIecm=phase.p.IecmPlot,
             clrmap=phase.p.default_cm,
@@ -976,7 +976,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         figV_ghk, axV_ghk, cbV_ghk = plotutil.plotPolyData(
             phase.sim, phase.cells, phase.p,
             zdata=1000*phase.sim.vm_GHK_time[-1],
-            number_cells=phase.p.enumerate_cells,
+            number_cells=phase.p.visual.is_show_cell_indices,
             current_overlay=False,
             plotIecm=phase.p.IecmPlot,
             clrmap=phase.p.default_cm,
