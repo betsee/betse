@@ -596,7 +596,7 @@ class DECMesh(object):
 
         self.tverts_to_tcell = np.asarray(verts_to_simps) # for each tvert, what simplices does it belong to?
 
-    def create_mappings(self):
+    def create_mappings(self, ignoreb = False):
 
 
         # make the face-to-edge indices mapping for the tri_mesh:
@@ -636,8 +636,10 @@ class DECMesh(object):
 
         self.tedges_to_tcell = np.asarray(tedges_to_tcell)
 
-        bcellso = self.tedges_to_tcell[self.bflags_tedges]
-        self.bflags_tcells = np.asarray([b[0] for b in bcellso])
+        if ignoreb is False:
+
+            bcellso = self.tedges_to_tcell[self.bflags_tedges]
+            self.bflags_tcells = np.asarray([b[0] for b in bcellso])
 
     def define_vorverts(self):
         """
@@ -2529,8 +2531,18 @@ class DECMesh(object):
 
         """
 
+
+        # FIXME! This DEC Mesh cutting algorithm isn't done completely. It is hacked to give the correct results
+        # to calculate the cells.lapGJ and cells.lapGJinv operators. It needs to be reworked once DEC is fully
+        # integrated. The problem is that currently BETSE cutting events may leave "hanging" tri_verts, which are
+        # connected to the mesh by an edge, but do not belong to any simplex. These should be removed, yet
+        # betse cutting event is expecting to remove data from the exact number of triverts it said to remove
+        # from the mesh -- no more and no less. Therefore, this needs to be reworked when DEC is fully integrated.
+
         self.tri_mids_o = self.tri_mids*1
         self.tri_edge_i_o = self.tri_edge_i*1
+        # array of tedge_verts
+        tedge_verts = self.tri_verts[self.tri_edges]
 
         # Get tri-cell indices for tri-cells that will be removed:
         tcell_targets = []
@@ -2566,28 +2578,58 @@ class DECMesh(object):
         self.n_tcell = len(self.tri_cells)  # number of simplexes in trimesh
         self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])  # indices vector of trimesh
 
+        # reconstruct tri_edges
+        # Get tri-edge indices for edges that need to be removed:
+        tedge_targs = []
+        for sublist in self.tverts_to_tedges[tvert_targets]:
+            tedge_targs.extend(sublist)
+        tedge_targs = np.unique(tedge_targs)
+
+        tedge_verts = np.delete(tedge_verts, tedge_targs, axis=0)
+
+        tri_edges = []
+
+        # reconstruct edges in terms of new tri_vert array inds:
+        for ii, everts in enumerate(tedge_verts):
+            edge_inds = tri_vtree.query(everts)[1]
+            if len(edge_inds) == 2:
+                tri_edges.append(edge_inds)
+
+        self.tri_edges = np.asarray(tri_edges)
+
+        self.n_tedges = len(self.tri_edges)  # number of edges in trimesh
+        self.tri_edge_i = np.linspace(0, self.n_tedges - 1, self.n_tedges, dtype=np.int)
+
+        self.tri_mids = np.delete(self.tri_mids, tedge_targs, axis = 0)
+        self.tri_edge_len = np.delete(self.tri_edge_len, tedge_targs, axis =0)
+        self.tri_tang = np.delete(self.tri_tang, tedge_targs, axis =0)
+
+        # delete elements from arrays used in critical functions (like LapGJ calculations):
+        self.vor_sa = np.delete(self.vor_sa, tvert_targets, axis=0)
+        self.vor_edge_len = np.delete(self.vor_edge_len, tedge_targs, axis =0)
+
         # # Recalculate all data structures:
         self.create_tri_map()
-        self.process_primary_edges()
-        self.create_mappings()
-        self.define_vorverts()
-        self.process_voredges()
+        # self.process_primary_edges()
+        self.create_mappings(ignoreb = True)
+        # self.define_vorverts()
+        # self.process_voredges()
         self.create_core_operators()
-        self.create_aux_operators()
+        # self.create_aux_operators()
 
-        tmids_tree = cKDTree(self.tri_mids_o)
-        dist_pt, n_pt = tmids_tree.query(self.tri_mids)
-
-        tedge_targets = []
-        for di, ni in zip(dist_pt, n_pt):
-            if di == 0.0:
-                tedge_targets.append(ni)
-
-        tedge_targets = np.asarray(tedge_targets)
+        # tmids_tree = cKDTree(self.tri_mids_o)
+        # dist_pt, n_pt = tmids_tree.query(self.tri_mids)
+        #
+        # tedge_targets = []
+        # for di, ni in zip(dist_pt, n_pt):
+        #     if di == 0.0:
+        #         tedge_targets.append(ni)
+        #
+        # tedge_targets = np.asarray(tedge_targets)
 
         logs.log_info("Mesh successfully cut!")
 
-        return tedge_targets, tcell_targets
+        return tedge_targs, tcell_targets
 
 
     #----Tests of DEC computations--------------------
