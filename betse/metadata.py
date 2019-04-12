@@ -194,13 +194,13 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 # For further details, see http://semver.org.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-VERSION = '0.9.3'
+VERSION = '1.0.0'
 '''
 Human-readable application version as a ``.``-delimited string.
 '''
 
 
-CODENAME = 'Laudable Lund'
+CODENAME = 'Mighty Maxwell'
 '''
 Human-readable code name associated with the current version of this
 application.
@@ -267,9 +267,14 @@ By PyPI design, this string must *not* span multiple lines or paragraphs.
 
 DESCRIPTION = (
     'The BioElectric Tissue Simulation Engine (BETSE) is a '
-    'finite volume simulator for 2D computational multiphysics problems in '
-    'the life sciences -- including electrodiffusion, electro-osmosis, '
-    'galvanotaxis, voltage-gated ion channels, gene regulatory networks, '
+    'discrete exterior calculus simulator for '
+    '2D computational multiphysics problems in '
+    'the life sciences -- including '
+    '(electro)diffusion, '
+    '(electro)osmosis, '
+    'galvanotaxis, '
+    'voltage-gated ion channels, '
+    'gene regulatory networks, '
     'and biochemical reaction networks.'
 )
 '''

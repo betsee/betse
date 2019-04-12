@@ -56,7 +56,13 @@ from betse.lib.setuptools.command import (
 from betse_setup import bupbuild, buputil
 
 # ....................{ METADATA ~ seo                    }....................
-_KEYWORDS = ['biology', 'multiphysics', 'science', 'simulator',]
+_KEYWORDS = [
+    'biology',
+    'multiphysics',
+    'science',
+    'simulator',
+    'disecrete exterior calculus',
+]
 '''
 List of all lowercase alphabetic keywords synopsising this application.
 

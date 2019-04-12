@@ -16,8 +16,8 @@ BETSE
 =====
 
 **BETSE** (**B**\ io\ **E**\ lectric **T**\ issue **S**\ imulation **E**\
-ngine) is an open-source cross-platform `finite volume`_ simulator for 2D
-computational multiphysics problems in the life sciences – including
+ngine) is an open-source cross-platform `discrete exterior calculus`_ simulator
+for 2D computational multiphysics problems in the life sciences – including
 electrodiffusion_, electro-osmosis_, galvanotaxis_, `voltage-gated ion
 channels`_, `gene regulatory networks`_, and `biochemical reaction networks`_
 (e.g., metabolism). BETSE is associated with the `Paul Allen Discovery Center`_
@@ -339,10 +339,11 @@ describe these options and subcommands as follows:
                 [--matplotlib-backend MATPLOTLIB_BACKEND_NAME]
                 {config,seed,init,sim,sim-grn,plot,info,try} ...
    
-   The BioElectric Tissue Simulation Engine (BETSE) is a finite volume simulator
-   for 2D computational multiphysics problems in the life sciences -- including
-   electrodiffusion, electro-osmosis, galvanotaxis, voltage-gated ion channels,
-   gene regulatory networks, and biochemical reaction networks.
+   The BioElectric Tissue Simulation Engine (BETSE) is a discrete exterior
+   calculus simulator for 2D computational multiphysics problems in the life
+   sciences -- including electrodiffusion, electro-osmosis, galvanotaxis,
+   voltage-gated ion channels, gene regulatory networks, and biochemical
+   reaction networks.
    
    optional arguments:
      -h, --help            show this help message and exit
@@ -790,6 +791,8 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
    https://en.wikipedia.org/wiki/Bioelectromagnetics
 .. _biochemical reaction networks:
    http://www.nature.com/subjects/biochemical-reaction-networks
+.. _discrete exterior calculus:
+   https://en.wikipedia.org/wiki/Discrete_exterior_calculus
 .. _electrodiffusion:
    https://en.wikipedia.org/wiki/Nernst%E2%80%93Planck_equation
 .. _electro-osmosis:

@@ -494,9 +494,10 @@ class Parameters(YamlFileABC):
             conf=self._conf['tissue profile definition']['tissue']['profiles'])
 
         # Load all currently unloaded export subconfigurations.
-        self.anim.load(conf=self._conf)
-        self.csv.load(conf=self._conf)
-        self.plot.load(conf=self._conf)
+        self.anim  .load(conf=self._conf)
+        self.csv   .load(conf=self._conf)
+        self.plot  .load(conf=self._conf)
+        self.visual.load(conf=self._conf)
 
         #----------------------------------------------------------------------
         # GENERAL OPTIONS
@@ -1475,14 +1476,15 @@ class Parameters(YamlFileABC):
         self.grn.unload()
 
         # Unload all previously loaded tissue subconfigurations.
-        self.cut_profiles.unload()
-        self.tissue_default.unload()
+        self.cut_profiles   .unload()
+        self.tissue_default .unload()
         self.tissue_profiles.unload()
 
         # Unload all previously loaded export subconfigurations.
-        self.anim.unload()
-        self.csv.unload()
-        self.plot.unload()
+        self.anim  .unload()
+        self.csv   .unload()
+        self.plot  .unload()
+        self.visual.unload()
 
 
     def _unload_paths(self) -> None:

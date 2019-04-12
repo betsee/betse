@@ -119,7 +119,10 @@ CUSTOM : enum
 # ....................{ ENUMS ~ solver                    }....................
 SolverType = enums.make_enum(
     class_name='SolverType',
-    member_names=('FULL', 'FAST', 'MAX',),
+    #FIXME: Replace this set of members with the following when sufficient time
+    #permits to properly implement the DEC-based solver referred to as "MAX".
+    member_names=('FULL', 'FAST',),
+    # member_names=('FULL', 'FAST', 'MAX',),
     doc='''
 Enumeration of all supported types of **simulation solvers** (i.e.,
 computational technique iteratively computing each time step of a simulation).
@@ -127,12 +130,12 @@ computational technique iteratively computing each time step of a simulation).
 Attributes
 ----------
 FAST : enum
-    Obsolete, inaccurate, space- and time-efficient (i.e., fast) solver based
-    on the well-known equivalent circuit formalism. This solver produces
-    draft-quality results, analogizing real-world biological systems to
-    electronic circuits. While integrated with gene regulatory networks
-    (GRNs), this solver *cannot* by definition simulate the following
-    phenomena simulated by the full and max solvers:
+    Inaccurate space- and time-efficient (i.e., fast) solver based on the
+    well-known equivalent circuit formalism. This solver produces draft-quality
+    results, analogizing real-world biological systems to electronic circuits.
+    While integrated with gene regulatory networks (GRNs), this solver *cannot*
+    by definition simulate the following phenomena simulated by the
+    :attr:`FULL` and :attr:`MAX` solvers:
 
     * Bioelectric fields or currents.
     * Extracellular voltages or voltage polarities.
@@ -141,14 +144,14 @@ FAST : enum
     If this solver is selected, these phenomena are silently ignored even if
     otherwise enabled by the current simulation configuration.
 FULL : enum
-    Obsolete, somewhat accurate, space- and time-inefficient (i.e., slow)
-    solver based on outdated finite volume techniques. This solver produces
-    publication-quality results, comprehensively simulating all bioelectrical
-    phenomena expected of real-world biological systems.
+    Accurate space- and time-inefficient (i.e., slow) solver based on a unique
+    amalgam of discrete exterior calculus (DEC) and finite volume techniques.
+    This solver produces publication-quality results, simulating most
+    bioelectrical phenomena expected of real-world biological systems.
 MAX : enum
-    Non-obsolete, extremely accurate, space- and time-efficient (i.e., fast)
-    solver based on modern discrete exterior calculus (DEC) techniques
-    reproducing Maxwell's equations. This solver produces publication-quality
-    results, comprehensively simulating all bioelectrical phenomena expected
-    of real-world biological systems.
+    **(Prospective)** Extremely accurate, space- and time-efficient (i.e.,
+    fast) solver based exclusively on discrete exterior calculus (DEC)
+    techniques reproducing Maxwell's equations. This solver produces
+    publication-quality results, comprehensively simulating *all* bioelectrical
+    phenomena expected of real-world biological systems.
 ''')
