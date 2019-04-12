@@ -20,9 +20,7 @@ ngine) is an open-source cross-platform `discrete exterior calculus`_ simulator
 for 2D computational multiphysics problems in the life sciences – including
 electrodiffusion_, electro-osmosis_, galvanotaxis_, `voltage-gated ion
 channels`_, `gene regulatory networks`_, and `biochemical reaction networks`_
-(e.g., metabolism). BETSE is associated with the `Paul Allen Discovery Center`_
-at `Tufts University`_ and supported by a `Paul Allen Discovery Center award`_
-from the `Paul G. Allen Frontiers Group`_.
+(e.g., metabolism).
 
 BETSE is `portably implemented <codebase_>`__ in pure `Python 3`_,
 `continuously stress-tested <testing_>`__ with GitLab-CI_ **×** Appveyor_ **+**
@@ -614,6 +612,17 @@ contributors_ – without whom this project would be computationally impoverishe
 biologically misaligned, and simply unusable.
 
 **Thanks, all.**
+
+Funding
+=======
+
+BETSE is currently independently financed as a volunteer open-source project.
+Prior grant funding sources include (in chronological order):
+
+#. For the five year period spanning 2015—2019, BETSE was graciously associated
+   with the `Paul Allen Discovery Center`_ at `Tufts University`_ and supported
+   by a `Paul Allen Discovery Center award`_ from the `Paul G. Allen Frontiers
+   Group`_ .
 
 See Also
 ========
