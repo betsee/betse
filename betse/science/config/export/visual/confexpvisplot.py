@@ -29,12 +29,11 @@ class SimConfExportPlots(YamlABC):
     Attributes (After Solving)
     ----------
     is_after_sim : bool
-        ``True`` only if this configuration displays and/or saves
-        post-simulation plots.
+        ``True`` only if post-simulation plots are to be displayed and/or saved.
     is_after_sim_show : bool
-        ``True`` only if this configuration displays post-simulation plots.
+        ``True`` only if post-simulation plots are to be displayed.
     is_after_sim_save : bool
-        ``True`` only if this configuration saves post-simulation plots.
+        ``True`` only if post-simulation plots are to be saved.
 
     Attributes (After Solving: Single-cell)
     ----------

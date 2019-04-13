@@ -25,7 +25,9 @@ class SimConfExportVisual(YamlABC):
     Attributes (Cell: Indices)
     ----------
     is_show_cell_indices : bool
-        ``True`` only if this configuration saves post-simulation CSV files.
+        ``True`` only if the 0-based indices of all cells are to be displayed
+        over all cell cluster visuals (e.g., as integers situated at cell
+        centres).
     single_cell_index : int
         0-based index of the cell to be visualized for all single cell visuals.
         Defaults to 0, the index assigned to the first cell guaranteed to
@@ -33,7 +35,7 @@ class SimConfExportVisual(YamlABC):
         by enabling the :attr:`is_show_cell_indices` boolean.
     '''
 
-    # ..................{ ALIASES ~ index                   }..................
+    # ..................{ ALIASES ~ cell : index            }..................
     is_show_cell_indices = yaml_alias(
         "['results options']['visuals']['cell indices']['show']", bool)
 

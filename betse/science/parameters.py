@@ -45,7 +45,7 @@ class Parameters(YamlFileABC):
         Subconfiguration applicable to *all* exported visuals (i.e.,
         animations, plots).
 
-    Attributes (Export: Colormap)
+    Attributes (Exports: Colormaps)
     ----------
     colormap_diverging_name : str
         Matplotlib-specific name of the default **diverging colormap** (i.e.,
@@ -343,7 +343,8 @@ class Parameters(YamlFileABC):
         "['results options']['default colormap']", str)
     colormap_sequential_name = yaml_alias(
         "['results options']['background colormap']", str)
-    colormap_gj_name = yaml_alias("['results options']['gj colormap']", str)
+    colormap_gj_name = yaml_alias(
+        "['results options']['gj colormap']", str)
     colormap_grn_name = yaml_alias(
         "['results options']['network colormap']", str)
 
@@ -947,11 +948,10 @@ class Parameters(YamlFileABC):
         self.periodic_properties['frequency'] = float(self._conf['modulator function properties']['periodic']['frequency'])
         self.periodic_properties['phase'] = float(self._conf['modulator function properties']['periodic']['phase'])
 
-        self.f_scan_properties['f start'] = \
-                                float(self._conf['modulator function properties']['f_sweep']['start frequency'])
-
-        self.f_scan_properties['f stop'] = \
-                                float(self._conf['modulator function properties']['f_sweep']['end frequency'])
+        self.f_scan_properties['f start'] = float(
+            self._conf['modulator function properties']['f_sweep']['start frequency'])
+        self.f_scan_properties['f stop'] = float(
+            self._conf['modulator function properties']['f_sweep']['end frequency'])
 
         #initialize the f vect field to None as it's set depending on the sim timestep:
 
@@ -963,27 +963,27 @@ class Parameters(YamlFileABC):
         if chk is not None:
             self.grad_bm_fn = self._conf['modulator function properties']['gradient_bitmap']['file']
             self.grad_bm_offset = self._conf['modulator function properties']['gradient_bitmap'].get('z-offset', 0.0)
-
         else:
             self.grad_bm_fn = None
             self.grad_bm_offset = None
-
-        # ................{ EXPORTS                           }................
-        ro = self._conf['results options']
 
         # ................{ EXPORTS ~ colormap                }................
         #FIXME: Non-ideal. Ideally, *ONLY* the name of each such colormap would
         #be stored in this object. Storing the actual colormap object as we do
         #here requires us to also pickle these actual colormap objects with
         #every seed, initialization, and simulation. (Which is bad.)
-        self.default_cm    = mplcolormap.get_colormap(
+        self.default_cm = mplcolormap.get_colormap(
             self.colormap_diverging_name)
         self.background_cm = mplcolormap.get_colormap(
             self.colormap_sequential_name)
-        self.gj_cm         = mplcolormap.get_colormap(self.colormap_gj_name)
-        self.network_cm    = mplcolormap.get_colormap(self.colormap_grn_name)
+        self.gj_cm = mplcolormap.get_colormap(
+            self.colormap_gj_name)
+        self.network_cm = mplcolormap.get_colormap(
+            self.colormap_grn_name)
 
         # ................{ EXPORTS ~ plot                    }................
+        ro = self._conf['results options']
+
         #FIXME: Replace all instances of "p.turn_all_plots_off" in the codebase
         #by "not p.plot.is_after_sim_show" and remove this attribute entirely.
         self.turn_all_plots_off = not self.plot.is_after_sim_show
