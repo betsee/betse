@@ -74,19 +74,19 @@ For new users, BETSE is portably installable as follows:
   [#anaconda_not]_
 - Open a **Bash terminal.** [#terminal]_
 - Run the following commands.
-  
+
   - Enable conda-forge_.
-  
+
     .. code-block:: console
 
        conda config --add channels conda-forge
-  
+
   - Install **BETSE.** [#conda_package]_
-  
+
     .. code-block:: console
 
        conda install betse
-  
+
   - [\ *Optional*\ ] Test **BETSE.** [#test_command]_
 
     .. code-block:: console
@@ -151,7 +151,7 @@ For new users, BETSE is portably installable as follows:
    #. Runs all simulation phases (e.g., seed, initialization) of this simulation.
 
    When finished, you may safely either:
-   
+
    - Remove this subdirectory.
    - Rename this subdirectory (e.g., to ``my_sim/``) to serve as a basis for
      subsequent simulations.
@@ -336,13 +336,13 @@ describe these options and subcommands as follows:
                 [--profile-file PROFILE_FILENAME]
                 [--matplotlib-backend MATPLOTLIB_BACKEND_NAME]
                 {config,seed,init,sim,sim-grn,plot,info,try} ...
-   
+
    The BioElectric Tissue Simulation Engine (BETSE) is a discrete exterior
    calculus simulator for 2D computational multiphysics problems in the life
    sciences -- including electrodiffusion, electro-osmosis, galvanotaxis,
    voltage-gated ion channels, gene regulatory networks, and biochemical
    reaction networks.
-   
+
    optional arguments:
      -h, --help            show this help message and exit
      -v, --verbose         print and log all messages verbosely
@@ -363,10 +363,10 @@ describe these options and subcommands as follows:
                            (defaults to "/home/leycec/.betse/betse.prof")
      --matplotlib-backend MATPLOTLIB_BACKEND_NAME
                            name of matplotlib backend to use (see: "betse info")
-   
+
    subcommands:
    Exactly one of the following subcommands must be passed:
-   
+
      {config,seed,init,sim,sim-grn,plot,info,try}
        config              create a default config file for BETSE simulations
        seed                seed a new cell cluster for a config file
@@ -376,12 +376,12 @@ describe these options and subcommands as follows:
        plot                plot an initialized or simulated simulation
        info                print metadata synopsizing BETSE and current system
        try                 create, init, simulate, and plot a sample simulation
-   
+
    subcommand help:
-   
+
    For help with a specific subcommand, pass the "-h" or "--help" option to that
    subcommand. For example, for help with the "config" subcommand, run:
-   
+
        betse config --help
 
 Documentation
@@ -402,7 +402,7 @@ including simulation files to run key published simulations, as well as a
 `Developer's Tutorial <dev_tutorial_>`__ demonstrating how to load and work
 with BETSE modules, methods, and simulations in external code projects:
 
-- Official `BETSE Tutorial Simulation Packages <user_tutorial_>`__. (\ *YAML 
+- Official `BETSE Tutorial Simulation Packages <user_tutorial_>`__. (\ *YAML
   format.*\ )
 - Official `BETSE Developer's Tutorial <dev_tutorial_>`__. (\ *Jupyter
   Notebook format.*\ )
@@ -559,6 +559,9 @@ experimental results, and comparative metrics include:
     * `Alexis Pietak`_ and `Michael Levin`_, 2018. |2018 review article name|_
       |2018 review journal name|_
       :sup:`https://doi.org/10.1016/j.pbiomolbio.2018.03.008`
+    * `Alexis Pietak`_, Johanna Bischof, Joshua LaPalme, Junji Morokuma, and
+      `Michael Levin`_, 2019. |2019 article name|_ |2019 journal name|_
+      :sup:`https://doi.org/10.1371/journal.pcbi.1006904`
 
 .. # FIXME: Add an image thumbnail for the first article above displaying the
 .. # cover image selected by the prior journal for that edition's cover article.
@@ -773,7 +776,7 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
 .. _2018 hcn2 journal name:
    https://www.nature.com
 
-.. # ------------------( LINKS ~ paper ~ 2018 : coupling   )------------------
+.. # ------------------( LINKS ~ paper ~ 2018 : coupling    )------------------
 .. |2018 coupling article name| replace::
    **Bioelectrical coupling in multicellular domains regulated by gap junctions: A conceptual approach.**
 .. _2018 coupling article name:
@@ -784,7 +787,7 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
 .. _2018 coupling journal name:
    https://www.sciencedirect.com/journal/bioelectrochemistry
 
-.. # ------------------( LINKS ~ paper ~ 2018 : review     )------------------
+.. # ------------------( LINKS ~ paper ~ 2018 : review      )------------------
 .. |2018 review article name| replace::
    **Bioelectrical control of positional information in development and regeneration: A review of conceptual and computational advances.**
 .. _2018 review article name:
@@ -794,6 +797,17 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
    *Progress in Biophysics and Molecular Biology.*
 .. _2018 review journal name:
    https://www.sciencedirect.com/journal/progress-in-biophysics-and-molecular-biology
+
+.. # ------------------( LINKS ~ paper ~ 2019               )------------------
+.. |2019 article name| replace::
+   **Neural control of body-plan axis in regenerating planaria.**
+.. _2019 article name:
+   https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006904
+
+.. |2018 review journal name| replace::
+   *PLOS Computational Biology.*
+.. _2019 journal name:
+   https://journals.plos.org/ploscompbiol
 
 .. # ------------------( LINKS ~ science                    )------------------
 .. _bioelectricity:
