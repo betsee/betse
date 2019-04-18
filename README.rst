@@ -804,7 +804,7 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
 .. _2019 article name:
    https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006904
 
-.. |2018 review journal name| replace::
+.. |2019 journal name| replace::
    *PLOS Computational Biology.*
 .. _2019 journal name:
    https://journals.plos.org/ploscompbiol
