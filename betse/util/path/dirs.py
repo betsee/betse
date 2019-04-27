@@ -376,16 +376,17 @@ get_mtime_recursive_newest.__doc__ = '''
 @type_check
 def copy_into_dir(src_dirname: str, trg_dirname: str, *args, **kwargs) -> None:
     '''
-    Recursively copy the passed source directory to a subdirectory of the
-    passed target directory having the same basename as this source directory.
+    Recursively copy the source directory with the passed dirname to a
+    subdirectory of the target directory with the passed dirname whose basename
+    is that of this source directory.
 
     Parameters
     -----------
     src_dirname : str
-        Absolute or relative path of the source directory to be recursively
+        Absolute or relative dirname of the source directory to be recursively
         copied from.
     trg_dirname : str
-        Absolute or relative path of the target directory to copy into.
+        Absolute or relative dirname of the target directory to copy into.
 
     All remaining parameters are passed as is to the :func:`copy` function.
 
@@ -408,7 +409,7 @@ def copy_into_dir(src_dirname: str, trg_dirname: str, *args, **kwargs) -> None:
     # Basename of this source directory.
     src_basename = pathnames.get_basename(src_dirname)
 
-    # Absolute or relative path of the target directory to copy to.
+    # Absolute or relative dirname of the target directory to copy to.
     trg_subdirname = pathnames.join(trg_dirname, src_basename)
 
     # Recursively copy this source to target directory.
@@ -427,21 +428,25 @@ def copy(
     ignore_basename_globs: IterableOrNoneTypes = None,
 ) -> None:
     '''
-    Recursively copy the passed source to target directory.
+    Recursively copy the source directory with the passed dirname into the
+    target directory with the passed dirname.
 
-    All nonexistent parents of the target directory will be recursively
-    created, mimicking the action of the ``mkdir -p`` shell command. All
-    symbolic links in the source directory will be preserved (i.e., copied as
-    is rather than their transitive targets copied instead).
+    For generality:
+
+    * All nonexistent parents of the target directory will be recursively
+      created, mimicking the action of the ``mkdir -p`` shell command on
+      POSIX-compatible platforms in a platform-agnostic manner.
+    * All symbolic links in the source directory will be preserved (i.e.,
+      copied as is rather than their transitive targets copied instead).
 
     Parameters
     -----------
     src_dirname : str
-        Absolute or relative path of the source directory to be recursively
+        Absolute or relative dirname of the source directory to be recursively
         copied from.
     trg_dirname : str
-        Absolute or relative path of the target directory to recursively copy
-        to.
+        Absolute or relative dirname of the target directory to recursively
+        copy to.
     overwrite_policy : DirOverwritePolicy
         **Directory overwrite policy** (i.e., strategy for handling existing
         paths to be overwritten by this copy) to apply. Defaults to
@@ -460,11 +465,14 @@ def copy(
     Raises
     -----------
     BetseDirException
-        If:
-        * The source directory does not exist.
-        * One or more subdirectories of the target directory already exist that
-          are also subdirectories of the source directory. For safety, this
-          function always preserves rather than overwrites existing target
+        If either:
+
+        * The source directory does *not* exist.
+        * The passed ``overwrite_policy`` parameter is
+          :attr:`DirOverwritePolicy.HALT_WITH_EXCEPTION` *and* one or more
+          subdirectories of the target directory already exist that are also
+          subdirectories of the source directory. For safety, this function
+          always preserves rather than overwrites existing target
           subdirectories.
 
     See Also
@@ -541,6 +549,15 @@ def copy(
     #FIXME: Given how awesomely flexible the manual approach implemented below
     #is, we should probably consider simply rewriting the above two approaches
     #to reuse the exact same logic. It works. It's preferable. Let's reuse it.
+    #FIXME: Actually, this is increasingly critical. Third-party functions
+    #called above -- notably, the dir_util.copy_tree() function -- appear to
+    #suffer critical edge cases. This can be demonstrated via the BETSEE GUI by
+    #attempting to save an opened simulation configuration to a subdirectory of
+    #itself, which appears to provoke infinite recursion from within the musty
+    #depths of the "distutils" codebase. Of course, the implementation below
+    #could conceivably suffer similar issues. If this is the case, this
+    #function should explicitly detect attempts to recursively copy a source
+    #directory into a subdirectory of itself and raise an exception.
 
     # Else if logging a warning for each target path that already exists, do so
     # by manually implementing recursive directory copying. Sadly, Python

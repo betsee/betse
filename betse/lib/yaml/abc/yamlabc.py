@@ -379,9 +379,9 @@ class YamlFileABC(YamlABC):
         # If these paths differ, recursively copy all relative subdirectories
         # internally referenced and hence required by this file.
         if src_dirname != trg_dirname:
-            # For the relative pathname of each such subdirectory...
+            # For the relative dirname of each such subdirectory...
             for conf_subdirname in self._iter_conf_subdirnames():
-                # Absolute pathname of the old subdirectory.
+                # Absolute dirname of the source subdirectory.
                 src_subdirname = pathnames.join(src_dirname, conf_subdirname)
 
                 # Recursively copy from the old into the new subdirectory.

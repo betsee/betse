@@ -9,8 +9,8 @@ Metadata constants synopsizing high-level application dependencies.
 Design
 ----------
 Metadata constants defined by this submodule are intentionally *not* defined as
-metadata properties of the :class:`betse.util.app.meta.metaappabc` abstract base
-class. Why? Because doing so would prevent their use from the top-level
+metadata properties of the :class:`betse.util.app.meta.metaappabc` abstract
+base class. Why? Because doing so would prevent their use from the top-level
 ``setup.py`` scripts defined by downstream consumers (e.g., BETSEE GUI), which
 would render these constants effectively useless for their principal use case.
 '''
@@ -182,7 +182,6 @@ RUNTIME_OPTIONAL = {
     # Dependencies directly required by this application.
     'pympler': '>= 0.4.1',
     'ptpython': '>= 0.29',
-    'svgpathtools': '>= 1.3',
 
     # A relatively modern version of NetworkX *EXCLUDING* 1.11, which
     # critically broke backwards compatibility by coercing use of the

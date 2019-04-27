@@ -8,6 +8,35 @@
 tasks (e.g., installation, freezing, test running) for this application.
 '''
 
+#FIXME: Consider bundling both BETSE and BETSEE into a single Ubuntu snap,
+#which has effectively emerged as the de facto cross-distro format for
+#distributing POSIX-compatible applications, enabling a hypothetical "BETSEE"
+#snap to be transparently executable under at least all Linux distributions
+#satisfying all build time requirements for snap. Note, however, that:
+#
+#* The "snapd" daemon requires "systemd" as a mandatory dependency.
+#  Fortunately, "systemd" is installable under Gentoo. (Yay!)
+#* Neither the Windows Subsystem for Linux (WSL) nor macOS does *NOT* currently
+#  support "systemd" and hence does *NOT* support "snapd". Specifically:
+#  * Although ongoing cooperation between Microsoft and Canonical strongly
+#    suggests that the WSL will probably support "systemd" (and hence possibly
+#    but *NOT* necessarily "snapd", which requires a host of Linux
+#    kernel-specific containerization capabilities above and beyond those
+#    required by merely "systemd") by no earlier than 2020.
+#  * It's unclear whether either "systemd" or "snapd" will ever be installable
+#    via Homebrew on macOS. Apple remains... uncooperative at best.
+#
+#The eventual hope, of course, is that the "snapd" daemon and corresponding
+#"snapcraft" toolchain will be ported to both the Windows Subsystem for Linux
+#(WSL) *AND* macOS, which would then effectively elevate Ubuntu snaps to the
+#de facto cross-PLATFORM format for distributing POSIX-compatible applications.
+#
+#If nothing else, producing a "BETSEE" snap would at least have the
+#demonstrable advantage of allowing Ubuntu users to install both BETSE and
+#BETSEE with a single click from the official Ubuntu Store -- which is huge.
+#Certainly, an Ubuntu snap appears to be dramatically more portable and hence
+#superior to a traditional Ubuntu PPA for most purposes.
+
 #FIXME: Replace this file (i.e., "setup.py") and the "requirements-pip.txt",
 #"setup.cfg", "MANIFEST.in", and "Pipfile" files with the existing
 #"pyproject.toml" file in concert with the third-party "poetry" project, which
@@ -21,6 +50,11 @@ tasks (e.g., installation, freezing, test running) for this application.
 #resolution -- which is quite alright, of course. Since everyone requires
 #setuptools at installation-time, setuptools remains widely available and
 #continuing to depend upon setuptools for a specific task remains sensible.
+#FIXME: Actually, don't do this. The "poetry" installer is sadly insane,
+#despite the sanity evidenced by the remainder of the "poetry" codebase. As is,
+#"poetry" is largely unusable on platforms like Gentoo. Nonetheless, let's
+#preserve this FIXME discussion for when "poetry" adopts a standard
+#installation pathway.
 
 #FIXME: Consider wrapping on Windows with "pynsist", a framework for generating
 #Windows installers bundling Python applications complete with a Python
