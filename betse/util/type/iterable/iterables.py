@@ -14,12 +14,11 @@ See Also
 '''
 
 # ....................{ IMPORTS                           }....................
-import itertools
+import itertools, pprint
 from betse.exceptions import BetseIterableException
 from betse.util.type import types
 from betse.util.type.types import (
     type_check,
-    ClassType,
     ClassOrNoneTypes,
     GeneratorType,
     IterableTypes,
@@ -240,6 +239,29 @@ def to_iterable(
         if item_cls is None else (
             # Converted to this item type otherwise.
             item_cls(item) for item in iterable))
+
+
+@type_check
+def to_str(iterable: IterableTypes) -> str:
+    '''
+    Convert the passed input iterable into an output string intended to be
+    substantially more human-readable than the standard implementations of
+    most ``__str__`` special methods implicitly invoked by the
+    :meth:`str.__init__` method.
+
+    Parameters
+    ----------
+    iterable: IterableTypes
+        Input iterable to be converted.
+
+    Returns
+    ----------
+    str
+        Output string converted from this input iterable.
+    '''
+
+    # Simplicity is a place in this codebase.
+    return pprint.pformat(iterable)
 
 # ....................{ INVERTERS                         }....................
 @type_check

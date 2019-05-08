@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,12 +7,12 @@
 Apple macOS-specific facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseOSException
 from betse.util.io.log import logs
 from ctypes import CDLL, byref, c_int
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 _SECURITY_FRAMEWORK_DYLIB_FILENAME = (
     '/System/Library/Frameworks/Security.framework/Security')
 '''
@@ -58,7 +58,7 @@ https://opensource.apple.com/source/libsecurity_authorization/libsecurity_author
     C header defining this bit flag.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_unless_macos() -> None:
     '''
     Raise an exception unless the current platform is Apple macOS.
@@ -72,10 +72,10 @@ def die_unless_macos() -> None:
         raise BetseOSException(
             'Current platform {} not macOS.'.format(oses.get_name()))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 def is_aqua() -> bool:
     '''
-    `True` only if the current process has access to the Aqua display server
+    ``True`` only if the current process has access to the Aqua display server
     specific to macOS, implying this process to be headfull and hence support
     both CLIs and GUIs.
 
@@ -84,8 +84,8 @@ def is_aqua() -> bool:
     https://developer.apple.com/library/content/technotes/tn2083/_index.html#//apple_ref/doc/uid/DTS10003794-CH1-SUBSECTION19
         "Security Context" subsection of "Technical Note TN2083: Daemons and
         Agents," a psuedo-human-readable discussion of the
-        `sessionHasGraphicAccess` bit flag returned by the low-level
-        `SessionGetInfo()` C function.
+        ``sessionHasGraphicAccess`` bit flag returned by the low-level
+        ``SessionGetInfo()`` C function.
     '''
 
     # Avoid circular import dependencies.

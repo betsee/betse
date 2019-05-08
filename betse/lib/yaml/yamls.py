@@ -8,6 +8,9 @@ High-level support facilities for Yet Another Markup Language (YAML), the
 file format encapsulating most input and output data for this application.
 '''
 
+#FIXME: Enable us up "ruamel.yaml" support, please.
+#FIXME: Enable us up "oyaml" (yet another PyYAML replacement) support, please.
+
 #FIXME: Consider contributing various portions of this submodule back to
 #"ruamel.yaml" -- particularly the Numpy-type-to-YAML-native-type conversions.
 

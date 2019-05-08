@@ -9,6 +9,10 @@ implementing the abstract base class :class:`collections.abc.Iterable`)
 facilities.
 '''
 
+#FIXME: Generalize to support mappings. Doing so may prove mildly non-trivial,
+#as unordered mapping types (e.g., plain "dict" instances) will need to be
+#converted into ordered mapping types (e.g., "OrderedDict" instances).
+
 # ....................{ IMPORTS                           }....................
 from betse.util.type.types import type_check, IterableTypes
 from operator import itemgetter
@@ -252,7 +256,8 @@ def _sort_iterable(iterable: IterableTypes, **kwargs) -> IterableTypes:
 
     # Return either:
     #
-    # * If an input list was passed, efficiently return this output list as is,
-    #   which already satisfies the exact type expected by the caller.
+    # * If the input iterable is:
+    #   * A list, efficiently return this output list as is, which already
+    #     satisfies the exact type expected by the caller.
     # * Else, an iterable of the same type as that of the passed iterable.
     return list_sorted if iterable_type is list else iterable_type(list_sorted)

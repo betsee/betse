@@ -874,7 +874,7 @@ class MplConfig(object):
         * ``Gtk3cairo``, which, despite claiming to be a GTK+ 3.x-specific
           backend, appears to attempt to dynamically load GTK+ 2.x-specific
           shared libraries -- inducing the same segmentation fault as above.
-        * All GTK+ 2.x-specific backends (e.g., ``Gtk`, ``Gtkagg``),
+        * All GTK+ 2.x-specific backends (e.g., ``Gtk``, ``Gtkagg``),
           conflicting with GTK+ 3.x-specific backends (e.g., ``Gtk3``,
           ``Gtk3agg``). Attempting to switch to the latter after having already
           switched to the former typically induces the following fatal
@@ -887,12 +887,21 @@ class MplConfig(object):
           This is *not* a high-level Python exception and hence cannot be
           caught from within Python. This is a POSIX-level process signal.
 
+        * All Qt 4-specific backends (e.g., ``Qt4Agg``, ``Qt4cairo``). Qt 4 has
+          been officially unsupported by the Qt Company (QTC) since 2015 -- and
+          hence increasingly insecure, error-prone, and unavailable.
+        * If the current platform is *not* macOS:
+
+          * ``macosx``, a Carbon-specific backend usable only under macOS.
+
         * If the active Python interpreter is running **headless** (i.e., with
           *no* access to a GUI display, often due to running remotely over an
           SSH-encrypted connection supporting only CLI input and output):
 
-          * ``Qt5Agg``, silently terminating the current process in obscure
-            edge cases (e.g., on Ubuntu >= 18.04 when running tests).
+          * All Qt 5-specific backends (e.g., ``Qt5Agg``, ``Qt5cairo``). When
+            headless, attempting to switch to *any* Qt backend (including both
+            Qt 4- and 5-specific backends) induces a silent fatal segmentation
+            fault immediately halting the current process.
 
         Sometimes, the only winning move is not to play at all.
         '''
@@ -904,12 +913,20 @@ class MplConfig(object):
 
             # Blacklist all GTK+ 2.x-specific backends.
             'gtk3', 'gtk3agg', 'gtk3cairo',
+
+            # Blacklist all Qt 4-specific backends.
+            'qt4agg', 'qt4cairo',
         }
+
+        # If the current platform is *NOT* macOS, blacklist the "macosx"
+        # backend usable only under macOS.
+        if not oses.is_macos():
+            backend_names_blacklist.add('macosx')
 
         # If headless, blacklist the "Qt5Agg" backend known to silently
         # terminate the current process under obscure edge cases.
         if displays.is_headless():
-            backend_names_blacklist.add('qt5agg')
+            backend_names_blacklist.update(('qt5agg', 'qt5cairo'))
 
         # Return this set.
         return backend_names_blacklist

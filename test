@@ -1,41 +1,41 @@
 #!/usr/bin/env bash
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 #
-# --------------------( SYNOPSIS                           )--------------------
-# This Bash shell script is a simple wrapper around this application's
-# py.test-based and setuptools-driven test suite. All arguments passed to this
-# script are passed "as is" to that test suite.
+# --------------------( SYNOPSIS                          )--------------------
+# Bash shell script wrapping this project's py.test-based and setuptools-driven
+# test suite such that all passed arguments are passed as is to the
+# project-specific "test" subcommand of the top-level "setup.py" script.
 #
 # This script is defined as a Bash rather than Bourne script purely for the
-# canonical ${BASH_SOURCE} string global, reliably providing the absolute path
-# of this script and hence this script's directory.
+# canonical ${BASH_SOURCE} string global, reliably providing the absolute
+# pathnames of this script and hence this script's directory.
 
-# ....................{ PATHS                              }....................
-# string canonicalize_path(string pathname)
+# ....................{ PATHS                             }....................
+# str canonicalize_path(str pathname)
 #
 # Canonicalize the passed pathname. The "readlink" command's GNU-specific "-f"
-# option would be preferable but is unsupported by OS X's NetBSD-specific
-# version of "readlink". Instead, just defer to Python.
+# option would be preferable but is unsupported by macOS's NetBSD-specific
+# version of "readlink". Instead, just defer to Python for portability.
 function canonicalize_path() {
     python -c "
 import os, sys
 print(os.path.realpath(os.path.expanduser(sys.argv[1])))" "${1}"
 }
 
-# Absolute or relative path of this script.
+# Absolute or relative filename of this script.
 script_filename="$(canonicalize_path "${BASH_SOURCE[0]}")"
 
-# Absolute or relative path of this script's directory and hence BETSE's home.
+# Absolute or relative dirname of the directory directly containing this
+# script, equivalent to the top-level directory for this project.
 betse_dirname="$(dirname "${script_filename}")"
-# echo "BETSE home: ${betse_dirname}"
 
-# ....................{ TESTS                              }....................
-# Temoprarily change the current working directory to BETSE's home.
+# ....................{ TESTS                             }....................
+# Temoprarily change the current working directory to that of this project.
 pushd "${betse_dirname}" >/dev/null
 
-# Run BETSE's test suite with all passed arguments.
+# Run this project's test suite with all passed arguments.
 python3 setup.py test "${@}"
 
 # 0-based exit code reported by the prior command.

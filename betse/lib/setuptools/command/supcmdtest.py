@@ -436,6 +436,9 @@ class test(Command):
         #     https://docs.pytest.org/en/latest/customize.html
         pytest_args.append('.')
 
+        # import os
+        # print('Environment variables:\n{!r}'.format(os.environ))
+
         # Fork the "py.test" command, propagating its exit status as our own.
         print('Running py.test with arguments: {}'.format(pytest_args))
         sys.exit(self._pytest_public.main(pytest_args))

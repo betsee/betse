@@ -9,7 +9,6 @@ types and instances).
 '''
 
 # ....................{ IMPORTS                           }....................
-import pprint
 from betse.exceptions import BetseMappingException, BetseMappingKeyException
 from betse.util.type.types import (
     type_check, MappingType, HashableType, TestableOrNoneTypes,)
@@ -376,15 +375,6 @@ def get_key_value_or_default(
     # Return this value.
     return key_value
 
-# ....................{ FORMATTERS                        }....................
-@type_check
-def format_map(mapping: MappingType) -> str:
-    '''
-    Convert the passed dictionary into a human-readable string.
-    '''
-
-    return pprint.pformat(mapping)
-
 # ....................{ COPIERS                           }....................
 #FIXME: Rename to copy_deep() for disambiguity.
 @type_check
@@ -630,3 +620,32 @@ def remove_key(mapping: MappingType, key: HashableType) -> None:
 
     # The best things in life are free.
     del mapping[key]
+
+# ....................{ ITERATORS                         }....................
+@type_check
+def iter_keys_ascending(mapping: MappingType) -> list:
+    '''
+    Iterable of all keys of the passed dictionary sorted in ascending order.
+
+    Parameters
+    ----------
+    mapping : MappingType
+        Dictionary whose keys are to be sorted.
+
+    Returns
+    ----------
+    list
+        Iterable of all keys of this dictionary sorted in ascending order.
+
+    See Also
+    ----------
+    :func:`betse.util.type.iterable.itersort.sort_ascending`
+        Further details on ascending sorting.
+    '''
+
+    # Return a list of all keys of this dictionary sorted in ascending order.
+    #
+    # Note that the itersort.sort_ascending() function is intentionally *NOT*
+    # called here, as that function currently fails to support dictionary views
+    # in an efficient manner. Naturally, this should be rectified at some time.
+    return sorted(mapping)

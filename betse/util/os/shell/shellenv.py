@@ -8,8 +8,6 @@ Low-level **environment** (i.e., set of all external shell variables exported
 to the the active Python interpreter) facilities.
 '''
 
-#FIXME: For disambiguity, rename this submodule to "shellenv".
-
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: For safety, all attempts to get, set, or unset environment variables
 # should act on the low-level global "os.environ" dictionary directly rather
@@ -185,7 +183,7 @@ def set_var(name: str, value: str) -> None:
 
     environ[name] = value
 
-# ....................{ REMOVERS                          }....................
+# ....................{ UNSETTERS                         }....................
 @type_check
 def unset_var(name: str) -> None:
     '''
@@ -240,3 +238,35 @@ def unset_var_if_set(name: str) -> None:
 
     # Unset this variable.
     del environ[name]
+
+# ....................{ CONVERTERS                        }....................
+def to_str() -> str:
+    '''
+    Human-readable string of all environment variables.
+
+    This string is intended to be substantially more human-readable than that
+    returned by the :meth:`os._Environ.__str__` special method implicitly
+    invoked by the :meth:`str.__init__` method, which compresses the entirety
+    of this environment onto a single line.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.iterable.mapping import mappings
+    from betse.util.type.text.string import strjoin
+
+    # Return the human-readable string produced by joining on newline a
+    # generator comprehension yielding the colon-delimited name and value of
+    # all environment variables sorted in lexicographic order.
+    #
+    # Note that the "environ" object is of non-standard type "os._Environ",
+    # which the pprint.pformat() fails to recognize and hence format as a
+    # "dict"-compatible mapping. Ergo, passing "environ" directly to the
+    # iterables.to_str() function would produce a non-human-readable string.
+    # While this can, of course, be ameliorated by converting "environ" to a
+    # "dict" first (e.g., "iterables.to_str(dict(environ))"), doing so still
+    # produces less human-readable output than the current approach.
+    # return iterables.to_str(dict(environ))
+    return strjoin.join_on_newline(
+        '{}: {}'.format(var_name, environ[var_name])
+        for var_name in mappings.iter_keys_ascending(environ)
+    )

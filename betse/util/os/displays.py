@@ -34,8 +34,7 @@ def is_headfull() -> bool:
         # While certain server-specific variants of Windows can and often are
         # run headless (e.g., Windows Nano Server), there appears to be no
         # known means of reliably distinguishing a headless from headfull
-        # Windows environment in pure Python. For simplicity, the latter is
-        # assumed.
+        # Windows environment in pure Python. For safety, assume the latter.
         oses.is_windows() or
 
         # Else, this is a POSIX-compatible platform.
@@ -46,18 +45,22 @@ def is_headfull() -> bool:
         # parent shell environment first.
         shellenv.is_var('DISPLAY') or
 
-        # Else, all possible alternative display servers specific to the current
-        # platform *MUST* be iteratively tested for.
+        #FIXME: Unify this test with the is_linux_wayland() function, which
+        #appears to be considerably more robust than the test performed here.
+
+        # Else, all possible alternative display servers specific to the
+        # current platform *MUST* be iteratively tested for.
         #
         # If this is Linux, the only remaining display servers are:
         #
         # * Mir, accessible via the ${MIR_SOCKET} environment variable.
-        # * Wayland, accessible via the ${WAYLAND_DISPLAY} environment variable.
+        # * Wayland, accessible via the ${WAYLAND_DISPLAY} environment
+        #   variable.
         #
         # Ergo, the current process is headfull if and only if one of these
         # variables is inherited from the parent shell environment.
         (oses.is_linux() and
-         shellenv.is_var('MIR_SOCKET', 'WAYLAND_DISPLAY', )) or
+         shellenv.is_var('MIR_SOCKET', 'WAYLAND_DISPLAY',)) or
 
         # If this is OS X, the only remaining display server is Aqua.
         (oses.is_macos() and macos.is_aqua())
@@ -102,8 +105,8 @@ def is_linux_wayland() -> bool:
         return False
     # Else, the current platform is Linux.
 
-    # String value of the ${XDG_SESSION_TYPE} environment variable if defined or
-    # "None" otherwise.
+    # String value of the ${XDG_SESSION_TYPE} environment variable if defined
+    # *OR* "None" otherwise.
     xdg_session_type = shellenv.get_var_or_none('XDG_SESSION_TYPE')
 
     # Return True only if this value is that of a Wayland compositor.

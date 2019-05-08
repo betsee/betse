@@ -191,7 +191,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
         from betse.lib import libs
         from betse.util.io.error import errfault
         from betse.util.io.log import logconfig, logs
-        from betse.util.os import oses
+        from betse.util.os import displays, oses
         from betse.util.py import pys
         from betse.util.test import tests
         from betse.util.type.obj import objects
@@ -213,6 +213,8 @@ class MetaAppABC(object, metaclass=ABCMeta):
             objects.get_class_name_unqualified((self)))
         logs.log_debug('Default segementation fault handler enabled.')
         logs.log_debug('Testing environment detected: %r', tests.is_testing())
+        logs.log_debug(
+            'Headless environment detected: %r', displays.is_headless())
 
         # Validate mandatory dependencies. Avoid initializing these
         # dependencies now (e.g., by calling init_libs()). Doing so requires
