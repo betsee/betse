@@ -44,11 +44,9 @@ RUNTIME_MANDATORY = {
 
     # Dependencies directly required by this application. Notably:
     #
-    # * matplotlib >= 2.1.0 requires Numpy >= 1.7.1.
-    # * SciPy >= 1.0.0 requires Numpy >= 1.8.2.
-    #
-    # SciPy wins.
-    'Numpy':  '>= 1.8.2',
+    # * Numpy 1.13.0 first introduced the optional "axis" keyword argument to
+    #   the numpy.unique() function, which this codebase commonly passes.
+    'Numpy':  '>= 1.13.0',
     'Pillow': '>= 2.3.0',
     'SciPy':  '>= 0.12.0',
     'dill':   '>= 0.2.3',

@@ -4,11 +4,12 @@
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                           }....................
-
-import numpy as np
-
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+import numpy as np
+from betse.util.math.geometry.polygon.geopolyconvex import clip_counterclockwise
+from betse.util.math.geometry.polygon.geopoly import orient_counterclockwise, is_convex, is_cyclic_quad
+from betse.util.io.log import logs
 from matplotlib import ticker
 from matplotlib import colors
 from matplotlib import colorbar
@@ -16,39 +17,34 @@ from matplotlib import rcParams
 from matplotlib.collections import PolyCollection, LineCollection
 from matplotlib.patches import Circle
 from matplotlib import path
-
-from betse.util.math.geometry.polygon.geopolyconvex import clip_counterclockwise
-from betse.util.math.geometry.polygon.geopoly import orient_counterclockwise, is_convex, is_cyclic_quad
-from betse.util.io.log import logs
-
 from scipy.spatial import cKDTree, Delaunay
 
+# ....................{ CLASSES                           }....................
 # FIXME get face to edge mappings for tri and vor!
 # FIXME make mids mappers
 class DECMesh(object):
-    """
-    Creates a Discrete Exterior Calculus mesh system, with primal triangulation
+    '''
+    Discrete Exterior Calculus (DEC) mesh system providing primal triangulation
     and dual Voronoi meshes from a set of seed points.
+    '''
 
-    """
-
-    def __init__(self,
-                 cell_radius = None, # average half distance between seed points
-                 mesh_type = 'tri', # mesh_type can be 'tri' or 'quad'
-                 seed_points=None, # points to use in Delaunay triangulation
-                 use_centroids = True, # Use the centroids of polygons as Voronoi verts instead of circumcenters
-                 use_alpha_shape=True, # use alpha-shape exclusion of triangles from Delaunay
-                 alpha_shape=0.4, # Threshhold for alpha-shape analysis
-                 single_cell_sides=6,  # If seed points is None, a single cell will be created with this many sides
-                 single_cell_noise=0.5,  # Irregularity to add to single cell construction
-                 image_mask=None, # Use an image mask (from BETSE) to control point location
-                 make_all_operators = True, # Make all operators (True), or only key ones (False)
-                 allow_merging = True, # Allow tri-cells to be merged to quads if circumcenters are close?
-                 merge_thresh = 0.2, # Distance threshhold (%of total radius) for merging close circumcenters
-                 close_thresh = 0.25, # threshhold for removal of close tri vert neighour points
-                 center = None, # Optional center point for cluster (used to center a single cell)
-                 ):
-
+    def __init__(
+        self,
+        cell_radius = None, # average half distance between seed points
+        mesh_type = 'tri', # mesh_type can be 'tri' or 'quad'
+        seed_points=None, # points to use in Delaunay triangulation
+        use_centroids = True, # Use the centroids of polygons as Voronoi verts instead of circumcenters
+        use_alpha_shape=True, # use alpha-shape exclusion of triangles from Delaunay
+        alpha_shape=0.4, # Threshhold for alpha-shape analysis
+        single_cell_sides=6,  # If seed points is None, a single cell will be created with this many sides
+        single_cell_noise=0.5,  # Irregularity to add to single cell construction
+        image_mask=None, # Use an image mask (from BETSE) to control point location
+        make_all_operators = True, # Make all operators (True), or only key ones (False)
+        allow_merging = True, # Allow tri-cells to be merged to quads if circumcenters are close?
+        merge_thresh = 0.2, # Distance threshhold (%of total radius) for merging close circumcenters
+        close_thresh = 0.25, # threshhold for removal of close tri vert neighour points
+        center = None, # Optional center point for cluster (used to center a single cell)
+    ):
 
         self.single_cell_noise = single_cell_noise
         self.single_cell_sides = single_cell_sides
@@ -244,6 +240,12 @@ class DECMesh(object):
                 not_merged.add(indi)
 
         mark_for_merge = np.asarray(list(mark_for_merge))
+
+        #FIXME: Please resolve the following deprecation warning when time
+        #generously permits, for the Unicorn of Codebase Stability is unhappy:
+        #    betse/science/math/mesh.py:249: DeprecationWarning: using a
+        #    non-integer array as obj in delete will result in an error in the
+        #    future
         self.tri_verts = np.delete(self.tri_verts, mark_for_merge, axis = 0)
 
         # calculate the Delaunday triangulation based on the cluster-masked seed points:

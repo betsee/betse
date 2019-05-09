@@ -27,14 +27,6 @@ def test_cli_no_arg(betse_cli: 'CLITester') -> None:
     betse_cli.run()
 
 
-#FIXME: Something has gone horrifyingly wrong. For unknown reasons, "py.test"
-#appears to have removed the standard "${DISPLAY}" environment variable. We
-#suspect that the "pytest-qt" plugin is the culprit, implying that our external
-#test driver (e.g., "betse.lib.setuptool.commands.supcmdtest") will need to
-#explicitly disable this plugin whenever present.
-#
-#Further testing is warranted. As an initial simplistic test, consider simply
-#uninstalling "pytest-qt" and retest us up.
 def test_cli_info(betse_cli: 'CLITester') -> None:
     '''
     Test the ``betse info`` subcommand.
@@ -45,8 +37,6 @@ def test_cli_info(betse_cli: 'CLITester') -> None:
         Object encapsulating the BETSE CLI.
     '''
 
-    from betse.util.os.shell import shellenv
-    print('Environment variables:\n{}'.format(shellenv.to_str()))
     betse_cli.run('info')
 
 

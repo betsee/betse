@@ -20,21 +20,23 @@ See Also
 # ....................{ IMPORTS                           }....................
 import pytest
 
-# ....................{ IMPORTS ~ fixture : autouse       }....................
-# Import fixtures automatically run at the start of the current test session
-# and hence typically *NOT* manually required by specific tests.
-
-from betse_test.fixture.metaapper import betse_app_meta
-
 # ....................{ IMPORTS ~ fixture : manual        }....................
-# Import fixtures required to be manually required by specific tests.
+# Import fixtures required to be manually required by other fixtures and tests.
 
+from betse.util.test.pytest.fixture.pytfixture import monkeypatch_session
 from betse_test.fixture.tempdirer import betse_temp_dir
 from betse_test.fixture.simconf.simconfer import (
     betse_sim_conf,
     betse_sim_conf_default,
     betse_sim_conf_compat,
 )
+
+# ....................{ IMPORTS ~ fixture : autouse       }....................
+# Import fixtures automatically run at the start of the current test session,
+# typically *NOT* manually required by specific tests, *AFTER* importing all
+# non-autouse fixtures possibly required by these autouse fixtures above.
+
+from betse_test.fixture.autouser import betse_autouse
 
 # ....................{ GLOBALS                           }....................
 EXPORT_SIM_CONF_DIRNAME = None
@@ -67,19 +69,7 @@ def pytest_configure(config) -> None:
         relative dirname of the target directory to export and hence
         recursively copy each source simulation configuration directory into).
       * Else, this variable's value is ``None``.
-
-    * If the external ``${DISPLAY}`` environment variable is currently set
-      (e.g., to the X11-specific socket to be connected to display GUI
-      components), unset this variable. Permitting this variable to remain set
-      would permit tests erroneously attempting to connect to an X11 server to
-      locally succeed but remotely fail, as headless continuous integration
-      (CI) typically has no access to an X11 server. Unsetting this variable
-      ensures orthogonality between these cases by coercing the former to fail
-      as well.
     '''
-
-    # Defer heavyweight imports.
-    from betse.util.os.shell import shellenv
 
     # Global variables to be set below.
     global EXPORT_SIM_CONF_DIRNAME
@@ -96,29 +86,6 @@ def pytest_configure(config) -> None:
     # exhaustive StackOverflow treatise on this subject:
     #     https://stackoverflow.com/a/51884507/2809027
     EXPORT_SIM_CONF_DIRNAME = config.getoption('export_sim_conf_dirname')
-
-    #FIXME: This operation should be converted into autouse fixtures defined in
-    #this plugin above. Such fixtures should require the builtin fixture
-    #permitting us to temporarily change environment variables, which should
-    #then be used to temporarily undefine the ${DISPLAY} variable. What was
-    #that called again... "monkeypatch"? Contemplate eternity and see:
-    #
-    #    http://pytest.org/latest/fixture.html#autouse-fixtures-xunit-setup-on-steroids
-
-    # Unset the external `${DISPLAY}` environment variable if currently set.
-    # Technically, this operation needs to be performed:
-    #
-    # * Only once for the entire test suite when py.test is *NOT* parallelized
-    #   with "xdist", in which case all tests run in the same process and hence
-    #   share the same environment variables.
-    # * Once for each test when py.test is parallelized with "xdist", in which
-    #   case each test is run in a distinct subprocess and hence does *NOT*
-    #   share the same environment variables.
-    #
-    # Since unsetting environment variables is fast, doing so here
-    # transparently supports both use cases detailed above with no discernable
-    # downside. See the docstring for additional commentary.
-    shellenv.unset_var_if_set('DISPLAY')
 
 
 def pytest_unconfigure(config) -> None:
