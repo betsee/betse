@@ -239,13 +239,8 @@ class DECMesh(object):
                     mark_for_merge.add(vi)
                 not_merged.add(indi)
 
-        mark_for_merge = np.asarray(list(mark_for_merge))
+        mark_for_merge = np.asarray(list(mark_for_merge), dtype=np.int)
 
-        #FIXME: Please resolve the following deprecation warning when time
-        #generously permits, for the Unicorn of Codebase Stability is unhappy:
-        #    betse/science/math/mesh.py:249: DeprecationWarning: using a
-        #    non-integer array as obj in delete will result in an error in the
-        #    future
         self.tri_verts = np.delete(self.tri_verts, mark_for_merge, axis = 0)
 
         # calculate the Delaunday triangulation based on the cluster-masked seed points:
