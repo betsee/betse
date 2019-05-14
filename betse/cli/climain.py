@@ -7,6 +7,12 @@
 Concrete subclasses defining this application's command line interface (CLI).
 '''
 
+#FIXME: Define a new "--headless" option removing the ${DISPLAY} environment
+#variable from the current environment.
+#FIXME: After doing so, refactor the "betse_test.fixture.autouser" submodule
+#to leverage this option directly rather than involve the questionable
+#"monkeypatch_session" fixture. Doing so will exercise this option as desired.
+
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
@@ -25,7 +31,6 @@ from betse.util.cli.clicmd import (
 from betse.util.cli.clicmdabc import CLISubcommandableABC
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
-from betse.util.test import tests
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import ModuleType
 
@@ -35,32 +40,14 @@ class BetseCLI(CLISubcommandableABC):
     Command line interface (CLI) for this application.
     '''
 
-    # ..................{ PROPERTIES ~ superclass           }..................
+    # ..................{ SUPERCLASS ~ property             }..................
     @property
     def _module_metadata(self) -> ModuleType:
 
         from betse import metadata
         return metadata
 
-    # ..................{ PROPERTIES                        }..................
-    @property_cached
-    def _sim_runner(self) -> 'betse.science.simrunner.SimRunner':
-        '''
-        Simulation runner running simulation subcommands on the YAML-formatted
-        simulation configuration file passed by the user at the CLI.
-        '''
-
-        # Defer heavyweight imports.
-        from betse.science.parameters import Parameters
-        from betse.science.simrunner import SimRunner
-
-        # Simulation configuration loaded from this YAML-formatted file.
-        p = Parameters.make(conf_filename=self._args.conf_filename)
-
-        # Create and return a simulation runner for this configuration.
-        return SimRunner(p=p)
-
-
+    # ..................{ SUPERCLASS ~ property : commands  }..................
     @property_cached
     def _subcommander_top(self) -> CLISubcommander:
 
@@ -150,28 +137,8 @@ directory:
 
 ;    betse plot sim my_sim.yaml
 ''',
-                    subcommander=self._make_subcommander_plot(),
+                    subcommander=self._subcommander_plot,
                 ),
-
-
-                #FIXME: Implementing a genuine BETSE REPL is a brilliant idea.
-                #While we *DID* have a poorly maintained attempt to implement
-                #such a REPL, the herculean effort to maintain this
-                #implementation against bit-rot dwarfed the benefits of doing
-                #so. Any future attempt should offer demonstrable benefits over
-                #existing REPLs -- notably, iPython. While a genuine BETSE REPL
-                #is unlikely to ever compete with a Jupyter Notebook, it should
-                #be feasible to at least improve upon iPython for BETSE. Until
-                #then, explicit REPL support remains disabled... permanently.
-#                 CLISubcommandNoArg(
-#                     name='repl',
-#                     help_synopsis=(
-#                         'enter an interactive {program_name}-aware REPL'),
-#                     help_description='''
-# Initialize the {program_name} environment and immediately open a
-# Read-Evaluate-Print Loop (REPL). This allows interactive manipulation of the
-# simulations and analyses.
-# ''',),
 
 
                 CLISubcommandNoArg(
@@ -225,7 +192,8 @@ Equivalently, this subcommand is shorthand for the following:
             ))
 
 
-    def _make_subcommander_plot(self) -> CLISubcommander:
+    @property
+    def _subcommander_plot(self) -> CLISubcommander:
         '''
         Container of all child subcommands accepted by the ``plot`` subcommand.
         '''
@@ -288,12 +256,30 @@ from input files defined by this configuration.
 
             ))
 
-    # ..................{ SUBCOMMANDS ~ info                }..................
+    # ..................{ SUPERCLASS ~ help                 }..................
     def _show_header(self) -> None:
 
         cliinfo.log_header()
 
+    # ..................{ PROPERTIES                        }..................
+    @property_cached
+    def _sim_runner(self) -> 'betse.science.simrunner.SimRunner':
+        '''
+        Simulation runner running simulation subcommands on the YAML-formatted
+        simulation configuration file passed by the user at the CLI.
+        '''
 
+        # Defer heavyweight imports.
+        from betse.science.parameters import Parameters
+        from betse.science.simrunner import SimRunner
+
+        # Simulation configuration loaded from this YAML-formatted file.
+        p = Parameters.make(conf_filename=self._args.conf_filename)
+
+        # Create and return a simulation runner for this configuration.
+        return SimRunner(p=p)
+
+    # ..................{ SUBCOMMANDS                       }..................
     def _do_info(self) -> None:
         '''
         Run the ``info`` subcommand.
@@ -420,25 +406,3 @@ from input files defined by this configuration.
         '''
 
         return self._sim_runner.plot_grn()
-
-
-    #FIXME: Soft-disabled due to the lack of a corresponding "repl" subcommand.
-    #(See "FIXME:" commentary above.)
-    def _do_repl(self) -> None:
-        '''
-        Run the ``repl`` subcommand.
-        '''
-
-        # In the unlikely edge-case of the "repl" subcommand being erroneously
-        # run by a functional test, prohibit this by raising an exception.
-        # Permitting this would probably cause tests to indefinitely hang.
-        if tests.is_testing():
-            from betse.exceptions import BetseTestException
-            raise BetseTestException(
-                'REPL unavailable during testing for safety.')
-
-        # Defer heavyweight imports until *AFTER* possibly failing above.
-        from betse.cli.repl import repls
-
-        # Start the desired REPL.
-        repls.start_repl()

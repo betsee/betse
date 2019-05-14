@@ -1,19 +1,19 @@
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 #
-# --------------------( SYNOPSIS                           )--------------------
-# Project-wide pip configuration. When installing this package via pip, each
+# --------------------( SYNOPSIS                          )--------------------
+# Project-wide pip configuration. When installing this package with pip, each
 # uncommented line of this file lists:
 #
 # * A command-line option to be passed to the "pip install" command, prefixed
 #   by either "-" or "--".
 # * A package dependency to be installed by pip.
 
-# ....................{ OPTIONS                            }....................
+# ....................{ OPTIONS                           }....................
 # This package currently requires no custom options.
 
-# ....................{ DEPENDENCIES                       }....................
+# ....................{ DEPENDENCIES                      }....................
 # Default to the set of all mandatory and optional runtime dependencies listed
 # by the top-level "setup.py" script. Dismantled, this is:
 #

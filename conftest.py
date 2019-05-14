@@ -31,8 +31,6 @@ See Also
     Global test configuration applied after this configuration.
 '''
 
-# ....................{ IMPORTS                           }....................
-
 # ....................{ HOOKS ~ option                    }....................
 def pytest_addoption(parser: '_pytest.config.Parser') -> None:
     '''

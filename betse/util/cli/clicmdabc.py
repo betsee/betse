@@ -36,8 +36,26 @@ class CLISubcommandableABC(CLIABC):
     subcommands should directly subclass this rather than that superclass.
     '''
 
-    # ..................{ SUPERCLASS ~ properties           }..................
+    # ..................{ SUBCLASS ~ properties             }..................
+    # The following properties *MUST* be implemented by subclasses.
 
+    @abstractproperty
+    def _subcommander_top(self) -> CLISubcommander:
+        '''
+        Container of all top-level subcommands accepted by this CLI command.
+
+        **Order is significant,** defining the order that the ``--help`` option
+        synopsizes these subcommands in. Subcommands omitted from this
+        container will *not* be parsed by argument subparsers and thus ignored.
+
+        For each such subcommand, the :meth:`_config_arg_parsing` method
+        creates and adds a corresponding argument subparser to the lower-level
+        container of all top-level argument subparsers.
+        '''
+
+        pass
+
+    # ..................{ SUPERCLASS ~ properties           }..................
     @property_cached
     def _help_epilog(self) -> str:
 
@@ -64,25 +82,6 @@ subcommand. For example, for help with the "{subcommand_name}" subcommand, run:
 
         # Container of all top-level argument subparsers for this application.
         self._subcommander_top.add(cli=self, arg_parser=self._arg_parser_top)
-
-    # ..................{ SUPERCLASS ~ properties           }..................
-    # The following properties *MUST* be implemented by subclasses.
-
-    @abstractproperty
-    def _subcommander_top(self) -> CLISubcommander:
-        '''
-        Container of all top-level subcommands accepted by this CLI command.
-
-        **Order is significant,** defining the order that the ``--help`` option
-        synopsizes these subcommands in. Subcommands omitted from this
-        container will *not* be parsed by argument subparsers and thus ignored.
-
-        For each such subcommand, the :meth:`_config_arg_parsing` method
-        creates and adds a corresponding argument subparser to the lower-level
-        container of all top-level argument subparsers.
-        '''
-
-        pass
 
     # ..................{ SUPERCLASS ~ cli                  }..................
     def _do(self) -> object:

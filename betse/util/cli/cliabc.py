@@ -7,6 +7,8 @@
 Top-level abstract base class of all command line interface (CLI) subclasses.
 '''
 
+#FIXME: Streamline this ABC by implementing *ALL* "FIXME:" comments below.
+
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
@@ -120,105 +122,71 @@ class CLIABC(object, metaclass=ABCMeta):
         self._profile_filename = None
         self._profile_type = None
 
-    # ..................{ RUNNERS                           }..................
-    @type_check
-    def run(self, arg_list: SequenceOrNoneTypes = None) -> int:
+    # ..................{ SUBCLASS ~ mandatory              }..................
+    # The following methods *MUST* be implemented by subclasses.
+
+    @abstractmethod
+    def _do(self) -> object:
         '''
-        Run the command-line interface (CLI) defined by this subclass with the
-        passed argument list if non-``None`` *or* the external argument list
-        passed on the command line (i.e., :data:`sys.argv`) otherwise.
+        Implement this command-line interface (CLI) in a subclass-specific
+        manner, returning an arbitrary object produced by this logic to be
+        memory profiled when the ``--profile-type=size`` CLI option is passed.
 
-        Parameters
-        ----------
-        arg_list : optional[SequenceTypes]
-            Sequence of zero or more arguments to pass to this interface.
-            Defaults to ``None``, in which case arguments passed on the command
-            line (i.e., :data:`sys.argv`) are used instead.
+        On failure, the subclass implementation of this method should either:
 
-        Returns
-        ----------
-        int
-            Exit status of this interface in the range ``[0, 255]``.
-        '''
-
-        # Default unpassed arguments to those passed on the command line,
-        # ignoring the first element of "sys.argv" (i.e., the filename of the
-        # command from which the current Python process was spawned).
-        if arg_list is None:
-            # logs.log_info('Defaulting to sys.argv')
-            arg_list = sys.argv[1:]
-        assert types.is_sequence_nonstr(arg_list), (
-            types.assert_not_sequence_nonstr(arg_list))
-        # print('BETSE arg list (in run): {}'.format(arg_list))
-
-        # Classify arguments for subsequent use.
-        self._arg_list = arg_list
-
-        try:
-            # Parse these arguments *AFTER* initializing logging, ensuring
-            # logging of exceptions raised by this parsing.
-            self._parse_args()
-
-            # (Re-)initialize all mandatory runtime dependencies of this
-            # application *AFTER* parsing and handling all logging-specific CLI
-            # options and thus finalizing the logging configuration for the
-            # active Python process.
-            self._init_app_libs()
-
-            # Run the command-line interface (CLI) defined by this subclass,
-            # profiled by the type specified by the "--profile-type" option.
-            profile_callable(
-                call=self._do,
-                profile_type=self._profile_type,
-                profile_filename=self._profile_filename,
-            )
-            # raise ValueError('Test exception handling.')
-        except Exception as exception:
-            # Handle this exception.
-            self._handle_exception(exception)
-
-            # If this application's exit status is still the default and hence
-            # has *NOT* been explicitly overriden by the subclass, replace the
-            # default status with failure. If this exception provides a
-            # system-specific exit status, this status is used; else, the
-            # default failure status (i.e., 1) is used.
-            #
-            # The Windows-specific "winerror" attribute provided by
-            # "WindowsError"-based exceptions is ignored. While more
-            # fine-grained than the "errno" attribute, "winerror" values are
-            # *ONLY* intended to be used internally rather than reported as an
-            # exit status to parent processes.
-            if self._exit_status == SUCCESS:
-                self._exit_status = getattr(
-                    exception, 'errno', FAILURE_DEFAULT)
-
-        # Report this application's exit status to the parent process.
-        return self._exit_status
-
-    # ..................{ EXPANDERS                         }..................
-    @type_check
-    def expand_help(self, text: str, **kwargs) -> str:
-        '''
-        Interpolate the passed keyword arguments into the passed help string
-        template, stripping all prefixing and suffixing whitespace from this
-        template.
-
-        For convenience, the following default keyword arguments are
-        unconditionally interpolated into this template:
-
-        * ``{script_basename}``, expanding to the basename of the Python
-          wrapper script running the current application (e.g., ``betse``).
-        * ``{program_name}``, expanding to the human-readable name of this
-          application (e.g., ``BETSE``).
+        * Raise an exception, in which case this abstract base class implicitly
+          logs this exception and report failure as this application's exit
+          status.
+        * Explicitly set the :attr:`_exit_status` instance variable to a
+          non-zero integer in the range ``[1, 255]`` (e.g.,
+          :attr:`betse.util.path.command.cmdexit.FAILURE_DEFAULT`). Note that,
+          although exit status is typically returned directly by callables,
+          doing so here is infeasible due to this method already returning
+          profiled objects.
         '''
 
-        return strs.remove_whitespace_presuffix(text.format(
-            program_name=self._module_metadata.NAME,
-            script_basename=cmds.get_current_basename(),
-            **kwargs
-        ))
+        pass
 
-    # ..................{ PROPERTIES                        }..................
+    # ..................{ SUBCLASS ~ mandatory : property   }..................
+    # The following properties *MUST* be implemented by subclasses.
+
+    @abstractproperty
+    def _help_epilog(self) -> str:
+        '''
+        Help string template expanded as the **program epilog** (i.e.,
+        human-readable string printed after *all* other text in top-level
+        application help output).
+        '''
+
+        pass
+
+
+    #FIXME: Shift this property into the
+    #"betse.util.app.meta.metaappabc.MetaAppABC" superclass for generality.
+    @abstractproperty
+    def _module_metadata(self) -> ModuleType:
+        '''
+        Imported :mod:`betse.metadata` submodule specific to this application
+        (e.g., :mod:`betsee.guimetadata` for the BETSEE GUI).
+
+        This property exists principally to support alternate BETSE frontends.
+        '''
+
+        pass
+
+    # ..................{ SUBCLASS ~ optional               }..................
+    # The following methods may but need *NOT* be implemented by subclasses.
+
+    def _config_arg_parsing(self) -> None:
+        '''
+        Configure subclass-specific argument parsing.
+
+        Defaults to a noop.
+        '''
+
+        pass
+
+    # ..................{ PROPERTIES : arg parser : kwargs  }..................
     @property
     def arg_parser_kwargs(self) -> MappingType:
         '''
@@ -274,94 +242,9 @@ class CLIABC(object, metaclass=ABCMeta):
         # Return this dictionary.
         return arg_parser_top_kwargs
 
-    # ..................{ PROPERTIES ~ matplotlib           }..................
-    #FIXME: Actually, we could probably dramatically simplify this property and
-    #subclass usage as follows:
-    #
-    #* Rename this property to "_matplotlib_backend_name".
-    #* Refactor this property to return either:
-    #  * A string signifying the name of a matplotlib name to be
-    #    unconditionally enabled by the _init_app_libs() method. In this case,
-    #    no "--matplotlib-backend" option should be exposed to CLI users.
-    #    Naturally, this should be logged to avoid unexpected behaviour.
-    #  * "None", in which case the default behaviour holds (i.e., a
-    #    "--matplotlib-backend" option is exposed to CLI users).
-    #* Implement this property to return "None" by default.
+    # ..................{ PROPERTIES ~ options              }..................
     @property
-    def _is_option_matplotlib_backend(self) -> bool:
-        '''
-        ``True`` only if this CLI exposes the ``--matplotlib-backend`` option,
-        permitting users to externally specify an arbitrary matplotlib backend
-        at the command line.
-
-        Design
-        ----------
-        Defaults to ``True``. Subclasses overriding this default to ``False``
-        *must* explicitly specify the desired matplotlib backend to use by
-        overriding the :meth:`_init_app_libs` method to manually pass the name
-        of that backend to the
-        :meth:`betse.util.app.meta.metaappabc.MetaAppABC.init_libs` method
-        (e.g., ``metaappton.get_app_meta().init_libs.init(matplotlib_backend_name='Qt5Agg')``).
-        '''
-
-        return True
-
-    # ..................{ ARGS                              }..................
-    def _parse_args(self) -> None:
-        '''
-        Parse all currently passed command-line arguments.
-
-        In order, this method:
-
-        * Creates and configures an argument parser with sensible defaults.
-        * Calls the subclass-specific :meth:`_config_arg_parsing` method,
-          defaulting to a noop.
-        * Parses all arguments with this parser.
-        '''
-
-        # Create and configure all argument parsers.
-        self._init_arg_parsers()
-
-        # Parse unnamed string arguments into named, typed arguments.
-        self._args = self._arg_parser_top.parse_args(self._arg_list)
-
-        # Parse top-level options globally applicable to *ALL* subcommands.
-        self._parse_options_top()
-
-
-    def _init_arg_parsers(self) -> None:
-        '''
-        Create and configure all argument parsers, including both the top-level
-        argument parser and all subparsers of that parser.
-        '''
-
-        # Create and classify the top-level argument parser.
-        self._init_arg_parser_top()
-
-        # Configure subclass-specific argument parsing.
-        self._config_arg_parsing()
-
-
-    def _init_arg_parser_top(self) -> None:
-        '''
-        Create and classify the top-level argument parser.
-        '''
-
-        # Top-level argument parser parsing all top-level options and
-        # subcommands passed to the CLI command.
-        self._arg_parser_top = ArgParserType(**self.arg_parser_top_kwargs)
-
-        #FIXME: Shift into a new top-level add_arg_parser_options() function of
-        #the "cliutil" submodule, passing this function the result of
-        #self._make_options_top().
-
-        # For each top-level option, add an argument parsing this option to this
-        # argument subparser.
-        for option in self._make_options_top():
-            option.add(self._arg_parser_top)
-
-    # ..................{ ARGS ~ options                    }..................
-    def _make_options_top(self) -> SequenceTypes:
+    def _options_top(self) -> SequenceTypes:
         '''
         Sequence of all :class:`CLIOptionABC` instances defining the top-level
         CLI options accepted by this application.
@@ -473,7 +356,7 @@ class CLIABC(object, metaclass=ABCMeta):
         ]
 
         # If conditionally exposing the "--matplotlib-backend" option, do so.
-        if self._is_option_matplotlib_backend:
+        if self._matplotlib_backend_name_forced is None:
             options_top.append(CLIOptionArgStr(
                 long_name='--matplotlib-backend',
                 synopsis=(
@@ -483,20 +366,191 @@ class CLIABC(object, metaclass=ABCMeta):
                 var_name='matplotlib_backend_name',
                 default_value=None,
             ))
+        # Else, log this observation for debuggability.
+        else:
+            logs.log_debug(
+                'Mandating matplotlib backend "%s"...',
+                self._matplotlib_backend_name_forced)
 
         # Return this list.
         return options_top
 
 
+    @property
+    def _matplotlib_backend_name_forced(self) -> str:
+        '''
+        Name of the default :mod:`matplotlib` backend to be initialized at
+        application startup *or* ``None`` if this CLI exposes the
+        ``--matplotlib-backend`` option permitting end users to specify the
+        name of an arbitrary :mod:`matplotlib` backend.
+
+        Defaults to ``None``.
+        '''
+
+        return None
+
+    # ..................{ RUNNERS                           }..................
+    @type_check
+    def run(self, arg_list: SequenceOrNoneTypes = None) -> int:
+        '''
+        Run the command-line interface (CLI) defined by this subclass with the
+        passed argument list if non-``None`` *or* the external argument list
+        passed on the command line (i.e., :data:`sys.argv`) otherwise.
+
+        Parameters
+        ----------
+        arg_list : optional[SequenceTypes]
+            Sequence of zero or more arguments to pass to this interface.
+            Defaults to ``None``, in which case arguments passed on the command
+            line (i.e., :data:`sys.argv`) are used instead.
+
+        Returns
+        ----------
+        int
+            Exit status of this interface in the range ``[0, 255]``.
+        '''
+
+        # Default unpassed arguments to those passed on the command line,
+        # ignoring the first element of "sys.argv" (i.e., the filename of the
+        # command from which the current Python process was spawned).
+        if arg_list is None:
+            # logs.log_info('Defaulting to sys.argv')
+            arg_list = sys.argv[1:]
+        assert types.is_sequence_nonstr(arg_list), (
+            types.assert_not_sequence_nonstr(arg_list))
+        # print('BETSE arg list (in run): {}'.format(arg_list))
+
+        # Classify arguments for subsequent use.
+        self._arg_list = arg_list
+
+        try:
+            # Parse these arguments *AFTER* initializing logging, ensuring
+            # logging of exceptions raised by this parsing.
+            self._parse_args()
+
+            # (Re-)initialize all mandatory runtime dependencies of this
+            # application *AFTER* parsing and handling all logging-specific CLI
+            # options and thus finalizing the logging configuration for the
+            # active Python process.
+            self._init_app_libs()
+
+            # Run the command-line interface (CLI) defined by this subclass,
+            # profiled by the type specified by the "--profile-type" option.
+            profile_callable(
+                call=self._do,
+                profile_type=self._profile_type,
+                profile_filename=self._profile_filename,
+            )
+            # raise ValueError('Test exception handling.')
+        except Exception as exception:
+            # Handle this exception.
+            self._handle_exception(exception)
+
+            # If this application's exit status is still the default and hence
+            # has *NOT* been explicitly overriden by the subclass, replace the
+            # default status with failure. If this exception provides a
+            # system-specific exit status, this status is used; else, the
+            # default failure status (i.e., 1) is used.
+            #
+            # The Windows-specific "winerror" attribute provided by
+            # "WindowsError"-based exceptions is ignored. While more
+            # fine-grained than the "errno" attribute, "winerror" values are
+            # *ONLY* intended to be used internally rather than reported as an
+            # exit status to parent processes.
+            if self._exit_status == SUCCESS:
+                self._exit_status = getattr(
+                    exception, 'errno', FAILURE_DEFAULT)
+
+        # Report this application's exit status to the parent process.
+        return self._exit_status
+
+    # ..................{ EXPANDERS                         }..................
+    @type_check
+    def expand_help(self, text: str, **kwargs) -> str:
+        '''
+        Interpolate the passed keyword arguments into the passed help string
+        template, stripping all prefixing and suffixing whitespace from this
+        template.
+
+        For convenience, the following default keyword arguments are
+        unconditionally interpolated into this template:
+
+        * ``{script_basename}``, expanding to the basename of the Python
+          wrapper script running the current application (e.g., ``betse``).
+        * ``{program_name}``, expanding to the human-readable name of this
+          application (e.g., ``BETSE``).
+        '''
+
+        return strs.remove_whitespace_presuffix(text.format(
+            program_name=self._module_metadata.NAME,
+            script_basename=cmds.get_current_basename(),
+            **kwargs
+        ))
+
+    # ..................{ ARGS                              }..................
+    def _parse_args(self) -> None:
+        '''
+        Parse all currently passed command-line arguments.
+
+        In order, this method:
+
+        * Creates and configures an argument parser with sensible defaults.
+        * Calls the subclass-specific :meth:`_config_arg_parsing` method,
+          defaulting to a noop.
+        * Parses all arguments with this parser.
+        '''
+
+        # Create and configure all argument parsers.
+        self._init_arg_parsers()
+
+        # Parse unnamed string arguments into named, typed arguments.
+        self._args = self._arg_parser_top.parse_args(self._arg_list)
+
+        # Parse top-level options globally applicable to *ALL* subcommands.
+        self._parse_options_top()
+
+
+    def _init_arg_parsers(self) -> None:
+        '''
+        Create and configure all argument parsers, including both the top-level
+        argument parser and all subparsers of that parser.
+        '''
+
+        # Create and classify the top-level argument parser.
+        self._init_arg_parser_top()
+
+        # Configure subclass-specific argument parsing.
+        self._config_arg_parsing()
+
+
+    def _init_arg_parser_top(self) -> None:
+        '''
+        Create and classify the top-level argument parser.
+        '''
+
+        # Top-level argument parser parsing all top-level options and
+        # subcommands passed to the CLI command.
+        self._arg_parser_top = ArgParserType(**self.arg_parser_top_kwargs)
+
+        #FIXME: Shift into a new top-level add_arg_parser_options() function of
+        #the "cliutil" submodule, passing this function the result of
+        #self._options_top().
+
+        # For each top-level option, add an argument parsing this option to this
+        # argument subparser.
+        for option in self._options_top:
+            option.add(self._arg_parser_top)
+
+    # ..................{ OPTIONS                           }..................
     def _parse_options_top(self) -> None:
         '''
-        Parse top-level options globally applicable to all subcommands.
+        Parse **top-level options** (i.e., options globally applicable to all
+        subcommands previously declared by the :meth:`_options_top` property).
 
         Design
         ----------
         Subclasses requiring subclass-specific options are encouraged to
-        override this method. See the :meth:`_make_options_top` method for
-        further details.
+        override this method.
         '''
 
         # Configure logging options *BEFORE* all remaining options, ensuring
@@ -523,13 +577,15 @@ class CLIABC(object, metaclass=ABCMeta):
         log_config.filename = self._args.log_filename
         log_config.file_level = LogLevel[self._args.log_level.upper()]
 
-        # Log (and thus display, by default) a human-readable synopsis of this
-        # application. Since finalizing the logging configuration requires
-        # parsing command-line options, the logging performed here is
-        # intentionally deferred from the earliest time at which logging could
-        # technically be performed (namely, the MetaAppABC.init_sans_libs()
-        # method). The disadvantage of this otherwise sane approach, of course,
-        # is that this logging is deferred.
+        # Log (and thus display by default) a human-readable synopsis of
+        # metadata associated with this application.
+        #
+        # Note that this logging is intentionally deferred from the earliest
+        # time at which logging could technically be performed (namely, the
+        # MetaAppABC.init_sans_libs() method). Why? Because logging requires
+        # finalizing the logging configuration, which requires parsing *ALL*
+        # command-line options. The disadvantage of this otherwise sane
+        # approach is, of course, that this logging is deferred.
         self._show_header()
 
         # Log all string arguments passed to this command.
@@ -548,7 +604,7 @@ class CLIABC(object, metaclass=ABCMeta):
         self._profile_filename = self._args.profile_filename
         self._profile_type = ProfileType[self._args.profile_type.upper()]
 
-    # ..................{ IGNITERS                          }..................
+    # ..................{ INITIALIZERS ~ runtime            }..................
     def _init_app_libs(self) -> None:
         '''
         (Re-)initialize all mandatory runtime dependencies of this application
@@ -571,14 +627,15 @@ class CLIABC(object, metaclass=ABCMeta):
         # Avoid circular import dependencies.
         from betse.util.app.meta import metaappton
 
-        # Name of the matplotlib backend explicitly requested by the user if
-        # any *OR* "None" otherwise.
-        matplotlib_backend_name = None
-
-        # If this CLI exposes the "--matplotlib-backend" option to users, this
-        # name is the value of this option.
-        if self._is_option_matplotlib_backend:
-            matplotlib_backend_name = self._args.matplotlib_backend_name
+        # Name of the matplotlib backend to be initialized. Specifically:
+        matplotlib_backend_name = (
+            # The value of the "--matplotlib-backend" option...
+            self._args.matplotlib_backend_name
+            # If this CLI exposes this option; else...
+            if self._matplotlib_backend_name_forced is None else
+            # The name required by the subclass.
+            self._matplotlib_backend_name_forced
+        )
 
         # (Re-)initialize all mandatory runtime dependencies.
         metaappton.get_app_meta().init_libs(
@@ -621,67 +678,3 @@ class CLIABC(object, metaclass=ABCMeta):
 
         # Log this exception.
         logs.log_exception(exception)
-
-    # ..................{ SUBCLASS ~ mandatory              }..................
-    # The following methods *MUST* be implemented by subclasses.
-
-    @abstractmethod
-    def _do(self) -> object:
-        '''
-        Implement this command-line interface (CLI) in a subclass-specific
-        manner, returning an arbitrary object produced by this logic to be
-        memory profiled when the ``--profile-type=size`` CLI option is passed.
-
-        On failure, the subclass implementation of this method should either:
-
-        * Raise an exception, in which case this abstract base class implicitly
-          logs this exception and report failure as this application's exit
-          status.
-        * Explicitly set the :attr:`_exit_status` instance variable to a
-          non-zero integer in the range ``[1, 255]`` (e.g.,
-          :attr:`betse.util.path.command.cmdexit.FAILURE_DEFAULT`). Note that,
-          although exit status is typically returned directly by callables,
-          doing so here is infeasible due to this method already returning
-          profiled objects.
-        '''
-
-        pass
-
-    # ..................{ SUBCLASS ~ mandatory : property   }..................
-    # The following properties *MUST* be implemented by subclasses.
-
-    @abstractproperty
-    def _help_epilog(self) -> str:
-        '''
-        Help string template expanded as the **program epilog** (i.e.,
-        human-readable string printed after *all* other text in top-level
-        application help output).
-        '''
-
-        pass
-
-
-    #FIXME: Shift this property into the
-    #"betse.util.app.meta.metaappabc.MetaAppABC" superclass for generality.
-    @abstractproperty
-    def _module_metadata(self) -> ModuleType:
-        '''
-        Imported :mod:`betse.metadata` submodule specific to this application
-        (e.g., :mod:`betsee.guimetadata` for the BETSEE GUI).
-
-        This property exists principally to support alternate BETSE frontends.
-        '''
-
-        pass
-
-    # ..................{ SUBCLASS ~ optional               }..................
-    # The following methods may but need *NOT* be implemented by subclasses.
-
-    def _config_arg_parsing(self) -> None:
-        '''
-        Configure subclass-specific argument parsing.
-
-        Defaults to a noop.
-        '''
-
-        pass

@@ -4,10 +4,10 @@
 #
 # --------------------( SYNOPSIS                          )--------------------
 # Project-wide packager-agnostic configuration. Unlike all other top-level
-# configuration files (e.g., "setup.py", "MANIFEST.in") specific to a
-# particular utility in Python's package management ecosystem (e.g., pip,
-# setuptools), this file strictly conforms to a standards-compliant PEP and
-# hence generically applies to *ALL* such utilities.
+# configuration files (e.g., "setup.py", "MANIFEST.in") specific to some
+# utility in Python's package management ecosystem (e.g., "pip", "setuptools"),
+# this file strictly conforms to a standards-compliant PEP and hence
+# generically applies to *ALL* such utilities.
 #
 # Welcome to project distribution hell, where only twenty distinct files in
 # twenty distinct formats suffice to distribute a single project.

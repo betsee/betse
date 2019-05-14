@@ -3,13 +3,21 @@
 # See "LICENSE" for further details.
 #
 # --------------------( SYNOPSIS                          )--------------------
-# List of all mandatory or optional runtime dependencies of this application to
-# be installed by the "conda" package manager bundled with both the default
+# List of all mandatory or optional runtime dependencies of this application
+# installed by the "conda" package manager bundled with both the default
 # Anaconda distribution and minimal Miniconda distribution.
 #
 # This file conforms to the "conda" rather than "setuptools" or "pip" file
 # format for listing dependencies. The existing dependencies listed by the
 # top-level "setup.py" script *CANNOT* be reused here by merely specifying ".".
+#
+# --------------------( USAGE                             )--------------------
+# This file is principally intended for use in continuous integration (CI)
+# pipelines exercising our test suite on each commit to this codebase.
+# Prominent references to this file include:
+#
+# * "appveyor.yml", configuring Windows-specific AppVeyor CI pipelines.
+# * ".gitlab-ci.yml", configuring Linux-specific GitLab Runner CI pipelines.
 #
 # --------------------( EXAMPLES                          )--------------------
 # To generate a sample file in this format describing all currently installed
@@ -17,7 +25,7 @@
 #
 #     $ conda list -e
 
-# ....................{ DEPENDENCIES ~ runtime : mandatory}....................
+# ....................{ DEPENDENCIES ~ run : mandatory    }....................
 # All mandatory and optional runtime dependencies of this application for which
 # Anaconda packages are published by either the conda-forge channel (ideally)
 # *OR* any of the official default channels.
@@ -41,7 +49,7 @@ pyyaml >=3.10
 scipy >=0.12.0
 six >=1.5.2
 
-# ....................{ DEPENDENCIES ~ runtime : optional }....................
+# ....................{ DEPENDENCIES ~ run : optional     }....................
 # All optional runtime dependencies of this application for which Anaconda
 # packages are published by either the conda-forge channel (ideally) *OR* any
 # of the official default channels.
@@ -54,9 +62,7 @@ graphviz >=2.38.0
 networkx >=2.0
 pydot >=1.0.28
 ffmpeg
-#pyside2
 
 # ....................{ DEPENDENCIES ~ test : mandatory   }....................
-# All mandatory test dependencies of this application, manually converted from
-# the "betse.metadata.TESTTIME_MANDATORY" global.
+# All mandatory testing dependencies of this application.
 pytest >=3.1.0
