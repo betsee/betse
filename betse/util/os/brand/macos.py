@@ -89,11 +89,14 @@ def is_aqua() -> bool:
     '''
 
     # Avoid circular import dependencies.
+    from betse.util.os import oses
     from betse.util.path import files
     from betse.util.path.command.cmdexit import SUCCESS
 
-    # Raise an exception unless the current platform is macOS.
-    die_unless_macos()
+    # If the current platform is *NOT* macOS, return false.
+    if not oses.is_macos():
+        return False
+    # Else, the current platform is macOS.
 
     # Attempt all of the following in a safe manner catching, logging, and
     # converting exceptions into a false return value. This tester is *NOT*

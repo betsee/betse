@@ -213,8 +213,11 @@ class MetaAppABC(object, metaclass=ABCMeta):
             objects.get_class_name_unqualified((self)))
         logs.log_debug('Default segementation fault handler enabled.')
         logs.log_debug('Testing environment detected: %r', tests.is_testing())
-        logs.log_debug(
-            'Headless environment detected: %r', displays.is_headless())
+
+        # Detect whether the active Python interpreter is running headless,
+        # which has the beneficial side effect of also logging this metadata on
+        # the first call to this function -- typically, this one.
+        displays.is_headless()
 
         # Validate mandatory dependencies. Avoid initializing these
         # dependencies now (e.g., by calling init_libs()). Doing so requires
