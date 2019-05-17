@@ -190,11 +190,9 @@ class MetaAppABC(object, metaclass=ABCMeta):
         # Avoid circular import dependencies.
         from betse.lib import libs
         from betse.util.io.error import errfault
-        from betse.util.io.log import logconfig, logs
-        from betse.util.os import displays, oses
+        from betse.util.io.log import logconfig
+        from betse.util.os import oses
         from betse.util.py import pys
-        from betse.util.test import tests
-        from betse.util.type.obj import objects
 
         # Enable Python's standard handler for segmentation faults *BEFORE*
         # performing any further logic, any of which could conceivably trigger
@@ -205,19 +203,6 @@ class MetaAppABC(object, metaclass=ABCMeta):
         # process *BEFORE* performing any validation, thus logging any
         # exceptions raised by this validation.
         logconfig.init()
-
-        # Log all prior behaviour. Attempting to do so *BEFORE* enabling our
-        # default logging configuration above would silently fail, since the
-        # standard "logging" API silently squelches debug messages by default.
-        logs.log_debug('Application singleton "%s" established.',
-            objects.get_class_name_unqualified((self)))
-        logs.log_debug('Default segementation fault handler enabled.')
-        logs.log_debug('Testing environment detected: %r', tests.is_testing())
-
-        # Detect whether the active Python interpreter is running headless,
-        # which has the beneficial side effect of also logging this metadata on
-        # the first call to this function -- typically, this one.
-        displays.is_headless()
 
         # Validate mandatory dependencies. Avoid initializing these
         # dependencies now (e.g., by calling init_libs()). Doing so requires

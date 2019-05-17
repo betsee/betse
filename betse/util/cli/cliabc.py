@@ -19,15 +19,10 @@ Top-level abstract base class of all command line interface (CLI) subclasses.
 
 import sys
 from abc import ABCMeta, abstractmethod
-from betse import metadata as betse_metadata
-from betse.util.cli.cliarg import SemicolonAwareHelpFormatter
 from betse.util.io.log import logs, logconfig
-from betse.util.path.command import cmds
-from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.pyprofile import profile_callable, ProfileType
 from betse.util.type import types
 from betse.util.type.decorator.deccls import abstractproperty
-from betse.util.type.text.string import strs
 from betse.util.type.types import (
     type_check,
     ArgParserType,
@@ -107,6 +102,9 @@ class CLIABC(object, metaclass=ABCMeta):
 
     # ..................{ INITIALIZERS                      }..................
     def __init__(self):
+
+        # Avoid circular import dependencies.
+        from betse.util.path.command.cmdexit import SUCCESS
 
         # Initialize subclasses performing diamond inheritance if any.
         super().__init__()
@@ -201,6 +199,9 @@ class CLIABC(object, metaclass=ABCMeta):
         hypothetical ``_make_arg_parser_top()`` method).
         '''
 
+        # Avoid circular import dependencies.
+        from betse.util.cli.cliarg import SemicolonAwareHelpFormatter
+
         return {
             # Wrap non-indented lines in help and description text as
             # paragraphs while preserving indented lines in such text as is.
@@ -221,6 +222,9 @@ class CLIABC(object, metaclass=ABCMeta):
             Method initializing this argument parser with this dictionary *and*
             keyword arguments common to all argument parsers.
         '''
+
+        # Avoid circular import dependencies.
+        from betse.util.path.command import cmds
 
         # Dictionary of all keyword arguments to be returned.
         arg_parser_top_kwargs = {
@@ -286,6 +290,7 @@ class CLIABC(object, metaclass=ABCMeta):
             CLIOptionVersion,
         )
         from betse.util.io.log.logenum import LogLevel
+        from betse.util.path.command import cmds
 
         # Singleton logging configuration for the current Python process.
         log_config = logconfig.get_log_conf()
@@ -410,6 +415,9 @@ class CLIABC(object, metaclass=ABCMeta):
             Exit status of this interface in the range ``[0, 255]``.
         '''
 
+        # Avoid circular import dependencies.
+        from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
+
         # Default unpassed arguments to those passed on the command line,
         # ignoring the first element of "sys.argv" (i.e., the filename of the
         # command from which the current Python process was spawned).
@@ -481,6 +489,11 @@ class CLIABC(object, metaclass=ABCMeta):
           application (e.g., ``BETSE``).
         '''
 
+        # Avoid circular import dependencies.
+        from betse.util.path.command import cmds
+        from betse.util.type.text.string import strs
+
+        # Expand it like Expander.
         return strs.remove_whitespace_presuffix(text.format(
             program_name=self._module_metadata.NAME,
             script_basename=cmds.get_current_basename(),
@@ -508,6 +521,10 @@ class CLIABC(object, metaclass=ABCMeta):
 
         # Parse top-level options globally applicable to *ALL* subcommands.
         self._parse_options_top()
+
+        # Log low-level metadata pertaining to the current application *AFTER*
+        # parsing top-level options possibly altering this metadata.
+        self._log_metadata()
 
 
     def _init_arg_parsers(self) -> None:
@@ -586,7 +603,7 @@ class CLIABC(object, metaclass=ABCMeta):
         # finalizing the logging configuration, which requires parsing *ALL*
         # command-line options. The disadvantage of this otherwise sane
         # approach is, of course, that this logging is deferred.
-        self._show_header()
+        self._log_header()
 
         # Log all string arguments passed to this command.
         logs.log_debug('Passed argument list: {}'.format(self._arg_list))
@@ -604,7 +621,7 @@ class CLIABC(object, metaclass=ABCMeta):
         self._profile_filename = self._args.profile_filename
         self._profile_type = ProfileType[self._args.profile_type.upper()]
 
-    # ..................{ INITIALIZERS ~ runtime            }..................
+    # ..................{ DEPENDENCIES                      }..................
     def _init_app_libs(self) -> None:
         '''
         (Re-)initialize all mandatory runtime dependencies of this application
@@ -641,13 +658,16 @@ class CLIABC(object, metaclass=ABCMeta):
         metaappton.get_app_meta().init_libs(
             matplotlib_backend_name=matplotlib_backend_name)
 
-
-    def _show_header(self) -> None:
+    # ..................{ LOGGERS                           }..................
+    def _log_header(self) -> None:
         '''
         Display a human-readable synopsis of this application, typically by
         logging the basename and current version of this application and
         various metadata assisting debugging of end user issues.
         '''
+
+        # Avoid circular import dependencies.
+        from betse import metadata as betse_metadata
 
         # Log this in a manner suitable for downstream applications requiring
         # BETSE as an upstream dependency (e.g., BETSEE).
@@ -663,6 +683,36 @@ class CLIABC(object, metaclass=ABCMeta):
                 betse_version=betse_metadata.VERSION,
                 betse_codename=betse_metadata.CODENAME,
             ))
+
+
+    def _log_metadata(self) -> None:
+        '''
+        Log low-level metadata pertaining to the current application.
+
+        Specifically, this method logs (in no particular order):
+
+        * The subclass of the currently registered application singleton.
+        * The enabling of the default segementation fault handler.
+        * Whether a testing environment is detected.
+        * Whether a headless environment is detected.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.app.meta import metaappton
+        from betse.util.os import displays
+        from betse.util.test import tests
+        from betse.util.type.obj import objects
+
+        # Log this metadata.
+        logs.log_debug(
+            'Application singleton "%s" established.',
+            objects.get_class_name_unqualified(metaappton.get_app_meta()))
+        logs.log_debug(
+            'Default segementation fault handler enabled.')
+        logs.log_debug(
+            'Testing environment detected: %r', tests.is_testing())
+        logs.log_debug(
+            'Headless environment detected: %r', displays.is_headless())
 
     # ..................{ EXCEPTIONS                        }..................
     @type_check

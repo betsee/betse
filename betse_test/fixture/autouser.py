@@ -15,12 +15,12 @@ from pytest import fixture
 
 # ....................{ FIXTURES                          }....................
 @fixture(scope='session', autouse=True)
-def betse_autouse(
-    monkeypatch_session: '_pytest.monkeypatch.MonkeyPatch') -> None:
+def betse_autouse() -> None:
     '''
-    **Autouse session fixture**
-
-    Automatically run per-session fixture ,
+    **Autouse session fixture** (i.e., fixture generically applicable to the
+    current :mod:`pytest` session as a whole, which :mod:`pytest` automatically
+    invokes exactly once at session startup *after* collecting all functional
+    and unit tests to be subsequently run under this session).
 
     Specifically, this fixture:
 
@@ -35,6 +35,13 @@ def betse_autouse(
     * Instantiates and initializes the application metadata singleton in a
       manner suitable for unit testing. Specifically (in order):
 
+      #. Coerces the active Python interpreter into running **headless** (i.e.,
+         with *no* access to a GUI display). Allowing headfull operation would
+         would allow tests erroneously attempting to connect to an X11 server
+         to locally succeed but remotely fail, as headless continuous
+         integration (CI) pipelines typically have no access to an X11 server.
+         Coercing headlessness ensures orthogonality between these cases by
+         coercing the former to fail as well.
       #. Initializes the BETSE core.
       #. Initializes all third-party dependencies thereof.
       #. Enables the default non-interactive matplotlib backend ``Agg``,
@@ -58,52 +65,44 @@ def betse_autouse(
     :mod:`betse_test.fixture.simconf.simconfer` fixture importing the
     :mod:`betse_test.fixture.simconf.simconfwrapper` submodule importing the
     :med:`betse.science.config.confwrap` submodule).
-
-    Returns
-    ----------
-    monkeypatch_session : _pytest.monkeypatch.MonkeyPatch
-        Object returned by the session-scoped ``monkeypatch_session`` fixture
-        maintaining a reversible record of all :func:`setattr`, item,
-        environment, and :attr:`sys.path` changes.
     '''
 
     # Defer heavyweight imports.
+    from betse.util.os import displays
     from betse.util.app.meta import metaappton
 
     # Prepend a leading newline, which py.test curiously neglects to do itself.
     print('\n')
 
-    # Inform callers of ${DISPLAY} unsetting.
-    print('[py.test] Unsetting ${DISPLAY} if set...')
+    # Inform callers of application initialization.
+    print('[py.test] Initializing BETSE for testing...')
 
-    # Temporarily unset the ${DISPLAY} environment variable if currently set,
-    # silently ignoring environments in which this variable is unset (e.g.,
-    # headless continuous integration (CI) runs). Do so *BEFORE* initializing
-    # this application, which detects headless environments by testing for the
-    # existence of this variable.
+    # Instantiate and set a BETSE-specific application metadata singleton if
+    # the metaappton.set_app_meta() function has yet to be called.
+    app_meta = metaappton.make_app_meta_betse()
+
+    # Coerce the active Python interpreter into running headless *AFTER*
+    # initializing this singleton, which enables the default logging
+    # configuration to which this setter logs this operation.
     #
     # Note that this operation technically needs to be performed:
     #
     # * Only once for the entire test suite when py.test is *NOT* parallelized
     #   with "xdist", in which case all tests run in the same process and hence
-    #   share the same environment variables.
+    #   share the same global variables.
     # * Once for each test when py.test is parallelized with "xdist", in which
     #   case each test is run in a distinct subprocess and hence does *NOT*
-    #   share the same environment variables.
+    #   share the same global variables.
     #
-    # Since unsetting environment variables is fast, doing so here
-    # transparently supports both use cases detailed above with no discernable
-    # downside. See the docstring for additional commentary.
-    monkeypatch_session.delenv('DISPLAY', raising=False)
+    # Since setting global variables is fast, doing so here transparently
+    # supports both use cases detailed above with no discernable downside. See
+    # the docstring for additional commentary.
+    displays.set_headless(True)
 
-    # Inform callers of application initialization.
-    print('[py.test] Initializing BETSE for testing...')
-
-    # Instantiate and set a BETSE-specific application metadata singleton if
-    # the metaappton.set_app_meta() function has yet to be called *AND*, in
-    # either case, initialize all mandatory third-party dependencies with a
-    # standard non-interactive matplotlib backend guaranteed to exist.
-    app_meta = metaappton.make_app_meta_betse()
+    # Initialize all mandatory third-party dependencies with a standard
+    # non-interactive matplotlib backend guaranteed to exist *AFTER* coercing
+    # the active Python interpreter into running headless. Why? Because
+    # dependencies typically detect headless environments.
     app_meta.init_libs(matplotlib_backend_name='Agg')
 
     # Inform callers of the completion of this initialization.

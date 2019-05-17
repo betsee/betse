@@ -19,20 +19,26 @@ from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 from betse.util.type.types import type_check
 
 # ....................{ GLOBALS                           }....................
-_IS_HEADLESS = None
+_is_headless_forced = None
 '''
 ``True`` or ``False`` only if the :func:`set_headless` function (which
-explicitly overrides the implicit detection performed by the
-:func:`is_headfull` function of whether the active Python interpreter is
-running headless or not) has been called, in which case the :func:`is_headfull`
-function returns this boolean rather than performing such detection.
+overrides the detection performed by the :func:`is_headless` function of
+whether the active Python interpreter is running headless) has been called at
+least once, in which case all subsequent calls to the :func:`is_headless`
+function returns this boolean rather than performing that detection.
 
-Defaults to ``None``, in which case the :func:`is_headfull` function performs
+Defaults to ``None``, in which case the :func:`is_headless` function performs
 such detection rather than returning the value of this boolean.
 '''
 
-# ....................{ TESTERS ~ head                    }....................
-@func_cached
+# ....................{ TESTERS ~ head(full|less)         }....................
+# Note that the following public testers *CANNOT* be memoized (e.g., via the
+# @func_cached decorator), as the set_headless() function allows callers to
+# externally modify the return values of these testers at any time. Instead,
+# the private _is_headless() tester (to which these public testers defer)
+# internally caches the costly detection it performs on the first call to that
+# tester and then subsequently returns that cached boolean.
+
 def is_headfull() -> bool:
     '''
     ``True`` only if the active Python interpreter is running **headfull**
@@ -43,8 +49,31 @@ def is_headfull() -> bool:
     return not is_headless()     # Makes sense.
 
 
-@func_cached
 def is_headless() -> bool:
+    '''
+    ``True`` only if the active Python interpreter is running **headless**
+    (i.e., with *no* access to a GUI display, often due to running remotely
+    over an SSH-encrypted connection supporting only CLI input and output).
+
+    See Also
+    ----------
+    :func:`_is_headless`
+        Further details.
+    '''
+
+    # If the set_headless() function has been called at least once, return the
+    # boolean passed to the most recent call to that function.
+    if _is_headless_forced is not None:
+        return _is_headless_forced
+    # Else, the set_headless() function has *NOT* been called at least once. In
+    # this case, intelligently detect whether this process is headless or not.
+
+    # Return true only if this interpreter is running headless.
+    return _is_headless()
+
+
+@func_cached
+def _is_headless() -> bool:
     '''
     ``True`` only if the active Python interpreter is running **headless**
     (i.e., with *no* access to a GUI display, often due to running remotely
@@ -85,16 +114,6 @@ def is_headless() -> bool:
     from betse.util.os import oses
     from betse.util.os.brand import macos
     from betse.util.os.shell import shellenv
-
-    # If the set_headless() function has been called at least once...
-    if _IS_HEADLESS is not None:
-        # Log this coercion.
-        logs.log_debug('Headless environment coerced: %r', _IS_HEADLESS)
-
-        # Return the boolean passed to the most recent call to that function.
-        return _IS_HEADLESS
-    # Else, the set_headless() function has *NOT* been called at least once. In
-    # this case, intelligently detect whether this process is headfull or not.
 
     # The active Python interpreter is headfull if and only if either...
     is_os_headfull = (
@@ -137,18 +156,12 @@ def is_headless() -> bool:
         # assumed to be headless.
     )
 
-    # This interpreter is headless only if this interpreter is *NOT* headless.
+    # Return true only if this interpreter is *NOT* headfull.
     #
     # Note that the "is_os_headfull" boolean intentionally contains the core
     # detection logic, as detecting headfull environments is fundamentally
     # more intuitive than detecting the converse.
-    is_os_headless = not is_os_headfull
-
-    # Log this detection.
-    logs.log_debug('Headless environment detected: %r', is_os_headless)
-
-    # Return whether this interpreter is headless or not.
-    return is_os_headless
+    return not is_os_headfull
 
 # ....................{ TESTERS ~ linux                   }....................
 #FIXME: Shift into the "betse.util.os.brand.linux" submodule.
@@ -200,10 +213,14 @@ def set_headless(is_headless: bool) -> None:
     '''
 
     # Enable this global to be locally set.
-    global _IS_HEADLESS
+    global _is_headless_forced
+
+    # Log this coercion.
+    logs.log_debug(
+        'Coercing headless environment detection to "%r"...', is_headless)
 
     # Set this global to this boolean.
-    _IS_HEADLESS = is_headless
+    _is_headless_forced = is_headless
 
 # ....................{ GETTERS ~ metadata                }....................
 def get_metadata() -> OrderedArgsDict:

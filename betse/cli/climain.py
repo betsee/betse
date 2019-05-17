@@ -7,12 +7,6 @@
 Concrete subclasses defining this application's command line interface (CLI).
 '''
 
-#FIXME: Define a new "--headless" option removing the ${DISPLAY} environment
-#variable from the current environment.
-#FIXME: After doing so, refactor the "betse_test.fixture.autouser" submodule
-#to leverage this option directly rather than involve the questionable
-#"monkeypatch_session" fixture. Doing so will exercise this option as desired.
-
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
@@ -29,15 +23,24 @@ from betse.util.cli.clicmd import (
     CLISubcommandYAMLOnly,
 )
 from betse.util.cli.clicmdabc import CLISubcommandableABC
+from betse.util.cli.cliopt import CLIOptionBoolTrue
 from betse.util.io.log import logs
+from betse.util.os import displays
 from betse.util.path import files, pathnames
 from betse.util.type.decorator.decmemo import property_cached
-from betse.util.type.types import ModuleType
+from betse.util.type.types import ModuleType, SequenceTypes
 
 # ....................{ SUBCLASS                          }....................
 class BetseCLI(CLISubcommandableABC):
     '''
     Command line interface (CLI) for this application.
+
+    Attributes (of :attr:`_args`)
+    ----------
+    is_headless : bool
+        ``True`` only if the active Python interpreter is to be coerced into
+        running **headless** (i.e., with *no* access to a GUI display).
+        Defaults to ``False``.
     '''
 
     # ..................{ SUPERCLASS ~ property             }..................
@@ -256,8 +259,39 @@ from input files defined by this configuration.
 
             ))
 
+    # ..................{ SUPERCLASS ~ property : options   }..................
+    @property
+    def _options_top(self) -> SequenceTypes:
+
+        # Sequence of all default top-level options.
+        options_top = super()._options_top
+
+        # Return a list extending this sequence with subclass-specific options.
+        return options_top + [
+            CLIOptionBoolTrue(
+                long_name='--headless',
+                synopsis=(
+                    'enable headless mode '
+                    '(display no plots or animations) '
+                    '[forces "--matplotlib-backend=agg"]'
+                ),
+            ),
+        ]
+
+
+    def _parse_options_top(self) -> None:
+
+        # Parse all default top-level options.
+        super()._parse_options_top()
+
+        # If coercing this Python interpreter into running headless, do so.
+        if self._args.is_headless:
+            displays.set_headless(True)
+        # Else, allow the displays_is_headless() function to implicitly detect
+        # whether this interpreter is actually running headless.
+
     # ..................{ SUPERCLASS ~ help                 }..................
-    def _show_header(self) -> None:
+    def _log_header(self) -> None:
 
         cliinfo.log_header()
 
