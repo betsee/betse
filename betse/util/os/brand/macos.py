@@ -10,6 +10,7 @@ Apple macOS-specific facilities.
 # ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseOSException
 from betse.util.io.log import logs
+from betse.util.type.decorator.decmemo import func_cached
 from ctypes import CDLL, byref, c_int
 
 # ....................{ CONSTANTS                         }....................
@@ -73,6 +74,7 @@ def die_unless_macos() -> None:
             'Current platform {} not macOS.'.format(oses.get_name()))
 
 # ....................{ TESTERS                           }....................
+@func_cached
 def is_aqua() -> bool:
     '''
     ``True`` only if the current process has access to the Aqua display server

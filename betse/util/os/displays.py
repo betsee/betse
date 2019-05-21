@@ -112,8 +112,7 @@ def _is_headless() -> bool:
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
-    from betse.util.os.brand import macos
-    from betse.util.os.shell import shellenv
+    from betse.util.os.brand import linux, macos, posix
 
     # The active Python interpreter is headfull if and only if either...
     is_os_headfull = (
@@ -126,30 +125,17 @@ def _is_headless() -> bool:
 
         # Else, this is a POSIX-compatible platform.
         #
-        # Since all POSIX-compatible platforms of interest support the headfull
-        # X11 display server, we efficiently test for the accessibility of this
-        # server via the ${DISPLAY} environment variable inherited from the
-        # parent shell environment first.
-        shellenv.is_var('DISPLAY') or
-
-        #FIXME: Unify this test with the is_linux_wayland() function, which
-        #appears to be considerably more robust than the test performed here.
+        # Since all POSIX-compatible platforms of interest support the popular
+        # X11 display server, detect this server first.
+        posix.is_x11() or
 
         # Else, all possible alternative display servers specific to the
         # current platform *MUST* be iteratively tested for.
         #
-        # If this is Linux, the only remaining display servers are:
-        #
-        # * Mir, accessible via the ${MIR_SOCKET} environment variable.
-        # * Wayland, accessible via the ${WAYLAND_DISPLAY} environment
-        #   variable.
-        #
-        # Ergo, the current process is headfull if and only if one of these
-        # variables is inherited from the parent shell environment.
-        (oses.is_linux() and
-         shellenv.is_var('MIR_SOCKET', 'WAYLAND_DISPLAY',)) or
+        # If Linux, the only remaining display servers are Mir and Wayland.
+        (oses.is_linux() and (linux.is_wayland() or linux.is_mir())) or
 
-        # If this is OS X, the only remaining display server is Aqua.
+        # If macOS, the only remaining display server is Aqua.
         (oses.is_macos() and macos.is_aqua())
 
         # Else, this platform is unrecognized. For safety, this platform is
@@ -162,39 +148,6 @@ def _is_headless() -> bool:
     # detection logic, as detecting headfull environments is fundamentally
     # more intuitive than detecting the converse.
     return not is_os_headfull
-
-# ....................{ TESTERS ~ linux                   }....................
-#FIXME: Shift into the "betse.util.os.brand.linux" submodule.
-@func_cached
-def is_linux_wayland() -> bool:
-    '''
-    ``True`` only if the active Python interpreter is running under a Wayland
-    compositor-enabled Linux distribution.
-
-    Caveats
-    ----------
-    For sanity, this function incorrectly assumes *all* Wayland compositors to
-    comply with the X Desktop Group (XDG) standard by exporting the
-    ``${XDG_SESSION_TYPE}`` environment variable with a value of ``wayland``.
-    As this is *not* necessarily the case, this function may return false
-    negatives for edge-case Wayland compositors.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.os import oses
-    from betse.util.os.shell import shellenv
-
-    # If the current platform is *NOT* Linux, return False.
-    if not oses.is_linux():
-        return False
-    # Else, the current platform is Linux.
-
-    # String value of the ${XDG_SESSION_TYPE} environment variable if defined
-    # *OR* "None" otherwise.
-    xdg_session_type = shellenv.get_var_or_none('XDG_SESSION_TYPE')
-
-    # Return True only if this value is that of a Wayland compositor.
-    return xdg_session_type == 'wayland'
 
 # ....................{ SETTERS                           }....................
 @type_check
@@ -215,9 +168,24 @@ def set_headless(is_headless: bool) -> None:
     # Enable this global to be locally set.
     global _is_headless_forced
 
-    # Log this coercion.
-    logs.log_debug(
-        'Coercing headless environment detection to "%r"...', is_headless)
+    # If coercing headless operation, log this coercion.
+    if is_headless:
+        logs.log_debug('Forcing headless operation...')
+    # Else, headfull operation is being coerced. In this case...
+    else:
+        # Log this coercion.
+        logs.log_debug('Forcing headfull operation...')
+
+        # If the current environment is detected to be headless, log a
+        # non-fatal warning. While an exception could also be raised, our
+        # detection heuristic is known to be imperfect.
+        if _is_headless():
+            logs.log_warning(
+                'Headless environment detected! '
+                'Forcing headfull operation under a headless environment '
+                'typically raises silent segmentation faults '
+                'and hence is unsupported.'
+            )
 
     # Set this global to this boolean.
     _is_headless_forced = is_headless
@@ -229,11 +197,13 @@ def get_metadata() -> OrderedArgsDict:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os.brand import macos
+    from betse.util.os.brand import linux, macos, posix
 
     # Return this dictionary.
     return OrderedArgsDict(
         'headless', is_headless(),
         'aqua',     macos.is_aqua(),
-        'wayland',  is_linux_wayland(),
+        'mir',      linux.is_mir(),
+        'wayland',  linux.is_wayland(),
+        'x11',      posix.is_x11(),
     )

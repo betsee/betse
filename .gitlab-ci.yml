@@ -21,7 +21,7 @@
 #     keywords here. (Inapplicable for our use case.)
 #   * Shared Runners. As the nomenclature implies, Shared Runners are
 #     accessible to all projects on a GitLab instance. Hence, all projects
-#     hosted by the official gitlab.com share access to the same Shared
+#     hosted by the official gitlab.com host share access to the same Shared
 #     Runners. Shared Runners are hosted either:
 #     * If the GitLab instance hosting this project is *NOT* the official
 #       gitlab.com, then by the prior mechanisms (e.g., by project maintainers
@@ -43,9 +43,6 @@
 # Shared Runners. Exercising tests on either OS X or Windows requires doing so
 # on an external third-party free-as-in-beer CI service specific to that
 # platform and then integrating this service with GitLab.
-
-#FIXME: Replace use of the default pip cache with "pip-accel", which appears to
-#be substantially faster. For now, pip cache is better than no cache.
 
 # ....................{ DOCKER                            }....................
 # Colon-delimited name and tag of the first- or third-party Docker image
@@ -121,10 +118,6 @@ variables:
   # repeated in the "cache:" section below.
   MPLCONFIGDIR: "mpl-cache"
 
-  # Instruct "pip" to cache all downloads to the build-relative directory
-  # repeated in the "cache:" section below.
-  # PIP_CACHE_DIR: "pip-cache"
-
   # ...................{ GLOBALS ~ private                 }...................
   # Private environment variables specific to this configuration. To avoid
   # conflict with third-party applications, the name of each such variable is
@@ -141,10 +134,9 @@ variables:
 cache:
   # Enable per-branch caching, assigning each repository branch a unique cache.
   # By default, Gitlab-CI enables per-job and per-branch caching, assigning
-  # each repository branch for each job a unique cache. While a sensible
-  # default, this pipeline does *NOT* isolating each cache to each job. On the
-  # contrary, the build and test jobs defined below expect to share the same
-  # cache.
+  # each repository branch for each job a unique cache. While a sane default,
+  # this pipeline does *NOT* isolating each cache to each job. On the contrary,
+  # the build and test jobs defined below expect to share the same cache.
   #
   # For a human-readable list of permissible values for this setting, see also:
   #     https://docs.gitlab.com/ce/ci/yaml/README.html#cache-key
@@ -167,20 +159,15 @@ cache:
   # such a path (e.g., "$HOME").
   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   #
-  # List of the relative or absolute paths of all directories to be preserved
-  # between CI pipelines. (Note that relative paths are relative to the current
-  # build directory.)
+  # List of the relative or absolute dirnames of all directories to be
+  # preserved between CI pipelines. (Note that relative dirnames are relative
+  # to the current build directory.)
   paths:
     # Directory to which Anaconda persists this configuration's environment.
     - conda-env/
 
     # Directory to which Matplotlib caches metadata (e.g., on fonts).
     - mpl-cache/
-
-    # Directory to which pip caches artifacts pertaining to previously
-    # installed and possibly compiled dependencies.
-    # - pip-cache
-    # - $HOME/.cache/pip
 
 # ....................{ GLOBALS ~ script                  }....................
 # List of all external commands run *BEFORE* running those listed by the
@@ -198,27 +185,6 @@ before_script:
   #
   # Since this image provides such dependencies by default, this is ignored.
   # - apt-get install -y
-
-  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  # WARNING: Since this pipeline currently leverages the Anaconda-based "conda"
-  # manager rather than the pure-Python "pip" manager to install dependencies,
-  # the following command is vestigial and is preserved only for posterity.
-  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-  # Install all Python-specific dependencies via "pip". Dismantled, this is:
-  #
-  # * "--quiet", reducing output verbosity.
-  # * "--disable-pip-version-check", improving both space and time complexity
-  #   by preventing "pip" from unnecessarily upgrading itself.
-  # * "--cache-dir", redefining the same directory exported as an environment
-  #   variable above. While redundant, doing so increases the likelihood that
-  #   "pip" will actually respect this cache request.
-  # * "--upgrade-strategy", improving both space and time complexity by
-  #   preventing "pip" from unnecessarily upgrading dependencies already
-  #   satisfying application requirements.
-  # * "--requirement", the relative path of the file listing all dependencies
-  #   to be installed.
-  # - pip3 --quiet --disable-pip-version-check --cache-dir "${PIP_CACHE_DIR}" install --upgrade-strategy only-if-needed --requirement requirements.txt
 
   # Configure "conda" to run in headless mode. Dismantled, this is:
   #
@@ -274,10 +240,10 @@ before_script:
   #   * Supply packages (e.g., "pyside2").
   #   * Supply working packages (e.g., "graphviz", whose official package
   #     appears to suffer numerous well-known deficiencies under Windows).
-  # * Parity with BETSE's existing Anaconda package, which is hosted by
-  #   conda-forge for the above reasons and more. Parity with respect to
-  #   dependency installation increases the likelihood of parity between
-  #   testing results and the end user experience.
+  # * Parity with the existing Anaconda package for this application, which is
+  #   hosted by conda-forge for the above reasons and more. Parity with respect
+  #   to dependency installation increases the likelihood of parity between
+  #   testing results and end user experience.
   - conda config --add channels conda-forge
 
   # Install all mandatory and optional dependencies of this application into
@@ -298,11 +264,11 @@ before_script:
   #
   # In practice, however, that would be a terrible idea. There exists no
   # guarantee that the dependency list required by the most recent stable
-  # release of this application (and hence that Anaconda package) perfectly coincides with
-  # the dependency list required by the live version of this application exercised by this
-  # configuration. Moreover, doing so would also install PySide2 -- a
-  # heavyweight interactive dependency with no meaningful utility during
-  # testing.
+  # release of this application (and hence that Anaconda package) perfectly
+  # coincides with the dependency list required by the live version of this
+  # application exercised by this configuration. Moreover, doing so would also
+  # install PySide2 -- a heavyweight interactive dependency with no meaningful
+  # utility during testing.
   #
   # In short: "Explicit is still better than implicit."
   - conda install --quiet --file requirements-conda.txt
@@ -311,15 +277,16 @@ before_script:
   # possible (i.e., without copying this project into this environment).
   - python setup.py develop
 
-# ....................{ STAGES                             }....................
+# ....................{ STAGES                            }....................
 # List of all stages to be run by this pipeline (in order).
 #
 # In Gitlab-CI parlance, a "stage" is an abstract tag to which a "job" (defined
 # below) is assigned. Each job is *ALWAYS* tagged with exactly one stage,
-# defaulting to the "test" stage. All jobs tagged with the same stage are run in
-# parallel *BEFORE* all jobs tagged with the next stage in this list are run in
-# parallel. If any job fails, the entire stage to which that job belongs fails.
-# If any stage fails, the entire pipeline fails; else, the pipeline succeeds.
+# defaulting to the "test" stage. All jobs tagged with the same stage are run
+# in parallel *BEFORE* all jobs tagged with the next stage in this list are run
+# in parallel. If any job fails, the entire stage to which that job belongs
+# fails. If any stage fails, the entire pipeline fails; else, the pipeline
+# succeeds.
 #
 # Previously, this pipeline listed the following two stages:
 #
@@ -327,7 +294,7 @@ before_script:
 #       - build
 #       - test
 #
-# These stages were immplemented by the following two jobs:
+# These stages were implemented by the following two jobs:
 #
 # * "betse_build", implementing the "build" stage by installing dependencies.
 # * "betse_test", implementing the "test" stage by testing this application.
@@ -341,7 +308,7 @@ stages:
   # - build
   - test
 
-# ....................{ JOBS                               }....................
+# ....................{ JOBS                              }....................
 # In Gitlab-CI parlance, a "job" is a container of all Gitlab-CI configuration
 # metadata guaranteed to be enabled for the same duration of the pipeline time.
 # This contradicts conventional *nix-oriented parlance, in which a "job" is
@@ -354,7 +321,7 @@ stages:
 # official key, thus confining the action of that key (e.g., artifact building,
 # caching, script commands) to that job.
 
-# ....................{ JOBS ~ test                        }....................
+# ....................{ JOBS ~ test                       }....................
 # Test-specific job, exercising the entire test suite for this application.
 betse_test:
   # Stage to run this job under. Note that "test" is technically the default
@@ -364,20 +331,6 @@ betse_test:
 
   # List of all external commands run by this job.
   script:
-    #FIXME: For unknown reasons, this command causes spurious non-deterministic
-    #segmentation faults on both Windows *AND* POSIX-compatible platforms. This
-    #issue is almost certainly due to this command's attempt to unsafely
-    #exercise interactive matplotlib backends in non-interactive CI
-    #environments. For unknown reasons, the same command appears to succeed
-    #when encapsulated by a py.test test. Until this issue is resolved, refer
-    #to the logging output captured by the "test_cli_info" test.
-    #FIXME: Ah ha! The reason why the same command succeeds when encapsulated
-    #by a py.test test is that our test suite forces this application into
-    #headless mode by deleting the ${DISPLAY} environment variable. This
-    #suggests that, in theory, the following command could be safely enabled by
-    #improving the "betse" command to accept a new "--headless" option whose
-    #implementation deletes the ${DISPLAY} environment variable.
-
     # For debuggability, print metadata identifying the current version of this
     # application. Since the same metadata is also printed, captured, and
     # squelched by a functional test exercised by testing run below, doing so
@@ -386,13 +339,13 @@ betse_test:
     # readability, globally disabling output capturing is undesirable.
     # Dismantled, this is:
     #
-    # * "--matplotlib-backend=agg", preventing BETSE from erroneously attempting
-    #   to initialize an interactive-only matplotlib backend (e.g., "PyQt4").
-    #- betse --matplotlib-backend=agg info
+    # * "--headless", preventing this application from erroneously attempting
+    #   to initialize interactive-only matplotlib backends (e.g., "PyQt4").
+    - betse --headless info
 
     # Run the entire "py.test"-based test suite under the following options:
     #
-    # * "--maxfail=3", halting testing on the third failure. For discussion, see
-    #   the "betse_setup.test" submodule.
+    # * "--maxfail=3", halting testing on the third failure. For discussion,
+    #   see the "betse.lib.setuptool.command.supcmdtest" submodule.
     - py.test --maxfail=3
     # - py.test --maxfail=3 -s
