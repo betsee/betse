@@ -181,26 +181,6 @@ def die_unless_symlink(filename: str) -> None:
         raise DistutilsFileError(
             'Symbolic link "{}" not found.'.format(filename))
 
-# ....................{ EXCEPTIONS ~ python               }....................
-def die_unless_module(module_name: str, exception_message: str = None):
-    '''
-    Raise an exception with the passed message if the module with the passed
-    fully-qualified name (e.g., `astarte.ashtoreth.ishtar`) is unimportable.
-    '''
-
-    # If this module is unimportable, raise an exception.
-    if not is_module(module_name):
-        # If no message was passed, default this message.
-        if not exception_message:
-            exception_message = (
-                'Module "{}" not installed or not importable under '
-                'the current Python interpreter.'.format(module_name))
-        assert isinstance(exception_message, str), (
-            '"{}" not a string.'.format(exception_message))
-
-        # Raise this exception.
-        raise DistutilsModuleError(exception_message)
-
 # ....................{ TESTERS ~ os                      }....................
 def is_os_posix() -> bool:
     '''
@@ -321,32 +301,6 @@ def is_pathable(command_basename: str) -> bool:
 
     # Return whether this command is found or not.
     return shutil.which(command_basename) is not None
-
-# ....................{ TESTERS ~ module                  }....................
-def is_module(module_name: str) -> bool:
-    '''
-    `True` only if the module with the passed fully-qualified name is
-    importable under the active Python interpreter.
-
-    If this module is a **submodule** (i.e., contains a `.` character), all
-    parent modules of this module will be imported as a side effect of this
-    function call. Likewise, if this module is _not_ importable via standard
-    mechanisms (e.g., the OS X-specific `PyObjCTools` package), the module
-    itself may also be imported as a side effect.
-    '''
-
-    # See betse.util.python.modules.is_module() for implementation details.
-    assert isinstance(module_name, str), (
-        '"{}" not a string.'.format(module_name))
-    assert len(module_name), 'Module name empty.'
-    try:
-        return importlib.util.find_spec(module_name) is not None
-    except ValueError:
-        try:
-            importlib.import_module(module_name)
-            return True
-        except ImportError:
-            return False
 
 # ....................{ GETTERS ~ io                      }....................
 def get_command_output(*args) -> str:
@@ -585,23 +539,6 @@ def sanitize_command_basename(command_basename: str) -> str:
 
     # Else, return this basename as is.
     return command_basename
-
-# ....................{ IMPORTERS                         }....................
-def import_module(
-    module_name: str, exception_message: str = None) -> type(sys):
-    '''
-    Dynamically import and return the module, package, or C extension with the
-    passed fully-qualified name.
-
-    If this module is unimportable, an exception with the passed message is
-    raised.
-    '''
-
-    # If this module is unimportable, raise an exception.
-    die_unless_module(module_name, exception_message)
-
-    # Else, import and return this module.
-    return importlib.import_module(module_name)
 
 # ....................{ OUTPUTTERS                        }....................
 def output_sans_newline(*strings) -> None:

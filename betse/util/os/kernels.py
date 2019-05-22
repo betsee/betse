@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,17 +9,59 @@ system) facilities.
 
 Caveats
 ----------
-**Operating system-specific logic is poor form.** Do so _only_ where necessary.
+**Operating system-specific logic is poor form.** Do so *only* where necessary.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import platform
-
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
+from betse.util.type.types import type_check, VersionTypes
 
+# ....................{ TESTERS                           }....................
+@type_check
+def is_version_greater_than_or_equal_to(version: VersionTypes) -> bool:
+    '''
+    ``True`` only if the current kernel version is greater than or equal to the
+    passed version.
 
-# ....................{ GETTERS                            }....................
+    Parameters
+    ----------
+    version : VersionTypes
+        Version (e.g., ``1.0.2``, ``(1, 0, 2)``) to test the current kernel
+        version against.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if the current kernel version is greater than or equal to
+        this version.
+
+    Raises
+    ----------
+    pkg_resources.packaging.version.InvalidVersion
+        If this version is *not* `PEP 440-compliant`_.
+
+    .. _PEP 440-compliant:
+       https://www.python.org/dev/peps/pep-0440
+
+    See Also
+    ----------
+    :func:`get_version`
+        Further details.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.numeric import versions
+
+    # Current kernel version as a human-readable string.
+    kernel_version = get_version()
+
+    # Return true only if this version is greater than or equal to the passed
+    # version.
+    return versions.is_greater_than_or_equal_to(kernel_version, version)
+
+# ....................{ GETTERS                           }....................
 @func_cached
 def get_name() -> str:
     '''
@@ -29,56 +71,80 @@ def get_name() -> str:
     principal use case for this function's return value (e.g., for use in
     dictionaries keyed on kernel type). This function returns:
 
-    * Under Linux, `Linux`.
-    * Under macOS, `Darwin`.
-    * Under Windows (both Cygwin and vanilla), `Windows`.
-    * Under all other platforms, the string returned by the `platform.system()`
-      function.
+    * Under Linux, ``Linux``.
+    * Under macOS, ``Darwin``.
+    * Under Windows (both Cygwin and vanilla), ``Windows``.
+    * Under all other platforms, the string returned by the
+      :func:`platform.system` function.
     '''
 
     # Return platform.system() as is, which appears to exactly corresponding to
-    # the name of the current kernel on all platforms (e.g., "Darwin", "Linux").
+    # the name of the current kernel on all platforms (e.g., "Darwin").
     return platform.system()
 
 
 @func_cached
 def get_version() -> str:
     '''
-    Human-readable `.`-delimited version specifier of the current kernel.
+    Human-readable ``.``-delimited version specifier of the current kernel.
 
     This function returns:
 
-    * Under Linux, the current Linux kernel version (e.g., `4.1.15-gentoo-r1`),
-    * Under macOS, the current XNU kernel version (e.g., `13.0.0`).
-    * Under Windows, the current Windows API version (e.g., `6.2.9200`).
-    * Under all other platforms, the string returned by both the
-      `get_version()` and `platform.release()` functions.
+    * Under Linux, the current Linux kernel version (e.g.,
+      ``4.1.15-gentoo-r1``),
+    * Under macOS, the current XNU kernel version (e.g., ``13.0.0``).
+    * Under Windows, the current Windows kernel version (e.g., ``10.0.10240``).
+    * Under all other platforms, the string returned by the
+      :func:`platform.release` function.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
 
+    # Kernel version specifier to be returned.
+    kernel_version = None
+
+    # If the current platform is Windows, defer to the platform.version()
+    # function. For only this platform, this function returns the desired
+    # fine-grained Windows kernel version:
+    #
+    #     # Under Windows 10...
+    #     >>> import platform
+    #     >>> platform.release()
+    #     "10"
+    #     >>> platform.version()
+    #     "10.0.10240"
+    #     >>> platform.win32_ver()[1]
+    #     "6.2.9200"
+    #
+    # However, note that the above does *NOT* generalize to any other platform:
+    #
+    #     # Under Gentoo Linux...
+    #     >>> import platform
+    #     >>> platform.release()
+    #     "4.19.27-gentoo-r1"
+    #     >>> platform.version()
+    #     "#1 SMP Fri Apr 26 20:12:45 EDT 2019"
+    #
     # Version specifier to be returned, defaulting to that returned by
     # platform.release(). While this typically corresponds to the low-level
     # version of the current kernel (e.g., "4.1.15" under Linux, "13.0.0" under
     # macOS), this is *NOT* necessarily the case (e.g., "8" rather than
     # "6.2.9200" under Windows). Hence, this is only a fallback.
-    kernel_version = platform.release()
-
-    # If the Windows-specific platform.win32_ver() function is available, return
-    # the second element of the 4-tuple "(release, version, csd, ptype)"
-    # returned by this function (e.g., "6.2.9200"). Since platform.release()
-    # returns the high-level operating system version (e.g., "8"), this version
-    # is ignored when feasible.
-    if oses.is_windows() and hasattr(platform, 'win32_ver'):
-        kernel_version = platform.win32_ver()[1]
-    # If Linux, macOS, or other platforms, accept the default version specifier
-    # returned by platform.release() (e.g., "4.1.15", "13.0.0").
+    if oses.is_windows():
+        kernel_version = platform.version()
+    # Else, the current platform is *NOT* Windows. In this case, prefer the
+    # version specifier returned by the platform.release() function to the
+    # irrelevant timestamp returned by the platform.version() function.
+    # Ironically, the platform.version() function does *NOT* actually return a
+    # version specifier under most platforms. (Shaking my head.)
+    else:
+        kernel_version = platform.release()
 
     # Return this version.
     return kernel_version
 
-# ....................{ GETTERS ~ metadata                 }....................
+# ....................{ GETTERS ~ metadata                }....................
 def get_metadata() -> OrderedArgsDict:
     '''
     Ordered dictionary synopsizing the current kernel.

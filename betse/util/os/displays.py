@@ -7,8 +7,6 @@
 High-level operating system (OS)-specific display facilities.
 '''
 
-#FIXME: Call the set_headless() function if the "--headless" option is passed.
-
 #FIXME: Submit a Stackoverflow answer encapsulating this logic. The
 #osx.is_aqua() function in particular would be useful to a wide audience.
 
@@ -30,6 +28,42 @@ function returns this boolean rather than performing that detection.
 Defaults to ``None``, in which case the :func:`is_headless` function performs
 such detection rather than returning the value of this boolean.
 '''
+
+# ....................{ TESTERS                           }....................
+@func_cached
+def is_dpi_scaling() -> bool:
+    '''
+    ``True`` only if the current platform natively supports high-DPI scaling.
+
+    Specifically, if the current platform is:
+
+    * Linux *and* the active Python interpreter is running under a Wayland
+      compositor, this function returns ``True``.
+    * macOS, this function returns ``True``.
+    * Windows >= 10, this function returns ``True``. Technically, different
+      versions of Windows 10 allow end users to conditionally disable high-DPI
+      scaling for different use cases. Since detecting these versions and
+      settings in pure-Python is effectively infeasible, this function
+      simplistically assumes all installations of Windows 10 and newer to
+      unconditionally enable high-DPI scaling.
+
+    All other platforms are assumed to *not* natively support high-DPI scaling.
+    This includes both the Linux-centric X11 display server *and* all versions
+    of Windows preceding Windows 10 (i.e., Windows <= 8).
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.os.brand import linux, macos, windows
+
+    # Return true only if this platform is either...
+    return (
+        # A Linux distribution running Wayland *OR*...
+        linux.is_wayland() or
+        # macOS *OR*...
+        macos.is_aqua() or
+        # Windows >= 10.
+        windows.is_version_10_or_newer()
+    )
 
 # ....................{ TESTERS ~ head(full|less)         }....................
 # Note that the following public testers *CANNOT* be memoized (e.g., via the
@@ -201,9 +235,10 @@ def get_metadata() -> OrderedArgsDict:
 
     # Return this dictionary.
     return OrderedArgsDict(
-        'headless', is_headless(),
-        'aqua',     macos.is_aqua(),
-        'mir',      linux.is_mir(),
-        'wayland',  linux.is_wayland(),
-        'x11',      posix.is_x11(),
+        'headless',    is_headless(),
+        'dpi scaling', is_dpi_scaling(),
+        'aqua',        macos.is_aqua(),
+        'mir',         linux.is_mir(),
+        'wayland',     linux.is_wayland(),
+        'x11',         posix.is_x11(),
     )

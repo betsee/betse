@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -12,20 +12,22 @@ Operating system-specific logic is poor form and should be leveraged only where
 necessary.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
+import platform
 from betse.exceptions import BetseOSException
+from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import type_check, NoneType
 
-# ....................{ TYPES                              }....................
+# ....................{ TYPES                             }....................
 WindowsErrorType = NoneType
 '''
 Windows-specific :class:`WindowsError` class if the current platform is Windows
-_or_ the :class:`NoneType` class otherwise.
+*or* the :class:`NoneType` class otherwise.
 
-Since all exceptions subclass the root :class:`Exception` superclass _and_
+Since all exceptions subclass the root :class:`Exception` superclass *and*
 since the :class:`NoneType` class does not do so, this class is only an
 exception class under Windows. In particular, attempting to either catch this
-class as an exception _or_ to test whether a caught exception is an instance of
+class as an exception *or* to test whether a caught exception is an instance of
 this class is guaranteed to both be safe and behave as expected regardless of
 the current platform. In short: don't worry, be emoji.
 '''
@@ -37,10 +39,10 @@ try:
 except:
     pass
 
-# ....................{ CONSTANTS ~ error codes            }....................
+# ....................{ CONSTANTS ~ error codes           }....................
 # For conformance, the names of all error code constants defined below are
-# exactly as specified by Microsoft itself. Sadly, Python fails to provide these
-# magic numbers for us.
+# exactly as specified by Microsoft itself. Sadly, Python fails to provide
+# these magic numbers for us.
 
 _ERROR_INVALID_NAME = 123
 '''
@@ -52,7 +54,7 @@ https://msdn.microsoft.com/en-us/library/windows/desktop/ms681382%28v=vs.85%29.a
     Official listing of all such codes.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_unless_windows() -> None:
     '''
     Raise an exception unless the current platform is Microsoft Windows.
@@ -66,18 +68,48 @@ def die_unless_windows() -> None:
         raise BetseOSException(
             'Current platform {} not Windows.'.format(oses.get_name()))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_exception_pathname_invalid(exception: WindowsErrorType) -> bool:
     '''
-    `True` only if the passed Windows-specific exception was raised from an
+    ``True`` only if the passed Windows-specific exception was raised from an
     erroneous attempt to read or write an invalid pathname.
     '''
 
-    # Raise an exception unless the current platform is Windows.
+    # If the current platform is *NOT* Windows, raise an exception.
     die_unless_windows()
 
     # The above type checking guarantees this exception to be an instance
     # of the Windows-specific "WindowsError" class. Test the "winerror"
     # attribute exclusive to such intsances.
     return exception.winerror == _ERROR_INVALID_NAME
+
+# ....................{ TESTERS ~ version                 }....................
+@func_cached
+def is_version_10_or_newer() -> bool:
+    '''
+    ``True`` only if the current platform is Windows >= 10 (i.e., either
+    Windows 10 or a newer version of Windows).
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.os import kernels
+
+    # Return true only if the current Windows kernel version is at least 10.
+    return kernels.is_version_greater_than_or_equal_to('10.0.0')
+
+# ....................{ GETTERS                           }....................
+@func_cached
+def get_api_version() -> str:
+    '''
+    Human-readable ``.``-delimited version specifier of the Windows API
+    (WinAPI, Win32) underlying the current Windows installation (e.g.,
+    ``6.2.9200``).
+    '''
+
+    # If the current platform is *NOT* Windows, raise an exception.
+    die_unless_windows()
+
+    # Return the second item of the 4-tuple "(release, version, csd, ptype)"
+    # returned by this function.
+    return platform.win32_ver()[1]
