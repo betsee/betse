@@ -48,6 +48,47 @@ def init() -> None:
             'Consider running {name} only under a '
             '64-bit Python interpreter.'.format(name=metadata.NAME))
 
+# ....................{ TESTERS                           }....................
+@func_cached
+def is_conda() -> bool:
+    '''
+    ``True`` only if the active Python interpreter is managed by ``conda``, the
+    open-source, cross-platform, language-agnostic package manager provided by
+    the Anaconda and Miniconda distributions.
+
+    Specifically, this function returns ``True`` only if the
+    ``{sys.prefix}/conda-meta/history`` file exists such that:
+
+    * ``{sys.prefix}`` is the site-specific Python directory prefix. Under
+      Linux, this is typically:
+
+      * ``/usr`` for system-wide Python interpreters.
+      * A user-specific directory for ``conda``-based Python interpreters
+        (e.g., ``${HOME}/Miniconda3/envs/${CONDA_ENV_NAME}``).
+
+    * ``conda-meta/history`` is a file relative to this prefix guaranteed to
+      exist for *all* ``conda`` environments (including the base environment).
+      Since this file is unlikely to be created in non-``conda`` environments,
+      the existence of this file effectively guarantees this interpreter to be
+      managed by ``conda``.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/47730405/2809027
+        StackOverflow answer strongly inspiring this implementation.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import files, pathnames
+
+    # Absolute filename of a file relative to the site-specific Python
+    # directory prefix guaranteed to exist for all "conda" environments.
+    conda_history_filename = pathnames.join(
+        sys.prefix, 'conda-meta', 'history')
+
+    # Return true only if this file exists.
+    return files.is_file(conda_history_filename)
+
 # ....................{ TESTERS ~ wordsize                }....................
 @func_cached
 def is_wordsize_32() -> bool:
@@ -89,10 +130,13 @@ def get_wordsize() -> int:
     Size in bits of variables of internal type `Py_ssize_t` for the active
     Python interpreter.
 
-    This function is guaranteed to return:
+    Returns
+    ----------
+    int
+        If the active Python interpreter is:
 
-    * `64`, if this is a 64-bit interpreter.
-    * `32`, if this is a 32-bit interpreter.
+        * 64-bit, 64.
+        * 32-bit, 64.
     '''
 
     return 64 if is_wordsize_64() else 32
@@ -107,7 +151,7 @@ def get_version() -> str:
 
     return platform.python_version()
 
-# ....................{ GETTERS ~ filename                }....................
+# ....................{ GETTERS ~ path                    }....................
 @func_cached
 def get_command_line_prefix() -> list:
     '''
@@ -207,9 +251,10 @@ def get_metadata() -> 'OrderedArgsDict':
 
     # Return this dictionary.
     return OrderedArgsDict(
-        'version', get_version(),
+        'version',  get_version(),
         'wordsize', get_wordsize(),
-        'is frozen', pyfreeze.is_frozen(),
+        'conda',    is_conda(),
+        'frozen',   pyfreeze.is_frozen(),
     )
 
 # ....................{ ADDERS                            }....................

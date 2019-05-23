@@ -231,10 +231,9 @@ install:
 # List of all external commands to be run for each CI pipeline *AFTER* those
 # listed within "install" above.
 test_script:
-  #FIXME: See ".gitlab-ci.yml" for why this is currently disabled.
-  # For debuggability, print metadata identifying this BETSE release. See
-  # similar logic in ".gitlab-ci.yml" for details.
-  #- cmd: betse --matplotlib-backend=agg info
+  # For debuggability, print metadata identifying the current version of this
+  # application. See similar logic in ".gitlab-ci.yml" for details.
+  - cmd: betse --headless info
 
   # Run the following multiline Powershell script.
   - ps: |

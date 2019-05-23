@@ -7,8 +7,11 @@
 High-level support facilities for Numpy, a mandatory runtime dependency.
 '''
 
-#FIXME: Consider replacing bottleneck Numpy routines with routines imported from
-#the following third-party Numpy-like frameworks:
+#FIXME: Add detection support for NVBLAS, the Nvidia GPU-specific equivalent of
+#AMD's ACML. Naturally, further research is required.
+
+#FIXME: Consider replacing bottleneck Numpy routines with routines imported
+#from the following third-party Numpy-like frameworks:
 #
 #* "bottleneck", providing optimized routines accepting Numpy arrays --
 #  implemented in Cython and hence faster than comparible Numpy routines.
@@ -44,6 +47,7 @@ import numpy
 from betse.util.io.log import logs
 from betse.util.os import dlls, oses
 from betse.util.path import dirs, files, pathnames
+from betse.util.py import pys
 from betse.util.py.module import pymodname, pymodule
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.iterable import itersort
@@ -288,6 +292,7 @@ def _init_globals() -> None:
         _OPTIMIZED_BLAS_LINKED_LIB_DIRNAME_REGEX)
 
 # ....................{ TESTERS                           }....................
+@func_cached
 def is_blas_optimized() -> bool:
     '''
     ``True`` only if the currently installed version of Numpy is linked against
@@ -308,6 +313,10 @@ def is_blas_optimized() -> bool:
     # For each private tester implementing a heuristic for this public test (in
     # order of decreasing generality, portability, and reliability)...
     for tester_heuristic in (
+        # Detect conda-managed Numpy first, as doing so reduces to a single
+        # well-defined filesystem access and hence is guaranteed to be both the
+        # most optimal and portable solution.
+        _is_blas_optimized_conda,
         _is_blas_optimized_opt_info_libraries,
         _is_blas_optimized_opt_info_library_dirs,
         _is_blas_optimized_opt_info_macos,
@@ -342,10 +351,41 @@ def is_blas_optimized() -> bool:
     # optimized or non-optimized. For safety, assume the latter.
     return False
 
+# ....................{ TESTERS ~ private                 }....................
+def _is_blas_optimized_conda() -> BoolOrNoneTypes:
+    '''
+    ``True`` only if the active Python interpreter is managed by ``conda`` *or*
+    ``None`` otherwise (i.e., if this interpreter is managed by any other
+    means, typically a system-wide package manager).
+
+    If the active Python interpreter is managed by ``conda``, then the current
+    version of Numpy was necessarily installed from one of the following two
+    prominent Anaconda channels:
+
+    * ``anaconda``, the default proprietary Anaconda channel. In this case,
+      Anaconda guarantees Numpy to be linked against Intel Math Kernel Library
+      (MKL) and hence optimized.
+    * ``conda-forge``, the most popular third-party open-source Anaconda
+      channel. Since this and downstream applications are currently only
+      available from this channel, Numpy is typically installed from this
+      channel during this application's runtime. In this case, conda-forge
+      guarantees Numpy to be linked against OpenBLAS and hence optimized.
+
+    In either case, installing Numpy via ``conda`` effectively guarantees
+    optimization in all sensible use cases.
+    '''
+
+    # Ultimate freedom is a working one-liner.
+    #
+    # Note that we intentionally return "None" rather than "False" in the event
+    # that this interpreter is *NOT* managed by conda. (Returning "False" would
+    # erroneously halt the detection process here.)
+    return pys.is_conda() or None
+
 # ....................{ TESTERS ~ private : opt_info      }....................
 def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
     '''
-    ``True`` only" if the first element of the ``libraries`` list of the global
+    ``True`` only if the first item of the ``libraries`` list of the global
     :data:`numpy.__config__.blas_opt_info` dictionary heuristically
     corresponds to that of an optimized BLAS implementation, ``False`` if a
     non-fatal error condition arises (e.g., due this list or dictionary being
@@ -354,14 +394,14 @@ def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
     This function returns ``None`` when unable to deterministically decide this
     boolean, in which case a subsequent heuristic will attempt to do so.
 
-    Numpy does *not* define a public API directly defining this boolean. Numpy
-    does, however, define a private API defining a variety of metadata from
-    which this boolean is indirectly derivable: the :mod:`numpy.__config__`
+    Numpy does *not* define a public API exposing this boolean to callers.
+    Numpy only defines a private API defining a medley of metadata from which
+    this boolean is indirectly derivable: the :mod:`numpy.__config__`
     submodule. The :func:`numpy.distutils.misc_util.generate_config_py`
     function programmatically fabricates the contents of the
-    :mod:`numpy.__config__` submodule at Numpy installation time. This function
-    introspectively inspects these contents for uniquely identifying metadata
-    in a portable manner.
+    :mod:`numpy.__config__` submodule at Numpy installation time. Ergo, this
+    function introspectively inspects these contents for uniquely identifying
+    metadata in a portable manner.
     '''
 
     # Global BLAS linkage dictionary for this Numpy installation if any or
@@ -414,7 +454,7 @@ def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
 
 def _is_blas_optimized_opt_info_library_dirs() -> BoolOrNoneTypes:
     '''
-    ``True`` only" if the first element of the `library_dirs` list of the
+    ``True`` only if the first element of the `library_dirs` list of the
     global :data:`numpy.__config__.blas_opt_info` dictionary heuristically
     corresponds to that of an optimized BLAS implementation, ``False`` if a
     non-fatal error condition arises (e.g., due this list or dictionary being
@@ -464,7 +504,7 @@ def _is_blas_optimized_opt_info_library_dirs() -> BoolOrNoneTypes:
 
 def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     '''
-    ``True`` only" if the current platform is macOS *and* the
+    ``True`` only if the current platform is macOS *and* the
     ``extra_link_args`` list of the global
     :data:`numpy.__config__.blas_opt_info` dictionary both exists *and*
     heuristically corresponds to that of an optimized BLAS implementation
@@ -523,7 +563,7 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
 # ....................{ TESTERS ~ private : linkage       }....................
 def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     '''
-    ``True`` only" if the current platform is POSIX-compliant and hence
+    ``True`` only if the current platform is POSIX-compliant and hence
     supports symbolic links *and* the first item of the ``libraries`` list of
     the global :data:`numpy.__config__.blas_opt_info` dictionary is a symbolic
     link masquerading as either the unoptimized reference BLAS implementation
