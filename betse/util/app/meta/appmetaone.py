@@ -72,7 +72,7 @@ def die_if_app_meta() -> None:
     if is_app_meta():
         raise BetseMetaAppException(
             'Application metadata singleton already defined '
-            '(i.e., metaappton.set_app_meta() already called).')
+            '(i.e., appmetaone.set_app_meta() already called).')
 
 
 def die_unless_app_meta() -> None:
@@ -98,7 +98,7 @@ def die_unless_app_meta() -> None:
     if not is_app_meta():
         raise BetseMetaAppException(
             'Application metadata singleton undefined '
-            '(i.e., metaappton.set_app_meta() not called).')
+            '(i.e., appmetaone.set_app_meta() not called).')
 
 # ....................{ TESTERS                           }....................
 def is_app_meta() -> bool:
@@ -111,7 +111,7 @@ def is_app_meta() -> bool:
 
 # ....................{ GETTERS                           }....................
 # Avoid circular import dependencies.
-def get_app_meta() -> 'betse.util.app.meta.metaappabc.MetaAppABC':
+def get_app_meta() -> 'betse.util.app.meta.appmetaabc.AppMetaABC':
     '''
     **Application metadata singleton** (i.e., application-wide object
     synopsizing application metadata via read-only properties) if this
@@ -121,7 +121,7 @@ def get_app_meta() -> 'betse.util.app.meta.metaappabc.MetaAppABC':
 
     Returns
     ----------
-    MetaAppABC
+    AppMetaABC
         Application metadata singleton defined by the most recent call to the
         :func:`set_app_meta` function.
 
@@ -142,7 +142,7 @@ def get_app_meta() -> 'betse.util.app.meta.metaappabc.MetaAppABC':
 @type_check
 def set_app_meta(
     # Avoid circular import dependencies.
-    app_meta: 'betse.util.app.meta.metaappabc.MetaAppABC') -> None:
+    app_meta: 'betse.util.app.meta.appmetaabc.AppMetaABC') -> None:
     '''
     Set the **application metadata singleton** (i.e., application-wide object
     synopsizing application metadata via read-only properties) if this function
@@ -153,19 +153,19 @@ def set_app_meta(
     ----------
     **This function is not intended to be called explicitly.** While callers
     may safely do so, doing so should be entirely redundant. Why? Because the
-    :meth:`betse.util.app.meta.metaappabc.MetaAppABC.__init__` method already
+    :meth:`betse.util.app.meta.appmetaabc.AppMetaABC.__init__` method already
     does implicitly at instantiation time.
 
     **This function intentionally performs no logging.** Doing so would be
     unproductive. The first call to this function is implicitly performed by
-    the :func:`betse.util.app.meta.metaappabc.MetaAppABC.__init__` method
+    the :func:`betse.util.app.meta.appmetaabc.AppMetaABC.__init__` method
     *before* logging has been configured. All logging performed by that call
     (but *not* subsequent calls) would be silently squelched, which any sane
     caller would interpret to be a bug.
 
     Parameters
     ----------
-    app_meta : MetaAppABC
+    app_meta : AppMetaABC
         Application metadata singleton to be set.
     '''
 
@@ -201,7 +201,7 @@ def unset_app_meta() -> None:
 # ....................{ MAKERS                            }....................
 # Avoid circular import dependencies.
 def make_app_meta_betse(*args, **kwargs) -> (
-    'betse.util.app.meta.metaappabc.MetaAppABC'):
+    'betse.util.app.meta.appmetaabc.AppMetaABC'):
     '''
     Instantiate and set a BETSE-specific application metadata singleton if the
     :func:`set_app_meta` function has not already been called *and*, in either
@@ -218,28 +218,28 @@ def make_app_meta_betse(*args, **kwargs) -> (
     **This function does not initialize mandatory third-party dependencies.**
     To permit callers to configure such initialization, callers are required to
     explicitly call the
-    :meth:`betse.util.app.meta.metaappabc.MetaAppABC.init_libs` method on the
+    :meth:`betse.util.app.meta.appmetaabc.AppMetaABC.init_libs` method on the
     object returned by this function.
 
     Parameters
     ----------
     All parameters are passed as is to the
-    :meth:`betse.util.app.meta.metaappabc.MetaAppABC.init_sans_libs` method.
+    :meth:`betse.util.app.meta.appmetaabc.AppMetaABC.init_sans_libs` method.
 
     Returns
     ----------
-    betse.util.app.meta.metaappabc.MetaAppABC
+    betse.util.app.meta.appmetaabc.AppMetaABC
         Application metadata singleton.
     '''
 
     # Avoid circular import dependencies.
-    from betse.metaapp import BetseMetaApp
+    from betse.appmeta import BetseAppMeta
 
     # If no application metadata singleton has been instantiated, do so. Note
-    # that doing so implicitly calls the metaappton.set_app_meta() function on
+    # that doing so implicitly calls the appmetaone.set_app_meta() function on
     # our behalf, which is certainly nice.
     if not is_app_meta():
-        BetseMetaApp(*args, **kwargs)
+        BetseAppMeta(*args, **kwargs)
     # An application metadata singleton has now been instantiated.
 
     # Return this singleton.

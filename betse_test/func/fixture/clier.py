@@ -143,12 +143,12 @@ class CLITester(object):
 
         # Defer heavyweight imports to their point of use.
         from betse.__main__ import main
-        from betse.util.app.meta import metaappton
+        from betse.util.app.meta import appmetaone
 
         # Destroy the prior application metadata singleton if any. If this
         # common case is *NOT* handled, the call to the main() function below
         # raises an exception on attempting to reinstantiate this singleton.
-        metaappton.unset_app_meta()
+        appmetaone.unset_app_meta()
 
         # Prefixed this argument list by failure-friendly options.
         args_evolved = _CLI_OPTIONS_MANDATORY + args

@@ -11,8 +11,11 @@ Caveats
 **Operating system-specific logic is poor form.** Do so *only* where necessary.
 '''
 
+#FIXME: Shift all Windows-specific functionality into the existing
+#"betse.util.os.brand.windows" submodule.
+
 # ....................{ IMPORTS                           }....................
-import os, platform, sys
+import platform, sys
 from betse import metadata
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import func_cached
@@ -21,18 +24,18 @@ from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 # ....................{ INITIALIZERS                      }....................
 def init() -> None:
     '''
-    Validate the current operating system.
+    Validate the current platform.
 
     This function (in order):
 
-    #. Logs a non-fatal warning if this operating system is a non-WSL variant
+    #. Logs a non-fatal warning if this platform is a non-WSL variant
        of Microsoft Windows (e.g., vanilla Windows, Cygwin Windows).
-    #. Logs a non-fatal warning if this operating system is *not* recognized as
+    #. Logs a non-fatal warning if this platform is *not* recognized as
        officially supported by this application (e.g., BSD*, Solaris).
     '''
 
     # Log this validation.
-    logs.log_debug('Validating operating system...')
+    logs.log_debug('Validating platform...')
 
     # Human-readable string describing the set of all officially supported
     # platforms known to interoperate sanely with this application.
@@ -47,7 +50,7 @@ def init() -> None:
     # If this is a non-WSL Windows variant, log a non-fatal warning.
     if is_windows():
         logs.log_warning(
-            'Windows operating system detected. '
+            'Windows platform detected. '
             'Python itself and third-party scientific frameworks for Python '
             '(e.g., Numpy, Matplotlib) are well-known to behave suboptimally '
             'under Windows, '
@@ -58,14 +61,14 @@ def init() -> None:
     # non-fatal warning.
     if not is_supported():
         logs.log_warning(
-            'Unsupported operating system "%s" detected. %s',
+            'Unsupported platform "%s" detected. %s',
             get_name(), supported_oses)
 
 # ....................{ TESTERS                           }....................
 @func_cached
 def is_supported() -> bool:
     '''
-    ``True`` only if the current operating system is officially supported by
+    ``True`` only if the current platform is officially supported by
     this application.
 
     This function currently only returns ``True`` for the following platforms
@@ -78,57 +81,23 @@ def is_supported() -> bool:
     Caveats
     ----------
     This function returning ``True`` does *not* necessarily imply this
-    application to behave optimally under this operating system. In particular,
+    application to behave optimally under this platform. In particular,
     Microsoft Windows is officially supported by popular demand but well-known
     to behave suboptimally with respect to Python itself and third-party
     scientific frameworks for Python (e.g., Numpy, Matplotlib).
     '''
 
-    return is_linux() or is_macos() or is_windows()
+    # Avoid circular import dependencies.
+    from betse.util.os.brand import linux, macos, windows
 
-# ....................{ TESTERS ~ posix                   }....................
-@func_cached
-def is_posix() -> bool:
-    '''
-    ``True`` only if the current operating system complies with POSIX standards
-    (e.g., as required for POSIX-compliant symbolic link support).
-
-    Typically, this implies this system to *not* be vanilla Microsoft Windows
-    and hence to be either:
-
-    * A genuinely POSIX-compliant system.
-    * A Cygwin-based Windows application (e.g., CLI terminal, GUI application).
-    '''
-
-    return os.name == 'posix'
-
-
-@func_cached
-def is_linux() -> bool:
-    '''
-    ``True`` only if the current operating system is either Linux or an
-    operating system successfully masquerading to a sufficiently accurate
-    degree as Linux (e.g., the Windows Subsystem for Linux (WSL) but *not*
-    Cygwin Windows).
-    '''
-
-    return platform.system() == 'Linux'
-
-
-@func_cached
-def is_macos() -> bool:
-    '''
-    ``True`` only if the current operating system is Apple macOS, the operating
-    system previously known as "OS X."
-    '''
-
-    return platform.system() == 'Darwin'
+    # The drawing of the Three draws nigh.
+    return linux.is_linux() or macos.is_macos() or is_windows()
 
 # ....................{ TESTERS ~ windows                 }....................
 @func_cached
 def is_windows() -> bool:
     '''
-    ``True`` only if the current operating system is Microsoft Windows.
+    ``True`` only if the current platform is Microsoft Windows.
 
     This function reports ``True`` for both vanilla and Cygwin Microsoft
     Windows (both of which commonly require special Windows-specific handling)
@@ -143,7 +112,7 @@ def is_windows() -> bool:
 @func_cached
 def is_windows_cygwin() -> bool:
     '''
-    ``True`` only if the current operating system is **Cygwin Microsoft
+    ``True`` only if the current platform is **Cygwin Microsoft
     Windows** (i.e., running the Cygwin POSIX compatibility layer).
     '''
 
@@ -153,7 +122,7 @@ def is_windows_cygwin() -> bool:
 @func_cached
 def is_windows_vanilla() -> bool:
     '''
-    ``True`` only if the current operating system is **vanilla Microsoft
+    ``True`` only if the current platform is **vanilla Microsoft
     Windows** (i.e., *not* running the Cygwin POSIX compatibility layer).
     '''
 
@@ -163,7 +132,7 @@ def is_windows_vanilla() -> bool:
 @func_cached
 def is_windows_wsl() -> bool:
     '''
-    ``True`` only if the current operating system is **Windows Subsystem for
+    ``True`` only if the current platform is **Windows Subsystem for
     Linux (WSL)** (i.e., the Microsoft-flavoured Linux kernel optionally
     supported by Windows 10).
 
@@ -173,10 +142,14 @@ def is_windows_wsl() -> bool:
         Reddit post strongly inspiring this implementation.
     '''
 
-    # If this the active Python interpreter is *NOT* operating under a Linux
-    # kernel, return false immediately.
-    if not is_linux():
+    # Avoid circular import dependencies.
+    from betse.util.os.brand import linux
+
+    # If the active Python interpreter is *NOT* operating under a Linux kernel,
+    # return false immediately.
+    if not linux.is_linux():
         return False
+    # Else, this interpreter is operating under a Linux kernel.
 
     # Flavour of this Linux kernel.
     kernel_flavour = platform.uname()[3]
@@ -188,7 +161,7 @@ def is_windows_wsl() -> bool:
 @func_cached
 def get_name() -> str:
     '''
-    Human-readable name of the current operating system.
+    Human-readable name of the current platform.
 
     This function returns:
 
@@ -221,6 +194,9 @@ def get_name() -> str:
       :func:`platform.system` function.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.os.brand import linux, macos, windows
+
     # Name to be returned, defaulting to that returned by platform.system().
     # Since this typically corresponds to the low-level name of the current
     # kernel (e.g., "Darwin", "Linux") rather than the high-level name of the
@@ -228,7 +204,7 @@ def get_name() -> str:
     os_name = platform.system()
 
     # If Linux...
-    if is_linux():
+    if linux.is_linux():
         # If the Linux-specific platform.linux_distribution() function is
         # available, return the first item of the 3-tuple
         # (distname, version, id) returned by this function (e.g., "CentOS").
@@ -243,7 +219,7 @@ def get_name() -> str:
         # Else, reuse the name returned by the prior call to platform.system().
     # If macOS, return "macOS". Since platform.system() returns the low-level
     # kernel name "Darwin", this name is ignored.
-    elif is_macos():
+    elif macos.is_macos():
         os_name = 'macOS'
     # If Cygwin Windows, return "Windows (Cygwin)". Since platform.system()
     # returns a non-human-readable low-level uppercase label specific to the
@@ -270,15 +246,16 @@ def get_name() -> str:
 def get_version() -> str:
     '''
     Human-readable ``.``-delimited version specifier string of the current
-    operating system.
+    platform.
 
     This function returns:
 
     * Under Linux, the version reported by this Linux distribution as follows:
 
-      * If the :func:`platform.linux_distribution` function is available, the
-        second element of the 3-tuple returned by this function (e.g.,
-        ``6.4``).
+      * If the deprecated :func:`platform.linux_distribution` function is still
+        defined, the second element of the 3-tuple returned by this function
+        (e.g., ``6.4``).
+      * Else
       * Else, the string returned by the :func:`platform.release` function.
         Since this is probably the non-human-readable ``.``- and
         ``-``-delimited version specifier string of the current Linux kernel
@@ -294,24 +271,38 @@ def get_version() -> str:
       :func:`platform.release` function.
     '''
 
-    # Version specifier to be returned, defaulting to that returned by
-    # platform.release(). Since this typically corresponds to the low-level
-    # version of the current kernel (e.g., "4.1.15") rather than the high-level
-    # version of the current OS (e.g., "6.4"), this is only a fallback.
-    os_version = platform.release()
+    # Avoid circular import dependencies.
+    from betse.lib import libs
+    from betse.util.os.brand import linux, macos, windows
 
-    # If the Linux-specific platform.linux_distribution() function is
-    # available, return the second element of the 3-tuple "(distname, version,
-    # id)" returned by this function (e.g., "6.4"). Since platform.release()
-    # returns the low-level kernel version (e.g., "4.1.15"), this version is
-    # ignored when feasible.
-    if is_linux() and hasattr(platform, 'linux_distribution'):
-        os_version = platform.linux_distribution()[1]
+    # Version specifier to be returned.
+    os_version = None
+
+    # If Linux *AND*...
+    if linux.is_linux():
+        # If the deprecated Linux-specific platform.linux_distribution()
+        # function is still defined, return the second item of the 3-tuple
+        # "(distname, version, id)" returned by this function (e.g., "6.4").
+        # Since platform.release() returns the low-level kernel version (e.g.,
+        # "4.1.15"), this version is ignored when feasible.
+        if hasattr(platform, 'linux_distribution'):
+            os_version = platform.linux_distribution()[1]
+        # Else if the third-party Linux-specific "distro" package (referenced
+        # by official Python documentation as a stand-in replacement for the
+        # deprecated Linux-specific platform.linux_distribution() function) is
+        # importable, defer to this package.
+        elif libs.is_runtime_optional('distro'):
+            # Import this package.
+            distro = libs.import_runtime_optional('distro')
+
+            # For disambiguity, prefer the "best" (i.e., most specific and
+            # accurate) version specifier published by this Linux distribution.
+            os_version = distro.version(best=True)
     # If macOS *AND* the platform.mac_ver() function is available, return the
-    # first element of the 3-tuple returned by this function (e.g., "10.9").
-    # Since platform.release() returns the low-level kernel version
-    # (e.g., "13.0.0"), this version is ignored when feasible.
-    elif is_macos() and hasattr(platform, 'mac_ver'):
+    # first item of the 3-tuple returned by this function (e.g., "10.9"). Since
+    # platform.release() returns the low-level kernel version (e.g., "13.0.0"),
+    # this version is ignored when feasible.
+    elif macos.is_macos() and hasattr(platform, 'mac_ver'):
         # platform.mac_ver() returns a 3-tuple (release, versioninfo, machine)
         # of macOS-specific metadata, where "versioninfo" is itself a 3-tuple
         # (version, dev_stage, non_release_version). Return the high-level
@@ -325,13 +316,21 @@ def get_version() -> str:
     # conditionally available platform.win32_ver() function, there is no
     # benefit to the latter approach.
 
+    # If no platform-specific version specifier was detected above, default to
+    # the version specifier returned by the platform.release() function. Since
+    # this typically corresponds to the low-level version of the current kernel
+    # (e.g., "4.1.15") rather than the high-level version of the current OS
+    # (e.g., "6.4"), this is merely a fallback of last resort.
+    if os_version is None:
+        os_version = platform.release()
+
     # Return this version.
     return os_version
 
 # ....................{ GETTERS ~ metadata                }....................
 def get_metadata() -> OrderedArgsDict:
     '''
-    Ordered dictionary synopsizing the current operating system.
+    Ordered dictionary synopsizing the current platform.
     '''
 
     # Return this dictionary.

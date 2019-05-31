@@ -76,6 +76,9 @@ def is_conda() -> bool:
     ----------
     https://stackoverflow.com/a/47730405/2809027
         StackOverflow answer strongly inspiring this implementation.
+    https://github.com/conda/constructor/blob/2.0.1/constructor/install.py#L218-L234
+        Function in the ``conda`` codebase responsible for creating the
+        ``{sys.prefix}/conda-meta/history`` file.
     '''
 
     # Avoid circular import dependencies.
@@ -172,14 +175,14 @@ def get_command_line_prefix() -> list:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os import oses
+    from betse.util.os.brand import macos
 
     # List of such shell words.
     command_line = None
 
     # If this is OS X, this interpreter is only unambiguously runnable via the
     # OS X-specific "arch" command.
-    if oses.is_macos():
+    if macos.is_macos():
         # Run the "arch" command.
         command_line = ['arch']
 

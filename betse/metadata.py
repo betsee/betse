@@ -37,7 +37,7 @@ Note that Python < 3.4.0:
 Design
 ----------
 Metadata constants defined by this submodule are intentionally *not* defined as
-metadata properties of the :class:`betse.util.app.meta.metaappabc` abstract base
+metadata properties of the :class:`betse.util.app.meta.appmetaabc` abstract base
 class. Why? Because doing so would prevent their use from the top-level
 ``setup.py`` scripts defined by downstream consumers (e.g., BETSEE GUI), which
 would render these constants effectively useless for their principal use case.
@@ -325,7 +325,7 @@ have yet to be stabilized and hence tagged. Hence, this URL is typically valid
 
 # ....................{ METADATA ~ python                 }....................
 #FIXME: Replace all references to this global with
-#"betse.metaapp.app_meta.package_name", which supports both BETSE and BETSEE;
+#"betse.appmeta.app_meta.package_name", which supports both BETSE and BETSEE;
 #then excise this global.
 PACKAGE_NAME = NAME.lower()
 '''
@@ -335,7 +335,7 @@ application.
 
 
 #FIXME: Replace all references to this global with
-#"betse.metaapp.app_meta.package_name", which supports both BETSE and BETSEE;
+#"betse.appmeta.app_meta.package_name", which supports both BETSE and BETSEE;
 #then excise this global.
 SCRIPT_BASENAME = PACKAGE_NAME
 '''

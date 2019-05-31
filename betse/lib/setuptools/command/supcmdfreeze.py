@@ -386,7 +386,7 @@ class freeze(Command, metaclass=ABCMeta):
         '''
 
         # Defer heavyweight imports.
-        from betse.util.app.meta import metaappton
+        from betse.util.app.meta import appmetaone
         from betse.util.os.shell import shellenv
         from betse.util.path import files, pathnames
 
@@ -405,7 +405,7 @@ class freeze(Command, metaclass=ABCMeta):
         # Instead, we reverse-engineer the desired path via brute-force path
         # manipulation. Thus burns out another tawdry piece of my soul.
         module_filename = pathnames.join(
-            metaappton.get_app_meta().project_dirname,
+            appmetaone.get_app_meta().project_dirname,
             entry_point.module_name.replace('.', os.path.sep) + '.py')
 
         # Ensure such module exists.

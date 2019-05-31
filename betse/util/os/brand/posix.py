@@ -8,10 +8,47 @@ POSIX (Portable Operating System Interface)-specific facilities.
 '''
 
 # ....................{ IMPORTS                           }....................
+import os
+from betse.exceptions import BetseOSException
 # from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import func_cached
 
+# ....................{ EXCEPTIONS                        }....................
+def die_unless_posix() -> None:
+    '''
+    Raise an exception unless the current platform is POSIX-compatible.
+
+    See Also
+    ----------
+    :func:`is_posix`
+        Further details.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.os import oses
+
+    # If the current platform is POSIX-incompatible, raise an exception.
+    if not is_posix():
+        raise BetseOSException(
+            '{} not POSIX-compatible.'.format(oses.get_name()))
+
 # ....................{ TESTERS                           }....................
+@func_cached
+def is_posix() -> bool:
+    '''
+    ``True`` only if the current platform is **POSIX-compatible** (i.e.,
+    complies with the POSIX (Portable Operating System Interface) standard).
+
+    Typically, this implies this system to *not* be vanilla Microsoft Windows
+    and hence to be either:
+
+    * A genuinely POSIX-compliant system.
+    * A Cygwin-based Windows application (e.g., CLI terminal, GUI application).
+    '''
+
+    return os.name == 'posix'
+
+
 @func_cached
 def is_x11() -> bool:
     '''
@@ -32,11 +69,10 @@ def is_x11() -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os import oses
     from betse.util.os.shell import shellenv
 
     # If the current platform is *NOT* POSIX-compatible, return false.
-    if not oses.is_posix():
+    if not is_posix():
         return False
     # Else, the current platform is POSIX-compatible.
 

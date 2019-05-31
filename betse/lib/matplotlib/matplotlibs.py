@@ -68,6 +68,7 @@ from betse.util.io.error import errexception
 from betse.util.io.log import logconfig, logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.os import displays, kernels, oses
+from betse.util.os.brand import macos
 from betse.util.py.module import pymodname
 from betse.util.type.iterable import itersort
 from betse.util.type.decorator.decmemo import property_cached
@@ -920,7 +921,7 @@ class MplConfig(object):
 
         # If the current platform is *NOT* macOS, blacklist the "macosx"
         # backend usable only under macOS.
-        if not oses.is_macos():
+        if not macos.is_macos():
             backend_names_blacklist.add('macosx')
 
         # If headless, blacklist the "Qt5Agg" backend known to silently
@@ -1412,7 +1413,7 @@ class MplConfig(object):
                 #
                 # In short, no sane solution exists. The only sane solution is
                 # to refuse to play the game at all.
-                if backend_name == 'tkagg' and oses.is_macos():
+                if backend_name == 'tkagg' and macos.is_macos():
                     raise BetseMatplotlibException(
                         'Matplotlib backend "TkAgg" not '
                         'safely switchable to under macOS.')

@@ -28,7 +28,7 @@ from betse.util.io.log import logs
 from betse.util.os import displays
 from betse.util.path import files, pathnames
 from betse.util.type.decorator.decmemo import property_cached
-from betse.util.type.types import ModuleType, SequenceTypes
+from betse.util.type.types import SequenceTypes
 
 # ....................{ SUBCLASS                          }....................
 class BetseCLI(CLISubcommandableABC):
@@ -42,13 +42,6 @@ class BetseCLI(CLISubcommandableABC):
         running **headless** (i.e., with *no* access to a GUI display).
         Defaults to ``False``.
     '''
-
-    # ..................{ SUPERCLASS ~ property             }..................
-    @property
-    def _module_metadata(self) -> ModuleType:
-
-        from betse import metadata
-        return metadata
 
     # ..................{ SUPERCLASS ~ property : commands  }..................
     @property_cached

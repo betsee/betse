@@ -229,7 +229,7 @@ before_script:
 
   # Activate this environment (i.e., prepend the current ${PATH} by this
   # environment's top-level directory).
-  - source activate "${_CONDA_ENV_DIRNAME}"
+  - conda activate "${_CONDA_ENV_DIRNAME}"
 
   # Add the third-party "conda-forge" channel as the highest-priority channel,
   # ensuring that subsequently installed dependencies prefer the versions

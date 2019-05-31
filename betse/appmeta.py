@@ -17,13 +17,14 @@ synopsizing application metadata via read-only properties).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import betse
+from betse import metadata, metadeps
 from betse.util.app import apppath
-from betse.util.app.meta.metaappabc import MetaAppABC
+from betse.util.app.meta.appmetaabc import AppMetaABC
 from betse.util.type.decorator.decmemo import property_cached
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, ModuleType
 
 # ....................{ SUBCLASSES                        }....................
-class BetseMetaApp(MetaAppABC):
+class BetseAppMeta(AppMetaABC):
     '''
     **Application metadata singleton** (i.e., application-wide object
     synopsizing application metadata via read-only properties) subclass.
@@ -35,6 +36,15 @@ class BetseMetaApp(MetaAppABC):
     subclass is *not* guaranteed to exist at setuptools-based installation-time
     for downstream consumers (e.g., BETSEE).
     '''
+
+    # ..................{ SUPERCLASS ~ properties           }..................
+    @property
+    def module_metadata(self) -> ModuleType:
+        return metadata
+
+    @property
+    def module_metadeps(self) -> ModuleType:
+        return metadeps
 
     # ..................{ PROPERTIES ~ dir                  }..................
     @property_cached

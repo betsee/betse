@@ -11,7 +11,7 @@ third-party REPL packages (e.g., :mod:`code`, :mod:`ptpython`).
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse.util.app.meta import metaappton
+from betse.util.app.meta import appmetaone
 from betse.cli.repl import replenv
 from betse.lib import libs
 from betse.util.io.log import logs
@@ -99,7 +99,7 @@ def start_ptpython_repl() -> None:
     # If the "ptpython" key is missing from the dictionary of history
     # filenames, then default to no history file. This prevents the readline
     # history files being corrupted by ptpython's unique format.
-    history_filename = metaappton.get_app_meta().get_repl_history_filename(
+    history_filename = appmetaone.get_app_meta().get_repl_history_filename(
         'ptpython')
 
     # Run this REPL.
@@ -132,7 +132,7 @@ def start_code_repl() -> None:
 
     # Absolute path of the file persisting a REPL-specific history of commands.
     # Note this REPL leverages a "readline"-style history file format.
-    history_filename = metaappton.get_app_meta().get_repl_history_filename(
+    history_filename = appmetaone.get_app_meta().get_repl_history_filename(
         'readline')
     readline.set_history_length(1000)
 

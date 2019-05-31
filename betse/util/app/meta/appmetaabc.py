@@ -36,11 +36,12 @@ synopsizing application metadata via read-only properties) hierarchy.
 
 from abc import ABCMeta
 from betse.exceptions import BetseGitException
+from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import type_check, ModuleType, StrOrNoneTypes
 
 # ....................{ SUPERCLASSES                      }....................
-class MetaAppABC(object, metaclass=ABCMeta):
+class AppMetaABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **application metadata singleton** (i.e.,
     application-wide object synopsizing application metadata via read-only
@@ -92,14 +93,14 @@ class MetaAppABC(object, metaclass=ABCMeta):
         Design
         ----------
         Callers should avoid explicitly calling either the
-        :func:`betse.util.app.meta.metaappton.set_app_meta` setter or
+        :func:`betse.util.app.meta.appmetaone.set_app_meta` setter or
         :meth:`init_sans_libs` method, unless absolutely required for
         inconceivable reasons. Why? Because this method already calls those
         callables. Specifically, to enforce the contractual guarantees that:
 
         * Only a single such singleton be instantiated for the lifetime of this
           application, this method internally calls the
-          :func:`betse.util.app.meta.metaappton.set_app_meta` setter preserving
+          :func:`betse.util.app.meta.appmetaone.set_app_meta` setter preserving
           this guarantee.
         * Instantiating this singleton suffices to initialize this application
           (except third-party dependencies of this application), this method
@@ -119,12 +120,12 @@ class MetaAppABC(object, metaclass=ABCMeta):
         See Also
         ----------
         :meth:`init_sans_libs`
-        :meth:`betse.util.app.meta.metaappton.set_app_meta`
+        :meth:`betse.util.app.meta.appmetaone.set_app_meta`
             Further details.
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.app.meta import metaappton
+        from betse.util.app.meta import appmetaone
 
         # Localize all instance variables.
         #
@@ -134,7 +135,7 @@ class MetaAppABC(object, metaclass=ABCMeta):
         # Globalize this singleton *BEFORE* subsequent logic (e.g., the
         # logconfig.init() call performed by the self.init() call), any of
         # which could potentially require this singleton.
-        metaappton.set_app_meta(self)
+        appmetaone.set_app_meta(self)
 
         # Initialize this application.
         self.init_sans_libs(*args, **kwargs)
@@ -290,6 +291,41 @@ class MetaAppABC(object, metaclass=ABCMeta):
         else:
             self.init_libs(*args, **kwargs)
 
+    # ..................{ SUBCLASS ~ properties             }..................
+    # Subclasses are required to implement the following abstract properties.
+
+    @abstractproperty
+    def module_metadata(self) -> ModuleType:
+        '''
+        **Application-wide metadata submodule** (i.e., submodule publishing
+        general-purpose metadata as global constants synopsizing the current
+        application), imported for caller convenience.
+
+        If this application is:
+
+        * BETSE, this is the :mod:`betse.metadata` submodule.
+        * BETSEE, this is the :mod:`betsee.guimetadata` submodule.
+        '''
+
+        pass
+
+
+    @abstractproperty
+    def module_metadeps(self) -> ModuleType:
+        '''
+        **Application-wide dependency metadata submodule** (i.e., submodule
+        publishing lists of version-pinned dependencies as global constants
+        synopsizing all requirements of the current application), imported for
+        caller convenience.
+
+        If this application is:
+
+        * BETSE, this is the :mod:`betse.metadeps` submodule.
+        * BETSEE, this is the :mod:`betsee.guimetadeps` submodule.
+        '''
+
+        pass
+
     # ..................{ PROPERTIES ~ bool                 }..................
     @property_cached
     def is_git_worktree(self) -> bool:
@@ -301,6 +337,54 @@ class MetaAppABC(object, metaclass=ABCMeta):
         '''
 
         return self.git_worktree_dirname_or_none is not None
+
+    # ..................{ PROPERTIES ~ package              }..................
+    @property_cached
+    def package(self) -> ModuleType:
+        '''
+        **Root package** (i.e., topmost package for this application, typically
+        of the same name as this application and installed into a subdirectory
+        of the same name in the ``site-packages`` directory specific to the
+        active Python interpreter) for this application.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.py.module import pypackage
+
+        # Introspection for the glorious victory.
+        return pypackage.get_object_type_package_root(obj=self)
+
+
+    @property_cached
+    def package_name(self) -> str:
+        '''
+        Name of this application's root package (e.g., ``betse`` for BETSE).
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.py.module import pymodule
+
+        # By the power of Grayskull...
+        return pymodule.get_name_qualified(module=self.package)
+
+    # ..................{ PROPERTIES ~ package : test       }..................
+    @property_cached
+    def test_package_name(self) -> str:
+        '''
+        Name of the root package of this application's ancillary test suite
+        (e.g., ``betse_test`` for BETSE).
+
+        Caveats
+        ----------
+        **This package is typically not installed with this application,** as
+        tests are useless (or at least incidental) for most end user purposes.
+        Instead, this package is only distributed with tarballs archiving the
+        contents of this application's repository at stable releases time. This
+        package is *not* guaranteed to exist and, in fact, typically does not.
+        '''
+
+        # When our powers combine!
+        return self.package_name + '_test'
 
     # ..................{ PROPERTIES ~ dir                  }..................
     @property_cached
@@ -409,33 +493,35 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
         # Avoid circular import dependencies.
         from betse.util.os import oses
+        from betse.util.os.brand import macos, posix
         from betse.util.os.shell import shellenv
         from betse.util.path import dirs, pathnames
 
         # Absolute dirname of this directory.
         dot_dirname = None
 
-        # If the current platform is macOS, set the appropriate directory.
-        if oses.is_macos():
+        # If macOS, prefer a macOS-specific directory.
+        if macos.is_macos():
             dot_dirname = pathnames.join(
                 pathnames.get_home_dirname(),
                 'Library',
                 'Application Support',
                 self.package_name,
             )
-        # If the current platform is Windows, set the appropriate directory.
+        # If Windows, prefer a Windows-specific directory.
         elif oses.is_windows():
             dot_dirname = pathnames.join(
                 shellenv.get_var('APPDATA'), self.package_name)
-        # Else, assume the current platform to be POSIX-compatible.
+        # Else...
         else:
-            #FIXME: Explicitly assert POSIX compatibility here. To do so, we'll
-            #want to define and call a new betse.util.os.oses.die_unless_posix()
-            #function here.
+            # If this platform is POSIX-incompatible, raise an exception.
+            posix.die_unless_posix()
+
+            # Prefer a POSIX-compatible directory.
             dot_dirname = pathnames.join(
                 pathnames.get_home_dirname(), '.' + self.package_name)
 
-        # Create this directory if not found.
+        # Create this directory if needed.
         dirs.make_unless_dir(dot_dirname)
 
         # Return this dirname.
@@ -562,51 +648,3 @@ class MetaAppABC(object, metaclass=ABCMeta):
 
         # Return the absolute path of this file.
         return pathnames.join(self.dot_dirname, self.package_name + '.prof')
-
-    # ..................{ PROPERTIES ~ module : root        }..................
-    @property_cached
-    def package(self) -> ModuleType:
-        '''
-        **Root package** (i.e., topmost package for this application, typically
-        of the same name as this application and installed into a subdirectory
-        of the same name in the ``site-packages`` directory specific to the
-        active Python interpreter) for this application.
-        '''
-
-        # Avoid circular import dependencies.
-        from betse.util.py.module import pypackage
-
-        # Introspection for the glorious victory.
-        return pypackage.get_object_type_package_root(obj=self)
-
-
-    @property_cached
-    def package_name(self) -> str:
-        '''
-        Name of this application's root package (e.g., ``betse`` for BETSE).
-        '''
-
-        # Avoid circular import dependencies.
-        from betse.util.py.module import pymodule
-
-        # By the power of Grayskull...
-        return pymodule.get_name_qualified(module=self.package)
-
-    # ..................{ PROPERTIES ~ module : test        }..................
-    @property_cached
-    def test_package_name(self) -> str:
-        '''
-        Name of the root package of this application's ancillary test suite
-        (e.g., ``betse_test`` for BETSE).
-
-        Caveats
-        ----------
-        **This package is typically not installed with this application,** as
-        tests are useless (or at least incidental) for most end user purposes.
-        Instead, this package is only distributed with tarballs archiving the
-        contents of this application's repository at stable releases time. This
-        package is *not* guaranteed to exist and, in fact, typically does not.
-        '''
-
-        # When our powers combine!
-        return self.package_name + '_test'

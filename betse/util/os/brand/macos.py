@@ -8,6 +8,7 @@ Apple macOS-specific facilities.
 '''
 
 # ....................{ IMPORTS                           }....................
+import platform
 from betse.exceptions import BetseOSException
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import func_cached
@@ -63,17 +64,31 @@ https://opensource.apple.com/source/libsecurity_authorization/libsecurity_author
 def die_unless_macos() -> None:
     '''
     Raise an exception unless the current platform is Apple macOS.
+
+    See Also
+    ----------
+    :func:`is_macos`
+        Further details.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
 
     # If the current platform is *NOT* macOS, raise an exception.
-    if not oses.is_macos():
-        raise BetseOSException(
-            'Current platform {} not macOS.'.format(oses.get_name()))
+    if not is_macos():
+        raise BetseOSException('{} not macOS.'.format(oses.get_name()))
 
 # ....................{ TESTERS                           }....................
+@func_cached
+def is_macos() -> bool:
+    '''
+    ``True`` only if the current platform is Apple macOS, the operating
+    system previously known as "OS X."
+    '''
+
+    return platform.system() == 'Darwin'
+
+
 @func_cached
 def is_aqua() -> bool:
     '''
@@ -91,12 +106,11 @@ def is_aqua() -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os import oses
     from betse.util.path import files
     from betse.util.path.command.cmdexit import SUCCESS
 
     # If the current platform is *NOT* macOS, return false.
-    if not oses.is_macos():
+    if not is_macos():
         return False
     # Else, the current platform is macOS.
 

@@ -89,29 +89,30 @@ class symlink(install):
         '''
 
         # Defer heavyweight imports.
-        from betse.util.os import oses
+        from betse.util.os.brand import macos
         from betse.util.path import dirs, pathnames
         from betse.util.path.command import cmdrun, cmds
 
+        # Finalize superclass options.
         super().finalize_options()
 
         #FIXME: Replicate this functionality for the "install" command as well.
 
         # If the current system is OS X *AND* the OS X-specific Homebrew package
         # manager is installed...
-        if oses.is_macos() and cmds.is_cmd('brew'):
-            # Absolute path of Homebrew's top-level system-wide cellar
+        if macos.is_macos() and cmds.is_cmd('brew'):
+            # Absolute dirname of Homebrew's top-level system-wide cellar
             # directory (e.g., "/usr/local/Cellar").
             brew_cellar_dir = cmdrun.get_output_interleaved_or_die(
                 command_words=('brew', '--cellar'))
             #print('Here!')
 
-            # Absolute path of Homebrew's top-level system-wide directory
+            # Absolute dirname of Homebrew's top-level system-wide directory
             # (e.g., "/usr/local").
             brew_dir = cmdrun.get_output_interleaved_or_die(
                 command_words=('brew', '--prefix'))
 
-            # Absolute path of Homebrew's top-level system-wide binary
+            # Absolute dirname of Homebrew's top-level system-wide binary
             # directory (e.g., "/usr/local/bin").
             brew_binary_dir = pathnames.join(brew_dir, 'bin')
 
@@ -137,13 +138,13 @@ class symlink(install):
         '''
 
         # Defer heavyweight imports.
-        from betse.util.app.meta import metaappton
+        from betse.util.app.meta import appmetaone
         from betse.util.io import stderrs
-        from betse.util.os import oses
+        from betse.util.os.brand import posix
 
         # If the current operating system is POSIX-incompatible, this system
         # does *NOT* support conventional symbolic links. See details above.
-        if not oses.is_posix():
+        if not posix.is_posix():
             # Avoid circular import dependencies.
             from betse_setup import build
 
@@ -156,7 +157,7 @@ class symlink(install):
             )
 
             # Absolute dirname of this application's project directory.
-            project_dirname = metaappton.get_app_meta().project_dirname
+            project_dirname = appmetaone.get_app_meta().project_dirname
             # print('parent: ' + parent_dirname)
 
             # Prepend the template for subsequently installed entry points by a
@@ -208,13 +209,13 @@ class symlink_lib(install_lib):
     def run(self):
 
         # Defer heavyweight imports.
-        from betse.util.os import oses
+        from betse.util.os.brand import posix
         from betse.util.os.shell import shelldir
         from betse.util.path import files, pathnames
 
         # If the current operating system is POSIX-incompatible, such system
         # does *NOT* support conventional symbolic links. Return immediately.
-        if not oses.is_posix():
+        if not posix.is_posix():
             return
 
         # Absolute path of betse's top-level Python package in the current
@@ -330,13 +331,13 @@ class unsymlink(install):
         '''Run the current command and all subcommands thereof.'''
 
         # Defer heavyweight imports.
-        from betse.util.os import oses
+        from betse.util.os.brand import posix
         from betse.util.path import files, pathnames
 
         # If the current operating system is POSIX-compatible, such system
         # supports symbolic links. In such case, remove the previously
         # installed symbolic link.
-        if oses.is_posix():
+        if posix.is_posix():
             #FIXME: Define a new files.remove_symlink() function resembling the
             #existing buputils.remove_symlink() function.
             files.remove_symlink(pathnames.join(

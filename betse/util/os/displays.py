@@ -167,10 +167,10 @@ def _is_headless() -> bool:
         # current platform *MUST* be iteratively tested for.
         #
         # If Linux, the only remaining display servers are Mir and Wayland.
-        (oses.is_linux() and (linux.is_wayland() or linux.is_mir())) or
+        (linux.is_linux() and (linux.is_wayland() or linux.is_mir())) or
 
         # If macOS, the only remaining display server is Aqua.
-        (oses.is_macos() and macos.is_aqua())
+        (macos.is_macos() and macos.is_aqua())
 
         # Else, this platform is unrecognized. For safety, this platform is
         # assumed to be headless.

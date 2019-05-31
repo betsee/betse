@@ -8,11 +8,24 @@ Linux-specific facilities.
 '''
 
 # ....................{ IMPORTS                           }....................
+import platform
 # from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import StrOrNoneTypes
 
 # ....................{ TESTERS                           }....................
+@func_cached
+def is_linux() -> bool:
+    '''
+    ``True`` only if the current platform is either Linux or a platform
+    masquerading to a reasonably accurate degree as Linux (e.g., the Windows
+    Subsystem for Linux (WSL) but *not* Cygwin Windows, which is sufficiently
+    different to warrant differentiation).
+    '''
+
+    return platform.system() == 'Linux'
+
+
 @func_cached
 def is_mir() -> bool:
     '''
@@ -100,11 +113,10 @@ def _get_xdg_session_type_or_none() -> StrOrNoneTypes:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os import oses
     from betse.util.os.shell import shellenv
 
     # If the current platform is *NOT* Linux, return "None".
-    if not oses.is_linux():
+    if not is_linux():
         return None
     # Else, the current platform is Linux.
 

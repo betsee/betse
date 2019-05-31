@@ -23,11 +23,11 @@ been initialized, as is the common case.
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse.util.app.meta import metaappton as _metaappton
+from betse.util.app.meta import appmetaone as _metaappton
 
 # ....................{ MAIN                              }....................
 # Instantiate and set a BETSE-specific application metadata singleton if the
-# metaappton.set_app_meta() function has yet to be called elsewhere.
+# appmetaone.set_app_meta() function has yet to be called elsewhere.
 _app_meta = _metaappton.make_app_meta_betse()
 
 # Initialize all mandatory third-party dependencies if the

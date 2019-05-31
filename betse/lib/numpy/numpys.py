@@ -45,7 +45,8 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 # ....................{ IMPORTS                           }....................
 import numpy
 from betse.util.io.log import logs
-from betse.util.os import dlls, oses
+from betse.util.os import dlls
+from betse.util.os.brand import linux, macos, posix
 from betse.util.path import dirs, files, pathnames
 from betse.util.py import pys
 from betse.util.py.module import pymodname, pymodule
@@ -527,7 +528,7 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     '''
 
     # If the current platform is *NOT* macOS, continue to the next heuristic.
-    if not oses.is_macos():
+    if not macos.is_macos():
         return None
     # Else, the current platform is macOS.
 
@@ -573,9 +574,9 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     boolean, in which case a subsequent heuristic will attempt to do so.
     '''
 
-    # If the current platform is *NOT* POSIX-compliant and hence does *NOT*
+    # If the current platform is POSIX-incompatible and hence does *NOT*
     # support symbolic links, continue to the next heuristic.
-    if not oses.is_posix():
+    if not posix.is_posix():
         return None
 
     #FIXME: Generalize to macOS as well once the
@@ -585,7 +586,7 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     #
     # The libs.iter_linked_filenames() function called below currently only
     # supports Linux.
-    if not oses.is_linux():
+    if not linux.is_linux():
         return None
 
     # First element of the list of uniquely identifying substrings of all BLAS

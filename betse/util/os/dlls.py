@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,15 +8,15 @@ Low-level dynamically linked shared library facilities.
 
 Caveats
 ----------
-Shared library-specific logic is, by definition, operation system-specific logic
-and hence poor form. Do so _only_ where necessary.
+Shared library-specific logic is, by definition, operation system-specific
+logic and hence poor form. Do so *only* where necessary.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseLibException, BetseOSException
 from betse.util.type.types import type_check, GeneratorType
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 KERNEL_NAME_TO_DLL_FILETYPES = {
     # *ALL* Linux distributions.
     'Linux':   {'so',},
@@ -50,7 +50,7 @@ Dictionary mapping from the name of each possible platform returned by the
 filetypes signifying shared libraries supported by this platform.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS                        }....................
 def die_unless_dll(pathname: str) -> None:
     '''
     Raise an exception unless the passed path is that of an existing shared
@@ -66,7 +66,7 @@ def die_unless_dll(pathname: str) -> None:
         raise BetseLibException(
             '"{}" not a shared library.'.format(pathname))
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS                           }....................
 @type_check
 def is_dll(pathname: str) -> bool:
     '''
@@ -112,7 +112,7 @@ def is_dll(pathname: str) -> bool:
         files.is_file(pathname)
     )
 
-# ....................{ GENERATORS                         }....................
+# ....................{ GENERATORS                        }....................
 #FIXME: Add OS X support as well. Since OS X lacks the "ldd" command, doing
 #so will require parsing the output of the equivalent OS X-specific "otool"
 #command: e.g.,
@@ -125,19 +125,20 @@ def is_dll(pathname: str) -> bool:
 
 def iter_linked_filenames(filename: str) -> GeneratorType:
     '''
-    Generator iteratively yielding the 2-tuple of the basename and absolute path
-    of each shared library dynamically linked to (and hence required at runtime
-    by) the shared library with the passed path.
+    Generator iteratively yielding the 2-tuple of the basename and absolute
+    filename of each shared library dynamically linked to (and hence required
+    at runtime by) the shared library with the passed filename.
 
     Parameters
     ----------
     filename : str
-        Absolute or relative path of the shared library to inspect.
+        Absolute or relative filename of the shared library to inspect.
 
     Yields
     ----------
     (str, str)
-        2-tuple ``(linked_lib_basename, linked_lib_pathname``), where:
+        2-tuple ``(linked_lib_basename, linked_lib_pathname``) such that:
+
         * ``linked_lib_basename`` is the basename of a shared library
           dynamically linked to the shared library with the passed path.
         * ``linked_lib_pathname`` is the absolute pathname of the same library.
@@ -145,6 +146,7 @@ def iter_linked_filenames(filename: str) -> GeneratorType:
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
+    from betse.util.os.brand import linux
     from betse.util.path.command import cmdrun
     from betse.util.type.text import regexes
 
@@ -152,7 +154,7 @@ def iter_linked_filenames(filename: str) -> GeneratorType:
     die_unless_dll(filename)
 
     # If the current platform is Linux...
-    if oses.is_linux():
+    if linux.is_linux():
         # String listing all libraries linked to by this library captured from
         # stdout printed by this command. For example, when passed the absolute
         # path of the file defining the "numpy.core.multiarray" C extension,

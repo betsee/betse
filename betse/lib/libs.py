@@ -89,6 +89,19 @@ any such dependencies.
 #Ergo, given the above structure, we'd replace all import statements of the
 #form "from nimme.lib import nimlib" to
 #"from nimme.lib.nimlib import lib_resolver".
+#FIXME: Actually, the above is fairly heavyweight. Rather than introduce a new
+#superclass, it might be preferable to simply integrate the existing
+#"AppMetaABC" superclass into this submodule as follows:
+#
+#* Excise the "from betse import metadeps" importation.
+#* Add a new "from betse.util.app.meta import appmetaone" importation.
+#* Replace all existing references to the "metadeps" submodule sprinkled
+#  throughout this submodule with the following call chain:
+#    metadeps = appmetaone.get_app_meta().metadeps_module
+#* Excise the "betsee.lib.guilib" submodule.
+#* Replace all existing references to that submodule with references to this
+#  submodule (i.e., "betse.lib.libs") instead, which should now transparently
+#  support all downstream consumers.
 
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

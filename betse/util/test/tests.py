@@ -62,11 +62,11 @@ def is_testing() -> bool:
     # sanity in numerous ways and, in any case, is never desirable.
 
     # Avoid circular import dependencies.
-    from betse.util.app.meta import metaappton
+    from betse.util.app.meta import appmetaone
     from betse.util.py.module import pymodname
 
     # Name of the root package of this application's test suite.
-    test_package_name = metaappton.get_app_meta().test_package_name
+    test_package_name = appmetaone.get_app_meta().test_package_name
 
     # Return true only if this package has been previously imported from.
     return pymodname.is_imported(test_package_name)

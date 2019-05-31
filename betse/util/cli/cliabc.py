@@ -27,7 +27,6 @@ from betse.util.type.types import (
     type_check,
     ArgParserType,
     MappingType,
-    ModuleType,
     SequenceTypes,
     SequenceOrNoneTypes,
 )
@@ -158,20 +157,6 @@ class CLIABC(object, metaclass=ABCMeta):
 
         pass
 
-
-    #FIXME: Shift this property into the
-    #"betse.util.app.meta.metaappabc.MetaAppABC" superclass for generality.
-    @abstractproperty
-    def _module_metadata(self) -> ModuleType:
-        '''
-        Imported :mod:`betse.metadata` submodule specific to this application
-        (e.g., :mod:`betsee.guimetadata` for the BETSEE GUI).
-
-        This property exists principally to support alternate BETSE frontends.
-        '''
-
-        pass
-
     # ..................{ SUBCLASS ~ optional               }..................
     # The following methods may but need *NOT* be implemented by subclasses.
 
@@ -224,14 +209,18 @@ class CLIABC(object, metaclass=ABCMeta):
         '''
 
         # Avoid circular import dependencies.
+        from betse.util.app.meta import appmetaone
         from betse.util.path.command import cmds
+
+        # Application metadata singleton.
+        app_meta = appmetaone.get_app_meta()
 
         # Dictionary of all keyword arguments to be returned.
         arg_parser_top_kwargs = {
             # Human-readable multi-sentence application description. Since this
             # description is general-purpose rather than CLI-specific, format
             # substrings are *NOT* safely interpolatable into this string.
-            'description': self._module_metadata.DESCRIPTION,
+            'description': app_meta.module_metadata.DESCRIPTION,
 
             # Human-readable multi-sentence application help suffix.
             'epilog': self.expand_help(self._help_epilog),
@@ -282,7 +271,7 @@ class CLIABC(object, metaclass=ABCMeta):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.app.meta import metaappton
+        from betse.util.app.meta import appmetaone
         from betse.util.cli.cliopt import (
             CLIOptionArgEnum,
             CLIOptionArgStr,
@@ -292,12 +281,15 @@ class CLIABC(object, metaclass=ABCMeta):
         from betse.util.io.log.logenum import LogLevel
         from betse.util.path.command import cmds
 
-        # Singleton logging configuration for the current Python process.
+        # Application metadata singleton.
+        app_meta = appmetaone.get_app_meta()
+
+        # Logging configuration singleton.
         log_config = logconfig.get_log_conf()
 
         # Human-readable version specifier suitable for printing to end users.
         version_output = '{} {}'.format(
-            cmds.get_current_basename(), self._module_metadata.VERSION)
+            cmds.get_current_basename(), app_meta.module_metadata.VERSION)
 
         # List of all default top-level options to be returned.
         options_top = [
@@ -356,7 +348,7 @@ class CLIABC(object, metaclass=ABCMeta):
                 ),
                 var_name='profile_filename',
                 default_value=(
-                    metaappton.get_app_meta().profile_default_filename),
+                    app_meta.profile_default_filename),
             ),
         ]
 
@@ -490,12 +482,13 @@ class CLIABC(object, metaclass=ABCMeta):
         '''
 
         # Avoid circular import dependencies.
+        from betse.util.app.meta import appmetaone
         from betse.util.path.command import cmds
         from betse.util.type.text.string import strs
 
         # Expand it like Expander.
         return strs.remove_whitespace_presuffix(text.format(
-            program_name=self._module_metadata.NAME,
+            program_name=appmetaone.get_app_meta().module_metadata.NAME,
             script_basename=cmds.get_current_basename(),
             **kwargs
         ))
@@ -599,7 +592,7 @@ class CLIABC(object, metaclass=ABCMeta):
         #
         # Note that this logging is intentionally deferred from the earliest
         # time at which logging could technically be performed (namely, the
-        # MetaAppABC.init_sans_libs() method). Why? Because logging requires
+        # AppMetaABC.init_sans_libs() method). Why? Because logging requires
         # finalizing the logging configuration, which requires parsing *ALL*
         # command-line options. The disadvantage of this otherwise sane
         # approach is, of course, that this logging is deferred.
@@ -637,12 +630,15 @@ class CLIABC(object, metaclass=ABCMeta):
         Defaults to (re-)initializing all mandatory runtime dependencies of
         BETSE. Subclasses overriding this method to perform additional
         initialization must manually call the
-        :meth:`betse.util.app.meta.metaappabc.MetaAppABC.init_libs` method to
+        :meth:`betse.util.app.meta.appmetaabc.AppMetaABC.init_libs` method to
         initialize these dependencies.
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.app.meta import metaappton
+        from betse.util.app.meta import appmetaone
+
+        # Application metadata singleton.
+        app_meta = appmetaone.get_app_meta()
 
         # Name of the matplotlib backend to be initialized. Specifically:
         matplotlib_backend_name = (
@@ -655,8 +651,7 @@ class CLIABC(object, metaclass=ABCMeta):
         )
 
         # (Re-)initialize all mandatory runtime dependencies.
-        metaappton.get_app_meta().init_libs(
-            matplotlib_backend_name=matplotlib_backend_name)
+        app_meta.init_libs(matplotlib_backend_name=matplotlib_backend_name)
 
     # ..................{ LOGGERS                           }..................
     def _log_header(self) -> None:
@@ -667,7 +662,11 @@ class CLIABC(object, metaclass=ABCMeta):
         '''
 
         # Avoid circular import dependencies.
+        from betse.util.app.meta import appmetaone
         from betse import metadata as betse_metadata
+
+        # Metadata submodule specific to the current application.
+        app_metadata = appmetaone.get_app_meta().module_metadata
 
         # Log this in a manner suitable for downstream applications requiring
         # BETSE as an upstream dependency (e.g., BETSEE).
@@ -677,8 +676,8 @@ class CLIABC(object, metaclass=ABCMeta):
             '{betse_name} {betse_version} | '
             '{betse_codename}'
             '>>.'.format(
-                script_name=self._module_metadata.NAME,
-                script_version=self._module_metadata.VERSION,
+                script_name=app_metadata.NAME,
+                script_version=app_metadata.VERSION,
                 betse_name=betse_metadata.NAME,
                 betse_version=betse_metadata.VERSION,
                 betse_codename=betse_metadata.CODENAME,
@@ -698,7 +697,7 @@ class CLIABC(object, metaclass=ABCMeta):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.app.meta import metaappton
+        from betse.util.app.meta import appmetaone
         from betse.util.os import displays
         from betse.util.test import tests
         from betse.util.type.obj import objects
@@ -706,7 +705,7 @@ class CLIABC(object, metaclass=ABCMeta):
         # Log this metadata.
         logs.log_debug(
             'Application singleton "%s" established.',
-            objects.get_class_name_unqualified(metaappton.get_app_meta()))
+            objects.get_class_name_unqualified(appmetaone.get_app_meta()))
         logs.log_debug(
             'Default segementation fault handler enabled.')
         logs.log_debug(

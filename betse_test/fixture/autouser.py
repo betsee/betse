@@ -69,7 +69,7 @@ def betse_autouse() -> None:
 
     # Defer heavyweight imports.
     from betse.util.os import displays
-    from betse.util.app.meta import metaappton
+    from betse.util.app.meta import appmetaone
 
     # Prepend a leading newline, which py.test curiously neglects to do itself.
     print('\n')
@@ -78,8 +78,8 @@ def betse_autouse() -> None:
     print('[py.test] Initializing BETSE for testing...')
 
     # Instantiate and set a BETSE-specific application metadata singleton if
-    # the metaappton.set_app_meta() function has yet to be called.
-    app_meta = metaappton.make_app_meta_betse()
+    # the appmetaone.set_app_meta() function has yet to be called.
+    app_meta = appmetaone.make_app_meta_betse()
 
     # Coerce the active Python interpreter into running headless *AFTER*
     # initializing this singleton, which enables the default logging

@@ -15,7 +15,7 @@ This submodule is a thin wrapper intended to be:
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse.metaapp import BetseMetaApp
+from betse.appmeta import BetseAppMeta
 from betse.cli.climain import BetseCLI
 from betse.util.path.command import cmdexit
 
@@ -46,7 +46,7 @@ def main(arg_list: list = None) -> int:
     # Initialize this application (excluding mandatory dependencies of this
     # application, which will be initialized later in the startup process) by
     # instantiating the BETSE-specific application metadata singleton.
-    BetseMetaApp()
+    BetseAppMeta()
 
     # Implement this application by instantiating and running the
     # BETSE-specific command-line interface (CLI).
