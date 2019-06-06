@@ -13,6 +13,7 @@ from betse.util.type.types import GeneratorType
 from matplotlib.cbook import MatplotlibDeprecationWarning
 
 # ....................{ WARNINGS                          }....................
+#FIXME: Rename to ignoring_deprecations_mpl() for disambiguity.
 def deprecations_ignored() -> GeneratorType:
     '''
     Single-shot context manager temporarily ignoring all matplotlib-specific
@@ -25,4 +26,4 @@ def deprecations_ignored() -> GeneratorType:
         Further details.
     '''
 
-    return ignoring_warnings(warning_class=MatplotlibDeprecationWarning)
+    return ignoring_warnings(MatplotlibDeprecationWarning)

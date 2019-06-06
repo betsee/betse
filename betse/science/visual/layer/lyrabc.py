@@ -48,7 +48,7 @@ from betse.util.py import pyref
 from betse.util.type import types
 from betse.util.type.iterable import iterget
 from betse.util.type.decorator.deccls import abstractproperty
-from betse.util.type.obj import objects
+from betse.util.type.obj import objtest
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceOrNoneTypes,)
 from matplotlib.cm import ScalarMappable
@@ -507,7 +507,7 @@ class LayerCellsColorfulABC(LayerCellsABC):
         # For each previously passed color mappable...
         for color_mappable in self._color_mappables:
             # If this is *NOT* actually a mappable, raise an exception.
-            objects.die_unless_instance(
+            objtest.die_unless_instance(
                 obj=color_mappable, cls=ScalarMappable)
 
             # Clip this mappable to the minimum and maximum colormap values.

@@ -206,8 +206,8 @@ def die_unless_data_desc(data_desc: object) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.obj import objects
+    from betse.util.type.obj import objtest
 
     # Raise an exception unless all special methods required by the standard
     # data descriptor protocol are bound to this object.
-    objects.die_unless_has_method(data_desc, '__get__', '__set__')
+    objtest.die_unless_has_method(data_desc, '__get__', '__set__')

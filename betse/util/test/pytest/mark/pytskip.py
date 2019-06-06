@@ -158,7 +158,7 @@ def skip_unless_matplotlib_anim_writer(writer_name: str):
             'Matplotlib animation writer "{}" either '
             'not found or unrecognized.'.format(writer_name))
 
-# ....................{ SKIP ~ setuptools                 }....................
+# ....................{ SKIP ~ lib : optional             }....................
 @type_check
 def skip_unless_lib_runtime_optional(*lib_names: str):
     '''
@@ -185,13 +185,21 @@ def skip_unless_lib_runtime_optional(*lib_names: str):
     from betse.lib import libs
 
     # Skip this test if one or more such dependences are unsatisfiable.
+    #
+    # Note that the lower-level libs.die_unless_requirements_dict_keys()
+    # function is intentionally called in lieu of the higher-level
+    # libs.die_unless_runtime_optional() function. Why? Because the latter
+    # assumes the application metadata singleton to have already been
+    # initialized. Due to chicken-and-egg issues during test collection, this
+    # initialization cannot be guaranteed prior to such test collection. Ergo,
+    # the lower-level approach is preferred.
     return _skip_if_callable_raises_exception(
         exception_type=BetseLibException,
         func=libs.die_unless_runtime_optional,
         args=lib_names,
     )
 
-# ....................{ SKIP ~ setuptools : requirement   }....................
+# ....................{ SKIP ~ lib : requirement          }....................
 @type_check
 def skip_if_requirement(*requirements_str: str):
     '''

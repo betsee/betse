@@ -14,7 +14,7 @@ from betse.lib.yaml.abc.yamlabc import YamlABC
 # from betse.util.io.log import logs
 from betse.util.type.cls import classes
 from betse.util.type.iterable import iterget
-from betse.util.type.obj import objects
+from betse.util.type.obj import objtest
 from betse.util.type.types import (
     type_check, ClassType, MappingOrSequenceTypes, SequenceTypes)
 from collections.abc import MutableSequence
@@ -235,7 +235,7 @@ class YamlList(YamlABC, MutableSequence):
         # If the passed object is *NOT* an instance of the caller-defined type,
         # raise an exception. This type is specified at initialization time and
         # hence cannot be type-checked via a method annotation.
-        objects.die_unless_instance(obj=value, cls=self._item_type)
+        objtest.die_unless_instance(obj=value, cls=self._item_type)
 
         # Set the high-level list item with this index to this object.
         self._confs_wrap[index] = value
@@ -255,7 +255,7 @@ class YamlList(YamlABC, MutableSequence):
         # Raise an exception unless the passed object is an instance of the
         # desired API, which is specified at initialization time and hence
         # cannot be type checked above by a method annotation.
-        objects.die_unless_instance(obj=value, cls=self._item_type)
+        objtest.die_unless_instance(obj=value, cls=self._item_type)
 
         # Insert this object *BEFORE* the high-level list item with this index.
         self._confs_wrap.insert(index, value)

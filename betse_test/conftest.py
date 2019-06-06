@@ -36,7 +36,9 @@ from betse_test.fixture.simconf.simconfer import (
 # typically *NOT* manually required by specific tests, *AFTER* importing all
 # non-autouse fixtures possibly required by these autouse fixtures above.
 
-from betse_test.fixture.autouser import betse_autouse
+#FIXME: This fixture has been temporarily superceded by the
+#betse_test.conftest._init_app() function until inevitably required yet again.
+# from betse_test.fixture.autouser import betse_autouse
 
 # ....................{ GLOBALS                           }....................
 EXPORT_SIM_CONF_DIRNAME = None
@@ -51,15 +53,18 @@ See Also
     Further details.
 '''
 
-# ....................{ HOOKS ~ plugin                    }....................
+# ....................{ HOOKS ~ configure                 }....................
 def pytest_configure(config) -> None:
     '''
     Hook run immediately *after* both parsing all :mod:`pytest` command-line
     options and loading all third-party :mod:`pytest` plugins (including
-    application-specific ``conftest`` scripts).
+    application-specific ``conftest`` scripts) but *before* performing test
+    collection.
 
-    Specifically:
+    Specifically, this hook (in no particular order):
 
+    * Instantiates and initializes the application metadata singleton in a
+      manner suitable for unit testing.
     * The global :attr:`EXPORT_SIM_CONF_DIRNAME` variable is defined as follows
       for subsequent lookup from module scope (e.g., pytest markers):
 
@@ -69,6 +74,11 @@ def pytest_configure(config) -> None:
         relative dirname of the target directory to export and hence
         recursively copy each source simulation configuration directory into).
       * Else, this variable's value is ``None``.
+
+    See Also
+    ----------
+    :func:`_init_app`
+        Further details on application initialization.
     '''
 
     # Global variables to be set below.
@@ -80,12 +90,101 @@ def pytest_configure(config) -> None:
     # This is required as the "pytest.config" object is no longer safely
     # accessible from module scope. Attempting to do so now results in a
     # deprecation warning resembling:
-    #     PytestDeprecationWarning: the `pytest.config` global is deprecated.  Please use `request.config` or `pytest_configure` (if you're a pytest plugin) instead.
+    #     PytestDeprecationWarning: the `pytest.config` global is deprecated.
+    #     Please use `request.config` or `pytest_configure` (if you're a pytest
+    #     plugin) instead.
     #
     # This ad-hoc circmvention is shamelessly inspired by the following
     # exhaustive StackOverflow treatise on this subject:
     #     https://stackoverflow.com/a/51884507/2809027
     EXPORT_SIM_CONF_DIRNAME = config.getoption('export_sim_conf_dirname')
+
+    # Instantiate and initialize the application metadata singleton.
+    _init_app()
+
+
+def _init_app() -> None:
+    '''
+    Instantiate and initialize the application metadata singleton in a portable
+    manner suitable for unit testing.
+
+    Specifically, this fixture (in order):
+
+    #. Temporarily unsets the external ``${DISPLAY}`` environment variable if
+       currently set (e.g., to the X11-specific socket to be connected to
+       display GUI components) for the duration of this session. Allowing this
+       variable to remain set would allow tests erroneously attempting to
+       connect to an X11 server to locally succeed but remotely fail. Why?
+       Because headless continuous integration (CI) typically has no access to
+       an X11 server. Unsetting this variable ensures orthogonality between
+       these cases by coercing the former to fail as well.
+    #. Coerces the active Python interpreter into running **headless** (i.e.,
+       with *no* access to a GUI display). Allowing headfull operation would
+       would allow tests erroneously attempting to connect to an X11 server to
+       locally succeed but remotely fail, as headless continuous integration
+       (CI) pipelines typically have no access to an X11 server. Coercing
+       headlessness ensures orthogonality between these cases by coercing the
+       former to fail as well.
+    #. Initializes the application core.
+    #. Initializes all third-party dependencies thereof.
+    #. Enables the default non-interactive matplotlib backend ``Agg``,
+       *guaranteed* to be usable on all platforms. By default, matplotlib
+       enables an interactive backend (e.g., ``Qt5Agg``) unsuitable for use
+       under typically headless test automation.
+
+    Motivation
+    ----------
+    This function performs early test-specific initialization of this
+    application and dependencies thereof. Doing so prevents the magic
+    :func:`betse.science.__init__` function from attempting to perform a
+    subsequent test-agnostic initialization of either this application or
+    dependencies on the first importation of the :mod:`betse.science`
+    subpackage -- as in fixtures importing from that subpackage (e.g., the
+    :mod:`betse_test.fixture.simconf.simconfer` fixture importing the
+    :mod:`betse_test.fixture.simconf.simconfwrapper` submodule importing the
+    :med:`betse.science.config.confwrap` submodule).
+    '''
+
+    # Defer heavyweight imports.
+    from betse.util.os import displays
+    from betse.util.app.meta import appmetaone
+
+    # Prepend a leading newline, which py.test curiously neglects to do itself.
+    print('\n')
+
+    # Inform callers of application initialization.
+    print('[py.test] Initializing BETSE for testing...')
+
+    # Instantiate and set a BETSE-specific application metadata singleton if
+    # the appmetaone.set_app_meta() function has yet to be called.
+    app_meta = appmetaone.make_app_meta_betse_if_needed()
+
+    # Coerce the active Python interpreter into running headless *AFTER*
+    # initializing this singleton, which enables the default logging
+    # configuration to which this setter logs this operation.
+    #
+    # Note that this operation technically needs to be performed:
+    #
+    # * Only once for the entire test suite when py.test is *NOT* parallelized
+    #   with "xdist", in which case all tests run in the same process and hence
+    #   share the same global variables.
+    # * Once for each test when py.test is parallelized with "xdist", in which
+    #   case each test is run in a distinct subprocess and hence does *NOT*
+    #   share the same global variables.
+    #
+    # Since setting global variables is fast, doing so here transparently
+    # supports both use cases detailed above with no discernable downside. See
+    # the docstring for additional commentary.
+    displays.set_headless(True)
+
+    # Initialize all mandatory third-party dependencies with a standard
+    # non-interactive matplotlib backend guaranteed to exist *AFTER* coercing
+    # the active Python interpreter into running headless. Why? Because
+    # dependencies typically detect headless environments.
+    app_meta.init_libs(matplotlib_backend_name='Agg')
+
+    # Inform callers of the completion of this initialization.
+    print('[py.test] Initialized BETSE for testing.')
 
 
 def pytest_unconfigure(config) -> None:

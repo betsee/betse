@@ -35,8 +35,9 @@ See Also
 def pytest_addoption(parser: '_pytest.config.Parser') -> None:
     '''
     Hook run immediately on :mod:`pytest` startup *before* parsing command-line
-    arguments, typically registering test suite-specific :mod:`argparse`-style
-    options and ini-style config values.
+    arguments (and hence performing test collection), typically registering
+    application-specific :mod:`argparse`-style options and ini-style config
+    values.
 
     Options
     ----------
@@ -91,6 +92,10 @@ def pytest_addoption(parser: '_pytest.config.Parser') -> None:
 
 # ....................{ HOOKS ~ session                   }....................
 #FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?
+#Actually, this probably pertains to the following note in official
+#documentation: "If a pytest_sessionstart is contained in some subdirectories
+#conftest.py file, it will not be called." That said, this hook should
+#absolutely be callable from this top-level "conftest" plugin.
 def pytest_sessionstart(session):
     '''
     Hook run immediately *before* starting the current test session (i.e.,

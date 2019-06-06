@@ -102,11 +102,11 @@ def classproperty_readonly(getter: CallableTypes) -> ClassPropertyReadOnly:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.obj import objects
+    from betse.util.type.obj import objtest
 
     # If this getter is already a class-bound method wrapping an underlying
     # unbound function, raise an exception.
-    objects.die_if_instance(obj=getter, cls=ClassBoundMethodTypes)
+    objtest.die_if_instance(obj=getter, cls=ClassBoundMethodTypes)
 
     # Class method wrapping this getter.
     abstract_getter = classmethod(getter)
@@ -130,11 +130,11 @@ def abstractclassproperty_readonly(getter: CallableTypes) -> None:
 
     # Avoid circular import dependencies.
     from betse.util.type.decorator.deccls import abstractclassmethod
-    from betse.util.type.obj import objects
+    from betse.util.type.obj import objtest
 
     # If this getter is already a class-bound method wrapping an underlying
     # unbound function, raise an exception.
-    objects.die_if_instance(obj=getter, cls=ClassBoundMethodTypes)
+    objtest.die_if_instance(obj=getter, cls=ClassBoundMethodTypes)
 
     # Abstract class method wrapping this getter.
     abstract_getter = abstractclassmethod(getter)

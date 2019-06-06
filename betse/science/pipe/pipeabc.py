@@ -51,7 +51,7 @@ from betse.util.type.decorator.deccls import abstractmethod #, abstractproperty
 from betse.util.type.descriptor.descs import (
     abstractclassproperty_readonly, classproperty_readonly)
 from betse.util.type.iterable import itersort
-from betse.util.type.obj import objects, objiter
+from betse.util.type.obj import objects, objiter, objtest
 from betse.util.type.text.string import strs
 from betse.util.type.types import (
     type_check,
@@ -452,7 +452,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         # For each runner configuration specified for this pipeline...
         for runner_conf in self.iter_runners_conf(phase):
             # If this configuration is *NOT* YAML-backed, raise an exception.
-            objects.die_unless_instance(obj=runner_conf, cls=SimConfExportABC)
+            objtest.die_unless_instance(obj=runner_conf, cls=SimConfExportABC)
 
             # If this runner is disabled, log this fact and ignore this runner.
             if not runner_conf.is_enabled:

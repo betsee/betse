@@ -361,7 +361,7 @@ def get_key_value_or_default(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.obj import objects
+    from betse.util.type.obj import objtest
 
     # Value of this key in this mapping if any *OR* this default value.
     key_value = mapping.get(key, value_default)
@@ -370,15 +370,14 @@ def get_key_value_or_default(
     # (which by definition already satisfies caller requirements regardless of
     # type), type-check this value.
     if value_type is not None and key_value is not value_default:
-        objects.die_unless_instance(obj=key_value, cls=value_type)
+        objtest.die_unless_instance(obj=key_value, cls=value_type)
 
     # Return this value.
     return key_value
 
 # ....................{ COPIERS                           }....................
-#FIXME: Rename to copy_deep() for disambiguity.
 @type_check
-def copy_map(mapping: MappingType) -> MappingType:
+def copy_deep(mapping: MappingType) -> MappingType:
     '''
     Dictionary of all key-value pairs deeply (i.e., recursively) duplicated
     from the passed dictionary.
@@ -441,14 +440,14 @@ def copy_map_sans_key(mapping: MappingType, key: HashableType) -> MappingType:
 
     See Also
     ----------
-    :func:`copy_map`
+    :func:`copy_deep`
         Further details on map copying.
     :func:`remove_key`
         Further details on key removal.
     '''
 
     # Deep copy of this dictionary.
-    mapping_copy = copy_map(mapping)
+    mapping_copy = copy_deep(mapping)
 
     # Remove this key from this copy in-place.
     remove_key(mapping=mapping_copy, key=key)

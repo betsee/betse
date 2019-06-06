@@ -38,6 +38,7 @@ from abc import ABCMeta
 from betse.exceptions import BetseGitException
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.decorator.decmemo import property_cached
+from betse.util.type.obj import objtest
 from betse.util.type.types import type_check, ModuleType, StrOrNoneTypes
 
 # ....................{ SUPERCLASSES                      }....................
@@ -190,7 +191,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         # Avoid circular import dependencies.
         from betse.lib import libs
-        from betse.util.io.error import errfault
+        from betse.util.io.error import errfault, errwarning
         from betse.util.io.log import logconfig
         from betse.util.os import oses
         from betse.util.py import pys
@@ -200,10 +201,14 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # a segmentation fault and hence process termination.
         errfault.handle_faults()
 
-        # Enable our default logging configuration for the current Python
-        # process *BEFORE* performing any validation, thus logging any
-        # exceptions raised by this validation.
+        # Enable our default logging configuration *BEFORE* performing any
+        # validation to thus log exceptions raised by this validation.
         logconfig.init()
+
+        # Enable our default warning configuration *AFTER* enabling our default
+        # logging configuration that captures warnings but *BEFORE* performing
+        # any validation, which could conceivably attempt to emit warnings.
+        errwarning.init()
 
         # Validate mandatory dependencies. Avoid initializing these
         # dependencies now (e.g., by calling init_libs()). Doing so requires
@@ -295,7 +300,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
     # Subclasses are required to implement the following abstract properties.
 
     @abstractproperty
-    def module_metadata(self) -> ModuleType:
+    def _module_metadata(self) -> ModuleType:
         '''
         **Application-wide metadata submodule** (i.e., submodule publishing
         general-purpose metadata as global constants synopsizing the current
@@ -305,13 +310,19 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         * BETSE, this is the :mod:`betse.metadata` submodule.
         * BETSEE, this is the :mod:`betsee.guimetadata` submodule.
+
+        See Also
+        ----------
+        :meth:`module_metadata`
+            Concrete public property validating the module returned by this
+            abstract private property to expose the expected attributes.
         '''
 
         pass
 
 
     @abstractproperty
-    def module_metadeps(self) -> ModuleType:
+    def _module_metadeps(self) -> ModuleType:
         '''
         **Application-wide dependency metadata submodule** (i.e., submodule
         publishing lists of version-pinned dependencies as global constants
@@ -322,6 +333,12 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         * BETSE, this is the :mod:`betse.metadeps` submodule.
         * BETSEE, this is the :mod:`betsee.guimetadeps` submodule.
+
+        See Also
+        ----------
+        :meth:`module_metadeps`
+            Concrete public property validating the module returned by this
+            abstract private property to expose the expected attributes.
         '''
 
         pass
@@ -385,6 +402,80 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         # When our powers combine!
         return self.package_name + '_test'
+
+    # ..................{ SUBCLASS ~ module                 }..................
+    @property_cached
+    def module_metadata(self) -> ModuleType:
+        '''
+        **Application-wide metadata submodule** (i.e., submodule publishing
+        general-purpose metadata as global constants synopsizing the current
+        application), imported for caller convenience.
+
+        If this application is:
+
+        * BETSE, this is the :mod:`betse.metadata` submodule.
+        * BETSEE, this is the :mod:`betsee.guimetadata` submodule.
+
+        See Also
+        ----------
+        :meth:`_module_metadata`
+            Abstract private property returning the module validated by this
+            concrete public property to expose the expected attributes.
+        '''
+
+        # Application-wide metadata submodule to be validated and returned.
+        module_metadata = self._module_metadata
+
+        # Validate this submodule to expose the expected attributes. For
+        # sanity, we validate only a proper subset of the complete set of
+        # attributes exposed by this submodule.
+        objtest.die_unless_has_attr(
+            module_metadata,
+            'NAME', 'LICENSE',
+            'VERSION', 'VERSION_PARTS',
+            'SYNOPSIS', 'DESCRIPTION',
+        )
+
+        # Return this validated submodule.
+        return module_metadata
+
+
+    @property_cached
+    def module_metadeps(self) -> ModuleType:
+        '''
+        **Application-wide dependency metadata submodule** (i.e., submodule
+        publishing lists of version-pinned dependencies as global constants
+        synopsizing all requirements of the current application), imported for
+        caller convenience.
+
+        If this application is:
+
+        * BETSE, this is the :mod:`betse.metadeps` submodule.
+        * BETSEE, this is the :mod:`betsee.guimetadeps` submodule.
+
+        See Also
+        ----------
+        :meth:`_module_metadeps`
+            Abstract private property returning the module validated by this
+            concrete public property to expose the expected attributes.
+        '''
+
+        # Application-wide dependency metadata submodule to be validated and
+        # returned.
+        module_metadeps = self._module_metadeps
+
+        # Validate this submodule to expose the expected attributes. For
+        # sanity, we validate only a proper subset of the complete set of
+        # attributes exposed by this submodule.
+        objtest.die_unless_has_attr(
+            module_metadeps,
+            'RUNTIME_MANDATORY', 'RUNTIME_OPTIONAL',
+            'TESTING_MANDATORY',
+            'REQUIREMENT_NAME_TO_COMMANDS', 'RequirementCommand',
+        )
+
+        # Return this validated submodule.
+        return module_metadeps
 
     # ..................{ PROPERTIES ~ dir                  }..................
     @property_cached

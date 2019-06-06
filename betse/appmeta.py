@@ -39,11 +39,11 @@ class BetseAppMeta(AppMetaABC):
 
     # ..................{ SUPERCLASS ~ properties           }..................
     @property
-    def module_metadata(self) -> ModuleType:
+    def _module_metadata(self) -> ModuleType:
         return metadata
 
     @property
-    def module_metadeps(self) -> ModuleType:
+    def _module_metadeps(self) -> ModuleType:
         return metadeps
 
     # ..................{ PROPERTIES ~ dir                  }..................

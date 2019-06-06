@@ -22,13 +22,21 @@ This submodule silently reduces to a noop when this application has already
 been initialized, as is the common case.
 '''
 
+#FIXME: Enforce BETSE initialization on the first import of any BETSE submodule
+#by shifting the entirety of this submodule to "betse.__init__" *AFTER*
+#stripping out the "betse.lib" and "betse.util" subpackages into a new
+#third-party "brutil" package. Why after? Because shifting this submodule now
+#would prevent downstream consumers (e.g., BETSEE) from setting the application
+#metadata singleton to a downstream preference, which would be bad. Indeed,
+#this is the best justification for "brutil" we've stumbled over yet.
+
 # ....................{ IMPORTS                           }....................
-from betse.util.app.meta import appmetaone as _metaappton
+from betse.util.app.meta import appmetaone as _appmetaone
 
 # ....................{ MAIN                              }....................
 # Instantiate and set a BETSE-specific application metadata singleton if the
 # appmetaone.set_app_meta() function has yet to be called elsewhere.
-_app_meta = _metaappton.make_app_meta_betse()
+_app_meta = _appmetaone.make_app_meta_betse_if_needed()
 
 # Initialize all mandatory third-party dependencies if the
 # _app_meta.init_libs() method has yet to be called elsewhere.
@@ -37,4 +45,4 @@ _app_meta.init_libs_if_needed()
 # ....................{ CLEANUP                           }....................
 # Delete *ALL* attributes (including callables) defined above, preventing the
 # package namespace from being polluted with these attributes.
-del _metaappton, _app_meta
+del _appmetaone, _app_meta

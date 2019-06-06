@@ -83,8 +83,7 @@ tasks (e.g., installation, freezing, test running) for this application.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import setuptools
-from betse import metadata
-from betse.lib import libs
+from betse import metadata, metadeps
 from betse.lib.setuptools.command import (
     supcmdfreeze, supcmdsymlink, supcmdtest)
 from betse_setup import bupbuild, buputil
@@ -169,7 +168,7 @@ _setup_options = {
 
     # ..................{ DEPENDENCIES                      }..................
     # Mandatory runtime dependencies.
-    'install_requires': libs.get_runtime_mandatory_tuple(),
+    'install_requires': metadeps.get_runtime_mandatory_tuple(),
 
     # Optional nuntime dependencies. Whereas mandatory dependencies are defined
     # as sequences, optional dependencies are defined as a dictionary mapping
@@ -181,11 +180,11 @@ _setup_options = {
     # mandatory and optional dependencies required by the application).
     'extras_require': {
         # All optional runtime dependencies.
-        'all': libs.get_runtime_optional_tuple(),
+        'all': metadeps.get_runtime_optional_tuple(),
     },
 
     # Mandatory testing dependencies.
-    'tests_require': libs.get_testing_mandatory_tuple(),
+    'tests_require': metadeps.get_testing_mandatory_tuple(),
 
     # ..................{ PACKAGES                          }..................
     # List of the fully-qualified names of all Python packages (i.e.,

@@ -12,97 +12,6 @@ submodules (e.g., :mod:`betse.util.cli.cliabc`) *before* attempting to import
 any such dependencies.
 '''
 
-#FIXME: Refactor *ALL* functions defined by this submodule into methods of a
-#new "LibResolverABC" superclass -- except the following, which are called by
-#setuptools at installation-time and hence *MUST* reside outside this API for
-#copy-and-paste-style reuse by downstream consumers:
-#
-#* get_runtime_mandatory_tuple().
-#* get_runtime_optional_tuple().
-#* get_testing_mandatory_tuple().
-#FIXME: Ideally eliminate the boilerplate repeated across the equivalent of
-#this submodule in BETSE, BETSEE, and so on by generalizing this functionality.
-#To do so, we might consider:
-#
-#* Define a new "betse.util.py.abc.pylibabc" submodule (...or some such).
-#* Define a new "LibResolverABC" abstract base class in this submodule.
-#* Define a new "_metadeps" abstract property of this class, returning an
-#  actual imported module of type "ModuleType".
-#* For each top-level public function defined by this "nimlib" submodule,
-#  define a corresponding *CONCRETE* public method of the same name in this
-#  class. The implementation of each such method should defer to the
-#  aforementioned "_metadeps" abstract property of this class.
-#* Define a new "NimmeLibResolver(LibResolverABC)" subclass in this submodule.
-#  Ideally, the only attribute defined by this subclass should be the
-#  "_metadeps" attribute.
-#* Instantiate a public singleton instance of this class in this submodule.
-#* Rewrite all external import statements referencing this submodule to
-#  instead reference that instance.
-#* Remove all top-level public functions defined from this "nimlib" submodule.
-#
-#As a succinct example:
-#
-#    # In "betse.util.py.abc.pylibabc".
-#    class LibResolverABC(metaclass=ABCMeta):
-#        ...
-#
-#        @abstractproperty
-#        def _metadeps(self) -> ModuleType:
-#            pass
-#
-#
-#        def die_unless_runtime_mandatory_all(self) -> None:
-#            '''
-#            Raise an exception unless all mandatory runtime dependencies of this
-#            application are **satisfiable** (i.e., both importable and of a
-#            satisfactory version) *and* all external commands required by these
-#            dependencies (e.g., GraphViz's ``dot`` command) reside in the current
-#            ``${PATH}``.
-#
-#            Raises
-#            ----------
-#            BetseLibException
-#                If at least one mandatory runtime dependency is unsatisfiable.
-#
-#            See Also
-#            ----------
-#            :func:`betse_libs.die_unless_runtime_mandatory_all`
-#                Further details.
-#            '''
-#
-#            betse_libs.die_unless_requirements_dict(
-#                self._metadeps.RUNTIME_MANDATORY)
-#
-#        ...
-#
-#
-#    # In this submodule.
-#    from nimme import nimmetadeps
-#
-#    class NimmeLibResolver(LibResolverABC):
-#        @property
-#        def _metadeps(self) -> ModuleType:
-#            return nimmetadeps
-#
-#    lib_resolver = NimmeLibResolver()
-#
-#Ergo, given the above structure, we'd replace all import statements of the
-#form "from nimme.lib import nimlib" to
-#"from nimme.lib.nimlib import lib_resolver".
-#FIXME: Actually, the above is fairly heavyweight. Rather than introduce a new
-#superclass, it might be preferable to simply integrate the existing
-#"AppMetaABC" superclass into this submodule as follows:
-#
-#* Excise the "from betse import metadeps" importation.
-#* Add a new "from betse.util.app.meta import appmetaone" importation.
-#* Replace all existing references to the "metadeps" submodule sprinkled
-#  throughout this submodule with the following call chain:
-#    metadeps = appmetaone.get_app_meta().metadeps_module
-#* Excise the "betsee.lib.guilib" submodule.
-#* Replace all existing references to that submodule with references to this
-#  submodule (i.e., "betse.lib.libs") instead, which should now transparently
-#  support all downstream consumers.
-
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory
@@ -111,12 +20,13 @@ any such dependencies.
 # packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from betse import metadeps
 from betse.exceptions import BetseLibException
 # from betse.util.io.log import logs
+from betse.util.app.meta import appmetaone
 from betse.util.py.module import pymodname
+from betse.util.type.iterable import itertest
 from betse.util.type.types import (
-    type_check, MappingType, ModuleOrSequenceTypes)
+    type_check, MappingType, ModuleOrSequenceTypes, SequenceTypes)
 
 # ....................{ EXCEPTIONS                        }....................
 def die_unless_runtime_mandatory_all() -> None:
@@ -141,6 +51,10 @@ def die_unless_runtime_mandatory_all() -> None:
         If at least one mandatory runtime dependency is unsatisfiable.
     '''
 
+    # Application-wide dependency metadata submodule.
+    metadeps = appmetaone.get_app_meta().module_metadeps
+
+    # If at least one passed dependency is unsatisfied, raise an exception.
     die_unless_requirements_dict(metadeps.RUNTIME_MANDATORY)
 
 
@@ -172,6 +86,10 @@ def die_unless_runtime_optional(*requirement_names: str) -> None:
         Further details.
     '''
 
+    # Application-wide dependency metadata submodule.
+    metadeps = appmetaone.get_app_meta().module_metadeps
+
+    # If at least one passed dependency is unsatisfied, raise an exception.
     die_unless_requirements_dict_keys(
         metadeps.RUNTIME_OPTIONAL, *requirement_names)
 
@@ -183,6 +101,13 @@ def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
     dictionary are **satisfiable** (i.e., both importable and of a satisfactory
     version) *and* all external commands required by these dependencies (e.g.,
     GraphViz's ``dot`` command) reside in the current ``${PATH}``.
+
+    Parameters
+    ----------
+    requirements_dict : MappingType
+        Dictionary mapping from the names of all :mod:`setuptools`-specific
+        projects implementing these dependencies to the requirements strings
+        constraining these dependencies.
 
     Raises
     ----------
@@ -276,11 +201,10 @@ def die_unless_command(*requirement_names: str) -> None:
     if not is_command(*requirement_names):
         # For the name of each such dependency...
         for requirement_name in requirement_names:
-            # For each "betse.metadata.DependencyCommand" instance
-            # describing each external command required by this dependency if
-            # any *OR* the empty tuple otherwise...
-            for dependency_command in metadeps.EXTERNAL_COMMANDS.get(
-                requirement_name, ()):
+            # For each "RequirementCommand" instance describing an external
+            # command required by this dependency...
+            for dependency_command in _iter_requirement_commands(
+                requirement_name):
                 # If this command is *NOT* in the ${PATH}, raise an exception.
                 if not cmdpath.is_pathable(dependency_command.basename):
                     raise BetseLibException(
@@ -311,17 +235,15 @@ def is_command(*requirement_names: str) -> bool:
     # Avoid circular import dependencies.
     from betse.util.path.command import cmdpath
 
-    # Return True only if...
+    # Return true only if...
     return all(
         # Each external command required by each dependency is in the ${PATH}.
         cmdpath.is_pathable(dependency_command.basename)
         # For the name of each passed dependency...
         for requirement_name in requirement_names
-        # For the tuple of all "betse.metadata.DependencyCommand" instances
-        # describing all external commands required by this dependency if any
-        # *OR* the empty tuple otherwise...
-        for dependency_command in metadeps.EXTERNAL_COMMANDS.get(
-            requirement_name, ())
+        # For each "RequirementCommand" instance describing an external command
+        # required by this dependency...
+        for dependency_command in _iter_requirement_commands(requirement_name)
     )
 
 
@@ -353,6 +275,10 @@ def is_runtime_optional(*requirement_names: str) -> bool:
         Further details.
     '''
 
+    # Application-wide dependency metadata submodule.
+    metadeps = appmetaone.get_app_meta().module_metadeps
+
+    # Return true only if these optional runtime dependencies are satisfiable.
     return is_requirements_dict_keys(
         metadeps.RUNTIME_OPTIONAL, *requirement_names)
 
@@ -405,54 +331,6 @@ def is_requirements_dict_keys(
         is_command(*requirement_names)
     )
 
-# ....................{ GETTERS ~ runtime                 }....................
-def get_runtime_mandatory_tuple() -> tuple:
-    '''
-    Tuple listing the :mod:`setuptools`-specific requirement string containing
-    the mandatory name and optional version and extras constraints of each
-    mandatory runtime dependency for this application, dynamically converted
-    from the :data:`metadata.RUNTIME_MANDATORY` dictionary.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import setuptool
-
-    # Convert this dictionary into a tuple.
-    return setuptool.get_requirements_str_from_dict(
-        metadeps.RUNTIME_MANDATORY)
-
-
-def get_runtime_optional_tuple() -> tuple:
-    '''
-    Tuple listing the :mod:`setuptools`-specific requirement string containing
-    the mandatory name and optional version and extras constraints of each
-    optional runtime dependency for this application, dynamically converted
-    from the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import setuptool
-
-    # Convert this dictionary into a tuple.
-    return setuptool.get_requirements_str_from_dict(
-        metadeps.RUNTIME_OPTIONAL)
-
-# ....................{ GETTERS ~ testing                 }....................
-def get_testing_mandatory_tuple() -> tuple:
-    '''
-    Tuple listing the :mod:`setuptools`-specific requirement string containing
-    the mandatory name and optional version and extras constraints of each
-    mandatory testing dependency for this application, dynamically converted
-    from the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import setuptool
-
-    # Convert this dictionary into a tuple.
-    return setuptool.get_requirements_str_from_dict(
-        metadeps.TESTING_MANDATORY)
-
 # ....................{ GETTERS ~ metadata                }....................
 def get_metadatas() -> tuple:
     '''
@@ -465,6 +343,9 @@ def get_metadatas() -> tuple:
     from betse.lib.matplotlib.matplotlibs import mpl_config
     from betse.lib.numpy import numpys
     from betse.lib.setuptools import setuptool
+
+    # Application-wide dependency metadata submodule.
+    metadeps = appmetaone.get_app_meta().module_metadeps
 
     # Tuple of all dependency versions.
     LIB_VERSION_METADATA = (
@@ -510,6 +391,10 @@ def import_runtime_optional(*requirements_name: str) -> ModuleOrSequenceTypes:
         :data:`metadeps.RUNTIME_OPTIONAL` dictionary), an exception is raised.
     '''
 
+    # Application-wide dependency metadata submodule.
+    metadeps = appmetaone.get_app_meta().module_metadeps
+
+    # Import and return these modules.
     return import_requirements_dict_keys(
         metadeps.RUNTIME_OPTIONAL, *requirements_name)
 
@@ -537,3 +422,39 @@ def import_requirements_dict_keys(
     # Validate all external commands required by these dependencies.
     return setuptool.import_requirements_dict_keys(
         requirements_dict, *requirements_name)
+
+# ....................{ PRIVATE ~ iterators               }....................
+@type_check
+def _iter_requirement_commands(requirement_name: str) -> SequenceTypes:
+    '''
+    Sequence of zero or more ``RequirementCommand`` instances describing all
+    external commands required by the application dependency with the passed
+    :mod:`setuptools`-specific project name.
+
+    Parameters
+    ----------
+    requirement_name : str
+        Name of the :mod:`setuptools`-specific project to be inspected.
+
+    Returns
+    ----------
+    SequenceTypes:
+        Sequence of zero or more ``RequirementCommand`` instances describing all
+        external commands required by this project.
+    '''
+
+    # Application-wide dependency metadata submodule.
+    metadeps = appmetaone.get_app_meta().module_metadeps
+
+    # Tuple of zero or more "RequirementCommand" instances describing
+    # each external command required by this dependency if any *OR* the
+    # empty tuple otherwise.
+    dependency_commands = metadeps.REQUIREMENT_NAME_TO_COMMANDS.get(
+        requirement_name, ())
+
+    # Validate this tuple to contain only "RequirementCommand" instances.
+    itertest.die_unless_items_instance_of(
+        iterable=dependency_commands, cls=metadeps.RequirementCommand)
+
+    # Return this tuple.
+    return dependency_commands

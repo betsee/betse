@@ -199,13 +199,13 @@ def unset_app_meta() -> None:
     _app_meta = None
 
 # ....................{ MAKERS                            }....................
-# Avoid circular import dependencies.
-def make_app_meta_betse(*args, **kwargs) -> (
+def make_app_meta_betse_if_needed(*args, **kwargs) -> (
+    # Avoid circular import dependencies.
     'betse.util.app.meta.appmetaabc.AppMetaABC'):
     '''
-    Instantiate and set a BETSE-specific application metadata singleton if the
-    :func:`set_app_meta` function has not already been called *and*, in either
-    case, (re)initialize this singleton
+    Instantiate a BETSE-specific application metadata singleton if the
+    :func:`set_app_meta` function has yet to be called *and* in either case
+    (re)initialize this singleton.
 
     This is a convenience function simplifying BETSE initialization for
     low-level edge-case automation (e.g.,

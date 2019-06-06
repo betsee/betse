@@ -197,26 +197,12 @@ def get_name() -> str:
     # Avoid circular import dependencies.
     from betse.util.os.brand import linux, macos, windows
 
-    # Name to be returned, defaulting to that returned by platform.system().
-    # Since this typically corresponds to the low-level name of the current
-    # kernel (e.g., "Darwin", "Linux") rather than the high-level name of the
-    # current OS (e.g., "macOS", "CentOS"), this is only a fallback.
-    os_name = platform.system()
+    # Platform name to be returned.
+    os_name = None
 
-    # If Linux...
+    # If Linux, defer to the "linux" submodule.
     if linux.is_linux():
-        # If the Linux-specific platform.linux_distribution() function is
-        # available, return the first item of the 3-tuple
-        # (distname, version, id) returned by this function (e.g., "CentOS").
-        # Since platform.system() returns the low-level kernel name "Linux",
-        # this name is ignored where feasible.
-        if hasattr(platform, 'linux_distribution'):
-            os_name = platform.linux_distribution()[0]
-        # Else if this is actually the Windows Subsystem for Linux (WSL)
-        # masquerading as Linux, return "Windows (WSL)" rather than "Linux".
-        elif is_windows_wsl():
-            os_name = 'Windows (WSL)'
-        # Else, reuse the name returned by the prior call to platform.system().
+        os_name = linux.get_distro_name()
     # If macOS, return "macOS". Since platform.system() returns the low-level
     # kernel name "Darwin", this name is ignored.
     elif macos.is_macos():
@@ -238,6 +224,14 @@ def get_name() -> str:
         os_name = 'Windows'
     # Else, reuse the name returned by the prior call to platform.system().
 
+    # If no platform-specific name was detected above, default to the platform
+    # name returned by the platform.system() function. Since this typically
+    # corresponds to the low-level name of the current kernel (e.g., "Darwin",
+    # "Linux") rather than the high-level name of the current platform (e.g.,
+    # "macOS", "CentOS"), this is only a fallback of last resort.
+    if os_name is None:
+        os_name = platform.system()
+
     # Return the name established above.
     return os_name
 
@@ -250,20 +244,11 @@ def get_version() -> str:
 
     This function returns:
 
-    * Under Linux, the version reported by this Linux distribution as follows:
-
-      * If the deprecated :func:`platform.linux_distribution` function is still
-        defined, the second element of the 3-tuple returned by this function
-        (e.g., ``6.4``).
-      * Else
-      * Else, the string returned by the :func:`platform.release` function.
-        Since this is probably the non-human-readable ``.``- and
-        ``-``-delimited version specifier string of the current Linux kernel
-        (e.g., ``4.1.15-gentoo-r1``), this is only a fallback.
-
-    * Under macOS, this system's current major and minor version (e.g.,
+    * Under Linux, the version of the current Linux distribution reported by
+      the :func:`betse.util.os.brand.linux.get_distro_version` function.
+    * Under macOS, this installation's current major and minor version (e.g.,
       ``10.9``).
-    * Under Windows, this system's current major version (e.g., ``8``).
+    * Under Windows, this installation's current major version (e.g., ``8``).
       Unfortunately, there appears to be no consistently reliable means of
       obtaining this system's current major *and* minor version (e.g.,
       ``8.1``).
@@ -272,32 +257,14 @@ def get_version() -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.lib import libs
     from betse.util.os.brand import linux, macos, windows
 
     # Version specifier to be returned.
     os_version = None
 
-    # If Linux *AND*...
+    # If Linux, defer to the "linux" submodule.
     if linux.is_linux():
-        # If the deprecated Linux-specific platform.linux_distribution()
-        # function is still defined, return the second item of the 3-tuple
-        # "(distname, version, id)" returned by this function (e.g., "6.4").
-        # Since platform.release() returns the low-level kernel version (e.g.,
-        # "4.1.15"), this version is ignored when feasible.
-        if hasattr(platform, 'linux_distribution'):
-            os_version = platform.linux_distribution()[1]
-        # Else if the third-party Linux-specific "distro" package (referenced
-        # by official Python documentation as a stand-in replacement for the
-        # deprecated Linux-specific platform.linux_distribution() function) is
-        # importable, defer to this package.
-        elif libs.is_runtime_optional('distro'):
-            # Import this package.
-            distro = libs.import_runtime_optional('distro')
-
-            # For disambiguity, prefer the "best" (i.e., most specific and
-            # accurate) version specifier published by this Linux distribution.
-            os_version = distro.version(best=True)
+        os_version = linux.get_distro_version()
     # If macOS *AND* the platform.mac_ver() function is available, return the
     # first item of the 3-tuple returned by this function (e.g., "10.9"). Since
     # platform.release() returns the low-level kernel version (e.g., "13.0.0"),
@@ -324,7 +291,7 @@ def get_version() -> str:
     if os_version is None:
         os_version = platform.release()
 
-    # Return this version.
+    # Return this version specifier.
     return os_version
 
 # ....................{ GETTERS ~ metadata                }....................

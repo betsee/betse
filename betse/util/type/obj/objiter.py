@@ -4,7 +4,8 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level object facilities.
+Low-level **object iteration** (i.e., functions enabling callers to iterate
+over attributes on arbitrary objects, typically with generators) facilities.
 '''
 
 # ....................{ IMPORTS                           }....................

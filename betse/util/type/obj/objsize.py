@@ -345,9 +345,9 @@ def get_size_profile(
 
     # Avoid circular import dependencies.
     from betse.util.type.iterable import itersort
-    from betse.util.type.text.string import strjoin, strs
     from betse.util.type.numeric.ints import MiB
-    from betse.util.type.obj import objects, objiter
+    from betse.util.type.obj import objiter, objtest
+    from betse.util.type.text.string import strjoin, strs
 
     #FIXME: Convert the current "kwargs['size_divisor']" into a human-readable
     #denomenation (e.g., "GiB", "KiB", "B"). Since this is both non-trivial and
@@ -454,7 +454,7 @@ def get_size_profile(
         # variables bound to application-specific pure-Python objects rather
         # than those bound to external C-based objects.
         is_nonrecursive = (
-            vars_depth == 0 or vars_max < 1 or objects.is_c_based(obj))
+            vars_depth == 0 or vars_max < 1 or objtest.is_c_based(obj))
 
         # If this function is possibly recursively calling itself below...
         if not is_nonrecursive:

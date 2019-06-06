@@ -691,7 +691,7 @@ class CLIABC(object, metaclass=ABCMeta):
         Specifically, this method logs (in no particular order):
 
         * The subclass of the currently registered application singleton.
-        * The enabling of the default segementation fault handler.
+        * The enabling of the default segmentation fault handler.
         * Whether a testing environment is detected.
         * Whether a headless environment is detected.
         '''
@@ -707,7 +707,7 @@ class CLIABC(object, metaclass=ABCMeta):
             'Application singleton "%s" established.',
             objects.get_class_name_unqualified(appmetaone.get_app_meta()))
         logs.log_debug(
-            'Default segementation fault handler enabled.')
+            'Default segmentation fault handler enabled.')
         logs.log_debug(
             'Testing environment detected: %r', tests.is_testing())
         logs.log_debug(

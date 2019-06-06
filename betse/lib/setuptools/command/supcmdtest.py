@@ -249,12 +249,12 @@ class test(Command):
 
         # Defer heavyweight imports, including py.test classes to be
         # monkey-patched.
-        from betse.util.type.obj import objects
+        from betse.util.type.obj import objtest
         from _pytest.capture import CaptureManager, FDCapture, MultiCapture
 
         # If the private method to be monkey-patched no longer exists, py.test
         # is either broken or unsupported. In either case, raise an exception.
-        if not objects.has_method(CaptureManager, '_getcapture'):
+        if not objtest.has_method(CaptureManager, '_getcapture'):
             raise BetseTestException(
                 'Method pytest.capture.CaptureManager._getcapture() '
                 'not found. The current version of py.test is either '

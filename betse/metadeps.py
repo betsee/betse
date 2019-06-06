@@ -24,7 +24,9 @@ would render these constants effectively useless for their principal use case.
 # installed at some later time in the installation.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+from betse.lib.setuptools import setuptool
 from betse.util.py.module import pymodname
+from collections import namedtuple
 
 # ....................{ LIBS ~ runtime : mandatory        }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -236,12 +238,12 @@ See Also
     Human-readable list of these dependencies.
 '''
 
-# ....................{ LIBS ~ command                    }....................
-class DependencyCommand(object):
-    '''
-    Lightweight metadata describing a single external command required by some
-    application dependency (of any type, including optional, mandatory,
-    runtime, testing, or otherwise).
+# ....................{ LIBS ~ commands                   }....................
+RequirementCommand = namedtuple('RequirementCommand', ('name', 'basename',))
+RequirementCommand.__doc__ = '''
+    Lightweight metadata describing a single external command required by an
+    application dependency of arbitrary type (including optional, mandatory,
+    runtime, testing, and otherwise).
 
     Attributes
     ----------
@@ -251,10 +253,6 @@ class DependencyCommand(object):
         Basename of this command to be searched for in the current ``${PATH}``.
     '''
 
-    def __init__(self, name: str, basename: str) -> None:
-        self.name = name
-        self.basename = basename
-
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this dictionary *MUST* be synchronized with:
@@ -262,20 +260,56 @@ class DependencyCommand(object):
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
 # * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-EXTERNAL_COMMANDS = {
-    'pydot': (DependencyCommand(name='Graphviz', basename='dot'),),
+REQUIREMENT_NAME_TO_COMMANDS = {
+    'pydot': (RequirementCommand(name='Graphviz', basename='dot'),),
 }
 '''
 Dictionary mapping from the :mod:`setuptools`-specific project name of each
 application dependency (of any type, including optional, mandatory, runtime,
 testing, or otherwise) requiring one or more external commands to a tuple of
-:class:`DependencyCommand` instances describing these requirements.
+:class:`RequirementCommand` instances describing these requirements.
 
 See Also
 ----------
 :download:`/doc/md/INSTALL.md`
     Human-readable list of these dependencies.
 '''
+
+# ....................{ GETTERS                           }....................
+def get_runtime_mandatory_tuple() -> tuple:
+    '''
+    Tuple listing the :mod:`setuptools`-specific requirement string containing
+    the mandatory name and optional version and extras constraints of each
+    mandatory runtime dependency for this application, dynamically converted
+    from the :data:`metadata.RUNTIME_MANDATORY` dictionary.
+    '''
+
+    # Return this dictionary coerced into a tuple.
+    return setuptool.get_requirements_str_from_dict(RUNTIME_MANDATORY)
+
+
+def get_runtime_optional_tuple() -> tuple:
+    '''
+    Tuple listing the :mod:`setuptools`-specific requirement string containing
+    the mandatory name and optional version and extras constraints of each
+    optional runtime dependency for this application, dynamically converted
+    from the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
+    '''
+
+    # Return this dictionary coerced into a tuple.
+    return setuptool.get_requirements_str_from_dict(RUNTIME_OPTIONAL)
+
+
+def get_testing_mandatory_tuple() -> tuple:
+    '''
+    Tuple listing the :mod:`setuptools`-specific requirement string containing
+    the mandatory name and optional version and extras constraints of each
+    mandatory testing dependency for this application, dynamically converted
+    from the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
+    '''
+
+    # Return this dictionary coerced into a tuple.
+    return setuptool.get_requirements_str_from_dict(TESTING_MANDATORY)
 
 # ....................{ INITIALIZERS                      }....................
 def _init() -> None:

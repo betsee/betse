@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -22,15 +22,15 @@ application, including:
 * Numpy :class:`ufunc` objects.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import dill
 from betse.util.io import iofiles
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import CALLABLE_CACHED_VAR_NAME_PREFIX
-from betse.util.type.obj import objects
+from betse.util.type.obj import objtest
 from betse.util.type.types import type_check
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ CONSTANTS                         }....................
 # The improved pickle-ability of protocol 4 appears to be required to pickle
 # C-based data structures (e.g., "scipy.spatial.KDTree").
 PROTOCOL = 4
@@ -46,7 +46,7 @@ competing tradeoffs:
   support for such edge cases as very large objects and edge-case object types.
 '''
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 #FIXME: Given the unreliability of the private "dill._dill" API, it would be
 #both substantially safer *AND* simpler to directly monkey-patch the existing
 #dill.Pickler.save() method with that defined below rather than attempting to
@@ -64,13 +64,13 @@ class BetsePickler(dill.Pickler):
       including all private instance variables cached by decorators defined by
       the :mod:`betse.util.type.decorator.decmemo` module (e.g.,
       :func:`property_cached`). To do so efficiently, this pickler uncaches
-      *all* previously cached data from *all* objects pickled to disk. This data
-      is guaranteed to be transparently re-cached on the next in-memory access
-      of this data and is thus safely uncachable. While technically avoidable
-      (e.g., by saving and restoring uncached instance variables into a local
-      dictionary internal to the :meth:`save` method), doing so would incur
-      additional space, time, and maintenance penalties. In short, the lazy way
-      still remains the best way.
+      *all* previously cached data from *all* objects pickled to disk. This
+      data is guaranteed to be transparently re-cached on the next in-memory
+      access of this data and is thus safely uncachable. While technically
+      avoidable (e.g., by saving and restoring uncached instance variables into
+      a local dictionary internal to the :meth:`save` method), doing so would
+      incur additional space, time, and maintenance penalties. In short, the
+      lazy way still remains the best way.
 
     See Also
     ----------
@@ -83,7 +83,7 @@ class BetsePickler(dill.Pickler):
         https://github.com/matsjoyce
     '''
 
-    # ..................{ SAVERS                             }..................
+    # ..................{ SAVERS                            }..................
     def save(self, obj, *args, **kwargs):
         '''
         Prepare the passed object to be pickled.
@@ -96,12 +96,12 @@ class BetsePickler(dill.Pickler):
         # If this object defines a dictionary mapping from the name to value of
         # each attribute defined on this object and hence is unslotted, prevent
         # cached attributes from being pickled. Slotted objects cannot have
-        # attributes dynamically added or removed at runtime and hence *MUST* be
-        # ignored here.
+        # attributes dynamically added or removed at runtime and hence *MUST*
+        # be ignored here.
         #
         # Since this guarantees the "obj.__dict__" attribute to exist, this
         # attribute is accessed directly below rather than indirectly via the
-        # vars() builtin. While feasible, the latter is slightly less efficient.
+        # vars() builtin. While feasible, the latter is mildly less efficient.
         if hasattr(obj, '__dict__'):
             # For the name of each such attribute...
             for obj_attr_name in obj.__dict__.keys():
@@ -123,7 +123,7 @@ class BetsePickler(dill.Pickler):
         # Pickle this object.
         super().save(obj, *args, **kwargs)
 
-# ....................{ LOADERS                            }....................
+# ....................{ LOADERS                           }....................
 @type_check
 def load(filename: str) -> object:
     '''
@@ -139,7 +139,7 @@ def load(filename: str) -> object:
         Absolute or relative path of this file. If this filename is suffixed by
         a supported archive filetype (i.e., if the
         :func:`betse.util.path.archives.is_filetype` function returns
-        `True` when passed this filename), this file is automatically
+        ``True`` when passed this filename), this file is automatically
         decompressed as an archive of that filetype.
 
     Returns
@@ -154,27 +154,28 @@ def load(filename: str) -> object:
     with iofiles.reading_bytes(filename) as unpickle_file:
         return dill.load(file=unpickle_file)
 
-# ....................{ SAVERS                             }....................
+# ....................{ SAVERS                            }....................
 @type_check
 def save(
-    *objects,
+    *objs,
     filename: str,
     is_overwritable: bool = False
 ) -> None:
     '''
-    Save (i.e., write, pickle, serialize) the tuple of all passed objects to the
-    file with the passed path if two or more objects are passed *or* the single
-    passed object if only one object is passed.
+    Save (i.e., write, pickle, serialize) the tuple of all passed objects to
+    the file with the passed path if two or more objects are passed *or* the
+    single passed object if only one object is passed.
 
     This function transparently compresses these objects into this file when
     this filename's filetype is that of a supported archive format.
 
     Parameters
     ----------
-    objects : tuple
+    objs : tuple
         One or more arbitrarily complex object to be serialized. These objects
         and all objects transitively referenced by this object will be
         serialized to this file. If:
+
         * Only one object is passed, only that object will be saved.
         * Two or more objects are passed, the tuple of all such objects will be
           saved.
@@ -182,25 +183,25 @@ def save(
         Absolute or relative path of this file. If this filename is suffixed by
         a supported archive filetype (i.e., if the
         :func:`betse.util.path.archives.is_filetype` function returns
-        `True` when passed this filename), this file is automatically compressed
-        into an archive of that filetype.
+        ``True`` when passed this filename), this file is automatically
+        compressed into an archive of that filetype.
     is_overwritable : optional[bool]
-        `True` if overwriting this file when this file already exists _or_
-        `False` if raising an exception when this file already exists. Defaults
-        to `False` for safety.
+        ``True`` if overwriting this file when this file already exists *or*
+        ``False`` if raising an exception when this file already exists.
+        Defaults to `False` for safety.
     '''
 
     # If only one object is passed, save only that object rather than the
     # 1-tuple consisting only of that object.
-    if len(objects) == 1:
-        objects = objects[0]
+    if len(objs) == 1:
+        objs = objs[0]
 
     # Save these objects to this file, silently compressing this file if this
     # filename is suffixed by an archive filetype.
     with iofiles.writing_bytes(
         filename=filename, is_overwritable=is_overwritable) as pickle_file:
         dill.dump(
-            objects,
+            objs,
             file=pickle_file,
             protocol=PROTOCOL,
 
@@ -229,7 +230,7 @@ def save(
             recurse=True,
         )
 
-# ....................{ INITIALIZERS                       }....................
+# ....................{ INITIALIZERS                      }....................
 def init() -> None:
     '''
     Initialize both this submodule *and* the :mod:`dill` package.
@@ -251,13 +252,13 @@ def init() -> None:
     # For dill >= 0.2.8.2, attempt to find the new "dill._dill" submodule.
     try:
         dill_core_submodule = dill._dill
-    # For dill < 0.2.8.2, attempt to find the older "dill.dill" submodule.
+    # For dill < 0.2.8.2, fallback to find the older "dill.dill" submodule.
     except:
         dill_core_submodule = dill.dill
 
     # If this submodule does *NOT* contain the expected "Pickler" base class,
     # raise an exception.
-    objects.die_unless_has_class(dill_core_submodule, 'Pickler')
+    objtest.die_unless_has_class(dill_core_submodule, 'Pickler')
 
     # Instruct "dill" to pickle with our application-specific pickler subclass.
     dill_core_submodule.Pickler = BetsePickler

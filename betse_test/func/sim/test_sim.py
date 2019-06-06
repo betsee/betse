@@ -13,7 +13,7 @@ complete BETSE solver *and* the "fast" equivalent circuit solver).
 import pytest
 from betse.util.test.pytest.mark.pytfail import xfail
 from betse.util.test.pytest.mark.pytskip import (
-    skip_unless_matplotlib_anim_writer, skip_if_requirement)
+    skip, skip_if_requirement, skip_unless_matplotlib_anim_writer,)
 
 # ....................{ TESTS                             }....................
 #FIXME: Sadly, our current approach to backward compatibility testing is
@@ -86,7 +86,14 @@ from betse.util.test.pytest.mark.pytskip import (
 #* The "--export-sim-conf-dir" option, defined by the pytest_addoption() hook
 #  in the top-level "hetse_test.conftest" plugin.
 #* The "test_sim_export" submodule.
-@skip_if_requirement('pytest >= 4.0.0')
+#FIXME: Sadly, this test has had to be unconditionally disabled. Why? Because
+#it's now effectively incompatible with the modern Python stack -- not simply
+#py.test >= 4.0.0 but also PyYaml >= 5.0, which is sufficiently severe that
+#multiple platforms (including Gentoo Linux) have hard-disabled functionality
+#now required by this obsolete BETSE codebase. *sigh*
+
+@skip(reason='Incompatible with the modern Python stack.')
+# @skip_if_requirement('pytest >= 4.0.0')
 def test_cli_sim_compat( betse_cli_sim_compat: 'CLISimTester') -> None:
     '''
     Functional test exercising all simulation subcommands required to validate

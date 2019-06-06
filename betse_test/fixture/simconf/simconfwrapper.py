@@ -220,9 +220,6 @@ class SimConfigTestWrapper(object):
         test automation.
         '''
 
-        # Pre-minified simulation duration in seconds.
-        sim_time_total_old = self._p.sim_time_total
-
         # Minify initialization time to exactly three sampled time steps. For
         # safety, permit currently defined options smaller than the minimums
         # defined below to override these minimums.
@@ -265,6 +262,9 @@ class SimConfigTestWrapper(object):
         #     event_time_new = sim_time_total_old
         #FIXME: Well, we've eliminated the "event_cut['cut time']" key entirely.
         #Nonetheless, the above commentary still holds for the general case.
+
+        # Pre-minified simulation duration in seconds.
+        # sim_time_total_old = self._p.sim_time_total
 
         # event_cut = self._p._conf['cutting event']
         # event_cut['cut time'] = (
@@ -601,7 +601,7 @@ class SimConfigTestWrapper(object):
 
         # Defer heavyweight imports.
         from betse.science.config.export.confexpabc import SimConfExportABC
-        from betse.util.type.obj import objects
+        from betse.util.type.obj import objtest
 
         # Log this action.
         logs.log_debug('Analyzing pipeline exporters...')
@@ -662,7 +662,7 @@ class SimConfigTestWrapper(object):
 
                 # If this is *NOT* actually an export subconfiguration, raise
                 # an exception.
-                objects.die_unless_instance(
+                objtest.die_unless_instance(
                     obj=pipe_exporter_conf, cls=SimConfExportABC)
 
                 # Copy across the type of this export subconfiguration.
