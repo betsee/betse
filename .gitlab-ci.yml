@@ -113,22 +113,31 @@ image: continuumio/anaconda3:latest
 variables:
   # ...................{ GLOBALS ~ public                  }...................
   # Public environment variables specific to third-party applications.
+  #
+  # Note that *ALL* pathnames to be cached below should be prefixed by
+  # "${CI_PROJECT_DIR}/", the absolute dirname of the pipeline-specific
+  # directory containing this project. See the "WARNING" below for details.
+
+  # Instruct "conda" to cache isolated environments to the build-relative
+  # directory repeated in the "cache:" section below. By default, "conda"
+  # caches to the system-wide (and hence uncacheable) "/opt/conda/envs"
+  # directory.
+  CONDA_ENVS_PATH: "${CI_PROJECT_DIR}/conda-envs"
+
+  # Instruct "conda" to cache downloaded packages to the build-relative
+  # directory repeated in the "cache:" section below. By default, "conda"
+  # caches to the system-wide (and hence uncacheable) "/opt/conda/pkgs"
+  # directory.
+  CONDA_PKGS_DIRS: "${CI_PROJECT_DIR}/conda-pkgs"
 
   # Instruct Matplotlib to cache metadata to the build-relative directory
   # repeated in the "cache:" section below.
-  MPLCONFIGDIR: "mpl-cache"
+  MPLCONFIGDIR: "${CI_PROJECT_DIR}/mpl-cache"
 
   # ...................{ GLOBALS ~ private                 }...................
   # Private environment variables specific to this configuration. To avoid
   # conflict with third-party applications, the name of each such variable is
   # intentionally prefixed by "_".
-
-  # Relative path of the top-level directory containing this configuration's
-  # Ananconda environment repeated in the "cache:" section below. To
-  # differentiate this environment from an environment of the same name in the
-  # default system-wide directory for Anaconda environments (e.g.,
-  # "/opt/conda/envs"), this path is intentionally prefixed by "./".
-  _CONDA_ENV_DIRNAME: "./conda-env"
 
 
 cache:
@@ -163,8 +172,11 @@ cache:
   # preserved between CI pipelines. (Note that relative dirnames are relative
   # to the current build directory.)
   paths:
-    # Directory to which Anaconda persists this configuration's environment.
-    - conda-env/
+    # Directory to which "conda" persists isolated environments.
+    - conda-envs/
+
+    # Directory to which "conda" persists downloaded packages.
+    - conda-pkgs/
 
     # Directory to which Matplotlib caches metadata (e.g., on fonts).
     - mpl-cache/
@@ -186,7 +198,10 @@ before_script:
   # Since this image provides such dependencies by default, this is ignored.
   # - apt-get install -y
 
-  # Configure "conda" to run in headless mode. Dismantled, this is:
+  # Import environment variables required for sane "conda" usage.
+  - source /opt/conda/etc/profile.d/conda.sh
+
+  # Configure "conda" to efficiently run headless. Dismantled, this is:
   #
   # * "always_yes true", automatically pass the "--yes" option to *ALL*
   #   "conda" commands run below. This is a superficial convenience reducing
@@ -194,42 +209,6 @@ before_script:
   # * "auto_update_conda false", improving both space and time complexity by
   #   preventing "conda" from unnecessarily upgrading itself.
   - conda config --set always_yes true --set auto_update_conda false
-
-  # Update "conda" *SAFELY*. To circumvent a well-known hard blocker in the
-  # supposedly stable release of conda 4.4, "conda" is intentionally *NOT*
-  # updated here with a standard one-liner: "conda upgrade -y conda". For
-  # further details, see the following exhaustive GitHub issue:
-  #     https://github.com/conda/conda/issues/6811
-  - conda install --quiet --name base conda
-
-  # For debuggability, print metadata identifying this Anaconda release.
-  - conda info --all
-
-  #FIXME: This doesn't appear to actually be cached. We have little idea why.
-  #The "cache" section defined above appears to be syntactically correct and
-  #indeed be caching the same directory defined below. The culprit, really, is
-  #the complete (and utterly frustrating) lack of detailed debug output from
-  #Gitlab-CI concerning which exact paths are being cached and when. Until
-  #such output lands, we probably won't be able to reasonably address this.
-
-  # Create an empty Anaconda environment if not already created by a prior job
-  # *OR* silently ignore the resulting error otherwise. To create this
-  # environment in a cachable build-local directory rather than the uncachable
-  # default directory for Anaconda environments, the "--prefix" rather than
-  # "--name" option is passed. Since these two options are mutually exclusive,
-  # only the former is passed.
-  #
-  # Note that isolating the installation of package dependencies into this
-  # environment is essential. Although this installation is already confined
-  # to a temporary Docker image and hence requires no additional isolation,
-  # Anaconda *ONLY* supports configurable caching via the "${CONDA_PREFIX}"
-  # environment variable specific to Anaconda environments. To persist this
-  # installation across jobs, there exists no sane alternative.
-  - conda create --quiet --prefix "${_CONDA_ENV_DIRNAME}" || true
-
-  # Activate this environment (i.e., prepend the current ${PATH} by this
-  # environment's top-level directory).
-  - conda activate "${_CONDA_ENV_DIRNAME}"
 
   # Add the third-party "conda-forge" channel as the highest-priority channel,
   # ensuring that subsequently installed dependencies prefer the versions
@@ -245,6 +224,24 @@ before_script:
   #   to dependency installation increases the likelihood of parity between
   #   testing results and end user experience.
   - conda config --add channels conda-forge
+
+  # Update "conda" *SAFELY*. To circumvent a well-known hard blocker in the
+  # supposedly stable release of conda 4.4, "conda" is intentionally *NOT*
+  # updated here with a standard one-liner: "conda upgrade -y conda". For
+  # further details, see the following exhaustive GitHub issue:
+  #     https://github.com/conda/conda/issues/6811
+  - conda install --quiet --name base conda
+
+  # Print metadata identifying this Anaconda release for debuggability.
+  - conda info --all
+
+  # Create an empty Anaconda environment if not already created by a prior job
+  # *OR* silently ignore the resulting error otherwise.
+  - conda create --quiet --name conda-env || true
+
+  # Activate this environment (i.e., prepend the current ${PATH} by this
+  # environment's top-level directory).
+  - conda activate conda-env
 
   # Install all mandatory and optional dependencies of this application into
   # this environment from the "conda-forge" channel.

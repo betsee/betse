@@ -1,8 +1,8 @@
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 #
-# --------------------( SYNOPSIS                           )--------------------
+# --------------------( SYNOPSIS                          )--------------------
 # Project-wide Appveyor configuration, integrating the third-party
 # Windows-specific free-as-in-beer continuous integration (CI) service exposed
 # by Appveyor with this project's "py.test"-driven test suite.
@@ -17,17 +17,17 @@
 # Miniconda-specific packages. While unctuous, the otherwise significant
 # reduction in complexity will brook no argument.
 #
-# --------------------( SEE ALSO                           )--------------------
+# --------------------( SEE ALSO                          )--------------------
 # * https://www.appveyor.com/docs/installed-software/#python
 #   *THIS IS ABSOLUTELY ESSENTIAL,* providing the canonical list of all Python-
 #   oriented software unconditionally installed into all CI environments
-#   complete with the absolute paths, word sizes, and version specifiers of such
+#   complete with the absolute paths, word sizes, and versions of such
 #   software. The configuration below is critically dependent upon this list.
 # * http://tjelvarolsson.com/blog/how-to-continuously-test-your-python-code-on-windows-using-appveyor/
 #   Relatively recent, reasonably well-written blog post articulating the
 #   simplest Appveyor configuration establishing a sane Miniconda testing
-#   environment *WITHOUT* the usual obsolete and hence insane edge-case handling
-#   typically littering these configurations.
+#   environment *WITHOUT* the usual obsolete and hence insane edge-case
+#   handling typically littering these configurations.
 # * https://github.com/conda-forge/staged-recipes/blob/master/appveyor.yml
 #   Real-world "appveyor.yml" configuration manually establishing a sane
 #   Miniconda testing environment *WITHOUT* leveraging external automation
@@ -37,15 +37,15 @@
 #   Real-world "appveyor.yml" configuration used by a prominent scientific
 #   Python framework and largely considered to be the canonical scientific
 #   Appveyor configuration as of this writing. The "appveyor.yml" files of
-#   multiple other projects (e.g., SpiceyPy) reference this "appveyor.yml" file,
-#   which does indeed appear to be subjectively authoritative.
+#   multiple other projects (e.g., SpiceyPy) reference this "appveyor.yml"
+#   file, which does indeed appear to be subjectively authoritative.
 # * https://github.com/astropy/ci-helpers
-#   Utility scripts run by the above configuration to establish a sane Miniconda
-#   testing environment, notably the "appveyor/install-miniconda.ps1" script.
-#   These scripts are sufficiently general-purpose and well-documented as to be
-#   cloned and run by an assortment of third-party Appveyor configuration files
-#   unaffiliated with the AstroPy project. Doing so presents numerous concerns,
-#   however, including:
+#   Utility scripts run by the above configuration to establish a sane
+#   Miniconda testing environment, notably the "appveyor/install-miniconda.ps1"
+#   script. These scripts are sufficiently general-purpose and well-documented
+#   as to be cloned and run by an assortment of third-party Appveyor
+#   configuration files unaffiliated with the AstroPy project. Doing so
+#   presents numerous concerns, however, including:
 #   * Efficiency, as:
 #     * Each Appveyor run would repetitively clone this repository.
 #     * "install-miniconda.ps1" is technically specific to the AstroPy project
@@ -56,20 +56,20 @@
 #       non-trivial space and time uselessly re-downloading and re-installing
 #       Miniconda into the current CI environment.
 #   * Maintainability, as that repository is under third-party control.
-#   This Appveyor configuration has opted to manually establish a sane Miniconda
-#   testing environment without leveraging this repository, preserving both
-#   efficiency and maintainability.
+#   This Appveyor configuration has opted to manually establish a sane
+#   Miniconda testing environment without leveraging this repository,
+#   preserving both efficiency and maintainability.
 # * https://packaging.python.org/appveyor
 #   Quasi-official documentation providing the canonical "appveyor.yml"
 #   skeleton configuration for use in existing Python projects. Sadly, this
-#   skeleton leverages the general-purpose "pip" package manager rather than the
-#   Anaconda-specific "conda" package manager and hence is sadly useless.
+#   skeleton leverages the general-purpose "pip" package manager rather than
+#   the Anaconda-specific "conda" package manager and hence is sadly useless.
 
-#FIXME: Auto-generate a pip-compliant binary Windows wheel file for this project
-#*AFTER* all successful test runs. For examples, see:
+#FIXME: Auto-generate a pip-compliant binary Windows wheel file for this
+#project *AFTER* all successful test runs. For examples, see:
 #    https://raw.githubusercontent.com/AndrewAnnex/SpiceyPy/master/appveyor.yml
 
-# ....................{ CONFIGURATION                      }....................
+# ....................{ CONFIGURATION                     }....................
 # Disable .NET integration. Python projects are implicitly built during
 # installation.
 build: false
@@ -80,7 +80,7 @@ matrix:
   # on the first profile failure.
   fast_finish: true
 
-# ....................{ CONFIGURATION ~ matrix             }....................
+# ....................{ CONFIGURATION ~ matrix            }....................
 platform:
   # Exercise only 64-bit binaries.
   - x64
@@ -95,9 +95,9 @@ environment:
     # by third-party Miniconda packages listed in "CONDA_DEPENDENCIES".
     # CONDA_CHANNELS: ""
 
-    # Whitespace-delimited list of the names of all PyPI-packaged packages to be
-    # installed with "pip" required by this project and *NOT* installable with
-    # Miniconda. This is a fallback that should be used only where needed.
+    # Whitespace-delimited list of the names of all PyPI-packaged packages to
+    # be installed with "pip" required by this project and *NOT* installable
+    # with Miniconda. This is a fallback that should be used only where needed.
     # PIP_PACKAGE_NAMES: ""
 
   # List of all build profiles, each of which is a dictionary mapping from the
@@ -119,10 +119,11 @@ environment:
   # * The "betse.metadeps.RUNTIME_MANDATORY" tuple global, defining the minimum
   #   version of Numpy supported by this project.
   matrix:
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # CAUTION: Although both this project and Miniconda explicitly support Python 3.4,
-    # Miniconda no longer appears capable of installing SciPy when running Python 3.4.
-    # Attempting to do so reliably induces the following exception:
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # CAUTION: Although both this project and Miniconda explicitly support
+    # Python 3.4, Miniconda no longer appears capable of installing SciPy when
+    # running Python 3.4. Attempting to do so reliably induces the following
+    # exception:
     #
     #    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
     #    betse_test\fixture\simconf\simconfclser.py:173: in __init__
@@ -149,25 +150,24 @@ environment:
     #    >   from ._ufuncs import *
     #    E   ImportError: DLL load failed: The specified module could not be found.
     #
-    # Googling strongly suggests this exception to be raised by improperly packaged SciPy
-    # installations under Windows. Consequently, this project's support for Python 3.4 is
-    # no longer exercised (i.e., tested) under Windows.
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # Googling suggests this exception to be raised by improperly packaged
+    # SciPy installations under Windows. Consequently, this project's support
+    # for Python 3.4 is no longer exercised (i.e., tested) under Windows.
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     #FIXME: Uncomment after Appveyor adds Miniconda support for Python 3.7. See:
     #    https://www.appveyor.com/docs/build-environment/#miniconda
 
-    # - PYTHON_VERSION: 3.7
-    #   MINICONDA_DIRNAME: C:\Miniconda37-x64
-
+    - PYTHON_VERSION: 3.7
+      MINICONDA_DIRNAME: C:\Miniconda37-x64
     - PYTHON_VERSION: 3.6
       MINICONDA_DIRNAME: C:\Miniconda36-x64
     - PYTHON_VERSION: 3.5
       MINICONDA_DIRNAME: C:\Miniconda35-x64
 
-# ....................{ COMMANDS                           }....................
-# List of all external commands to be run for each profile *BEFORE* those listed
-# within "install" below.
+# ....................{ COMMANDS                          }....................
+# List of all external commands to be run for each profile *BEFORE* those
+# listed within "install" below.
 init:
   # For debuggability, visually prefix each profile by (in order):
   #
@@ -178,29 +178,37 @@ init:
   - ECHO %PYTHON_VERSION% %MINICONDA_DIRNAME%
 
 
-# List of all external commands to be run for each profile *BEFORE* those listed
-# within "test_script" below.
+# List of all external commands to be run for each profile *BEFORE* those
+# listed within "test_script" below.
 install:
   # Prepend the current %PATH% by the absolute paths of all Miniconda-managed
   # directories containing the active Python interpreter and standard Python
   # scripts (e.g., "easy_install") installed with this interpreter, ensuring
-  # that the Miniconda-specific rather than system-wide version of Python is run
-  # (e.g., "C:\Miniconda3-x64" rather than "C:\Python34-x64"). This *MUST* be
-  # done prior to running the "conda" command.
+  # that the Miniconda-specific rather than system-wide version of Python is
+  # run (e.g., "C:\Miniconda3-x64" rather than "C:\Python34-x64"). This *MUST*
+  # be done prior to running the "conda" command.
   - cmd: set "PATH=%MINICONDA_DIRNAME%;%MINICONDA_DIRNAME%\\Scripts;%PATH%"
 
-  # Configure "conda" to run in headless mode. Dismantled, this is:
+  # Configure "conda" to run headless. Dismantled, this is:
   #
   # * "always_yes true", automatically pass the "--yes" option to *ALL*
-  #   "conda" commands run below. This is a superficial convenience reducing the
-  #   likelihood of developer oversight and hence saving essential sanity.
+  #   "conda" commands run below. This is a superficial convenience reducing
+  #   the likelihood of developer oversight and hence saving essential sanity.
   #
   # Note that the "auto_update_conda" option is unsupported by the older
   # versions of "conda" installed with Appveyor and hence omitted here.
   - cmd: conda config --set always_yes true
 
+  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  # NOTE: See similar logic in ".gitlab-ci.yml" for further commentary. To
+  # reduce DRY, these duplicated commands are only minimally commented.
+  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  # Add the unofficial "conda-forge" channel as the highest-priority channel.
+  - cmd: conda config --add channels conda-forge
+
   # Update Miniconda to its most recent stable release.
-  - cmd: conda update --quiet conda
+  - cmd: conda install --quiet --name base conda
 
   # For debuggability, print metadata identifying this Miniconda release.
   - cmd: conda info --all
@@ -213,11 +221,7 @@ install:
 
   # Activate this environment (i.e., prepend the current %PATH% by this
   # environment's top-level directory).
-  - cmd: activate conda-env-%PYTHON_VERSION%
-
-  # Add the unofficial "conda-forge" channel as the highest-priority channel.
-  # See similar logic in ".gitlab-ci.yml" for details.
-  - cmd: conda config --add channels conda-forge
+  - cmd: conda activate conda-env-%PYTHON_VERSION%
 
   # Install all mandatory and optional dependencies of this application into
   # this environment from the "conda-forge" channel.
@@ -236,26 +240,55 @@ test_script:
   - cmd: betse --headless info
 
   # Run the following multiline Powershell script.
+  #
+  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  # CAUTION: PowerShell insanely interprets *ANY* attempt to write to stderr as
+  # a fatal exception, resulting in output resembling the following and an
+  # immediate pipeline failure:
+  #
+  #     At line:5 char:1
+  #     + py.test --maxfail=3
+  #     + ~~~~~~~~~~~~~~~~~~~
+  #         + CategoryInfo          : NotSpecified: ([py.test] Windo...nstructions at::String) [], RemoteException
+  #         + FullyQualifiedErrorId : NativeCommandError
+  #
+  # Ideally, this would be trivially circumventable by simply instructing
+  # PowerShell to redirect stderr to stdout. Sadly, this appears to be
+  # infeasible. Our only recourse is to avoid writing to stderr in the first
+  # place from this application's codebase, requiring that this codebase:
+  #
+  # * Implicitly detect PowerShell at runtime.
+  # * When detected, unconditionally log *ALL* messages to stdout.
+  #
+  # While blatantly non-ideal, there's little else that we can do to resolve
+  # PowerShell idiosyncrasies.
+  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   - ps: |
-      # Run the entire "py.test"-based test suite under the following options:
+      # Run the entire "py.test"-based test suite under similar options to
+      # those set via ".gitlab-ci.yml". Dismantled, this is:
       #
-      # * "--maxfail=3", halting testing on the third failure. For discussion, see
-      #   the "betse_setup.test" submodule.
-      py.test --maxfail=3
+      # * '| %{ "$_" }', coercing the high-level PowerShell stream object
+      #   constructed by running the "py.test" command into a low-level string.
+      #   If this is *NOT* done, then PowerShell insanely interprets *ANY*
+      #   attempt to write to stderr as a fatal exception as detailed above.
+      #   See also the following relevant StackOverflow answers:
+      #   * https://stackoverflow.com/a/20950421/2809027
+      #   * https://stackoverflow.com/a/12866669/2809027
+      py.test --maxfail=3 2>&1 | %{ "$_" }
 
-      #FIXME: To assist in debugging this, also print a non-fatal warning with the
-      #actual exit status reported above.
+      #FIXME: To assist in debugging this, also print a non-fatal warning with
+      #the actual exit status reported above.
 
       # If the exit status reported by "py.test" is non-zero but nonsensical,
-      # coerce this status to zero. For unknown reasons, some hellish combination
-      # of Appveyor, Python, "py.test", and our test suite causes successful runs
-      # to unpredictably report nonsensical non-zero exit status. To preserve
-      # developer sanity, these false negatives *MUST* be explicitly ignored.
-      # Happily, the exit status reported by these false negatives all reside in
-      # the same range of extremely negative integers.
+      # coerce this status to zero. For unknown reasons, some hellish
+      # combination of Appveyor, Python, "py.test", and our test suite causes
+      # successful runs to unpredictably report nonsensical non-zero exit
+      # status. To preserve developer sanity, these false negatives *MUST* be
+      # explicitly ignored. Happily, the exit status reported by these false
+      # negatives all reside in the same range of extremely negative integers.
       #
       # Note that Powershell sets the $LastExitCode integer global *ONLY* on
-      # running external commands. If statements do *NOT* trigger this behaviour.
-      # Hence, the current value of this global is preserved if this if statement
-      # evaluates to False.
+      # running external commands. If statements do *NOT* trigger this
+      # behaviour. Hence, the current value of this global is preserved if this
+      # if statement evaluates to False.
       if ($LastExitCode -le -1000000000) { $host.SetShouldExit(0) }

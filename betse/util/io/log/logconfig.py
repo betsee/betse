@@ -7,6 +7,34 @@
 Low-level logging configuration.
 '''
 
+#FIXME: Generalize this configuration to support PowerShell. Sadly, PowerShell
+#is fundamentally insane. (Who didn't see that one coming?) In particular,
+#PowerShell insanely interprets *ANY* attempt to write to stderr as a fatal
+#exception. See our "appveyor.yml" configuration for further details.
+#
+#Since Microsoft clearly has no compelling interest in resolving this blatantly
+#broken behaviour, we *MUST* do so on their behalf. To do so, consider:
+#
+#* Implementing a new betse.util.os.brand.windows.is_shell_powershell() tester
+#  returning True only if the current shell environment is PowerShell. Note
+#  that, as Windows only natively supports two shell environments, the related
+#  is_shell_cmd() tester is trivially implementable as follows:
+#    @func_cached
+#    def is_shell_cmd() -> bool:
+#        return not is_shell_powershell()
+#* Generalize the _init_logger_root_handler_std() method defined below to:
+#
+#       # Expand this unconditional assignment...
+#       self._logger_root_handler_stderr = StreamHandler(sys.stderr)
+#
+#       # ...into these conditional assignments.
+#       if windows.is_windows() and windows.is_shell_powershell():
+#           self._logger_root_handler_stderr = StreamHandler(sys.stdout)
+#       else:
+#           self._logger_root_handler_stderr = StreamHandler(sys.stderr)
+#
+#In optimistic theory, the above should suffice. </apathetic_shrug>
+
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid circular import dependencies, avoid importing from *ANY*
