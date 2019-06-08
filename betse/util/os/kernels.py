@@ -99,7 +99,7 @@ def get_version() -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os import oses
+    from betse.util.os.brand import windows
 
     # Kernel version specifier to be returned.
     kernel_version = None
@@ -131,7 +131,7 @@ def get_version() -> str:
     # version of the current kernel (e.g., "4.1.15" under Linux, "13.0.0" under
     # macOS), this is *NOT* necessarily the case (e.g., "8" rather than
     # "6.2.9200" under Windows). Hence, this is only a fallback.
-    if oses.is_windows():
+    if windows.is_windows():
         kernel_version = platform.version()
     # Else, the current platform is *NOT* Windows. In this case, prefer the
     # version specifier returned by the platform.release() function to the

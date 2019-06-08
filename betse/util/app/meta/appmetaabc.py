@@ -8,6 +8,86 @@ High-level **application metadata singleton** (i.e., application-wide object
 synopsizing application metadata via read-only properties) hierarchy.
 '''
 
+#FIXME: Generalize our usage of concrete "metadeps" submodules to support
+#dynamically synthesized "metadeps" submodules that only reside in memory. Why?
+#Because downstream consumers (e.g., BETSEE) *MUST* dynamically create and
+#return a new "metadeps" submodule in their implementation of the abstract
+#_module_metadeps() property. In BETSEE's case, this submodule should be
+#defined as the dynamic merger of the concrete "betse.metadeps" and
+#"betsee.guimetadeps" submodules.
+#
+#To facilitate this, it would be ideal if the BetseeAppMeta._module_metadeps()
+#property could be defined as follows:
+#
+#    from betse import metadeps as betse_metadeps
+#    from betse.util.app.meta import appmetamod
+#    from betsee import guimetadeps as betsee_metadeps
+#
+#    @property
+#    def _module_metadeps(self) -> ModuleType:
+#        return appmetamod.merge_module_metadeps(
+#            betsee_metadeps, betse_metadeps)
+#
+#Ergo:
+#
+#* Define a new "betse.util.app.meta.appmetamod" submodule.
+#* Define a new merge_modules_metadeps() function in this submodule, which
+#  should:
+#  * Accept a variadic number of positional module arguments. Note that order
+#    is absolutely significant. Specifically, the order in which modules are
+#    passed defines the precedence ordering between these modules. The
+#    setuptools requirements specified by the dictionary globals of modules
+#    passed earlier take precedence over (i.e., override) those passed later:
+#    e.g.,
+#      @type_check
+#      def merge_module_metadeps(*modules_metadeps: ModuleType) -> ModuleType:
+#  * For each of the four predefined dictionary globals (i.e.,
+#    "RUNTIME_MANDATORY", "RUNTIME_OPTIONAL", "TESTING_MANDATORY", and
+#    "REQUIREMENT_NAME_TO_COMMANDS") iteratively merge the setuptools
+#    requirements specified by that dictionary global defined by each of the
+#    passed modules into a *LOCAL VARIABLE* of similar name localized to the
+#    above function. Again, order is significant. Specifically, if two of the
+#    same type of dictionary globals in two different modules (e.g.,
+#    "betse.metadeps.RUNTIME_OPTIONAL" and
+#    "betsee.guimetadeps.RUNTIME_OPTIONAL") contain duplicate keys, then the
+#    duplicate key of the dictionary global of the module passed earlier takes
+#    take precedence over (i.e., overrides) the same key of the dictionary
+#    global of the module passed later. Whenever such conflicts arise, either:
+#    * A fatal exception should be raised.
+#    * A non-fatal warning should be logged.
+#    Raising an exception is probably preferable for our purposes, as there
+#    should ideally exist *NO* duplicate keys between BETSE and BETSEE.
+#  * Dynamically create a new "metadeps"-style module object containing the
+#    four local variables defined by the prior step. To facilitate this, it
+#    would probably be useful to define a new
+#    betse.util.py.pymodname.make_module() function with signature resembling:
+#      @type_check
+#      def make_module(
+#          module_name: str,
+#          module_doc: StrOrNoneTypes = None,
+#          module_attr_name_to_value: MappingOrNoneTypes = None,
+#          is_importable: bool = False,
+#      ) -> ModuleType:
+#    See https://stackoverflow.com/questions/2931950/dynamic-module-creation
+#    for the bulk of how this function should be implemented. Aside from the
+#    "is_importable" parameter, this should be largely trivial. The
+#    "is_importable" parameter, however, is somewhat non-trivial to implement.
+#    Why? Edge cases. So, what this parameter does in theory is govern whether
+#    or not the resulting module is injected into "sys.modules" under the
+#    passed fully-qualified "module_name". Simple, right? For a top-level
+#    module, this is indeed simple; for a submodule, however, care must be
+#    taken to ensure that all parents of this submodule already exist and are
+#    also importable. The simplest way to implement this validation, in turn,
+#    is probably to munge the name of the direct parent of this submodule
+#    (e.g., "muh.package" for a submodule name of "muh.package.submodule") and
+#    validate that this parent is importable -- which, by virtue of import
+#    package, suffices to also recursively validate that all transitive parents
+#    of that parent are also importable. *phew!*
+#    * Note, however, that modules should be created by calling the
+#      imp.new_module() function rather than directly instantiating a low-level
+#      module object (which could be subject to change across Python versions).
+#  * Return this object.
+
 #FIXME: The current approach is inefficient in the case of BETSE being
 #installed as a compressed EGG rather than an uncompressed directory. In the
 #former case, the current approach (namely, the call to
@@ -583,8 +663,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.os import oses
-        from betse.util.os.brand import macos, posix
+        from betse.util.os.brand import macos, posix, windows
         from betse.util.os.shell import shellenv
         from betse.util.path import dirs, pathnames
 
@@ -600,7 +679,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
                 self.package_name,
             )
         # If Windows, prefer a Windows-specific directory.
-        elif oses.is_windows():
+        elif windows.is_windows():
             dot_dirname = pathnames.join(
                 shellenv.get_var('APPDATA'), self.package_name)
         # Else...

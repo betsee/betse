@@ -34,6 +34,23 @@ Low-level logging configuration.
 #           self._logger_root_handler_stderr = StreamHandler(sys.stderr)
 #
 #In optimistic theory, the above should suffice. </apathetic_shrug>
+#FIXME: Actually, to implement this sanely, we'll need to generalize our use of
+#"sys.stdout" and "sys.stderr" as follows:
+#
+#* Define a new betse.util.io.stderrs.get_stderr() function resembling:
+#    @func_cached
+#    def get_stderr() -> ????:
+#       return (
+#           sys.stdout
+#           if windows.is_windows() and windows.is_shell_powershell():
+#           sys.stderr)
+#* Define a new betse.util.io.stdouts.get_stdout() function resembling:
+#    def get_stdout() -> ????:
+#        return sys.stdout
+#* Replace all references to "sys.stdout" with calls to
+#  betse.util.io.stdouts.get_stdout().
+#* Replace all references to "sys.stderr" with calls to
+#  betse.util.io.stderrs.get_stderr().
 
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

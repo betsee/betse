@@ -91,8 +91,8 @@ def get_distro_name() -> str:
 
     # Avoid circular import dependencies.
     from betse.lib import libs
-    from betse.util.os import oses
     from betse.util.io.error.errwarning import ignoring_deprecations
+    from betse.util.os.brand import windows
 
     # Linux distribution name to be returned.
     distro_name = None
@@ -119,7 +119,7 @@ def get_distro_name() -> str:
         distro_name = distro.name()
     # Else if this is actually the Windows Subsystem for Linux (WSL)
     # masquerading as Linux, return "Windows (WSL)" rather than "Linux".
-    elif oses.is_windows_wsl():
+    elif windows.is_windows_wsl():
         distro_name = 'Windows (WSL)'
     # Else, this is Python >= 3.8 *AND* the "distro" package is unimportable.
     # In this case, default to the platform name returned by the

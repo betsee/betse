@@ -494,14 +494,15 @@ def get_root_dirname() -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os import oses
+    from betse.util.os.brand import windows
     from betse.util.os.shell import shellenv
 
     # Return this dirname.
-    if oses.is_windows_vanilla():
-        return shellenv.get_var_or_default('HOMEDRIVE', 'C:') + os_path.sep
-    else:
-        return os_path.sep
+    return (
+        shellenv.get_var_or_default('HOMEDRIVE', 'C:') + os_path.sep
+        if windows.is_windows_vanilla() else
+        os_path.sep
+    )
 
 
 @func_cached

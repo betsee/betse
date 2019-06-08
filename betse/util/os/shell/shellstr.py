@@ -140,7 +140,7 @@ def shell_quote(text: str) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os import oses
+    from betse.util.os.brand import windows
 
     # If the current OS is Windows, do *NOT* perform POSIX-compatible quoting.
     # Windows is POSIX-incompatible and hence does *NOT* parse command-line
@@ -148,7 +148,7 @@ def shell_quote(text: str) -> str:
     # treat single-quoted arguments as single arguments but rather as multiple
     # shell words delimited by the raw literal `'`. This is circumventable by
     # calling an officially undocumented Windows-specific function. (Awesome.)
-    if oses.is_windows():
+    if windows.is_windows():
         import subprocess
         return subprocess.list2cmdline([text])
     # Else, perform POSIX-compatible quoting.

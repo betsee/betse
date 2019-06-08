@@ -145,8 +145,7 @@ def _is_headless() -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os import oses
-    from betse.util.os.brand import linux, macos, posix
+    from betse.util.os.brand import linux, macos, posix, windows
 
     # The active Python interpreter is headfull if and only if either...
     is_os_headfull = (
@@ -155,7 +154,7 @@ def _is_headless() -> bool:
         # run headless (e.g., Windows Nano Server), there appears to be no
         # known means of reliably distinguishing a headless from headfull
         # Windows environment in pure Python. For safety, assume the latter.
-        oses.is_windows() or
+        windows.is_windows() or
 
         # Else, this is a POSIX-compatible platform.
         #

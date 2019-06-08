@@ -427,7 +427,7 @@ def _init_popen_kwargs(
 
     # Avoid circular import dependencies.
     from betse.util.path.command import cmds
-    from betse.util.os import oses
+    from betse.util.os.brand import windows
     from betse.util.os.shell import shellenv
 
     # If this list of shell words is empty, raise an exception.
@@ -445,7 +445,7 @@ def _init_popen_kwargs(
     logs.log_debug('Running command: %s', ' '.join(command_words))
 
     # If this is vanilla Windows, sanitize the "close_fds" argument.
-    if oses.is_windows_vanilla() and not mappings.is_key(
+    if windows.is_windows_vanilla() and not mappings.is_key(
         popen_kwargs, 'stdin', 'stdout', 'stderr', 'close_fds'):
         popen_kwargs['close_fds'] = False
 

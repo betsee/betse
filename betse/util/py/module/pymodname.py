@@ -30,14 +30,14 @@ from betse.util.type.types import type_check, ModuleType, StrOrNoneTypes
 from collections import defaultdict
 from importlib import util as importlib_util
 
-# ....................{ GLOBALS ~ dict                    }....................
+# ....................{ GLOBALS                           }....................
 DISTUTILS_PROJECT_NAME_TO_MODULE_NAME = DefaultDict(
     missing_key_value=lambda self, missing_key: missing_key,
     initial_mapping={
-        'Numpy': 'numpy',
+        'Numpy':  'numpy',
         'Pillow': 'PIL',
         'PyYAML': 'yaml',
-        'SciPy': 'scipy',
+        'SciPy':  'scipy',
     }
 )
 '''

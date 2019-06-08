@@ -11,11 +11,8 @@ Caveats
 **Operating system-specific logic is poor form.** Do so *only* where necessary.
 '''
 
-#FIXME: Shift all Windows-specific functionality into the existing
-#"betse.util.os.brand.windows" submodule.
-
 # ....................{ IMPORTS                           }....................
-import platform, sys
+import platform
 from betse import metadata
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import func_cached
@@ -34,6 +31,9 @@ def init() -> None:
        officially supported by this application (e.g., BSD*, Solaris).
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.os.brand import windows
+
     # Log this validation.
     logs.log_debug('Validating platform...')
 
@@ -48,13 +48,13 @@ def init() -> None:
             name=metadata.NAME))
 
     # If this is a non-WSL Windows variant, log a non-fatal warning.
-    if is_windows():
+    if windows.is_windows():
         logs.log_warning(
             'Windows platform detected. '
             'Python itself and third-party scientific frameworks for Python '
-            '(e.g., Numpy, Matplotlib) are well-known to behave suboptimally '
-            'under Windows, '
-            'impeding the reliability and scalability of modelling. %s',
+            '(e.g., Numpy, SciPy, Matplotlib) are known to '
+            'behave suboptimally on this platform. '
+            '%s',
             supported_oses)
 
     # If this platform is officially unsupported by this application, log a
@@ -91,71 +91,7 @@ def is_supported() -> bool:
     from betse.util.os.brand import linux, macos, windows
 
     # The drawing of the Three draws nigh.
-    return linux.is_linux() or macos.is_macos() or is_windows()
-
-# ....................{ TESTERS ~ windows                 }....................
-@func_cached
-def is_windows() -> bool:
-    '''
-    ``True`` only if the current platform is Microsoft Windows.
-
-    This function reports ``True`` for both vanilla and Cygwin Microsoft
-    Windows (both of which commonly require special Windows-specific handling)
-    but *not* the Windows Subsystem for Linux (WSL) (which accurately
-    masquerades as Linux and hence does *not* commonly require special
-    Windows-specific handling).
-    '''
-
-    return is_windows_vanilla() or is_windows_cygwin()
-
-
-@func_cached
-def is_windows_cygwin() -> bool:
-    '''
-    ``True`` only if the current platform is **Cygwin Microsoft
-    Windows** (i.e., running the Cygwin POSIX compatibility layer).
-    '''
-
-    return sys.platform == 'cygwin'
-
-
-@func_cached
-def is_windows_vanilla() -> bool:
-    '''
-    ``True`` only if the current platform is **vanilla Microsoft
-    Windows** (i.e., *not* running the Cygwin POSIX compatibility layer).
-    '''
-
-    return sys.platform == 'win32'
-
-
-@func_cached
-def is_windows_wsl() -> bool:
-    '''
-    ``True`` only if the current platform is **Windows Subsystem for
-    Linux (WSL)** (i.e., the Microsoft-flavoured Linux kernel optionally
-    supported by Windows 10).
-
-    See Also
-    ----------
-    https://www.reddit.com/r/bashonubuntuonwindows/comments/85jghk/how_to_allow_python_to_know_im_on_windows/dvxwy9t
-        Reddit post strongly inspiring this implementation.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.os.brand import linux
-
-    # If the active Python interpreter is *NOT* operating under a Linux kernel,
-    # return false immediately.
-    if not linux.is_linux():
-        return False
-    # Else, this interpreter is operating under a Linux kernel.
-
-    # Flavour of this Linux kernel.
-    kernel_flavour = platform.uname()[3]
-
-    # Return true only if this is a Microsoft-flavoured Linux kernel.
-    return 'microsoft' in kernel_flavour
+    return linux.is_linux() or macos.is_macos() or windows.is_windows()
 
 # ....................{ GETTERS                           }....................
 @func_cached
@@ -211,7 +147,7 @@ def get_name() -> str:
     # returns a non-human-readable low-level uppercase label specific to the
     # word size of the current Python interpreter (e.g., "CYGWIN_NT-5.1*"),
     # this label is ignored.
-    elif is_windows_cygwin():
+    elif windows.is_windows_cygwin():
         os_name = 'Windows (Cygwin)'
     # If non-Cygwin Windows, return merely "Windows". The name returned by
     # platform.system() depends on the current Windows version as follows:
@@ -220,7 +156,7 @@ def get_name() -> str:
     # * Else, this name is "Windows".
     #
     # Hence, this name is ignored.
-    elif is_windows_vanilla():
+    elif windows.is_windows_vanilla():
         os_name = 'Windows'
     # Else, reuse the name returned by the prior call to platform.system().
 
@@ -257,7 +193,7 @@ def get_version() -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os.brand import linux, macos, windows
+    from betse.util.os.brand import linux, macos
 
     # Version specifier to be returned.
     os_version = None

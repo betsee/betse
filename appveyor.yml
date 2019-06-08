@@ -221,7 +221,7 @@ install:
 
   # Activate this environment (i.e., prepend the current %PATH% by this
   # environment's top-level directory).
-  - cmd: conda activate conda-env-%PYTHON_VERSION%
+  - cmd: activate conda-env-%PYTHON_VERSION%
 
   # Install all mandatory and optional dependencies of this application into
   # this environment from the "conda-forge" channel.
