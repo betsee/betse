@@ -12,6 +12,75 @@ Operating system-specific logic is poor form and should be leveraged only where
 necessary.
 '''
 
+#FIXME: Generalize this configuration to support PowerShell. Sadly, PowerShell
+#is fundamentally insane. (Who didn't see that one coming?) In particular,
+#PowerShell insanely interprets *ANY* attempt to write to stderr as a fatal
+#exception. See our "appveyor.yml" configuration for further details.
+#
+#Since Microsoft clearly has no compelling interest in resolving this blatantly
+#broken behaviour, we *MUST* do so on their behalf. To do so, consider:
+#
+#* Implementing a new betse.util.os.brand.windows.is_shell_powershell() tester
+#  returning True only if the current shell environment is PowerShell. Note
+#  that, as Windows only natively supports two shell environments, the related
+#  is_shell_cmd() tester is trivially implementable as follows:
+#    @func_cached
+#    def is_shell_cmd() -> bool:
+#        return not is_shell_powershell()
+#* Generalize the _init_logger_root_handler_std() method defined below to:
+#
+#       # Expand this unconditional assignment...
+#       self._logger_root_handler_stderr = StreamHandler(sys.stderr)
+#
+#       # ...into these conditional assignments.
+#       if windows.is_windows() and windows.is_shell_powershell():
+#           self._logger_root_handler_stderr = StreamHandler(sys.stdout)
+#       else:
+#           self._logger_root_handler_stderr = StreamHandler(sys.stderr)
+#
+#In optimistic theory, the above should suffice. </apathetic_shrug>
+#FIXME: Actually, to implement this sanely, we'll need to generalize our use of
+#"sys.stdout" and "sys.stderr" as follows:
+#
+#* Define a new betse.util.io.stderrs.get_stderr() function resembling:
+#    @func_cached
+#    def get_stderr() -> ????:
+#       return (
+#           sys.stdout
+#           if windows.is_windows() and windows.is_shell_powershell():
+#           sys.stderr)
+#* Define a new betse.util.io.stdouts.get_stdout() function resembling:
+#    def get_stdout() -> ????:
+#        return sys.stdout
+#* Replace all references to "sys.stdout" with calls to
+#  betse.util.io.stdouts.get_stdout().
+#* Replace all references to "sys.stderr" with calls to
+#  betse.util.io.stderrs.get_stderr().
+#FIXME: Unfortunately, implementing the requisite is_shell_powershell() tester
+#in this submodule will prove highly non-trivial. The reason, of course, is
+#that the Windows API provides no convenient means of differentiating a child
+#PowerShell from CMD.exe process. That said, doing so is absolutely feasible.
+#
+#The standard solution to this issue is to leverage the third-party "psutil"
+#package to query whether the name of the parent process matches that of a
+#known PowerShell executable, as detailed here:
+#    https://stackoverflow.com/a/55598796/2809027
+#
+#Since that package is C-based and hence heavyweight, however, the above
+#solution should *ONLY* be pursued if everything written below fails. So, what
+#alternatives do we happen? Simple! We implement is_shell_powershell() in pure
+#Python using only standard packages and modules. But how do we do that? Here
+#we go:
+#
+#* Invoke the "tasklist" executable effectively guaranteed to be available
+#  in the current %PATH% in all modern (i.e., post-2012) Windows installations.
+#* Pass that executable options that render the output amenable to trivial
+#  regular expression-based parsing ala the official "talklist" documentation:
+#    https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/tasklist
+#* Parse the "stdout" emitted by that executable using Python's standard "csv"
+#  module ala this unofficial, clever gist:
+#    https://gist.github.com/intco/6149781
+
 # ....................{ IMPORTS                           }....................
 import platform, sys
 from betse.exceptions import BetseOSException

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2017-2018 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -59,33 +59,8 @@ synopsizing application metadata via read-only properties) hierarchy.
 #    should ideally exist *NO* duplicate keys between BETSE and BETSEE.
 #  * Dynamically create a new "metadeps"-style module object containing the
 #    four local variables defined by the prior step. To facilitate this, it
-#    would probably be useful to define a new
-#    betse.util.py.pymodname.make_module() function with signature resembling:
-#      @type_check
-#      def make_module(
-#          module_name: str,
-#          module_doc: StrOrNoneTypes = None,
-#          module_attr_name_to_value: MappingOrNoneTypes = None,
-#          is_importable: bool = False,
-#      ) -> ModuleType:
-#    See https://stackoverflow.com/questions/2931950/dynamic-module-creation
-#    for the bulk of how this function should be implemented. Aside from the
-#    "is_importable" parameter, this should be largely trivial. The
-#    "is_importable" parameter, however, is somewhat non-trivial to implement.
-#    Why? Edge cases. So, what this parameter does in theory is govern whether
-#    or not the resulting module is injected into "sys.modules" under the
-#    passed fully-qualified "module_name". Simple, right? For a top-level
-#    module, this is indeed simple; for a submodule, however, care must be
-#    taken to ensure that all parents of this submodule already exist and are
-#    also importable. The simplest way to implement this validation, in turn,
-#    is probably to munge the name of the direct parent of this submodule
-#    (e.g., "muh.package" for a submodule name of "muh.package.submodule") and
-#    validate that this parent is importable -- which, by virtue of import
-#    package, suffices to also recursively validate that all transitive parents
-#    of that parent are also importable. *phew!*
-#    * Note, however, that modules should be created by calling the
-#      imp.new_module() function rather than directly instantiating a low-level
-#      module object (which could be subject to change across Python versions).
+#    would probably be useful to call our newly defined
+#    betse.util.py.pymodname.make_module() function.
 #  * Return this object.
 
 #FIXME: The current approach is inefficient in the case of BETSE being

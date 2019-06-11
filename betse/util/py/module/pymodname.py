@@ -24,11 +24,14 @@ See Also
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import importlib, sys
+from betse.exceptions import BetseModuleException
 from betse.util.io.log import logs
 from betse.util.type.iterable.mapping.mapcls import DefaultDict
-from betse.util.type.types import type_check, ModuleType, StrOrNoneTypes
+from betse.util.type.types import (
+    type_check, MappingOrNoneTypes, ModuleType, StrOrNoneTypes)
 from collections import defaultdict
 from importlib import util as importlib_util
+from importlib.machinery import ModuleSpec
 
 # ....................{ GLOBALS                           }....................
 DISTUTILS_PROJECT_NAME_TO_MODULE_NAME = DefaultDict(
@@ -70,19 +73,58 @@ canonical ``__version__`` attribute name.
 
 # ....................{ EXCEPTIONS                        }....................
 @type_check
+def die_if_module(module_name: str) -> None:
+    '''
+    Raise an exception if the module with the passed name **exists** (i.e., is
+    importable by the active Python interpreter).
+
+    Parameters
+    ----------
+    module_name : str
+        Fully-qualified name of the module to be validated.
+
+    Raises
+    ----------
+    BetseModuleException
+        If this module exists.
+
+    See Also
+    ----------
+    :func:`is_module`
+        Further details.
+    '''
+
+    # If this module is importable, raise an exception.
+    if is_module(module_name):
+        raise BetseModuleException(
+            'Module "{}" already exists.'.format(module_name))
+
+
+@type_check
 def die_unless_module(
     module_name: str, exception_message: StrOrNoneTypes = None) -> None:
     '''
     Raise an exception with the passed message (defaulting to a message
     synthesized from the passed module name) if the module with the passed name
-    is *not* importable by the active Python interpreter.
+    does *not* **exist** (i.e., is unimportable by the active Python
+    interpreter).
+
+    Parameters
+    ----------
+    module_name : str
+        Fully-qualified name of the module to be validated.
+    exception_message : StrOrNoneTypes
+        Message of the exception to be raised if this module does *not* exist.
+        Defaults to ``None``, in which case a message is synthesized from this
+        module name.
 
     Raises
     ----------
     ImportError
-        If this module is unimportable. To permit callers to transparently
-        handle importation errors in the standard way, this standard exception
-        rather than an application-specific exception (e.g.,
+        If this module either does not exist *or* does exist but is
+        unimportable (e.g., due to module-scoped errors). To permit callers to
+        transparently handle importation errors in the standard way, this
+        standard exception rather than an application-specific exception (e.g.,
         :class:`betse.exceptions.BetseModuleException`) is raised.
 
     See Also
@@ -104,8 +146,8 @@ def die_unless_module(
 @type_check
 def is_module(module_name: str) -> bool:
     '''
-    ``True`` only if the module with the passed fully-qualified name is
-    importable under the active Python interpreter.
+    ``True`` only if the module with the passed fully-qualified name **exists**
+    (i.e., is importable under the active Python interpreter).
 
     Caveats
     ----------
@@ -117,6 +159,16 @@ def is_module(module_name: str) -> bool:
       necessarily imports *all* parent modules of this module.
     * *Not* importable via standard mechanisms (e.g., the OS X-specific
       :mod:`PyObjCTools` package), this function may import this module itself.
+
+    Parameters
+    ----------
+    module_name : str
+        Fully-qualified name of the module to be tested.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this module exists.
     '''
 
     # Depending on context, this function behaves in one of three distinct
@@ -177,6 +229,35 @@ def is_imported(*module_names: str) -> bool:
     # all(). It is awesome.
     return all(module_name in sys.modules for module_name in module_names)
 
+# ....................{ GETTERS                           }....................
+@type_check
+def get_parent_module_name_or_none(module_name: str) -> StrOrNoneTypes:
+    '''
+    Name of the parent module of the child module with the passed name if this
+    module has a parent *or* ``None`` otherwise (i.e., if this is a top-level
+    module).
+
+    Parameters
+    ----------
+    module_name : str
+        Fully-qualified name of the module to be munged.
+
+    Returns
+    ----------
+    StrOrNoneTypes
+        Either:
+
+        * If this is a top-level module, ``None``.
+        * Else, the fully-qualified name of the parent module of this module.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text.string import strs
+
+    # Return the prefix of this module name preceding the last "." delimiter.
+    return strs.get_prefix_or_none(
+        text=module_name, anchor='.', is_first=False)
+
 # ....................{ IMPORTERS                         }....................
 @type_check
 def import_module(
@@ -185,6 +266,15 @@ def import_module(
     Dynamically import and return the module, package, or C extension with the
     passed fully-qualified name if importable *or* raise an exception with the
     passed message otherwise.
+
+    Parameters
+    ----------
+    module_name : str
+        Fully-qualified name of the module to be validated.
+    exception_message : StrOrNoneTypes
+        Message of the exception to be raised if this module does *not* exist.
+        Defaults to ``None``, in which case a message is synthesized from this
+        module name.
     '''
 
     # If this module is unimportable, raise an exception.
@@ -217,3 +307,120 @@ def unimport_module_if_imported(*module_names: str) -> None:
             logs.log_debug('Unimporting module "{}"...'.format(module_name))
             del sys.modules[module_name]
         # Else, this module has *NOT* yet been imported. Ignore this module.
+
+# ....................{ MAKERS                            }....................
+@type_check
+def make_module(
+    module_name: str,
+    module_doc: StrOrNoneTypes = None,
+    module_attr_name_to_value: MappingOrNoneTypes = None,
+    is_importable: bool = False,
+) -> ModuleType:
+    '''
+    Dynamically create and return a new module with the passed name and
+    optional passed docstring and attributes, optionally added to the standard
+    :attr:`sys.modules` dictionary for external importation elsewhere.
+
+    Caveats
+    ----------
+    **This function currently creates only non-package modules.** Although this
+    function could be probably generalized to support dynamic creation of
+    packages as well, packages impose certain real-world constraints *not*
+    imposed by non-package modules (e.g., loading package submodules).
+
+    Parameters
+    ----------
+    module_name : str
+        Fully-qualified name of the module to be created.
+    module_doc: StrOrNoneTypes
+        **Docstring** (i.e., human-readable documentation in reStructuredText
+        (reST) format) to be associated with this module. Defaults to ``None``,
+        in which case this module is undocumented by default.
+    module_attr_name_to_value : MappingOrNoneTypes
+        Dictionary mapping from the name to value of each module-scoped
+        attribute to be declared in this module. Defaults to ``None``, in which
+        case this module is empty (i.e., contains *no* attributes) by default.
+    is_importable : bool
+        ``True`` only if external callers are allowed to trivially import this
+        module via this module name elsewhere in this codebase. Note that, in
+        this case, *all* parent packages of this module must already exist.
+        Defaults to ``False`` for safety, in which case the returned object is
+        the *only* initial reference to this module.
+
+    Raises
+    ----------
+    BetseModuleException
+        If a module with this name already exists.
+    ImportError
+        If the ``is_importable`` parameter is ``True`` *and* one or more parent
+        packages of this module do *not* already exist.
+
+    See Also
+    ----------
+    https://stackoverflow.com/questions/2931950/dynamic-module-creation
+        StackOverflow *question* strongly inspiring this implementation. Note
+        that, against all expectations, this question is substantially more
+        informative than its answers.
+    '''
+
+    # If this module already exists, raise an exception.
+    die_if_module(module_name)
+
+    # Name of the parent module of this module if any *OR* None otherwise.
+    parent_module_name = get_parent_module_name_or_none(module_name)
+
+    # If this module is to be importable *AND* has a parent, raise an exception
+    # if this parent does *NOT* already exist. By virtue of import mechanics,
+    # this suffices to also recursively validate that *ALL* transitive parents
+    # of this parent are also importable.
+    if is_importable and parent_module_name is not None:
+        die_unless_module(parent_module_name)
+
+    # Module specification (i.e., metadata object describing this module).
+    #
+    # Note that module specifications are typically created and consumed by
+    # low-level import machinery. In this case, however, we are creating a
+    # module specification for the sole purpose of directly passing that same
+    # module specification to the importlib.util.module_from_spec() function.
+    module_spec = ModuleSpec(
+        # Fully-qualified module name.
+        module_name,
+
+        # Module loader. Since this function dynamically creates this module,
+        # this module is *NOT* loadable.
+        #
+        # Note that this parameter should technically only be "None" for
+        # namespace packages. Unfortunately, there appears to exist no standard
+        # loader class that effectively reduces to a noop. Ergo, "None" it is.
+        None,
+    )
+
+    # Module defined by this specification to be returned.
+    #
+    # Note that modules may also be created by directly instantiating the
+    # low-level "types.ModuleType" class but that doing so is officially
+    # discouraged as "...spec is used to set as many import-controlled
+    # attributes on the module as possible."
+    module = importlib_util.module_from_spec(module_spec)
+
+    # Set the name of the parent module of this module if any *OR* "None"
+    # otherwise. Note that this special attribute could technically also be set
+    # by passing the positional "parent" argument to the ModuleSpec.__init__()
+    # method called above, but that doing so is complicated by:
+    #
+    # * That method's refusal to accept a keyword "parent" argument.
+    # * The "ModuleSpec" class' refusal to allow callers to externally set the
+    #   "parent" instance variable.
+    module.__package__ = parent_module_name
+
+    # If this module is to be prepopulated with attributes, do so.
+    if module_attr_name_to_value is not None:
+        module.__dict__.update(module_attr_name_to_value)
+
+    # If this module is to be importable, register this module with the
+    # standard "sys.modules" dictionary.
+    if is_importable:
+        sys.modules[module_name] = module
+
+    # Return this module.
+    return module

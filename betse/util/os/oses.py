@@ -49,7 +49,11 @@ def init() -> None:
 
     # If this is a non-WSL Windows variant, log a non-fatal warning.
     if windows.is_windows():
-        logs.log_warning(
+        #FIXME: Restore this logging statement to a non-fatal warning *AFTER*
+        #resolving the "FIXME:" comment chain in the
+        #"betse.util.os.brand.windows" submodule concerning PowerShell. Yikes!
+        # logs.log_warning(
+        logs.log_info(
             'Windows platform detected. '
             'Python itself and third-party scientific frameworks for Python '
             '(e.g., Numpy, SciPy, Matplotlib) are known to '

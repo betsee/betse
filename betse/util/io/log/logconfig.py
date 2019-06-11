@@ -7,51 +7,6 @@
 Low-level logging configuration.
 '''
 
-#FIXME: Generalize this configuration to support PowerShell. Sadly, PowerShell
-#is fundamentally insane. (Who didn't see that one coming?) In particular,
-#PowerShell insanely interprets *ANY* attempt to write to stderr as a fatal
-#exception. See our "appveyor.yml" configuration for further details.
-#
-#Since Microsoft clearly has no compelling interest in resolving this blatantly
-#broken behaviour, we *MUST* do so on their behalf. To do so, consider:
-#
-#* Implementing a new betse.util.os.brand.windows.is_shell_powershell() tester
-#  returning True only if the current shell environment is PowerShell. Note
-#  that, as Windows only natively supports two shell environments, the related
-#  is_shell_cmd() tester is trivially implementable as follows:
-#    @func_cached
-#    def is_shell_cmd() -> bool:
-#        return not is_shell_powershell()
-#* Generalize the _init_logger_root_handler_std() method defined below to:
-#
-#       # Expand this unconditional assignment...
-#       self._logger_root_handler_stderr = StreamHandler(sys.stderr)
-#
-#       # ...into these conditional assignments.
-#       if windows.is_windows() and windows.is_shell_powershell():
-#           self._logger_root_handler_stderr = StreamHandler(sys.stdout)
-#       else:
-#           self._logger_root_handler_stderr = StreamHandler(sys.stderr)
-#
-#In optimistic theory, the above should suffice. </apathetic_shrug>
-#FIXME: Actually, to implement this sanely, we'll need to generalize our use of
-#"sys.stdout" and "sys.stderr" as follows:
-#
-#* Define a new betse.util.io.stderrs.get_stderr() function resembling:
-#    @func_cached
-#    def get_stderr() -> ????:
-#       return (
-#           sys.stdout
-#           if windows.is_windows() and windows.is_shell_powershell():
-#           sys.stderr)
-#* Define a new betse.util.io.stdouts.get_stdout() function resembling:
-#    def get_stdout() -> ????:
-#        return sys.stdout
-#* Replace all references to "sys.stdout" with calls to
-#  betse.util.io.stdouts.get_stdout().
-#* Replace all references to "sys.stderr" with calls to
-#  betse.util.io.stderrs.get_stderr().
-
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid circular import dependencies, avoid importing from *ANY*
