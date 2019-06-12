@@ -63,8 +63,6 @@ def die_unless_index(sequence: SequenceTypes, index: int) -> None:
                 index, len(sequence)))
 
 # ....................{ EXCEPTIONS ~ empty                }....................
-#FIXME: Generalize the passed "label" parameter to a full-blown
-#"exception_message" parameter instead.
 @type_check
 def die_if_empty(
     *sequences: SequenceTypes, label: str = 'Sequence') -> None:
@@ -90,8 +88,8 @@ def die_if_empty(
     if len(sequences) == 1:
         # If this sequence is non-empty, raise a simplistic exception.
         if is_empty(sequences[0]):
-            raise BetseSequenceException('{} empty.'.format(
-                label.capitalize()))
+            raise BetseSequenceException(
+                '{} empty.'.format(label.capitalize()))
     # Else, multiple sequences are passed.
     else:
         # For each such sequence...

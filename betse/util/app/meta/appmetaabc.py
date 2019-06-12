@@ -30,7 +30,6 @@ synopsizing application metadata via read-only properties) hierarchy.
 #
 #Ergo:
 #
-#* Define a new "betse.util.app.meta.appmetamod" submodule.
 #* Define a new merge_modules_metadeps() function in this submodule, which
 #  should:
 #  * Accept a variadic number of positional module arguments. Note that order

@@ -208,7 +208,13 @@ install:
   - cmd: conda config --add channels conda-forge
 
   # Update Miniconda to its most recent stable release.
-  - cmd: conda install --quiet --name base conda
+  #
+  # Note that this approach to updating Minicoda is regarded by the Anaconda
+  # community as obsolete. Unfortunately, replacing this approach with the
+  # following industry-standard approach (as our comparable ".gitlab-ci.yml"
+  # configuration does) results in fatal exceptions on AppVeyor spinup:
+  #     - cmd: conda install --quiet --name base conda
+  - cmd: conda update --quiet conda
 
   # For debuggability, print metadata identifying this Miniconda release.
   - cmd: conda info --all

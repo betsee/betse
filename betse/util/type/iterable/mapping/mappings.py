@@ -11,7 +11,12 @@ types and instances).
 # ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseMappingException, BetseMappingKeyException
 from betse.util.type.types import (
-    type_check, MappingType, HashableType, TestableOrNoneTypes,)
+    type_check,
+    MappingType,
+    HashableType,
+    IterableTypes,
+    TestableOrNoneTypes,
+)
 from copy import deepcopy
 
 # ....................{ EXCEPTIONS                        }....................
@@ -527,18 +532,48 @@ def invert_map_unique(mapping: MappingType) -> MappingType:
         return mapping_type(value_key_pairs)
 
 # ....................{ MERGERS                           }....................
+#FIXME: Refactor as follows:
+#
+#* Shift into a new "mapmerge" submodule of the same subpackage.
+#* Define a new "MergeCollisionType" enumeration in this submodule supporting
+#  at least the following three members:
+#  * "RAISE_EXCEPTION".
+#  * "PREFER_FIRST", giving higher precedence to keys in mappings passed
+#    earlier.
+#  * "PREFER_LAST", giving higher precedence to keys in mappings passed later.
+#* Add a new optional parameter with the following signature:
+#    on_collision: MergeCollisionType = MergeCollisionType.RAISE_EXCEPTION,
+#* Implement these collision strategies in this function. We've already
+#  implemented the "PREFER_LAST" strategy below. The "PREFER_FIRST" strategy
+#  probably just reduces to iteritavely calling the dict.update() method on the
+#  newly created dictionary to be returned in a reasonably intelligent manner.
+#  The "RAISE_EXCEPTION" strategy may require the most work, but should prove
+#  mostly trivial.
 @type_check
-def merge_maps(*mappings: MappingType) -> MappingType:
+def merge_maps(
+    # Mandatory parameters.
+    mappings: IterableTypes,
+
+    # Optional parameters.
+) -> MappingType:
     '''
     Dictionary of all key-value pairs deeply (i.e., recursively) merged
     together from all passed dictionaries (in the passed order).
 
-    **Order is significant.** Dictionaries passed later take precedence over
-    dictionaries passed earlier. Ergo, the last passed dictionary takes
-    precedence over *all* other passed dictionaries. Whenever any two passed
-    dictionaries collide (i.e., contain the same key), the returned dictionary
-    contains a key-value pair for that key whose value is that of the key-value
-    pair for the same key of whichever of the two dictionaries was passed last.
+    Caveats
+    ----------
+    If the ``on_collision`` parameter is:
+
+    * :attr:`MergeCollisionType.`, **order is insignificant.** In this case, this
+      function raises an exception if any two of the passed dictionaries
+      **collide** (i.e., define the same key). Since this prevents key
+      collisions, *no* implicit precedence exists between these dictionaries.
+    * Either :attr:`MergeCollisionType.`, **order is significant.** In this case, dictionaries passed later take precedence over
+      dictionaries passed earlier. Ergo, the last passed dictionary takes
+      precedence over *all* other passed dictionaries. Whenever any two passed
+      dictionaries collide (i.e., contain the same key), the returned dictionary
+      contains a key-value pair for that key whose value is that of the key-value
+      pair for the same key of whichever of the two dictionaries was passed last.
 
     Parameters
     ----------
@@ -557,7 +592,18 @@ def merge_maps(*mappings: MappingType) -> MappingType:
     :meth:`dict.update`
         Standard method merging two dictionaries, which should typically be
         called instead of this slower function in this specific use case.
+    http://treyhunner.com/2016/02/how-to-merge-dictionaries-in-python
+        Blog post strongly inspiring this implementation. Thanks, Trey!
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.iterable import itertest, sequences
+
+    # If no mappings were passed, raise an exception.
+    sequences.die_if_empty(mappings, label='Mapping')
+
+    # If any of the passed mappings is *NOT* a mapping, raise an exception.
+    itertest.die_unless_items_instance_of(iterable=mappings, cls=MappingType)
 
     # Type of dictionary to be returned.
     dict_type = type(mappings[0])
@@ -567,8 +613,7 @@ def merge_maps(*mappings: MappingType) -> MappingType:
     # of approaches to merging dictionaries in Python, this approach is known
     # to be the most efficient for general-purpose merging of arbitrarily many
     # dictionaries under Python >= 3.4. See also Trey Hunter's exhaustive
-    # commentary replete with timings at:
-    #     http://treyhunner.com/2016/02/how-to-merge-dictionaries-in-python
+    # commentary (complete with timings) at the above URL.
     dict_merged = {
         # For safety, deeply copy rather than reuse this value.
         key: deepcopy(value)
