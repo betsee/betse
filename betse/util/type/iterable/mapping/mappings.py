@@ -4,8 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level **mapping utilities** (i.e., functions operating on dictionary-like
-types and instances).
+Low-level **mapping** (i.e., dictionary-like types or instances) functionality.
 '''
 
 # ....................{ IMPORTS                           }....................
@@ -14,12 +13,11 @@ from betse.util.type.types import (
     type_check,
     MappingType,
     HashableType,
-    IterableTypes,
     TestableOrNoneTypes,
 )
 from copy import deepcopy
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS ~ keys                 }....................
 @type_check
 def die_unless_keys_equal(*mappings: MappingType) -> None:
     '''
@@ -31,8 +29,8 @@ def die_unless_keys_equal(*mappings: MappingType) -> None:
 
     Parameters
     ----------
-    mapping : MappingType
-        Dictionary to be inspected.
+    mappings : Tuple[MappingType]
+        Tuple of all dictionaries to be validated.
 
     Raises
     ----------
@@ -77,6 +75,41 @@ def die_unless_keys_equal(*mappings: MappingType) -> None:
                             *keys_unequal)))
 
 
+@type_check
+def die_unless_keys_unique(*mappings: MappingType) -> None:
+    '''
+    Raise an exception unless no passed dictionaries **collide** (i.e., contain
+    the same key).
+
+    Equivalently, this function raises an exception if any key of any passed
+    dictionary is also a key of any other such dictionary.
+
+    Parameters
+    ----------
+    mappings : Tuple[MappingType]
+        Tuple of all dictionaries to be validated.
+
+    Raises
+    ----------
+    BetseMappingException
+        If any key of any passed dictionary is also a key of any other such
+        dictionary.
+
+    See Also
+    ----------
+    :func:`is_keys_unique`
+        Further details.
+    '''
+
+    # If one or more of these dictionaries contain the same keys...
+    if not is_keys_unique(*mappings):
+        # Raise an exception. Unlike the comparable die_unless_keys_equal()
+        # function, detecting the exact pair of mappings containing a key
+        # collision from the passed tuple of arbitrarily many mappings is a
+        # non-trivial problem. For the moment, a trivial exception suffices.
+        raise BetseMappingException('Dictionary keys not unique.')
+
+# ....................{ EXCEPTIONS ~ values               }....................
 @type_check
 def die_unless_values_unique(mapping: MappingType) -> None:
     '''
@@ -189,11 +222,54 @@ def is_keys_equal(*mappings: MappingType) -> bool:
 
     # Return true only if...
     return all(
-        # This mapping contains the same keys as the first such mapping.
+        # This mapping contains the same keys as the first such mapping...
         mapping.keys() == mapping_first_keys
         # For each mapping excluding the first.
         for mapping in mappings[1:]
     )
+
+
+@type_check
+def is_keys_unique(*mappings: MappingType) -> bool:
+    '''
+    ``True`` only if no passed dictionaries **collide** (i.e., contain the same
+    key).
+
+    Equivalently, this function returns ``True`` only if all passed
+    dictionaries contain unique keys.
+
+    Parameters
+    ----------
+    mappings : Tuple[MappingType]
+        Tuple of all dictionaries to be tested.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if these dictionaries only contain unique keys.
+    '''
+
+    # If two mappings are passed, prematurely optimize this common case by
+    # directly testing these two mappings for an empty key set intersection.
+    if len(mappings) == 2:
+        return not(mappings[0].keys() & mappings[1].keys())
+    # Else if either no mappings or only one mapping are passed, return true.
+    # See the is_keys_equal() function for discussion on this edge case.
+    elif len(mappings) < 2:
+        return True
+    # Else, three or more mappings are passed. In this case, defer to a general
+    # case algorithm.
+
+    # Set of all keys of the first passed mapping. Note that the dict.keys()
+    # object is *NOT* a set and hence does *NOT* provide the set.intersection()
+    # method called below.
+    mapping_first_keys = set(mappings[0].keys())
+
+    # Return true only if the intersection of these keys with those of all
+    # subsequent mappings is the empty set.
+    return not(
+        mapping_first_keys.intersection(
+            mapping.keys() for mapping in mappings[1:]))
 
 # ....................{ TESTERS ~ value                   }....................
 @type_check
@@ -216,7 +292,7 @@ def is_values_unique(mapping: MappingType) -> bool:
     # Avoid circular import dependencies.
     from betse.util.type.iterable import itertest
 
-    # For sanity, defer to an existing low-level tester.
+    # Defer to an existing low-level tester for sanity.
     return itertest.is_items_unique(mapping.values())
 
 # ....................{ GETTERS                           }....................
@@ -530,101 +606,6 @@ def invert_map_unique(mapping: MappingType) -> MappingType:
         #      for k, v in iterable:
         #          d[k] = v"
         return mapping_type(value_key_pairs)
-
-# ....................{ MERGERS                           }....................
-#FIXME: Refactor as follows:
-#
-#* Shift into a new "mapmerge" submodule of the same subpackage.
-#* Define a new "MergeCollisionType" enumeration in this submodule supporting
-#  at least the following three members:
-#  * "RAISE_EXCEPTION".
-#  * "PREFER_FIRST", giving higher precedence to keys in mappings passed
-#    earlier.
-#  * "PREFER_LAST", giving higher precedence to keys in mappings passed later.
-#* Add a new optional parameter with the following signature:
-#    on_collision: MergeCollisionType = MergeCollisionType.RAISE_EXCEPTION,
-#* Implement these collision strategies in this function. We've already
-#  implemented the "PREFER_LAST" strategy below. The "PREFER_FIRST" strategy
-#  probably just reduces to iteritavely calling the dict.update() method on the
-#  newly created dictionary to be returned in a reasonably intelligent manner.
-#  The "RAISE_EXCEPTION" strategy may require the most work, but should prove
-#  mostly trivial.
-@type_check
-def merge_maps(
-    # Mandatory parameters.
-    mappings: IterableTypes,
-
-    # Optional parameters.
-) -> MappingType:
-    '''
-    Dictionary of all key-value pairs deeply (i.e., recursively) merged
-    together from all passed dictionaries (in the passed order).
-
-    Caveats
-    ----------
-    If the ``on_collision`` parameter is:
-
-    * :attr:`MergeCollisionType.`, **order is insignificant.** In this case, this
-      function raises an exception if any two of the passed dictionaries
-      **collide** (i.e., define the same key). Since this prevents key
-      collisions, *no* implicit precedence exists between these dictionaries.
-    * Either :attr:`MergeCollisionType.`, **order is significant.** In this case, dictionaries passed later take precedence over
-      dictionaries passed earlier. Ergo, the last passed dictionary takes
-      precedence over *all* other passed dictionaries. Whenever any two passed
-      dictionaries collide (i.e., contain the same key), the returned dictionary
-      contains a key-value pair for that key whose value is that of the key-value
-      pair for the same key of whichever of the two dictionaries was passed last.
-
-    Parameters
-    ----------
-    mappings : Tuple[MappingType]
-        Tuple of all dictionaries to be merged.
-
-    Returns
-    ----------
-    MappingType
-        Dictionary merged from and of the same type as the passed dictionaries.
-        Note lastly that the class of the passed dictionary *must* define an
-        ``__init__()`` method accepting a dictionary comprehension.
-
-    See Also
-    ----------
-    :meth:`dict.update`
-        Standard method merging two dictionaries, which should typically be
-        called instead of this slower function in this specific use case.
-    http://treyhunner.com/2016/02/how-to-merge-dictionaries-in-python
-        Blog post strongly inspiring this implementation. Thanks, Trey!
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.type.iterable import itertest, sequences
-
-    # If no mappings were passed, raise an exception.
-    sequences.die_if_empty(mappings, label='Mapping')
-
-    # If any of the passed mappings is *NOT* a mapping, raise an exception.
-    itertest.die_unless_items_instance_of(iterable=mappings, cls=MappingType)
-
-    # Type of dictionary to be returned.
-    dict_type = type(mappings[0])
-
-    # Dictionary merged from the passed dictionaries via a doubly-nested
-    # dictionary comprehension. While there exist a countably infinite number
-    # of approaches to merging dictionaries in Python, this approach is known
-    # to be the most efficient for general-purpose merging of arbitrarily many
-    # dictionaries under Python >= 3.4. See also Trey Hunter's exhaustive
-    # commentary (complete with timings) at the above URL.
-    dict_merged = {
-        # For safety, deeply copy rather than reuse this value.
-        key: deepcopy(value)
-        for mapping in mappings
-        for key, value in mapping.items()
-    }
-
-    # Return a dictionary of this type converted from this dictionary. If the
-    # desired type is a "dict", this dictionary is returned as is; else, this
-    # dictionary is converted into an instance of the desired type.
-    return dict_merged if dict_type is dict else dict_type(dict_merged)
 
 # ....................{ REMOVERS                          }....................
 @type_check

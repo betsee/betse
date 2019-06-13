@@ -312,8 +312,8 @@ def unimport_module_if_imported(*module_names: str) -> None:
 @type_check
 def make_module(
     module_name: str,
-    module_doc: StrOrNoneTypes = None,
     module_attr_name_to_value: MappingOrNoneTypes = None,
+    module_doc: StrOrNoneTypes = None,
     is_importable: bool = False,
 ) -> ModuleType:
     '''
@@ -332,14 +332,14 @@ def make_module(
     ----------
     module_name : str
         Fully-qualified name of the module to be created.
-    module_doc: StrOrNoneTypes
-        **Docstring** (i.e., human-readable documentation in reStructuredText
-        (reST) format) to be associated with this module. Defaults to ``None``,
-        in which case this module is undocumented by default.
     module_attr_name_to_value : MappingOrNoneTypes
         Dictionary mapping from the name to value of each module-scoped
         attribute to be declared in this module. Defaults to ``None``, in which
         case this module is empty (i.e., contains *no* attributes) by default.
+    module_doc: StrOrNoneTypes
+        **Docstring** (i.e., human-readable documentation in reStructuredText
+        (reST) format) to be associated with this module. Defaults to ``None``,
+        in which case this module is undocumented by default.
     is_importable : bool
         ``True`` only if external callers are allowed to trivially import this
         module via this module name elsewhere in this codebase. Note that, in

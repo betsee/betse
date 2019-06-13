@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
 Low-level **mapping classes** (i.e., classes implementing dictionary-like
-functionality, typically by subclassing the builtin :class:`dict` container type
-or an analogue thereof).
+functionality, typically by subclassing the builtin :class:`dict` container
+type or an analogue thereof).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.exceptions import (
     BetseMappingException, BetseMethodUnimplementedException)
 from betse.util.type import types
@@ -23,14 +23,14 @@ from betse.util.type.types import (
 )
 from collections import OrderedDict
 
-# ....................{ GLOBALS                            }....................
+# ....................{ GLOBALS                           }....................
 _DEFAULT_DICT_ID = 0
 '''
 Unique arbitrary identifier with which to uniquify the class name of the next
 :func:`DefaultDict`-derived type.
 '''
 
-# ....................{ CLASSES ~ default                  }....................
+# ....................{ CLASSES ~ default                 }....................
 #FIXME: Donate back to StackOverflow. The standard "defaultdict" class is
 #sufficiently useless that numerous users would probably find this useful.
 @type_check
@@ -94,20 +94,20 @@ def DefaultDict(
     # Return this instance.
     return default_dict
 
-# ....................{ CLASSES ~ dynamic                  }....................
+# ....................{ CLASSES ~ dynamic                 }....................
 class DynamicValue(object):
     '''
-    **Dynamic value** (i.e., qbject encapsulating a single variable gettable and
-    settable via callables predefined at object initialization time).
+    **Dynamic value** (i.e., qbject encapsulating a single variable gettable
+    and settable via callables predefined at object initialization time).
 
     This object typically encapsulates a variable repeatedly reassigned to.
     Since the value of such a variable is inconstant, this variable is *not*
     reliably passable or referrable to without introducing desynchronization
-    issues (e.g., the ``sim.cc_cells[sim.iNa]`` Numpy array of all cell-specific
-    sodium ion concentrations, unreliably reassigned to each simulation time
-    step). This object wraps this variable's access and modification, permitting
-    this variable to effectively be reliably passed and referred to without
-    introducing such issues.
+    issues (e.g., the ``sim.cc_cells[sim.iNa]`` Numpy array of all
+    cell-specific sodium ion concentrations, unreliably reassigned to each
+    simulation time step). This object wraps this variable's access and
+    modification, permitting this variable to effectively be reliably passed
+    and referred to without introducing such issues.
 
     Attributes
     ----------
@@ -119,14 +119,14 @@ class DynamicValue(object):
         variable's value.
     '''
 
-    # ..................{ SLOTS                              }..................
+    # ..................{ SLOTS                             }..................
     # Tuple of the names of all instance attributes permitted in instances of
-    # this class. This slightly improves the time efficiency of attribute access
-    # (by anywhere from 5% to 10%) and dramatically improves the space
+    # this class. This slightly improves the time efficiency of attribute
+    # access (by anywhere from 5% to 10%) and dramatically improves the space
     # efficiency of object storage (by several orders of magnitude).
     __slots__ = ('get_value', 'set_value',)
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(
         self, get_value: CallableTypes, set_value: CallableTypes) -> None:
@@ -156,10 +156,11 @@ class DynamicValueDict(MappingMutableType):
     Caveats
     ----------
     **All dictionary keys are predefined at dictionary initialization time.**
-    Unlike standard dictionaries, this dictionary implementation does _not_
-    permit additional key-value pairs to be added to or existing key-value pairs
-    to be removed from this dictionary after initialization. While the value to
-    which any key maps is arbitrarily modifiable, no key itself is modifiable.
+    Unlike standard dictionaries, this dictionary implementation does *not*
+    permit additional key-value pairs to be added to or existing key-value
+    pairs to be removed from this dictionary after initialization. While the
+    value to which any key maps is arbitrarily modifiable, no key itself is
+    modifiable.
 
     Attributes
     ----------
@@ -170,7 +171,7 @@ class DynamicValueDict(MappingMutableType):
           variable to be dynamically get and set.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     @type_check
     def __init__(self, key_to_dynamic_value: MappingType) -> None:
         '''
@@ -202,10 +203,11 @@ class DynamicValueDict(MappingMutableType):
         self._key_to_dynamic_value = key_to_dynamic_value
 
 
-    # ..................{ MAGIC ~ dict                       }..................
+    # ..................{ MAGIC ~ dict                      }..................
     def __getitem__(self, key: HashableType) -> object:
         '''
-        Get the underlying value of the variable associated with the passed key.
+        Get the underlying value of the variable associated with the passed
+        key.
 
         Parameters
         ----------
@@ -220,7 +222,7 @@ class DynamicValueDict(MappingMutableType):
         Raises
         ----------
         KeyError
-            If this key is _not_ a key with which this dictionary was
+            If this key is *not* a key with which this dictionary was
             initialized.
         '''
 
@@ -229,19 +231,21 @@ class DynamicValueDict(MappingMutableType):
 
     def __setitem__(self, key: HashableType, value: object) -> None:
         '''
-        Set the underlying value of the variable associated with the passed key.
+        Set the underlying value of the variable associated with the passed
+        key.
 
         Parameters
         ----------
         key : HashableType
             Key to set the value of.
         value : object
-            Underlying value of the variable associated with this key to be set.
+            Underlying value of the variable associated with this key to be
+            set.
 
         Raises
         ----------
         KeyError
-            If this key is _not_ a key with which this dictionary was
+            If this key is *not* a key with which this dictionary was
             initialized.
         '''
 
@@ -257,19 +261,19 @@ class DynamicValueDict(MappingMutableType):
         '''
         Unconditionally raise an exception.
 
-        Since the size of this dictionary is invariant, deleting key-value pairs
-        from this dictionary is strictly prohibited.
+        Since the size of this dictionary is invariant, deleting key-value
+        pairs from this dictionary is strictly prohibited.
 
         Raises
         ----------
         BetseMethodUnimplementedException
-            If this key is _not_ a key with which this dictionary was
+            If this key is *not* a key with which this dictionary was
             initialized.
         '''
 
         raise BetseMethodUnimplementedException()
 
-    # ..................{ MAGIC ~ container                  }..................
+    # ..................{ MAGIC ~ container                 }..................
     def __len__(self) -> int:
         '''
         Get the size of this dictionary, guaranteed to be equal to the size of
@@ -283,10 +287,11 @@ class DynamicValueDict(MappingMutableType):
 
         return len(self._key_to_dynamic_value)
 
-    # ..................{ MAGIC ~ iterable                   }..................
+    # ..................{ MAGIC ~ iterable                  }..................
     def __iter__(self) -> IteratorType:
         '''
-        Get an iterator over all keys with which this dictionary was initalized.
+        Get an iterator over all keys with which this dictionary was
+        initalized.
 
         Returns
         ----------
@@ -296,7 +301,7 @@ class DynamicValueDict(MappingMutableType):
 
         return iter(self._key_to_dynamic_value)
 
-# ....................{ CLASSES ~ ordered                  }....................
+# ....................{ CLASSES ~ ordered                 }....................
 class OrderedArgsDict(OrderedDict):
     '''
     Ordered dictionary initialized by a sequence of key-value pairs.
@@ -346,17 +351,18 @@ class OrderedArgsDict(OrderedDict):
         ----------
         key_value_pairs : tuple
             Tuple of sequential keys and values to initialize this ordered
-            dictionary with. Each element of this tuple with:
-            * Even index (e.g., the first and third elements) defines a new key
-              of this dictionary, beginning a new key-value pair.
-            * Odd index (e.g., the second and fourth elements) defines the value
-              for the key defined by the preceding element, finalizing this
+            dictionary with. Each item of this tuple with:
+
+            * Even index (e.g., the first and third items) defines a new key of
+              this dictionary, beginning a new key-value pair.
+            * Odd index (e.g., the second and fourth items) defines the value
+              for the key defined by the preceding item, finalizing this
               existing key-value pair.
 
         Raises
         ----------
         :exc:`betse.exceptions.BetseMappingException`
-             If this tuple is _not_ of even length.
+             If this tuple is *not* of even length.
         '''
 
         # Avoid circular import dependencies.
@@ -367,7 +373,8 @@ class OrderedArgsDict(OrderedDict):
         if ints.is_odd(len(key_value_pairs)):
             raise BetseMappingException(
                 'Expected even number of key-value parameters, '
-                'but received {} such parameters.'.format(len(key_value_pairs)))
+                'but received {} such parameters.'.format(
+                    len(key_value_pairs)))
 
         # Zip object yielding 2-tuple key-value pairs of the format required by
         # the superclass, converted from this flat sequence of keys and values.
@@ -378,10 +385,11 @@ class OrderedArgsDict(OrderedDict):
         # Initialize the superclass with this zip.
         super().__init__(key_value_pairs_nested)
 
-# ....................{ CLASSES ~ reversible               }....................
+# ....................{ CLASSES ~ reversible              }....................
 #FIXME: Define an analogous "OneToOneDict" subclass of the "dict" superclass,
-#mandating that no values ambiguously map to by two or more keys of the original
-#dictionary. In theory, the implementation should be even more concise.
+#mandating that no values ambiguously map to by two or more keys of the
+#original dictionary. In theory, the implementation should be even more
+#concise.
 #FIXME: Unit test us up.
 class ReversibleDict(dict):
     '''
@@ -415,9 +423,10 @@ class ReversibleDict(dict):
     ----------
     reverse : dict
         Dictionary such that each:
+
         * Key is a value of the original dictionary.
-        * Value is a list of all keys of the original dictionary mapping to that
-          value of the original dictionary.
+        * Value is a list of all keys of the original dictionary mapping to
+          that value of the original dictionary.
 
     See Also
     ----------
@@ -430,9 +439,9 @@ class ReversibleDict(dict):
         # Initialize the original dictionary.
         super().__init__(*args, **kwargs)
 
-        # Initialize the reversed dictionary. For each key-value pair with which
-        # the original dictionary is initialized, map this value to a list of
-        # all corresponding keys for reverse lookup.
+        # Initialize the reversed dictionary. For each key-value pair with
+        # which the original dictionary is initialized, map this value to a
+        # list of all corresponding keys for reverse lookup.
         self.reverse = {}
         for key, value in self.items():
             self.reverse.setdefault(value, []).append(key)
@@ -463,7 +472,7 @@ class ReversibleDict(dict):
         if not self.reverse[value]:
             del self.reverse[value]
 
-# ....................{ PRIVATE                            }....................
+# ....................{ PRIVATE                           }....................
 def _get_default_dict_class_name() -> str:
     '''
     Name of the class of the next data descriptor created and returned by the

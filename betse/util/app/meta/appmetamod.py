@@ -103,15 +103,14 @@ def merge_module_metadeps(
 
     # Avoid circular import dependencies.
     from betse.util.type.iterable import itertest
+    from betse.util.type.iterable.mapping import mapmerge
     from betse.util.type.obj import objects
+    from betse.util.type.py.module import pymodname, pymodule
+    from betse.util.type.text.string import strjoin
 
     # If any of the passed modules is *NOT* a module, raise an exception.
     itertest.die_unless_items_instance_of(
         iterable=modules_metadeps, cls=ModuleType)
-
-    # Dictionary mapping from the name to value of each module-scoped
-    # attribute to be declared in the module to be created and returned.
-    module_attr_name_to_value = {}
 
     # Tuple of the names of all global dictionaries required to be defined by
     # these input application dependency metadata modules.
@@ -121,6 +120,10 @@ def merge_module_metadeps(
         'TESTING_MANDATORY',
         'REQUIREMENT_NAME_TO_COMMANDS',
     )
+
+    # Dictionary mapping from the name to value of each module-scoped
+    # attribute to be declared in the module to be created and returned.
+    trg_module_attr_name_to_value = {}
 
     # For the name of each such global dictionary...
     for module_dict_name in module_dicts_name:
@@ -140,4 +143,24 @@ def merge_module_metadeps(
         #betse.util.type.iterable.mapping.mapmerge.merge_maps() function here.
         #Note that, as "on_collision=MergeCollisionType.RAISE_EXCEPTION" is the
         #default, no further work should be required.
-        module_attr_name_to_value[module_dict_name] = None
+        trg_module_attr_name_to_value[module_dict_name] = mapmerge.merge_maps(
+
+    # Double-quoted conjunction of the fully-qualified names of all passed
+    # input application dependency metadata modules.
+    src_modules_metadeps_name = strjoin.join_as_conjunction_double_quoted(
+        pymodule.get_name_qualified(module_metadep)
+        for module_metadep in modules_metadeps
+    )
+
+    # Output application dependency metadata module to be returned.
+    trg_module_metadeps = pymodname.make_module(
+        module_name=module_name,
+        module_attr_name_to_value=trg_module_attr_name_to_value,
+        module_doc='''
+**Application dependency metadata** (i.e., sequences of version-pinned
+dependencies synopsizing application requirements), dynamically merged from the
+{} modules.'''.format(src_modules_metadeps_name),
+    )
+
+    # Return this module.
+    return trg_module_metadeps

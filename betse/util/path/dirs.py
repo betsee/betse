@@ -7,6 +7,11 @@
 Low-level directory facilities.
 '''
 
+#FIXME: Splint into multiple submodules for maintainability by defining a new
+#"betse.util.path.directory" subpackage to store these submodules. Note that
+#this subpackage is intentionally *NOT* named "dir", as doing so would conflict
+#with the standard dir() builtin.
+
 # ....................{ IMPORTS                           }....................
 import os, shutil
 from betse.exceptions import BetseDirException, BetsePathException
@@ -23,7 +28,7 @@ from betse.util.type.types import (
 from distutils import dir_util
 from os import path as os_path
 
-# ....................{ GLOBALS ~ enum                    }....................
+# ....................{ ENUMERATIONS                      }....................
 DirOverwritePolicy = make_enum(
     class_name='DirOverwritePolicy',
     member_names=(
@@ -51,7 +56,7 @@ OVERWRITE : enum
     constitutes the laxest and hence riskiest such policy.
 '''
 
-# ....................{ GLOBALS ~ regex                   }....................
+# ....................{ GLOBALS                           }....................
 # There exist only two possible directory separators for all modern platforms.
 # Hence, this reliably suffices with no error handling required.
 SEPARATOR_REGEX = r'/' if os_path.sep == '/' else r'\\'
