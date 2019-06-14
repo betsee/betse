@@ -21,13 +21,7 @@ dependencies synopsizing application requirements) functionality.
 
 # from betse.util.io.log import logs
 from betse.util.type.types import (
-    type_check,
-    MappingType,
-    MappingOrNoneTypes,
-    ModuleType,
-    IterableTypes,
-    StrOrNoneTypes,
-)
+    type_check, MappingType, ModuleType, IterableTypes)
 
 # ....................{ MAKERS                            }....................
 @type_check
@@ -86,13 +80,16 @@ def merge_module_metadeps(
     Raises
     ----------
     BetseAttrException
-        If one or more of these modules fail to define one or more of the
-        requisite attributes.
-    BetseTypeException
-        If one or more of these modules define one or more of the requisite
-        attributes to be non-dictionaries.
+        If any of these modules fail to define a requisite attribute.
+    BetseMappingException
+        If any two global dictionaries of the same name defined by any two of
+        these modules **collide** (i.e., if any key in any such dictionary is
+        also a key in any other such dictionary).
     BetseModuleException
-        If a module with this module name already exists.
+        If a module with this target module name already exists.
+    BetseTypeException
+        If any of the requisite attributes defined by any of these modules are
+        *not* dictionaries.
 
     Returns
     ----------
@@ -130,7 +127,7 @@ def merge_module_metadeps(
         # Generator comprehension aggregating all of the global dictionaries
         # defined by all of these input modules, raising exceptions if any such
         # module fails to define such a dictionary.
-        modules_dict = (
+        src_modules_dict = (
             objects.get_attr(
                 obj=modules_metadep,
                 attr_name=module_dict_name,
@@ -139,11 +136,12 @@ def merge_module_metadeps(
             for modules_metadep in modules_metadeps
         )
 
-        #FIXME: Call the newly refactored
-        #betse.util.type.iterable.mapping.mapmerge.merge_maps() function here.
-        #Note that, as "on_collision=MergeCollisionType.RAISE_EXCEPTION" is the
-        #default, no further work should be required.
+        # Merge these dictionaries into the dictionary to be returned, raising
+        # exceptions if any requirement defined by any such dictionary collides
+        # (i.e., if any key in any such dictionary is also a key in any other
+        # such dictionary).
         trg_module_attr_name_to_value[module_dict_name] = mapmerge.merge_maps(
+            src_modules_dict)
 
     # Double-quoted conjunction of the fully-qualified names of all passed
     # input application dependency metadata modules.

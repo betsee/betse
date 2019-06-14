@@ -5,8 +5,8 @@
 
 '''
 Unit tests exercising various simpler classes defined by the
-:mod:`betse.util.type.iterable.mapping.mapcls` submodule *not* warranting their own
-dedicated unit test submodule.
+:mod:`betse.util.type.iterable.mapping.mapcls` submodule *not* warranting their
+own dedicated unit test submodule.
 '''
 
 # ....................{ IMPORTS                           }....................
@@ -16,8 +16,9 @@ import pytest
 # ....................{ TESTS ~ default                   }....................
 def test_defaultdict_pass() -> None:
     '''
-    Test aspects of the :class:`betse.util.type.iterable.mapping.mapcls.DefaultDict`
-    type intended to succeed.
+    Test aspects of the
+    :class:`betse.util.type.iterable.mapping.mapcls.DefaultDict` type intended
+    to succeed.
     '''
 
     # Defer heavyweight imports.
@@ -44,8 +45,9 @@ def test_defaultdict_pass() -> None:
 # ....................{ TESTS ~ ordered                   }....................
 def test_orderedargsdict_pass() -> None:
     '''
-    Test aspects of the :class:`betse.util.type.iterable.mapping.mapcls.OrderedArgsDict`
-    type intended to succeed.
+    Test aspects of the
+    :class:`betse.util.type.iterable.mapping.mapcls.OrderedArgsDict` type
+    intended to succeed.
     '''
 
     # Defer heavyweight imports.
@@ -77,8 +79,9 @@ def test_orderedargsdict_pass() -> None:
 
 def test_orderedargsdict_fail() -> None:
     '''
-    Test aspects of the :class:`betse.util.type.iterable.mapping.mapcls.OrderedArgsDict`
-    type intended to fail.
+    Test aspects of the
+    :class:`betse.util.type.iterable.mapping.mapcls.OrderedArgsDict` type
+    intended to fail.
     '''
 
     # Defer heavyweight imports.

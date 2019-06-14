@@ -263,13 +263,15 @@ def is_keys_unique(*mappings: MappingType) -> bool:
     # Set of all keys of the first passed mapping. Note that the dict.keys()
     # object is *NOT* a set and hence does *NOT* provide the set.intersection()
     # method called below.
-    mapping_first_keys = set(mappings[0].keys())
+    mapping_keys_first = set(mappings[0].keys())
 
-    # Return true only if the intersection of these keys with those of all
-    # subsequent mappings is the empty set.
-    return not(
-        mapping_first_keys.intersection(
-            mapping.keys() for mapping in mappings[1:]))
+    # Generator comprehension iteratively yielding all keys of all remaining
+    # passed mappings.
+    mapping_keys_rest = (mapping.keys() for mapping in mappings[1:])
+
+    # Return true only if the intersection of the set of all keys of the first
+    # passed mapping with those of all subsequent mappings is the empty set.
+    return not(mapping_keys_first.intersection(*mapping_keys_rest))
 
 # ....................{ TESTERS ~ value                   }....................
 @type_check

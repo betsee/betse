@@ -54,7 +54,7 @@ def merge_maps(
 
     # Optional parameters.
     collision_policy: MergeCollisionPolicy = (
-        MergeCollisionPolicy.RAISE_EXCEPTIONS),
+        MergeCollisionPolicy.RAISE_EXCEPTION),
     is_values_copied: bool = False,
 ) -> MappingType:
     '''
@@ -67,10 +67,10 @@ def merge_maps(
     accepting a dictionary comprehension.
 
     Whether the order in which dictionaries are passed is significant
-    conditionally depends on the the passed ``collision_policy`` parameter.
+    conditionally depends on the passed ``collision_policy`` parameter.
     Specifically, if this parameter is:
 
-    * :attr:`MergeCollisionPolicy.RAISE_EXCEPTIONS`, **order is insignificant.**
+    * :attr:`MergeCollisionPolicy.RAISE_EXCEPTION`, **order is insignificant.**
       In this case, this function simply raises an exception if any two of the
       passed dictionaries collide (i.e., define the same key).
     * :attr:`MergeCollisionPolicy.PREFER_FIRST`, **order is significant.** When
@@ -89,7 +89,7 @@ def merge_maps(
     collision_policy : optional[MergeCollisionPolicy]
         **Key collision policy** (i.e., strategy for merging keys shared by
         one or more mappings) to apply. Defaults to
-        :attr:`MergeCollisionPolicy.RAISE_EXCEPTIONS`, raising an exception on
+        :attr:`MergeCollisionPolicy.RAISE_EXCEPTION`, raising an exception on
         the first key collision.
     is_values_copied : optional[bool]
         Either:
@@ -108,6 +108,13 @@ def merge_maps(
     MappingType
         Dictionary merged from and of the same type as the passed dictionaries.
 
+    Raises
+    ----------
+    BetseMappingException
+        If the passed ``collision_policy`` is
+        :attr:`MergeCollisionPolicy.RAISE_EXCEPTION` *and* any key of any
+        passed dictionary is also a key of any other such dictionary.
+
     See Also
     ----------
     http://treyhunner.com/2016/02/how-to-merge-dictionaries-in-python
@@ -116,7 +123,7 @@ def merge_maps(
 
     # Avoid circular import dependencies.
     from betse.util.type.iterable import itertest, sequences
-    from betse.util.type.iterable.mapping import mappings
+    from betse.util.type.iterable.mapping import mappings as maputil
 
     # If no mappings were passed, raise an exception.
     sequences.die_if_empty(mappings, label='Mapping')
@@ -140,8 +147,8 @@ def merge_maps(
     # mappings.die_unless_keys_unique() function called below reduces to a
     # single set intersection of arbitrarily many iterables. Likewise, the
     # merger performed below transparently supports this key collision policy.
-    if collision_policy is MergeCollisionPolicy.RAISE_EXCEPTIONS:
-        mappings.die_unless_keys_unique(*mappings)
+    if collision_policy is MergeCollisionPolicy.RAISE_EXCEPTION:
+        maputil.die_unless_keys_unique(*mappings)
     # If giving higher precedence to dictionaries passed earlier, reverse the
     # order of the passed dictionaries. Why? Because the algorithm implemented
     # below implements the "PREFER_LAST" rather than "PREFER_FIRST" policy by
