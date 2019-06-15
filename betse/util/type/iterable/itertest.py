@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level **non-string iterable testers** (i.e., utility functions testing and
+Low-level **non-string iterable tester** (i.e., utility functions testing and
 validating non-string objects implementing the abstract
 :class:`collections.abc.Iterable` base class) facilities.
 '''

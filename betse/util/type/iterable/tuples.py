@@ -91,8 +91,7 @@ def make_named_subclass(
 
     # Set the fully-qualified name of the module declaring this subclass to
     # that of the caller. By default, the namedtuple() function sets this name
-    # to that of this submodule -- which is fairly useless, all things
-    # considered.
+    # to that of this submodule -- fairly useless, all things considered.
     named_subclass.__module__ = module_name
 
     # If passed a docstring, assign this subclass this docstring.

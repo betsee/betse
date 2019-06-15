@@ -47,6 +47,10 @@ PREFER_LAST : enum
 '''
 
 # ....................{ MERGERS                           }....................
+#FIXME: Generalize the "RAISE_EXCEPTIONS" strategy to only raise exceptions if
+#entire key-value item pairs collide rather than merely keys colliding. To do
+#so, note that dict.items() objects support the "&" intersection operation,
+#which actually behaves as expected. Huzzah!
 @type_check
 def merge_maps(
     # Mandatory parameters.
@@ -123,12 +127,12 @@ def merge_maps(
 
     # Avoid circular import dependencies.
     from betse.util.type.iterable import itertest, sequences
-    from betse.util.type.iterable.mapping import mappings as maputil
+    from betse.util.type.iterable.mapping import maptest
 
     # If no mappings were passed, raise an exception.
     sequences.die_if_empty(mappings, label='Mapping')
 
-    # If any of the passed mappings is *NOT* a mapping, raise an exception.
+    # If any passed mapping is *NOT* a mapping, raise an exception.
     itertest.die_unless_items_instance_of(iterable=mappings, cls=MappingType)
 
     # Type of dictionary to be returned.
@@ -143,12 +147,12 @@ def merge_maps(
     #
     # While there exist a countably infinite number of approaches to merging
     # non-colliding dictionaries in Python, this is the optimally efficient.
-    # The mappings.is_keys_unique() function underlying the
-    # mappings.die_unless_keys_unique() function called below reduces to a
-    # single set intersection of arbitrarily many iterables. Likewise, the
-    # merger performed below transparently supports this key collision policy.
+    # The is_keys_unique() function underlying the die_unless_keys_unique()
+    # function called below reduces to a single set intersection of arbitrarily
+    # many iterables. Likewise, the merger performed below transparently
+    # supports this key collision policy.
     if collision_policy is MergeCollisionPolicy.RAISE_EXCEPTION:
-        maputil.die_unless_keys_unique(*mappings)
+        maptest.die_unless_maps_keys_unique(*mappings)
     # If giving higher precedence to dictionaries passed earlier, reverse the
     # order of the passed dictionaries. Why? Because the algorithm implemented
     # below implements the "PREFER_LAST" rather than "PREFER_FIRST" policy by

@@ -52,13 +52,8 @@ import subprocess
 from betse.exceptions import BetseCommandException
 from betse.util.io.log import logs
 from betse.util.io.log.logenum import LogLevel
-from betse.util.type.iterable.mapping import mappings
 from betse.util.type.types import (
-    type_check,
-    MappingType,
-    MappingOrNoneTypes,
-    SequenceTypes,
-)
+    type_check, MappingType, MappingOrNoneTypes, SequenceTypes)
 from io import TextIOWrapper
 from subprocess import CalledProcessError, Popen, PIPE, TimeoutExpired
 from threading import Thread
@@ -429,6 +424,7 @@ def _init_popen_kwargs(
     from betse.util.path.command import cmds
     from betse.util.os.brand import windows
     from betse.util.os.shell import shellenv
+    from betse.util.type.iterable.mapping import maptest
 
     # If this list of shell words is empty, raise an exception.
     if not command_words:
@@ -445,8 +441,9 @@ def _init_popen_kwargs(
     logs.log_debug('Running command: %s', ' '.join(command_words))
 
     # If this is vanilla Windows, sanitize the "close_fds" argument.
-    if windows.is_windows_vanilla() and not mappings.is_key(
-        popen_kwargs, 'stdin', 'stdout', 'stderr', 'close_fds'):
+    if windows.is_windows_vanilla() and not maptest.has_keys(
+        mapping=popen_kwargs,
+        keys=('stdin', 'stdout', 'stderr', 'close_fds',)):
         popen_kwargs['close_fds'] = False
 
     # Isolate the current set of environment variables to this command,
