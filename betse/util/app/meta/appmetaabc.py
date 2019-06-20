@@ -8,60 +8,6 @@ High-level **application metadata singleton** (i.e., application-wide object
 synopsizing application metadata via read-only properties) hierarchy.
 '''
 
-#FIXME: Generalize our usage of concrete "metadeps" submodules to support
-#dynamically synthesized "metadeps" submodules that only reside in memory. Why?
-#Because downstream consumers (e.g., BETSEE) *MUST* dynamically create and
-#return a new "metadeps" submodule in their implementation of the abstract
-#_module_metadeps() property. In BETSEE's case, this submodule should be
-#defined as the dynamic merger of the concrete "betse.metadeps" and
-#"betsee.guimetadeps" submodules.
-#
-#To facilitate this, it would be ideal if the BetseeAppMeta._module_metadeps()
-#property could be defined as follows:
-#
-#    from betse import metadeps as betse_metadeps
-#    from betse.util.app.meta import appmetamod
-#    from betsee import guimetadeps as betsee_metadeps
-#
-#    @property
-#    def _module_metadeps(self) -> ModuleType:
-#        return appmetamod.merge_module_metadeps(
-#            betsee_metadeps, betse_metadeps)
-#
-#Ergo:
-#
-#* Define a new merge_modules_metadeps() function in this submodule, which
-#  should:
-#  * Accept a variadic number of positional module arguments. Note that order
-#    is absolutely significant. Specifically, the order in which modules are
-#    passed defines the precedence ordering between these modules. The
-#    setuptools requirements specified by the dictionary globals of modules
-#    passed earlier take precedence over (i.e., override) those passed later:
-#    e.g.,
-#      @type_check
-#      def merge_module_metadeps(*modules_metadeps: ModuleType) -> ModuleType:
-#  * For each of the four predefined dictionary globals (i.e.,
-#    "RUNTIME_MANDATORY", "RUNTIME_OPTIONAL", "TESTING_MANDATORY", and
-#    "REQUIREMENT_NAME_TO_COMMANDS") iteratively merge the setuptools
-#    requirements specified by that dictionary global defined by each of the
-#    passed modules into a *LOCAL VARIABLE* of similar name localized to the
-#    above function. Again, order is significant. Specifically, if two of the
-#    same type of dictionary globals in two different modules (e.g.,
-#    "betse.metadeps.RUNTIME_OPTIONAL" and
-#    "betsee.guimetadeps.RUNTIME_OPTIONAL") contain duplicate keys, then the
-#    duplicate key of the dictionary global of the module passed earlier takes
-#    take precedence over (i.e., overrides) the same key of the dictionary
-#    global of the module passed later. Whenever such conflicts arise, either:
-#    * A fatal exception should be raised.
-#    * A non-fatal warning should be logged.
-#    Raising an exception is probably preferable for our purposes, as there
-#    should ideally exist *NO* duplicate keys between BETSE and BETSEE.
-#  * Dynamically create a new "metadeps"-style module object containing the
-#    four local variables defined by the prior step. To facilitate this, it
-#    would probably be useful to call our newly defined
-#    betse.util.py.pymodname.make_module() function.
-#  * Return this object.
-
 #FIXME: The current approach is inefficient in the case of BETSE being
 #installed as a compressed EGG rather than an uncompressed directory. In the
 #former case, the current approach (namely, the call to

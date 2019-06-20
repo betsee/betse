@@ -4,7 +4,8 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level **mapping** (i.e., dictionary-like types or instances) functionality.
+Low-level **mapping** (i.e., :class:`dict`-like types or instances)
+functionality.
 '''
 
 # ....................{ IMPORTS                           }....................

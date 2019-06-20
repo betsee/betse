@@ -56,6 +56,70 @@ def die_unless_values_unique(mapping: MappingType) -> None:
                 values_noun,
                 strjoin.join_as_conjunction_double_quoted(*values_duplicate)))
 
+# ....................{ EXCEPTIONS ~ maps                 }....................
+@type_check
+def die_if_maps_collide(*mappings: MappingType) -> None:
+    '''
+    Raise an exception if two or more passed dictionaries **collide** (i.e.,
+    contain key-value pairs containing the same keys but differing values).
+
+    Parameters
+    ----------
+    mappings : Tuple[MappingType]
+        Tuple of all dictionaries to be validated.
+
+    Raises
+    ----------
+    BetseMappingException
+        If two or more passed dictionaries collide.
+
+    See Also
+    ----------
+    :func:`is_maps_collide`
+        Further details.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.iterable import iteriter
+    from betse.util.type.text.string import strjoin
+
+    # If two or more of these dictionaries collide...
+    if is_maps_collide(*mappings):
+        # Iterable of all possible pairs of these dictionaries.
+        mappings_pairs = iteriter.iter_pairs(mappings)
+
+        # For each possible pair of these dictionaries...
+        for mappings_pair in mappings_pairs:
+            # If this pair of dictionaries collides...
+            if is_maps_collide(*mappings_pair):
+                # Set of all key-value pairs unique to a single mapping.
+                items_unique = mappings[0].items() ^ mappings[1].items()
+
+                # Set of all keys visited while iterating this set.
+                keys_visited = set()
+
+                # Set of all non-unique keys shared by two or more such pairs.
+                keys_collide = set()
+
+                # For each key of such a pair...
+                for key, _ in items_unique:
+                    # If this key has already been visited, this is a
+                    # non-unique key shared by two or more such pairs.
+                    if key in keys_visited:
+                        keys_collide.add(key)
+
+                    # Mark this key as having been visited.
+                    keys_visited.add(key)
+
+                # Grammatically proper noun describing the number of such keys.
+                keys_noun = 'key' if len(keys_collide) == 1 else 'keys'
+
+                # Raise an exception embedding this set.
+                raise BetseMappingException(
+                    'Dictionary {} {} not unique.'.format(
+                        keys_noun, strjoin.join_as_conjunction_double_quoted(
+                            *keys_collide)))
+
 # ....................{ EXCEPTIONS ~ maps : keys          }....................
 @type_check
 def die_unless_maps_keys_equal(*mappings: MappingType) -> None:
@@ -110,58 +174,6 @@ def die_unless_maps_keys_equal(*mappings: MappingType) -> None:
                     'Dictionary {} {} differ.'.format(
                         keys_noun, strjoin.join_as_conjunction_double_quoted(
                             *keys_unequal)))
-
-
-@type_check
-def die_unless_maps_keys_unique(*mappings: MappingType) -> None:
-    '''
-    Raise an exception unless no passed dictionaries **collide** (i.e., contain
-    the same key).
-
-    Equivalently, this function raises an exception if any key of any passed
-    dictionary is also a key of any other such dictionary.
-
-    Parameters
-    ----------
-    mappings : Tuple[MappingType]
-        Tuple of all dictionaries to be validated.
-
-    Raises
-    ----------
-    BetseMappingException
-        If any key of any passed dictionary is also a key of any other such
-        dictionary.
-
-    See Also
-    ----------
-    :func:`is_keys_unique`
-        Further details.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.type.iterable import iteriter
-    from betse.util.type.text.string import strjoin
-
-    # If one or more of these dictionaries contain the same keys...
-    if not is_maps_keys_unique(*mappings):
-        # Iterable of all possible pairs of these dictionaries.
-        mappings_pairs = iteriter.iter_pairs(mappings)
-
-        # For each possible pair of these dictionaries...
-        for mappings_pair in mappings_pairs:
-            # If this pair of dictionaries contains the same keys...
-            if not is_maps_keys_unique(*mappings_pair):
-                # Set of all keys shared between these two mappings.
-                keys_equal = mappings_pair[0].keys() & mappings_pair[1].keys()
-
-                # Grammatically proper noun describing the number of such keys.
-                keys_noun = 'key' if len(keys_equal) == 1 else 'keys'
-
-                # Raise an exception embedding this set.
-                raise BetseMappingException(
-                    'Dictionary {} {} not unique.'.format(
-                        keys_noun, strjoin.join_as_conjunction_double_quoted(
-                            *keys_equal)))
 
 # ....................{ TESTERS ~ map : keys              }....................
 @type_check
@@ -223,9 +235,103 @@ def is_values_unique(mapping: MappingType) -> bool:
     # Defer to an existing low-level tester for sanity.
     return itertest.is_items_unique(mapping.values())
 
-# ....................{ TESTERS ~ maps : items            }....................
+# ....................{ TESTERS ~ maps                    }....................
+@type_check
+def is_maps_collide(*mappings: MappingType) -> bool:
+    '''
+    ``True`` only if two or more passed dictionaries **collide** (i.e., contain
+    key-value pairs containing the same keys but differing values).
 
-# ....................{ TESTERS ~ maps : keys             }....................
+    Equivalently, this function returns ``True`` only if no key of a key-value
+    pair of one mapping is also a key of a key-value pair of another mapping
+    such that the two values of these two pairs differ.
+
+    Parameters
+    ----------
+    mappings : Tuple[MappingType]
+        Tuple of all dictionaries to be tested.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if if two or more passed dictionaries collide.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.iterable.set import sets
+
+    # If two mappings are passed, prematurely optimize this common case by
+    # directly testing these two mappings.
+    #
+    # Dismantled, this is:
+    #
+    # * "mappings[0].items() ^ mappings[1].items()", a set of 2-tuples of all
+    #   unique key-value pairs in these two mappings (i.e., key-value pairs
+    #   *NOT* in both of these mappings).
+    # * "len(mappings[0].items() ^ mappings[1].items())", the number of all
+    #   unique key-value pairs in these two mappings.
+    # * "mappings[0].keys()  ^ mappings[1].keys()", a set of 2-tuples of all
+    #   unique keys in these two mappings (i.e., keys *NOT* in both of these
+    #   mappings).
+    # * "len(mappings[0].keys()  ^ mappings[1].keys())", the number of all
+    #   unique keys in these two mappings.
+    # * "len(...) != len(...)", True only if the number of all unique key-value
+    #   pairs in these two mappings differs from the number of all unique keys
+    #   in these two mappings. If True, then the former is guaranteed to be
+    #   strictly larger than the latter (i.e., more unique key-value pairs than
+    #   keys exist), in which case one or more unique key-value pairs must
+    #   necessarily share the same key and hence collide.
+    #
+    # For example:
+    #
+    #     >>> mappings = ({'a': 42, 'b': 24}, {'a': 35, 'c': 53})
+    #     >>> items_xor = mappings[0].items() ^ mappings[1].items()
+    #     >>> keys_xor = mappings[0].keys() ^ mappings[1].keys()
+    #     >>> items_xor
+    #     {('a', 42), ('b', 24), ('a', 35), ('c', 53)}
+    #     >>> keys_xor
+    #     {'b', 'c'}
+    #     >>> len(items_xor) != keys_xor
+    #     True
+    #
+    #     >>> mappings = ({'a': 42, 'b': 24}, {'a': 42, 'c': 53})
+    #     >>> items_xor = mappings[0].items() ^ mappings[1].items()
+    #     >>> keys_xor = mappings[0].keys() ^ mappings[1].keys()
+    #     >>> items_xor
+    #     {('b', 24), ('c', 53)}
+    #     >>> keys_xor
+    #     {'b', 'c'}
+    #     >>> len(items_xor) != keys_xor
+    #     False
+    if len(mappings) == 2:
+        return (
+            len(mappings[0].items() ^ mappings[1].items()) !=
+            len(mappings[0].keys()  ^ mappings[1].keys())
+        )
+    # Else if either no mappings or only one mapping are passed, return true.
+    # See the is_maps_keys_equal() function for discussion on this edge case.
+    elif len(mappings) < 2:
+        return True
+    # Else, three or more mappings are passed. In this case, defer to a
+    # general-purpose algorithm supporting arbitrarily many mappings.
+
+    # Sets of all key-value pairs and keys of these mappings.
+    #
+    # Note that neither the dict.items() nor dict.keys() objects are sets and
+    # thus do *NOT* provide the set.symmetric_difference() method called below.
+    mappings_items = (set(mapping.items()) for mapping in mappings)
+    mappings_keys  = (set(mapping.keys())  for mapping in mappings)
+
+    # Sets of all key-value pairs and keys unique to a single mapping.
+    mappings_items_unique = sets.symmetric_difference(*mappings_items)
+    mappings_keys_unique  = sets.symmetric_difference(*mappings_keys)
+
+    # Return true only if the number of all key-value pairs unique to a single
+    # mapping differs from and hence is strictly greater than the number of all
+    # keys unique to a single mapping. See above for further details.
+    return len(mappings_items_unique) != len(mappings_keys_unique)
+
+# ....................{ TESTERS ~ maps                    }....................
 @type_check
 def is_maps_keys_equal(*mappings: MappingType) -> bool:
     '''
@@ -271,48 +377,3 @@ def is_maps_keys_equal(*mappings: MappingType) -> bool:
         # For each mapping excluding the first.
         for mapping in mappings[1:]
     )
-
-
-@type_check
-def is_maps_keys_unique(*mappings: MappingType) -> bool:
-    '''
-    ``True`` only if no passed dictionaries **collide** (i.e., contain the same
-    key).
-
-    Equivalently, this function returns ``True`` only if all passed
-    dictionaries contain unique keys.
-
-    Parameters
-    ----------
-    mappings : Tuple[MappingType]
-        Tuple of all dictionaries to be tested.
-
-    Returns
-    ----------
-    bool
-        ``True`` only if these dictionaries only contain unique keys.
-    '''
-
-    # If two mappings are passed, prematurely optimize this common case by
-    # directly testing these two mappings for an empty key set intersection.
-    if len(mappings) == 2:
-        return not(mappings[0].keys() & mappings[1].keys())
-    # Else if either no mappings or only one mapping are passed, return true.
-    # See the is_keys_equal() function for discussion on this edge case.
-    elif len(mappings) < 2:
-        return True
-    # Else, three or more mappings are passed. In this case, defer to a general
-    # case algorithm.
-
-    # Set of all keys of the first passed mapping. Note that the dict.keys()
-    # object is *NOT* a set and hence does *NOT* provide the set.intersection()
-    # method called below.
-    mapping_keys_first = set(mappings[0].keys())
-
-    # Generator comprehension iteratively yielding all keys of all remaining
-    # passed mappings.
-    mapping_keys_rest = (mapping.keys() for mapping in mappings[1:])
-
-    # Return true only if the intersection of the set of all keys of the first
-    # passed mapping with those of all subsequent mappings is the empty set.
-    return not(mapping_keys_first.intersection(*mapping_keys_rest))

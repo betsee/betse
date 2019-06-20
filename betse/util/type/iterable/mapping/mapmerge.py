@@ -24,33 +24,31 @@ MergeCollisionPolicy = make_enum(
 )
 '''
 Enumeration of all supported types of **key collision merger policies** (i.e.,
-strategies for merging keys shared by one or more mappings).
+strategies for merging keys shared between two or more mappings).
+
+Key collisions occur when two or more mappings to be merged contain key-value
+pairs containing the same keys but differing values -- or, equivalently, when a
+key of a key-value pair of one mapping is also a key of a key-value pair of
+another mapping such that the two values of these two pairs differ.
 
 Attributes
 ----------
 RAISE_EXCEPTION : enum
-    When one or more mappings to be merged contain the same key, this policy
-    raises a fatal exception. This constitutes the strictest and hence safest
-    such policy.
+    This policy raises a fatal exception on the first key collision. This
+    constitutes the strictest and hence safest such policy.
 PREFER_FIRST : enum
-    When one or more mappings to be merged contain the same key, this policy
-    accepts only the first key-value pair with this key in these mappings and
-    thus ignores all subsequent such pairs in subsequent mappings. This policy
-    gives higher precedence to keys in mappings passed earlier -- the converse
-    of the :attr:`PREFER_LAST` policy.
+    This policy accepts *only* the first key-value pair with this key in these
+    mappings and thus ignores all subsequent such pairs in subsequent mappings
+    on every key collision. This policy gives higher precedence to keys in
+    mappings passed earlier -- the converse of the :attr:`PREFER_LAST` policy.
 PREFER_LAST : enum
-    When one or more mappings to be merged contain the same key, this policy
-    accepts only the last key-value pair with this key in these mappings and
-    thus ignores all prior such pairs in prior mappings. This policy gives
-    higher precedence to keys in mappings passed later -- the converse of the
-    :attr:`PREFER_FIRST` policy.
+    This policy accepts *only* the last key-value pair with this key in these
+    mappings and thus ignores all prior such pairs in prior mappings on every
+    key collision. This policy gives higher precedence to keys in mappings
+    passed later -- the converse of the :attr:`PREFER_FIRST` policy.
 '''
 
 # ....................{ MERGERS                           }....................
-#FIXME: Generalize the "RAISE_EXCEPTIONS" strategy to only raise exceptions if
-#entire key-value item pairs collide rather than merely keys colliding. To do
-#so, note that dict.items() objects support the "&" intersection operation,
-#which actually behaves as expected. Huzzah!
 @type_check
 def merge_maps(
     # Mandatory parameters.
@@ -76,7 +74,8 @@ def merge_maps(
 
     * :attr:`MergeCollisionPolicy.RAISE_EXCEPTION`, **order is insignificant.**
       In this case, this function simply raises an exception if any two of the
-      passed dictionaries collide (i.e., define the same key).
+      passed dictionaries **key-collide** (i.e., define key-value pairs of the
+      same key but differing values).
     * :attr:`MergeCollisionPolicy.PREFER_FIRST`, **order is significant.** When
       one or more mappings to be merged contain the same key, this function
       accepts only the first key-value pair with this key in these mappings and
@@ -117,7 +116,8 @@ def merge_maps(
     BetseMappingException
         If the passed ``collision_policy`` is
         :attr:`MergeCollisionPolicy.RAISE_EXCEPTION` *and* any key of any
-        passed dictionary is also a key of any other such dictionary.
+        key-value pair of any passed dictionary is also a key of any
+        key-value pair of other such dictionary whose values differ.
 
     See Also
     ----------
@@ -129,6 +129,7 @@ def merge_maps(
     from betse.util.type.iterable import itertest, sequences
     from betse.util.type.iterable.mapping import maptest
 
+    #FIXME: Raise an exception if less than two sets were passed!
     # If no mappings were passed, raise an exception.
     sequences.die_if_empty(mappings, label='Mapping')
 
@@ -147,12 +148,12 @@ def merge_maps(
     #
     # While there exist a countably infinite number of approaches to merging
     # non-colliding dictionaries in Python, this is the optimally efficient.
-    # The is_keys_unique() function underlying the die_unless_keys_unique()
-    # function called below reduces to a single set intersection of arbitrarily
-    # many iterables. Likewise, the merger performed below transparently
-    # supports this key collision policy.
+    # The is_maps_collide() function underlying the die_if_maps_collide()
+    # function called below reduces to two symmetric set differences of
+    # arbitrarily many iterables. Likewise, the merger performed below
+    # transparently supports this key collision policy assuming no collisions.
     if collision_policy is MergeCollisionPolicy.RAISE_EXCEPTION:
-        maptest.die_unless_maps_keys_unique(*mappings)
+        maptest.die_if_maps_collide(*mappings)
     # If giving higher precedence to dictionaries passed earlier, reverse the
     # order of the passed dictionaries. Why? Because the algorithm implemented
     # below implements the "PREFER_LAST" rather than "PREFER_FIRST" policy by

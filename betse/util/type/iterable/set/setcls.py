@@ -142,7 +142,8 @@ class FrozenSetSubclassableMeta(ABCMeta, _FROZENSET_METACLASS):
         Parameters
         ----------
         frozenset_subclass : ClassType
-            :class:`FrozenSetSubclassable` subclass to redefine this method for.
+            :class:`FrozenSetSubclassable` subclass to redefine this method
+            for.
         method_name : str
             Name of the container-creating method to be redefined.
         '''

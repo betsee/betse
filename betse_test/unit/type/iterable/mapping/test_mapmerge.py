@@ -42,6 +42,10 @@ def test_map_merge() -> None:
         'wild':  'West of Arkham the hills rise wild,',
         'woods': 'and there are valleys with deep woods',
         'cut':   'that no axe has ever cut.',
+
+        # Key-value pair duplicated from the "hypnos" map to properly exercise
+        # the "RAISE_EXCEPTION" merge policy.
+        'mercy': 'May the merciful gods, if indeed there be such,',
     }
     the_other_gods = {
         'infinity': 'The vengeance of the infinite abysses...',

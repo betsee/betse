@@ -9,16 +9,6 @@ dependencies synopsizing application requirements) functionality.
 '''
 
 # ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: To avoid race conditions during setuptools-based installation, this
-# module may import *ONLY* from modules guaranteed to exist at the start of
-# installation. This includes all standard Python and application modules but
-# *NOT* third-party dependencies, which if currently uninstalled will only be
-# installed at some later time in the installation. Likewise, to avoid circular
-# import dependencies, the top-level of this module should avoid importing
-# application modules where feasible.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 # from betse.util.io.log import logs
 from betse.util.type.types import (
     type_check, MappingType, ModuleType, IterableTypes)
@@ -64,10 +54,11 @@ def merge_module_metadeps(
     Caveats
     ----------
     **Order is insignificant.** If any of the requisite global dictionaries
-    defined by any of the passed modules contain one or more keys contained in
-    any other dictionary of the same name defined by any other passed module,
-    this function raises an exception. Since this prevents any key collisions,
-    *no* implicit precedence exists between these modules.
+    defined by any of the passed modules contain one or more key-value pairs
+    contained in any other dictionary of the same name defined by any other
+    passed module, this function raises an exception. Since this prevents any
+    collisions between key-value pairs, *no* implicit precedence exists between
+    these modules.
 
     Parameters
     ----------
@@ -83,8 +74,8 @@ def merge_module_metadeps(
         If any of these modules fail to define a requisite attribute.
     BetseMappingException
         If any two global dictionaries of the same name defined by any two of
-        these modules **collide** (i.e., if any key in any such dictionary is
-        also a key in any other such dictionary).
+        these modules **item-collide** (i.e., if any key-value pair in any such
+        dictionary is also a key-value pair in any other such dictionary).
     BetseModuleException
         If a module with this target module name already exists.
     BetseTypeException
@@ -137,9 +128,9 @@ def merge_module_metadeps(
         )
 
         # Merge these dictionaries into the dictionary to be returned, raising
-        # exceptions if any requirement defined by any such dictionary collides
-        # (i.e., if any key in any such dictionary is also a key in any other
-        # such dictionary).
+        # exceptions if any requirement defined by any such dictionary
+        # item-collides (i.e., if any key-value pair in any such dictionary is
+        # also a key-value pair in any other such dictionary).
         trg_module_attr_name_to_value[module_dict_name] = mapmerge.merge_maps(
             src_modules_dict)
 
