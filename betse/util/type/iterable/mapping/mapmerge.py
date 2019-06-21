@@ -118,6 +118,8 @@ def merge_maps(
         :attr:`MergeCollisionPolicy.RAISE_EXCEPTION` *and* any key of any
         key-value pair of any passed dictionary is also a key of any
         key-value pair of other such dictionary whose values differ.
+    BetseSequenceException
+        If less than two mappings are passed.
 
     See Also
     ----------
@@ -129,9 +131,9 @@ def merge_maps(
     from betse.util.type.iterable import itertest, sequences
     from betse.util.type.iterable.mapping import maptest
 
-    #FIXME: Raise an exception if less than two sets were passed!
-    # If no mappings were passed, raise an exception.
-    sequences.die_if_empty(mappings, label='Mapping')
+    # If less than two mappings were passed, raise an exception.
+    sequences.die_if_length_less_than(sequence=mappings, length=2)
+    # Else, at least two mappings were passed.
 
     # If any passed mapping is *NOT* a mapping, raise an exception.
     itertest.die_unless_items_instance_of(iterable=mappings, cls=MappingType)

@@ -226,26 +226,6 @@ def get_attr_or_default(
     # Return this value.
     return attr_value
 
-# ....................{ GETTERS ~ class                   }....................
-def get_class(obj: object) -> ClassType:
-    '''
-    Passed object if this object is itself a class *or* the class of this
-    object otherwise (i.e., if this object is *not* a class).
-
-    Parameters
-    ----------
-    obj : object
-        Object to retrieve this class for.
-
-    Returns
-    ----------
-    ClassType
-        This object if this object is a class *or* this object's class.
-    '''
-
-    # Simplicity is not a place in Simple City.
-    return obj if isinstance(obj, ClassType) else type(obj)
-
 # ....................{ GETTERS : callable                }....................
 @type_check
 def get_callable(obj: object, callable_name: str) -> CallableTypes:
@@ -331,6 +311,26 @@ def get_callable_or_none(obj: object, callable_name: str) -> (
     # Return this attribute if this attribute is callable *OR* "None".
     return func if func is not SENTINEL and callable(func) else None
 
+# ....................{ GETTERS ~ class                   }....................
+def get_class(obj: object) -> ClassType:
+    '''
+    Passed object if this object is itself a class *or* the class of this
+    object otherwise (i.e., if this object is *not* a class).
+
+    Parameters
+    ----------
+    obj : object
+        Object to be queried for its class.
+
+    Returns
+    ----------
+    ClassType
+        This object if this object is a class *or* this object's class.
+    '''
+
+    # Simplicity is not a place in Simple City.
+    return obj if isinstance(obj, ClassType) else type(obj)
+
 # ....................{ GETTERS ~ class : name            }....................
 def get_class_name_unqualified(obj: object) -> str:
     '''
@@ -341,7 +341,7 @@ def get_class_name_unqualified(obj: object) -> str:
     Parameters
     ----------
     obj : object
-        Object to retrieve this class name for.
+        Object to be queried for its class name.
 
     Returns
     ----------
@@ -368,7 +368,7 @@ def get_class_module_name_qualified(obj: object) -> str:
     Parameters
     ----------
     obj : object
-        Object to retrieve this module name for.
+        Object to be queried for its module name.
 
     Returns
     ----------

@@ -265,48 +265,48 @@ def is_maps_collide(*mappings: MappingType) -> bool:
     #
     # Dismantled, this is:
     #
-    # * "mappings[0].items() ^ mappings[1].items()", a set of 2-tuples of all
-    #   unique key-value pairs in these two mappings (i.e., key-value pairs
-    #   *NOT* in both of these mappings).
-    # * "len(mappings[0].items() ^ mappings[1].items())", the number of all
-    #   unique key-value pairs in these two mappings.
-    # * "mappings[0].keys()  ^ mappings[1].keys()", a set of 2-tuples of all
-    #   unique keys in these two mappings (i.e., keys *NOT* in both of these
-    #   mappings).
-    # * "len(mappings[0].keys()  ^ mappings[1].keys())", the number of all
-    #   unique keys in these two mappings.
-    # * "len(...) != len(...)", True only if the number of all unique key-value
-    #   pairs in these two mappings differs from the number of all unique keys
-    #   in these two mappings. If True, then the former is guaranteed to be
-    #   strictly larger than the latter (i.e., more unique key-value pairs than
-    #   keys exist), in which case one or more unique key-value pairs must
-    #   necessarily share the same key and hence collide.
+    # * "mappings[0].items() | mappings[1].items()", the set of 2-tuples of all
+    #   distinct key-value pairs in these mappings.
+    # * "len(mappings[0].items() | mappings[1].items())", the number of all
+    #   distinct key-value pairs in these mappings.
+    # * "mappings[0].keys()  | mappings[1].keys()", the set of 2-tuples of all
+    #   distinct keys in these mappings.
+    # * "len(mappings[0].keys()  | mappings[1].keys())", the number of all
+    #   distinct keys in these mappings.
+    # * "len(...) != len(...)", true only if the number of all distinct
+    #   key-value pairs in these mappings differs from the number of distinct
+    #   keys in these mappings. If true, then the former is guaranteed to be
+    #   strictly larger than the latter (i.e., more distinct key-value pairs
+    #   than keys exist), in which case one or more distinct key-value pairs
+    #   must necessarily share the same key and hence collide.
     #
     # For example:
     #
+    #     # A pair of colliding mappings.
     #     >>> mappings = ({'a': 42, 'b': 24}, {'a': 35, 'c': 53})
-    #     >>> items_xor = mappings[0].items() ^ mappings[1].items()
-    #     >>> keys_xor = mappings[0].keys() ^ mappings[1].keys()
-    #     >>> items_xor
-    #     {('a', 42), ('b', 24), ('a', 35), ('c', 53)}
-    #     >>> keys_xor
-    #     {'b', 'c'}
-    #     >>> len(items_xor) != keys_xor
+    #     >>> items = mappings[0].items() | mappings[1].items()
+    #     >>> keys = mappings[0].keys() | mappings[1].keys()
+    #     >>> items
+    #     {('a', 42), ('a', 35), ('b', 24), ('c', 53)}
+    #     >>> keys
+    #     {'a', 'b', 'c'}
+    #     >>> len(items) > keys
     #     True
     #
+    #     # A pair of non-colliding mappings.
     #     >>> mappings = ({'a': 42, 'b': 24}, {'a': 42, 'c': 53})
-    #     >>> items_xor = mappings[0].items() ^ mappings[1].items()
-    #     >>> keys_xor = mappings[0].keys() ^ mappings[1].keys()
-    #     >>> items_xor
-    #     {('b', 24), ('c', 53)}
-    #     >>> keys_xor
-    #     {'b', 'c'}
-    #     >>> len(items_xor) != keys_xor
+    #     >>> items = mappings[0].items() | mappings[1].items()
+    #     >>> keys = mappings[0].keys() | mappings[1].keys()
+    #     >>> items
+    #     {('a', 42), ('b', 24), ('c', 53)}
+    #     >>> keys
+    #     {'a', 'b', 'c'}
+    #     >>> len(items) > keys
     #     False
     if len(mappings) == 2:
         return (
-            len(mappings[0].items() ^ mappings[1].items()) !=
-            len(mappings[0].keys()  ^ mappings[1].keys())
+            len(mappings[0].items() | mappings[1].items()) !=
+            len(mappings[0].keys()  | mappings[1].keys())
         )
     # Else if either no mappings or only one mapping are passed, return true.
     # See the is_maps_keys_equal() function for discussion on this edge case.
@@ -315,21 +315,14 @@ def is_maps_collide(*mappings: MappingType) -> bool:
     # Else, three or more mappings are passed. In this case, defer to a
     # general-purpose algorithm supporting arbitrarily many mappings.
 
-    # Sets of all key-value pairs and keys of these mappings.
-    #
-    # Note that neither the dict.items() nor dict.keys() objects are sets and
-    # thus do *NOT* provide the set.symmetric_difference() method called below.
-    mappings_items = (set(mapping.items()) for mapping in mappings)
-    mappings_keys  = (set(mapping.keys())  for mapping in mappings)
+    # Sets of distinct key-value pairs and keys in these mappings.
+    mappings_items = sets.make_union(mapping.items() for mapping in mappings)
+    mappings_keys  = sets.make_union(mapping.keys()  for mapping in mappings)
 
-    # Sets of all key-value pairs and keys unique to a single mapping.
-    mappings_items_unique = sets.symmetric_difference(*mappings_items)
-    mappings_keys_unique  = sets.symmetric_difference(*mappings_keys)
-
-    # Return true only if the number of all key-value pairs unique to a single
-    # mapping differs from and hence is strictly greater than the number of all
-    # keys unique to a single mapping. See above for further details.
-    return len(mappings_items_unique) != len(mappings_keys_unique)
+    # Return true only if the number of distinct key-value pairs in these
+    # mapping differs from and hence is strictly greater than the number of
+    # distinct keys in these mappings. See above for further details.
+    return len(mappings_items) != len(mappings_keys)
 
 # ....................{ TESTERS ~ maps                    }....................
 @type_check

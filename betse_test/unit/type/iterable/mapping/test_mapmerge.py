@@ -12,7 +12,7 @@ Unit tests exercising functionality defined by the
 import pytest
 
 # ....................{ TESTS                             }....................
-def test_map_merge() -> None:
+def test_merge_maps() -> None:
     '''
     Unit test the :func:`betse.util.type.iterable.mapping.mapmerge.merge_maps`
     function.

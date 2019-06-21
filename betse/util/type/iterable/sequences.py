@@ -62,62 +62,111 @@ def die_unless_index(sequence: SequenceTypes, index: int) -> None:
             'Sequence index {} invalid (i.e., not in range [0, {}]).'.format(
                 index, len(sequence)))
 
-# ....................{ EXCEPTIONS ~ empty                }....................
+# ....................{ EXCEPTIONS ~ length               }....................
 @type_check
 def die_if_empty(
-    *sequences: SequenceTypes, label: str = 'Sequence') -> None:
+    sequence: SequenceTypes, exception_message: StrOrNoneTypes = None) -> None:
     '''
-    Raise an exception prefixed by the passed label unless all passed sequences
-    are **non-empty** (i.e., contain at least one element).
+    Raise an exception with the passed message (defaulting to a human-readable
+    message) if the passed sequence is **empty** (i.e., contains *no* items).
 
     Parameters
     ----------
-    sequences: tuple
-        Tuple of all sequences to be validated.
-    label : optional[str]
-        Human-readable label prefixing exception messages raised by this
-        method. Defaults to a general-purpose string.
+    sequence: SequenceTypes
+        Sequence to be validated.
+    exception_message : StrOrNoneTypes
+        Exception message to be raised. Defaults to ``None``, in which case an
+        exception message synthesized from the passed arguments is raised.
 
     Raises
     ----------
     BetseSequenceException
-        If any passed sequence is empty.
+        If the sequence is empty.
     '''
 
-    # If only one sequence is passed...
-    if len(sequences) == 1:
-        # If this sequence is non-empty, raise a simplistic exception.
-        if is_empty(sequences[0]):
-            raise BetseSequenceException(
-                '{} empty.'.format(label.capitalize()))
-    # Else, multiple sequences are passed.
-    else:
-        # For each such sequence...
-        for sequence_index, sequence in enumerate(sequences):
-            # If this sequence is non-empty, raise an exception identifying the
-            # index of this sequence in this parameter list.
-            if is_empty(sequence):
-                raise BetseSequenceException(
-                    '{} {} empty.'.format(label.capitalize(), sequence_index))
+    # Avoid circular import dependencies.
+    from betse.util.type.obj import objects
+
+    # If this sequence is empty, raise an exception.
+    if is_empty(sequence):
+        # If no exception message was passed, synthesize one.
+        if not exception_message:
+            exception_message = 'Sequence "{}" empty.'.format(
+                objects.get_class_name_unqualified(sequence))
+
+        # Raise this exception.
+        raise BetseSequenceException(exception_message)
+
 
 
 @type_check
-def die_unless_len(
+def die_if_length_less_than(
+    # Mandatory parameters.
     sequence: SequenceTypes,
-    sequence_len: int,
+    length: int,
+
+    # Optional parameters.
     exception_message: StrOrNoneTypes = None,
 ) -> None:
     '''
     Raise an exception with the passed message (defaulting to a human-readable
-    message) if the passed sequence is *not* of the passed length.
+    message) unless the length of the passed sequence is greater than or equal
+    to the passed length (i.e., unless this sequence contains at least as many
+    items as this length).
+
+    Equivalently, this function raises an exception if this sequence contains
+    strictly less than this many items.
 
     Parameters
     ----------
     sequence: SequenceType
         Sequence to be validated.
-    len: int
-        Sequence length to test for.
-    exception_message : optional[str]
+    length: int
+        Minimum sequence length to test for.
+    exception_message : StrOrNoneTypes
+        Exception message to be raised. Defaults to ``None``, in which case an
+        exception message synthesized from the passed arguments is raised.
+
+    Raises
+    ----------
+    BetseSequenceException
+        If this sequence contains strictly less than this many items.
+    '''
+
+    # If this sequence contains less than this many items, raise an exception.
+    if len(sequence) < length:
+        # If no exception message was passed, synthesize one.
+        if not exception_message:
+            exception_message = 'Sequence length {} < {}.'.format(
+                len(sequence), length)
+
+        # Raise this exception.
+        raise BetseSequenceException(exception_message)
+
+
+@type_check
+def die_unless_length(
+    # Mandatory parameters.
+    sequence: SequenceTypes,
+    length: int,
+
+    # Optional parameters.
+    exception_message: StrOrNoneTypes = None,
+) -> None:
+    '''
+    Raise an exception with the passed message (defaulting to a human-readable
+    message) unless the passed sequence is of the passed length.
+
+    Equivalently, this function raises an exception if this sequence is *not*
+    of this length.
+
+    Parameters
+    ----------
+    sequence: SequenceType
+        Sequence to be validated.
+    length: int
+        Exact sequence length to test for.
+    exception_message : StrOrNoneTypes
         Exception message to be raised. Defaults to ``None``, in which case an
         exception message synthesized from the passed arguments is raised.
 
@@ -128,11 +177,11 @@ def die_unless_len(
     '''
 
     # If this sequence is *NOT* of this length, raise an exception.
-    if len(sequence) != sequence_len:
+    if len(sequence) != length:
         # If no exception message was passed, synthesize one.
         if not exception_message:
             exception_message = 'Sequence length {} not {}.'.format(
-                len(sequence), sequence_len)
+                len(sequence), length)
 
         # Raise this exception.
         raise BetseSequenceException(exception_message)

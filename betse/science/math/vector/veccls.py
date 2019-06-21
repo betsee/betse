@@ -140,19 +140,19 @@ class VectorCellsCache(SimPhaseCacheABC):
         if times_cells_centre is not None:
             times_cells_centre = nparray.from_iterable(times_cells_centre)
             sequences.die_if_empty(
-                times_cells_centre,
-                label='Parameter "times_cells_centre"')
+                sequence=times_cells_centre,
+                exception_message='Sequence "times_cells_centre" empty.')
         if times_grids_centre is not None:
             times_grids_centre = nparray.from_iterable(times_grids_centre)
             sequences.die_if_empty(
-                times_grids_centre,
-                label='Parameter "times_grids_centre"')
+                sequence=times_grids_centre,
+                exception_message='Sequence "times_grids_centre" empty.')
         if times_membranes_midpoint is not None:
             times_membranes_midpoint = nparray.from_iterable(
                 times_membranes_midpoint)
             sequences.die_if_empty(
-                times_membranes_midpoint,
-                label='Parameter "times_membranes_midpoint"')
+                sequence=times_membranes_midpoint,
+                exception_message='Sequence "times_membranes_midpoint" empty.')
 
         # Classify all passed parameters.
         self._times_cells_centre = times_cells_centre

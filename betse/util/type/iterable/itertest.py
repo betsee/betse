@@ -92,8 +92,7 @@ def die_unless_items_unique(iterable: IterableTypes) -> None:
     # would internally consume and hence reduce this generator to the empty
     # generator, which would prevent the subsequent logic from detecting which
     # duplicate items of the original generator.
-    iterable_testable = (
-        tuple(iterable) if generators.is_generator(iterable) else iterable)
+    iterable_testable = generators.to_tuple_if_generator(iterable)
 
     # If one or more items of this iterable are duplicates...
     if not is_items_unique(iterable_testable):

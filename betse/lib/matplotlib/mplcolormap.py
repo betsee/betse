@@ -116,7 +116,7 @@ class MplColormapScheme(object):
         # For each color defining this colormap...
         for color in colors:
             # If this color is *NOT* a 3-sequence, raise an exception.
-            sequences.die_unless_len(sequence=color, sequence_len=3)
+            sequences.die_unless_length(sequence=color, length=3)
 
             # If any of this color's values is *NOT* a valid RGB colour (i.e.,
             # integer in the range [0, 255]), raise an exception.

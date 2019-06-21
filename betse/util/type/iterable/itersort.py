@@ -237,14 +237,14 @@ def _sort_iterable(iterable: IterableTypes, **kwargs) -> IterableTypes:
     # Avoid circular import dependencies.
     from betse.util.type.iterable import generators
 
-    # Input iterable to be sorted. Specifically, if the passed iterable is:
+    # Input iterable to be sorted.
     #
-    # * A generator, coerce this generator into a list. Generators are *NOT*
-    #   safely sortable as is. See the function docsctring for details. Note
-    #   that coercing this generator into a list ensures that the "list_sorted"
-    #   generated below is efficiently returned as is without requiring further
-    #   inefficient type coercion (e.g., from a list to a tuple).
-    # * A non-generator, reuse this iterable as is.
+    # If this iterable is a generator, coerce this generator into a list.
+    # Generators are *NOT* safely sortable as is. See the function docsctring
+    # for details. Note that coercing this generator into a list ensures that
+    # the "list_sorted" generated below is efficiently returned as is without
+    # requiring further inefficient type coercion (e.g., from a list to a
+    # tuple).
     iterable_sortable = (
         list(iterable) if generators.is_generator(iterable) else iterable)
 

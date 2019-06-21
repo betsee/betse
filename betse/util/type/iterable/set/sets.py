@@ -8,42 +8,66 @@ Low-level **set** (i.e., :class:`set`-like types or instances) functionality.
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse.util.type.types import type_check, SetType
+from betse.util.type.types import type_check, IterableTypes, SetType
 
-# ....................{ METACLASSES                       }....................
+# ....................{ MAKERS                            }....................
 @type_check
-def symmetric_difference(*sets: SetType) -> SetType:
+def make_union(*iterables: IterableTypes) -> SetType:
     '''
-    **Symmetric difference** (i.e., set of all objects in only a single passed
-    set) of all passed sets.
+    **Union** (i.e., set of all objects contained in all passed iterables) of
+    all passed iterables.
 
-    This function generalizes the :meth:`set.symmetric_difference` method to an
-    arbitrary number of sets. Whereas the :meth:`set.intersection` and
-    :meth:`set.union` methods natively support an arbitrary number of sets, the
-    :meth:`set.symmetric_difference` method does *not*. This function corrects
-    this unfortunate oversight.
+    This function generalizes the :meth:`set.union` method, which implicitly
+    requires the first iterable to be a set, to arbitrary iterables, none of
+    which (including the first iterable) are required to be a set.
 
-    See Also
+    Parameters
     ----------
-    https://bugs.python.org/issue17854
-        Official Python discussion of this issue.
+    iterables : Tuple[IterableTypes]
+        Tuple of all iterables to be united.
+
+    Raises
+    ----------
+    BetseSequenceException
+        If less than two iterables are passed.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.iterable import sequences
+    from betse.util.type.iterable import generators, sequences
 
-    #FIXME: Raise an exception if less than two sets were passed!
-    # If no sets were passed, raise an exception.
-    sequences.die_if_empty(sets, label='Set')
+    # If passed no iterables, raise an exception.
+    sequences.die_if_empty(sequence=iterables)
+    # Else, at least one iterable is passed.
 
-    # Symmetric difference of these sets to be returned, initialized to a
-    # shallow copy of the first such set.
-    set_difference = sets[0].copy()
+    # If passed only one generator, implicitly expand this generator into the
+    # sequence of all items yielded by this generator.
+    if len(iterables) == 1 and generators.is_generator(iterables[0]):
+        iterables = tuple(iterables[0])
 
-    # For each subsequent such set...
-    for set_next in sets[1:]:
-        # Reduce this symmetric difference against this set.
-        set_difference = set_difference.symmetric_difference(set_next)
+    # First iterable.
+    iterable_first = iterables[0]
 
-    # Return this symmetric difference.
-    return set_difference
+    # First iterable coerced into a set if nor already a set *OR* preserved as
+    # is otherwise.
+    #
+    # Note that testing whether this iterable is a "SetType" does *NOT*
+    # suffice, as that abstract base class sadly fails to require that
+    # subclasses adhere to the public API of the "set" builtin (e.g., by
+    # defining a union() method).
+    iterable_first_set = (
+        iterable_first if isinstance(iterable_first, set) else
+        set(iterable_first))
+
+    # If passed only one iterable, simply return this set.
+    if len(iterables) == 1:
+        return iterable_first_set
+    # Else, two or more iterables are passed.
+
+    # Generator comprehension yielding each subsequent iterable.
+    iterables_rest = (iterable for iterable in iterables[1:])
+
+    # Union of all passed iterables.
+    iterables_united = iterable_first_set.union(*iterables_rest)
+
+    # Return this union.
+    return iterables_united
