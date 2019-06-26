@@ -211,6 +211,12 @@ See Also
 
 # ....................{ LIBS ~ testing : mandatory        }....................
 TESTING_MANDATORY = {
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+    # WARNING: This py.test requirement *MUST* be manually synchronized to the
+    # same requirement in the downstream "betsee.guimetadeps" submodule.
+    # Failure to do so will raise exceptions at BETSEE startup.
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+
     # For simplicity, py.test should remain the only hard dependency for
     # testing on local machines. While our setuptools-driven testing regime
     # optionally leverages third-party py.test plugins (e.g., "pytest-xdist"),

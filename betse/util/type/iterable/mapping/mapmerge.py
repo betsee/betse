@@ -131,6 +131,9 @@ def merge_maps(
     from betse.util.type.iterable import itertest, sequences
     from betse.util.type.iterable.mapping import maptest
 
+    # Sequence of mappings converted from this iterable of mappings.
+    mappings = sequences.to_sequence(mappings)
+
     # If less than two mappings were passed, raise an exception.
     sequences.die_if_length_less_than(sequence=mappings, length=2)
     # Else, at least two mappings were passed.

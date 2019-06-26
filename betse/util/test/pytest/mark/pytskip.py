@@ -269,7 +269,7 @@ def skip_unless_requirement(*requirements_str: str):
         args=requirements_str,
     )
 
-# ....................{ SKIP ~ module : importlib         }....................
+# ....................{ SKIP ~ module                     }....................
 @type_check
 def skip_unless_module(module_name: str, minimum_version: str = None):
     '''
@@ -287,7 +287,7 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
     The higher-level :func:`skip_unless_lib_runtime_optional` and
     :func:`skip_unless_requirement` decorators (which are implemented in terms
     of robust :mod:`setuptools` machinery) should typically be called in lieu
-    of this lower-level decorator (which are implemented in terms of fragile
+    of this lower-level decorator (which is implemented in terms of fragile
     :mod:`importlib` machinery).
 
     See Also

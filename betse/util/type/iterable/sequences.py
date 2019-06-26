@@ -25,6 +25,7 @@ from betse.util.type.types import (
     type_check,
     CallableTypes,
     ContainerTypes,
+    IterableTypes,
     MappingType,
     SequenceTypes,
     StrOrNoneTypes,
@@ -485,7 +486,7 @@ def remove_items(sequence: SequenceTypes, items: ContainerTypes) -> None:
     # efficient reuse of existing assignment-based functionality.
     sequence[:] = omit_items(sequence, items)
 
-# ....................{ REPLACERS                          }....................
+# ....................{ REPLACERS                         }....................
 @type_check
 def replace_items(
     sequence: SequenceTypes, replacements: MappingType) -> SequenceTypes:
@@ -515,7 +516,8 @@ def replace_items(
     ----------
     SequenceTypes
         Sequence transformed from the passed sequence. For efficiency, this
-        sequence is only a shallow rather than deep copy of the passed sequence.
+        sequence is only a shallow rather than deep copy of the passed
+        sequence.
     '''
 
     # Type of both the passed sequence and the sequence to be returned.
@@ -527,3 +529,33 @@ def replace_items(
         replacements[item] if item in replacements else item
         for item in sequence
     )
+
+# ....................{ CONVERTERS                        }....................
+@type_check
+def to_sequence(iterable: IterableTypes) -> SequenceTypes:
+    '''
+    Sequence converted from the passed iterable if this iterable is not a
+    sequence *or* this iterable as is otherwise (i.e., if this iterable is a
+    sequence).
+
+    For efficiency, this function only performs a shallow copy of the items in
+    this iterable on creating this sequence. Ergo, this sequence is guaranteed
+    to contain the same items in the same order as this iterable.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be converted into a sequence.
+
+    Returns
+    ----------
+    SequenceTypes
+        Either:
+
+        * If this iterable is already a sequence, this sequence as is.
+        * Else, a new sequence converted from this iterable (and hence
+          containing the same items in the same order as this iterable).
+    '''
+
+    # One-liners to rule them all.
+    return iterable if is_sequence(iterable) else tuple(iterable)

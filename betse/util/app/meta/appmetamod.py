@@ -13,7 +13,28 @@ dependencies synopsizing application requirements) functionality.
 from betse.util.type.types import (
     type_check, MappingType, ModuleType, IterableTypes)
 
+# ....................{ GLOBALS                           }....................
+MERGE_MODULE_METADEPS_DICTS_NAME = (
+    'RUNTIME_MANDATORY',
+    'RUNTIME_OPTIONAL',
+    'TESTING_MANDATORY',
+    'REQUIREMENT_NAME_TO_COMMANDS',
+)
+'''
+Tuple of the names of all global dictionaries required to be defined by each
+application dependency metadata module passed as input to the
+:func:`merge_module_metadeps` function via the ``modules_metadeps`` parameter.
+'''
+
 # ....................{ MAKERS                            }....................
+#FIXME: Improve documentation with respect to key collisions. Specifically,
+#provide concrete examples without code (which would probably be a bit too
+#much, frankly) of how this function resolves the following similar edge cases:
+#
+#* Two or more dictionaries to be merged contain key-value pairs containing the
+#  same key but differing values.
+#* Two or more dictionaries to be merged contain the same key-value pairs.
+
 @type_check
 def merge_module_metadeps(
     module_name: str, modules_metadeps: IterableTypes) -> ModuleType:
@@ -90,31 +111,22 @@ def merge_module_metadeps(
     '''
 
     # Avoid circular import dependencies.
+    from betse.util.py.module import pymodname, pymodule
     from betse.util.type.iterable import itertest
     from betse.util.type.iterable.mapping import mapmerge
     from betse.util.type.obj import objects
-    from betse.util.type.py.module import pymodname, pymodule
     from betse.util.type.text.string import strjoin
 
     # If any of the passed modules is *NOT* a module, raise an exception.
     itertest.die_unless_items_instance_of(
         iterable=modules_metadeps, cls=ModuleType)
 
-    # Tuple of the names of all global dictionaries required to be defined by
-    # these input application dependency metadata modules.
-    module_dicts_name = (
-        'RUNTIME_MANDATORY',
-        'RUNTIME_OPTIONAL',
-        'TESTING_MANDATORY',
-        'REQUIREMENT_NAME_TO_COMMANDS',
-    )
-
     # Dictionary mapping from the name to value of each module-scoped
     # attribute to be declared in the module to be created and returned.
     trg_module_attr_name_to_value = {}
 
     # For the name of each such global dictionary...
-    for module_dict_name in module_dicts_name:
+    for module_dict_name in MERGE_MODULE_METADEPS_DICTS_NAME:
         # Generator comprehension aggregating all of the global dictionaries
         # defined by all of these input modules, raising exceptions if any such
         # module fails to define such a dictionary.
@@ -136,10 +148,11 @@ def merge_module_metadeps(
 
     # Double-quoted conjunction of the fully-qualified names of all passed
     # input application dependency metadata modules.
-    src_modules_metadeps_name = strjoin.join_as_conjunction_double_quoted(
-        pymodule.get_name_qualified(module_metadep)
-        for module_metadep in modules_metadeps
-    )
+    src_modules_metadeps_name = (
+        strjoin.join_iterable_as_conjunction_double_quoted(
+            pymodule.get_name_qualified(module_metadep)
+            for module_metadep in modules_metadeps
+        ))
 
     # Output application dependency metadata module to be returned.
     trg_module_metadeps = pymodname.make_module(

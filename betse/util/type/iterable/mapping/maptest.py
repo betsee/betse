@@ -9,9 +9,57 @@ dictionary-like types or instances) functionality.
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse.exceptions import BetseMappingException
+from betse.exceptions import (
+    BetseMappingException,
+    BetseMappingKeyException,
+    BetseMappingValueException,
+)
 from betse.util.type.types import (
     type_check, IterableTypes, MappingType, HashableType)
+
+# ....................{ EXCEPTIONS ~ map : keys           }....................
+@type_check
+def die_unless_has_keys(mapping: MappingType, keys: IterableTypes) -> None:
+    '''
+    Raise an exception unless the passed dictionary contains *all* passed keys.
+
+    Equivalently, this function raises an exception if this dictionary does
+    *not* contain one or more passed keys.
+
+    Parameters
+    ----------
+    mapping : MappingType
+        Dictionary to be validated.
+    keys : IterableTypes
+        Iterable of all keys to be tested for.
+
+    Raises
+    ----------
+    BetseMappingKeyException
+        If this dictionary does *not* contain one or more passed keys.
+
+    See Also
+    ----------
+    :func:`has_keys`
+        Further details.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text.string import strjoin
+
+    # If this dictionary does *NOT* contain one or more passed keys...
+    if not has_keys(mapping=mapping, keys=keys):
+        # Set of all passed keys *NOT* in this dictionary.
+        keys_missing = set(key for key in keys if key not in mapping)
+
+        # Grammatically proper noun describing the number of such keys.
+        keys_noun = 'key' if len(keys_missing) == 1 else 'keys'
+
+        # Raise an exception embedding this set.
+        raise BetseMappingKeyException(
+            'Dictionary {} {} not found.'.format(
+                keys_noun,
+                strjoin.join_as_conjunction_double_quoted(*keys_missing)))
 
 # ....................{ EXCEPTIONS ~ map : values         }....................
 @type_check
@@ -25,11 +73,11 @@ def die_unless_values_unique(mapping: MappingType) -> None:
     Parameters
     ----------
     mapping : MappingType
-        Dictionary to be inspected.
+        Dictionary to be validated.
 
     Raises
     ----------
-    BetseMappingException
+    BetseMappingValueException
         If at least one value of this dictionary is a duplicate.
 
     See Also
@@ -51,7 +99,7 @@ def die_unless_values_unique(mapping: MappingType) -> None:
         values_noun = 'value' if len(values_duplicate) == 1 else 'values'
 
         # Raise an exception embedding this set.
-        raise BetseMappingException(
+        raise BetseMappingValueException(
             'Dictionary {} {} duplicate.'.format(
                 values_noun,
                 strjoin.join_as_conjunction_double_quoted(*values_duplicate)))
@@ -137,7 +185,7 @@ def die_unless_maps_keys_equal(*mappings: MappingType) -> None:
 
     Raises
     ----------
-    BetseMappingException
+    BetseMappingKeyException
         If any key of any passed dictionary is *not* a key of any other such
         dictionary.
 
@@ -170,7 +218,7 @@ def die_unless_maps_keys_equal(*mappings: MappingType) -> None:
                 keys_noun = 'key' if len(keys_unequal) == 1 else 'keys'
 
                 # Raise an exception embedding this set.
-                raise BetseMappingException(
+                raise BetseMappingKeyException(
                     'Dictionary {} {} differ.'.format(
                         keys_noun, strjoin.join_as_conjunction_double_quoted(
                             *keys_unequal)))

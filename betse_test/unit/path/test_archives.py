@@ -30,10 +30,10 @@ ARCHIVE_FILETYPES = (
     # addition to the "betse.metadata.RUNTIME_OPTIONAL" dictionary,
     # these modules are pre-packaged with Python itself rather than installed
     # via setuptools. Since these modules declare no "__version__" attribute,
-    # there exists no means of validating the satisfiability of these modules
-    # as with customary setuptools-installed optional dependencies.
+    # validating the satisfiability of these modules is infeasible -- unlike
+    # with customary setuptools-installed optional dependencies.
     #
-    # The lower-level skip_unless_module() decorator is thus applicable here.
+    # The lower-level skip_unless_module() decorator thus applies here.
     pytest.param('bz2', marks=skip_unless_module('bz2')),
     pytest.param('gz',  marks=skip_unless_module('gzip')),
     pytest.param('xz',  marks=skip_unless_module('lzma')),

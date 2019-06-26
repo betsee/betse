@@ -195,13 +195,29 @@ def to_iterable(
     # Avoid importing third-party packages at the top level, for safety.
     from betse.lib.numpy import nparray
     from betse.util.type.cls import classes
+    from betse.util.type.iterable import generators
     from numpy import ndarray
 
     # Type of the input iterable.
     iterable_src_cls = type(iterable)
 
-    # Type of the output iterable, defaulting to that of the input iterable.
-    iterable_trg_cls = cls if cls is not None else iterable_src_cls
+    # Type of the output iterable.
+    iterable_trg_cls = cls
+
+    # If the caller requested no explicit type conversion...
+    if iterable_trg_cls is None:
+        # If the input iterable is a generator, default the type of the output
+        # iterable to the optimally space- and time-efficient iterable: tuple.
+        # Why? Because generators *CANNOT* be explicitly instantiated.
+        if generators.is_generator(iterable):
+            iterable_trg_cls = tuple
+        # Else, the input iterable is *NOT* a generator and hence is assumed to
+        # be of a standard type that *CAN* be explicitly instantiated. In this
+        # case, default the type of the output iterable to this type.
+        else:
+            iterable_trg_cls = iterable_src_cls
+
+    # if cls is not None else iterable_src_cls
 
     # If the input and output iterables are of the same type *AND* no item
     # conversion was requested, efficiently reduce to a noop.
@@ -229,16 +245,14 @@ def to_iterable(
 
         return nparray.from_iterable(iterable)
 
-    # Else, both the input and output iterables are *NOT* Numpy arrays. In
-    # this case, return an output iterable of the desired type containing the
-    # items of this input iterable either...
-    return iterable_trg_cls(
-        # Unmodified...
-        iterable
-        # If no item conversion was requested; else...
-        if item_cls is None else (
-            # Converted to this item type otherwise.
-            item_cls(item) for item in iterable))
+    # Else, neither the input or output iterables are Numpy arrays. In this
+    # case, return an output iterable of the desired type containing the items
+    # of this input iterable either...
+    return (
+        # Unmodified if no item conversion was requested *OR*...
+        iterable_trg_cls(iterable) if item_cls is None else
+        # Converted to this item type otherwise.
+        iterable_trg_cls(item_cls(item) for item in iterable))
 
 
 @type_check

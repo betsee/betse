@@ -21,8 +21,8 @@ def test_to_iterable() -> None:
     # Defer heavyweight imports.
     from betse.util.type.iterable import iterables
 
-    # Input iterable to be converted from.
-    howl = (
+    # Input tuple to be converted from.
+    howl_tuple = (
         'incomparable blind streets of shuddering cloud',
         'and lightning in the mind leaping toward poles',
         'of Canada & Paterson,',
@@ -30,9 +30,17 @@ def test_to_iterable() -> None:
         'of Time between,',
     )
 
-    # Exercise the edge case when this input iterable remains unconverted.
-    assert iterables.to_iterable(iterable=howl) is howl
+    # Input generator to be converted from.
+    howl_generator = (stanza for stanza in howl_tuple)
 
-    # Exercise the edge case when this input iterable is to be converted into
-    # an output iterable of differing type.
-    assert iterables.to_iterable(iterable=howl, cls=set) == set(howl)
+    # Test whether this conversion preserves this input tuple as is.
+    assert iterables.to_iterable(iterable=howl_tuple) is howl_tuple
+
+    # Test whether this conversion converts this input tuple into an output
+    # iterable of differing type.
+    assert iterables.to_iterable(iterable=howl_tuple, cls=set) == set(
+        howl_tuple)
+
+    # Test whether this conversion converts this input generator into an output
+    # tuple identical to this input tuple.
+    assert iterables.to_iterable(iterable=howl_generator) == howl_tuple

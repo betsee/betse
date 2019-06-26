@@ -410,7 +410,7 @@ class BetseTypeException(BetseException):
 
 class BetseEnumException(BetseTypeException):
     '''
-    Enumeration-specific type or value exception.
+    Enumeration-specific exception.
     '''
 
     pass
@@ -418,8 +418,7 @@ class BetseEnumException(BetseTypeException):
 
 class BetseNumericException(BetseTypeException):
     '''
-    Exception generally applicable to both integer *and* float types and
-    values.
+    **Numeric** (i.e., integer *and* float)-specific exception.
     '''
 
     pass
@@ -427,7 +426,7 @@ class BetseNumericException(BetseTypeException):
 
 class BetseIntException(BetseTypeException):
     '''
-    Integer-specific type or value exception.
+    Integer-specific exception.
     '''
 
     pass
@@ -435,7 +434,7 @@ class BetseIntException(BetseTypeException):
 # ....................{ EXCEPTIONS ~ type                 }....................
 class BetseIterableException(BetseTypeException):
     '''
-    Iterable-specific type or value exception.
+    Iterable-specific exception.
     '''
 
     pass
@@ -443,7 +442,7 @@ class BetseIterableException(BetseTypeException):
 
 class BetseSequenceException(BetseIterableException):
     '''
-    Sequence-specific type or value exception.
+    Sequence-specific exception.
     '''
 
     pass
@@ -451,7 +450,7 @@ class BetseSequenceException(BetseIterableException):
 # ....................{ EXCEPTIONS ~ type : iter : map    }....................
 class BetseMappingException(BetseIterableException):
     '''
-    Dictionary-specific type or value exception.
+    Dictionary-specific exception.
     '''
 
     pass
@@ -459,15 +458,22 @@ class BetseMappingException(BetseIterableException):
 
 class BetseMappingKeyException(BetseMappingException):
     '''
-    Dictionary key-specific type or value exception.
+    Dictionary key-specific exception.
     '''
 
     pass
 
+
+class BetseMappingValueException(BetseMappingException):
+    '''
+    Dictionary value-specific exception.
+    '''
+
+    pass
 # ....................{ EXCEPTIONS ~ type : str           }....................
 class BetseStrException(BetseTypeException):
     '''
-    String-specific type or value exception.
+    String-specific  exception.
     '''
 
     pass
@@ -475,7 +481,7 @@ class BetseStrException(BetseTypeException):
 
 class BetseCharException(BetseStrException):
     '''
-    **Character** (i.e., string of length 1)-specific type or value exception.
+    **Character** (i.e., string of length 1)-specific  exception.
     '''
 
     pass
@@ -484,7 +490,7 @@ class BetseCharException(BetseStrException):
 
 class BetseRegexException(BetseStrException):
     '''
-    Regular exception-specific type or value exception.
+    Regular exception-specific  exception.
     '''
 
     pass
