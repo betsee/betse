@@ -51,17 +51,30 @@ def get_attr(obj: object, attr_name: str, **kwargs) -> object:
     '''
 
     # Avoid circular import dependencies.
+    from betse.util.py.module import pymodule
     from betse.util.type.obj.sentinels import SENTINEL
 
     # Value of the attribute with this name defined by this object if any *OR*
     # the sentinel otherwise.
     attr_value = get_attr_or_sentinel(obj, attr_name, **kwargs)
 
-    # If no such attribute exists, raise an exception.
+    # If no such attribute exists...
     if attr_value is SENTINEL:
+        # Human-readable name of this object. Specifically:
+        #
+        # * If this object is a module, the fully-qualified name of this
+        #   module (e.g., "betse.metadeps").
+        # * Else, the unqualified name of the class of this object.
+        #
+        # Since the unqualified name of the class of module objects is simply
+        # "module", differentiating these two common cases improves sanity.
+        obj_name = (
+            pymodule.get_name_qualified(obj) if pymodule.is_module(obj) else
+            get_class_name_unqualified(obj))
+
+        # Raise an exception embedding this object name.
         raise BetseAttrException(
-            'Attribute "{}.{}" undefined.'.format(
-                get_class_name_unqualified(obj), attr_name))
+            'Attribute "{}.{}" undefined.'.format(obj_name, attr_name))
     # Else, this attribute exists.
 
     # Return this value.

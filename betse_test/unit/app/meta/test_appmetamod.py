@@ -28,12 +28,12 @@ def test_merge_module_metadeps() -> None:
     '''
 
     # Defer heavyweight imports.
-    from betse import metadeps
+    from betse import metadeps as betse_metadeps
     from betse.util.app.meta import appmetamod
     from betse.util.app.meta.appmetamod import MERGE_MODULE_METADEPS_DICTS_NAME
     from betse.util.type.iterable.mapping import maptest
     from betse.util.type.obj import objtest
-    from betsee import guimetadeps
+    from betsee import guimetadeps as betsee_metadeps
 
     # Application dependency metadata module merging the BETSE and BETSEE
     # application dependency metadata modules.
@@ -42,7 +42,7 @@ def test_merge_module_metadeps() -> None:
         # create a guaranteeably unique test-specific submodule of the
         # top-level "betse_test" package, which is guaranteed to exist.
         module_name='betse_test.__betse_plus_betsee_metadeps__',
-        modules_metadeps=(metadeps, guimetadeps,),
+        modules_metadeps=(betse_metadeps, betsee_metadeps,),
     )
 
     # Test whether this module defines all requisite dictionary globals.

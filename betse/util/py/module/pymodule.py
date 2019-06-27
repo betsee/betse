@@ -101,6 +101,17 @@ def die_unless_topmost(module: ModuleOrStrTypes) -> None:
 
 # ....................{ TESTERS                           }....................
 @type_check
+def is_module(obj: object) -> bool:
+    '''
+    ``True`` only if the passed object is an **in-memory module** (i.e.,
+    instance of the :class:`ModuleType` class).
+    '''
+
+    # The best things in life are anguish-free.
+    return isinstance(obj, ModuleType)
+
+
+@type_check
 def is_builtin(module: ModuleOrStrTypes) -> bool:
     '''
     ``True`` only if the passed module is a **builtin** (i.e., compiled into

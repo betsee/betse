@@ -112,18 +112,30 @@ def merge_module_metadeps(
 
     # Avoid circular import dependencies.
     from betse.util.py.module import pymodname, pymodule
-    from betse.util.type.iterable import itertest
+    from betse.util.type.iterable import itertest, sequences
     from betse.util.type.iterable.mapping import mapmerge
     from betse.util.type.obj import objects
     from betse.util.type.text.string import strjoin
+
+    # Sequence of modules converted from this iterable of modules.
+    modules_metadeps = sequences.to_sequence(modules_metadeps)
+
+    # If less than two modules were passed, raise an exception.
+    sequences.die_if_length_less_than(sequence=modules_metadeps, length=2)
+    # Else, at least two modules were passed.
 
     # If any of the passed modules is *NOT* a module, raise an exception.
     itertest.die_unless_items_instance_of(
         iterable=modules_metadeps, cls=ModuleType)
 
     # Dictionary mapping from the name to value of each module-scoped
-    # attribute to be declared in the module to be created and returned.
-    trg_module_attr_name_to_value = {}
+    # attribute to be declared in the module to be created and returned,
+    # defaulting to the "RequirementCommand" class globally defined by the
+    # first such module.
+    trg_module_attr_name_to_value = {
+        'RequirementCommand': objects.get_attr(
+            obj=modules_metadeps[0], attr_name='RequirementCommand'),
+    }
 
     # For the name of each such global dictionary...
     for module_dict_name in MERGE_MODULE_METADEPS_DICTS_NAME:

@@ -38,7 +38,6 @@ from abc import ABCMeta
 from betse.exceptions import BetseGitException
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.decorator.decmemo import property_cached
-from betse.util.type.obj import objtest
 from betse.util.type.types import type_check, ModuleType, StrOrNoneTypes
 
 # ....................{ SUPERCLASSES                      }....................
@@ -355,6 +354,87 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         return self.git_worktree_dirname_or_none is not None
 
+    # ..................{ PROPERTIES ~ module               }..................
+    @property_cached
+    def module_metadata(self) -> ModuleType:
+        '''
+        **Application-wide metadata submodule** (i.e., submodule publishing
+        general-purpose metadata as global constants synopsizing the current
+        application), imported for caller convenience.
+
+        If this application is:
+
+        * BETSE, this is the :mod:`betse.metadata` submodule.
+        * BETSEE, this is the :mod:`betsee.guimetadata` submodule.
+
+        See Also
+        ----------
+        :meth:`_module_metadata`
+            Abstract private property returning the module validated by this
+            concrete public property to expose the expected attributes.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.type.obj import objtest
+
+        # Application-wide metadata submodule to be validated and returned.
+        module_metadata = self._module_metadata
+
+        # Validate this submodule to expose the expected attributes. For
+        # sanity, we validate only a proper subset of the complete set of
+        # attributes exposed by this submodule.
+        objtest.die_unless_has_attr(
+            module_metadata,
+            'NAME', 'LICENSE',
+            'VERSION', 'VERSION_PARTS',
+            'SYNOPSIS', 'DESCRIPTION',
+        )
+
+        # Return this validated submodule.
+        return module_metadata
+
+
+    @property_cached
+    def module_metadeps(self) -> ModuleType:
+        '''
+        **Application-wide dependency metadata submodule** (i.e., submodule
+        publishing lists of version-pinned dependencies as global constants
+        synopsizing all requirements of the current application), imported for
+        caller convenience.
+
+        If this application is:
+
+        * BETSE, this is the :mod:`betse.metadeps` submodule.
+        * BETSEE, this is the :mod:`betsee.guimetadeps` submodule.
+
+        See Also
+        ----------
+        :meth:`_module_metadeps`
+            Abstract private property returning the module validated by this
+            concrete public property to expose the expected attributes.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.app.meta.appmetamod import (
+            MERGE_MODULE_METADEPS_DICTS_NAME)
+        from betse.util.type.obj import objtest
+
+        # Application-wide dependency metadata submodule to be validated and
+        # returned.
+        module_metadeps = self._module_metadeps
+
+        # Validate this submodule to expose the expected attributes. For
+        # sanity, we validate only a proper subset of the complete set of
+        # attributes exposed by this submodule.
+        #
+        # Note that the existence of the optional "RequirementCommand" class is
+        # intentionally *NOT* validated, due to being... optional.
+        objtest.die_unless_has_attr(
+            module_metadeps, *MERGE_MODULE_METADEPS_DICTS_NAME)
+
+        # Return this validated submodule.
+        return module_metadeps
+
     # ..................{ PROPERTIES ~ package              }..................
     @property_cached
     def package(self) -> ModuleType:
@@ -402,80 +482,6 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         # When our powers combine!
         return self.package_name + '_test'
-
-    # ..................{ SUBCLASS ~ module                 }..................
-    @property_cached
-    def module_metadata(self) -> ModuleType:
-        '''
-        **Application-wide metadata submodule** (i.e., submodule publishing
-        general-purpose metadata as global constants synopsizing the current
-        application), imported for caller convenience.
-
-        If this application is:
-
-        * BETSE, this is the :mod:`betse.metadata` submodule.
-        * BETSEE, this is the :mod:`betsee.guimetadata` submodule.
-
-        See Also
-        ----------
-        :meth:`_module_metadata`
-            Abstract private property returning the module validated by this
-            concrete public property to expose the expected attributes.
-        '''
-
-        # Application-wide metadata submodule to be validated and returned.
-        module_metadata = self._module_metadata
-
-        # Validate this submodule to expose the expected attributes. For
-        # sanity, we validate only a proper subset of the complete set of
-        # attributes exposed by this submodule.
-        objtest.die_unless_has_attr(
-            module_metadata,
-            'NAME', 'LICENSE',
-            'VERSION', 'VERSION_PARTS',
-            'SYNOPSIS', 'DESCRIPTION',
-        )
-
-        # Return this validated submodule.
-        return module_metadata
-
-
-    @property_cached
-    def module_metadeps(self) -> ModuleType:
-        '''
-        **Application-wide dependency metadata submodule** (i.e., submodule
-        publishing lists of version-pinned dependencies as global constants
-        synopsizing all requirements of the current application), imported for
-        caller convenience.
-
-        If this application is:
-
-        * BETSE, this is the :mod:`betse.metadeps` submodule.
-        * BETSEE, this is the :mod:`betsee.guimetadeps` submodule.
-
-        See Also
-        ----------
-        :meth:`_module_metadeps`
-            Abstract private property returning the module validated by this
-            concrete public property to expose the expected attributes.
-        '''
-
-        # Application-wide dependency metadata submodule to be validated and
-        # returned.
-        module_metadeps = self._module_metadeps
-
-        # Validate this submodule to expose the expected attributes. For
-        # sanity, we validate only a proper subset of the complete set of
-        # attributes exposed by this submodule.
-        objtest.die_unless_has_attr(
-            module_metadeps,
-            'RUNTIME_MANDATORY', 'RUNTIME_OPTIONAL',
-            'TESTING_MANDATORY',
-            'REQUIREMENT_NAME_TO_COMMANDS', 'RequirementCommand',
-        )
-
-        # Return this validated submodule.
-        return module_metadeps
 
     # ..................{ PROPERTIES ~ dir                  }..................
     @property_cached
