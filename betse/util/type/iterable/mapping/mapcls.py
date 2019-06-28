@@ -9,6 +9,43 @@ functionality, typically by subclassing the builtin :class:`dict` container
 type or an analogue thereof).
 '''
 
+#FIXME: Abstract away our usage of "OrderedDict" throughout the codebase. Why?
+#Under Python >= 3.7, the builtin "dict" type now preserves insertion order and
+#hence is now explicitly ordered. See the official Python 3.7 release notes as
+#well as the following Python thread between Guido and an acolyte:
+#    https://mail.python.org/pipermail/python-dev/2017-December/151283.html
+#Note that this guarantee was technically implemented by Python 3.6 but only as
+#an "implementation detail." Since Python 3.7 first publicized this guarantee
+#as a language requirement, only Python >= 3.7 *OR* CPython 3.6 can be
+#guaranteed to preserve dictionary insertion order.
+#
+#Specifically, refactor the codebase as follows:
+#
+#* Define a new "betse.util.py.pyversion" submodule.
+#* Shift the existing betse.util.py.get_version() function into this submodule.
+#* Define the following new functions in this submodule:
+#  * "def is_greater_than_or_equal_to(version: VersionTypes) -> bool",
+#    returning true only if the version of the active Python interpreter is at
+#    least that of the passed version.
+#  * "@func_cached def is_3_6_or_newer() -> bool", implemented in terms of the
+#    aforementioned is_greater_than_or_equal_to() function and returning true
+#    only if the the active Python interpreter is Python >= 3.6.
+#  * "@func_cached def is_3_7_or_newer() -> bool", implemented in terms of the
+#    aforementioned is_greater_than_or_equal_to() function and returning true
+#    only if the the active Python interpreter is Python >= 3.7.
+#* Define a new "DictOrdered" global attribute of this module. Due to the
+#  complexity of the conditionals governing this attribute, we probably want to
+#  assign this attribute in a new _init() function of this module. Maybe? In
+#  any case, the implementation should resemble in partial pseudocode:
+#      DictOrdered = (
+#          dict if (
+#               pyversion.is_3_7_or_newer() or
+#              (pyversion.is_3_6_or_newer() and pyimpl.is_cpython())
+#          ) else collections.OrderedDict
+#      )
+#* Replace all existing references to the "collections.OrderedDict" type with
+#  the above "DictOrdered" type.
+
 # ....................{ IMPORTS                           }....................
 from betse.exceptions import (
     BetseMappingException, BetseMethodUnimplementedException)

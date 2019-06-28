@@ -8,6 +8,25 @@ High-level support facilities for Yet Another Markup Language (YAML), the
 file format encapsulating most input and output data for this application.
 '''
 
+#FIXME: Refactor the current implementation of this submodule from the current
+#if conditional-based approach to an ABC-based approach, as the latter should
+#prove both more maintainable, efficient, Pythonic, and scalable. Since we now
+#need to implement support for three (!) alternate YAML implementations, a
+#proper ABC hierarchy is probably the way to go. Specifically:
+#
+#* Define a new "betse.lib.yaml.abc.yamler.yamlerabc" submodule defining a
+#  "YamlerABC" superclass.
+#* Define a new "betse.lib.yaml.abc.yamler.yamlerpyyaml" submodule defining a
+#  "YamlerPyYAML(YamlerABC)" subclass.
+#* Define a new "betse.lib.yaml.abc.yamler.yamlerruamel" submodule defining a
+#  "YamlerRuamel(YamlerABC)" subclass.
+#* Define a new "_YAMLER" global singleton of this module, whose value is an
+#  instance of one of the subclasses defined above.
+#* Refactor the init() function defined below to instantiate this singleton.
+#* Refactor the load() and save() functions to leverage this singleton.
+#* Excise the warn_unless_filetype_yaml() function, which should no longer be
+#  called anywhere.
+
 #FIXME: Enable us up "ruamel.yaml" support, please.
 #FIXME: Enable us up "oyaml" (yet another PyYAML replacement) support, please.
 
@@ -79,7 +98,7 @@ def warn_unless_filetype_yaml(filename: str) -> None:
     Parameters
     ----------
     filename : str
-        Absolute or relative path of this file.
+        Absolute or relative filename of this file.
     '''
 
     # Filetype of this file.
@@ -107,7 +126,7 @@ def load(filename: str) -> MappingOrSequenceTypes:
     Parameters
     ----------
     filename : str
-        Absolute or relative filename of this file.
+        Absolute or relative filename of the YAML-formatted file to be loaded.
 
     Returns
     ----------
@@ -213,7 +232,7 @@ def save(
     container: MappingOrSequenceTypes
         Dictionary or list to be written as the contents of this file.
     filename : str
-        Absolute or relative filename of this file.
+        Absolute or relative filename of the YAML-formatted file to be saved.
     is_overwritable : optional[bool]
         Either:
 

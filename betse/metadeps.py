@@ -141,9 +141,9 @@ RUNTIME_MANDATORY_YAML = {
     # * At least version 0.15.24 or newer of "ruamel.yaml", which resolves a
     #   long-standing parser issue preventing overly complex YAML markup (such
     #   as ours) from being safely roundtripped:
-    #   0.15.24 (2017-08-09):
-    #   * (finally) fixed longstanding issue 23 (reported by Antony Sottile),
-    #     now handling comment between block mapping key and value correctly
+    #   "0.15.24 (2017-08-09):
+    #    * (finally) fixed longstanding issue 23 (reported by Antony Sottile),
+    #      now handling comment between block mapping key and value correctly"
     # * The new "ruamel.yaml" API first introduced in 0.15.0. While older
     #   versions strictly adhere to the functional PyYAML-compatible API, newer
     #   versions break backward compatibility by entirely supplanting that API
