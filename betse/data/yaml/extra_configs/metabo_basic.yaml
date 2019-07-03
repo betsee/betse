@@ -1,4 +1,4 @@
-%YAML 1.1
+%YAML 1.2
 ---
 # The BETSE basic metabolism configuration file, which takes a coarse view of cell metabolism, only
 # considering the very basic production of ATP in a general reaction and background consumption.

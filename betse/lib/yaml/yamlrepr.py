@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,22 +8,16 @@ Yet Another Markup Language (YAML) **representer** (i.e., callable serializing
 all objects of the same type into well-formatted YAML) functionality.
 '''
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: To permit YAML implementations to be conditionally imported at
-# application startup, no implementations (e.g., the top-level "yaml" package
-# corresponding to PyYAML) are importable here.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+# ....................{ IMPORTS                           }....................
 # from betse.util.type.types import type_check  #, MappingOrSequenceTypes
 
-# ....................{ GLOBALS ~ private                  }....................
+# ....................{ GLOBALS ~ private                 }....................
 _TAG_NUMPY_NDARRAY = '!ndarray'
 '''
 YAML-formatted tag identifying each YAML sequence converted from a Numpy array.
 '''
 
-# ....................{ ADDERS                             }....................
+# ....................{ ADDERS                            }....................
 def add_representers(representer: object) -> None:
     '''
     Add all **custom representers** (i.e., callables serializing all objects of
@@ -32,8 +26,8 @@ def add_representers(representer: object) -> None:
 
     Motivation
     ----------
-    This function ensures that dumping arbitrary objects to YAML with the passed
-    dumper will stringify all:
+    This function ensures that dumping arbitrary objects to YAML with the
+    passed dumper will stringify *all*:
 
     * Numpy arrays as YAML sequences.
     * Numpy booleans as YAML booleans.
@@ -86,14 +80,15 @@ def add_representers(representer: object) -> None:
     representer.add_representer(numpy.float_,   _represent_numpy_float)
     representer.add_representer(numpy.int_,     _represent_numpy_int)
 
-# ....................{ REPRESENTERS                       }....................
+# ....................{ REPRESENTERS                      }....................
 def _represent_numpy_ndarray(dumper, ndarray: 'numpy.ndarray') -> str:
     '''
     Convert the passed Numpy array into a YAML-formatted string.
 
     Specifically, this function returns a stringified YAML mapping whose:
 
-    * Keys are the names of parameters accepted by the `numpy.array()` function.
+    * Keys are the names of parameters accepted by the :func:`numpy.array`
+      function.
     * Values are the values of these parameters required to losslessly restore
       the contents of this array on YAML deserialization of this string.
 
@@ -193,8 +188,8 @@ def _represent_numpy_int(dumper, npint: 'numpy.int_') -> str:
     '''
     Convert the passed Numpy integer into a YAML-formatted string.
 
-    Specifically, this function returns a stringified YAML integer equivalent to
-    the passed integer.
+    Specifically, this function returns a stringified YAML integer equivalent
+    to the passed integer.
 
     Parameters
     ----------

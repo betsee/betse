@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
 Simulation configuration-specific **expression alias data descriptor** (i.e.,
-object satisfying the data descriptor protocol aliasing a YAML-backed simulation
-configuration option to a coventional instance variable) functionality.
+object satisfying the data descriptor protocol aliasing a YAML-backed
+simulation configuration option to a standard instance variable) functionality.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from abc import ABCMeta
 from betse.util.type.descriptor.expralias import expr_alias, expr_enum_alias
 from betse.util.type.types import type_check
 
-# ....................{ SUPERCLASSES                       }....................
+# ....................{ SUPERCLASSES                      }....................
 class YamlAliasABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all simulation configuration-specific **expression
@@ -23,14 +24,15 @@ class YamlAliasABC(object, metaclass=ABCMeta):
 
     Motivation
     ----------
-    The class principally exists for type validation -- namely, to differentiate
-    the data descriptors returned by alias functions defined by this submodule
-    (e.g., :func:`yaml_alias`) from those created by other means.
+    The class principally exists for type validation -- namely, to
+    differentiate the data descriptors returned by alias functions defined by
+    this submodule (e.g., :func:`yaml_alias`) from those created by other
+    means.
     '''
 
     pass
 
-# ....................{ GLOBALS                            }....................
+# ....................{ GLOBALS                           }....................
 _YAML_ALIAS_BASE_CLASSES = (YamlAliasABC,)
 '''
 Tuple of all base classes of all simulation configuration-specific expression
@@ -42,7 +44,7 @@ See Also
     Further details.
 '''
 
-# ....................{ DESCRIPTORS                        }....................
+# ....................{ DESCRIPTORS                       }....................
 @type_check
 def yaml_alias(keys: str, *args, **kwargs) -> YamlAliasABC:
     '''
@@ -88,8 +90,8 @@ def yaml_enum_alias(keys: str, *args, **kwargs) -> YamlAliasABC:
     satisfying the data descriptor protocol) specific to simulation
     configurations, dynamically aliasing a target variable of the passed
     enumeration type bound to instances of the class instantiating this
-    descriptor to an arbitrarily complex source Python expression performing one
-    or more key lookups into the dictionary loaded from a YAML-formatted
+    descriptor to an arbitrarily complex source Python expression performing
+    one or more key lookups into the dictionary loaded from a YAML-formatted
     simulation configuration file.
 
     Parameters
@@ -104,7 +106,8 @@ def yaml_enum_alias(keys: str, *args, **kwargs) -> YamlAliasABC:
     Returns
     ----------
     YamlAliasABC
-        Enumeration-specific expression alias data descriptor as detailed above.
+        Enumeration-specific expression alias data descriptor as detailed
+        above.
 
     See Also
     ----------
@@ -116,7 +119,7 @@ def yaml_enum_alias(keys: str, *args, **kwargs) -> YamlAliasABC:
         'self._conf' + keys, *args,
         base_classes=_YAML_ALIAS_BASE_CLASSES, **kwargs)
 
-# ....................{ DESCRIPTORS ~ predicate : float    }....................
+# ....................{ DESCRIPTORS ~ predicate : float   }....................
 def yaml_alias_float_positive(keys: str) -> YamlAliasABC:
     '''
     Simulation configuration expression alias data descriptor, dynamically
@@ -176,7 +179,7 @@ def yaml_alias_float_percent(keys: str) -> YamlAliasABC:
         predicate_label='percentage',
     )
 
-# ....................{ DESCRIPTORS ~ predicate : int      }....................
+# ....................{ DESCRIPTORS ~ predicate : int     }....................
 def yaml_alias_int_positive(keys: str) -> YamlAliasABC:
     '''
     Simulation configuration expression alias data descriptor, dynamically

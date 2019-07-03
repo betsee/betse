@@ -1,4 +1,4 @@
-%YAML 1.1
+%YAML 1.2
 ---
 # Default BETSE simulation configuration file.
 #
@@ -478,18 +478,20 @@ block NaKATP pump:
   change finish: 25         # time to end change and return to original [s]
   change rate: 1.0          # rate of change [s]
 
-#-----------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 #  GENERAL NETWORK
-#-----------------------------------------------------------------------------------------------------------------------
-# The "General Network" allows you to define a bioelectricity-integrated gene and reaction
-# network with custom biomolecules, chemical reactions, channels, and transporters. Use this
-# section to define general network main properties.  See "extra_config_template.yaml" in the
-# "extra_configs" directory for examples.
+#------------------------------------------------------------------------------
+# The "General Network" allows you to define a bioelectricity-integrated gene
+# and reaction network with custom biomolecules, chemical reactions, channels,
+# and transporters. Use this section to define general network main properties.
+# See "extra_config_template.yaml" in the "extra_configs" directory for
+# examples.
 #
-# NOTE: The "optimization" is *not* required to run a general network; this is a tool that
-# supplies you with a list of membrane diffusion constants and reaction/transporter maximum
-# rate constants that are a "best fit" match to the target Vmem and initial concentrations
-# listed for the "custom biomolecules" section of the network.
+# NOTE: The "optimization" is *not* required to run a general network; this is
+# a tool that supplies you with a list of membrane diffusion constants and
+# reaction/transporter maximum rate constants that are a "best fit" match to
+# the target Vmem and initial concentrations listed for the "custom
+# biomolecules" section of the network.
 
 general network:
 
@@ -497,14 +499,16 @@ general network:
 
   expression data file: extra_configs/expression_data.yaml 
 
-  #-----------------------------------------------------------------------------------------------------------------------
+  #----------------------------------------------------------------------------
   # CUSTOM BIOMOLECULES
-  #-----------------------------------------------------------------------------------------------------------------------
-  # Additional biochemical substances that can electrodiffuse across cell membranes, between
-  # cells via GJ, or in the environment. Also can be produced/consumed in the cytoplasm, act as
-  # gating ligand for a specific channel, be actively pumped in or out of cells, changed at the
-  # boundary, or plotted/animated at the end of the simulation. See
+  #----------------------------------------------------------------------------
+  # Additional biochemical substances that can electrodiffuse across cell
+  # membranes, between cells via GJ, or in the environment. Also can be
+  # produced/consumed in the cytoplasm, act as gating ligand for a specific
+  # channel, be actively pumped in or out of cells, changed at the boundary, or
+  # plotted/animated at the end of the simulation. See
   # "extra_config_template.yaml" in the "extra_configs" directory for examples.
+
   biomolecules:  # specify the properties of any number of auxiliary chemicals
 
     - name: 'X'    # Gating ligand
@@ -536,28 +540,30 @@ general network:
         max val: 2.0                # if autoscale is False, max value to use for plot in umol/L
         min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
 
-  #-----------------------------------------------------------------------------------------------------------------------
+  #----------------------------------------------------------------------------
   #  CUSTOM CHEMICAL REACTIONS
-  #-----------------------------------------------------------------------------------------------------------------------
-  # Define chemical reactions between any substances defined in "custom biomolecules" and BETSE
-  # default ions. See "extra_config_template.yaml" in the "extra_configs" directory for
-  # examples.
+  #----------------------------------------------------------------------------
+  # Define chemical reactions between any substances defined in "custom
+  # biomolecules" and BETSE default ions. See "extra_config_template.yaml" in
+  # the "extra_configs" directory for examples.
   reactions:
 
-  #-----------------------------------------------------------------------------------------------------------------------
+  #----------------------------------------------------------------------------
   # CUSTOM TRANSPORTERS
-  #-----------------------------------------------------------------------------------------------------------------------
-  # Define transmembrane transporters and associated cytosolic chemical reactions between any
-  # substances defined in "custom biomolecules" and/or BETSE default ions. See
-  # "extra_config_template.yaml" in the "extra_configs" directory for examples.
+  #----------------------------------------------------------------------------
+  # Define transmembrane transporters and associated cytosolic chemical
+  # reactions between any substances defined in "custom biomolecules" and/or
+  # BETSE default ions. See "extra_config_template.yaml" in the "extra_configs"
+  # directory for examples.
   transporters:
 
-  #-----------------------------------------------------------------------------------------------------------------------
+  #----------------------------------------------------------------------------
   #  CUSTOM CHANNELS
-  #-----------------------------------------------------------------------------------------------------------------------
-  # Incorporate dynamic channel types and have their behaviour be activated/inhibited by the
-  # concentration of any user-defined biomolecules and/or BETSE default ions. See
-  # "extra_config_template.yaml" in the "extra_configs" directory for examples.
+  #----------------------------------------------------------------------------
+  # Incorporate dynamic channel types and have their behaviour be
+  # activated/inhibited by the concentration of any user-defined biomolecules
+  # and/or BETSE default ions. See "extra_config_template.yaml" in the
+  # "extra_configs" directory for examples.
   channels:
 
     - name: Nav
@@ -595,20 +601,21 @@ general network:
     #                        Cat: CatLeak
     #                        ML: Kv_ML1, Kv_ML2, Nav_ML, Cav_L_ML, Cav_N_ML, Cav_T_ML, Kir_ML, HCN2_ML, HCN4_ML
 
-  #-----------------------------------------------------------------------------------------------------------------------
+  #----------------------------------------------------------------------------
   # CUSTOM MODULATORS
-  #-----------------------------------------------------------------------------------------------------------------------
-  # Allow user-defined biomolecules and/or BETSE default ions to activate/inhibit core BETSE structures such as gap
-  # junctions and the default Na/K-ATPase pump. See "extra_config_template.yaml" in the "extra_configs"
-  # directory for examples.
+  #----------------------------------------------------------------------------
+  # Allow user-defined biomolecules and/or BETSE default ions to
+  # activate/inhibit core BETSE structures such as gap junctions and the
+  # default Na/K-ATPase pump. See "extra_config_template.yaml" in the
+  # "extra_configs" directory for examples.
   modulators:
 
 
-#-----------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # GENE REGULATORY NETWORK
-#-----------------------------------------------------------------------------------------------------------------------
-# Define an auxillary network in an external config file and read it in and run from that
-# extra file.
+#------------------------------------------------------------------------------
+# Define an auxillary network in an external config file and read it in and run
+# from that extra file.
 
 gene regulatory network settings:
 
@@ -638,10 +645,11 @@ gene regulatory network settings:
     total time: 1.8e2    # Time to end sim run [s]
     sampling rate: 1.8e1 # Period to sample data [s] (at least time step or larger)
 
-#-----------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # VARIABLE SETTINGS
-#-----------------------------------------------------------------------------------------------------------------------
-# These settings can be changed in between seed, init and sim runs, meaning there are no synchronization issues.
+#------------------------------------------------------------------------------
+# These settings can be changed in between seed, init and sim runs, meaning
+# there are no synchronization issues.
 
 variable settings:
 

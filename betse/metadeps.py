@@ -24,8 +24,6 @@ would render these constants effectively useless for their principal use case.
 # installed at some later time in the installation.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from betse.lib.setuptools import setuptool
-from betse.util.py.module import pymodname
 from collections import namedtuple
 
 # ....................{ LIBS ~ runtime : mandatory        }....................
@@ -55,6 +53,22 @@ RUNTIME_MANDATORY = {
 
     # Matplotlib >= 1.5.0 is required for the newly added "viridis" colormap.
     'matplotlib': '>= 1.5.0',
+
+    # A relatively modern version of "ruamel.yaml" variants is required.
+    # Specifically, this application requires:
+    #
+    # * At least version 0.15.24 or newer of "ruamel.yaml", which resolves a
+    #   long-standing parser issue preventing overly complex YAML markup (such
+    #   as ours) from being safely roundtripped:
+    #   "0.15.24 (2017-08-09):
+    #    * (finally) fixed longstanding issue 23 (reported by Antony Sottile),
+    #      now handling comment between block mapping key and value correctly"
+    # * The new "ruamel.yaml" API first introduced in 0.15.0. While older
+    #   versions strictly adhere to the functional PyYAML-compatible API, newer
+    #   versions break backward compatibility by entirely supplanting that API
+    #   with a modern object-oriented approach. Supporting both isn't worth the
+    #   substantial increase in maintenance debt.
+    'ruamel.yaml': '>= 0.15.24',
 
     # Dependencies indirectly required by this application but only optionally
     # required by dependencies directly required by this application. Since the
@@ -116,61 +130,6 @@ https://setuptools.readthedocs.io/en/latest/setuptools.html#id12
     Human-readable list of these dependencies.
 '''
 
-# ....................{ LIBS ~ runtime : mandatory : yaml }....................
-RUNTIME_MANDATORY_YAML_PROJECT_NAME = None
-'''
-:mod:`setuptools`-specific project name of the current YAML implementation
-satisfying this application's mandatory runtime YAML dependency.
-
-This project is dynamically selected at submodule importation time based on the
-most preferred implementation currently importable from the
-:data:`RUNTIME_MANDATORY_YAML` dictionary.
-'''
-
-
-RUNTIME_MANDATORY_YAML = {
-    'PyYAML': '>= 3.10',
-
-    #FIXME: As "ruamel.yaml" now purports to safely roundtrip our documents,
-    #let's give it a whirl and see how far we get plunge into the icy waters of
-    #markup purgatory this time.
-
-    # A relatively modern version of "ruamel.yaml" variants is required.
-    # Specifically, this application requires:
-    #
-    # * At least version 0.15.24 or newer of "ruamel.yaml", which resolves a
-    #   long-standing parser issue preventing overly complex YAML markup (such
-    #   as ours) from being safely roundtripped:
-    #   "0.15.24 (2017-08-09):
-    #    * (finally) fixed longstanding issue 23 (reported by Antony Sottile),
-    #      now handling comment between block mapping key and value correctly"
-    # * The new "ruamel.yaml" API first introduced in 0.15.0. While older
-    #   versions strictly adhere to the functional PyYAML-compatible API, newer
-    #   versions break backward compatibility by entirely supplanting that API
-    #   with a modern object-oriented approach. Supporting both isn't worth the
-    #   substantial increase in maintenance debt.
-    'ruamel.yaml': '>= 0.15.24',
-}
-'''
-Dictionary mapping from the :mod:`setuptools`-specific project name of each
-YAML implementation satisfying the same mandatory runtime dependency for this
-application to the suffix of a :mod:`setuptools`-specific requirements string
-constraining this dependency.
-
-Since neither :mod:`distutils` nor :mod:`setuptools` support mutual
-exclusivity, these alternatives are isolated into a separate dictionary
-implicitly merged into the :data:`RUNTIME_MANDATORY` dictionary at submodule
-importation time.
-
-Motivation
-----------
-Ideally, exactly one YAML implementation would be required. While
-:mod:`ruamel.yaml` is the most preferred YAML implementation and hence the
-obvious candidate, installation of that namespace package is sufficiently
-non-trivial and frankly fragile to warrant falling back to less preferable but
-more widely available alternatives.
-'''
-
 # ....................{ LIBS ~ runtime : optional         }....................
 #FIXME: Should these be dependencies also be added to our "setup.py" metadata,
 #perhaps as so-called "extras"? Contemplate. Consider. Devise.
@@ -214,7 +173,7 @@ TESTING_MANDATORY = {
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
     # WARNING: This py.test requirement *MUST* be manually synchronized to the
     # same requirement in the downstream "betsee.guimetadeps" submodule.
-    # Failure to do so will raise exceptions at BETSEE startup.
+    # Failure to do so is guaranteed to raise exceptions at BETSEE startup.
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 
     # For simplicity, py.test should remain the only hard dependency for
@@ -290,6 +249,9 @@ def get_runtime_mandatory_tuple() -> tuple:
     from the :data:`metadata.RUNTIME_MANDATORY` dictionary.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.lib.setuptools import setuptool
+
     # Return this dictionary coerced into a tuple.
     return setuptool.get_requirements_str_from_dict(RUNTIME_MANDATORY)
 
@@ -301,6 +263,9 @@ def get_runtime_optional_tuple() -> tuple:
     optional runtime dependency for this application, dynamically converted
     from the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.lib.setuptools import setuptool
 
     # Return this dictionary coerced into a tuple.
     return setuptool.get_requirements_str_from_dict(RUNTIME_OPTIONAL)
@@ -314,92 +279,8 @@ def get_testing_mandatory_tuple() -> tuple:
     from the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.lib.setuptools import setuptool
+
     # Return this dictionary coerced into a tuple.
     return setuptool.get_requirements_str_from_dict(TESTING_MANDATORY)
-
-# ....................{ INITIALIZERS                      }....................
-def _init() -> None:
-    '''
-    Dynamically finalize the contents of the :data:`RUNTIME_MANDATORY` global
-    declared by this submodule.
-
-    Specifically, this function selects the first importable third-party YAML
-    implementation (in descending order of preference) and merges the
-    :mod:`setuptools`-specific metadata constraining this implementation from
-    the :data:`RUNTIME_MANDATORY_YAML` global into the
-    :data:`RUNTIME_MANDATORY` and :data:`RUNTIME_OPTIONAL` globals.
-
-    Caveats
-    ----------
-    Note that this install- and runtime logic only applies to logic paths that
-    actually execute this script. This excludes wheel installation, which
-    avoids script execution for safety. (Because this is Python.)
-    '''
-
-    # Global variables assigned to below.
-    global RUNTIME_MANDATORY_YAML_PROJECT_NAME
-
-    # Setuptools-specific project name of the current YAML implementation
-    # satisfying this application's mandatory runtime YAML dependency,
-    # defaulting to the most preferred YAML framework. This has the beneficial
-    # side effect of installing this framework at installation time if no other
-    # YAML framework has been installed.
-    RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'ruamel.yaml'
-
-    #FIXME: Handle version constraints as well. Since "setuptools" is itself a
-    #non-standard dependency, handling such constraints in a portable manner
-    #will probably mean leveraging "distutils" functionality for doing so.
-    #Specifically, if a sufficiently new version of neither "ruamel.yaml" nor
-    #"ruamel_yaml" is available, "yaml" should be fallen back to for safety.
-
-    # Prefer "ruamel.yaml", the most actively maintained and hence preferred
-    # YAML framework.
-    if pymodname.is_module('ruamel.yaml'):
-        pass
-    # Fallback to "ruamel_yaml", the next most actively maintained and hence
-    # preferred YAML framework. Unlike the more general-purpose "ruamel.yaml"
-    # namespace package, "ruamel_yaml" is an Anaconda-specific non-namespace
-    # package internally leveraged by the "conda" package manager but only
-    # infrequently rebased against upstream changes.
-    #FIXME: Uncomment once "ruamel_yaml" is sufficiently up-to-date.
-    # elif modules.is_module('ruamel_yaml'):
-    #     RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'ruamel_yaml'
-    # Fallback to PyYaml, the officially dead and hence least preferred YAML
-    # framework.
-    elif pymodname.is_module('yaml'):
-        RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'PyYAML'
-
-    #FIXME: *DELETE THE FOLLOWING LINE AFTER* upstream "ruamel.yaml" roundtrip
-    #issues are resolved. Currently, "ruamel.yaml" fails to properly roundtrip
-    #our default simulation configuration and hence must *NOT* be used. *sigh*
-    #
-    #After upstream both resolves these issues *AND* releases a new stable
-    #release, modify the "ruamel.yaml" version constraints above to reflect the
-    #new minimum required version. Naturally, this implies we won't be enabling
-    #"ruamel.yaml" support anytime soon.
-    #FIXME: *UGH.* "ruamel.yaml" appears to have a core deficiency with respect
-    #to map key comments: specifically, the roundtripper silently produces
-    #malformed YAML when encountering map key comments. This is quite obviously
-    #unacceptable for our heavily commented YAML files. Sadly, upstream has
-    #known about this open issue for several years -- implying a fix is distant
-    #at beast. Until resolved, "ruamel.yaml" *MUST* be ignored. For discussion,
-    #see the following upstream issue:
-    #    https://bitbucket.org/ruamel/yaml/issues/146/torture-test-breaks-the-fragile-back-of
-    #FIXME: The prior issue has thankfully been resolved for... several years.
-    #Let's honour the commitment of the "ruamel.yaml" project by finally
-    #deleting the following line and properly supporting "ruamel.yaml".
-    RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'PyYAML'
-
-    # Enforce installation of the preferred YAML framework detected above.
-    RUNTIME_MANDATORY[RUNTIME_MANDATORY_YAML_PROJECT_NAME] = (
-        RUNTIME_MANDATORY_YAML[RUNTIME_MANDATORY_YAML_PROJECT_NAME])
-
-    # Merge the requirement strings for all YAML frameworks into those for all
-    # optional dependencies, permitting the former to be treated like the
-    # latter (e.g., by the betse.lib.libs.die_unless_runtime_optional()
-    # function).
-    RUNTIME_OPTIONAL.update(RUNTIME_MANDATORY_YAML)
-
-# ....................{ MAIN                              }....................
-# Initialize this submodule.
-_init()

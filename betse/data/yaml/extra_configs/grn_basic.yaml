@@ -1,4 +1,4 @@
-%YAML 1.1
+%YAML 1.2
 ---
 # The BETSE basic gene regulatory network configuration file, which takes a coarse view of a
 # GNR set-up. This file reproduces the GRN results from Figure 2, page 774 of: Karlebach, G.

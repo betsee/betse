@@ -234,8 +234,6 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         * Reconfigures matplotlib with sane defaults specific to the current
           platform and set of all available third-party GUI frameworks.
-        * Initializes exactly one available third-party YAML parsing framework
-          (e.g., PyYaml, :mod:`ruamel.yaml`).
         * Initializes NumPy.
         * Initializes Pillow.
 
@@ -253,7 +251,6 @@ class AppMetaABC(object, metaclass=ABCMeta):
         from betse.lib.numpy import numpys
         from betse.lib.pickle import pickles
         from betse.lib.pil import pils
-        from betse.lib.yaml import yamls
         from betse.util.io.log import logs
 
         # Log this initialization. Since initializing heavyweight third-party
@@ -266,7 +263,6 @@ class AppMetaABC(object, metaclass=ABCMeta):
         numpys.init()
         pickles.init()
         pils.init()
-        yamls.init()
 
         # Note this method to have been called *AFTER* successfully doing so.
         self._is_libs_initted = True
@@ -284,6 +280,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         All passed parameters are passed as is to the :meth:`init_libs` method.
         '''
 
+        # Avoid circular import dependencies.
         from betse.util.io.log import logs
 
         # If the init_libs() method has already been called, log this fact

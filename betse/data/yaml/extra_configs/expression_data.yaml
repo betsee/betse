@@ -1,3 +1,5 @@
+%YAML 1.2
+---
 # This expression_data.yaml file allows for specific expression levels of any biomolecule, reaction, 
 # channel, or transporter to be set across all tissue profiles of the model. Expression levels 
 # are relative to the maximum:
