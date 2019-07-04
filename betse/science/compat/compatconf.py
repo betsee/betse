@@ -8,6 +8,18 @@ Facilities guaranteeing backward compatibility with prior file formats for
 simulation configurations.
 '''
 
+#FIXME: Consider generalizing the upgrade_sim_conf() function to preserve all
+#in-memory changes back to disk -- albeit, for safety, presumably in a
+#separate file preserving the existing filetype and basename prefix of the
+#original file (e.g., writing a new "sim_conf-auto_upgraded.yaml" file given
+#an input "sim_conf.yaml" file). If this file already exists, silently
+#overwrite it; there is absolutely no chance and hence concern of a user
+#intentionally embedding the substring "-auto_upgraded" in a simulation
+#configuration filename.
+#
+#Actually, as a safety check, ensure that the current input filename does *NOT*
+#already contain this substring. Trivially accomplished, thankfully.
+
 # ....................{ IMPORTS                           }....................
 from betse.science.parameters import Parameters
 from betse.util.io.log import logs
@@ -16,18 +28,6 @@ from betse.util.type.obj.sentinels import SENTINEL
 from betse.util.type.types import type_check, MappingType
 
 # ....................{ UPGRADERS                         }....................
-#FIXME: If the current third-party YAML dependency is "ruamel.yaml" rather than
-#PyYAML, improve this function to preserve all in-memory changes back to disk --
-#albeit, for safety, presumably in a separate file preserving the existing
-#filetype and basename prefix of the original file (e.g., writing a new
-#"sim_conf-auto_upgraded.yaml" file given an input "sim_conf.yaml" file). If
-#this file already exists, silently overwrite it; there is absolutely no chance
-#and hence concern of a user intentionally embedding the substring
-#"-auto_upgraded" in a simulation configuration filename.
-#
-#Actually, as a safety check, ensure that the current input filename does *NOT*
-#already contain this substring. Trivially accomplished, thankfully.
-
 @type_check
 def upgrade_sim_conf(p: Parameters) -> None:
     '''
