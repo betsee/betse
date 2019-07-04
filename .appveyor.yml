@@ -185,9 +185,10 @@ install:
   # directories containing the active Python interpreter and standard Python
   # scripts (e.g., "easy_install") installed with this interpreter, ensuring
   # that the Miniconda-specific rather than system-wide version of Python is
-  # run (e.g., "C:\Miniconda3-x64" rather than "C:\Python34-x64"). This *MUST*
-  # be done prior to running the "conda" command.
-  - cmd: set "PATH=%MINICONDA_DIRNAME%;%MINICONDA_DIRNAME%\\Scripts;%PATH%"
+  # run (e.g., "C:\Miniconda3-x64" rather than "C:\Python34-x64").
+  #
+  # Note that this *MUST* be done prior to running the "conda" command.
+  - cmd: call %MINICONDA%\Scripts\activate.bat
 
   # Configure "conda" to run headless. Dismantled, this is:
   #
@@ -215,6 +216,16 @@ install:
   # configuration does) results in fatal exceptions on AppVeyor spinup:
   #     - cmd: conda install --quiet --name base conda
   - cmd: conda update --quiet conda
+
+  # Explicitly activate the base Anaconda environment *BEFORE* running the
+  # "conda info" subcommand. Why? Because failing to do so reliably raises a
+  # non-human-readable exception. See also the following inscrutable issue:
+  #     https://github.com/conda/conda/issues/8836
+  #
+  # Note that this appears to be a Windows-specific issue and is thus
+  # intentionally omitted from our Linux-specific ".gitlab-ci.yml"
+  # configuration.
+  - cmd: activate
 
   # For debuggability, print metadata identifying this Miniconda release.
   - cmd: conda info --all
