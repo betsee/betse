@@ -222,7 +222,7 @@ install:
   # Note that this appears to be a Windows-specific issue and is thus
   # intentionally omitted from our Linux-specific ".gitlab-ci.yml"
   # configuration.
-  - cmd: conda activate base
+  # - cmd: conda activate base
 
   # For debuggability, print metadata identifying this Miniconda release.
   - cmd: conda info --all
@@ -231,15 +231,18 @@ install:
   #Appveyor-specific conda caching.
 
   # Create an empty Anaconda environment specific to this Python version.
-  - cmd: conda create --quiet --name conda-env-%PYTHON_VERSION% python=%PYTHON_VERSION%
+  - cmd: conda create --name conda-env python=%PYTHON_VERSION%
+  # - cmd: conda create --quiet --name conda-env-%PYTHON_VERSION% python=%PYTHON_VERSION%
 
   # Activate this environment (i.e., prepend the current %PATH% by this
   # environment's top-level directory).
-  - cmd: conda activate conda-env-%PYTHON_VERSION%
+  - cmd: conda activate conda-env
+  # - cmd: conda activate conda-env-%PYTHON_VERSION%
 
   # Install all mandatory and optional dependencies of this application into
   # this environment from the "conda-forge" channel.
-  - cmd: conda install --quiet --file requirements-conda.txt
+  - cmd: conda install --file requirements-conda.txt
+  # - cmd: conda install --quiet --file requirements-conda.txt
 
   # Install this project into this environment in the most efficient means
   # possible (i.e., without copying this project into this environment).
