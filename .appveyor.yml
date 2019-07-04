@@ -155,9 +155,6 @@ environment:
     # for Python 3.4 is no longer exercised (i.e., tested) under Windows.
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    #FIXME: Uncomment after Appveyor adds Miniconda support for Python 3.7. See:
-    #    https://www.appveyor.com/docs/build-environment/#miniconda
-
     - PYTHON_VERSION: 3.7
       MINICONDA_DIRNAME: C:\Miniconda37-x64
     - PYTHON_VERSION: 3.6
@@ -225,7 +222,7 @@ install:
   # Note that this appears to be a Windows-specific issue and is thus
   # intentionally omitted from our Linux-specific ".gitlab-ci.yml"
   # configuration.
-  - cmd: activate
+  - cmd: conda activate base
 
   # For debuggability, print metadata identifying this Miniconda release.
   - cmd: conda info --all
@@ -238,7 +235,7 @@ install:
 
   # Activate this environment (i.e., prepend the current %PATH% by this
   # environment's top-level directory).
-  - cmd: activate conda-env-%PYTHON_VERSION%
+  - cmd: conda activate conda-env-%PYTHON_VERSION%
 
   # Install all mandatory and optional dependencies of this application into
   # this environment from the "conda-forge" channel.
