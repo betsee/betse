@@ -188,7 +188,7 @@ install:
   # run (e.g., "C:\Miniconda3-x64" rather than "C:\Python34-x64").
   #
   # Note that this *MUST* be done prior to running the "conda" command.
-  - cmd: CALL "%PYTHON_ROOT%\\Scripts\\activate.bat"
+  - cmd: CALL "%MINICONDA%\\Scripts\\activate.bat"
 
   # Configure "conda" to run headless. Dismantled, this is:
   #
