@@ -463,10 +463,11 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
     # ..................{ PROPERTIES ~ package : test       }..................
     @property_cached
-    def test_package_name(self) -> str:
+    def test_package(self) -> ModuleType:
         '''
-        Name of the root package of this application's ancillary test suite
-        (e.g., ``betse_test`` for BETSE).
+        **Root test package** (i.e., topmost package for this application's
+        ancillary test suite, typically of the same name as this application
+        suffixed by ``_test``) for this application.
 
         Caveats
         ----------
@@ -475,6 +476,32 @@ class AppMetaABC(object, metaclass=ABCMeta):
         Instead, this package is only distributed with tarballs archiving the
         contents of this application's repository at stable releases time. This
         package is *not* guaranteed to exist and, in fact, typically does not.
+
+        Raises
+        ----------
+        ImportError
+            If this package either does not exist *or* does exist but is
+            unimportable (e.g., due to package-scoped side effects at
+            importation time).
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.py.module import pymodname
+
+        # Introspection for the glorious victory.
+        return pymodname.import_module(module_name=self.test_package_name)
+
+
+    @property_cached
+    def test_package_name(self) -> str:
+        '''
+        Name of the root package of this application's ancillary test suite
+        (e.g., ``betse_test`` for BETSE).
+
+        See Also
+        ----------
+        :meth:`test_package`
+            Further details.
         '''
 
         # When our powers combine!
@@ -711,6 +738,59 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         # Behold! It is a one-liner.
         return gits.get_package_worktree_dirname_or_none(self.package)
+
+    # ..................{ PROPERTIES ~ dir : test           }..................
+    @property_cached
+    def test_dirname(self) -> str:
+        '''
+        Absolute dirname of this application's ancillary test suite if found
+        *or* raise an exception otherwise (i.e., if this directory is *not*
+        found).
+
+        Raises
+        ----------
+        BetseDirException
+            If this directory does *not* exist.
+
+        See Also
+        ----------
+        :meth:`test_package`
+            Further details.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.path import dirs
+        from betse.util.py.module import pymodule
+
+        # Absolute dirname of the directory yielding our top-level test suite.
+        test_package_dirname = pymodule.get_dirname(self.test_package)
+
+        # If this directory is not found, fail; else, return this directory.
+        return dirs.dir_or_die(test_package_dirname)
+
+
+    @property_cached
+    def test_data_dirname(self) -> str:
+        '''
+        Absolute dirname of this application's top-level test suite data
+        directory if found *or* raise an exception otherwise (i.e., if this
+        directory is *not* found).
+
+        This directory typically contains application-internal resources (e.g.,
+        media files) required at application testing time.
+
+        Raises
+        ----------
+        BetseDirException
+            If this directory does *not* exist.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.path import dirs
+
+        # Return the absolute dirname of this directory if this directory
+        # exists *OR* raise an exception otherwise.
+        return dirs.join_or_die(self.test_dirname, 'data')
 
     # ..................{ PROPERTIES ~ file                 }..................
     @property_cached

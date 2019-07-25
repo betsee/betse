@@ -59,6 +59,10 @@ tasks (e.g., installation, freezing, test running) for this application.
 #FIXME: Consider wrapping on Windows with "pynsist", a framework for generating
 #Windows installers bundling Python applications complete with a Python
 #interpreter and requisite packages.
+#FIXME: Likewise, consider the PySide2- and PyQt5-specific "fman" build system
+#integrating Qt, PySide2, PyInstaller, NSIS (under Windows), and ".deb" (under
+#Ubuntu) for automated packaging of PySide2 applications. See also:
+#    https://build-system.fman.io/
 
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

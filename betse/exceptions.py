@@ -37,14 +37,6 @@ class BetseAttrException(BetseException):
     pass
 
 
-class BetseLogException(BetseException):
-    '''
-    Logging-specific exception.
-    '''
-
-    pass
-
-
 class BetseMetaAppException(BetseException):
     '''
     **Application metadata singleton** (i.e., application-wide object
@@ -205,6 +197,46 @@ class BetsePyDotException(BetseLibException):
 class BetseYamlException(BetseException):
     '''
     Yet Another Markup Language (YAML)-specific exception.
+    '''
+
+    pass
+
+# ....................{ EXCEPTIONS ~ log                  }....................
+class BetseLogException(BetseException):
+    '''
+    Logging-specific exception.
+    '''
+
+    pass
+
+
+class BetseLogRaceException(BetseLogException):
+    '''
+    Logging race condition-specific exception.
+
+    Motivation
+    ----------
+    Concurrent attempts to log to the same physical file from multiple
+    processes can and typically will produce fatal race conditions producing
+    raised exceptions from one or more of these processes. On logfile rotation,
+    each process will aggressively contend with each other process for write
+    access to the same physical file to be rotated.
+
+    The thread- *and* process-safe
+    :class:`betse.util.io.log.loghandle.RotatingFileHandler` handler obviates
+    most of these concerns. Unfortunately, due to inadequacies in the Python
+    ecosystem with respect to process-safe logging, that handler *cannot*
+    constrain logfile access during rotation. Instead, on detecting exceptions
+    produced by race conditions between multiple processes competing for access
+    when attempting to emit log records, that handler temporarily halts the
+    current process for a negligible amount of the timeslice (e.g., 100ms) and
+    repeats the attempt a negligible number of times (e.g., 8) *before* giving
+    up and raising a fatal instance of this exception class.
+
+    See Also
+    ----------
+    :mod:`betse.util.io.log.loghandle`
+        Further details.
     '''
 
     pass
@@ -470,6 +502,7 @@ class BetseMappingValueException(BetseMappingException):
     '''
 
     pass
+
 # ....................{ EXCEPTIONS ~ type : str           }....................
 class BetseStrException(BetseTypeException):
     '''

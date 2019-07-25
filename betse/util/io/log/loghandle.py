@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -10,20 +10,22 @@ Low-level logging handler subclasses.
 #FIXME: Transparently compress rotated logfiles with the standard ".gz"-style
 #compression format. (Surely, StackOverflow has already solved this.)
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid circular import dependencies, avoid importing from *ANY*
 # application-specific modules at the top-level -- excluding those explicitly
-# known *NOT* to import from this module. Since all application-specific modules
-# must *ALWAYS* be able to safely import from this module at any level, these
-# circularities are best avoided here rather than elsewhere.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# known *NOT* to import from this module. Since all application-specific
+# modules must *ALWAYS* be able to safely import from this module at any level,
+# these circularities are best avoided here rather than elsewhere.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import errno, time
+from betse.exceptions import BetseLogRaceException
 from betse.util.io import stderrs
+from logging import LogRecord
 from logging.handlers import RotatingFileHandler
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 class LogHandlerFileRotateSafe(RotatingFileHandler):
     '''
     Process-safe rotating file handler.
@@ -32,8 +34,8 @@ class LogHandlerFileRotateSafe(RotatingFileHandler):
     process-safe. Concurrent attempts to log to the same physical file from
     multiple processes can and typically will produce fatal race conditions
     producing raised exceptions from one or more of these processes. On logfile
-    rotation, each process will aggressively contend with each other process for
-    write access to the same physical file to be rotated.
+    rotation, each process will aggressively contend with each other process
+    for write access to the same physical file to be rotated.
 
     This :class:`RotatingFileHandler` subclass is both thread- *and*
     process-safe, obviating these concerns.
@@ -53,32 +55,33 @@ class LogHandlerFileRotateSafe(RotatingFileHandler):
     * **Security.** File locking is notoriously insecure. Both BSD-style
       ``flock()`` locks *and* POSIX-style ``fcntl()`` locks on files having
       permissions more permissive than `0600` (e.g., group- or world-readable)
-      expose applications to permanent deadlocks. Malicious users with group- or
-      world-readable access to files to be locked can permanently halt the
+      expose applications to permanent deadlocks. Malicious users with group-
+      or world-readable access to files to be locked can permanently halt the
       execution of applications locking those files by:
 
       #. Preemptively acquiring those locks first.
-      #. Permanently preserving those locks (i.e., never releasing those locks).
+      #. Permanently preserving those locks (i.e., never releasing those
+         locks).
 
     * **Thread safety.** Specifically:
 
       * POSIX-style ``fcntl()`` locks lock on process IDs (PIDs) and hence are
         implicitly non-thread-safe.
-      * BSD-style ``flock()`` locks lock on file descriptors (FDs) and hence are
-        implicitly thread-safe.
+      * BSD-style ``flock()`` locks lock on file descriptors (FDs) and hence
+        are implicitly thread-safe.
 
-    * **Portability.** While the prior point implies BSD-style ``flock()`` locks
-      to be preferable to POSIX-style ``fcntl()`` locks for purposes of
+    * **Portability.** While the prior point implies BSD-style ``flock()``
+      locks to be preferable to POSIX-style ``fcntl()`` locks for purposes of
       thread-safety, the latter remain mildly more portable than the former.
-      Naturally, neither are supported under Microsoft platforms, which provides
-      entirely different synchronization platforms suffering completely
-      different tradeoffs (e.g., inability to rename files concurrently opened
-      by multiple processes). Python's stdlib implements low-level wrappers
-      encapsulating all three platform-specific APIs but *no* high-level wrapper
-      unifying these fundamentally dissimilar approaches under a common API.
-      Optional third-party packages implementing such high-level wrappers exist
-      but introduce additional tradeoffs (in addition to those documented
-      above), including:
+      Naturally, neither are supported under Microsoft platforms, which
+      provides entirely different synchronization platforms suffering
+      completely different tradeoffs (e.g., inability to rename files
+      concurrently opened by multiple processes). Python's stdlib implements
+      low-level wrappers encapsulating all three platform-specific APIs but
+      *no* high-level wrapper unifying these fundamentally dissimilar
+      approaches under a common API. Optional third-party packages implementing
+      these high-level wrappers exist but introduce additional tradeoffs (in
+      addition to those documented above), including:
 
       * **Maintenance.** Most packages are poorly maintained at best, with
         stable releases few and far between.
@@ -87,11 +90,11 @@ class LogHandlerFileRotateSafe(RotatingFileHandler):
       * **Uncertainty.** While multiple packages exist, no package appears to
         predominate the others with respect to popularity or usage.
 
-    These deficiencies and more are well-documented, long-standing, and unlikely
-    to be resolved on any platform at any point in the near future. Until
-    universally resolved on *all* supported platforms, the existence of these
-    deficiencies implies file locking to be broken by design and unusable for
-    applications in the "real world."
+    These deficiencies and more are well-documented, long-standing, and
+    unlikely to be resolved on any platform at any point in the near future.
+    Until universally resolved on *all* supported platforms, the existence of
+    these deficiencies implies file locking to be broken by design and unusable
+    for applications in the "real world."
 
     Non-filesystem locking (e.g., :mod:`multiprocessing` module synchronization
     primitives) is strongly preferable. Unfortunately, such locking requires
@@ -99,12 +102,19 @@ class LogHandlerFileRotateSafe(RotatingFileHandler):
     coordination exists between independent BETSE processes run by external
     users at the low-level operating system level.
 
-    Both file- and non-file locking are inapplicable within this context. Hence,
+    Both file- and non-file locking are inapplicable within this context. Ergo,
     this handler cannot reasonably constrain logfile access during rotation.
     Instead, on detecting exceptions produced by race conditions between
-    multiple processes competing for access when attempting to emit log records,
-    this handler temporarily halts the current process for a non-observable
-    amount of the CPU timeslice (e.g., 50ms) and repeats the attempt.
+    multiple processes competing for access when attempting to emit log
+    records, this handler temporarily halts the current process for a
+    negligible amount of the timeslice (e.g., 100ms) and repeats this attempt a
+    negligible number of times (e.g., 8) *before* giving up and raising a fatal
+    :exc:`BetseLogRaceException`.
+
+    External callers may manually circumvent these race conditions by passing
+    the `--log-file LOG_FILENAME` option at the command line, where
+    `LOG_FILENAME` is the absolute filename of a (possibly non-existent) log
+    file unique to the current process.
 
     While non-ideal, no sane solutions exist. File locking is insane.
 
@@ -121,19 +131,35 @@ class LogHandlerFileRotateSafe(RotatingFileHandler):
         analysis concluding with similar deficiencies and lack of solutions.
     '''
 
-    # ..................{ EMITTERS                           }..................
-    def emit(self, record) -> None:
+    # ..................{ EMITTERS                          }..................
+    def emit(self, record: LogRecord) -> None:
+        '''
+        Log the passed logging record in a thread- *and* process-safe manner.
+
+        Parameters
+        ----------
+        record : LogRecord
+            Logging record to be logged.
+
+        Raises
+        ----------
+        BetseLogRaceException
+            If this method detects but fails to automatically resolve a logging
+            race condition between multiple processes concurrently contending
+            for write access to the same logfile.
+        '''
 
         # Attempt to emit this record to this logfile and conditionally rotate
         # this logfile in the default non-process-safe manner.
         try:
-            super().emit(record)
+            return super().emit(record)
         # If an exception indicative of a race condition between multiple
-        # processes competing for logfile rotation is raised, attempt to re-emit
-        # this record to this logfile in a process-safe manner. Since this
-        # necessarily entails inefficiency, we do so *ONLY* as needed.
+        # processes competing for logfile rotation is raised, attempt to
+        # re-emit this record to this logfile in a process-safe manner. Since
+        # this necessarily entails inefficiency, we do so *ONLY* as needed.
         #
-        # These exceptions are indicated by the following real-world tracebacks:
+        # These exceptions are indicated by the following real-world
+        # tracebacks:
         #
         #     # Traceback implicating the "FileNotFoundError" exception.
         #     Traceback (most recent call last):
@@ -187,44 +213,60 @@ class LogHandlerFileRotateSafe(RotatingFileHandler):
         #       File "/cluster/kappa/90-days-archive/levin/levinlab/sburck01/venv-betse/lib/python3.6/site-packages/betse-0.4.2-py3.6.egg/betse/util/io/log/logs.py", line 100, in log_debug
         #         logging.debug(message, *args, **kwargs)
         #
-        # If this is a "FileNotFoundError" exception, unconditionally retry.
+        # If this is a "FileNotFoundError", unconditionally retry.
         except FileNotFoundError:
-            self._emit_safely(record)
-        # If this is an "OSError" exception...
+            return self._emit_safely(record)
+        # Else if this is an "OSError"...
         except OSError as exception:
             # If this is the same error as in the traceback above, retry.
             if exception.errno == errno.ESTALE:
-                self._emit_safely(record)
+                return self._emit_safely(record)
             # Else, re-raise this exception.
             else:
                 raise
         # Else, permit this exception to continue unwinding the call stack.
 
-    # ..................{ PRIVATE                            }..................
+    # ..................{ PRIVATE                           }..................
     # Note that, while the emit() method defined above *COULD* be reimplemented
     # to perform the iteration performed by this method and this method then
     # removed, doing so would inefficiently incur the cost of such iteration on
-    # ever logging call -- which is clearly unacceptable.
+    # every logging call -- which is clearly unacceptable.
     #
     # Instead, we bite the DRY bullet and simply repeat ourselves below.
-    def _emit_safely(record):
+    def _emit_safely(self, record: LogRecord) -> None:
         '''
-        Attempt to repeatedly emit the passed record in a process-safe manner
-        *after* the parent :meth:`emit` call fails to do.
+        Attempt to repeatedly emit the passed logging record in a process-safe
+        manner *after* the parent :meth:`emit` call fails to do so.
+
+        Parameters
+        ----------
+        record : LogRecord
+            Logging record to be logged.
+
+        Raises
+        ----------
+        BetseLogRaceException
+            If this method detects but fails to automatically resolve a logging
+            race condition between multiple processes concurrently contending
+            for write access to the same logfile.
         '''
 
         # Arbitrary maximum number of times to attempt to re-emit this record.
-        MAX_ATTEMPTS = 5
+        ATTEMPTS_MAX = 8
 
-        # Number of seconds to temporarily halt this process, equal to 50ms.
-        SLEEP_INTERVAL = 0.05
+        # Number of seconds to temporarily halt this process, equal to 100ms.
+        SLEEP_INTERVAL = 0.1
 
         # For each such attempt...
-        for _ in range(MAX_ATTEMPTS):
+        for attempt_index in range(ATTEMPTS_MAX):
             # Notify the user of this race condition. Due to the circumstances,
             # logging this message is right out.
             stderrs.output(
-                'Logging race between multiple processes detected...')
+                'Detected logging race condition between '
+                'multiple processes...')
+            stderrs.output(
+                'Sleeping for {}s before retrying {}/{} times...'.format(
+                    SLEEP_INTERVAL, attempt_index, ATTEMPTS_MAX))
 
             # Temporarily halt the current process in the hope that this race
             # condition will be resolved before this process is awakened.
@@ -234,14 +276,13 @@ class LogHandlerFileRotateSafe(RotatingFileHandler):
             # rotate this logfile in the default non-process-safe manner,
             # immediately returning on success.
             try:
-                super().emit(record)
-                return
+                return super().emit(record)
             # Catch the same exceptions caught by the emit() method above.
             #
-            # If this is a "FileNotFoundError" exception, unconditionally retry.
+            # If this is a "FileNotFoundError", unconditionally retry.
             except FileNotFoundError:
                 continue
-            # If this is an "OSError" exception...
+            # Else if this is an "OSError"...
             except OSError as exception:
                 # If this is the same error as in the traceback above, retry.
                 if exception.errno == errno.ESTALE:
@@ -251,8 +292,18 @@ class LogHandlerFileRotateSafe(RotatingFileHandler):
                     raise
             # Else, permit this exception to continue unwinding the call stack.
 
-        # Attempt to re-emit this record to this logfile one last time. If this
-        # attempt fails, a non-human-readable exception will be raised. This is
-        # probably a good thing. Assuming this exception is reported back to us,
-        # the above logic may be improved by receiving this exception.
-        super().emit(record)
+        # Attempt to re-emit this record to this logfile one last time...
+        try:
+            return super().emit(record)
+        # If this attempt fails, raise a human-readable application-specific
+        # exception chained onto this presumably non-human-readable exception.
+        except Exception as exception:
+            raise BetseLogRaceException(
+                'Fatal logging race condition between multiple processes '
+                'detected after {} failed attempts at automatic resolution. '
+                'External callers may manually circumvent this issue by '
+                'passing the "--log-file LOG_FILENAME" option at the '
+                'command line, where "LOG_FILENAME" is the absolute filename '
+                'of a (possibly non-existent) log file unique to the current '
+                'process.'.format(ATTEMPTS_MAX)
+            ) from exception

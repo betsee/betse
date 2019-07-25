@@ -122,10 +122,11 @@ def die_unless_module(
     ----------
     ImportError
         If this module either does not exist *or* does exist but is
-        unimportable (e.g., due to module-scoped errors). To permit callers to
-        transparently handle importation errors in the standard way, this
-        standard exception rather than an application-specific exception (e.g.,
-        :class:`betse.exceptions.BetseModuleException`) is raised.
+        unimportable (e.g., due to module-scoped side effects at importation
+        time). To allow callers to transparently handle importation errors in
+        the standard way, this function raises a standard exception rather than
+        an application-specific exception (e.g.,
+        :class:`betse.exceptions.BetseModuleException`).
 
     See Also
     ----------
@@ -275,6 +276,13 @@ def import_module(
         Message of the exception to be raised if this module does *not* exist.
         Defaults to ``None``, in which case a message is synthesized from this
         module name.
+
+    Raises
+    ----------
+    ImportError
+        If this module either does not exist *or* does exist but is
+        unimportable (e.g., due to module-scoped side effects at importation
+        time).
     '''
 
     # If this module is unimportable, raise an exception.

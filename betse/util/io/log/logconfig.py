@@ -17,7 +17,6 @@ Low-level logging configuration.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import logging, os, sys
-# from betse.exception import BetseLogException
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type.types import type_check
 from logging import Handler, RootLogger, StreamHandler

@@ -126,8 +126,11 @@ def test_packages_init() -> None:
     # Tuple of the absolute dirnames of all top-level package directories.
     PACKAGE_DIRNAMES = (pymodule.get_dirname(package) for package in PACKAGES)
 
-    # Absolute dirname of this application's top-level data directory.
-    DATA_DIRNAME = appmetaone.get_app_meta().data_dirname
+    # Set of the absolute dirnames of all top-level directories to be .
+    EXCLUDE_DIRNAMES = {
+        appmetaone.get_app_meta().data_dirname,
+        appmetaone.get_app_meta().test_data_dirname,
+    }
 
     # For each such dirname...
     for package_dirname in PACKAGE_DIRNAMES:
@@ -140,19 +143,22 @@ def test_packages_init() -> None:
         # For the absolute direname of each direct and transitive subdirectory
         # of this package directory...
         for package_subdirname in dirs.recurse_subdirnames(package_dirname):
-            # If this is either (in decreasing order of efficiency):
+            # If this is either (in decreasing order of test efficiency)...
             #
-            # * A cache subdirectory.
-            # * The data directory.
-            # * A subdirectory of the data directory.
-            # * An empty subdirectory.
-            #
-            # Then this subdirectory is guaranteed to contain no subpackages
-            # and hence be safely ignorable.
             if (
+                # A cache subdirectory *OR*...
                 pathnames.get_basename(package_subdirname) == '__pycache__' or
-                strs.is_prefix(text=package_subdirname, prefix=DATA_DIRNAME) or
-                dirs.is_empty(package_subdirname)
+                # An empty subdirectory *OR*...
+                dirs.is_empty(package_subdirname) or
+                # Either an excludable directory or subdirectory of such
+                # directory...
+                any(
+                    strs.is_prefix(
+                        text=package_subdirname, prefix=exclude_dirname)
+                    for exclude_dirname in EXCLUDE_DIRNAMES
+                )
+            # ...then this subdirectory is guaranteed to contain no subpackages
+            # and hence be safely ignorable.
             ):
                 # Log this exclusion.
                 logs.log_info('Excluding subdirectory: %s', package_subdirname)

@@ -617,14 +617,14 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     # Absolute filename of this C extension.
     numpy_lib_filename = pymodule.get_filename(module=numpy_lib)
 
-    # For the basename and absolute path of each shared library linked to
+    # For the basename and absolute filename of each shared library linked to
     # by this Numpy shared library...
     for (numpy_linked_lib_basename, numpy_linked_lib_filename) in (
         dlls.iter_linked_filenames(numpy_lib_filename)):
         # Basename excluding all suffixing filetypes of this library.
         numpy_linked_lib_rootname = pathnames.get_pathname_sans_filetypes(
             numpy_linked_lib_basename)
-        # print('rootname: {}; basename: {}; filename: {}'.format(numpy_linked_lib_rootname, numpy_linked_lib_basename, numpy_linked_lib_filename))
+        # logs.log_info('rootname: %s; basename: %s; filename: %s', numpy_linked_lib_rootname, numpy_linked_lib_basename, numpy_linked_lib_filename)
 
         # If this appears to be neither the BLAS nor CBLAS reference library,
         # continue to the next library.
@@ -632,16 +632,12 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
             continue
         # Else, this is either the BLAS or CBLAS reference library.
 
-        # If this library is *NOT* a symbolic link, Numpy links directly
-        # against an unoptimized BLAS implementation. Halt!
-        if not files.is_symlink(numpy_linked_lib_filename):
-            break
-        # Else, this library is actually a symbolic link to another library.
-
-        # Absolute path of the target library to which this library links.
+        # Absolute filename of the target library to which this library links
+        # if this library is a symbolic link *OR* of this library as is
+        # otherwise (i.e., if this is a library rather than symbolic link).
         numpy_linked_lib_target_filename = pathnames.canonicalize(
             numpy_linked_lib_filename)
-        # print('target filename: {}'.format(numpy_linked_lib_target_filename))
+        # logs.log_info('target filename: %s', numpy_linked_lib_target_filename)
 
         # If either the basename or dirname of this path corresponds to that of
         # an optimized BLAS library, return True.
