@@ -7,6 +7,48 @@
 Low-level logging configuration.
 '''
 
+#FIXME: Resolve the following Windows-specific issue, which does actually
+#appear to be a demonstrable (albeit presumably ignorable) issue:
+#
+#    C:\projects\betse\betse\util\io\log\logconfig.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='C:\\Users\\appveyor\\AppData\\Roaming\\betse\\betse.log' mode='a' encoding='utf-8'>
+#        _log_conf = LogConfig()
+#
+#We strongly suspect the culprit to be the "LogHandlerFileRotateSafe" class,
+#which we instantiate as follows:
+#
+#        self._logger_root_handler_file = LogHandlerFileRotateSafe(
+#            filename=self._filename,
+#            mode='a',
+#            delay=True,
+#            encoding='utf-8',
+#            maxBytes=ints.MiB,
+#            backupCount=8,
+#        )
+#
+#Note the duplicate "mode='a'" and "encoding='utf-8'" keyword arguments above,
+#strongly suggesting the "LogHandlerFileRotateSafe" class to be at fault here.
+#FIXME: Indeed, we have verified by inspection that the stock "logging" API is
+#fundamentally insane. This API makes no attempt to leverage the standard
+#"with"-based context manager approach to safely opening and closing file
+#handles in an exception-robust manner; instead, the "FileHandler" superclass
+#of the "LogHandlerFileRotateSafe" subclass defined by the "logging.__init__"
+#submodule behaves as follows:
+#
+#* The FileHandler.emit() method sets the "self.stream" instance variable to
+#  the open file handle returned by the FileHandler._open() method.
+#* The FileHandler.close() method closes the the open file handle stored in the
+#  "self.stream" instance variable.
+#
+#Saliently, *NO* other standard "logging" method calls the FileHandler.close()
+#method. Ergo, logging file handles remain open until external callers
+#explicitly call this method. Ergo, we need to fundamentally refactor the
+#codebase to ensure that the "_log_conf" singleton object explicitly calls
+#self._logger_root_handler_file.close() method *ON APPLICATION CLOSE.* This, in
+#turn, suggests reasonably deep refactoring of the "AppMetaABC" superclass to
+#support application deinitialization (e.g., via a new uninit() method), which
+#the "CLIABC" superclass should probably then ensure is called at application
+#closure -- even in the event of uncaught exceptions.
+
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid circular import dependencies, avoid importing from *ANY*
@@ -109,10 +151,10 @@ class LogConfig(object):
         (e.g., 16Kb).
 
     If the default log levels are undesirable, consider subsequently calling
-    such logger's `set_level()` method. Since a desired log level is typically
-    unavailable until after parsing CLI arguments and/or configuration file
-    settings *and* since a logger is required before such level becomes
-    available, this function assumes a sane interim default.
+    this logger's :meth:`Logger.setLevel` method. Since a desired log level is
+    typically unavailable until after parsing CLI arguments and/or
+    configuration file settings *and* since a logger is required before this
+    level becomes available, this class provides a sane interim default.
 
     Attributes
     ----------

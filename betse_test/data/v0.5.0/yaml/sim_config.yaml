@@ -1,0 +1,1110 @@
+%YAML 1.1
+---
+# Default BETSE simulation configuration file.
+#
+# The following settings can be changed to customize simulations in BETSE. When
+# editing the file, note that it is essential that the line indentations (tabs)
+# are maintained in their current order, and that only variable assignments are
+# changed. Variable names must not be changed. Comments are prefixed by "#" and
+# may be altered.
+#
+# Note that each BETSE simulation requires an initialization run. The
+# initialization is required to ensure that a simulation begins with a system in
+# a steady state. Each subsequent simulation depends on an initialization run
+# specific to the cell geometry and initialized parameters.
+#
+# Note: parameters listed under the "INTERNAL USE ONLY" section should be
+# modified only with care.
+#
+# Pathnames
+# ----------
+# For portability, files and directories are configured below as relative rather
+# than absolute pathnames (e.g., as "sim_init.betse" rather than
+# "/Users/iamawesome/my_sim/sim_init.betse"). Such pathnames are relative to the
+# directory containing this file. This allows the directory to be safely moved
+# without breaking existing tissue simulations.
+#
+# A Note on YAML
+# ----------
+# This file is formatted according to the YAML ([Y]AML [A]in't [M]arkup
+# [L]anguage) standard. YAML is a human-readable data serialization format
+# useful for configuration files -- like this one. For details, please see
+# https://en.wikipedia.org/wiki/YAML.
+
+# ------------------------------------------------------------------------------
+# FILE HANDLING
+# ------------------------------------------------------------------------------
+# Settings specific to saving simulations and results output.
+
+init file saving:                # Initialization paths to save and load.
+    directory: INITS             # Directory containing the following files.
+    worldfile: world_1.betse.gz  # File containing all cell cluster objects.
+                                 # Supported filetypes include (in order of
+                                 # increased compression):
+                                 # ".betse" (no compression),
+                                 # ".betse.gz" (very fast minimal compression),
+                                 # ".betse.bz2" (slow medium compression), and
+                                 # ".betse.xz" (fast maximal compression).
+    file: init_1.betse.gz        # File containing all initialization objects.
+                                 # Supported filetypes are as above.
+
+sim file saving:                 # Simulation paths to save and load.
+    directory: SIMS              # Directory containing the following files.
+    file: sim_1.betse.gz         # File containing all simulation objects.
+                                 # Supported filetypes are as above.
+
+results file saving:          # Initialization and simulation exports to save.
+    init directory: RESULTS/init_1  # Directory containing all initialization
+                                    # exports (e.g., plots, animations).
+    sim directory: RESULTS/sim_1    # Directory containing all simulation
+                                    # exports (e.g., plots, animations).
+
+# ------------------------------------------------------------------------------
+# INITIALIZATION SETTINGS
+# ------------------------------------------------------------------------------
+# Settings specific to the initialization.
+
+init time settings:
+  time step: 1.0e-2           # time step-size [s] (recommended at least 1.0e-3 or smaller)
+  total time: 1.0             # end time [s] (recommend 5 seconds or more)
+  sampling rate: 0.1          # time interval to sample data [s] (at least value of time-step or larger)
+
+# ------------------------------------------------------------------------------
+# SIMULATION SETTINGS
+# ------------------------------------------------------------------------------
+
+automatically run initialization: True     # If init file is not found, do you wish to
+                                           # automatically run an init?
+
+sim time settings:
+
+  time step: 1.0e-2       # time step-size [s] (recommended 1.0e-3 or smaller)
+  total time: 1.0         # time to end sim run [s]
+  sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
+
+# ---------------------------------------------------------------------------------------------------------------------
+# GENERAL OPTIONS
+# ---------------------------------------------------------------------------------------------------------------------
+# Specify general options to be used in the init and sim runs.
+
+# File synch warning: you can't change any of these general options after running 'betse seed'.
+
+general options:
+
+  comp grid size: 40         # grid used in computation of environmental parameters (min 10; keep smaller than 50)
+  plot grid size: 50        # grid used for interpolated data plotting (recommend 50 to 250)
+
+  simulate extracellular spaces: True    # include extracellular spaces and true environment simulation?
+
+  ion profile: basic   # ion profile options:
+                       # 'basic' (Na+, K+, M-, and proteins-)
+                       # 'basic_Ca' (Na+, K+, Ca2+, M- and proteins-)
+                       # 'animal' (Na+, K+, Cl-, Ca2+, H+, HCO3- and proteins-) typical mammal
+                       # 'customized' (user-specified settings, see below)
+                       # (all profiles contain an unidentified charge-balance anion, M-)
+
+
+  customized ion profile:      # set user-defined initial values of ion concentrations
+                               # for the initialization run
+                               # note both extracellular and cytosolic levels of all
+                               # ions must sum to zero charge.
+
+    extracellular Na+ concentration: 145.0          # extracellular sodium [mmol/L]
+    extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
+    extracellular Cl- concentration: 105.0          # extracellular chloride [mmol/L]
+    extracellular Ca2+ concentration: 1.0           # extracellular calcium [mmol/L]
+    extracellular HCO3- concentration: 36.0         # extracellular bicarbonate [mmol/L]
+    extracellular protein- concentration: 10.0       # extracellular protein [mmol/L]
+
+    cytosolic Na+ concentration: 8.0                # intracellular sodium [mmol/L]
+    cytosolic K+ concentration: 125.00              # intracellular potassium [mmol/L]
+    cytosolic Cl- concentration: 20.0                # intracellular chloride [mmol/L]
+    cytosolic Ca2+ concentration: 1.0e-4            # intracellular calcium [mmol/L]
+    cytosolic HCO3- concentration: 13.0             # intracellular bicarbonate [mmol/L]
+    cytosolic protein- concentration: 100.0         # intracellular protein [mmol/L]
+
+    endoplasmic reticulum Ca2+: 0.1             # starting level of Ca2+ in the ER store [mmol/L]
+
+# ---------------------------------------------------------------------------------------------------------------------
+# WORLD OPTIONS
+# ---------------------------------------------------------------------------------------------------------------------
+# The 'world' refers to cell geometric properties, the size of the cluster, and the properties of the environment,
+# such as size and temperature. These variables are common to both init and sim runs. All of these world variables
+# will be created in the init and apply to all sims running from the init.
+
+# File sync warning: you can't change any of these 'world options' after running 'betse seed'.
+
+world options:
+
+  world size: 250e-6      # dimension of the square world space [m]
+                          # the world is square with x = y.
+                          # recommended range 80e-6 to 1000e-6 m
+
+  cell radius: 5e-6       # radius of single cell [m]
+                          # recommended ~ 5.0e-6
+
+  cell height: 10.0e-6     # the height of a cell in the z-direction [m]
+                          # used in cell volume and surface area calculations
+                          # recommended 10.0e-6
+
+  cell spacing: 26.0e-9       # the spacing between cells [m]
+                              # recommended 26.0e-9 m for animal cells
+
+
+  lattice type: hex           # form of the base lattice (before adding lattice disorder)
+                              # options: 'hex' for hegagonal or 'rect' for rectilinear
+
+  lattice disorder: 0.4       # noise level for the lattice
+                              # recommended range 0 to 0.8
+                              # this randomizes lattice points from the rectangular or
+                              # hexagonal base grid. If equal to 0, a perfect
+                              # hexagonal or rectangular grid is created.
+
+#-----------------------------------------------------------------------------------------------------------------------
+# TISSUE PROFILE DESIGNATION
+#-----------------------------------------------------------------------------------------------------------------------
+# Tissue profiles are user-defined regions within the cluster to which specific base membrane diffusion profiles,
+# interventions, and individualized dynamics (e.g voltage gated channels) can be applied.
+# Tissue profiles can be gap-junction connected or separated (isolated) from other tissue profiles.
+# Cluster shape and individual tissues can be defined by bitmaps, or specified via various functional regimes.
+# When multiple profiles apply to the same cell, options defined by later profiles override options defined by
+# earlier profiles.
+
+# A profile's functionality is defined by the value of its "type" key:
+#
+# -> "type: tissue" associates profiled cells with the same parameters and events.
+# -> "type: cut" permanently removes all cells at the begining of a sim run.
+#                Cut profiles are ignored unless the cutting event defined below is also enabled.
+#
+# No File synch issues: Tissue profiles can be altered after the time of the 'betse seed' command.
+
+tissue profile definition:
+
+    clipping:     # geometry mask defining shape of global cell cluster
+        bitmap:   # bitmap whose coloured pixel area defines this mask
+            file: geo/circle/circle_base.png  # bitmap path relative to config file location;
+                                                  # if "None", clipping will be disabled
+
+    profiles enabled: True   # Are tissue and cut profiles listed below applied ("True") or ignored ("False")?
+
+    profiles:
+      # Example default tissue profile applying to all cells.
+      - type: tissue
+        name: all            # unique profile name
+        insular: False       # tissue has gj connecting within tissue but not between tissues (True)
+
+        diffusion constants: # constants applied to all targetted cells
+          Dm_Na: 1.0e-18     # Na+ membrane diffusion constant [m2/s]
+          Dm_K: 15.0e-18     # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 2.0e-18     # Cl- membrane diffusion constant [m2/s]
+          Dm_Ca: 1.0e-18     # Ca2+ membrane diffusion constant [m2/s]
+          Dm_H: 1.0e-18      # H+ membrane diffusion constant [m2/s]
+          Dm_M: 1.0e-18      # M- membrane diffusion constant [m2/s]
+          Dm_P: 0.0          # proteins membrane diffusion constant [m2/s]
+
+        cell targets: # cell population to which this profile applies.
+          type: all   # "all", uniformly apply this tissue profile to all cells
+                      # "bitmap", match cells falling in a bitmap's colored area
+                      # "indices", match cells with the listed indices
+                      # "random", match a random subset of cells in the cluster
+
+          bitmap:  # if "type: bitmap" specified above, supply path to bitmap; otherwise this is ignored
+
+            file: geo/circle/circle_base.png  # Absolute or relative bitmap path
+
+          indices: [3, 14, 15, 9, 265] # If "type: indices" specified above list cell indices for profile;
+                                       # otherwise this is ignored. This must be a list of positive integers
+                                       # for cells existing in cluster.
+
+          random: 50                 # If "type: random" specified above,
+                                     # define percentage of cells to which this tissue
+                                     # profile will be randomly applied; otherwise this is ignored.
+                                     # This must be an integer
+                                     # ranging from 0 to 100 (e.g., "50" randomly applies this profile
+                                     # to 50% of all cells).
+
+      # Example tissue profile for a small, slightly depolarized cluster of
+      # cells near the cluster centre.
+      - type: tissue
+        name: spot
+        insular: False
+
+        diffusion constants:
+          Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
+          Dm_K: 1.0e-18    # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
+          Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
+          Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
+          Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
+          Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
+
+        cell targets:
+          type: bitmap
+          bitmap: { file: geo/circle/mini_spot.png }
+          indices: [3, 14, 15, 9, 265]
+          random: 50
+
+      # Example tissue profile for a small, slightly depolarized cluster of
+      # cells near the cluster boundary.
+      - type: tissue
+        name: wound
+        insular: False
+
+        diffusion constants:
+          Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
+          Dm_K: 150.0e-18  # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 2.0e-18   # Cl- membrane diffusion constant [m2/s]
+          Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
+          Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
+          Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
+          Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
+
+        cell targets:
+          type: bitmap
+          bitmap: { file: geo/circle/wedge.png }
+          indices: [3, 14, 15, 9, 265]
+          random: 50
+
+      # Example cut profile for a small cluster of cells near the boundary.
+      - type: cut       # unique type for cut profiles
+        name: surgery   # unique profile name
+
+        bitmap: # Bitmap whose coloured pixel area defines the subregion of the
+                # cell cluster to be removed.
+          file: geo/circle/wedge.png
+
+#-----------------------------------------------------------------------------------------------------------------------
+# TARGETED INTERVENTIONS
+#-----------------------------------------------------------------------------------------------------------------------
+# Targeted interventions are scheduled changes that can be applied to cells in
+# the cluster by linking to a defined tissue profile. Targeted interventions
+# only occur during sim runs, not during an init.
+#
+# No file synch issues: Targeted intervention settings can be altered after seed
+# and init.
+
+change Na mem:       # Change the membrane permeability to Na+
+    event happens: True        # turn the event on (True) or off (False)
+    change start: 1.0e-3                # time to start change [s]
+    change finish: 20.0e-3               # time to end change and return to original [s]
+    change rate: 2.0e-3                 # rate of change [s]
+    multiplier: 50.0                # factor to multiply base level
+    modulator function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    apply to: ['spot']          # name(s) of the tissue profile(s) to apply intervention to
+
+change K mem:       # Change the membrane permeability to K+
+    event happens: False              # turn the event on (True) or off (False)
+    change start: 1.0                   # time to start change [s]
+    change finish: 2.0                 # time to end change and return to original [s]
+    change rate: 0.5                    # rate of change [s]
+    multiplier: 50.0                    # factor to multiply base level
+    modulator function: None                   # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
+
+change Cl mem:      # Change the membrane permeability to Cl-
+    event happens: False              # turn the event on (True) or off (False)
+    change start: 1.0                  # time to start change [s]
+    change finish: 4.0                 # time to end change and return to original [s]
+    change rate: 0.5                    # rate of change [s]
+    multiplier: 10                    # factor to multiply base level
+    modulator function: None                # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
+
+change Ca mem:       # Change the membrane permeability to Ca2+
+    event happens: False              # turn the event on (True) or off (False)
+    change start: 2.0                  # time to start change [s]
+    change finish: 8.0                 # time to end change and return to original [s]
+    change rate: 1                    # rate of change [s]
+    multiplier: 10                    # factor to multiply base level
+    modulator function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    apply to: ['all']     # name(s) of the tissue profile(s) to apply intervention to
+
+apply pressure:                       # Schedule application of mechanical pressure
+    event happens: False              # turn the event on (True) or off (False)
+    change start: 0.0                   # time to start change [s]
+    change finish: 1.0                   # time to end change and return to original [s]
+    change rate: 5.0e-2                 # rate of change [s]
+    multiplier: 100                  # pressure applied at maximum [Pa]
+    modulator function: periodic              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    apply to: ['spot']     # name(s) of the tissue profile(s) to apply intervention to
+
+
+# Apply an external voltage to two edges of the environmental boundary if the
+# "simulate extracellular spaces" option is enabled.
+apply external voltage:
+
+    event happens: False   # enable (True) or disable (False) this event?
+    change start: 0.5     # time [s] at which to begin applying voltage
+    change finish: 1.0    # time [s] at which to cease applying voltage
+    change rate: 0.1      # time [s] over which voltage proceeds from background
+                          # to peak and from peak to background
+    peak voltage: 0.100   # max voltage [V] applied by this event
+
+    positive voltage boundary: top     # env boundary to apply positive voltage
+                                       # ("top", "bottom", "left", or "right")
+    negative voltage boundary: bottom  # env boundary to apply negative voltage
+                                       # ("top", "bottom", "left", or "right")
+
+
+break ecm junctions:     # break extracellular junctions between cells
+    event happens: False     # turn the event on (True) or off (False)
+    change start: 2.0        # time to start change [s]
+    change finish: 7.0       # time to end change and return to original [s]
+    change rate: 0.5         # rate of change [s]
+    multiplier: 0.0          # fraction of original TJ magnitude
+    apply to: ['wound']      # tissue profile(s) to apply intervention to
+
+
+# Cut (i.e., remove) all cells matched by the "cut profile" defined above from
+# the initialized cluster at the start of the simulation run. Note that this is
+# ignored unless the "cut profile" is also enabled.
+cutting event:
+    event happens: True      # enable (True) or disable (False) this event?
+    apply to: ['surgery']    # names of cut profiles selecting cells to be cut
+    wound channel:
+      use channel: False      # use a channel associated with wounding (mechanosensitive Na channel)
+      max conductivity: 1.0e-8   # maximum conductivity of the channel to sodium when fully open
+      closure delay: 5.0       # how fast does the channel close after activation? (larger = faster decay)
+
+      activators: None         # list of defined substances or simulation ions activating channel
+      Km activators: None      # list of half-maximum values for activators
+      n activators: None       # list of Hill exponent of activators
+      inhibitors: None   # list of defined substances or simulation ions inhibiting channel
+      Km inhibitors: None      # list of half-maximum values for inhibitors
+      n inhibitors: None        # list of Hill exponent of inhibitors
+
+#-----------------------------------------------------------------------------------------------------------------------
+# MODULATOR FUNCTION PROPERTIES
+#-----------------------------------------------------------------------------------------------------------------------
+# These are spatial or temporal functions, modifiable at any phase, that let you set a spatial gradient of production
+# rate or other effect, or define a time periodic signal for production or other effect. Alter their parameters here.
+
+modulator function properties:   # set properties of modulating functions which may be used in above:
+
+  gradient_x:           # generate a spatial gradient of a property in the x-direction
+      slope: 1.0        # rate of change of gradient per unit x-dimension
+      offset: 0         # offset to all gradient values
+      exponent: 1      # Hill exponent for gradient values
+
+  gradient_y:           # generate a spatial gradient of a property in the y-direction
+      slope: 1.0        # rate of change of gradient per unit x-dimension
+      offset: 0         # offset to all gradient values
+      exponent: 1      # Hill exponent for gradient values
+
+  gradient_r:           # generate a radial spatial gradient of a property
+      slope: 1.0        # radial gradient rate of change per unit radius
+      offset: 0
+      exponent: 1      # Hill exponent for gradient values
+
+  periodic:              # generate a sinusoidal oscillation of a property
+      frequency: 10       # frequency of oscillation [Hz]
+      phase: 0           # phase-offset of oscillation
+
+  f_sweep:                    # apply a sinusoidal oscillation of a property as a sequence of frequencies
+      start frequency: 0.1e3          # start frequency
+      end frequency: 1e3            # end frequency
+
+# ----------------------------------------------------------------------------------------------------------------------
+# DYNAMIC ION CHANNELS
+# ----------------------------------------------------------------------------------------------------------------------
+# Dynamic ion channels respond to simulation variables to change state (e.g. voltage gating)
+# Specify dynamic ion channels expressed by certain cells in the cluster using links to tissue profiles.
+# Dynamic ion channels only appear in sim runs (not in init).
+
+# No file synch issues: Dynamic ion channel settings can be altered between seed, init and sim.
+
+voltage gated Na+:
+    turn on: False                 # voltage gated sodium channel (NOTE: use time-step <= 1.0e-4)
+    apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
+    channel type: ['Nav1p2']         # available types: 'Nav1p2' (adult brain), 'Nav1p3' (embryo)
+                                  # 'NavRat1', 'NaVRat2'
+    max value: 5.0e-6             # maximum channel conductivity when channel fully open [S/m2] (1.0e-6 to 5.0e-5)
+
+persistent vg Na+:
+    turn on: False                 # voltage gated sodium channel with persistant current
+    apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
+    channel type: ['Nav1p6']         # available types: 'Nav1p6' (persistent brain)
+    max value: 1.0e-7             # maximum channel conductivity when channel fully open [S/m2] (1.0e-8 to 1.0e-6)
+
+stretch gated Na+:         # mechano-sensitive Na+/K+ cation channel channel
+    turn on: False
+    apply to: ['all']          # tissue profile(s) to apply to
+    max value: 1.0e-8         # maximum channel conductivity when channel fully open [S/m2] (1.0e-8 to 1.0e-6)
+
+voltage gated K+:             # voltage gated potassium channel, delayed rectifyer (NOTE: use time-step <= 1.0e-3)
+    turn on: False
+    apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
+    channel type: ['K_Slow','Kv1p3']      # available types: 'Kv1p1', 'Kv1p2', 'Kv1p3', 'Kv1p5',
+                                           # 'K_Slow', 'K_Fast', 'Kv2p1'
+    max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2] (5.0e-6 to 1.0e-7)
+
+additional voltage gated K+:    # Other types of K+ currents including inward-rectifying (NOTE: use time-step <= 1.0e-3)
+    turn on: False
+    apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
+    channel type: ['Kir2p1']      # available types: 'Kir2p1', 'Kv3p4' and 'Kv3p3' (A-currents)
+    max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2] (5.0e-6 to 1.0e-7)
+
+calcium gated K+:              # calcium gated potassium channel
+    turn on: False
+    apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
+    max value: 1.0e-7        # maximum channel conductivity when channel fully open [S/m2]
+
+funny current:                 # "funny current" K+/Na+ channel
+    turn on: False
+    apply to: ['all']
+    channel type: ['HCN4']         # available types: 'HCN1', 'HCN2' or 'HCN4'
+    max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2] (1.0e-6 to 1.0e-7)
+
+voltage gated Ca2+:            # voltage gated calcium channel
+    turn on: False
+    apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
+    channel type: ['Ca_L']        # available types: 'Ca_L', 'Ca_T', 'Ca_PQ'
+    max value: 5.0e-7        # maximum channel conductivity when channel fully open [S/m2] (1.0e-7 to 1.0e-4)
+
+Ca dynamics:                   # include full calcium dynamics in the situation?
+    turn on: False               # this creates an endoplasmic reticulum (ER) in each cell
+    serca pump max: 1.0e-8        # maximum value of the serca pump
+    max er: 1.0e-15                # maximum conductivity of ER membrane Ca++ channel
+    act Km Ca: 0.6e-3             # concentration at which calcium activates ER opening
+    act n Ca: 3.0                 # exponent for Ca activation
+    inh Km Ca: 1.5e-3            # concentration at which calcium inhibits ER opening
+    inh n Ca: 3.0                # exponent for Ca inhibition
+    act Km IP3: 1.0e-3           # concentration at which IP3 (if included in biomolecules) activates opening
+    act n IP3: 3.0                # exponent for IP3 (if included in biomolecules) activates opening
+
+# ----------------------------------------------------------------------------------------------------------------------
+# GLOBAL INTERVENTIONS
+# ----------------------------------------------------------------------------------------------------------------------
+# Schedule changes to globally-applied simulation variables such as membrane permeabilities,
+# pump and gap junction function and environmental concentrations of ions.
+# No file synch issues: Global intervention settings can be changed at any time between seed, init and sim.
+
+# The following global changes affect the entire cluster during a sim run (not an init):
+
+change K env:       # Change the environmental concentration of K+
+  event happens: False      # turn the event on (True) or off (False)
+  change start: 1.00           # time to start change [s]
+  change finish: 12.00         # time to end change and return to original [s]
+  change rate: 1.0            # rate of change [s]
+  multiplier: 20            # factor to multiply base level
+
+change Cl env:       # Change the environmental concentration of K+
+  event happens: False      # turn the event on (True) or off (False)
+  change start: 5.0           # sim time to start change [s]
+  change finish: 25.0         # sim time to end change and return to original [s]
+  change rate: 2.0            # rate of change [s]
+  multiplier: 10             # factor to multiply base level
+
+change Na env:       # Change the environmental concentration of K+
+  event happens: False     # turn the event on (True) or off (False)
+  change start: 1          # time to start change [s]
+  change finish: 9        # time to end change and return to original [s]
+  change rate: 1           # rate of change [s]
+  multiplier: 5            # factor to multiply base level
+
+change temperature:
+  event happens: False      # turn the event on (True) or off (False)
+  change start: 1           # time to start change [s]
+  change finish: 9         # time to end change and return to original [s]
+  change rate: 0.5         # rate of change [s]
+  multiplier: 0.5          # factor to multiply base level
+
+block gap junctions:     # block the gap junctions between cells
+  event happens: False      # turn the event on (True) or off (False)
+  change start: 2.00        # time to start change [s]
+  change finish: 6.00       # time to end change and return to original [s]
+  change rate: 1.5         # rate of change [s]
+  random fraction: 100     # percentage of gap junctions randomly targeted
+
+block NaKATP pump:
+  event happens: False      # turn the event on (True) or off (False)
+  change start: 5           # time to start change [s]
+  change finish: 25         # time to end change and return to original [s]
+  change rate: 1.0          # rate of change [s]
+
+# ------------------------------------------------------------------------------
+# INTERVENTIONS
+# ------------------------------------------------------------------------------
+# Interventions are scheduled changes externally applied to some or all cells
+# in the cell cluster for some or all time steps of the simulation. All settings
+# in this section are safely modifiable at any time, including between the seed,
+# initialization, and simulation phases.
+interventions:
+  global:           # Global interventions globally applied to all cells.
+    ion pipeline:   # List of all global ion interventions, temporarily
+                    # increasing environmental concentrations of ions as
+                    # logistic functions centered around time steps.
+      # Example global potassium intervention, disabled by default.
+      - type: potassium   # Intervention type, as any following string:
+        # chloride  ->  Global chloride ion intervention
+        #   Ignored if chloride ions (Cl-) disabled by ion profile.
+        # potassium  ->  Global potassium ion intervention
+        #   Ignored if potassium ions (K+) disabled by ion profile.
+        # sodium  ->  Global sodium ion intervention
+        #   Ignored if sodium ions (Na+) disabled by ion profile.
+        enabled: False        # Enable this intervention?
+        start time:  1.00     # Time at which to begin intervening [s]
+        end time:   12.00     # Time at which to cease intervening [s]
+        peak duration: 1.00   # Time duration over which to increase ion
+                              # concentration after intervention begins [s]
+        multiplier: 20        # Factor by which to increase base level of ion
+                              # concentration during peak intervention duration
+      # Example global chloride intervention, disabled by default.
+      - type: chloride
+        enabled: False
+        start time:  5.00
+        end time:   25.00
+        peak duration: 2.00
+        multiplier: 10
+
+#-----------------------------------------------------------------------------------------------------------------------
+#  GENERAL NETWORK
+#-----------------------------------------------------------------------------------------------------------------------
+# The "General Network" allows you to define a bioelectricity integrated gene and reaction network with custom
+# biomolecules, chemical reactions, channels, and transporters. Use this section to define general network main
+# properties. See "extra_config_template.yaml" in the "extra_configs" directory for examples.
+# NOTE: The "optimization" is *not* required to run a general network; this is a tool that supplies you
+# with a list of membrane diffusion constants and reaction/transporter maximum rate constants that are a "best fit"
+# match to the target Vmem and initial concentrations listed for the "custom biomolecules" section of the network.
+
+general network:
+
+  implement network: False     # Turn the entire network defined below on (True) or off (False)
+
+  enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
+
+  optimization:              # Not required by default. A tool to "best fit" your network to target data.
+    optimize network: False   # run an optimization of the network to obtain max rates at steady state concentrations?
+    optimization steps: 50 # number of itteration steps to run with basinhopper
+    optimization method: L-BFGS-B  # optimization algorithm to run ('L-BFGS' 'COBYLA')
+    optimization T: 1.0             # "temperature" for the basinhopping routine
+    optimization step: 0.5          # step-size of the basin hopping routine
+    target Vmem: -50e-3               # Vmem to use in optimization
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM BIOMOLECULES
+#-----------------------------------------------------------------------------------------------------------------------
+# Additional biochemical substances that can electrodiffuse across cell membranes, between cells via GJ, or
+# in the environment. Also can be produced/consumed in the cytoplasm, act as gating ligand for a specific channel,
+# be actively pumped in or out of cells, changed at the boundary, or plotted/animated at the end of the simulation.
+#  See "extra_config_template.yaml" in the "extra_configs" directory for examples.
+
+  biomolecules:  # specify the properties of any number of auxillary chemicals
+
+#-----------------------------------------------------------------------------------------------------------------------
+#  CUSTOM CHEMICAL REACTIONS
+#-----------------------------------------------------------------------------------------------------------------------
+# Define chemical reactions between any substances defined in "custom biomolecules" and BETSE default ions.
+# See "extra_config_template.yaml" in the "extra_configs" directory for examples.
+
+  reactions:
+
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM TRANSPORTERS
+#-----------------------------------------------------------------------------------------------------------------------
+# Define transmembrane transporters and associated cytosolic chemical reactions between any substances defined in
+# "custom biomolecules" and/or BETSE default ions. See "extra_config_template.yaml" in the "extra_configs"
+# directory for examples.
+
+  transporters:
+
+#-----------------------------------------------------------------------------------------------------------------------
+#  CUSTOM CHANNELS
+#-----------------------------------------------------------------------------------------------------------------------
+# Incorporate dynamic channel types and have their behaviour be activated/inhibited by the concentration of any
+# user-defined biomolecules and/or BETSE default ions. See "extra_config_template.yaml" in the "extra_configs"
+# directory for examples.
+
+  channels:
+
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM MODULATORS
+#-----------------------------------------------------------------------------------------------------------------------
+# Allow user-defined biomolecules and/or BETSE default ions to activate/inhibit core BETSE structures such as gap
+# junctions and the default Na/K-ATPase pump. See "extra_config_template.yaml" in the "extra_configs"
+# directory for examples.
+
+  modulators:
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# DIRECTION SURFACE PLOTS
+#-----------------------------------------------------------------------------------------------------------------------
+# See "extra_config_template.yaml" in the "extra_configs"
+# directory for examples.
+
+
+  direction surfaces:
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+#  METABOLISM
+#-----------------------------------------------------------------------------------------------------------------------
+# Define an auxillary network in an external config file and read it in and run from that extra file. This
+# auxillary network has ATP, ADP and Pi, which will be used to power all ATP-dependent pumps in BETSE.
+
+metabolism settings:
+
+  metabolism simulated: False  # is metabolism simulated at all, or is cATP assumed constant?
+
+  metabolism config: extra_configs/metabo_basic.yaml  # supply a path to the metabolic model config file
+
+#-----------------------------------------------------------------------------------------------------------------------
+# GENE REGULATORY NETWORK
+#-----------------------------------------------------------------------------------------------------------------------
+# Define an auxillary network in an external config file and read it in and run from that extra file.
+
+gene regulatory network settings:
+
+  gene regulatory network simulated: False
+
+  gene regulatory network config: extra_configs/grn_basic.yaml
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# VARIABLE SETTINGS
+#-----------------------------------------------------------------------------------------------------------------------
+# These settings can be changed in between seed, init and sim runs, meaning there are no synchronization issues.
+
+variable settings:
+
+  default tissue name: base   # name of cells to which no profile is applied (if applicable)
+
+  default tissue properties:     # specify the base membrane diffusion constants below (if applicable)
+
+      Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+      Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
+      Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+      Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
+      Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+      Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
+      Dm_P: 0.0            # proteins- membrane diffusion constant [m2/s]
+
+  env boundary concentrations:   # these concentrations are placed at the global boundary during init and sim
+                                 # altering these is an easy way to change extracellular ion concentrations
+                                 # uncomment the fields below to set new env boundaries, otherwise feature ignored!
+
+#    Na: 145.0    # Na+ concentration at bound [mM]
+#    K: 5.0      # K+ concentration at bound [mM]
+#    Cl: 105.0    # Cl- concentration at bound [mM]
+#    Ca: 1.0     # Ca2+ concentration at bound [mM]
+#    P: 10.0      # Protein- concentration at bound [mM]
+#    M: 37.0     # Anion (bicarbonate) concentration at bound [mM]
+
+  temperature: 310            # system temperature [K]
+
+
+  channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
+
+    turn on: False        # turn on electroosmosis of pumps and channels
+    channel charge: -1         # charge of membrane channels
+    pump charge: 1          # charge of pumps (controls direction they move in)
+    membrane mobility: 1e-12  # mobility factor (diffusion constant) for pumps and channels [m2/s] (1e-10 to 1e-12)
+
+
+
+  fluid flow:
+
+    include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
+    water viscocity: 1.0      # viscocity of water [Pa s] (applies to ease of flow)
+
+
+  deformation:
+
+    turn on: False       # include deformation under the osmotic pressure influx and electric fields?
+    galvanotropism: 1.0e-9      # factor by which cells change shape to global electric field (can be 0.0 or negative)
+    viscous damping: 0.01        # viscous damping of elastic waves in tissue (0.0 to 1.0; larger = higher damping)
+    fixed cluster boundary: True   # Exterior cells of the cluster are fixed (True) or free to move (False)
+    young modulus: 1.0e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
+
+  pressures:
+
+    include osmotic pressure: False    # include osmotic pressure in flow & deformation?
+    membrane water conductivity: 1e-2   # mem conductivity for osmotic inflow (aquaporin per unit surface) (~ 1e-3)
+
+
+  noise:
+
+    static noise level: 0    # level of variance in K+ leaks on cell membranes
+                             # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
+
+    dynamic noise: False      # is dynamic noise desired? Options True or False
+                              # simulated as random-walk on cellular protein concentrations
+
+    dynamic noise level: 1e-6     # level of dynamic noise
+                                  # appropriate range 0 (effect off) to 1e-5 (extremely high noise)
+                                  # Note high values may cause simulation instability
+
+  gap junctions:
+
+    gap junction surface area: 5.0e-8 # surface area of gj as fraction of cell area (1.0e-5 extremely open, 1e-9 closed)
+
+    voltage sensitive gj: True   # gj close with voltage difference between cells?
+
+    gj voltage threshold: 15    # cell-cell voltage at which gj are half closed [mV]
+                                 # suggested range from 10 mV to 80 mV
+
+    gj voltage window: 15    # steepness of gating function (not currently used)
+
+    gj minimum: 0.10      # for voltage sensitive gj, the fraction of maxium permeability when channel 'closed'
+
+
+  tight junction scaling: 1.0   # factor by which tight junctions scale free-diffusion (range 1.0 to 5.0e-2)
+
+  tight junction relative diffusion:  # relative values for tight junction ion 
+                                      # permeability
+    Na:  1
+    K: 1
+    Cl: 1
+    Ca: 1
+    H: 1
+    M: 1
+    P: 1
+
+  adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
+                                   # free-diffusion
+
+  use Goldman calculator: True   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK) 
+                                 # voltage equation for comparison purposes?
+
+# ----------------------------------------------------------------------------------------------------------------------
+# RESULTS
+# ----------------------------------------------------------------------------------------------------------------------
+# Configure results viewing and saving options for simulations. All of the
+# parameters under 'results options' can be altered at any time between seed,
+# init and sim.
+
+results options:
+
+  enumerate cells: False         # number the cells on 2D plots with their simulation index?
+
+
+  plot cell index: 0              # State the cell index to use for single-cell time plots
+                                  # the index of cells can be seen using enumerate cells feature.
+
+  show cells: True                # if True, plots and animations show individual cells,
+                                  # each displayed with color-coded data.
+
+  overlay currents: False         # overlay electric current or concentration
+                                  # flux streamlines on 2D plotted data?
+
+  streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
+
+  plot total current: True      # for currents and morphgen fluxing, if simululating extracellular spaces, plot
+                                  # total current if true, plot gap junction current if false
+
+  plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
+
+  plot masked geometry: True      # plot the geometry using the overall shape as a mask
+
+
+  default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
+                             # options include
+                             # coolwarm, hot, rainbow, jet, Blues, Greens, bone
+                             # to reverse a colormap add _r to the name (e.g. cm.jet_r)
+                             # for all options please see
+                             # http://matplotlib.org/examples/color/colormaps_reference.html
+
+  background colormap: RdBu_r     # Specify colormap to be used for data with vector overlays and 0 --> + data,
+                                  # including:
+                                  # currents, flow, electric field and deformation.
+
+  network colormap: rainbow       # colormap used for concentration nodes of reaction network graphs
+
+  gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
+
+  vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
+                                 # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
+
+  plot networks: True               # export regulatory networks to
+                                    # interconnected graph images?
+  plot networks single cell: True   # export regulatory networks for single cell to
+                                    # interconnected graph images?
+
+  while solving:          # Results exported during simulation computation.
+    animations:           # Animations exported during simulation computation.
+      show: True          # Display animations during simulation computation?
+      save: True          # Save animations with the animation saving options
+                          # specified below during simulation computation? 
+
+      colorbar:           # Animation colorbar settings.
+        autoscale: True   # Automatically scale colorbar to minimum and
+                          # maximum values of underlying data series?
+        minimum: -70.0    # Minimum fixed colorbar value. Ignored if
+                          # "autoscale" is True.
+        maximum:  10.0    # Maximum fixed colorbar value. Ignored if
+                          # "autoscale" is True.
+
+  after solving:          # Results exported after simulation computation.
+    plots:                # Plots exported after simulation computation.
+      show: False         # Display plots after simulation computation?
+      save: True          # Save plots after simulation computation with
+                          # plot saving options defined below? 
+
+      single cell pipeline:   # List of all single-cell plots for the cell
+                              # selected by "plot cell index" for all time
+                              # steps. Ignored if "show" and "save" are False.
+        # Example single-cell average transmembrane voltage (Vmem) plot.
+        - type: voltage_membrane   # Plot type, as any following string:
+          # currents_membrane  ->  Single-cell transmembrane current density
+          # deform_total  ->  Total cellular deformation = osmotic + galvanotropic
+          #   Ignored if deformation disabled.
+          # ion_calcium  ->  Single-cell calcium ion concentration
+          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
+          # ion_m_anion  ->  Single-cell M anion concentration
+          #   Ignored if M anion ions (M-) disabled by ion profile.
+          # ion_potassium  ->  Single-cell potassium ion concentration
+          #   Ignored if potassium ions (K+) disabled by ion profile.
+          # ion_sodium  ->  Single-cell sodium ion concentration
+          #   Ignored if sodium ions (Na+) disabled by ion profile.
+          # pressure_osmotic  ->  Single-cell osmotic pressure
+          #   Ignored if osmotic pressure disabled.
+          # pressure_total  ->  Single-cell total pressure = osmotic + mechanical
+          #   Ignored if osmotic pressure or mechanical pressure event disabled.
+          # pump_nakatpase  ->  Single-cell Na-K-ATPase pump rate
+          # voltage_membrane  ->  Single-cell transmembrane voltage (Vmem) average
+          # voltage_membrane_fft  ->  Single-cell transmembrane voltage (Vmem) Fourier transform (FFT)
+          enabled: True   # Enable this plot?
+        # Example single-cell transmembrane current density plot.
+        - type: currents_membrane
+          enabled: True
+
+      cell cluster pipeline:   # List of all cell cluster plots for all cells
+                               # at the last time step. Ignored if "show" and
+                               # "save" are False.
+        # Example final cell cluster transmembrane voltage (Vmem) plot.
+        - type: voltage_membrane   # Plot type, as any following string:
+          # channel_density  ->  Final cell cluster cell membrane ion channel density factor
+          #   Ignored if channel electroosmosis disabled.
+          # currents_intra  ->  Final cell cluster intracellular current density
+          # currents_extra  ->  Final cell cluster extracellular current density
+          #   Ignored if extracellular spaces disabled.
+          # deform_total  ->  Final cell cluster total cellular deformation = osmotic + galvanotropic
+          #   Ignored if deformation disabled.
+          # electric_intra  ->  Final cell cluster intracellular electric field
+          # electric_extra  ->  Final cell cluster extracellular electric field
+          #   Ignored if extracellular spaces disabled.
+          # fluid_intra  ->  Final cell cluster intracellular fluid flow
+          #   Ignored if fluid flow disabled.
+          # fluid_extra  ->  Final cell cluster extracellular fluid flow
+          #   Ignored if fluid flow or extracellular spaces disabled.
+          # ion_calcium_intra  ->  Final cell cluster intracellular calcium ion concentration
+          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
+          # ion_calcium_extra  ->  Final cell cluster extracellular calcium ion concentration
+          #   Ignored if calcium ions (Ca2+) disabled by ion profile or extracellular spaces
+          #   disabled.
+          # ion_hydrogen_intra  ->  Final cell cluster intracellular hydrogen ion concentration
+          #   Ignored if hydrogen ions (H+) disabled by ion profile.
+          # junction_state  ->  Final cell cluster gap junction connectivity state
+          # microtubule  ->  Final cell cluster microtubule orientation
+          # pressure_total  ->  Final cell cluster total pressure = osmotic + mechanical
+          #   Ignored if osmotic pressure or mechanical pressure event disabled.
+          # pump_density  ->  Final cell cluster cell membrane ion pump density factor
+          #   Ignored if channel electroosmosis disabled.
+          # pump_nakatpase  ->  Final cell cluster cell membrane Na-K-ATPase pump rate
+          # voltage_membrane  ->  Final cell cluster transmembrane voltage (Vmem)
+          # voltage_membrane_average  ->  Final cell cluster transmembrane voltage (Vmem) average
+          # voltage_membrane_ghk  ->  Final cell cluster transmembrane voltage (Vmem) calculated
+          #                           by Goldman-Hodgkin-Katz (GHK) equation
+          #   Ignored if GHK calculation disabled.
+          # voltage_extra  ->  Final cell cluster extracellular voltage
+          #   Ignored if extracellular spaces disabled.
+          # voltage_polarity  ->  Final cell cluster cellular voltage polarization
+          #   Ignored if cell polarizability disabled.
+          enabled: True       # Enable this plot?
+          colorbar:           # Plot colorbar settings.
+            autoscale: True   # Automatically scale colorbar to minimum and
+                              # maximum values of underlying data series?
+            minimum: -70.0    # Minimum fixed colorbar value. Ignored if
+                              # "autoscale" is True.
+            maximum:  10.0    # Maximum fixed colorbar value. Ignored if
+                              # "autoscale" is True.
+        # Example final cell cluster intracellular electric field plot.
+        - type: electric_intra
+          enabled: True
+          colorbar:
+            autoscale: True
+            minimum: -70.0
+            maximum:  10.0
+
+    animations:      # Animations exported after simulation computation.
+      show: False    # Display animations after simulation computation?
+      save: False    # Save animations after simulation computation with
+                     # animation saving options defined below? 
+
+      pipeline:      # List of all animations. Ignored if "show" and "save" are False.
+        # Example transmembrane voltage (Vmem) animation.
+        - type: voltage_membrane  # Animation type, including any following string:
+          # currents_intra  ->  Intracellular current density
+          # currents_extra  ->  Extracellular current density
+          #   Ignored if extracellular spaces disabled.
+          # deform_total  ->  Total cellular deformation = osmotic + galvanotropic
+          #   Ignored if deformation disabled.
+          # electric_intra  ->  Intracellular electric field
+          # electric_extra  ->  Extracellular electric field
+          #   Ignored if extracellular spaces disabled.
+          # fluid_intra  ->  Intracellular fluid flow
+          #   Ignored if fluid flow disabled.
+          # fluid_extra  ->  Extracellular fluid flow
+          #   Ignored if fluid flow or extracellular spaces disabled.
+          # ion_calcium_intra  ->  Intracellular calcium ion concentration
+          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
+          # ion_hydrogen_intra  ->  Intracellular hydrogen ion concentration == pH
+          #   Ignored if hydrogen ions (H+) disabled by ion profile.
+          # junction_state  ->  Gap junction connectivity state
+          # microtubule  ->  Microtubule orientation
+          # pressure_osmotic  ->  Cellular osmotic pressure
+          #   Ignored if osmotic pressure disabled.
+          # pressure_total  ->  Cellular total pressure = osmotic + mechanical
+          #   Ignored if osmotic pressure or mechanical pressure event disabled.
+          # pump_density  ->  Cell membrane ion pump density factor
+          #   Ignored if channel electroosmosis disabled.
+          # voltage_membrane  ->  Transmembrane voltage (Vmem)
+          # voltage_extra  ->  Extracellular voltage
+          #   Ignored if extracellular spaces disabled.
+          # voltage_polarity  ->  Cellular voltage polarization
+          #   Ignored if cell polarizability disabled.
+          enabled: True       # Enable this animation?
+          colorbar:           # Animation colorbar settings.
+            autoscale: True   # Automatically scale colorbar to minimum and
+                              # maximum values of underlying data series?
+            minimum: -70.0    # Minimum fixed colorbar value. Ignored if
+                              # "autoscale" is True.
+            maximum:  10.0    # Maximum fixed colorbar value. Ignored if
+                              # "autoscale" is True.
+        # Example intracellular electric field animation.
+        - type: electric_intra
+          enabled: True
+          colorbar:
+            autoscale: True
+            minimum: -70.0
+            maximum:  10.0
+
+  save:                 # Saving options for result types enabled above.
+    plots:              # Saving options for plots enabled above.
+                        # Ignored if plot saving is disabled above.
+      filetype: png     # Image filetype.
+      dpi:      300     # Image dots per inch (DPI).
+
+    animations:         # Saving options for animations enabled above.
+                        # Ignored if animation saving is disabled above.
+      images:           # Animation frames saved as a series of images.
+        enabled: True   # Save animation frames as a series of images?
+        filetype: png   # Image filetype.
+        dpi: 300        # Image dots per inch (DPI).
+
+      video:            # Animation frames encoded as a compressed video.
+        enabled: False  # Encode animation frames as a compressed video?
+        filetype: mp4   # Video filetype. Supported filetypes include:
+                        # "mkv" (Matroska), "mp4" (MPEG-4 Part 14), "mov"
+                        # (QuickTime), "avi" (Microsoft), "webm" (WebM),
+                        # "ogv" (Theora), and "gif" (animated).
+        dpi: 150        # Image dots per inch (DPI) of each video frame.
+        bitrate: 1500   # Video bitrate in bits per second.
+        framerate: 15    # Video framerate in frames per second.
+
+        metadata:       # Video metadata embedded in each video file.
+          artist: BETSE               # Video author name(s).
+          genre:   Bioinformatics     # Video target genre.
+          subject: Bioinformatics     # Video target subject.
+          comment: Produced by BETSE. # Video comment string.
+          # copyright: 2017           # Video copyright. If commented,
+                                      # defaults to the current year.
+
+        # List of the names of all matplotlib animation writers with which to
+        # encode video (in descending order of preference).
+        writers: ['ffmpeg', 'avconv', 'mencoder', 'imagemagick']
+
+        # List of the names of all encoder-specific codecs with which to
+        # encode video (in descending order of preference). The reserved name
+        # "auto" implies the best codec provided by the current video encoder.
+        codecs: ['auto']
+        #codecs: ['libvpx', 'libtheora', 'libx264', 'libxvid', 'mpeg4', 'h263', 'mpeg2video', 'hevc', 'auto']  # example listing all preferred codecs before defaulting to "auto"
+
+    data:              # Saving options for spreadsheet-compatible data.
+      all:             # All data points for all cells for all time steps.
+        enabled: True  # Save this data to disk?
+        filetype: csv  # Data filetype. Supported filetypes include:
+                       # "csv" (comma-separated values).
+
+      vmem:            # All Vmem data points for all cells for all time steps
+                       # as a 3-tuple "(x, y, Vmem)".
+        enabled: True  # Save this data to disk?
+        filetype: csv  # Data filetype. Supported filetypes include:
+                       # "csv" (comma-separated values).
+
+
+  # World-related plotting options------------------------------------------------------------------------------------
+
+  plot cell cluster: True     # 'plot seed' creates a plot showing tissue and cut profiles
+
+  plot cell connectivity diagram: True  # 'plot seed' creates a plot showing gap junction connections
+
+  plot cluster mask: True  # 'plot seed' creates a plot showing the logarithm of environmental diffusion
+
+# ----------------------------------------------------------------------------------------------------------------------
+# INTERNAL USE ONLY
+# ----------------------------------------------------------------------------------------------------------------------
+# While the following settings are available to you, please avoid editing them.
+# Simulation instability may result from poor choice of these more sensitive parameters.
+# BETSE requires these parameters for its internal use only.
+
+gated ion channel options:   # changing these will alter network dynamics -- but do so with caution!
+
+    flux threshold: 1.0e-4     # flux cut off maximum
+
+#    calcium gated K:
+#
+#        hill K_half: 7.5e-4         # half-maxium activity coefficient for Hill function [mmol/L]
+#        hill n: 3                   # Hill function coefficient
+
+    stretch gated Na:          # parameters for the mechano-sensitive ion channel
+
+        hill K_half: 0.2         # half-maxium activity coefficient for Hill function (as level of cell strain)
+        hill n: 3                 # Hill function coefficient
+
+
+internal parameters:
+
+  # default free diffusion constants (cytoplasmic)
+
+  Do_Na:  1.33e-9       # free diffusion constant sodium [m2/s]
+  Do_K:  1.96e-9        # free diffusion constant potassium [m2/s]
+  Do_Cl:  2.03e-9       # free diffusion constant chloride [m2/s]
+  Do_Ca:  1.0e-10        # free diffusion constant calcium [m2/s]
+  Do_H:  2.5e-9         # free diffusion constant hydrogen [m2/s]
+  Do_M:  1.0e-9         # free diffusion constant mystery anchor ion [m2/s]
+  Do_P:  5.0e-10        # free diffusion constant protein [m2/s]
+
+  # pump parameters
+
+  alpha_NaK:  1.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
+
+  alpha_Ca:  1.0e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+
+  gaussian smoothing: 0.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
+
+  smooth concentrations: False   # apply gaussian smoothing to concentrations?
+
+  substances affect Vmem: False  # do ionic biochemicals, metabolites and gene products affect charge state?
+
+  environment volume multiplier: 1.0  # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
+
+  membrane capacitance: 0.1 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
+
+  cell polarizability: 0.0  # constant defining rate of cell polarizability change in electric fields (0.0 to 1.0e-3)
+
+  cytoplasm viscocity: 1.0 # viscocity of the cytoplasm [Pa.s]
+
+  microtubule diffusion: 1.0e-12  # effective diffusion coefficient of microtubule (mobility) [m2/s]
+
+  microtubule eosmo: 0.0  # electroosmotic flow term along microtubule (0.0 to 1.0e-9 [m/s])
+
+
+
+
+# Configuration file version that this file conforms to. For reliable
+# comparability, this is stored as a string rather than float scalar.
+version: "0.4.0"

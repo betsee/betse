@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,19 +7,19 @@
 Low-level logging formatter subclasses.
 '''
 
-# ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid circular import dependencies, avoid importing from *ANY*
 # application-specific modules at the top-level -- excluding those explicitly
-# known *NOT* to import from this module. Since all application-specific modules
-# must *ALWAYS* be able to safely import from this module at any level, these
-# circularities are best avoided here rather than elsewhere.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# known *NOT* to import from this module. Since all application-specific
+# modules must *ALWAYS* be able to safely import from this module at any level,
+# these circularities are best avoided here rather than elsewhere.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # from betse.util.type.types import type_check
 from logging import Formatter
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES                           }....................
 #FIXME: Unfortunately, this fundamentally fails to work. The reason why? The
 #"TextWrapper" class inserts spurious newlines *EVEN WHEN YOU EXPLICITLY TELL
 #IT NOT TO*. This is crazy, but noted in the documentation:
