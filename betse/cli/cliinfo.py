@@ -21,7 +21,8 @@ Implementation of the ``info`` subcommand for this command line interface
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse import metadata
-from betse.util.io.log import logconfig, logs
+from betse.util.io.log import logs
+from betse.util.io.log.conf import logconf
 from betse.util.os import oses
 from betse.util.py import pyimpl, pys
 from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
@@ -93,7 +94,7 @@ def log_info() -> None:
         (metadata.NAME.lower(), get_metadata()),
 
         # Logging metadata.
-        ('logging', logconfig.get_metadata()),
+        ('logging', logconf.get_metadata()),
     )
 
     #FIXME: Shift into a more appropriate general-purpose submodule.

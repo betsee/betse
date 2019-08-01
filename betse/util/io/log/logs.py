@@ -53,16 +53,17 @@ import logging, sys, traceback
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type import types
 from betse.util.type.types import type_check, StrOrNoneTypes
+from logging import Logger
 
 # ....................{ GETTERS                           }....................
 @type_check
-def get(logger_name: StrOrNoneTypes = None) -> logging.Logger:
+def get_logger(logger_name: StrOrNoneTypes = None) -> Logger:
     '''
     Logger with the passed ``.``-delimited name, defaulting to the basename of
     the current process (e.g., ``betse``) implying the **global logger** (i.e.,
     the default application-wide logger).
 
-    This function expects the :class:`LogConfig` class to have been previously
+    This function expects the :class:`LogConf` class to have been previously
     instantiated, which globally configures logging.
 
     Parameters
@@ -78,6 +79,11 @@ def get(logger_name: StrOrNoneTypes = None) -> logging.Logger:
         verbosity of messages logged by those loggers), in which case those
         loggers' names should be explicitly passed. Defaults to ``None``, in
         which case the global logger is retrieved.
+
+    Returns
+    ----------
+    Logger
+        Logger with the passed ``.``-delimited name.
     '''
 
     # Default the name of this logger to the name of the root logger.
@@ -106,7 +112,7 @@ def log_banner(*args, **kwargs) -> None:
     and keyword arguments accepted by most other logging functions (e.g.,
     :func:`log_info`).
 
-    This function expects the :class:`LogConfig` class globally configuring
+    This function expects the :class:`LogConf` class globally configuring
     logging to be instantiated as a singleton.
 
     Parameters
@@ -132,7 +138,7 @@ def log_levelled(message: str, level: LogLevel, *args, **kwargs) -> None:
     :attr:`LogLevel.INFO`) with the root logger, formatted with the passed
     ``%``-style positional and keyword arguments.
 
-    This function expects the :class:`LogConfig` class globally configuring
+    This function expects the :class:`LogConf` class globally configuring
     logging to be instantiated as a singleton.
 
     Parameters
@@ -156,7 +162,7 @@ def log_debug(message: str, *args, **kwargs) -> None:
     Log the passed debug message with the root logger, formatted with the
     passed ``%``-style positional and keyword arguments.
 
-    This function expects the :class:`LogConfig` class globally configuring
+    This function expects the :class:`LogConf` class globally configuring
     logging to be instantiated as a singleton.
     '''
 
@@ -169,7 +175,7 @@ def log_info(message: str, *args, **kwargs) -> None:
     Log the passed informational message with the root logger, formatted with
     the passed ``%``-style positional and keyword arguments.
 
-    This function expects the :class:`LogConfig` class globally configuring
+    This function expects the :class:`LogConf` class globally configuring
     logging to be instantiated as a singleton.
     '''
 
@@ -182,7 +188,7 @@ def log_warning(message: str, *args, **kwargs) -> None:
     Log the passed warning message with the root logger, formatted with the
     passed ``%``-style positional and keyword arguments.
 
-    This function expects the :class:`LogConfig` class globally configuring
+    This function expects the :class:`LogConf` class globally configuring
     logging to be instantiated as a singleton.
     '''
 
@@ -195,7 +201,7 @@ def log_error(message: str, *args, **kwargs) -> None:
     Log the passed error message with the root logger, formatted with the
     passed ``%``-style positional and keyword arguments.
 
-    This function expects the :class:`LogConfig` class globally configuring
+    This function expects the :class:`LogConf` class globally configuring
     logging to be instantiated as a singleton.
     '''
 
@@ -225,13 +231,13 @@ def log_exception(exception: Exception) -> None:
         # Avoid circular import dependencies.
         from betse.util.io import stderrs
         from betse.util.io.error import errexception
-        from betse.util.io.log import logconfig
+        from betse.util.io.log.conf import logconf
 
         # Terse synopsis and verbose traceback for this exception.
         exc_synopsis, exc_traceback = errexception.get_metadata(exception)
 
         # Singleton logging configuration for the current Python process.
-        log_config = logconfig.get_log_conf()
+        log_config = logconf.get_log_conf()
 
         # If the end user requested that nothing be logged to disk, respect
         # this request by logging tracebacks to the error level and hence

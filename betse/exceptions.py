@@ -223,20 +223,15 @@ class BetseLogRaceException(BetseLogException):
     access to the same physical file to be rotated.
 
     The thread- *and* process-safe
-    :class:`betse.util.io.log.loghandle.RotatingFileHandler` handler obviates
-    most of these concerns. Unfortunately, due to inadequacies in the Python
-    ecosystem with respect to process-safe logging, that handler *cannot*
-    constrain logfile access during rotation. Instead, on detecting exceptions
-    produced by race conditions between multiple processes competing for access
-    when attempting to emit log records, that handler temporarily halts the
-    current process for a negligible amount of the timeslice (e.g., 100ms) and
-    repeats the attempt a negligible number of times (e.g., 8) *before* giving
-    up and raising a fatal instance of this exception class.
-
-    See Also
-    ----------
-    :mod:`betse.util.io.log.loghandle`
-        Further details.
+    :class:`betse.util.io.log.conf.logconfhandle.RotatingFileHandler` handler
+    obviates most of these concerns. Unfortunately, due to inadequacies in the
+    Python ecosystem with respect to process-safe logging, that handler
+    *cannot* constrain logfile access during rotation. Instead, on detecting
+    exceptions produced by race conditions between multiple processes competing
+    for access when attempting to emit log records, that handler temporarily
+    halts the existing process for a negligible amount of the timeslice (e.g.,
+    100ms) and repeats the attempt a negligible number of times (e.g., 8)
+    *before* giving up and raising a fatal instance of this exception class.
     '''
 
     pass

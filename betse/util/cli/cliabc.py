@@ -19,7 +19,8 @@ Top-level abstract base class of all command line interface (CLI) subclasses.
 
 import sys
 from abc import ABCMeta, abstractmethod
-from betse.util.io.log import logs, logconfig
+from betse.util.io.log import logs
+from betse.util.io.log.conf import logconf
 from betse.util.py.pyprofile import profile_callable, ProfileType
 from betse.util.type import types
 from betse.util.type.decorator.deccls import abstractproperty
@@ -285,7 +286,7 @@ class CLIABC(object, metaclass=ABCMeta):
         app_meta = appmetaone.get_app_meta()
 
         # Logging configuration singleton.
-        log_config = logconfig.get_log_conf()
+        log_config = logconf.get_log_conf()
 
         # Human-readable version specifier suitable for printing to end users.
         version_output = '{} {}'.format(
@@ -578,7 +579,7 @@ class CLIABC(object, metaclass=ABCMeta):
         from betse.util.io.log.logenum import LogLevel
 
         # Singleton logging configuration for the current Python process.
-        log_config = logconfig.get_log_conf()
+        log_config = logconf.get_log_conf()
 
         # Configure logging according to the passed options. Note that order of
         # assignment is insignificant here.

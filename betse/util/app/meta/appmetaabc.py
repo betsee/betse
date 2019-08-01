@@ -133,7 +133,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         self._is_libs_initted = False
 
         # Globalize this singleton *BEFORE* subsequent logic (e.g., the
-        # logconfig.init() call performed by the self.init() call), any of
+        # logconf.init() call performed by the self.init() call), any of
         # which could potentially require this singleton.
         appmetaone.set_app_meta(self)
 
@@ -191,7 +191,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # Avoid circular import dependencies.
         from betse.lib import libs
         from betse.util.io.error import errfault, errwarning
-        from betse.util.io.log import logconfig
+        from betse.util.io.log.conf import logconf
         from betse.util.os import oses
         from betse.util.py import pys
 
@@ -202,7 +202,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         # Enable our default logging configuration *BEFORE* performing any
         # validation to thus log exceptions raised by this validation.
-        logconfig.init()
+        logconf.init()
 
         # Enable our default warning configuration *AFTER* enabling our default
         # logging configuration that captures warnings but *BEFORE* performing

@@ -4,50 +4,8 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level logging configuration.
+High-level logging configuration classes.
 '''
-
-#FIXME: Resolve the following Windows-specific issue, which does actually
-#appear to be a demonstrable (albeit presumably ignorable) issue:
-#
-#    C:\projects\betse\betse\util\io\log\logconfig.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='C:\\Users\\appveyor\\AppData\\Roaming\\betse\\betse.log' mode='a' encoding='utf-8'>
-#        _log_conf = LogConfig()
-#
-#We strongly suspect the culprit to be the "LogHandlerFileRotateSafe" class,
-#which we instantiate as follows:
-#
-#        self._logger_root_handler_file = LogHandlerFileRotateSafe(
-#            filename=self._filename,
-#            mode='a',
-#            delay=True,
-#            encoding='utf-8',
-#            maxBytes=ints.MiB,
-#            backupCount=8,
-#        )
-#
-#Note the duplicate "mode='a'" and "encoding='utf-8'" keyword arguments above,
-#strongly suggesting the "LogHandlerFileRotateSafe" class to be at fault here.
-#FIXME: Indeed, we have verified by inspection that the stock "logging" API is
-#fundamentally insane. This API makes no attempt to leverage the standard
-#"with"-based context manager approach to safely opening and closing file
-#handles in an exception-robust manner; instead, the "FileHandler" superclass
-#of the "LogHandlerFileRotateSafe" subclass defined by the "logging.__init__"
-#submodule behaves as follows:
-#
-#* The FileHandler.emit() method sets the "self.stream" instance variable to
-#  the open file handle returned by the FileHandler._open() method.
-#* The FileHandler.close() method closes the the open file handle stored in the
-#  "self.stream" instance variable.
-#
-#Saliently, *NO* other standard "logging" method calls the FileHandler.close()
-#method. Ergo, logging file handles remain open until external callers
-#explicitly call this method. Ergo, we need to fundamentally refactor the
-#codebase to ensure that the "_log_conf" singleton object explicitly calls
-#self._logger_root_handler_file.close() method *ON APPLICATION CLOSE.* This, in
-#turn, suggests reasonably deep refactoring of the "AppMetaABC" superclass to
-#support application deinitialization (e.g., via a new uninit() method), which
-#the "CLIABC" superclass should probably then ensure is called at application
-#closure -- even in the event of uncaught exceptions.
 
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -63,68 +21,33 @@ from betse.util.io.log.logenum import LogLevel
 from betse.util.type.types import type_check
 from logging import Handler, RootLogger, StreamHandler
 
-# ....................{ GLOBALS                           }....................
-_log_conf = None
-'''
-Singleton logging configuration for the current Python process.
-
-This configuration provides access to root logger handlers. In particular, this
-simplifies modification of logging levels at runtime (e.g., in response to
-command-line arguments or configuration file settings).
-'''
-
-# ....................{ INITIALIZERS                      }....................
-@type_check
-def init(is_verbose: bool = False) -> None:
-    '''
-    Enable our default logging configuration for the active Python process.
-    '''
-
-    # Instantiate this singleton global with the requisite defaults.
-    # print('Reinitializing logging.')
-    global _log_conf
-    _log_conf = LogConfig()
-
-# ....................{ GETTERS                           }....................
-def get_log_conf() -> 'LogConfig':
-    '''
-    Singleton logging configuration for the active Python process.
-    '''
-
-    return _log_conf
-
-
-def get_metadata():
-    '''
-    Ordered dictionary synopsizing the current logging configuration.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
-
-    # Return this dictionary.
-    return OrderedArgsDict(
-        'file', _log_conf.filename,
-        'file level', _log_conf.file_level.name.lower(),
-        'verbose', str(_log_conf.is_verbose).lower(),
-    )
-
 # ....................{ CONFIG                            }....................
 #FIXME: Update docstring to reflect the new default configuration.
-class LogConfig(object):
+class LogConf(object):
     '''
-    BETSE-specific logging configuration.
+    Application-specific logging configuration.
 
-    This configuration defines sensible default handlers for the root logger,
-    which callers may customize (e.g., according to user-defined settings) by
-    calling the appropriate getters.
+    This configuration defines sane default filters, formatters, and handlers
+    for the root logger, which callers may customize (e.g., according to
+    user-defined settings) by setting various properties of this configuration.
 
     Caveats
     ----------
-    Since this class' :meth:`__init__` method may raise exceptions, this class
+    **The :meth:`__init__` method may raise exceptions.** Hence, this class
     should be instantiated at application startup by an explicit call to the
-    module-level :func:`init` function *after* establishing default exception
-    handling. Ergo, this class is *not* instantiated at the end of this module.
+    :func:`betse.util.io.log.conf.logconf.init` function *after* establishing
+    default exception handling.
+
+    **The :meth:`deinit` method must be called at application shutdown.** Doing
+    so closes the logfile handle opened by the :meth:`__init__` method. Failure
+    to do so will reliably raise non-fatal warnings (hidden by default, but
+    visible while running tests) resembling:
+
+        C:\\projects\\betse\\betse\\util\\io\\log\\conf\\logconf.py:44:
+        ResourceWarning: unclosed file <_io.TextIOWrapper
+        name='C:\\Users\\appveyor\\AppData\\Roaming\\betse\\betse.log' mode='a'
+        encoding='utf-8'>
+            _log_conf = LogConf()
 
     Default Settings
     ----------
@@ -174,12 +97,14 @@ class LogConfig(object):
     # ..................{ INITIALIZERS                      }..................
     def __init__(self):
         '''
-        Initialize this logging configuration as documented by the class
-        docstring.
+        Initialize this logging configuration.
+
+        Specifically, this method associates the root logger with a rotating
+        logfile whose handle remains open until the :meth:`deinit` method is
+        subsequently called at application shutdown.
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.app.meta import appmetaone
         from betse.util.test import tests
 
         # Initialize the superclass.
@@ -187,11 +112,7 @@ class LogConfig(object):
 
         # Initialize all non-property attributes to sane defaults. To avoid
         # chicken-and-egg issues, properties should *NOT* be set here.
-        self._filename = appmetaone.get_app_meta().log_default_filename
-        self._logger_root = None
-        self._logger_root_handler_file = None
-        self._logger_root_handler_stderr = None
-        self._logger_root_handler_stdout = None
+        self._deinit_vars()
 
         # Initialize the root logger.
         self._init_logger_root()
@@ -257,7 +178,7 @@ class LogConfig(object):
         # Avoid circular import dependencies.
         from betse.util.io.log.logfilter import (
             LogFilterThirdPartyDebug, LogFilterMoreThanInfo)
-        from betse.util.io.log.logformat import LogFormatterWrap
+        from betse.util.io.log.conf.logconfformat import LogFormatterWrap
         from betse.util.path.command import cmds
 
         # Initialize the stdout handler to:
@@ -318,8 +239,9 @@ class LogConfig(object):
 
         # Avoid circular import dependencies.
         from betse.util.io.log.logfilter import LogFilterThirdPartyDebug
-        from betse.util.io.log.loghandle import LogHandlerFileRotateSafe
-        from betse.util.io.log.logformat import LogFormatterWrap
+        from betse.util.io.log.conf.logconfformat import LogFormatterWrap
+        from betse.util.io.log.conf.logconfhandle import (
+            LogHandlerFileRotateSafe)
         from betse.util.path import pathnames
         from betse.util.path.command import cmds
         from betse.util.type.numeric import ints
@@ -340,8 +262,8 @@ class LogConfig(object):
             if self._logger_root is not None:
                 self._logger_root.removeHandler(self._logger_root_handler_file)
 
-        # If the path of the directory containing this file is non-empty,
-        # create this directory if needed. Note this path is empty when this
+        # If the dirname of the directory containing this file is non-empty,
+        # create this directory if needed. Note this dirname is empty when this
         # filename is a pure basename (e.g., when the "--log-file=my.log"
         # option is passed).
         #
@@ -409,6 +331,52 @@ class LogConfig(object):
 
         # Register this handler with the root logger.
         self._logger_root.addHandler(self._logger_root_handler_file)
+
+    # ..................{ DEINITIALIZERS                    }..................
+    def deinit(self):
+        '''
+        Deinitialize this logging configuration.
+
+        Specifically, this method closes the logfile handle previously opened
+        by the :meth:`__init__` method.
+        '''
+
+        # Tuple of all root handlers.
+        root_handlers = (
+            self._logger_root_handler_file,
+            self._logger_root_handler_stderr,
+            self._logger_root_handler_stdout,
+        )
+
+        # For each such handler...
+        for root_handler in root_handlers:
+            # If this handler still exists, manually close any open file
+            # handles bound to this handler.
+            if root_handler is not None:
+                root_handler.close()
+
+        # Deinitialize all instance variables *AFTER* closing these variables.
+        self._deinit_vars()
+
+
+    def _deinit_vars(self) -> None:
+        '''
+        Deinitialize all instance variables underlying this logging
+        configuration to sane defaults.
+
+        To circumvent chicken-and-egg issues, this method intentionally avoids
+        deinitializing (i.e., setting) settable properties.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.app.meta import appmetaone
+
+        # Revert all non-property attributes to sane defaults.
+        self._filename = appmetaone.get_app_meta().log_default_filename
+        self._logger_root = None
+        self._logger_root_handler_file = None
+        self._logger_root_handler_stderr = None
+        self._logger_root_handler_stdout = None
 
     # ..................{ PROPERTIES ~ logger               }..................
     # Read-only properties prohibiting write access to external callers.

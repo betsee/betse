@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,11 +9,11 @@ modules and packages (e.g., containing cyclic import statements subject to
 breaking by brute-force PyCharm refactorings).
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.util.test.pytest.mark.pytfail import xfail
 # from betse_test.mark.skip import skip_unless_plugin_xdist
 
-# ....................{ TESTS                              }....................
+# ....................{ TESTS                             }....................
 #FIXME: Ugh! Ideally, this test should *NOT* require xdist support. This test
 #must be isolated to a subprocess. To do so, the simplest means is the xdist
 #"--boxed" CLI option. However, we'd only want *THIS* test to be isolated in
@@ -35,4 +35,4 @@ def test_import_logs() -> None:
 
     # Import this API and call all functionality containing these statements.
     from betse.util.io.log import logs
-    logs.get()
+    logs.get_logger()

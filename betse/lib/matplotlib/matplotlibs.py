@@ -65,7 +65,8 @@ Footnote descriptions are as follows:
 import sys
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.error import errexception
-from betse.util.io.log import logconfig, logs
+from betse.util.io.log import logs
+from betse.util.io.log.conf import logconf
 from betse.util.io.log.logenum import LogLevel
 from betse.util.os import displays, kernels, oses
 from betse.util.os.brand import macos
@@ -77,6 +78,7 @@ from betse.util.type.numeric import versions
 from betse.util.type.types import (
     type_check, MappingType, SequenceTypes, SetType, StrOrNoneTypes,)
 from contextlib import contextmanager
+from logging import Logger
 
 # ....................{ GLOBALS ~ str                     }....................
 _BACKEND_NAME_HEADLESS = 'Agg'
@@ -235,7 +237,7 @@ class MplConfig(object):
         # explicitly added to this list *BEFORE* importing this module. Awful!
         try:
             # Logging configuration singleton.
-            log_config = logconfig.get_log_conf()
+            log_config = logconf.get_log_conf()
 
             # Logging level of the application-wide standard output handler,
             # representing the default logging level for this Python process.
@@ -303,9 +305,9 @@ class MplConfig(object):
                 'Initializing matplotlib with options: %s', sys.argv)
 
             # Set matplotlib's logging level *BEFORE* importing from
-            # matplotlib.  Since matplotlib now defaults to the sane WARNING
+            # matplotlib. Since matplotlib now sanely defaults to the WARNING
             # level, this could technically also be performed *AFTER* importing
-            # from matplotlib; doing so would ignore all messages logged during
+            # from matplotlib. Doing so would ignore all messages logged during
             # this importation with a lower level. (That would be bad.)
             #
             # Note that this logic effectively reduces to a noop under older
@@ -319,8 +321,7 @@ class MplConfig(object):
             # Unfortunately, the property setter implicitly invoked by such an
             # assignment assumes matplotlib to already have been initialized --
             # which, of course, it hasn't. (Chicken-and-egg issues, people.)
-            matplotlib_logger = logs.get('matplotlib')
-            matplotlib_logger.setLevel(matplotlib_log_level)
+            self.logger.setLevel(matplotlib_log_level)
 
             # Import matplotlib submodules *AFTER* setting all matplotlib CLI
             # options, which this importation internally parses in older
@@ -546,7 +547,24 @@ class MplConfig(object):
         # Return this possibly munged version.
         return version_return
 
-    # ..................{ PROPERTIES ~ log level            }..................
+    # ..................{ PROPERTIES ~ log                  }..................
+    @property
+    def logger(self) -> Logger:
+        '''
+        Matplotlib-specific logger.
+
+        Caveats
+        -----------
+        This property effectively reduces to a noop under older matplotlib
+        versions (i.e., matplotlib < 2.2.0), which ignored the stardarized
+        logging system in favour of a matplotlib-specific verbosity toggle.
+        Although non-ideal, this appears to have *no* harmful side effects.
+        '''
+
+        # One-liners for the glory of flying spaghetti monsters.
+        return logs.get_logger('matplotlib')
+
+    # ..................{ PROPERTIES ~ log : level          }..................
     @property
     def log_level(self) -> LogLevel:
         '''
@@ -564,20 +582,17 @@ class MplConfig(object):
         * `debug`, emitting verbose Matplotlib debugging output,
           :attr:`LogLevel.DEBUG` is returned.
         * `debug-annoying`, emitting *very* verbose Matplotlib debugging
-          output.  :attr:`LogLevel.ALL` is returned. You *never* want this.
-          Trust us.
+          output. :attr:`LogLevel.ALL` is returned. You *never* want this.
+          (Trust us.)
         '''
 
-        # Matplotlib-specific logger.
-        #
-        # Since this object unconditionally sets this logger's level regardless
-        # of whether the current matplotlib version actually logs to this
-        # logger, this logging level is returned as is. Ergo, the docstring
-        # above is an innocent lie. (Ignore it, please.)
-        matplotlib_logger = logs.get('matplotlib')
-
         # Return this logger's level.
-        return matplotlib_logger.level
+        #
+        # Since the matplotlib-specific logger unconditionally sets this
+        # logger's level regardless of whether the current matplotlib version
+        # actually logs to this logger, this logging level is returned as is.
+        # Hence, the above docstring is an elaborate lie. (Ignore it, please.)
+        return self.logger.level
 
 
     @log_level.setter
@@ -592,15 +607,8 @@ class MplConfig(object):
             Matplotlib-specific logging level to be set.
         '''
 
-        # Matplotlib-specific logger.
-        #
-        # Note that this logic effectively reduces to a noop under older
-        # matplotlib versions (i.e., matplotlib < 2.2.0). Although
-        # non-ideal, this appears to have *NO* harmful side effects.
-        matplotlib_logger = logs.get('matplotlib')
-
-        # Set this logger's level to the passed level.
-        matplotlib_logger.setLevel(log_level)
+        # Set the matplotlib-specific logger's level to the passed level.
+        self.logger.setLevel(log_level)
 
         # Delay importation of the "matplotlib.__init__" module. To ensure
         # messages logged by this importation are logged with the passed level,

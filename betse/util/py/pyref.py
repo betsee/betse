@@ -123,9 +123,10 @@ def refer_weak(obj: object) -> WeakRefTypes:
     reference and the garbage collector collecting the underlying object, this
     reference should *only* be called in the following usage pattern:
 
-        >>> from betse.util.io.log import logconfig, logs
+        >>> from betse.util.io.log import logs
+        >>> from betse.util.io.log.conf import logconf
         >>> from betse.util.py import pyref
-        >>> log_config_weak = pyref.refer_weak(logconfig.get_log_conf())
+        >>> log_config_weak = pyref.refer_weak(logconf.get_log_conf())
         >>> log_config_strong = log_config_weak()
         >>> if log_config_strong is not None:
         ...     logs.log_debug('Verbose logging enabled: %r',
