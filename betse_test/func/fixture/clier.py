@@ -137,7 +137,7 @@ class CLITester(object):
 
         See Also
         ----------
-        `betse --help`
+        ``betse --help``
             Further details on arguments accepted by the BETSE CLI.
         '''
 
@@ -145,10 +145,11 @@ class CLITester(object):
         from betse.__main__ import main
         from betse.util.app.meta import appmetaone
 
-        # Destroy the prior application metadata singleton if any. If this
-        # common case is *NOT* handled, the call to the main() function below
-        # raises an exception on attempting to reinstantiate this singleton.
-        appmetaone.unset_app_meta()
+        # Deinitialize this application and hence the previously initialized
+        # application metadata singleton if any. If this is *NOT* done, the
+        # call to the main() function below will raise an exception on
+        # attempting to reinstantiate this singleton.
+        appmetaone.get_app_meta().deinit()
 
         # Prefixed this argument list by failure-friendly options.
         args_evolved = _CLI_OPTIONS_MANDATORY + args

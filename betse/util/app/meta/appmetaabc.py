@@ -201,7 +201,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         errfault.handle_faults()
 
         # Enable our default logging configuration *BEFORE* performing any
-        # validation to thus log exceptions raised by this validation.
+        # further logic, any of which could conceivably log messages.
         logconf.init()
 
         # Enable our default warning configuration *AFTER* enabling our default
@@ -291,6 +291,28 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # Else, the init_libs() method has yet to be called. So, do so.
         else:
             self.init_libs(*args, **kwargs)
+
+    # ..................{ DEINITIALIZERS                    }..................
+    def deinit(self) -> None:
+        '''
+        Deinitialize both this application metadata singleton and the current
+        application if this is the first creation of such a singleton for this
+        application *or* raise an exception otherwise (i.e., if this
+        application has yet to instantiate such a singleton).
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.app.meta import appmetaone
+        from betse.util.io.log.conf import logconf
+
+        # Disable our default logging configuration, ensuring that open logfile
+        # handles are closed on application closure.
+        logconf.deinit()
+
+        # Deglobalize this singleton *AFTER* prior logic (e.g., the call to
+        # logconf.deinit()), any of which could potentially require this
+        # singleton.
+        appmetaone.unset_app_meta()
 
     # ..................{ SUBCLASS ~ properties             }..................
     # Subclasses are required to implement the following abstract properties.

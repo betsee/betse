@@ -145,8 +145,8 @@ def set_app_meta(
     app_meta: 'betse.util.app.meta.appmetaabc.AppMetaABC') -> None:
     '''
     Set the **application metadata singleton** (i.e., application-wide object
-    synopsizing application metadata via read-only properties) if this function
-    has not already been called *or* raise an exception otherwise (i.e., if
+    synopsizing application metadata via read-only properties) if this is the
+    first call to this function *or* raise an exception otherwise (i.e., if
     this function has already been called).
 
     Caveats
@@ -179,6 +179,9 @@ def set_app_meta(
     _app_meta = app_meta
 
 # ....................{ UNSETTERS                         }....................
+#FIXME: For parity with the set_app_meta() function, this function should
+#probably at least log a non-fatal warning or ideally raise an exception if
+#"_app_meta" is "None".
 @type_check
 def unset_app_meta() -> None:
     '''

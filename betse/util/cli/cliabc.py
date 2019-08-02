@@ -7,8 +7,6 @@
 Top-level abstract base class of all command line interface (CLI) subclasses.
 '''
 
-#FIXME: Streamline this ABC by implementing *ALL* "FIXME:" comments below.
-
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
@@ -38,8 +36,8 @@ class CLIABC(object, metaclass=ABCMeta):
     Top-level abstract base class of all command line interface (CLI)
     subclasses, suitable for use by both CLI and GUI front-ends for BETSE.
 
-    This superclass provides _no_ explicit support for subcommands. Only
-    concrete subclasses _not_ implementing subcommands should directly subclass
+    This superclass provides *no* explicit support for subcommands. Only
+    concrete subclasses *not* implementing subcommands should directly subclass
     from this superclass. Concrete subclasses implementing subcommands should
     instead subclass the :class`CLISubcommandableABC` superclass.
 
@@ -119,6 +117,102 @@ class CLIABC(object, metaclass=ABCMeta):
         self._args = None
         self._profile_filename = None
         self._profile_type = None
+
+    # ..................{ RUNNERS                           }..................
+    # This method is effectively the main callable of this entire application.
+    # This method is thus defined here rather than below, mostly for emphasis.
+    @type_check
+    def run(self, arg_list: SequenceOrNoneTypes = None) -> int:
+        '''
+        Run the command-line interface (CLI) defined by this subclass with the
+        passed argument list if non-``None`` *or* the external argument list
+        passed on the command line (i.e., :data:`sys.argv`) otherwise.
+
+        Parameters
+        ----------
+        arg_list : optional[SequenceTypes]
+            Sequence of zero or more arguments to pass to this interface.
+            Defaults to ``None``, in which case arguments passed on the command
+            line (i.e., :data:`sys.argv`) are leveraged instead.
+
+        Returns
+        ----------
+        int
+            Exit status of this interface in the range ``[0, 255]``.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.app.meta import appmetaone
+        from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
+
+        # Default unpassed arguments to those passed on the command line,
+        # ignoring the first element of "sys.argv" (i.e., the filename of the
+        # command from which the current Python process was spawned).
+        if arg_list is None:
+            # logs.log_info('Defaulting to sys.argv')
+            arg_list = sys.argv[1:]
+
+        #FIXME: Shift the types.is_sequence_nonstr() function into the
+        #"betse.util.type.iterable.sequences" submodule.
+        assert types.is_sequence_nonstr(arg_list), (
+            types.assert_not_sequence_nonstr(arg_list))
+        # print('BETSE arg list (in run): {}'.format(arg_list))
+
+        # Classify arguments for subsequent use.
+        self._arg_list = arg_list
+
+        try:
+            # Parse these arguments *AFTER* initializing logging, ensuring
+            # logging of exceptions raised by this parsing.
+            self._parse_args()
+
+            # (Re-)initialize all mandatory runtime dependencies of this
+            # application *AFTER* parsing and handling all logging-specific CLI
+            # options and thus finalizing the logging configuration for the
+            # active Python process.
+            self._init_app_libs()
+
+            # Run the command-line interface (CLI) defined by this subclass,
+            # profiled by the type specified by the "--profile-type" option.
+            profile_callable(
+                call=self._do,
+                profile_type=self._profile_type,
+                profile_filename=self._profile_filename,
+            )
+            # raise ValueError('Test exception handling.')
+        except Exception as exception:
+            # Handle this exception.
+            self._handle_exception(exception)
+
+            # If this application's exit status is still the default and hence
+            # has *NOT* been explicitly overriden by the subclass, replace the
+            # default status with failure. If this exception provides a
+            # system-specific exit status, this status is used; else, the
+            # default failure status (i.e., 1) is used.
+            #
+            # The Windows-specific "winerror" attribute provided by
+            # "WindowsError"-based exceptions is ignored. While more
+            # fine-grained than the "errno" attribute, "winerror" values are
+            # *ONLY* intended to be used internally rather than reported as an
+            # exit status to parent processes.
+            if self._exit_status == SUCCESS:
+                self._exit_status = getattr(
+                    exception, 'errno', FAILURE_DEFAULT)
+
+        #FIXME: Uncomment after actually defining this function: e.g.,
+        # def deinit() -> None:
+        #     if is_app_meta():
+        #         get_app_meta().deinit()
+
+        # Deinitialize this application *AFTER* all prior logic.
+        #
+        # Note that doing so both nullifies the application metadata singleton
+        # and closes open file handles, including those required for logging.
+        # For safety, *NO FURTHER APPLICATION LOGIC MAY BE PERFORMED NOW.*
+        # appmetaone.deinit()
+
+        # Report this application's exit status to the parent process.
+        return self._exit_status
 
     # ..................{ SUBCLASS ~ mandatory              }..................
     # The following methods *MUST* be implemented by subclasses.
@@ -379,91 +473,13 @@ class CLIABC(object, metaclass=ABCMeta):
         '''
         Name of the default :mod:`matplotlib` backend to be initialized at
         application startup *or* ``None`` if this CLI exposes the
-        ``--matplotlib-backend`` option permitting end users to specify the
-        name of an arbitrary :mod:`matplotlib` backend.
+        ``--matplotlib-backend`` option enabling end users to specify the name
+        of any :mod:`matplotlib` backend.
 
         Defaults to ``None``.
         '''
 
         return None
-
-    # ..................{ RUNNERS                           }..................
-    @type_check
-    def run(self, arg_list: SequenceOrNoneTypes = None) -> int:
-        '''
-        Run the command-line interface (CLI) defined by this subclass with the
-        passed argument list if non-``None`` *or* the external argument list
-        passed on the command line (i.e., :data:`sys.argv`) otherwise.
-
-        Parameters
-        ----------
-        arg_list : optional[SequenceTypes]
-            Sequence of zero or more arguments to pass to this interface.
-            Defaults to ``None``, in which case arguments passed on the command
-            line (i.e., :data:`sys.argv`) are used instead.
-
-        Returns
-        ----------
-        int
-            Exit status of this interface in the range ``[0, 255]``.
-        '''
-
-        # Avoid circular import dependencies.
-        from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
-
-        # Default unpassed arguments to those passed on the command line,
-        # ignoring the first element of "sys.argv" (i.e., the filename of the
-        # command from which the current Python process was spawned).
-        if arg_list is None:
-            # logs.log_info('Defaulting to sys.argv')
-            arg_list = sys.argv[1:]
-        assert types.is_sequence_nonstr(arg_list), (
-            types.assert_not_sequence_nonstr(arg_list))
-        # print('BETSE arg list (in run): {}'.format(arg_list))
-
-        # Classify arguments for subsequent use.
-        self._arg_list = arg_list
-
-        try:
-            # Parse these arguments *AFTER* initializing logging, ensuring
-            # logging of exceptions raised by this parsing.
-            self._parse_args()
-
-            # (Re-)initialize all mandatory runtime dependencies of this
-            # application *AFTER* parsing and handling all logging-specific CLI
-            # options and thus finalizing the logging configuration for the
-            # active Python process.
-            self._init_app_libs()
-
-            # Run the command-line interface (CLI) defined by this subclass,
-            # profiled by the type specified by the "--profile-type" option.
-            profile_callable(
-                call=self._do,
-                profile_type=self._profile_type,
-                profile_filename=self._profile_filename,
-            )
-            # raise ValueError('Test exception handling.')
-        except Exception as exception:
-            # Handle this exception.
-            self._handle_exception(exception)
-
-            # If this application's exit status is still the default and hence
-            # has *NOT* been explicitly overriden by the subclass, replace the
-            # default status with failure. If this exception provides a
-            # system-specific exit status, this status is used; else, the
-            # default failure status (i.e., 1) is used.
-            #
-            # The Windows-specific "winerror" attribute provided by
-            # "WindowsError"-based exceptions is ignored. While more
-            # fine-grained than the "errno" attribute, "winerror" values are
-            # *ONLY* intended to be used internally rather than reported as an
-            # exit status to parent processes.
-            if self._exit_status == SUCCESS:
-                self._exit_status = getattr(
-                    exception, 'errno', FAILURE_DEFAULT)
-
-        # Report this application's exit status to the parent process.
-        return self._exit_status
 
     # ..................{ EXPANDERS                         }..................
     @type_check
