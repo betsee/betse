@@ -169,7 +169,7 @@ def _init_app() -> None:
 
     # Initialize a BETSE-specific application metadata singleton if the
     # appmetaone.set_app_meta() function has yet to be called.
-    app_meta = appmetaone.make_app_meta_betse_if_needed()
+    app_meta = appmetaone.set_app_meta_betse_if_unset()
 
     # Coerce the active Python interpreter into running headless *AFTER*
     # initializing this singleton, which enables the default logging
@@ -228,7 +228,11 @@ def _deinit_app() -> None:
     #existing "betse.util.test.pytest" subpackage, if these functions can
     #somehow be rendered application-agnostic and hence general-purpose. See:
     #    https://stackoverflow.com/a/34520971/2809027
-    #    https://pytest.org/latest/writing_plugins.html#well-specified-hooks
+    #    https://docs.pytest.org/en/latest/writing_plugins.html?highlight=pytest_runtest_setup#conftest-py-local-per-directory-plugins
+    #FIXME: Ah-ha! The fix is a package-scoped autouse fixture defined in the
+    #"betse_test.fixture.autouser" submodule and imported into the
+    #"betse_test.unit.conftest" submodule. See also:
+    #    https://docs.pytest.org/en/latest/fixture.html?highlight=scope#package-scope-experimental
 
     # Deinitialize the application metadata singleton.
     # appmetaone.deinit()

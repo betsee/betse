@@ -36,7 +36,7 @@ from betse.util.app.meta import appmetaone as _appmetaone
 # ....................{ MAIN                              }....................
 # Instantiate and set a BETSE-specific application metadata singleton if the
 # appmetaone.set_app_meta() function has yet to be called elsewhere.
-_app_meta = _appmetaone.make_app_meta_betse_if_needed()
+_app_meta = _appmetaone.set_app_meta_betse_if_unset()
 
 # Initialize all mandatory third-party dependencies if the
 # _app_meta.init_libs() method has yet to be called elsewhere.

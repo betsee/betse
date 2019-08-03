@@ -295,10 +295,19 @@ class AppMetaABC(object, metaclass=ABCMeta):
     # ..................{ DEINITIALIZERS                    }..................
     def deinit(self) -> None:
         '''
-        Deinitialize both this application metadata singleton and the current
-        application if this is the first creation of such a singleton for this
-        application *or* raise an exception otherwise (i.e., if this
-        application has yet to instantiate such a singleton).
+        Deinitialize this application metadata singleton and hence the current
+        application, which requires this singleton for basic functioning.
+
+        Caveats
+        ----------
+        **No application logic may be performed after calling this method.**
+        This method nullifies this singleton *and* closes open logfile handles,
+        both of which are required for basic application logic.
+
+        See Also
+        ----------
+        :func:`betse.util.app.meta.appmetoone.deinit`
+            Higher-level function encapsulating this lower-level method.
         '''
 
         # Avoid circular import dependencies.

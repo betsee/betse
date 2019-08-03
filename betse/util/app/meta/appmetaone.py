@@ -54,13 +54,13 @@ singleton unsafely.
 # ....................{ EXCEPTIONS                        }....................
 def die_if_app_meta() -> None:
     '''
-    Raise an exception if the application metadata singleton has been set
-    (e.g., by a prior call to the :func:`set_app_meta` function).
+    Raise an exception if the application metadata singleton already exists
+    (e.g., due to a prior call to the :func:`set_app_meta` function).
 
     Raises
     ----------
     BetseMetaAppException
-        If this singleton has already been set.
+        If this singleton already exists.
 
     See Also
     ----------
@@ -77,16 +77,16 @@ def die_if_app_meta() -> None:
 
 def die_unless_app_meta() -> None:
     '''
-    Raise an exception unless the application metadata singleton has been set
-    (e.g., by a prior call to the :func:`set_app_meta` function).
+    Raise an exception unless an application metadata singleton exists (e.g.,
+    due to a prior call to the :func:`set_app_meta` function).
 
-    Equivalently, this function raises an exception if this singleton has *not*
-    yet been set.
+    Equivalently, this function raises an exception if this singleton does
+    *not* exist.
 
     Raises
     ----------
     BetseMetaAppException
-        If this singleton has *not* yet been set.
+        If this singleton does *not* exist.
 
     See Also
     ----------
@@ -103,8 +103,8 @@ def die_unless_app_meta() -> None:
 # ....................{ TESTERS                           }....................
 def is_app_meta() -> bool:
     '''
-    ``True`` only if the application metadata singleton has been set (e.g., by
-    a prior call to the :func:`set_app_meta` function).
+    ``True`` only if an application metadata singleton exists (e.g., from a
+    prior call to the :func:`set_app_meta` function).
     '''
 
     return _app_meta is not None
@@ -151,11 +151,6 @@ def set_app_meta(
 
     Caveats
     ----------
-    **This function is not intended to be called explicitly.** While callers
-    may safely do so, doing so should be entirely redundant. Why? Because the
-    :meth:`betse.util.app.meta.appmetaabc.AppMetaABC.__init__` method already
-    does implicitly at instantiation time.
-
     **This function intentionally performs no logging.** Doing so would be
     unproductive. The first call to this function is implicitly performed by
     the :func:`betse.util.app.meta.appmetaabc.AppMetaABC.__init__` method
@@ -167,6 +162,16 @@ def set_app_meta(
     ----------
     app_meta : AppMetaABC
         Application metadata singleton to be set.
+
+    Raises
+    ----------
+    BetseMetaAppException
+        If this singleton has already been set.
+
+    See Also
+    ----------
+    :meth:`betse.util.app.meta.appmetaabc.AppMetaABC.__init__`
+        Higher-level method encapsulating this lower-level function.
     '''
 
     # Enable this singleton global to be overwritten be the passed parameter.
@@ -178,37 +183,23 @@ def set_app_meta(
     # Set this singleton global to this caller-specific singleton.
     _app_meta = app_meta
 
-# ....................{ UNSETTERS                         }....................
-#FIXME: For parity with the set_app_meta() function, this function should
-#probably at least log a non-fatal warning or ideally raise an exception if
-#"_app_meta" is "None".
-@type_check
-def unset_app_meta() -> None:
-    '''
-    Unset the **application metadata singleton** (i.e., application-wide object
-    synopsizing application metadata via read-only properties).
-
-    Equivalently, this function resets this singleton to its initial state
-    (i.e., ``None``).
-    '''
-
-    # Enable this singleton global to be overwritten be the passed parameter.
-    global _app_meta
-
-    # Log this attempt.
-    logs.log_debug('Unsetting application metadata singleton...')
-
-    # Revert this singleton global to its initial state.
-    _app_meta = None
-
-# ....................{ MAKERS                            }....................
-def make_app_meta_betse_if_needed(*args, **kwargs) -> (
+# ....................{ SETTERS ~ unset                   }....................
+#FIXME: Preserve but refactor as follows:
+#
+#* Define a new set_app_meta_if_unset() function in this submodule with the
+#  following signature, where "cls" is the "AppMetaABC" subclass to be
+#  conditionally instantiated by this function if needed:
+#    def set_app_meta_if_unset(cls: ClassType, *args, **kwargs) -> (
+#       'betse.util.app.meta.appmetaabc.AppMetaABC')
+#* Refactor set_app_meta_betse_if_unset() in terms of set_app_meta_if_unset().
+def set_app_meta_betse_if_unset(*args, **kwargs) -> (
     # Avoid circular import dependencies.
     'betse.util.app.meta.appmetaabc.AppMetaABC'):
     '''
-    Instantiate a BETSE-specific application metadata singleton if the
-    :func:`set_app_meta` function has yet to be called *and* in either case
-    (re)initialize this singleton.
+    Set the application metadata singleton to a BETSE-specific singleton (i.e.,
+    instance of the :class:`betse.appmeta.BetseAppMeta` class) if the
+    :func:`set_app_meta` function has yet to be called *or* reduce to a noop
+    otherwise (i.e., if that function has already been called).
 
     This is a convenience function simplifying BETSE initialization for
     low-level edge-case automation (e.g.,
@@ -219,7 +210,7 @@ def make_app_meta_betse_if_needed(*args, **kwargs) -> (
     Caveats
     ----------
     **This function does not initialize mandatory third-party dependencies.**
-    To permit callers to configure such initialization, callers are required to
+    To enable callers to configure such initialization, callers are required to
     explicitly call the
     :meth:`betse.util.app.meta.appmetaabc.AppMetaABC.init_libs` method on the
     object returned by this function.
@@ -247,3 +238,61 @@ def make_app_meta_betse_if_needed(*args, **kwargs) -> (
 
     # Return this singleton.
     return get_app_meta()
+
+# ....................{ UNSETTERS                         }....................
+@type_check
+def unset_app_meta() -> None:
+    '''
+    Unset the **application metadata singleton** (i.e., application-wide object
+    synopsizing application metadata via read-only properties) if such a
+    singleton exists *or* raise an exception otherwise (i.e., if no such
+    singleton exists).
+
+    Equivalently, this function resets this singleton to its initial state
+    (i.e., ``None``).
+
+    Raises
+    ----------
+    BetseMetaAppException
+        If this singleton has not yet been set.
+
+    See Also
+    ----------
+    :func:`deinit`
+        Higher-level function encapsulating this lower-level function.
+    '''
+
+    # Enable this singleton global to be overwritten be the passed parameter.
+    global _app_meta
+
+    # Log this attempt.
+    logs.log_debug('Unsetting application metadata singleton...')
+
+    # If this singleton has not yet been set, raise an exception.
+    die_unless_app_meta()
+
+    # Revert this singleton global to its initial state.
+    _app_meta = None
+
+# ....................{ DEINITIALIZERS                    }....................
+def deinit(self) -> None:
+    '''
+    Deinitialize the **application metadata singleton** (i.e., application-wide
+    object synopsizing application metadata via read-only properties) if such a
+    singleton exists *or* silently reduce to a noop otherwise (i.e., if no such
+    singleton exists).
+
+    This function effectively deinitializes the current application, which
+    requires this singleton for rudimentary functionality throughout the
+    codebase.
+
+    Caveats
+    ----------
+    **No application logic may be safely performed after calling this method.**
+    This method nullifies this singleton *and* closes open logfile handles,
+    both of which are required for basic application logic.
+    '''
+
+    # If an application metadata singleton exists, deinitialize this singleton.
+    if is_app_meta():
+        _app_meta.deinit()
