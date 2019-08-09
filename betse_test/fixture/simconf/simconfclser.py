@@ -11,6 +11,7 @@ Fixture classes encapsulating test-related simulation configurations.
 from abc import ABCMeta
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import type_check
+from betse_test.fixture import initter
 from py._path.local import LocalPath
 
 # ....................{ SUPERCLASSES                      }....................
@@ -172,18 +173,22 @@ class SimConfTestInternal(SimConfTestABC):
             file already exists, an exception is raised.
         '''
 
-        # Defer heavyweight imports. This subclass inherits a class defined by
-        # the main codebase and is hence *NOT* safely importable above.
+        # Defer heavyweight imports. This subclass inherits from the main
+        # codebase and is thus *NOT* safely importable at module scope.
         from betse_test.fixture.simconf.simconfwrapper import (
             SimConfigTestWrapper)
 
-        # Initialize our superclass with the absolute pathname of this path.
+        # Initialize our superclass with the absolute filename of this file.
         super().__init__(conf_filename=str(conf_filepath))
 
         # Classify the passed parameters. While the "self.config" object
         # classified below provides this filename as a low-level string, this
         # high-level "py.path.local" instance is useful in fixtures and tests.
         self.conf_filepath = conf_filepath
+
+        # Initialize the application metadata singleton, which the subsequent
+        # method call implicitly assumes to be the case.
+        initter.init_app()
 
         # Configuration deserialized from this file, reducing this filename
         # from a high-level "py.path.local" instance to a low-level string.

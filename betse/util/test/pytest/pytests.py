@@ -62,3 +62,28 @@ def get_pytest_fixture_lookup_error_type() -> ClassType:
 
     # Return this exception class defined by this submodule.
     return pytest_fixtures_submodule.FixtureLookupError
+
+# ....................{ OUTPUTTERS                        }....................
+def output(*objs) -> None:
+    '''
+    Print all passed objects as is to standard output in a format mimicking
+    that of standard :mod:`pytest` messages *without* logging these objects.
+
+    This function is intended to be called *only* by :mod:`pytest`-specific
+    fixtures, decorators, and helpers.
+
+    This function is intentionally *not* named ``print()`` to avoid conflict
+    with the builtin function of the same name.
+
+    Examples
+    ----------
+        >>> from betse.util.test.pytest import pytests
+        >>> pytests.output('Ego, ergo simulare.')
+        [py.test] Ego, ergo simulare.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path.command import cmds
+
+    # Print these messages in a "py.test"-friendly format.
+    print('[{}] {}'.format(cmds.get_current_basename(), ''.join(objs)))

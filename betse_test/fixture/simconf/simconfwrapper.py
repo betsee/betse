@@ -43,22 +43,22 @@ from betse.util.type.types import type_check
 # ....................{ SUPERCLASSES                      }....................
 class SimConfigTestWrapper(object):
     '''
-    Test-specific simulation configuration wrapper wrapping a low-level
-    dictionary deserialized from a YAML-formatted simulation configuration
-    file.
+    **Test-specific simulation configuration wrapper** (i.e., object wrapping a
+    Python dictionary or sequence deserialized from a YAML-formatted simulation
+    configuration file).
 
     This wrapper is intended to be instantiated *only* by non-interactive
     automation (e.g., tests, scripts).
 
-    This wrapper superficially wraps this dictionary with convenience methods
-    safely modifying this dictionary. This wrapper is lower level than the
-    high-level :class:`Parameters` simulation configuration, which transforms
-    this dictionary into numerous high-level objects rather than merely
-    wrapping this dictionary. While the :class:`Parameters` configuration is
-    principally used by backend simulation modelling in the
+    This wrapper superficially wraps this Python container with convenience
+    methods safely modifying this container. This wrapper is lower level than
+    the high-level :class:`Parameters` simulation configuration, which
+    transforms this container into numerous high-level objects rather than
+    merely wrapping this container. While the :class:`Parameters` configuration
+    is principally used by backend simulation modelling in the
     :mod:`betse.science` package, this wrapper is principally used by frontend
     logic modifying simulation configurations on behalf of either interactive
-    users (e.g., BETSE's GUI) or automated tests.
+    users (e.g., the BETSEE GUI) or automated tests.
 
     Attributes
     ----------

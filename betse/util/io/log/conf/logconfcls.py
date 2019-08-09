@@ -129,7 +129,7 @@ class LogConf(object):
         # If the active Python interpreter is running an automated test suite,
         # manually increase logging verbosity as soon as feasible: i.e., here.
         # While deferring this configuration to elsewhere (namely, the
-        # "betse_test.fixture.igniter" submodule) is also feasible, doing so
+        # "betse_test.fixture.initter" submodule) is also feasible, doing so
         # would horrifyingly squelch all early-time debug messages.
         if tests.is_testing():
             self.is_verbose = True
@@ -159,14 +159,13 @@ class LogConf(object):
         # preventing handlers from receiving these requests.
         self._logger_root.setLevel(LogLevel.ALL)
 
-        # For safety, remove all existing handlers from the root logger. While
-        # this should *NEVER* be the case for conventional BETSE runs, this is
-        # usually the case for functional BETSE tests *NOT* parallelized by
-        # "xdist" and hence running in the same Python process. For safety,
-        # iterate over a shallow copy of the list of handlers to be removed
-        # rather than the actual list being modified here.
-        for root_handler in list(self._logger_root.handlers):
-            self._logger_root.removeHandler(root_handler)
+        # Safely remove all existing handlers from the root logger *BEFORE*
+        # adding new handlers to this logger.
+        #
+        # The root logger should have no handlers under conventional use cases.
+        # The root logger only has handlers for functional tests *NOT*
+        # parallelized by "xdist" and hence running in the same Python process.
+        self._deinit_logger_root_handlers()
 
 
     def _init_logger_root_handler_std(self) -> None:
@@ -333,30 +332,46 @@ class LogConf(object):
         self._logger_root.addHandler(self._logger_root_handler_file)
 
     # ..................{ DEINITIALIZERS                    }..................
-    def deinit(self):
+    def deinit(self) -> None:
         '''
         Deinitialize this logging configuration.
 
-        Specifically, this method closes the logfile handle previously opened
-        by the :meth:`__init__` method.
+        See Also
+        ----------
+        :func:`_deinit_logger_root_handlers`
+        :func:`_deinit_vars`
+            Further details.
         '''
 
-        # Tuple of all root handlers.
-        root_handlers = (
-            self._logger_root_handler_file,
-            self._logger_root_handler_stderr,
-            self._logger_root_handler_stdout,
-        )
+        # Deinitialize all root logger handlers.
+        self._deinit_logger_root_handlers()
 
-        # For each such handler...
-        for root_handler in root_handlers:
-            # If this handler still exists, manually close any open file
-            # handles bound to this handler.
-            if root_handler is not None:
-                root_handler.close()
-
-        # Deinitialize all instance variables *AFTER* closing these variables.
+        # Deinitialize all instance variables.
         self._deinit_vars()
+
+
+    def _deinit_logger_root_handlers(self) -> None:
+        '''
+        Deinitialize all root logger handlers.
+
+        Specifically, this method iterates over all handlers previously added
+        to the root logger and, for each such handler (in order):
+
+        #. Closes all open file handles associated with that handler, including
+           the logfile handle opened by the :meth:`__init__` method.
+        #. Removes that handler from the root logger.
+        '''
+
+        # For each handler previously added to the root logger...
+        #
+        # For safety, a shallow copy of the list of handlers to be removed
+        # rather than the actual list being modified here is iterated over.
+        for root_handler in tuple(self._logger_root.handlers):
+            # Close all open file handles associated with this handler.
+            root_handler.close()
+
+            # Remove this handler from the root logger.
+            self._logger_root.removeHandler(root_handler)
 
 
     def _deinit_vars(self) -> None:

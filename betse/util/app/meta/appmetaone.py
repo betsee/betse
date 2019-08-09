@@ -240,7 +240,6 @@ def set_app_meta_betse_if_unset(*args, **kwargs) -> (
     return get_app_meta()
 
 # ....................{ UNSETTERS                         }....................
-@type_check
 def unset_app_meta() -> None:
     '''
     Unset the **application metadata singleton** (i.e., application-wide object
@@ -275,7 +274,7 @@ def unset_app_meta() -> None:
     _app_meta = None
 
 # ....................{ DEINITIALIZERS                    }....................
-def deinit(self) -> None:
+def deinit() -> None:
     '''
     Deinitialize the **application metadata singleton** (i.e., application-wide
     object synopsizing application metadata via read-only properties) if such a
@@ -296,3 +295,5 @@ def deinit(self) -> None:
     # If an application metadata singleton exists, deinitialize this singleton.
     if is_app_meta():
         _app_meta.deinit()
+    # Else, no such singleton exists. In this case, *NO* logic (including
+    # logging) may be safely performed. Ergo, noop.

@@ -224,9 +224,7 @@ _setup_options = {
     'entry_points': {
         # CLI-specific scripts.
         'console_scripts': (
-            '{} = {}.__main__:main'.format(
-                metadata.SCRIPT_BASENAME, metadata.PACKAGE_NAME),
-        ),
+            '{0} = {0}.__main__:main'.format(metadata.PACKAGE_NAME)),
     },
 
     #FIXME; This isn't quite true. Undesirable files are excludable in this

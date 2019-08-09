@@ -199,17 +199,12 @@ class CLIABC(object, metaclass=ABCMeta):
                 self._exit_status = getattr(
                     exception, 'errno', FAILURE_DEFAULT)
 
-        #FIXME: Uncomment after actually defining this function: e.g.,
-        # def deinit() -> None:
-        #     if is_app_meta():
-        #         get_app_meta().deinit()
-
         # Deinitialize this application *AFTER* all prior logic.
         #
         # Note that doing so both nullifies the application metadata singleton
         # and closes open file handles, including those required for logging.
         # For safety, *NO FURTHER APPLICATION LOGIC MAY BE PERFORMED NOW.*
-        # appmetaone.deinit()
+        appmetaone.deinit()
 
         # Report this application's exit status to the parent process.
         return self._exit_status

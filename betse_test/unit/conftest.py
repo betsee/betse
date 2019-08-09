@@ -12,4 +12,9 @@ functional fixtures in this fixture subpackage, these tests may reference these
 fixtures without explicit imports.
 '''
 
-# ....................{ IMPORTS ~ fixture                 }....................
+# ....................{ IMPORTS ~ fixture : autouse       }....................
+# Import fixtures automatically run at the start of the current test session,
+# typically *NOT* manually required by specific tests, *AFTER* importing all
+# non-autouse fixtures possibly required by these autouse fixtures above.
+
+from betse_test.fixture.initter import betse_init_package

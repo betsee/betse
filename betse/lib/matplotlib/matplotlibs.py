@@ -704,14 +704,19 @@ class MplConfig(object):
     @property
     def backend_canvas_class(self) -> type(object):
         '''
-        `FigureCanvas` subclass corresponding to the current backend (e.g.,
-        `FigureCanvasQt5Agg` for the `qt5agg` backend).
+        :class:`matplotlib.backend_bases.FigureCanvasBase` subclass unique to
+        the current backend (e.g.,
+        :class:`matplotlib.backends.backend_qt5.FigureCanvasQT` for the
+        ``qt5agg`` backend).
 
         Note that, whereas each backend implements a backend-specific canvas,
-        each backend shares the same `Figure` class (i.e., there exist no
-        corresponding backend-specific `Figure` subclasses).
+        each backend shares the same :class:`matplotlib.figure.Figure` class
+        (i.e., there exist *no* backend-specific figure subclasses).
 
-        If no backend has been set yet, an exception is raised.
+        Raises
+        ----------
+        BetseMatplotlibException
+            If no backend has been set yet.
         '''
 
         # This backend's module.

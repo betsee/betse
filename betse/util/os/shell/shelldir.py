@@ -10,9 +10,8 @@ Low-level shell-specific directory facilities.
 # ....................{ IMPORTS                           }....................
 import os
 from betse.util.io.log import logs
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, GeneratorType
 from contextlib import contextmanager
-from types import GeneratorType
 
 # ....................{ GETTERS                           }....................
 def get_cwd_dirname() -> str:
@@ -58,14 +57,13 @@ def setting_cwd(dirname: str) -> GeneratorType:
     active Python process to the passed directory for the duration of this
     context.
 
-    This context manager guaranteeably reverts the CWD to the prior CWD even
-    when fatal exceptions are raised (e.g., due to this directory not
-    existing).
+    This context manager guaranteeably reverts the CWD to the prior CWD even if
+    an exception is raised (e.g., due to a missing directory).
 
     Parameters
     -----------
     dirname : str
-        Absolute or relative path of the directory to change to.
+        Absolute or relative dirname of the directory to change to.
 
     Returns
     -----------

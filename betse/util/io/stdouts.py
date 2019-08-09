@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,30 +9,31 @@ Low-level standard output facilities.
 
 #FIXME: Copy setup.util.get_command_output() here after completion.
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 
-# ....................{ OUTPUTTERS                         }....................
-def output(*objects) -> None:
+# ....................{ OUTPUTTERS                        }....................
+def output(*objs) -> None:
     '''
-    Print all passed objects to stdout _without_ logging these objects.
+    Print all passed objects as is to standard output *without* logging these
+    objects.
 
     This function is provided only for orthogonality with the function of the
-    same name defined by the `stderr` module.
+    same name defined by the :mod:`betse.util.io.stderrs` module.
 
-    This function is intentionally _not_ named `print()`. Doing so introduces
-    subtle issues elsewhere.
+    This function is intentionally *not* named ``print()`` to avoid conflict
+    with the builtin function of the same name.
     '''
 
-    print(*objects)
+    print(*objs)
 
 
-def output_lines(*objects) -> None:
+def output_lines(*objs) -> None:
     '''
-    Print all passed objects to standard output *without* logging such objects,
-    delimiting each such object by a newline.
+    Print all passed objects as is to standard output *without* logging these
+    objects, delimiting each such object by a newline.
     '''
 
-    print('\n'.join(*objects))
+    print('\n'.join(objs))
 
 
 def output_traceback() -> None:

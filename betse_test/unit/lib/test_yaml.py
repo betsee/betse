@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,9 +7,9 @@
 Unit tests for the :mod:`betse.lib.yaml` subpackage.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 
-# ....................{ TESTS                              }....................
+# ....................{ TESTS                             }....................
 def test_yaml_copy(
     betse_sim_conf: 'SimConfTestInternal',
     betse_temp_dir: 'LocalPath',
@@ -25,21 +25,22 @@ def test_yaml_copy(
     betse_sim_conf : SimConfTestInternal
         Object encapsulating a temporary simulation configuration file.
     betse_temp_dir : LocalPath
-        Object encapsulating a temporary directory isolated to the current test.
+        Object encapsulating a temporary directory isolated to this test.
     '''
 
-    # Absolute path of a subdirectory with arbitrary basename residing in this
+    # Absolute dirname of a subdirectory with arbitrary basename in this
     # temporary directory.
     new_subdirpath = betse_temp_dir.join('Ten_Forward')
 
     # Create this subdirectory
     new_subdirpath.ensure(dir=True)
 
-    # Absolute path of a new simulation configuration file with arbitrary
+    # Absolute filename of a new simulation configuration file with arbitrary
     # basename to be created in this subdirectory.
     new_sim_conf_filepath = new_subdirpath.join('El-Aurian_Guinan.yaml')
 
-    # Absolute path of this file as a string rather than "LocalPath" object.
+    # Absolute filename of this file as a string rather than a "LocalPath"
+    # instance.
     new_sim_conf_filename = str(new_sim_conf_filepath)
 
     # Simulation configuration loaded from this file.
@@ -67,7 +68,7 @@ def test_yaml_roundtrip(betse_sim_conf: 'SimConfTestInternal') -> None:
     # Simulation configuration loaded from this file.
     p = betse_sim_conf.p
 
-    # Absolute path of this file.
+    # Absolute filename of this file.
     p_conf_filename = p.conf_filename
 
     #FIXME: Test addition, deletion, and modification of non-scalar list items.

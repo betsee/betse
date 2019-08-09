@@ -149,7 +149,7 @@ class CLITester(object):
         # application metadata singleton if any. If this is *NOT* done, the
         # call to the main() function below will raise an exception on
         # attempting to reinstantiate this singleton.
-        appmetaone.get_app_meta().deinit()
+        appmetaone.deinit()
 
         # Prefixed this argument list by failure-friendly options.
         args_evolved = _CLI_OPTIONS_MANDATORY + args

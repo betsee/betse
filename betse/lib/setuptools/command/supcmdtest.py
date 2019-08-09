@@ -110,12 +110,16 @@ class test(Command):
 
     * ``long_name`` is this option's mandatory GNU-style long form excluding
       ``--`` prefix. Additionally:
+
       * If this option accepts a mandatory argument, this long form should be
         suffixed by ``=``.
       * Else, this long form should *not* be suffixed by ``=``.
+
     * ``short_name`` is either:
+
       * This option's option *NIX-style short form excluding ``-`` prefix.
       * ``None`` if this option has no such form.
+
     * ``synopsis`` is this option's mandatory help documentation.
 
     For each such option, an attribute of the same name as this option's long

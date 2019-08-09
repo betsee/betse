@@ -37,8 +37,9 @@ from betse_test.fixture.simconf.simconfer import (
 # non-autouse fixtures possibly required by these autouse fixtures above.
 
 #FIXME: This fixture has been temporarily superceded by the
-#betse_test.conftest._init_app() function until inevitably required yet again.
-# from betse_test.fixture.autouser import betse_autouse
+#betse_test.conftest.pytest_configure() and pytest_unconfigure() hooks until
+#inevitably required yet again.
+# from betse_test.fixture.initter import betse_init_session
 
 # ....................{ GLOBALS                           }....................
 EXPORT_SIM_CONF_DIRNAME = None
@@ -56,10 +57,9 @@ See Also
 # ....................{ HOOKS ~ configure                 }....................
 def pytest_configure(config) -> None:
     '''
-    Hook run immediately *after* both parsing all :mod:`pytest` command-line
-    options and loading all third-party :mod:`pytest` plugins (including
-    application-specific ``conftest`` scripts) but *before* performing test
-    collection.
+    Hook run immediately *after* parsing all command-line options and loading
+    all third-party :mod:`pytest` plugins (including application-specific
+    ``conftest`` scripts) but *before* performing test collection.
 
     Specifically, this hook (in no particular order):
 
@@ -80,6 +80,9 @@ def pytest_configure(config) -> None:
     :func:`_init_app`
         Further details on application initialization.
     '''
+
+    # Defer heavyweight imports.
+    from betse_test.fixture import initter
 
     # Global variables to be set below.
     global EXPORT_SIM_CONF_DIRNAME
@@ -103,142 +106,23 @@ def pytest_configure(config) -> None:
     EXPORT_SIM_CONF_DIRNAME = config.getoption('export_sim_conf_dirname')
 
     # Initialize the application metadata singleton.
-    _init_app()
+    initter.init_app()
 
 
 def pytest_unconfigure(config) -> None:
     '''
-    Hook run immediately *before* exiting the current :mod:`pytest` test
-    session.
-    '''
-
-    # Deinitialize the application metadata singleton.
-    _deinit_app()
-
-# ....................{ HOOKS ~ configure : app           }....................
-#FIXME: For usability under BETSEE, consider refactoring the following two
-#functions back into the existing betse_test.fixture.autouser.betse_autouse()
-#session-scpoed fixture: e.g.,
-#
-#    @fixture(scope='session', autouse=True)
-#    def betse_autouse() -> None:
-#        _init_app()
-#        yield
-#        _deinit_app()
-
-def _init_app() -> None:
-    '''
-    Initialize the application metadata singleton (e.g., for unit tests, which
-    fail to implicitily initialize this singleton ala functional tests).
-
-    Specifically, this fixture (in order):
-
-    #. Coerces the active Python interpreter into running **headless** (i.e.,
-       with *no* access to a GUI display). Allowing headfull operation would
-       would allow tests erroneously attempting to connect to an X11 server to
-       locally succeed but remotely fail, as headless continuous integration
-       (CI) pipelines typically have no access to an X11 server. Coercing
-       headlessness ensures orthogonality between these cases by coercing the
-       former to fail as well.
-    #. Initializes the application core.
-    #. Initializes all third-party dependencies thereof.
-    #. Enables the default non-interactive matplotlib backend ``Agg``,
-       *guaranteed* to be usable on all platforms. By default, matplotlib
-       enables an interactive backend (e.g., ``Qt5Agg``) unsuitable for use
-       under typically headless test automation.
-
-    Motivation
-    ----------
-    This function performs early test-specific initialization of this
-    application and dependencies thereof. Doing so prevents the magic
-    :func:`betse.science.__init__` function from attempting to perform a
-    subsequent test-agnostic initialization of either this application or
-    dependencies on the first importation of the :mod:`betse.science`
-    subpackage -- as in fixtures importing from that subpackage (e.g., the
-    :mod:`betse_test.fixture.simconf.simconfer` fixture importing the
-    :mod:`betse_test.fixture.simconf.simconfwrapper` submodule importing the
-    :med:`betse.science.config.confwrap` submodule).
+    Hook run immediately *before* exiting the current test session.
     '''
 
     # Defer heavyweight imports.
-    from betse.util.os import displays
-    from betse.util.app.meta import appmetaone
-
-    # Print this initialization.
-    print('[py.test] Initializing BETSE for testing...')
-
-    # Initialize a BETSE-specific application metadata singleton if the
-    # appmetaone.set_app_meta() function has yet to be called.
-    app_meta = appmetaone.set_app_meta_betse_if_unset()
-
-    # Coerce the active Python interpreter into running headless *AFTER*
-    # initializing this singleton, which enables the default logging
-    # configuration to which this setter logs this operation.
-    #
-    # Note that this operation technically needs to be performed:
-    #
-    # * Only once for the entire test suite when py.test is *NOT* parallelized
-    #   with "xdist", in which case all tests run in the same process and hence
-    #   share the same global variables.
-    # * Once for each test when py.test is parallelized with "xdist", in which
-    #   case each test is run in a distinct subprocess and hence does *NOT*
-    #   share the same global variables.
-    #
-    # Since setting global variables is fast, doing so here transparently
-    # supports both use cases detailed above with no discernable downside. See
-    # the docstring for additional commentary.
-    displays.set_headless(True)
-
-    # Initialize all mandatory third-party dependencies with a standard
-    # non-interactive matplotlib backend guaranteed to exist *AFTER* coercing
-    # the active Python interpreter into running headless. Why? Because
-    # dependencies typically detect headless environments.
-    app_meta.init_libs(matplotlib_backend_name='Agg')
-
-    # Print the completion of this initialization.
-    print('[py.test] Initialized BETSE for testing.')
-
-
-def _deinit_app() -> None:
-    '''
-    Deinitialize the application metadata singleton.
-    '''
-
-    # Defer heavyweight imports.
-    from betse.util.app.meta import appmetaone
-
-    # Print this deinitialization.
-    print('[py.test] Deinitializing BETSE for testing...')
-
-    #FIXME: Uncomment after actually defining this function: e.g.,
-    # def deinit() -> None:
-    #     if is_app_meta():
-    #         get_app_meta().deinit()
-    #FIXME: Note, however, that merely defining the above function fails to
-    #suffice. Why? Because each functional test already implicitly performs the
-    #equivalent of the above. The issue, then, are the unit tests; we'll need
-    #to define a pair of setup and teardown functions in the existing
-    #"betse_test.unit.conftest" submodule, called by "py.test" immediately
-    #*BEFORE* and *AFTER* running all tests in the "betse_test.unit"
-    #subpackage. Preliminary research suggests that submodule should define a
-    #pytest_runtest_setup() and presumably pytest_runtest_teardown() function
-    #calling these private functions, which will probably need to be refactored
-    #into public functions of either a new-old "betse_test.util" subpackage,
-    #the existing "betse_test.fixture.autouser" submodule, or perhaps the
-    #existing "betse.util.test.pytest" subpackage, if these functions can
-    #somehow be rendered application-agnostic and hence general-purpose. See:
-    #    https://stackoverflow.com/a/34520971/2809027
-    #    https://docs.pytest.org/en/latest/writing_plugins.html?highlight=pytest_runtest_setup#conftest-py-local-per-directory-plugins
-    #FIXME: Ah-ha! The fix is a package-scoped autouse fixture defined in the
-    #"betse_test.fixture.autouser" submodule and imported into the
-    #"betse_test.unit.conftest" submodule. See also:
-    #    https://docs.pytest.org/en/latest/fixture.html?highlight=scope#package-scope-experimental
+    from betse.util.test.pytest import pytests
+    from betse_test.fixture import initter
 
     # Deinitialize the application metadata singleton.
-    # appmetaone.deinit()
+    initter.deinit_app()
 
-    # Print this deinitialization.
-    print('[py.test] Deinitialized BETSE for testing.')
+    # Print this closure.
+    pytests.output('Ego, ergo simulare.')
 
 # ....................{ HOOKS ~ test                      }....................
 def pytest_runtest_setup(item: 'pytest.main.Item') -> None:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,11 +9,11 @@ protocol and hence the ``__enter__`` and ``__exit__`` special methods)
 facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.util.type.types import GeneratorType
 from contextlib import contextmanager
 
-# ....................{ MANAGERS                           }....................
+# ....................{ MANAGERS                          }....................
 @contextmanager
 def noop_context() -> GeneratorType:
     '''

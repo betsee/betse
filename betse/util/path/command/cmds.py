@@ -10,7 +10,6 @@ Low-level **command** (i.e., external executable file) facilities.
 # ....................{ IMPORTS                           }....................
 import sys
 from betse.exceptions import BetseCommandException
-from betse.metadata import SCRIPT_BASENAME
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import type_check, StrOrNoneTypes
 
@@ -100,21 +99,22 @@ def get_current_basename() -> str:
     If this interpreter is interpreting a block of arbitrary runtime code
     passed to this interpreter on the command line via Python's ``-c`` option
     (e.g., due to being called by a distributed ``pytest-xdist`` test), this
-    function unconditionally returns the basename of the BETSE CLI (e.g.,
-    ``betse``) rather than ``-c``. Why? Because we can all agree that ``-c`` is
-    an unexpected and non-human-readable basename, which is bad.
+    function unconditionally returns the basename of the current application
+    (e.g., ``betse``) rather than ``-c``. Why? We can all agree that ``-c`` is
+    an unexpected and rather non-human-readable basename, which is bad.
     '''
 
     # Avoid circular import dependencies.
+    from betse.util.app.meta import appmetaone
     from betse.util.path import pathnames
 
     # Raw absolute or relative path of the current command.
     current_basename = sys.argv[0]
 
     # If this is the non-human-readable "-c" Python interpreter option,
-    # substitute this with the human-readable basename of the BETSE CLI.
+    # substitute this with the human-readable basename of this application.
     if current_basename == '-c':
-        current_basename = SCRIPT_BASENAME
+        current_basename = appmetaone.get_app_meta().package_name
     # Else, reduce this absolute or relative path to a basename.
     else:
         current_basename = pathnames.get_basename(current_basename)
