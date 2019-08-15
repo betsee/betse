@@ -65,12 +65,13 @@ def betse_sim_conf(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     SimConfTestInternal
         Test-specific object encapsulating a temporary simulation configuration
         file specific to the current test, including such metadata as:
+
         * The absolute path of this configuration's on-disk YAML file.
         * This configuration's in-memory dictionary deserialized from this
           file.
     '''
 
-    # Absolute path of this configuration file in this temporary directory.
+    # Absolute filename of this configuration file in this temporary directory.
     sim_conf_filepath = betse_temp_dir.join('sim_config.yaml')
 
     # Test-specific object encapsulating this simulation configuration file.
@@ -92,9 +93,9 @@ def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
 
     Unlike the minified simulation configuration created by the
     :func:`betse_sim_conf` fixture and leveraged by most tests, the default
-    simulation configuration created by this fixture and leveraged by few tests
-    is unmodified (except for disabling interactive simulation features, which
-    non-interactive testing unavoidably requires). Tests doing so incur a
+    simulation configuration created by this fixture remains unmodified (except
+    for unavoidably disabling interactive simulation features, which
+    non-interactive testing requires). Tests leveraging this fixture incur a
     significant performance penalty but can expose edge-case issues obscured by
     minification, including computational instability produced by the default
     non-minified time steps.
@@ -115,7 +116,7 @@ def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
         Further details, ignoring minification performed by this fixture.
     '''
 
-    # Absolute path of this configuration file in this temporary directory.
+    # Absolute filename of this configuration file in this temporary directory.
     sim_conf_filepath = betse_temp_dir.join('sim_config.yaml')
 
     # Test-specific object encapsulating this simulation configuration file.
@@ -125,6 +126,50 @@ def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     return sim_state
 
 
+#FIXME: Fundamentally refactor this fixture to leverage the existing
+#"betse_test/data/v0.5.0/yaml/sim_config.yaml" simulation configuration. To do
+#so, we'll need to:
+#
+#* Generalize the "simconfclser.SimConfTestInternal" subclass to support
+#  caller-defined simulation configuration filenames. We have a few possible
+#  options here, including:
+#  * Generalizing the simconfclser.SimConfTestInternal.__init__() method with a
+#    new optional (or perhaps mandatory? ...yes, almost certainly mandatory)
+#    "src_conf_filename" parameter. For disambiguity, we'd then also want to
+#    rename the existing mandatory "conf_filepath" parameter to
+#    "trg_conf_filepath".
+#  * Refactoring the currently concrete "simconfclser.SimConfTestInternal"
+#    subclass into an abstract subclass and then defining two new concrete
+#    subclasses of "simconfclser.SimConfTestInternal":
+#    * "SimConfTestInternalDefault", equivalent to the existing
+#      "simconfclser.SimConfTestInternal" implementation (i.e., sourcing
+#      BETSE's default simulation configuration).
+#    * "SimConfTestInternalCompat", sourcing the above compatibility-specific
+#      configuration.
+#
+#While either certainly work, first approach outlined above strikes as the
+#more general-purpose and hence useful. After all, given how painful this issue
+#has ultimately become, we'd prefer to avoid revisitting it... ever. This needs
+#to be done right the first time -- and then never again.
+#FIXME: Absolutely. The first approach is the correct approach, largely because
+#we only ever instantiate the "SimConfTestInternal" once throughout the entire
+#codebase. In synopsis, do this:
+#
+#* Refactor the "betse.science.config.confio" submodule as detailed there.
+#* Generalize the simconfclser.SimConfTestInternal.__init__() method as
+#  follows:
+#  * Rename the "conf_filepath" parameter to "trg_conf_filepath".
+#  * Define a new mandatory "src_conf_filename" parameter.
+#* Replace the only call to the SimConfigTestWrapper.make_default() class
+#  method with a call to whatever we've refactored "confio" into.
+#* Remove the SimConfigTestWrapper.make_default() class method.
+#* Refactor this fixture to leverage "SimConfTestInternal" directly, passing
+#  the equivalent of
+#  "src_conf_filename='betse_test/data/v0.5.0/yaml/sim_config.yaml'".
+#* Reduce the conftest.pytest_addoption() hook to a noop.
+#* Remove all references to the public
+#  "betse_test.conftest.EXPORT_SIM_CONF_DIRNAME" global.
+#* Remove the "betse_test.func.sim.test_sim_export.py" submodule.
 @fixture
 def betse_sim_conf_compat(
     betse_temp_dir: LocalPath) -> SimConfTestExternal:

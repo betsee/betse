@@ -27,10 +27,10 @@ class SimConfTestABC(object, metaclass=ABCMeta):
     Attributes
     ----------
     conf_dirname : str
-        Absolute pathname of the parent directory containing the simulation
+        Absolute dirname of the parent directory containing the simulation
         configuration file encapsulated by this context.
     conf_filename : str
-        Absolute pathname of the simulation configuration file encapsulated by
+        Absolute filename of the simulation configuration file encapsulated by
         this context.
 
     See Also
@@ -48,7 +48,7 @@ class SimConfTestABC(object, metaclass=ABCMeta):
         Parameters
         ----------
         conf_filename : str
-            Absolute pathname of the simulation configuration file encapsulated
+            Absolute filename of the simulation configuration file encapsulated
             by this context. Although this file need *not* physically exist
             before this object is instantiated (i.e., before this method is
             called), the subclass should ensure this file exists once this
@@ -74,11 +74,10 @@ class SimConfTestABC(object, metaclass=ABCMeta):
         containing the simulation configuration file: namely, this temporary
         directory. Changing directories resolves these paths to this directory.
         (Failing to do so would incorrectly resolve these paths to the current
-        directory, with predictably disastrous outcomes.) While this class
-        could instead globally search-and-replace all relative simulation
+        directory with predictably disastrous outcomes.) While this class could
+        instead globally search-and-replace all relative simulation
         configuration paths with absolute paths, doing so would be considerably
-        more complex, fragile, and error-prone than simply changing
-        directories.
+        more complex, fragile, and error-prone than changing directories.
         '''
 
         # Defer heavyweight imports.
@@ -118,16 +117,13 @@ class SimConfTestInternal(SimConfTestABC):
     config : SimConfigWrapper
         Simulation configuration wrapper wrapping the low-level dictionary
         deserialized from the YAML-formatted simulation configuration file with
-        path :attr:`conf_filepath`. Note the contents of this dictionary may
-        be desynchronized from those of this file. For efficiency, callers may
+        path :attr:`conf_filepath`. Note the contents of this dictionary may be
+        desynchronized from those of this file. For efficiency, callers may
         modify this dictionary to suite test requirements *before*
         reserializing this dictionary back to this file.
-
-    Attributes (Path)
-    ----------
     conf_filepath : LocalPath
-        Absolute path of a temporary simulation configuration file specific to
-        the parent fixture as a :class:`py.path.local` instance, defining an
+        Absolute filename of a temporary simulation configuration file specific
+        to the parent fixture as a :class:`py.path.local` instance, defining an
         object-oriented superset of the non-object-oriented :mod:`os.path`
         module.
 
@@ -147,7 +143,7 @@ class SimConfTestInternal(SimConfTestABC):
 
         #. Copies BETSE's default simulation configuration file, complete with
            all external assets (e.g., geometry masks) referenced and required
-           by this file, to the passed path.
+           by this file, to the passed filename.
         #. Sanitizes the copied simulation configuration file for all child
            fixtures and tests by unconditionally disabling options either
            requiring interactive input *or* displaying interactive output.
@@ -168,9 +164,9 @@ class SimConfTestInternal(SimConfTestABC):
         Parameters
         ----------
         conf_filepath : LocalPath
-            Absolute path to which this method will copy the default simulation
-            configuration file as a :class:`py.path.local` instance. If this
-            file already exists, an exception is raised.
+            Absolute filename to which this method will copy the default
+            simulation configuration file as a :class:`py.path.local` instance.
+            If this file already exists, an exception is raised.
         '''
 
         # Defer heavyweight imports. This subclass inherits from the main

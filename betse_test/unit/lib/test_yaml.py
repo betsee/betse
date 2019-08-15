@@ -8,11 +8,13 @@ Unit tests for the :mod:`betse.lib.yaml` subpackage.
 '''
 
 # ....................{ IMPORTS                           }....................
+from betse_test.fixture.simconf.simconfclser import SimConfTestInternal
+from py._path.local import LocalPath
 
 # ....................{ TESTS                             }....................
 def test_yaml_copy(
-    betse_sim_conf: 'SimConfTestInternal',
-    betse_temp_dir: 'LocalPath',
+    betse_sim_conf: SimConfTestInternal,
+    betse_temp_dir: LocalPath,
 ) -> None:
     '''
     Test the capacity of the :mod:`betse.lib.yaml.yamls` submodule to reliably
@@ -53,7 +55,7 @@ def test_yaml_copy(
     assert new_sim_conf_filepath.check(file=1)
 
 
-def test_yaml_roundtrip(betse_sim_conf: 'SimConfTestInternal') -> None:
+def test_yaml_roundtrip(betse_sim_conf: SimConfTestInternal) -> None:
     '''
     Test the capacity of the :mod:`betse.lib.yaml.yamls` submodule to reliably
     roundtrip (i.e., load and save without loss) the default YAML-formatted

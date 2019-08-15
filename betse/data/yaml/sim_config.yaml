@@ -522,7 +522,7 @@ general network:
       scale factor: 1.0  # amount to scale molecule concentration by in charge calculations
       update intracellular: False  # shuts off intracellular transport for fast diffusion with stability
       use time dilation: False  # use time dilation factor for transport and growth/decay of this substance?
-      transmem: False   # substance embeded in membrane (and therefore movable by extracellular fields, flow?)
+      transmem: False   # substance embedded in membrane (and therefore movable by extracellular fields, flow?)
       initial asymmetry: None   # modulator function applied to initial cell concentrations
       TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
       GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)

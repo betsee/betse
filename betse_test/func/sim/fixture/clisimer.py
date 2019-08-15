@@ -16,7 +16,6 @@ from betse_test.func.sim.fixture.clisimclser import CLISimTester
 from pytest import fixture
 
 # ....................{ FIXTURES                          }....................
-# Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_cli_sim(
     betse_cli: CLITester,
@@ -47,7 +46,6 @@ def betse_cli_sim(
     )
 
 
-# Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_cli_sim_default(
     betse_cli: CLITester,
@@ -86,7 +84,6 @@ def betse_cli_sim_default(
     )
 
 
-# Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_cli_sim_compat(
     betse_cli: CLITester,

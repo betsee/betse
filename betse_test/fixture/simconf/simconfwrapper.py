@@ -76,13 +76,13 @@ class SimConfigTestWrapper(object):
     def make_default(cls, filename: str) -> None:
         '''
         Write the default YAML-formatted simulation configuration to the passed
-        path, recursively copy all external resources (e.g., geometry masks)
-        referenced and hence required by this configuration into this path's
+        file, recursively copy all external resources (e.g., geometry masks)
+        referenced and hence required by this configuration into this file's
         directory, and return an instance of this class encapsulating this
         configuration.
 
         This factory method creates a valid simulation configuration consumable
-        by all BETSE CLI commands (e.g., `betse sim`), modified from the
+        by all BETSE CLI commands (e.g., ``betse sim``), modified from the
         default simulation configuration shipped with BETSE as follows:
 
         * The ``plot after solving`` option in the ``results options`` section
@@ -93,11 +93,11 @@ class SimConfigTestWrapper(object):
         Parameters
         ----------
         filename : str
-            Absolute or relative path of the simulation configuration file to
-            be written. Since this file will be YAML-formatted, this filename
-            should ideally be suffixed by a valid YAML filetype: namely, either
-            ``.yml`` or ``.yaml``. This is *not* strictly necessary, but is
-            strongly recommended.
+            Absolute or relative filename of the simulation configuration file
+            to be written. Since this file will be YAML-formatted, this
+            filename should ideally be suffixed by a valid YAML filetype:
+            namely, either ``.yml`` or ``.yaml``. This is *not* strictly
+            necessary, but is strongly recommended.
 
         Raises
         ----------

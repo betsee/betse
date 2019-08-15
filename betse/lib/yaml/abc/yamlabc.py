@@ -291,15 +291,10 @@ class YamlFileABC(YamlABC):
         Deserialize the passed YAML-formatted file into a low-level mapping or
         sequence internally persisted in this wrapper.
 
-        Usage
-        ----------
         This method may be safely called multiple times with different files.
-        When doing so, note that the current call to this method takes absolute
-        precedence over all prior calls to this method -- which the former
-        effectively nullifies. For safety, this method internally calls the
-        :meth:`unload` method as needed (i.e., if some file has already been
-        loaded). Ergo, that method need *not* be externally called to
-        deassociate this wrapper from previously loaded files.
+        This method implicitly calls the :meth:`unload` method if this is
+        *not* the first call to this method, thus automatically deassociating
+        this wrapper from all previously loaded files as needed.
 
         Parameters
         ----------
@@ -348,16 +343,16 @@ class YamlFileABC(YamlABC):
     @type_check
     def save(self, conf_filename: str) -> None:
         '''
-        Serialize the low-level dictionary internally stored in this object to
-        the passed YAML-formatted simulation configuration file, replacing the
-        prior contents of this file, and associate this object with this file.
+        Serialize the low-level mapping or sequence internally persisted in
+        this wrapper to the passed YAML-formatted file, thereafter associating
+        this wrapper with this file.
 
         This method effectively implements the "Save As..." GUI metaphor.
 
         Parameters
         ----------
         conf_filename : str
-            Absolute or relative path of the target file to be serialized.
+            Absolute or relative filename of the target file to be serialized.
         '''
 
         # Log this operation.
