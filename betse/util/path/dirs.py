@@ -46,14 +46,14 @@ Attributes
 ----------
 HALT_WITH_EXCEPTION : enum
     Policy raising a fatal exception if any target path already exists. This
-    constitutes the strictest and hence safest such policy.
+    constitutes the strictest and thus safest such policy.
 SKIP_WITH_WARNING : enum
-    Policy ignoring (i.e., skipping) each target path that already exists with
-    a logged non-fatal warning. This policy strikes a convenient balance
-    between strictness and laxness.
+    Policy ignoring (i.e., skipping) each existing target path with a non-fatal
+    warning. This policy strikes a comfortable balance between strictness and
+    laxness and is thus the recommended default.
 OVERWRITE : enum
-    Policy silently overwriting each target path that already exists. This
-    constitutes the laxest and hence riskiest such policy.
+    Policy silently overwriting each existing target path. This constitutes the
+    laxest and thus riskiest such policy.
 '''
 
 # ....................{ GLOBALS                           }....................
@@ -490,8 +490,15 @@ def copy(
     # Log this copy.
     logs.log_debug('Copying directory: %s -> %s', src_dirname, trg_dirname)
 
-    # Raise an exception unless the source directory exists.
+    # If the source directory does *NOT* exist, raise an exception.
     die_unless_dir(src_dirname)
+
+    #FIXME: Uncomment the following after defining a die_if_subdir() function.
+    # If the target directory is a subdirectory of the source directory, raise
+    # an exception. Permitting this edge case provokes issues, including
+    # infinite recursion from within the musty entrails of the "distutils"
+    # codebase (possibly due to relative symbolic links).
+    #die_if_subdir(dir=src_dirname, subdir=trg_dirname)
 
     # If passed an iterable of shell-style globs matching ignorable basenames,
     # convert this iterable into a predicate function of the form required by
@@ -563,6 +570,8 @@ def copy(
     #could conceivably suffer similar issues. If this is the case, this
     #function should explicitly detect attempts to recursively copy a source
     #directory into a subdirectory of itself and raise an exception.
+    #FIXME: See the above FIXME comment addressing the infinite recursion issue
+    #discussed here.
 
     # Else if logging a warning for each target path that already exists, do so
     # by manually implementing recursive directory copying. Sadly, Python

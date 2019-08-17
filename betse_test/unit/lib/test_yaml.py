@@ -49,7 +49,7 @@ def test_yaml_copy(
     p = betse_sim_conf.p
 
     # Copy this configuration to this subdirectory.
-    p.save(new_sim_conf_filename)
+    p.save(conf_filename=new_sim_conf_filename)
 
     # Assert this file to have been created.
     assert new_sim_conf_filepath.check(file=1)

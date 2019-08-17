@@ -341,40 +341,85 @@ class YamlFileABC(YamlABC):
 
     # ..................{ SAVERS                            }..................
     @type_check
-    def save(self, conf_filename: str) -> None:
+    def save(
+        self,
+
+        # Mandatory parameters.
+        conf_filename: str,
+
+        # Optional parameters.
+        is_conf_file_overwritable: bool = False,
+        conf_subdir_overwrite_policy: DirOverwritePolicy = (
+            DirOverwritePolicy.SKIP_WITH_WARNING),
+    ) -> None:
         '''
         Serialize the low-level mapping or sequence internally persisted in
-        this wrapper to the passed YAML-formatted file, thereafter associating
-        this wrapper with this file.
+        this wrapper to the YAML-formatted file with the passed filename.
 
         This method effectively implements the "Save As..." GUI metaphor.
+        Specifically, this method (in order):
+
+        #. Serializes this mapping or sequence to the file with this filename,
+           optionally overwriting the existing contents of this file depending
+           on the passed ``is_conf_file_overwritable`` parameter.
+        #. Recursively copy all relative subdirectories internally referenced
+           (and hence required) by this file from the directory of the current
+           file associated with this wrapper into the directory of the passed
+           file, optionally overwriting the existing contents of these
+           subdirectories depending on the passed
+           ``conf_subdir_overwrite_policy`` parameter.
+        #. Associates this wrapper with this filename.
 
         Parameters
         ----------
         conf_filename : str
             Absolute or relative filename of the target file to be serialized.
+        is_conf_file_overwritable : optional[bool]
+            If this target file already exists *and* this boolean is:
+
+            * ``True``, this target file is silently overwritten.
+            * ``False``, an exception is raised.
+
+            Defaults to ``False``.
+
+        Raises
+        ----------
+        BetseFileException
+            If this target file already exists *and*
+            ``is_conf_file_overwritable`` is ``False``.
         '''
 
         # Log this operation.
         logs.log_debug('Saving YAML file "%s"...', self._conf_basename)
 
-        # Save this dictionary to this file.
+        # Serialize this mapping or sequence to this file.
         yamls.save(
             container=self.conf,
             filename=conf_filename,
-            is_overwritable=True,
+            is_overwritable=is_conf_file_overwritable,
         )
 
-        # Absolute paths of the parent directories containing the current file
-        # and the passed file, canonicalized to permit comparison below.
+        # Absolute dirnames of the directories containing the current file and
+        # the passed file, canonicalized to permit comparison below.
         src_dirname = pathnames.canonicalize(self.conf_dirname)
         trg_dirname = pathnames.canonicalize(
             pathnames.get_dirname(conf_filename))
 
-        # If these paths differ, recursively copy all relative subdirectories
-        # internally referenced and hence required by this file.
+        # If these directories differ, recursively copy all relative
+        # subdirectories internally referenced and hence required by this file.
         if src_dirname != trg_dirname:
             # For the relative dirname of each such subdirectory...
+            #
+            # Note that the ideal solution of recursively copying this source
+            # directory into the directory of this target file (e.g., via
+            # "dirs.copy(src_dirname, pathnames.get_dirname(conf_filename))")
+            # fails for the following subtle reasons:
+            #
+            # * This target directory may be already exist, which dirs.copy()
+            #   prohibits even when the directory is empty.
+            # * This target configuration file basename may differ from that of
+            #   this source configuration file, necessitating a subsequent call
+            #   to file.move().
             for conf_subdirname in self._iter_conf_subdirnames():
                 # Absolute dirname of the source subdirectory.
                 src_subdirname = pathnames.join(src_dirname, conf_subdirname)
@@ -383,7 +428,14 @@ class YamlFileABC(YamlABC):
                 dirs.copy_into_dir(
                     src_dirname=src_subdirname,
                     trg_dirname=trg_dirname,
-                    overwrite_policy=DirOverwritePolicy.OVERWRITE,
+                    overwrite_policy=conf_subdir_overwrite_policy,
+
+                    # Ignore all empty ".gitignore" files in all subdirectories
+                    # of this source subdirectory. These files serve only as
+                    # placeholders instructing Git to track otherwise empty
+                    # subdirectories. Preserving such files only invites end
+                    # user confusion.
+                    ignore_basename_globs=('.gitignore',),
                 )
 
         # Associate this object with this file *AFTER* successfully copying to
