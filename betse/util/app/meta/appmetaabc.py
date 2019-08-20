@@ -312,7 +312,11 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         # Avoid circular import dependencies.
         from betse.util.app.meta import appmetaone
+        from betse.util.io.log import logs
         from betse.util.io.log.conf import logconf
+
+        # Log this attempt.
+        logs.log_debug('Deinitializing application metadata singleton...')
 
         # Disable our default logging configuration, ensuring that open logfile
         # handles are closed on application closure.

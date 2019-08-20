@@ -264,13 +264,17 @@ def unset_app_meta() -> None:
     # Enable this singleton global to be overwritten be the passed parameter.
     global _app_meta
 
-    # Log this attempt.
-    logs.log_debug('Unsetting application metadata singleton...')
-
     # If this singleton has not yet been set, raise an exception.
     die_unless_app_meta()
 
     # Revert this singleton global to its initial state.
+    #
+    # Note that this reversion is intentionally *NOT* logged. This method is
+    # typically only called as the last operation at application shutdown, at
+    # which time the logging configuration has already been deinitialized.
+    # While feasible, logging here would do so under Python's default logging
+    # configuration in a non-human-readable format upsetting end users: e.g.,
+    #     DEBUG:betsee:Unsetting application metadata singleton...
     _app_meta = None
 
 # ....................{ DEINITIALIZERS                    }....................

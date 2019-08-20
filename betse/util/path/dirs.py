@@ -454,7 +454,7 @@ def copy(
         copy to.
     overwrite_policy : DirOverwritePolicy
         **Directory overwrite policy** (i.e., strategy for handling existing
-        paths to be overwritten by this copy) to apply. Defaults to
+        paths to be overwritten by this copy). Defaults to
         :attr:`DirOverwritePolicy.HALT_WITH_EXCEPTION`, raising an exception if
         any target path already exists.
     ignore_basename_globs : optional[IterableTypes]

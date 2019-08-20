@@ -310,9 +310,8 @@ class YamlFileABC(YamlABC):
         if self.is_loaded:
             self.unload()
 
-        # Log this operation.
-        logs.log_debug(
-            'Loading YAML file "%s"...', pathnames.get_basename(conf_filename))
+        # Log this load.
+        logs.log_debug('Loading YAML file: %s', conf_filename)
 
         # Low-level dictionary deserialized from this file.
         conf = yamls.load(filename=conf_filename)
@@ -329,7 +328,7 @@ class YamlFileABC(YamlABC):
 
         # If this file is actually loaded, log this operation.
         if self.is_loaded:
-            logs.log_debug('Closing YAML file "%s"...', self._conf_basename)
+            logs.log_debug('Closing YAML file: %s', self._conf_filename)
 
         # Unload our superclass.
         super().unload()
@@ -362,7 +361,7 @@ class YamlFileABC(YamlABC):
         #. Serializes this mapping or sequence to the file with this filename,
            optionally overwriting the existing contents of this file depending
            on the passed ``is_conf_file_overwritable`` parameter.
-        #. Recursively copy all relative subdirectories internally referenced
+        #. Recursively copies all relative subdirectories internally referenced
            (and hence required) by this file from the directory of the current
            file associated with this wrapper into the directory of the passed
            file, optionally overwriting the existing contents of these
@@ -381,6 +380,13 @@ class YamlFileABC(YamlABC):
             * ``False``, an exception is raised.
 
             Defaults to ``False``.
+        conf_subdir_overwrite_policy : DirOverwritePolicy
+            **Subdirectory overwrite policy** (i.e., strategy for handling
+            existing subdirectories to be overwritten by this save), where the
+            subdirectories in question are all subdirectories of the directory
+            of this target file. Defaults to
+            :attr:`DirOverwritePolicy.SKIP_WITH_WARNING`, ignoring each target
+            subdirectory that already exists with a non-fatal warning.
 
         Raises
         ----------
@@ -389,8 +395,10 @@ class YamlFileABC(YamlABC):
             ``is_conf_file_overwritable`` is ``False``.
         '''
 
-        # Log this operation.
-        logs.log_debug('Saving YAML file "%s"...', self._conf_basename)
+        # Log this save.
+        logs.log_debug(
+            'Saving YAML file: %s -> %s',
+            self._conf_filename, conf_filename)
 
         # Serialize this mapping or sequence to this file.
         yamls.save(
@@ -452,8 +460,8 @@ class YamlFileABC(YamlABC):
         This method effectively implements the "Save" GUI metaphor.
         '''
 
-        # Log this operation.
-        logs.log_debug('Overwriting YAML file "%s"...', self._conf_basename)
+        # Log this save.
+        logs.log_debug('Resaving YAML file: %s', self._conf_filename)
 
         # Resave this dictionary to this file.
         yamls.save(

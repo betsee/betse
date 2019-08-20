@@ -20,30 +20,11 @@ from betse.util.type.types import type_check  #, GeneratorType
 #FIXME: It should be feasible to replace this entire function (and hence remove
 #this entire submodule) by:
 #
-#* Refactor the YamlFileABC.save() method signature to resemble this method's
-#  signature as follows:
-#
-#    @type_check
-#    def save(
-#        # Mandatory parameters.
-#        conf_filename: str,
-#
-#        # Optional parameters.
-#        is_conf_file_overwritable: bool = False,
-#        conf_subdir_overwrite_policy: DirOverwritePolicy = (
-#            DirOverwritePolicy.SKIP_WITH_WARNING),
-#    ) -> None:
-#
-#  Note our use of the "SKIP_WITH_WARNING" policy, which seems quite sensible,
-#  safey, and sanitary for all YAML saving purposes.
-#
-#  *CAUTION*. Since the existing save() method performs overwriting by default,
-#  we'll need to grep all calls to this method and explicitly pass the desired
-#  parameters. Presumably, BETSEE already performs at least one such call.
 #* Replacing each call to this write_default() function with the following:
 #    p = Parameters()
 #    p.load(conf_filename=app_meta.betse_sim_conf_default_filename)
 #    p.save(conf_filename=muh_trg_filename)
+#* Remove this entire submodule.
 #
 #That's pretty obvious, frankly. Tragic that we didn't concoct it until now.
 @type_check
