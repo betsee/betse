@@ -12,7 +12,9 @@ nomenclature for common YAML design patterns.
 from betse.lib.yaml.yamlalias import yaml_alias
 # from betse.util.type.types import type_check, ClassType, SequenceTypes
 
-# ....................{ MIXINS                            }....................
+# ....................{ MIXINS ~ alias                    }....................
+# Mixins standardizing various general-purpose YAML aliases.
+
 class YamlBooledMixin(object):
     '''
     Mixin of all **YAML-backed booled configuration** (i.e., backed by a YAML

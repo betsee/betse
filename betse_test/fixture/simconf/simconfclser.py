@@ -169,13 +169,18 @@ class SimConfTestInternal(SimConfTestABC):
             If this file already exists, an exception is raised.
         '''
 
-        # Defer heavyweight imports. This subclass inherits from the main
-        # codebase and is thus *NOT* safely importable at module scope.
+        # Defer heavyweight imports. Notably, the "simconfwrapper" submodule
+        # inherits from the main codebase and is thus *NOT* safely importable
+        # at module scope.
+        from betse.science.parameters import Parameters
         from betse_test.fixture.simconf.simconfwrapper import (
             SimConfigTestWrapper)
 
-        # Initialize our superclass with the absolute filename of this file.
-        super().__init__(conf_filename=str(conf_filepath))
+        # Absolute filename of this file.
+        conf_filename = str(conf_filepath)
+
+        # Initialize our superclass with this filename.
+        super().__init__(conf_filename=conf_filename)
 
         # Classify the passed parameters. While the "self.config" object
         # classified below provides this filename as a low-level string, this
@@ -186,10 +191,12 @@ class SimConfTestInternal(SimConfTestABC):
         # method call implicitly assumes to be the case.
         initter.init_app()
 
-        # Configuration deserialized from this file, reducing this filename
-        # from a high-level "py.path.local" instance to a low-level string.
-        self.config = SimConfigTestWrapper.make_default(
-            filename=self.conf_filename)
+        # Copy the default simulation configuration to this file.
+        p = Parameters()
+        p.save_default(conf_filename=conf_filename)
+
+        # Test-specific wrapper encapsulating this file.
+        self.config = SimConfigTestWrapper(p)
 
         # Sanitize this configuration for all child fixtures and tests.
         self.config.disable_interaction()

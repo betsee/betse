@@ -4,8 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes of all YAML-backed configuration subclasses encapsulating
-on-disk lists and list items.
+Abstract base classes of all YAML-backed lists and list item subclasses.
 '''
 
 # ....................{ IMPORTS                           }....................
@@ -115,8 +114,8 @@ class YamlListItemABC(YamlABC):
 # ....................{ SUPERCLASSES ~ list               }....................
 class YamlList(YamlABC, MutableSequence):
     '''
-    YAML-backed list subconfiguration both loaded from and saved back into a
-    YAML-formatted file.
+    YAML-backed list subconfiguration both loadable from *and* savable back
+    into a YAML-formatted file.
 
     Each item of this list is a :class:`YamlListItemABC` instance encapsulating
     the corresponding YAML-backed list item. Each such item may technically

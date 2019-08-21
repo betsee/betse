@@ -10,17 +10,18 @@ from betse.exceptions import BetseSimConfException
 from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml import yamls
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
-from betse.lib.yaml.abc.yamlabc import YamlFileABC
+from betse.lib.yaml.abc.yamlfileabc import YamlFileDefaultABC
 from betse.science.enum.enumconf import (
     CellLatticeType, GrnUnpicklePhaseType, IonProfileType, SolverType)
 from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
 # from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
+from betse.util.type.descriptor.descs import classproperty_readonly
 from betse.util.type.types import IterableTypes, SequenceTypes, StrOrNoneTypes
 
 # ....................{ SUBCLASSES                        }....................
-class Parameters(YamlFileABC):
+class Parameters(YamlFileDefaultABC):
     '''
     Root YAML-backed in-memory and on-disk simulation configuration,
     encapsulating a low-level container of simulation configuration settings
@@ -433,6 +434,11 @@ class Parameters(YamlFileABC):
     # ..................{ ALIASES ~ scalar                  }..................
     cell_polarizability = yaml_alias(
         "['internal parameters']['cell polarizability']", float)
+
+    # ..................{ PROPERTIES                        }..................
+    @classproperty_readonly
+    def conf_default_filename(cls) -> str:
+        return appmetaone.get_app_meta().betse_sim_conf_default_filename
 
     # ..................{ INITIALIZERS                      }..................
     def __init__(self, *args, **kwargs) -> None:
@@ -1126,15 +1132,15 @@ class Parameters(YamlFileABC):
     #callers (notably, tests) currently need to call this method to update
     #absolute pathnames after modifying relative pathnames. The solution, of
     #course, is to have Python implicitly call this method whenever *ANY*
-    #relative pathname internally referenced by this modified. Doing so
-    #correctly will require augmenting the expr_alias() data descriptor to
+    #relative pathname internally referenced by this class is modified. Doing
+    #so correctly will require augmenting the expr_alias() data descriptor to
     #support yet-another-optional-keyword-parameter enabling callers to pass a
     #callable to be implicitly called whenever that descriptor is set -- say,
-    #"callback_set". Given that, we would then refactor the above YAML aliases
-    #to resemble something like:
+    #"callback_set" or "on_set". Given that, we would then refactor the above
+    #YAML aliases to resemble something like:
     #
     #    sim_pickle_basename = yaml_alias(
-    #        "['sim file saving']['file']", str, callback_set=self.reload_paths)
+    #        "['sim file saving']['file']", str, on_set=self.reload_paths)
     #
     #Oh... wait. Obviously, we have no access to self.reload_paths() from class
     #scope. Err; perhaps refactor that to require a method accepting the
@@ -1143,7 +1149,7 @@ class Parameters(YamlFileABC):
     #
     #    sim_pickle_basename = yaml_alias(
     #        "['sim file saving']['file']", str,
-    #        callback_set: lambda p: p.reload_paths())
+    #        on_set: lambda p: p.reload_paths())
     #
     #Right. That's definitely it. Given that, we could then define a
     #yaml_alias() derivative specific to simulation paths in this submodule
@@ -1519,8 +1525,8 @@ class Parameters(YamlFileABC):
                 'this simulation configuration.')
 
     # ..................{ SUPERCLASS                        }..................
-    #FIXME: Actually implement this properly. Ideally, this method should return
-    #the set of all subdirectories internally referenced by the current
+    #FIXME: Actually implement this properly. Ideally, this method should
+    #return the set of all subdirectories internally referenced by the current
     #top-level YAML file. Instead, it simply returns all subdirectories
     #internally referenced by the *DEFAULT* top-level YAML file. Why? Because
     #the latter was much easier than the former, despite being wrong. Laziness
@@ -1558,10 +1564,11 @@ def _balance_charge(concentrations: SequenceTypes, zs: SequenceTypes) -> tuple:
     ---------
     (float, float)
         2-tuple `(bal_conc, valence)`, where:
-        * `bal_conc` is the concentration of anion M- to create zero net
+
+        * ``bal_conc`` is the concentration of anion M- to create zero net
           charge.
-        * `valence` is the charge of the `bal_conc`. Ideally, this should
-          _always_ be -1.
+        * ``valence`` is the charge of the ``bal_conc``. Ideally, this should
+          *always* be -1.
     '''
 
     q = 0

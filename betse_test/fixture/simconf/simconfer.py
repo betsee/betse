@@ -52,7 +52,7 @@ def betse_sim_conf(betse_temp_dir: LocalPath) -> SimConfTestInternal:
 
     Since this fixture does *not* write these changes back to this file, the
     parent fixture or test is expected to do so manually (e.g., by calling the
-    :meth:`SimConfTestInternal.config.overwrite` method on the object returned
+    :meth:`SimConfTestInternal.p.save_inplace` method on the object returned
     by this fixture).
 
     Parameters
@@ -155,7 +155,6 @@ def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
 #we only ever instantiate the "SimConfTestInternal" once throughout the entire
 #codebase. In synopsis, do this:
 #
-#* Refactor the "betse.science.config.confio" submodule as detailed there.
 #* Generalize the simconfclser.SimConfTestInternal.__init__() method as
 #  follows:
 #  * Rename the "conf_filepath" parameter to "trg_conf_filepath".

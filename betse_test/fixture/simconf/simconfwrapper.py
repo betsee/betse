@@ -16,8 +16,8 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 #boilerplate implemented below. Specifically:
 #
 #* Eliminate all properties defined below.
-#* Replace all usage of the low-level "self._p._conf" dictionary with high-level
-#  data descriptors defined by "self._p".
+#* Replace all usage of the low-level "self.p.conf" dictionary with high-level
+#  data descriptors defined by "self.p".
 #FIXME: Ideally, after implementing the above, use of the
 #"SimConfigTestWrapper" wrapper will be able to be replaced everywhere in tests
 #by direct use of the "SimConfTestInternal.p" property providing direct access
@@ -29,10 +29,10 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 # thus *NOT* safely importable from fixture submodules directly imported by
 # "conftest" plugin modules. To defer the importation of this submodule until
 # *AFTER* test collection, this submodule is intentionally segregated.
-from betse.science.config import confio
 from betse.science.enum.enumconf import IonProfileType, SolverType
-from betse.science.phase.phasecls import SimPhase
 from betse.science.enum.enumphase import SimPhaseKind
+from betse.science.parameters import Parameters
+from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require import phasereqs
 from betse.science.phase.require.abc.phasereqset import (
     SimPhaseRequirementsOrNoneTypes)
@@ -62,118 +62,24 @@ class SimConfigTestWrapper(object):
 
     Attributes
     ----------
-    _p : Parameters
+    p : Parameters
         High-level simulation configuration encapsulated by this test wrapper.
-    _phase : SimPhase
-        Simulation phase encapsulating this configuration. Since this phase
-        *only* serves as a thin wrapper around this configuration, the type of
-        this phase is irrelevant; ergo, this type arbitrarily defaults to the
-        first phase type: seed.
     '''
 
-    # ..................{ MAKERS                            }..................
-    @classmethod
-    def make_default(cls, filename: str) -> None:
-        '''
-        Write the default YAML-formatted simulation configuration to the passed
-        file, recursively copy all external resources (e.g., geometry masks)
-        referenced and hence required by this configuration into this file's
-        directory, and return an instance of this class encapsulating this
-        configuration.
-
-        This factory method creates a valid simulation configuration consumable
-        by all BETSE CLI commands (e.g., ``betse sim``), modified from the
-        default simulation configuration shipped with BETSE as follows:
-
-        * The ``plot after solving`` option in the ``results options`` section
-          is coerced to ``False``, preventing hapless end-users from drowning
-          under an intimidating deluge of plot windows irrelevant to "beginner"
-          usage.
-
-        Parameters
-        ----------
-        filename : str
-            Absolute or relative filename of the simulation configuration file
-            to be written. Since this file will be YAML-formatted, this
-            filename should ideally be suffixed by a valid YAML filetype:
-            namely, either ``.yml`` or ``.yaml``. This is *not* strictly
-            necessary, but is strongly recommended.
-
-        Raises
-        ----------
-        BetseFileException
-            If this file already exists.
-        '''
-
-        # Create this YAML file.
-        confio.write_default(filename)
-
-        # Create and return an instance of this class wrapping this file.
-        return cls(filename)
-
     # ..................{ INITIALIZERS                      }..................
-    def __init__(self, filename: str) -> None:
+    @type_check
+    def __init__(self, p: Parameters) -> None:
         '''
-        Wrap the low-level dictionary deserialized from the passed
-        YAML-formatted simulation configuration file.
+        Wrap the passed simulation configuration.
 
         Parameters
         ----------
-        filename : str
-            Absolute or relative path of this file.
+        p : Parameters
+            Simulation configuration to be wrapped.
         '''
 
-        # Defer heavyweight imports.
-        from betse.science.parameters import Parameters
-
-        # In-memory simulation configuration deserialized from this file.
-        self._p = Parameters.make(conf_filename=filename)
-
-        # Simulation phase encapsulating this configuration. Since this phase
-        # *ONLY* serves as a thin wrapper around this configuration, the type
-        # of phase is irrelevant; ergo, this type arbitrarily defaults to the
-        # first phase type: seed.
-        self._phase = SimPhase(kind=SimPhaseKind.SEED, p=self._p)
-
-    # ..................{ PROPERTIES                        }..................
-    # For safety, these properties lack setters and hence are read-only.
-
-    @property
-    def p(self) -> 'betse.science.parameters.Parameters':
-        '''
-        High-level simulation configuration encapsulated by this test wrapper.
-        '''
-
-        return self._p
-
-    # ..................{ PROPERTIES ~ path                 }..................
-    @property
-    def dirname(self) -> str:
-        '''
-        Absolute or relative path of the directory containing the configuration
-        file wrapped by this encapsulation object.
-        '''
-
-        return self._p.conf_dirname
-
-
-    @property
-    def filename(self) -> str:
-        '''
-        Absolute or relative path of the configuration file wrapped by this
-        encapsulation object.
-        '''
-
-        return self._p.conf_filename
-
-    # ..................{ WRITERS                           }..................
-    def overwrite(self) -> None:
-        '''
-        Silently overwrite the contents of this configuration file with the
-        in-memory contents of this configuration dictionary.
-        '''
-
-        self._p.save_inplace()
+        # Classify all passed parameters.
+        self.p = p
 
     # ..................{ PROPERTIES ~ float                }..................
     @property
@@ -187,7 +93,7 @@ class SimConfigTestWrapper(object):
         '''
 
         # Coerce the current number to a float for safety.
-        return float(self._p._conf['world options']['world size'])
+        return float(self.p.conf['world options']['world size'])
 
 
     @environment_size.setter
@@ -199,11 +105,11 @@ class SimConfigTestWrapper(object):
         '''
 
         # Coerce the passed number to a float for safety.
-        self._p._conf['world options']['world size'] = float(environment_size)
+        self.p.conf['world options']['world size'] = float(environment_size)
 
     # ..................{ MINIMIZERS                        }..................
     #FIXME: Additionally, the three time durations defined by the
-    #"self._p._conf['gene regulatory network settings']['sim-grn settings']"
+    #"self.p.conf['gene regulatory network settings']['sim-grn settings']"
     #dictionary must also be minified. For simplicity, unconditionally minify
     #these settings within this method regardless of whether the "sim-grn"
     #subcommand is being exercised by the current test or fixture.
@@ -225,24 +131,24 @@ class SimConfigTestWrapper(object):
         # defined below to override these minimums.
 
         # Duration of each time step in seconds.
-        self._p.init_time_step = min(self._p.init_time_step, 1.0e-3)
+        self.p.init_time_step = min(self.p.init_time_step, 1.0e-3)
 
         # Interval to sample these steps at in seconds.
-        self._p.init_time_sampling = min(
-            self._p.init_time_sampling, self._p.init_time_step)
+        self.p.init_time_sampling = min(
+            self.p.init_time_sampling, self.p.init_time_step)
 
         # Total simulation time in seconds. The first digit effectively defines
         # the number of sampled time steps, by the above choice of time step.
-        self._p.init_time_total = self._p.init_time_step * 3
+        self.p.init_time_total = self.p.init_time_step * 3
 
         # Minify simulation time to the same durations. To ensure that
         # property setter validation compares durations in the expected manner,
         # properties are assigned in order of increasing duration.
-        self._p.sim_time_step = min(
-            self._p.sim_time_step, self._p.init_time_step)
-        self._p.sim_time_sampling = min(
-            self._p.sim_time_sampling, self._p.sim_time_step)
-        self._p.sim_time_total = self._p.sim_time_step * 3
+        self.p.sim_time_step = min(
+            self.p.sim_time_step, self.p.init_time_step)
+        self.p.sim_time_sampling = min(
+            self.p.sim_time_sampling, self.p.sim_time_step)
+        self.p.sim_time_total = self.p.sim_time_step * 3
 
         #FIXME: Generalize to minify the time steps of *ALL* enabled events.
         # Minify simulation event times to the same durations in a manner
@@ -254,21 +160,21 @@ class SimConfigTestWrapper(object):
         #     ------------------ = ------------------
         #     sim_time_total_old   sim_time_total_new
         #
-        # Since "sim_time_total_new" is given by "self._p.sim_time_total", the
+        # Since "sim_time_total_new" is given by "self.p.sim_time_total", the
         # desired unknown "event_time_new" is given by:
         #
-        #                      self._p.sim_time_total * event_time_old
+        #                      self.p.sim_time_total * event_time_old
         #                      ---------------------------------------
         #     event_time_new = sim_time_total_old
         #FIXME: Well, we've eliminated the "event_cut['cut time']" key entirely.
         #Nonetheless, the above commentary still holds for the general case.
 
         # Pre-minified simulation duration in seconds.
-        # sim_time_total_old = self._p.sim_time_total
+        # sim_time_total_old = self.p.sim_time_total
 
-        # event_cut = self._p._conf['cutting event']
+        # event_cut = self.p.conf['cutting event']
         # event_cut['cut time'] = (
-        #     self._p.sim_time_total * event_cut['cut time'] /
+        #     self.p.sim_time_total * event_cut['cut time'] /
         #     sim_time_total_old)
 
         # Minify the physical dimensions of the cell cluster in meters. By
@@ -301,19 +207,19 @@ class SimConfigTestWrapper(object):
 
         # Minify ECM-specific grid size. For similar reasons as above, the
         # computational grid size specified below appears to be a hard minimum.
-        self._p.grid_size = min(self._p.grid_size, 20)
+        self.p.grid_size = min(self.p.grid_size, 20)
 
         # Log this minification.
         logs.log_debug(
             'Minifying simulation to init '
             'for %f s at [ %f | %f ] s and sim '
             'for %f s at [ %f | %f ] s...',
-            self._p.init_time_step,
-            self._p.init_time_sampling,
-            self._p.init_time_total,
-            self._p.sim_time_step,
-            self._p.sim_time_sampling,
-            self._p.sim_time_total,
+            self.p.init_time_step,
+            self.p.init_time_sampling,
+            self.p.init_time_total,
+            self.p.sim_time_step,
+            self.p.sim_time_sampling,
+            self.p.sim_time_total,
         )
 
     # ..................{ DISABLERS                         }..................
@@ -321,7 +227,7 @@ class SimConfigTestWrapper(object):
     #If the structure of the underlying YAML file changes, these methods could
     #silently fail (e.g., if the "plot while solving" option were renamed to
     #"is plotting during"). To combat this, all attempts to directly modify the
-    #"self._p._conf" dictionary below *MUST* instead defer to a newly defined
+    #"self.p.conf" dictionary below *MUST* instead defer to a newly defined
     #set_config_option() method accepting one or more key names followed by the
     #value to set such keys to: e.g.,
     #
@@ -336,9 +242,9 @@ class SimConfigTestWrapper(object):
         and post-simulation plots and animations.
         '''
 
-        self._p.anim.is_after_sim = False
-        self._p.anim.is_while_sim = False
-        self._p.plot.is_after_sim = False
+        self.p.anim.is_after_sim = False
+        self.p.anim.is_while_sim = False
+        self.p.plot.is_after_sim = False
 
 
     def disable_interaction(self) -> None:
@@ -351,9 +257,9 @@ class SimConfigTestWrapper(object):
         (e.g., tests, scripts) expecting simulations to behave silently.
         '''
 
-        self._p.anim.is_after_sim_show = False
-        self._p.anim.is_while_sim_show = False
-        self._p.plot.is_after_sim_show = False
+        self.p.anim.is_after_sim_show = False
+        self.p.anim.is_while_sim_show = False
+        self.p.plot.is_after_sim_show = False
 
     # ..................{ ENABLERS                          }..................
     def enable_networks(self) -> None:
@@ -361,7 +267,7 @@ class SimConfigTestWrapper(object):
         Enable both biochemical reaction and gene regulatory networks.
         '''
 
-        self._p._conf['gene regulatory network settings'][
+        self.p.conf['gene regulatory network settings'][
             'gene regulatory network simulated'] = True
 
     # ..................{ ENABLERS ~ export                 }..................
@@ -385,7 +291,7 @@ class SimConfigTestWrapper(object):
         self.enable_visuals_save()
 
         # Localize nested dictionaries for convenience.
-        video = self._p._conf['results options']['save']['animations']['video']
+        video = self.p.conf['results options']['save']['animations']['video']
 
         # Enable encoding of the passed filetype with the passed writer type.
         # For determinism, mandate that *ONLY* this writer (rather than two or
@@ -404,9 +310,9 @@ class SimConfigTestWrapper(object):
         features required by specific visual exports.
         '''
 
-        self._p.anim.is_while_sim_save = True
-        self._p.anim.is_after_sim_save = True
-        self._p.plot.is_after_sim_save = True
+        self.p.anim.is_while_sim_save = True
+        self.p.anim.is_after_sim_save = True
+        self.p.plot.is_after_sim_save = True
 
     # ..................{ ENABLERS ~ solver : fast          }..................
     def _enable_solver_fast(self) -> None:
@@ -415,7 +321,7 @@ class SimConfigTestWrapper(object):
         simulation features unsupported by this solver.
         '''
 
-        self._p.solver_type = SolverType.FAST
+        self.p.solver_type = SolverType.FAST
 
 
     def enable_solver_fast_exports(self) -> None:
@@ -432,7 +338,7 @@ class SimConfigTestWrapper(object):
         self._enable_solver_fast_features()
 
         # Disable extracellular spaces.
-        self._p.is_ecm = False
+        self.p.is_ecm = False
 
         # Enable all possible exports excluding those requiring the full
         # solver.
@@ -465,7 +371,7 @@ class SimConfigTestWrapper(object):
         Enable the complete BETSE solver.
         '''
 
-        self._p.solver_type = SolverType.FULL
+        self.p.solver_type = SolverType.FULL
 
 
     def enable_solver_full_vg_ions(self) -> None:
@@ -497,22 +403,22 @@ class SimConfigTestWrapper(object):
 
         # Enable all features required by these channels.
         self._enable_solver_full()
-        self._p.is_ecm = True
-        self._p.ion_profile = IonProfileType.MAMMAL
+        self.p.is_ecm = True
+        self.p.ion_profile = IonProfileType.MAMMAL
 
         # For stability, decrease both the time step and sampling rates.
-        self._p.sim_time_step     = 1e-4
-        self._p.sim_time_sampling = 1e-3
+        self.p.sim_time_step     = 1e-4
+        self.p.sim_time_sampling = 1e-3
 
         # For completeness, increase both the duration and cell count.
-        self._p.sim_time_total = 50e-3
+        self.p.sim_time_total = 50e-3
         self.environment_size = 250e-6
 
         # Enable the intervention increasing sodium membrane permeability.
         # Although the current default values for this intervention track those
         # defined below fairly closely, the latter are nonetheless explicitly
         # defined below to avoid issues when the former inevitably change.
-        sodium_membrane_permeability = self._p._conf['change Na mem']
+        sodium_membrane_permeability = self.p.conf['change Na mem']
         sodium_membrane_permeability['event happens'] = True
         sodium_membrane_permeability['change rate']   =  1.0e-3
         sodium_membrane_permeability['change start']  =  5.0e-3
@@ -521,14 +427,14 @@ class SimConfigTestWrapper(object):
 
         #FIXME: Refactor this to use the new networks formalism.
         # # Enable the voltage-gated sodium (Na+) channel Nav1p2.
-        # voltage_gated_sodium_channel = self._p._conf['voltage gated Na+']
+        # voltage_gated_sodium_channel = self.p.conf['voltage gated Na+']
         # voltage_gated_sodium_channel['turn on'] = True
         # voltage_gated_sodium_channel['channel type'] = ['Nav1p2',]
         # # voltage_gated_sodium_channel['max value'] = 5.0e-6
         # voltage_gated_sodium_channel['apply to'] = ['base',]
         #
         # # Enable the voltage-gated potassium (K+) channel K_Slow.
-        # voltage_gated_potassium_channel = self._p._conf['voltage gated K+']
+        # voltage_gated_potassium_channel = self.p.conf['voltage gated K+']
         # voltage_gated_potassium_channel['turn on'] = True
         # voltage_gated_potassium_channel['channel type'] = ['K_Slow',]
         # # voltage_gated_potassium_channel['max value'] = 5.0e-7
@@ -548,7 +454,7 @@ class SimConfigTestWrapper(object):
         self._enable_solver_full_features()
 
         # Enable extracellular spaces.
-        self._p.is_ecm = True
+        self.p.is_ecm = True
 
         # Enable all possible exports.
         self._enable_exports()
@@ -567,7 +473,7 @@ class SimConfigTestWrapper(object):
         self._enable_solver_full_features()
 
         # Disable extracellular spaces.
-        self._p.is_ecm = False
+        self.p.is_ecm = False
 
         # Enable all possible exports excluding those requiring extracellular
         # spaces.
@@ -606,14 +512,15 @@ class SimConfigTestWrapper(object):
         # Log this action.
         logs.log_debug('Analyzing pipeline exporters...')
 
+        # Simulation phase encapsulating this configuration. Since this phase
+        # *ONLY* serves as a thin wrapper around this configuration, the type
+        # of phase is irrelevant; ergo, this type arbitrarily defaults to the
+        # first phase type: seed.
+        phase = SimPhase(kind=SimPhaseKind.SEED, p=self.p)
+
         # Default the set of requirements to omit to the empty set.
         if requirements_omit is None:
             requirements_omit = phasereqs.NONE
-
-        #FIXME: For each export pipeline, refactor the following iteration to
-        #clear the existing sequence of all exporters configured for this
-        #pipeline first. Investigate whether or not a YamlListABC.clear()
-        #method has already been defined for doing so.
 
         # For each export pipeline...
         for pipe_export in SimPipesExport().PIPES_EXPORT:
@@ -622,7 +529,7 @@ class SimConfigTestWrapper(object):
                 'Analyzing pipeline "%s" exporters...', pipe_export.name)
 
             # Sequence of all export subconfigurations for this pipeline.
-            pipe_exporters_conf = pipe_export.iter_runners_conf(self._phase)
+            pipe_exporters_conf = pipe_export.iter_runners_conf(phase)
 
             # Remove all export subconfigurations from this sequence, enabling
             # new test-specific subconfigurations to be added to this sequence
@@ -721,17 +628,17 @@ class SimConfigTestWrapper(object):
         self.enable_visuals_save()
 
         # Localize nested dictionaries for convenience.
-        results = self._p._conf['results options']
-        variable = self._p._conf['variable settings']
+        results = self.p.conf['results options']
+        variable = self.p.conf['variable settings']
 
         # Enable all simulation features required by these exports.
-        self._p.ion_profile = IonProfileType.MAMMAL
-        self._p._conf['apply pressure']['event happens'] = True
+        self.p.ion_profile = IonProfileType.MAMMAL
+        self.p.conf['apply pressure']['event happens'] = True
         # variable['channel electroosmosis']['turn on'] = True  # This feature has been removed
         variable['deformation']['turn on'] = True
         # variable['fluid flow']['include fluid flow'] = True
         variable['pressures']['include osmotic pressure'] = True
-        self._p.cell_polarizability = 1e-4
+        self.p.cell_polarizability = 1e-4
 
         # Enable all optional settings supported by these exports.
         results['visuals']['cell indices']['show'] = True

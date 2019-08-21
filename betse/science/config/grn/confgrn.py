@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,13 +7,13 @@
 YAML-backed gene regulatory network (GRN) subconfigurations.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 from betse.lib.yaml.yamlalias import yaml_alias
-from betse.lib.yaml.abc.yamlabc import YamlFileABC
+from betse.lib.yaml.abc.yamlfileabc import YamlFileABC
 # from betse.science.config.grn.confgrnyadda import SimConfGrnYadda
 from betse.util.type.types import type_check  #, MappingType, SequenceTypes
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES                        }....................
 class SimConfGrnFile(YamlFileABC):
     '''
     YAML-backed in-memory and on-disk gene regulatory network (GRN)
@@ -25,11 +25,11 @@ class SimConfGrnFile(YamlFileABC):
     ----------
     '''
 
-    # ..................{ ALIASES                            }..................
+    # ..................{ ALIASES                           }..................
     # is_overlay_current = yaml_alias(
     #     "['results options']['overlay currents']", bool)
 
-    # ..................{ INITIALIZERS                       }..................
+    # ..................{ INITIALIZERS                      }..................
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass with all passed parameters.
@@ -41,7 +41,7 @@ class SimConfGrnFile(YamlFileABC):
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
         # self.anims_after_sim = SimConfExportVisualCells.make_list()
 
-    # ..................{ LOADERS                            }..................
+    # ..................{ LOADERS                           }..................
     def load(self, *args, **kwargs) -> None:
 
         # Load our superclass with all passed arguments.

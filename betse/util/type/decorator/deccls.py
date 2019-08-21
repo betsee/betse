@@ -114,7 +114,7 @@ class MethodDecoratorABC(object, metaclass=ABCMeta):
 
         return self._method_unbound(obj, *args, **kwargs)
 
-# ....................{ DECORATORS ~ property              }....................
+# ....................{ DECORATORS ~ property             }....................
 abstractclassmethod = decorator_chain(classmethod, abstractmethod)
 '''
 Decorator decorating the passed superclass method as an **abstract class
@@ -126,15 +126,15 @@ Motivation
 Technically, there already exist two standard means of decorating methods as
 abstract properties:
 
-* The deprecated :func:`abc.abstractproperty` decorator, which this decorator is
-  intended to act as a drop-in replacement of. Since Python 3.3 unwisely
+* The deprecated :func:`abc.abstractproperty` decorator, which this decorator
+  is intended to act as a drop-in replacement of. Since Python 3.3 unwisely
   deprecated that decorator, that decorator is *not* safely usable in
   perpetuity.
 * Manually chaining the :class:`property` and :func:`abc.abstractmethod`
   decorators, which this decorator is intended to automate and hence replace.
-  For unknown reasons, the Python community now treats this cumbersome decorator
-  chain as a sensible replacement for the deprecated
-  :func:`abc.abstractproperty` decorator. We disagree. Ergo, this decorator.
+  For unknown reasons, the Python community now treats manual chaining as a
+  sensible replacement for the deprecated :func:`abc.abstractproperty`
+  decorator. We disagree. Ergo, this decorator.
 '''
 
 
@@ -149,13 +149,13 @@ Motivation
 Technically, there already exist two standard means of decorating methods as
 abstract properties:
 
-* The deprecated :func:`abc.abstractproperty` decorator, which this decorator is
-  intended to act as a drop-in replacement of. Since Python 3.3 unwisely
+* The deprecated :func:`abc.abstractproperty` decorator, which this decorator
+  is intended to act as a drop-in replacement of. Since Python 3.3 unwisely
   deprecated that decorator, that decorator is *not* safely usable in
   perpetuity.
 * Manually chaining the :class:`property` and :func:`abc.abstractmethod`
   decorators, which this decorator is intended to automate and hence replace.
-  For unknown reasons, the Python community now treats this cumbersome decorator
-  chain as a sensible replacement for the deprecated
-  :func:`abc.abstractproperty` decorator. We disagree. Ergo, this decorator.
+  For unknown reasons, the Python community now treats manual chaining as a
+  sensible replacement for the deprecated :func:`abc.abstractproperty`
+  decorator. We disagree. Ergo, this decorator.
 '''

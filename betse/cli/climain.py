@@ -360,11 +360,11 @@ from input files defined by this configuration.
         Run the ``config`` subcommand.
         '''
 
-        # Avoid importing modules importing dependencies at the top level.
-        from betse.science.config import confio
+        # Defer heavyweight imports.
+        from betse.science.parameters import Parameters
 
-        # Write this configuration file.
-        confio.write_default(conf_filename=self._args.conf_filename)
+        # Copy the default simulation configuration to this target file.
+        Parameters().save_default(conf_filename=self._args.conf_filename)
 
 
     def _do_seed(self) -> object:
