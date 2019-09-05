@@ -7,11 +7,15 @@
 Fixture classes encapsulating test-related simulation configurations.
 '''
 
+#FIXME: Most use of the increasingly obsolete "SimConfTestInternal.config"
+#wrapper attribute (both here and everywhere else) should be replaced by use of
+#the new "SimConfTestInternal.p" property, which increasingly provides all test
+#functionality.
+
 # ....................{ IMPORTS                           }....................
 from abc import ABCMeta
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import type_check
-from betse_test.fixture import initter
 from py._path.local import LocalPath
 
 # ....................{ SUPERCLASSES                      }....................
@@ -27,11 +31,11 @@ class SimConfTestABC(object, metaclass=ABCMeta):
     Attributes
     ----------
     conf_dirname : str
-        Absolute dirname of the parent directory containing the simulation
-        configuration file encapsulated by this context.
+        Absolute dirname of the directory of the simulation configuration file
+        wrapped by this wrapper (i.e., of :attr:`conf_filename`).
     conf_filename : str
-        Absolute filename of the simulation configuration file encapsulated by
-        this context.
+        Absolute filename of the simulation configuration file wrapped by this
+        wrapper.
 
     See Also
     ----------
@@ -98,10 +102,6 @@ class SimConfTestABC(object, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASSES                        }....................
-#FIXME: Most use of the increasingly obsolete "SimConfTestInternal.config"
-#wrapper attribute (both here and everywhere else) should be replaced by use of
-#the new "SimConfTestInternal.p" property, which increasingly provides all test
-#functionality.
 class SimConfTestInternal(SimConfTestABC):
     '''
     Simulation configuration context subclass encapsulating a temporary
@@ -135,15 +135,21 @@ class SimConfTestInternal(SimConfTestABC):
 
     # ..................{ INITIALIZERS                      }..................
     @type_check
-    def __init__(self, conf_filepath: LocalPath) -> None:
+    def __init__(
+        self,
+        src_conf_filename: str,
+        trg_conf_filepath: LocalPath,
+    ) -> None:
         '''
-        Initialize this simulation configuration context.
+        Initialize this context by copying the passed source to target
+        simulation configuration file.
 
-        This method (in order):
+        Specifically, this method (in order):
 
-        #. Copies BETSE's default simulation configuration file, complete with
-           all external assets (e.g., geometry masks) referenced and required
-           by this file, to the passed filename.
+        #. Copies the passed source to target simulation configuration file.
+        #. Copies *all* external resources (e.g., image files) referenced and
+           hence required by the passed source simulation configuration file to
+           the directory of the passed target simulation configuration file.
         #. Sanitizes the copied simulation configuration file for all child
            fixtures and tests by unconditionally disabling options either
            requiring interactive input *or* displaying interactive output.
@@ -163,10 +169,24 @@ class SimConfTestInternal(SimConfTestABC):
 
         Parameters
         ----------
-        conf_filepath : LocalPath
-            Absolute filename to which this method will copy the default
-            simulation configuration file as a :class:`py.path.local` instance.
-            If this file already exists, an exception is raised.
+        src_conf_filename : str
+            Absolute filename of the source simulation configuration file from
+            which this method safely copies the passed target simulation
+            configuration file to.
+        trg_conf_filepath : LocalPath
+            Absolute filename of the target simulation configuration file to
+            which this method safely copies both the passed source simulation
+            configuration file *and* all external resources (e.g., image files)
+            referenced and hence required by that file. For compliance with
+            :mod:`pytest` internals, this filename is a high-level
+            :class:`py.path.local` instance rather than a low-level string.
+
+        Raises
+        ----------
+        BetseDirException
+            If any external file required by this target file already exists.
+        BetseFileException
+            If this target file already exists.
         '''
 
         # Defer heavyweight imports. Notably, the "simconfwrapper" submodule
@@ -177,23 +197,21 @@ class SimConfTestInternal(SimConfTestABC):
             SimConfigTestWrapper)
 
         # Absolute filename of this file.
-        conf_filename = str(conf_filepath)
+        trg_conf_filename = str(trg_conf_filepath)
 
         # Initialize our superclass with this filename.
-        super().__init__(conf_filename=conf_filename)
+        super().__init__(conf_filename=trg_conf_filename)
 
         # Classify the passed parameters. While the "self.config" object
         # classified below provides this filename as a low-level string, this
         # high-level "py.path.local" instance is useful in fixtures and tests.
-        self.conf_filepath = conf_filepath
+        self.conf_filepath = trg_conf_filepath
 
-        # Initialize the application metadata singleton, which the subsequent
-        # method call implicitly assumes to be the case.
-        initter.init_app()
-
-        # Copy the default simulation configuration to this file.
+        # Copy this source to target file.
         p = Parameters()
-        p.save_default(conf_filename=conf_filename)
+        p.copy(
+            src_conf_filename=src_conf_filename,
+            trg_conf_filename=trg_conf_filename)
 
         # Test-specific wrapper encapsulating this file.
         self.config = SimConfigTestWrapper(p)

@@ -2105,22 +2105,23 @@ class DECMesh(object):
 
         return matched_pts, unmatched_pts
 
-    def refine_mesh(self, max_steps=25, convergence=7.5, fix_bounds = True):
+
+    def refine_mesh(
+        self, max_steps=25, convergence=7.5, fix_bounds=True) -> None:
 
         # if self.mesh_type == 'tri':
 
         logs.log_info("Initializing Voronoi mesh optimization...")
 
         opti_steps = np.arange(max_steps)
-
         ui = self.mesh_quality_calc()
-
         UU = np.sum(ui)/self.cell_radius**2
 
         for i in opti_steps:
 
             self.removed_bad_verts = False  # reset flag for empty tri_vert removal
 
+            # If this optimization has yet to converge...
             if UU > convergence:
 
                 self.removed_bad_verts = False
@@ -2142,27 +2143,29 @@ class DECMesh(object):
                 conv_mess = "Step {}: mesh energy {}".format(i, UU)
                 logs.log_info(conv_mess)
 
+            # Else, this optimization has converged.
             else:
+                # Store this optimized mesh quality.
                 self.mesh_qual = UU
-                #                 logs.log_info("Convergence condition met for mesh optimization.")
-                print("Convergence condition met for mesh optimization.")
-                final_mess = "Final mesh quality {}".format(UU)
-                #                 logs.log_info(final_mess)
-                logs.log_info(final_mess)
 
+                # Log this convergence.
+                logs.log_info(
+                    'Convergence condition met for mesh optimization.')
+                logs.log_info('Final mesh quality %f', UU)
+
+                # Halt this optimization.
                 break
 
+
     def clip_to_curve(self, imagemask):
+        '''
+        Use an image mask clipping curve and Sutherland-Hodgmann algorithm to
+        clip the cells of a Voronoi mask at the curve boundary.
 
-        """
-        Uses an image mask clipping curve and Sutherland Hodgmann algorithm to clip the
-        cells of a voronoi mask at the curve boundary. It then recalculates the mesh with the
-        voronoi cell centers used as trimesh verts. A good algorithm, but only works for
-        concave clipping curves.
-
-        :param imagemask:
-        :return:
-        """
+        This method then recalculates the mesh with the voronoi cell centers
+        used as trimesh verts. A good algorithm, but only works for concave
+        clipping curves.
+        '''
 
         clip_vor_verts = []
         clip_vor_cents = []

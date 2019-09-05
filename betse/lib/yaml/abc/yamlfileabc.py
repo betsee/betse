@@ -18,14 +18,6 @@ from betse.util.type.iterable.iterators import empty_iterator
 from betse.util.type.types import type_check, IterableTypes
 
 # ....................{ SUPERCLASSES                      }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# CAUTION: To avoid diamond inheritance issues in the "YamlListABC" subclass,
-# neither this subclass nor subclasses of this subclass should define any
-# methods already defined by the "MutableSequence" API. This includes but is
-# *NOT* limited to the following "MutableSequence" methods: append(), clear(),
-# count(), extend(), index(), insert(), mro(), pop(), register(), remove(), and
-# reverse().
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 class YamlFileABC(YamlABC):
     '''
     Abstract base class of all **YAML-backed file wrapper** (i.e., high-level
@@ -225,6 +217,10 @@ class YamlFileABC(YamlABC):
         self._conf_filename = None
 
     # ..................{ SAVERS                            }..................
+    #FIXME: For brevity, rename the following parameters:
+    #
+    #* "is_conf_file_overwritable" to "is_file_overwritable".
+    #* "conf_subdir_overwrite_policy" to "subdir_overwrite_policy".
     @type_check
     def save(
         self,
@@ -366,6 +362,50 @@ class YamlFileABC(YamlABC):
             is_overwritable=True,
         )
 
+    # ..................{ COPIERS                           }..................
+    def copy(
+        self,
+        src_conf_filename: str,
+        trg_conf_filename: str,
+        **kwargs
+    ) -> None:
+        '''
+        Copy the source to target YAML-formatted file with the passed filenames
+        and *all* external resources from the directory of the former into that
+        of the latter.
+
+        Specifically, this method (in order):
+
+        #. Deassociates this wrapper from any previously loaded file.
+        #. Loads the passed source file into this wrapper.
+        #. Saves this source file to the passed target file.
+        #. Associates this wrapper with the passed target file.
+
+        Note that this method is currently syntactic sugar for the following
+        equivalent operations, where ``p`` is the current object:
+
+        #. Calling ``p.load(src_conf_filename)``.
+        #. Calling ``p.save(trg_conf_filename, **kwargs)``.
+
+        Parameters
+        ----------
+        src_conf_filename : str
+            Absolute or relative filename of the source YAML-formatted file to
+            safely copy from.
+        trg_conf_filename : str
+            Absolute or relative filename of the target YAML-formatted file to
+            safely copy from.
+
+        All remaining keyword arguments are passed to the :meth:`save` method.
+        '''
+
+        # Load this source file into this wrapper, implicitly deassociating
+        # this wrapper from any previously loaded file.
+        self.load(src_conf_filename)
+
+        # Save this source file to this target file.
+        self.save(trg_conf_filename, **kwargs)
+
     # ..................{ SETTERS                           }..................
     @type_check
     def _set_conf_filename(self, conf_filename: str) -> None:
@@ -418,6 +458,9 @@ class YamlFileABC(YamlABC):
         return empty_iterator()
 
 # ....................{ SUPERCLASSES ~ default            }....................
+#FIXME: Is this genuinely required anymore? It would probably be saner to
+#simply refactor all remaining calls to the copy_default() method to call the
+#copy() method instead with the default simulation configuration file.
 class YamlFileDefaultABC(YamlFileABC):
     '''
     Abstract base class of all **YAML-backed defaultable file wrapper** (i.e.,
@@ -444,29 +487,33 @@ class YamlFileDefaultABC(YamlFileABC):
 
         pass
 
-    # ..................{ SAVERS                            }..................
-    def save_default(self, *args, **kwargs) -> None:
+    # ..................{ COPIERS                           }..................
+    @type_check
+    def copy_default(self, trg_conf_filename: str, **kwargs) -> None:
         '''
         Copy the default YAML-formatted file specific to this subclass to the
-        YAML-formatted file with the passed filename and *all* external
+        YAML-formatted file with the passed filename *and* all external
         resources from the directory of the former into that of the latter.
 
         This method effectively implements the "New..." GUI metaphor.
-        Specifically, this method (in order):
-
-        #. Deassociates this wrapper from any previously loaded file.
-        #. Loads the default YAML-formatted file into this wrapper.
-        #. Saves this source file to the passed target file.
-        #. Associates this wrapper with the passed target file.
 
         Parameters
         ----------
-        All parameters are passed as is to the :meth:`save` method.
+        trg_conf_filename : str
+            Absolute or relative filename of the target YAML-formatted file to
+            safely copy from.
+
+        All remaining keyword arguments are passed to the :meth:`save` method.
+
+        See Also
+        ----------
+        :meth:`copy`
+            Further details.
         '''
 
-        # Load the default YAML-formatted file into this wrapper, implicitly
-        # deassociating this wrapper from any previously loaded file.
-        self.load(conf_filename=self.conf_default_filename)
-
-        # Save this source file to this target file.
-        self.save(*args, **kwargs)
+        # Thus spake BETSEthustra.
+        self.copy(
+            src_conf_filename=self.conf_default_filename,
+            trg_conf_filename=trg_conf_filename,
+            **kwargs
+        )

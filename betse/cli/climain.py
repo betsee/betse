@@ -364,7 +364,7 @@ from input files defined by this configuration.
         from betse.science.parameters import Parameters
 
         # Copy the default simulation configuration to this target file.
-        Parameters().save_default(conf_filename=self._args.conf_filename)
+        Parameters().copy_default(trg_conf_filename=self._args.conf_filename)
 
 
     def _do_seed(self) -> object:
