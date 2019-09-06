@@ -41,9 +41,9 @@ def upgrade_sim_conf(p: Parameters) -> None:
 
     * Any configuration file produced by any version of this application no
       older than (i.e., at least as new as) the version specified by the
-      :attr:`betse.metadata.GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY` string
-      global is explicitly supported by this function and hence guaranteed to
-      be safely loadable with the current version of this application.
+      :attr:`betse.metadata.GIT_TAG_COMPAT_OLDEST` string global is explicitly
+      supported by this function and hence guaranteed to be safely loadable
+      with the current version of this application.
     * No configuration files produced by any older version of this application
       is explicitly supported by this function. Indeed, these files are
       unlikely to be safely loadable with the current version of this

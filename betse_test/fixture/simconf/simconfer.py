@@ -118,9 +118,9 @@ def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     # Defer heavyweight imports.
     from betse.science.parameters import Parameters
 
-    # Initialize the application metadata singleton, which the subsequent
-    # access of the "Parameters.conf_default_filename" class property assumes
-    # to be the case.
+    # Initialize the application metadata singleton, as required by the
+    # subsequent access of the "Parameters.conf_default_filename" class
+    # property.
     initter.init_app()
 
     # Wrapper wrapping the default simulation configuration file copied into
@@ -133,17 +133,6 @@ def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     return sim_state
 
 
-#FIXME: Fundamentally refactor this fixture to leverage the existing
-#"betse_test/data/v0.5.0/yaml/sim_config.yaml" simulation configuration. To do
-#so, we'll need to:
-#
-#* Refactor this fixture to leverage "SimConfTestInternal" directly, passing
-#  the equivalent of
-#  "src_conf_filename='betse_test/data/v0.5.0/yaml/sim_config.yaml'".
-#* Reduce the conftest.pytest_addoption() hook to a noop.
-#* Remove all references to the public
-#  "betse_test.conftest.EXPORT_SIM_CONF_DIRNAME" global.
-#* Remove the "betse_test.func.sim.test_sim_export" submodule.
 @fixture
 def betse_sim_conf_compat(
     betse_temp_dir: LocalPath) -> SimConfTestExternal:
@@ -178,78 +167,32 @@ def betse_sim_conf_compat(
 
     # Defer heavyweight imports.
     from betse import metadata
-    from betse.util.app.meta import appmetaone
-    from betse.util.io.log import logs
-    from betse.util.os.shell import shelldir
-    from betse.util.path import gits
-    from betse.util.path.command import cmdrun
-    from betse.util.py import pys
+    from betse.util.path import files
+    from betse.util.py.module import pymodule
 
-    # Character uniquely padding all banners logged below.
-    BANNER_PADDING = '*'
+    # Initialize the application metadata singleton, as required by the
+    # subsequent instantiation of the "SimConfTestInternal" subclass.
+    initter.init_app()
 
-    # Absolute path of the top-level temporary directory isolated to this test.
-    betse_temp_dirname = str(betse_temp_dir)
+    # Absolute dirname of the directory of the root "betse_test" package.
+    betse_test_dirname = pymodule.get_dirname('betse_test')
 
-    # ..................{ PHASE                             }..................
-    # Log a single-line terminal banner identifying the initial fixture phase.
-    logs.log_banner(title='PHASE 1: shallow git clone', padding=BANNER_PADDING)
-
-    # Absolute pathname of this application's Git-based working tree. Since
-    # this test suite should only every be run from within a working tree, this
-    # retrieval should *ALWAYS* succeed.
-    git_worktree_dirname = appmetaone.get_app_meta().git_worktree_dirname
-
-    # Absolute path of a temporary non-existing directory isolated to this test
-    # to clone the older version of this application into.
-    betse_old_dirpath = betse_temp_dir.join('betse_old')
-    betse_old_dirname = str(betse_old_dirpath)
-
-    # Shallowly clone from the tag referring to the older version of this
-    # application in this Git working tree into this temporary directory.
-    gits.clone_worktree_shallow(
-        branch_or_tag_name=metadata.GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY,
-        src_dirname=git_worktree_dirname,
-        trg_dirname=betse_old_dirname,
+    # Absolute filename of the default simulation configuration file produced
+    # by the oldest version of this application for which the current version
+    # of this application guarantees backward compatibility.
+    src_conf_filename = files.join_or_die(
+        betse_test_dirname,
+        'data',
+        metadata.GIT_TAG_COMPAT_OLDEST,
+        'yaml',
+        'sim_config.yaml',
     )
 
-    # ..................{ PHASE                             }..................
-    # Log a single-line terminal banner identifying the next fixture phase.
-    logs.log_banner(title='PHASE 2: sim config export', padding=BANNER_PADDING)
+    # Wrapper wrapping the default simulation configuration file copied into
+    # this temporary directory and sanitized therein.
+    sim_state = SimConfTestInternal(
+        src_conf_filename=src_conf_filename,
+        trg_conf_filepath=betse_temp_dir.join('sim_config.yaml'))
 
-    # Name of the functional test exporting an obsolete simulation
-    # configuration from this older version.
-    test_cli_sim_export_name = 'test_cli_sim_export'
-
-    # Absolute path of the simulation configuration file exported by this test
-    # into a temporary directory isolated to the current test.
-    sim_conf_old_filepath = betse_temp_dir.join(
-        test_cli_sim_export_name, 'sim_config.yaml')
-    sim_conf_old_filename = str(sim_conf_old_filepath)
-
-    # List of one or more shell words unambiguously running the executable
-    # specific to the active Python interpreter and machine architecture.
-    py_command_line_prefix = pys.get_command_line_prefix()
-
-    # List of shell words comprising the "py.test"-based command exporting this
-    # old simulation configuration.
-    export_sim_conf_old_command = py_command_line_prefix + [
-        'setup.py', 'test',
-        '-k', test_cli_sim_export_name,
-        '--export-sim-conf-dir', betse_temp_dirname,
-    ]
-
-    # Temporary change to the directory containing this "setup.py" script.
-    with shelldir.setting_cwd(betse_old_dirname):
-        # Export this old simulation configuration with this script.
-        cmdrun.run_or_die(command_words=export_sim_conf_old_command)
-
-    # Test-specific object encapsulating this simulation configuration file.
-    sim_state = SimConfTestExternal(conf_filename=sim_conf_old_filename)
-
-    # ..................{ PHASE                             }..................
-    # Log a single-line terminal banner identifying the final fixture phase.
-    logs.log_banner(title='PHASE 3: sim config test', padding=BANNER_PADDING)
-
-    # Return this object.
+    # Return this wrapper *WITHOUT* minifying this configuration.
     return sim_state

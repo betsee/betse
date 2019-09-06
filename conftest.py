@@ -42,20 +42,11 @@ def pytest_addoption(parser: '_pytest.config.Parser') -> None:
     Options
     ----------
     After :mod:`pytest` parses these options, the
-    ``pytestconfig.getoption({option_var_name})` method of the ``pytestconfig``
-    fixture provides the value of the argument accepted by each option (if
-    any), where ``{option_var_name}`` is the value of the ``dest`` keyword
-    argument passed to the :meth:`parser.add_option` method in the body of this
-    hook.
-
-    Specifically, the following option variables are guaranteed to be defined:
-
-    * ``pytestconfig.getoption('export_sim_conf_dirname')``, the value of the
-      ``--export-sim-conf-dir`` command-line option if passed *or* ``None``
-      otherwise. The subsequently run
-      :func:`betse_test.conftest.pytest_configure` hook then globalizes this
-      value as the global :attr:`betse_test.conftest.EXPORT_SIM_CONF_DIRNAME`
-      variable for subsequent lookup from module scope (e.g., pytest markers).
+    ``pytestconfig.getoption({option_var_name})`` method of the
+    ``pytestconfig`` fixture provides the value of the argument accepted by
+    each option (if any), where ``{option_var_name}`` is the value of the
+    ``dest`` keyword argument passed to the :meth:`parser.add_option` method in
+    the body of this hook.
 
     Caveats
     ----------
@@ -70,25 +61,22 @@ def pytest_addoption(parser: '_pytest.config.Parser') -> None:
         :mod:`argparse` API.
     '''
 
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # CAUTION: The name of this option is assumed to *NOT* change across Git
-    # commits.  Changing this name would violate this assumption and hence
-    # forwards compatibility with future versions of this test suite.
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #FIXME: Sample option specification preserved entirely for posterity.
+    # # String argument options (i.e., options requiring a string argument),
+    # # disabled unless explicitly passed.
+    # parser.addoption(
+    #     '--export-sim-conf-dir',
+    #     dest='export_sim_conf_dirname',
+    #     default=None,
+    #     help=(
+    #         'target directory into which all '
+    #         'source simulation configuration directories produced by '
+    #         '"@skip_unless_export_sim_conf"-marked tests are to be copied'
+    #     ),
+    #     metavar='DIRNAME',
+    # )
 
-    # String argument options (i.e., options requiring a string argument),
-    # disabled unless explicitly passed.
-    parser.addoption(
-        '--export-sim-conf-dir',
-        dest='export_sim_conf_dirname',
-        default=None,
-        help=(
-            'target directory into which all '
-            'source simulation configuration directories produced by '
-            '"@skip_unless_export_sim_conf"-marked tests are to be copied'
-        ),
-        metavar='DIRNAME',
-    )
+    pass
 
 # ....................{ HOOKS ~ session                   }....................
 #FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?

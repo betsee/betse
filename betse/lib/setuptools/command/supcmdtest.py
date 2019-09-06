@@ -95,12 +95,6 @@ class test(Command):
             'extra names in their "extra_keyword_matches" set as well as to '
             'functions which have names assigned directly to them.'
         ),
-        (
-            'export-sim-conf-dir=', None,
-            'Target directory into which all '
-            'source simulation configuration directories produced by '
-            '"@skip_unless_export_sim_conf"-marked tests are to be copied.'
-        ),
     ]
     '''
     List specifying command-line options accepted by this command.
@@ -153,7 +147,6 @@ class test(Command):
         # value.
         self.no_capture = None
         self.match_name = None
-        self.export_sim_conf_dir = None
 
         # setuptools-specific public attributes.
         # self.install_dir = None
@@ -382,8 +375,8 @@ class test(Command):
                     'multiple processors.')
 
                 # Disable this plugin. While parallelization is important,
-                # respecting end user wishes with respect to capture redirection
-                # is paramount and hence takes precedence.
+                # respecting end user wishes with respect to capture
+                # redirection is paramount and hence takes precedence.
                 is_xdist = False
 
             # Pass the "-s" option to py.test.
@@ -396,9 +389,6 @@ class test(Command):
         # additional level of quoting... which is bad.
         if self.match_name is not None:
             pytest_args.extend(('-k', self.match_name,))
-        if self.export_sim_conf_dir is not None:
-            pytest_args.extend(
-                ('--export-sim-conf-dir', self.export_sim_conf_dir,))
 
         # If "pytest-xdist" is both importable and *NOT* explicitly disabled...
         if is_xdist:
@@ -425,7 +415,7 @@ class test(Command):
         # (presumably unresolved "py.test" issues), "py.test" instead sets
         # "rootdir" to the absolute dirname of the current user's home
         # directory and "inifile" to "None". Why? Since no user's home
-        # directory contains a "pytest.ini" file! The error output resembles:
+        # directory contains a "pytest.ini" file, error output resembles:
         #
         #    $ ./test -k test_sim_export --export-sim-conf-dir ~/tmp/yolo
         #    running test

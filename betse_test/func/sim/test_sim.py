@@ -13,87 +13,9 @@ complete BETSE solver *and* the "fast" equivalent circuit solver).
 import pytest
 from betse.util.test.pytest.mark.pytfail import xfail
 from betse.util.test.pytest.mark.pytskip import (
-    skip, skip_if_requirement, skip_unless_matplotlib_anim_writer,)
+    skip_unless_matplotlib_anim_writer,)
 
 # ....................{ TESTS                             }....................
-#FIXME: Sadly, our current approach to backward compatibility testing is
-#fundamentally flawed. Why? Because third-party dependencies (e.g., pytest,
-#setuptools) continue to break backward compatibility. Ironically, this renders
-#our own attempts to preserve backward compatibility infeasible.
-#
-#Technically, we *COULD* probably circumvent this issue by installing the older
-#version of BETSE checked out for this functional test within a virtual
-#environment of some sort (e.g., Pipenv). Doing so would invest even more
-#scarce development resources in a probably flawed testing regime, however.
-#
-#Pragmatically, the optimal approach is simply to embed a copy of the
-#"betse.data" subpackage corresponding to that of the oldest version of BETSE
-#with which we preserve backward compatibility within a new "betse_test.data"
-#subpackage -- presumably gated by version-specific subdirectories: e.g.,
-#
-#* "betse_test.data.0_5_2", containing the exact subset of files provided by
-#  the "betse.data.yaml" subdirectory of BETSE 0.5.2 required to reproduce
-#  this test's requirements.
-#* "betse_test.data.0_6_0", likewise for BETSE 0.6.0.
-#
-#In other words: *WHAT WERE WE THINKING.* Well, O.K.; we knew what we were
-#thinking. We were attempting to avoid data duplication. In this case, the
-#minimal set of all data required to safeguard backward compatibility is
-#probably of ignorable filesize. In simpler words, we chose poorly.
-
-# This function test is well-known to be incompatible with recent versions of
-# py.test, raising exceptions resembling:
-#
-#     ============================= test session starts ==============================
-#     platform linux -- Python 3.7.1, pytest-4.1.1, py-1.7.0, pluggy-0.8.0 -- /builds/betse/betse/conda-env/bin/python
-#     cachedir: .pytest_cache
-#     rootdir: /tmp/pytest-of-root/pytest-0/cli_sim_compat0/betse_old, inifile: pytest.ini
-#     collecting ...
-#     ==================================== ERRORS ====================================
-#     _________________ ERROR collecting betse_test/func/test_cli.py _________________
-#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/hooks.py:284: in __call__
-#         return self._hookexec(self, self.get_hookimpls(), kwargs)
-#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/manager.py:67: in _hookexec
-#         return self._inner_hookexec(hook, methods, kwargs)
-#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/manager.py:61: in <lambda>
-#         firstresult=hook.spec.opts.get("firstresult") if hook.spec else False,
-#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/_pytest/python.py:225: in pytest_pycollect_makeitem
-#         res = list(collector._genfunctions(name, obj))
-#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/_pytest/python.py:405: in _genfunctions
-#         self.ihook.pytest_generate_tests(metafunc=metafunc)
-#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/hooks.py:284: in __call__
-#         return self._hookexec(self, self.get_hookimpls(), kwargs)
-#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/manager.py:67: in _hookexec
-#         return self._inner_hookexec(hook, methods, kwargs)
-#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/pluggy/manager.py:61: in <lambda>
-#         firstresult=hook.spec.opts.get("firstresult") if hook.spec else False,
-#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/_pytest/python.py:132: in pytest_generate_tests
-#         metafunc.parametrize(*marker.args, **marker.kwargs)
-#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/_pytest/python.py:892: in parametrize
-#         function_definition=self.definition,
-#     /builds/betse/betse/conda-env/lib/python3.7/site-packages/_pytest/mark/structures.py:114: in _for_parametrize
-#         if len(param.values) != len(argnames):
-#     E   TypeError: object of type 'MarkDecorator' has no len()
-#
-# Since ours appears to be the only py.test-based test suite exhibiting this
-# exception, identifying and resolving the underlying culprit (e.g., by
-# monkey-patching) is effectively infeasible. Moreover, since it remains
-# unclear which py.test version introduced this incompatibility, we have little
-# choice but to skip the entire py.test 4.x release line and hope for the best.
-#FIXME: After simplifying this functional test as detailed above, remove all of
-#the following:
-#
-#* The "--export-sim-conf-dir" option, defined by the pytest_addoption() hook
-#  in the top-level "hetse_test.conftest" plugin.
-#* The "test_sim_export" submodule.
-#FIXME: Sadly, this test has had to be unconditionally disabled. Why? Because
-#it's now effectively incompatible with the modern Python stack -- not simply
-#py.test >= 4.0.0 but also PyYaml >= 5.0, which is sufficiently severe that
-#multiple platforms (including Gentoo Linux) have hard-disabled functionality
-#now required by this obsolete BETSE codebase. *sigh*
-
-@skip(reason='Incompatible with the modern Python stack.')
-# @skip_if_requirement('pytest >= 4.0.0')
 def test_cli_sim_compat( betse_cli_sim_compat: 'CLISimTester') -> None:
     '''
     Functional test exercising all simulation subcommands required to validate
@@ -105,7 +27,7 @@ def test_cli_sim_compat( betse_cli_sim_compat: 'CLISimTester') -> None:
     Design
     ----------
     Validating backward compatibility requires validating that the current
-    version of this application can successfully load *all*:
+    version of this application can successfully load all:
 
     * Simulation configuration files loadable by this older version.
     * Pickled seeds, initializations, and simulations saved by this older
@@ -135,7 +57,11 @@ def test_cli_sim_compat( betse_cli_sim_compat: 'CLISimTester') -> None:
 
     # Test all simulation-specific plotting subcommands on this configuration.
     betse_cli_sim_compat.run_subcommands(
-        *betse_cli_sim_compat.SUBCOMMANDS_PLOT,
+        #FIXME: Replace the following line with the following following line
+        #*AFTER* bundling a working v0.5.0-era pickled initialization and
+        #simulation with our test suite.
+        *betse_cli_sim_compat.SUBCOMMANDS_TRY,
+        # *betse_cli_sim_compat.SUBCOMMANDS_PLOT,
 
         # Avoid overwriting the previously exported simulation configuration.
         is_overwrite_conf=False)

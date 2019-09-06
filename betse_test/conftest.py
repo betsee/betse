@@ -41,19 +41,6 @@ from betse_test.fixture.simconf.simconfer import (
 #inevitably required yet again.
 # from betse_test.fixture.initter import betse_init_session
 
-# ....................{ GLOBALS                           }....................
-EXPORT_SIM_CONF_DIRNAME = None
-'''
-Absolute or relative dirname of the target directory to export (i.e.,
-recursively copy) each source simulation configuration directory into if any
-*or* ``None`` otherwise.
-
-See Also
-----------
-:func:`pytest_configure`
-    Further details.
-'''
-
 # ....................{ HOOKS ~ configure                 }....................
 def pytest_configure(config) -> None:
     '''
@@ -65,15 +52,6 @@ def pytest_configure(config) -> None:
 
     * Instantiates and initializes the application metadata singleton in a
       manner suitable for unit testing.
-    * The global :attr:`EXPORT_SIM_CONF_DIRNAME` variable is defined as follows
-      for subsequent lookup from module scope (e.g., pytest markers):
-
-      * If the custom ``--export-sim-conf-dir`` command-line option was passed
-        by the caller (as parsed by the root :mod:`conftest` module), this
-        variable's value is that of this option's (i.e., the absolute or
-        relative dirname of the target directory to export and hence
-        recursively copy each source simulation configuration directory into).
-      * Else, this variable's value is ``None``.
 
     See Also
     ----------
@@ -84,26 +62,8 @@ def pytest_configure(config) -> None:
     # Defer heavyweight imports.
     from betse_test.fixture import initter
 
-    # Global variables to be set below.
-    global EXPORT_SIM_CONF_DIRNAME
-
     # Prepend a leading newline, which py.test curiously neglects to do itself.
     print('\n')
-
-    # Globalize the value of the application-specific "--export-sim-conf-dir"
-    # command-line option if any for subsequent lookup from module scope.
-    #
-    # This is required as the "pytest.config" object is no longer safely
-    # accessible from module scope. Attempting to do so now results in a
-    # deprecation warning resembling:
-    #     PytestDeprecationWarning: the `pytest.config` global is deprecated.
-    #     Please use `request.config` or `pytest_configure` (if you're a pytest
-    #     plugin) instead.
-    #
-    # This ad-hoc circmvention is shamelessly inspired by the following
-    # exhaustive StackOverflow treatise on this subject:
-    #     https://stackoverflow.com/a/51884507/2809027
-    EXPORT_SIM_CONF_DIRNAME = config.getoption('export_sim_conf_dirname')
 
     # Initialize the application metadata singleton.
     initter.init_app()

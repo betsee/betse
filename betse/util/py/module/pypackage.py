@@ -164,7 +164,7 @@ def get_package_project_dirname_or_none(
     script) governing the passed top-level Python package if found *or* raise
     an exception otherwise (i.e., if this directory is *not* found).
 
-    Equivalently, this is the same as:
+    Equivalently, this is the same as both:
 
     * The root directory archived by release tarballs for this application.
     * The Git-based working tree for this application (i.e., the top-level

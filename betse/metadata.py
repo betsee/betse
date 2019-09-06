@@ -222,32 +222,24 @@ Machine-readable application version as a tuple of integers.
 '''
 
 # ....................{ METADATA ~ tag                    }....................
-GIT_TAG_OLDEST_BACKWARD_COMPATIBILITY = 'v0.8.4'
+GIT_TAG_COMPAT_OLDEST = 'v0.5.0'
 '''
-Oldest Git tag for which this application guarantees backward compatibility.
+Git-specific tag of the oldest version of this application for which the
+current version of this application guarantees backward compatibility.
 
-In the context of this application, "backward compatibility" specifically means
-the capacity for versions of this application newer than this Git tag to
-successfully load *all*:
+In this context, the term "backward compatibility" means the capacity for all
+versions of this application newer than this tag to successfully load all:
 
 * Simulation configuration files loadable by this older version.
 * Pickled seeds, initializations, and simulations saved by this older version.
 
-This specific version is selected for the following reasons:
-
-* Version 0.5.2 would be preferable, but is fundamentally incompatible with
-  setuptools >= 38.0.0 and is thus uninstallable on *all* modern platforms.
-* Version 0.7.0 resolves this incompatibility and is thus actually installable.
-  Unfortunately, this version is fundamentally incompatible with modern
-  versions of :mod:`pytest` and is thus equally useless for most purposes.
-* Version 0.8.0 resolves both incompatibilities, but suffers one or more fatal
-  configuration-related errors at simulation time and is thus equally unusable.
-* Version 0.8.4 resolves both incompatibilities as well as these errors and is
-  thus both installable *and* usable... but for how long?
+This specific version was selected for the simple reason that this was the
+first version of this application to guarantee backward compatibility, as
+implemented by the :mod:`betse.science.compat.compatconf` submodule.
 
 See Also
 ----------
-:func:`betse_test.func.sim.test_sim.test_cli_sim_backward_compatibility`
+:func:`betse_test.func.sim.test_sim.test_cli_sim_compat`
     Functional test in our test suite programmatically guaranteeing backward
     compatibility with this older version.
 '''

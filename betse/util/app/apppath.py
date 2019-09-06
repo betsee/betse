@@ -73,7 +73,7 @@ def get_pathname(package: ModuleOrStrTypes, pathname: str) -> str:
 
     Returns
     ----------
-    Absolute path of this pathname relative to the absolute path of this
+    Absolute pathname of this path relative to the absolute pathname of this
     application package.
 
     Raises

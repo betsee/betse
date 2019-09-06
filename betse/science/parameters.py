@@ -1525,13 +1525,7 @@ class Parameters(YamlFileDefaultABC):
                 'this simulation configuration.')
 
     # ..................{ SUPERCLASS                        }..................
-    #FIXME: Actually implement this properly. Ideally, this method should
-    #return the set of all subdirectories internally referenced by the current
-    #top-level YAML file. Instead, it simply returns all subdirectories
-    #internally referenced by the *DEFAULT* top-level YAML file. Why? Because
-    #the latter was much easier than the former, despite being wrong. Laziness
-    #prevails!
-    def _iter_conf_subdirnames(self) -> IterableTypes:
+    def _iter_conf_subdir_basenames(self) -> IterableTypes:
 
         # If no YAML file has been loaded yet, raise an exception.
         self.die_unless_loaded()

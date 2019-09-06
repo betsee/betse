@@ -392,8 +392,11 @@ def get_dirname(module: ModuleOrStrTypes) -> str:
     '''
     Absolute dirname of the directory providing the passed module or package.
 
-    If this module is a non-namespace package, this is the directory containing
-    this package's top-level ``__init__`` submodule.
+    Specifically, if the passed module is a:
+
+    * Module, this is the directory containing this module.
+    * Non-namespace package, this is the directory containing this package's
+      top-level ``__init__`` submodule.
 
     Caveats
     ----------
@@ -434,23 +437,10 @@ def get_dirname_canonical(module: ModuleOrStrTypes) -> str:
     **Absolute canonical dirname** (i.e., absolute dirname after resolving
     symbolic links) of the directory providing the passed module or package.
 
-    If this module is a non-namespace package, this is the directory containing
-    this package's top-level ``__init__`` submodule.
-
-    Parameters
+    See Also
     ----------
-    module : ModuleOrStrTypes
-        Either:
-
-        * The fully-qualified name of this module, in which case this function
-          dynamically imports this module as a non-optional side effect.
-        * A previously imported module object.
-
-    Returns
-    ----------
-    str
-        Absolute canonical dirname of the directory providing this module or
-        package.
+    :func:`get_dirname`
+        Further details.
     '''
 
     # Avoid circular import dependencies.

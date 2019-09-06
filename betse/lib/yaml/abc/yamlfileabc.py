@@ -308,7 +308,7 @@ class YamlFileABC(YamlABC):
         # If these directories differ, recursively copy all relative
         # subdirectories internally referenced and hence required by this file.
         if src_dirname != trg_dirname:
-            # For the relative dirname of each such subdirectory...
+            # For the basename of each such subdirectory...
             #
             # Note that the ideal solution of recursively copying this source
             # directory into the directory of this target file (e.g., via
@@ -320,7 +320,7 @@ class YamlFileABC(YamlABC):
             # * This target configuration file basename may differ from that of
             #   this source configuration file, necessitating a subsequent call
             #   to file.move().
-            for conf_subdirname in self._iter_conf_subdirnames():
+            for conf_subdirname in self._iter_conf_subdir_basenames():
                 # Absolute dirname of the source subdirectory.
                 src_subdirname = pathnames.join(src_dirname, conf_subdirname)
 
@@ -433,9 +433,9 @@ class YamlFileABC(YamlABC):
     # ..................{ SUBCLASS ~ optional               }..................
     # Methods intended to be optionally overriden by subclasses.
 
-    def _iter_conf_subdirnames(self) -> IterableTypes:
+    def _iter_conf_subdir_basenames(self) -> IterableTypes:
         '''
-        Generator iteratively yielding the dirname of each **requisite
+        Generator iteratively yielding the basename of each **requisite
         subdirectory** (i.e., subdirectory internally referenced and hence
         required by the YAML-formatted file currently associated with this
         configuration) of the directory containing this file.
@@ -448,7 +448,7 @@ class YamlFileABC(YamlABC):
         Yields
         ----------
         str
-            Absolute or relative pathname of each such subdirectory.
+            Basename of each such subdirectory.
         '''
 
         # If no file has been read, raise an exception.
@@ -461,6 +461,13 @@ class YamlFileABC(YamlABC):
 #FIXME: Is this genuinely required anymore? It would probably be saner to
 #simply refactor all remaining calls to the copy_default() method to call the
 #copy() method instead with the default simulation configuration file.
+#
+#The current approach is a bit too "magical." In particular, the "Parameter"
+#subclass' implementation of the "conf_default_filename" property assumes
+#the application metadata singleton to have already been initialized, inviting
+#complications whenever either that property or the copy_default() method are
+#called. Since explicit is better than implicit, our usage of properties here
+#is inadvisable at best and bug-prone at worst.
 class YamlFileDefaultABC(YamlFileABC):
     '''
     Abstract base class of all **YAML-backed defaultable file wrapper** (i.e.,
