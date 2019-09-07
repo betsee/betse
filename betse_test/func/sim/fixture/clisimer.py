@@ -69,8 +69,7 @@ def betse_cli_sim_default(
     betse_cli : CLITester
         Object running a single simulation-specific BETSE CLI subcommand.
     betse_sim_conf_default : SimConfTestInternal
-        Object encapsulating a temporary non-minified simulation configuration
-        file.
+        Wrapper around a temporary non-minified simulation configuration file.
 
     Returns
     ----------
