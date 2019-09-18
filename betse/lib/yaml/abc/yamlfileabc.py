@@ -164,7 +164,7 @@ class YamlFileABC(YamlABC):
 
     # ..................{ LOADERS                           }..................
     @type_check
-    def load(self, conf_filename: str) -> None:
+    def load(self, conf_filename: str, **kwargs) -> None:
         '''
         Deserialize (i.e., load, read) the passed YAML-formatted file into a
         low-level mapping or sequence internally persisted in this wrapper.
@@ -179,6 +179,9 @@ class YamlFileABC(YamlABC):
         conf_filename : str
             Absolute or relative filename of the source file to be
             deserialized.
+
+        All remaining keyword arguments are passed as is to the
+        :func:`betse.lib.yaml.yamls.load` function.
         '''
 
         # If a file is already loaded, unload this file for safety. While doing
@@ -192,7 +195,7 @@ class YamlFileABC(YamlABC):
         logs.log_debug('Loading YAML file: %s', conf_filename)
 
         # Low-level dictionary deserialized from this file.
-        conf = yamls.load(filename=conf_filename)
+        conf = yamls.load(filename=conf_filename, **kwargs)
 
         # Load this dictionary into our superclass.
         super().load(conf=conf)

@@ -481,8 +481,15 @@ class Parameters(YamlFileDefaultABC):
         # Avoid circular import dependencies.
         from betse.science.compat import compatconf
 
-        # Defer to the superclass implementation.
-        super().load(*args, **kwargs)
+        # Version of the YAML specification this file is implicitly assumed to
+        # comply with, preserving backward compatibility with older files
+        # erroneously prefaced by the "%YAML 1.1" directive.
+        YAML_VERSION = '1.2'
+
+        # Load this file under the typically safe assumption this file complies
+        # with the YAML 1.2 specification, preserving backward compatibility
+        # with older files erroneously prefaced by the "%YAML 1.1" directive.
+        super().load(*args, yaml_version=YAML_VERSION, **kwargs)
 
         # Preserve backward compatibility with prior configuration formats
         # *BEFORE* other initialization, which expects the passed YAML file to
@@ -774,10 +781,17 @@ class Parameters(YamlFileDefaultABC):
             # self.mol_mit_enabled = self.network_config['enable mitochondria']
             self.mol_mit_enabled = False
             self.expression_data_path_rel = self.network_config.get('expression data file', None)
-            if self.expression_data_path_rel is not None and self.expression_data_path_rel != "None":
+
+            if (self.expression_data_path_rel is not None and
+                self.expression_data_path_rel != 'None'):
                 self.expression_data_path = pathnames.join(
                     self.conf_dirname, self.expression_data_path_rel)
-                self.expression_data = yamls.load(filename=self.expression_data_path)
+
+                # Load this file under the assumption this file complies with a
+                # sane version of the YAML specification.
+                self.expression_data = yamls.load(
+                    filename=self.expression_data_path,
+                    yaml_version=YAML_VERSION)
         else:
             self.mol_mit_enabled = False
 
@@ -787,9 +801,13 @@ class Parameters(YamlFileDefaultABC):
 
         self.grn_enabled = self._conf['gene regulatory network settings']['gene regulatory network simulated']
 
-        # If a GRN is enabled, load this GRN from this file.
+        # If a GRN is enabled...
         if self.grn_enabled:
-            self.grn.load(conf_filename=self.grn_config_filename)
+            # Load this GRN from this file under the assumption this file
+            # complies with a sane version of the YAML specification.
+            self.grn.load(
+                conf_filename=self.grn_config_filename,
+                yaml_version=YAML_VERSION)
 
         simgrndic = (
             self._conf['gene regulatory network settings']['sim-grn settings'])

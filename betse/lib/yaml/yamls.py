@@ -16,7 +16,9 @@ from betse.util.io import iofiles
 from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.util.type.obj import objects
-from betse.util.type.types import type_check, MappingOrSequenceTypes
+from betse.util.type.types import (
+    type_check, MappingOrSequenceTypes, StrOrNoneTypes)
+from ruamel import yaml as ruamel_yaml
 
 # ....................{ GLOBALS                           }....................
 YAML_FILETYPES = {'yaml', 'yml',}
@@ -26,7 +28,13 @@ Set of all YAML-compliant filetypes.
 
 # ....................{ LOADERS                           }....................
 @type_check
-def load(filename: str) -> MappingOrSequenceTypes:
+def load(
+    # Mandatory parameters.
+    filename: str,
+
+    # Optional parameters.
+    yaml_version: StrOrNoneTypes = None,
+) -> MappingOrSequenceTypes:
     '''
     Load (i.e., open and read, deserialize) and return the contents of the
     YAML-formatted file with the passed path as either a dictionary or list
@@ -36,6 +44,11 @@ def load(filename: str) -> MappingOrSequenceTypes:
     ----------
     filename : str
         Absolute or relative filename of the YAML-formatted file to be loaded.
+    yaml_version: StrOrNoneTypes
+        Version of the YAML specification (e.g., 1.1, 1.2) to forcefully assume
+        this file to be compliant with, overriding any version directive
+        prefacing this file (e.g., ``%YAML 1.2``). Defaults to ``None``, in
+        which case the version directive prefacing this file is deferred to.
 
     Returns
     ----------
@@ -50,6 +63,11 @@ def load(filename: str) -> MappingOrSequenceTypes:
     with iofiles.reading_chars(filename) as yaml_file:
         # Safe roundtripping YAML parser.
         ruamel_parser = _make_ruamel_parser()
+
+        # If assuming this file to comply with a specific version of the
+        # YAML specification, inform this parser of that.
+        if yaml_version is not None:
+            ruamel_parser.version = yaml_version
 
         # Load and return the contents of this YAML file.
         return ruamel_parser.load(yaml_file)
@@ -114,7 +132,7 @@ def save(
         ruamel_parser.dump(container, yaml_file)
 
 # ....................{ MAKERS                            }....................
-def _make_ruamel_parser() -> 'ruamel.yaml.YAML':
+def _make_ruamel_parser() -> ruamel_yaml.YAML:
     '''
     Safe roundtripping :mod:`ruamel.yaml` parser, where:
 
@@ -128,7 +146,6 @@ def _make_ruamel_parser() -> 'ruamel.yaml.YAML':
 
     # Avoid circular import dependencies.
     from betse.lib.yaml import yamlrepr
-    from ruamel import yaml as ruamel_yaml
 
     # Safe roundtripping YAML parser.
     ruamel_parser = ruamel_yaml.YAML(
