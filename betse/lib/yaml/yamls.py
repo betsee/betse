@@ -13,12 +13,15 @@ file format encapsulating most input and output data for this application.
 
 # ....................{ IMPORTS                           }....................
 from betse.util.io import iofiles
+from betse.util.io.error.errwarning import ignoring_warnings
 from betse.util.io.log import logs
 from betse.util.path import pathnames
+from betse.util.type.contexts import noop_context
 from betse.util.type.obj import objects
 from betse.util.type.types import (
     type_check, MappingOrSequenceTypes, StrOrNoneTypes)
 from ruamel import yaml as ruamel_yaml
+from ruamel.yaml.error import MantissaNoDotYAML1_1Warning
 
 # ....................{ GLOBALS                           }....................
 YAML_FILETYPES = {'yaml', 'yml',}
@@ -64,13 +67,31 @@ def load(
         # Safe roundtripping YAML parser.
         ruamel_parser = _make_ruamel_parser()
 
+        # Context manager with which to load this file from this parser,
+        # defaulting to a noop context manager.
+        context_manager = noop_context()
+
         # If assuming this file to comply with a specific version of the
-        # YAML specification, inform this parser of that.
+        # YAML specification...
         if yaml_version is not None:
+            # Inform this parser of that.
+            #
+            # Sadly, this assignment is currently ignored by the subsequent
+            # call to the load() method. See also this outstanding issue:
+            #     https://bitbucket.org/ruamel/yaml/issues/320/yamlload-ignores-yamlversion
             ruamel_parser.version = yaml_version
 
-        # Load and return the contents of this YAML file.
-        return ruamel_parser.load(yaml_file)
+            # If assuming this file to *NOT* comply with version 1.1 of this
+            # specification, ignore YAML 1.1-specific warnings. Ideally, the
+            # prior assignment would suffice; since it does *NOT*, we have no
+            # recourse but to ignore these warnings explicitly.
+            if yaml_version != '1.1':
+                context_manager = ignoring_warnings(
+                    MantissaNoDotYAML1_1Warning)
+
+        # Load and return the contents of this file with this context manager.
+        with context_manager:
+            return ruamel_parser.load(yaml_file)
 
 # ....................{ SAVERS                            }....................
 @type_check
