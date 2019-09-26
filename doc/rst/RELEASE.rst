@@ -262,7 +262,7 @@ BETSE is releasable to all supported platforms as follows:
 #. **Reinstall this package.** Doing so updates the setuptools-specific
    version associated with its internal installation of this package, ensuring
    that subsequent attempts to install downstream packages requiring this
-   version (e.g., BETSEE, BiCoDi) will succeed as expected.
+   version (e.g., BETSEE) will succeed as expected.
 
    .. code-block:: console
 
