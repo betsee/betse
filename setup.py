@@ -59,6 +59,12 @@ tasks (e.g., installation, freezing, test running) for this application.
 #FIXME: Consider wrapping on Windows with "pynsist", a framework for generating
 #Windows installers bundling Python applications complete with a Python
 #interpreter and requisite packages.
+#FIXME: Alternately, consider usage of Briefcase, which integrates cleanly with
+#"poetry" and purports to centralize generation of platform-specific
+#executables in a platform-agnostic way -- presumably by leveraging PyInstaller
+#and similar lower-level frameworks under the hood. Sadly, Briefcase is
+#extremely immature as of this writing (i.e., 2019 Q4) and inappropriate for
+#production-ready applications.
 #FIXME: Likewise, consider the PySide2- and PyQt5-specific "fman" build system
 #integrating Qt, PySide2, PyInstaller, NSIS (under Windows), and ".deb" (under
 #Ubuntu) for automated packaging of PySide2 applications. See also:
