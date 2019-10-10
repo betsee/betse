@@ -368,20 +368,58 @@ def copy(
 
 # ....................{ REMOVERS                          }....................
 @type_check
-def remove_if_found(filename: str) -> None:
+def remove_file(filename: str) -> None:
     '''
-    Remove the passed non-directory file if this file currently exists.
+    Remove the non-directory file with the passed filename.
 
-    If this file does *not* currently exist, this function reduces to a noop.
+    Parameters
+    ----------
+    filename : str
+        Absolute or relative filename of the file to be removed.
+
+    Raises
+    ----------
+    BetseFileException
+        If this file does *not* exist.
+    FileNotFoundError
+        If this file did exist at the time this function was called but was
+        removed immediately before this function called the low-level
+        :func:`os.remove` function -- or, in simpler words, if a filesystem
+        race condition occurs.
+    '''
+
+    # Log this removal.
+    logs.log_debug('Removing file: %s', filename)
+
+    # If this file does *NOT* exist, raise an exception.
+    die_unless_file(filename)
+
+    # Remove this file. Note that the os.remove() and os.unlink() functions are
+    # identical. (That was a tad silly, Guido.)
+    os.remove(filename)
+
+
+@type_check
+def remove_file_if_found(filename: str) -> None:
+    '''
+    Remove the non-directory file with the passed filename if this file exists
+    *or* silently reduce to a noop otherwise (i.e., if this file does *not*
+    exist).
+
     For safety, this function removes this file atomically; in particular, this
     file's existence is *not* explicitly tested for.
+
+    Parameters
+    ----------
+    filename : str
+        Absolute or relative filename of the file to be removed.
     '''
 
     # Log this removal if the subsequent removal attempt is likely to actually
     # remove a file. Due to race conditions with other threads and processes,
     # this file could be removed after this test succeeds but before the
     # removal is performed. Since this is largely ignorable, the worst case is
-    # an extraneous log message.
+    # an extraneous log message. *collective_shrug*
     if is_file(filename):
         logs.log_debug('Removing file: %s', filename)
 
@@ -393,20 +431,3 @@ def remove_if_found(filename: str) -> None:
     # If this file does *NOT* exist, ignore this exception.
     except FileNotFoundError:
         pass
-
-
-@type_check
-def remove(filename: str) -> None:
-    '''
-    Remove the passed non-directory file.
-    '''
-
-    # Log this removal.
-    logs.log_debug('Removing file: %s', filename)
-
-    # Raise an exception unless this file exists.
-    die_unless_file(filename)
-
-    # Remove this file. Note that the os.remove() and os.unlink() functions are
-    # identical. (That was a tad silly, Guido.)
-    os.remove(filename)

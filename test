@@ -29,14 +29,14 @@ script_filename="$(canonicalize_path "${BASH_SOURCE[0]}")"
 
 # Absolute or relative dirname of the directory directly containing this
 # script, equivalent to the top-level directory for this project.
-betse_dirname="$(dirname "${script_filename}")"
+script_dirname="$(dirname "${script_filename}")"
 
-# ....................{ TESTS                             }....................
+# ....................{ MAIN                              }....................
 # Temoprarily change the current working directory to that of this project.
-pushd "${betse_dirname}" >/dev/null
+pushd "${script_dirname}" >/dev/null
 
 # Run this project's test suite with all passed arguments.
-python3 setup.py test "${@}"
+command python3 setup.py test "${@}"
 
 # 0-based exit code reported by the prior command.
 exit_code=$?

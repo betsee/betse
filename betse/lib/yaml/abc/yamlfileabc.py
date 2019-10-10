@@ -328,7 +328,7 @@ class YamlFileABC(YamlABC):
                 src_subdirname = pathnames.join(src_dirname, conf_subdirname)
 
                 # Recursively copy from the old into the new subdirectory.
-                dirs.copy_into_dir(
+                dirs.copy_dir_into_dir(
                     src_dirname=src_subdirname,
                     trg_dirname=trg_dirname,
                     overwrite_policy=conf_subdir_overwrite_policy,

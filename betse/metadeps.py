@@ -38,9 +38,19 @@ from collections import namedtuple
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 RUNTIME_MANDATORY = {
+    #FIXME: Extract into a global constant and validate at installation time.
+    #See the BETSEE codebase for requisite logic.
+
     # setuptools is currently required at both install and runtime. At runtime,
-    # setuptools is used to validate that dependencies are available.
-    'setuptools': '>= 3.3',
+    # setuptools is used to validate that dependencies are available. Notably:
+    #
+    # * setuptools 36.7.2 is the oldest version for which the
+    #   setuptools.command.easy_install.ScriptWriter.get_script_args() class
+    #   method is known to have been deprecated. Technically, older versions
+    #   probably exist. Since official setuptools documentation fails to
+    #   specify the exact version that first deprecated this method, we have no
+    #   sane recourse but to accept this "old enough" version from 2017.
+    'setuptools': '>= 36.7.2',
 
     # Dependencies directly required by this application. Notably:
     #
@@ -170,11 +180,11 @@ See Also
 
 # ....................{ LIBS ~ testing : mandatory        }....................
 TESTING_MANDATORY = {
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # WARNING: This py.test requirement *MUST* be manually synchronized to the
     # same requirement in the downstream "betsee.guimetadeps" submodule.
     # Failure to do so is guaranteed to raise exceptions at BETSEE startup.
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     # For simplicity, py.test should remain the only hard dependency for
     # testing on local machines. While our setuptools-driven testing regime

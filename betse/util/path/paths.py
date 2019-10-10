@@ -414,32 +414,94 @@ def get_mtime_recursive_newest(pathnames: IterableTypes) -> NumericSimpleTypes:
 
 # ....................{ MOVERS                             }....................
 @type_check
-def move(pathname_source: str, pathname_target: str) -> None:
+def move_path(src_pathname: str, trg_pathname: str) -> None:
     '''
-    Move the passed source to target path.
+    Move the source path with the passed pathname to the target path with the
+    passed pathname.
 
-    Such path will be moved in a manner maximally preserving metadata (e.g.,
-    owner, group, permissions, times, extended file system attributes).
-    Likewise, if such source path is a symbolic link, such link (rather than its
-    transitive target) will be moved and hence preserved.
+    This function moves this source path in a manner that maximally preserves
+    metadata (e.g., owner, group, permissions, times, extended file system
+    attributes). Likewise, if this source path is a symbolic link, this
+    function moves (and hence preserves) this link rather than its transitive
+    target.
 
-    If either the source path does not exist *or* the target path already
-    exists, an exception will be raised.
+    Parameters
+    ----------
+    src_pathname: str
+        Absolute or relative pathname of the source path to be copied from.
+    trg_pathname: str
+        Absolute or relative pathname of the target path to be copied to.
+
+    Raises
+    ----------
+    BetsePathException
+        If either:
+
+        * The source path does *not* exist.
+        * The target path already exists.
     '''
 
-    # Log such move in a contextual manner.
+    # Log this move.
     logs.log_debug(
-        'Moving %s "%s" to "%s".',
-        get_type_label(pathname_source), pathname_source, pathname_target)
+        'Moving %s: %s -> %s',
+        get_type_label(src_pathname), src_pathname, trg_pathname)
 
-    # Raise an exception unless the source path exists.
-    die_unless_path(pathname_source)
+    # If this source path does *NOT* exist, raise an exception.
+    die_unless_path(src_pathname)
 
-    # Raise an exception if the target path already exists. This is essential to
-    # sane cross-platform semantics. shutil.move() is implemented in terms of
-    # os.rename(), which overwrites such path if such path is a non-directory
-    # file depending on platform. In most cases, that's bad.
-    die_if_path(pathname_target)
+    # If the target path already exists, raise an exception.
+    #
+    # Note that this is essential to sane cross-platform semantics. The
+    # shutil.move() function is implemented in terms of os.rename(), which
+    # overwrites the passed path if that path is a non-directory file
+    # contextually depending on platform. (In most cases, that's bad.)
+    die_if_path(trg_pathname)
 
-    # Perform such move.
-    shutil.move(pathname_source, pathname_target)
+    # Move this source to target path.
+    shutil.move(src_pathname, trg_pathname)
+
+# ....................{ REMOVERS                          }....................
+@type_check
+def remove_path(pathname: str) -> None:
+    '''
+    Recursively remove the passed path in a reasonable manner (e.g., *not*
+    following symbolic links outside this path if this path is a directory).
+
+    Caveats
+    ----------
+    Recursive directory removal is an inherently dangerous operation. If this
+    path is a directory rather than a file, this function (in order):
+
+    1. Notifies the end user with a logged warning.
+    1. Waits several seconds, enabling sufficiently aware end users to jam the
+       panic button.
+    1. Recursively removes this directory.
+
+    Parameters
+    ----------
+    pathname: str
+        Absolute or relative pathname of the source path to be copied from.
+
+    Raises
+    ----------
+    BetsePathException
+        If this path does *not* exist.
+
+    See Also
+    ----------
+    :func:`betse.util.path.dirs.remove_dir`
+    :func:`betse.util.path.files.remove_file`
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs, files
+
+    # If this path does *NOT* exist, raise an exception.
+    die_unless_path(pathname)
+
+    # If this path is a directory, remove this directory.
+    if dirs.is_dir(pathname):
+        dirs.remove_dir(pathname)
+    # Else, remove this file.
+    else:
+        files.remove_file(pathname)

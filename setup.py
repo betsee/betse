@@ -173,8 +173,8 @@ _setup_options = {
         python_version_min_parts=metadata.PYTHON_VERSION_MIN_PARTS,
         python_version_minor_max=metadata.PYTHON_VERSION_MINOR_MAX,
     ),
-    'keywords':    _KEYWORDS,
-    'license':     metadata.LICENSE,
+    'keywords': _KEYWORDS,
+    'license': metadata.LICENSE,
 
     # ..................{ DEPENDENCIES                      }..................
     # Mandatory runtime dependencies.
@@ -232,20 +232,6 @@ _setup_options = {
         'console_scripts': (
             '{0} = {0}.__main__:main'.format(metadata.PACKAGE_NAME)),
     },
-
-    #FIXME; This isn't quite true. Undesirable files are excludable in this
-    #file via the whitelist approach of "package_data" and/or blacklist approach
-    #of "exclude_package_data". This functionality may or may not require the
-    #external "setuptools-git" plugin, but is certainly feasible. See also the
-    #comprehensive documentation at:
-    #https://pythonhosted.org/setuptools/setuptools.html#including-data-files
-    #FIXME: O.K.; if "'include_package_data': True" ends up not working for us,
-    #contemplate:
-    #
-    #    'package_data': {
-    #        # Include all files in all packages matching the following.
-    #        '': ['*.txt', '*.xml', '*.special', '*.huh'],
-    #    },
 
     # Install all data files (i.e., non-Python files) embedded in the Python
     # package tree for this application.

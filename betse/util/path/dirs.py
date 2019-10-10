@@ -13,7 +13,7 @@ Low-level directory facilities.
 #with the standard dir() builtin.
 
 # ....................{ IMPORTS                           }....................
-import os, shutil
+import os, shutil, time
 from betse.exceptions import BetseDirException, BetsePathException
 from betse.util.io.log import logs
 from betse.util.type.enums import make_enum
@@ -74,7 +74,19 @@ Specifically, under:
 @type_check
 def die_if_dir(*dirnames: str) -> None:
     '''
-    Raise an exception if any of the passed directories exist.
+    Raise an exception if any of the directories with the passed dirnames
+    exist.
+
+    Parameters
+    ----------
+    dirnames: Tuple[str]
+        Tuple of the absolute or relative dirnames of all directories to be
+        validated.
+
+    Raises
+    ----------
+    BetseDirException
+        If any passed directory exists.
     '''
 
     for dirname in dirnames:
@@ -86,7 +98,22 @@ def die_if_dir(*dirnames: str) -> None:
 @type_check
 def die_unless_dir(*dirnames: str) -> None:
     '''
-    Raise an exception unless all passed directories exist.
+    Raise an exception unless all of the directories with the passed dirnames
+    exist.
+
+    Equivalently, this function raises an exception if any of these directories
+    do *not* exist.
+
+    Parameters
+    ----------
+    dirnames: Tuple[str]
+        Tuple of the absolute or relative dirnames of all directories to be
+        validated.
+
+    Raises
+    ----------
+    BetseDirException
+        If any passed directory does *not* exist.
     '''
 
     for dirname in dirnames:
@@ -149,6 +176,33 @@ def join_or_die(*pathnames: str) -> str:
     # Return this dirname.
     return dirname
 
+# ....................{ EXCEPTIONS ~ subdir               }....................
+@type_check
+def die_if_subdir(parent_dirname: str, child_dirname: str) -> None:
+    '''
+    Raise an exception if the child directory with the passed dirname actually
+    is a child (i.e., subdirectory) of the parent directory with the passed
+    dirname.
+
+    Parameters
+    ----------
+    parent_dirname: str
+        Absolute or relative dirname of the parent directory to be validated.
+    child_dirname: str
+        Absolute or relative dirname of the child directory to be validated.
+
+    Raises
+    ----------
+    BetseDirException
+        If this child directory is *not* actually a child (i.e., subdirectory)
+        of this parent directory.
+    '''
+
+    if is_subdir(parent_dirname, child_dirname):
+        raise BetseDirException(
+            '"{}" is a subdirectory of "{}".'.format(
+                child_dirname, parent_dirname))
+
 # ....................{ EXCEPTIONS ~ parent               }....................
 @type_check
 def die_unless_parent_dir(pathname: str) -> None:
@@ -168,8 +222,19 @@ def die_unless_parent_dir(pathname: str) -> None:
 def is_dir(dirname: str) -> bool:
     '''
     ``True`` only if the directory with the passed dirname exists.
+
+    Parameters
+    -----------
+    dirname : str
+        Absolute or relative dirname of the directory to be tested.
+
+    Returns
+    -----------
+    bool
+        ``True`` only if this directory exists.
     '''
 
+    # One-liners for terrible vengeance.
     return os_path.isdir(dirname)
 
 
@@ -182,7 +247,7 @@ def is_empty(dirname: str) -> bool:
     Parameters
     -----------
     dirname : str
-        Directory to be tested for emptiness.
+        Absolute or relative dirname of the directory to be tested.
 
     Returns
     -----------
@@ -201,6 +266,51 @@ def is_empty(dirname: str) -> bool:
 
     # Return true only if this directory contains no child paths.
     return not os.listdir(dirname)
+
+
+@type_check
+def is_subdir(parent_dirname: str, child_dirname: str) -> bool:
+    '''
+    ``True`` only if the child directory with the passed dirname actually is a
+    child (i.e., subdirectory) of the parent directory with the passed dirname.
+
+    Parameters
+    -----------
+    parent_dirname: str
+        Absolute or relative dirname of the parent directory to be tested.
+    child_dirname: str
+        Absolute or relative dirname of the child directory to be tested.
+
+    Returns
+    -----------
+    bool
+        ``True`` only if this child directory actually is a child (i.e.,
+        subdirectory) of this parent directory.
+
+    See Also
+    -----------
+    https://stackoverflow.com/a/37095733/2809027
+        StackOverflow answer strongly inspiring this implementation.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import pathnames
+
+    # Canonicalized child and parent dirnames, conditionally resolving both
+    # relative dirnames and symbolic links as needed.
+    #
+    # Note that the subsequently called os_path.commonpath() function
+    # explicitly requires these dirnames to be canonicalized, raising a
+    # "ValueError" exception if this is *NOT* the case.
+    parent_dirname = pathnames.canonicalize(parent_dirname)
+    child_dirname  = pathnames.canonicalize(child_dirname)
+
+    # Longest common dirname shared between these dirnames if any *OR* the root
+    # directory otherwise (e.g., "/" under Linux).
+    common_dirname = os_path.commonpath((parent_dirname, child_dirname))
+
+    # Return true only if this dirname is this parent's canonicalized dirname.
+    return parent_dirname == common_dirname
 
 # ....................{ GETTERS                           }....................
 @type_check
@@ -379,7 +489,8 @@ get_mtime_recursive_newest.__doc__ = '''
 
 # ....................{ COPIERS                           }....................
 @type_check
-def copy_into_dir(src_dirname: str, trg_dirname: str, *args, **kwargs) -> None:
+def copy_dir_into_dir(
+    src_dirname: str, trg_dirname: str, *args, **kwargs) -> None:
     '''
     Recursively copy the source directory with the passed dirname to a
     subdirectory of the target directory with the passed dirname whose basename
@@ -388,16 +499,15 @@ def copy_into_dir(src_dirname: str, trg_dirname: str, *args, **kwargs) -> None:
     Parameters
     -----------
     src_dirname : str
-        Absolute or relative dirname of the source directory to be recursively
-        copied from.
+        Absolute or relative dirname of the source directory to be copied from.
     trg_dirname : str
-        Absolute or relative dirname of the target directory to copy into.
+        Absolute or relative dirname of the target directory to be copied into.
 
     All remaining parameters are passed as is to the :func:`copy` function.
 
     See Also
     ----------
-    :func:`copy`
+    :func:`copy_dir`
         Further details.
 
     Examples
@@ -418,11 +528,12 @@ def copy_into_dir(src_dirname: str, trg_dirname: str, *args, **kwargs) -> None:
     trg_subdirname = pathnames.join(trg_dirname, src_basename)
 
     # Recursively copy this source to target directory.
-    copy(*args, src_dirname=src_dirname, trg_dirname=trg_subdirname, **kwargs)
+    copy_dir(
+        *args, src_dirname=src_dirname, trg_dirname=trg_subdirname, **kwargs)
 
 
 @type_check
-def copy(
+def copy_dir(
     # Mandatory parameters.
     src_dirname: str,
     trg_dirname: str,
@@ -447,11 +558,9 @@ def copy(
     Parameters
     -----------
     src_dirname : str
-        Absolute or relative dirname of the source directory to be recursively
-        copied from.
+        Absolute or relative dirname of the source directory to be copied from.
     trg_dirname : str
-        Absolute or relative dirname of the target directory to recursively
-        copy to.
+        Absolute or relative dirname of the target directory to be copied to.
     overwrite_policy : DirOverwritePolicy
         **Directory overwrite policy** (i.e., strategy for handling existing
         paths to be overwritten by this copy). Defaults to
@@ -473,6 +582,10 @@ def copy(
         If either:
 
         * The source directory does *not* exist.
+        * The target directory is a subdirectory of the source directory.
+          Permitting this edge case induces non-trivial issues, including
+          infinite recursion from within the musty entrails of the
+          :mod:`distutils` package (e.g., due to relative symbolic links).
         * The passed ``overwrite_policy`` parameter is
           :attr:`DirOverwritePolicy.HALT_WITH_EXCEPTION` *and* one or more
           subdirectories of the target directory already exist that are also
@@ -493,12 +606,11 @@ def copy(
     # If the source directory does *NOT* exist, raise an exception.
     die_unless_dir(src_dirname)
 
-    #FIXME: Uncomment the following after defining a die_if_subdir() function.
     # If the target directory is a subdirectory of the source directory, raise
     # an exception. Permitting this edge case provokes issues, including
     # infinite recursion from within the musty entrails of the "distutils"
     # codebase (possibly due to relative symbolic links).
-    #die_if_subdir(dir=src_dirname, subdir=trg_dirname)
+    die_if_subdir(parent_dirname=src_dirname, child_dirname=trg_dirname)
 
     # If passed an iterable of shell-style globs matching ignorable basenames,
     # convert this iterable into a predicate function of the form required by
@@ -930,6 +1042,52 @@ def recurse_subdirnames(dirname: str) -> GeneratorType:
     # Return a generator comprehension trivially yielding the absolute or
     # relative dirname of each subdirectory of this directory.
     return (subdirname for subdirname, _, _ in _walk(dirname))
+
+# ....................{ REMOVERS                          }....................
+@type_check
+def remove_dir(dirname: str) -> None:
+    '''
+    Recursively remove the directory with the passed dirname.
+
+    Caveats
+    ----------
+    Since recursive directory removal is an inherently dangerous operation,
+    this function (in order):
+
+    1. Notifies the end user with a logged warning.
+    1. Waits several seconds, enabling sufficiently aware end users to jam the
+       panic button.
+    1. Recursively removes this directory.
+
+    Parameters
+    ----------
+    dirname : str
+        Absolute or relative dirname of the directory to be removed.
+
+    Raises
+    ----------
+    BetseDirException
+        If this directory does *not* exist.
+    '''
+
+    # Number of seconds to busywait before removing this directory.
+    SLEEP_SECONDS = 4
+
+    # Log this removal.
+    logs.log_warning(
+        'Removing directory in %d seconds: %s', dirname, SLEEP_SECONDS)
+
+    # If this directory does *NOT* exist, raise an exception.
+    die_unless_dir(dirname)
+
+    # Busywait this number of seconds.
+    time.sleep(SLEEP_SECONDS)
+
+    # Recursively remove this directory.
+    shutil.rmtree(dirname)
+
+    # Log this successful completion.
+    logs.log_info('Directory removed.')
 
 # ....................{ PRIVATE ~ raisers                 }....................
 @type_check

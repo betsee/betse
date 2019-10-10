@@ -37,8 +37,8 @@ side effects, we adopt the former approach.
 '''
 
 # ....................{ IMPORTS                           }....................
-import importlib, os, platform, shutil, subprocess, sys, time
-from distutils.errors import DistutilsFileError, DistutilsModuleError
+import os, platform, shutil, subprocess, sys, time
+from distutils.errors import DistutilsFileError
 from os import path
 
 # ....................{ EXCEPTIONS ~ path                 }....................
@@ -289,55 +289,6 @@ def is_symlink(filename: str) -> bool:
     assert isinstance(filename, str), '"{}" not a string.'.format(filename)
     return path.islink(filename)
 
-
-def is_pathable(command_basename: str) -> bool:
-    '''
-    `True` only if the external command with the passed basename exists (i.e.,
-    is an executable file in the current `${PATH}`).
-    '''
-
-    # Sanitize this command basename.
-    command_basename = sanitize_command_basename(command_basename)
-
-    # Return whether this command is found or not.
-    return shutil.which(command_basename) is not None
-
-# ....................{ GETTERS ~ io                      }....................
-def get_command_output(*args) -> str:
-    '''
-    Get all standard output and error captured by running the external shell
-    command signified by the passed list if this command succeeds or raise an
-    exception detailing this command's failure otherwise.
-
-    Parameters
-    ----------
-    *args : list
-        List of shell words comprising this command. The first item of this
-        list should be the pathname for this command; all remaining items
-        should be the arguments to pass this command.
-
-    Returns
-    ----------
-    str
-        All standard output and error captured by running this command,
-        interleaved together in output order, stripped of all trailing
-        newlines (as under most POSIX shells), *and* decoded via the current
-        locale's preferred encoding (e.g., UTF-8).
-    '''
-
-    command_output = subprocess.check_output(
-        args,
-
-        # Redirect standard error to output.
-        stderr=subprocess.STDOUT,
-
-        # Decode this output using the current locale's preferred encoding.
-        universal_newlines=True,
-    )
-
-    # Get this output, stripped of all trailing newlines.
-    return command_output.rstrip('\n')
-
 # ....................{ GETTERS ~ io : file               }....................
 def get_chars(filename: str, encoding: str = 'utf-8') -> str:
     '''
@@ -541,182 +492,8 @@ def sanitize_command_basename(command_basename: str) -> str:
     return command_basename
 
 # ....................{ OUTPUTTERS                        }....................
-def output_sans_newline(*strings) -> None:
-    '''
-    Print the passed strings to standard output *not* suffixed by a newline.
-
-    By default, printed strings are suffixed by a newline.
-    '''
-    print(*strings, end = '')
-
-
 def output_warning(*warnings) -> None:
     '''
     Print the passed warning messages to standard error.
     '''
     print('WARNING: ', *warnings, file=sys.stderr)
-
-# ....................{ QUOTERS                           }....................
-def shell_quote(text: str) -> str:
-    '''
-    Shell-quote the passed string.
-
-    If the current operating system is:
-
-    * *Not* Windows (e.g., Linux, OS X), the returned string is guaranteed to be
-      suitable for passing as an arbitrary positional argument to external
-      commands.
-    * Windows, the returned string is suitable for passing *only* to external
-      commands parsing arguments according in the same manner as the Microsoft
-      C runtime. Whereas *all* applications running under POSIX-compliant
-      systems are required to parse arguments in the same manner (e.g.,
-      according to Bourne shell lexing), no such standard applies to
-      applications running under Windows. For this reason, shell quoting is
-      inherently unreliable under Windows.
-    '''
-    assert isinstance(text, str), '"{}" not a string.'.format(text)
-
-    # If the current OS is vanilla Windows, do *NOT* perform POSIX-compatible
-    # quoting. Vanilla Windows is POSIX-incompatible and hence does *NOT* parse
-    # command-line arguments according to POSIX standards. In particular,
-    # vanilla Windows does *NOT* treat single-quoted arguments as single
-    # arguments but rather as multiple shell words delimited by the raw literal
-    # `'`. This is circumventable by calling an officially undocumented
-    # Windows-specific Python function. (Awesome.)
-    if is_os_windows_vanilla():
-        return subprocess.list2cmdline([text])
-    # Else, perform POSIX-compatible quoting.
-    else:
-        import shlex
-        return shlex.quote(text)
-
-# ....................{ MAKERS                            }....................
-def make_dir_unless_found(dirname: str) -> None:
-    '''
-    Create the passed directory if such directory does *not* already exist.
-
-    All nonexistent parents of such directory will also be recursively created,
-    mimicking the action of the conventional shell command `mkdir -p`.
-    '''
-    assert isinstance(dirname, str), '"{}" not a string.'.format(dirname)
-    assert len(dirname), 'Dirname empty.'
-
-    # If such directory does *NOT* already exist, create such directory. To
-    # support logging, such condition is explicitly tested for. To avoid race
-    # conditions (e.g., in the event such directory is created between testing
-    # and creating such directory), we preserve the makedirs() keyword argument
-    # "exist_ok = True".
-    if not is_dir(dirname):
-        # Log such creation.
-        print('Creating directory "{}".'.format(dirname))
-
-        # Create such directory if still needed.
-        os.makedirs(dirname, exist_ok = True)
-
-
-def make_symlink(pathname_source: str, filename_target: str) -> None:
-    '''
-    Symbolically link the passed source path to the passed target symlink.
-
-    If this target is an existing symlink, this symlink will be implicitly
-    removed before being recreated.
-
-    If this source does *not* exist, an exception will be raised. Hence, this
-    function does *not* support creation of **dangling symbolic links** (i.e.,
-    links to non-existent paths).
-    '''
-
-    # If such source path does *NOT* exist, raise an exception.
-    die_unless_path(pathname_source)
-
-    # If such link currently exists, remove such link.
-    if is_symlink(filename_target):
-        remove_symlink(filename_target)
-
-    # (Re)create such link.
-    print('Symbolically linking "{}" to "{}".'.format(
-        pathname_source, filename_target))
-    os.symlink(pathname_source, filename_target)
-
-# ....................{ MOVERS                            }....................
-def move_file(filename_source: str, filename_target: str) -> None:
-    '''
-    Move the passed source to the passed target file.
-    '''
-
-    # If such file does *NOT* exist, raise an exception.
-    die_unless_file(filename_source)
-
-    # Move such file.
-    print('Moving file "{}" to "{}".'.format(filename_source, filename_target))
-    shutil.move(filename_source, filename_target)
-
-# ....................{ REMOVERS                          }....................
-def remove_path(pathname: str) -> None:
-    '''
-    Recursively remove the passed directory in a safe manner (e.g., *not*
-    following symbolic links outside such directory).
-
-    This is an inherently dangerous operation and hence delayed for several
-    seconds, allowing sufficiently aware users to jam the panic button.
-    '''
-
-    # If such path does *NOT* exist, fail.
-    die_unless_path(pathname)
-
-    # If such path is a directory, remove such directory.
-    if is_dir(pathname):
-        remove_dir(pathname)
-    # Else, remove such file.
-    else:
-        remove_file(pathname)
-
-
-def remove_dir(dirname: str) -> None:
-    '''
-    Recursively remove the passed directory in a safe manner (e.g., *not*
-    following symbolic links outside such directory).
-
-    This is an inherently dangerous operation and hence delayed for several
-    seconds, allowing sufficiently aware users to jam the panic button.
-    '''
-
-    # If such directory does *NOT* exist, fail.
-    die_unless_dir(dirname)
-
-    # For safety, wait several seconds to do so. (Read: panic button.)
-    sleep_seconds = 4
-    print('Removing directory "{}" in {} seconds...'.format(
-        dirname, sleep_seconds))
-    time.sleep(sleep_seconds)
-
-    # Remove such directory.
-    shutil.rmtree(dirname)
-    print('Removed directory "{}".'.format(dirname))
-
-
-def remove_file(filename: str) -> None:
-    '''
-    Remove the passed non-special file.
-    '''
-
-    # If such file does *NOT* exist, fail.
-    die_unless_file(filename)
-
-    # Remove such file.
-    print('Removing file "{}".'.format(filename))
-    os.unlink(filename)
-
-
-def remove_symlink(filename: str) -> None:
-    '''
-    Remove the passed symbolic link.
-    '''
-
-    # If this link does *NOT* exist, fail.
-    die_unless_symlink(filename)
-
-    # Remove this link. Since symbolic links are special files, remove_file()
-    # fails when passed such link and hence must be reimplemented here.
-    print('Removing symbolic link "{}".'.format(filename))
-    os.unlink(filename)
