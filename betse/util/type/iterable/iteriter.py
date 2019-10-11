@@ -89,15 +89,15 @@ def iter_combinations(iterable: IterableTypes, k: int) -> IterableTypes:
     ----------
         >>> from betse.util.type.iterable import iteriter
         >>> letter_to_woodburn_harris = (
-        ...     'I love to dream,',
-        ...     'but I never try to dream',
+        ...     'I love to dream, ',
+        ...     'but I never try to dream ',
         ...     'and think at the same time.')
         >>> a_lover_of_dreams = iteriter.iter_combinations(
         ...     iterable=letter_to_woodburn_harris, k=2)
         >>> tuple(a_lover_of_dreams)
-        (('I love to dream,', 'but I never try to dream'),
-         ('I love to dream,', 'and think at the same time.'),
-         ('but I never try to dream', 'and think at the same time.'))
+        (('I love to dream, ', 'but I never try to dream '),
+         ('I love to dream, ', 'and think at the same time.'),
+         ('but I never try to dream ', 'and think at the same time.'))
     '''
 
     # And then there was one... liners.

@@ -15,6 +15,37 @@ from betse.util.type import types
 from betse.util.type.types import type_check, TestableTypes
 
 # ....................{ EXCEPTIONS                        }....................
+def die_unless_is(*objs: object) -> None:
+    '''
+    Raise an exception unless all passed objects are identical.
+
+    Equivalently, this function raises an exception if any passed object is
+    *not* identical to every other passed object.
+
+    Parameters
+    ----------
+    objs : tuple[object]
+        Tuple of all objects to be validated as identical.
+
+    Raises
+    ----------
+    BetseTypeException
+        If any passed object is *not* identical to every other passed object.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.iterable import iteriter
+
+    # Iterable of all possible pairs of the passed objects.
+    obj_pairs = iteriter.iter_combinations(iterable=objs, k=2)
+
+    # For each possible pair of the passed objects...
+    for obj_a, obj_b in obj_pairs:
+        # If these two objects differ, raise an exception.
+        if obj_a is not obj_b:
+            raise BetseTypeException('{!r} not {!r}.'.format(obj_a, obj_b))
+
+# ....................{ EXCEPTIONS ~ instance             }....................
 @type_check
 def die_if_instance(obj: object, cls: TestableTypes) -> None:
     '''

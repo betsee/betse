@@ -316,11 +316,15 @@ have yet to be stabilized and hence tagged. Hence, this URL is typically valid
 '''
 
 # ....................{ METADATA ~ python                 }....................
-#FIXME: Replace all references to this global with
-#"betse.appmeta.app_meta.package_name", which supports both BETSE and BETSEE;
-#then excise this global.
 PACKAGE_NAME = NAME.lower()
 '''
 Fully-qualified name of the top-level Python package implementing this
 application.
+
+Caveats
+----------
+**Prefer the application-agnostic
+:meth:`betse.appmeta.app_meta.package_name` property instead.** This
+application-specific global fails to generalize to downstream consumers (e.g.,
+BETSEE) and hence is usable *ONLY* for low-level installation-time use cases.
 '''

@@ -9,9 +9,8 @@ High-level custom ``test`` :mod:`setuptools` subcommand.
 
 # ....................{ IMPORTS                           }....................
 import sys
-from betse.exceptions import BetseTestException
 from betse.lib.setuptools.command import supcommand
-from setuptools import Command
+from setuptools.command.test import test as TestCommand
 
 # ....................{ ADDERS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -31,9 +30,10 @@ def add_subcommand(setup_options: dict, custom_metadata: dict) -> None:
     supcommand.add_subcommand(setup_options, custom_metadata, test)
 
 # ....................{ SUBCOMMANDS                       }....................
-class test(Command):
+class test(TestCommand):
     '''
-    Command class testing the current application with :mod:`pytest`.
+    Command class exercising (i.e., testing) the current application with
+    :mod:`pytest`.
 
     Attributes
     ----------
@@ -129,7 +129,7 @@ class test(Command):
     '''
 
     # ..................{ SUPERCLASS                        }..................
-    def initialize_options(self):
+    def initialize_options(self) -> None:
         '''
         Declare option-specific attributes subsequently initialized by
         :meth:`finalize_options`.
@@ -140,6 +140,9 @@ class test(Command):
         :meth:`self.set_undefined_options` raises an inscrutable
         :mod:`setuptools` exception. (This is terrible. So much hate.)
         '''
+
+        # Initialize superclass options.
+        super().initialize_options()
 
         # Option-specific public attributes. For each option declared by the
         # "user_options" list above, a public attribute of the same name as
@@ -156,16 +159,22 @@ class test(Command):
         self._pytest_private = None
 
 
-    def finalize_options(self):
+    def finalize_options(self) -> None:
         '''
         Default undefined command-specific options to the options passed to the
         current parent command if any (e.g., ``symlink``).
         '''
 
-        pass
+        # Finalize superclass options.
+        super().initialize_options()
+
+        # Override superclass attributes as advised by py.test documentation:
+        #     https://pytest.readthedocs.io/en/2.7.3/goodpractises.html#integration-with-setuptools-test-commands
+        self.test_args = []
+        self.test_suite = True
 
 
-    def run(self):
+    def run(self) -> None:
         '''
         Run the current command and all subcommands thereof.
         '''
@@ -246,6 +255,7 @@ class test(Command):
 
         # Defer heavyweight imports, including py.test classes to be
         # monkey-patched.
+        from betse.exceptions import BetseTestException
         from betse.util.type.obj import objtest
         from _pytest.capture import CaptureManager, FDCapture, MultiCapture
 
