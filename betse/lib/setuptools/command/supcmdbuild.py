@@ -12,20 +12,22 @@ from betse.lib.setuptools.command import supcommand
 from betse.util.io import stderrs
 from betse.util.type.obj import objtest
 from betse.util.type.types import (
-    type_check, CallableTypes, ClassType, StrOrNoneTypes)
+    type_check, CallableTypes, ClassType, SetType, StrOrNoneTypes)
 from distutils.errors import DistutilsClassError
 from pkg_resources import Distribution
+from setuptools.command.develop import VersionlessRequirement
 from setuptools.command.easy_install import ScriptWriter
 
 # ....................{ GLOBALS                           }....................
-_PACKAGE_NAME = None
+_PACKAGE_NAMES = None
 '''
-Fully-qualified name of the top-level Python package implementing this
-application.
+Unordered set of the fully-qualified names of all top-level Python
+packages whose entry points are to be monkey-patched.
 
 Our monkey-patched implementation of the :meth:`ScriptWriter.get_args` class
 method defers to the original implementation of that method for all packages
-to be installed *except* this package.
+to be installed *except* these packages. For both safety and sanity, entry
+points for *all* other packages remain unaffected.
 '''
 
 
@@ -149,7 +151,10 @@ basename ``__main__``.
 
 # ....................{ INITIALIZERS                      }....................
 @type_check
-def init(package_name: str, scriptwriter_get_args_old: CallableTypes) -> None:
+def init(
+    package_names: SetType,
+    scriptwriter_get_args_old: CallableTypes,
+) -> None:
     '''
     Initialize this submodule.
 
@@ -175,16 +180,17 @@ def init(package_name: str, scriptwriter_get_args_old: CallableTypes) -> None:
 
     Parameters
     ----------
-    package_name : str
-        Fully-qualified name of the top-level Python package implementing this
-        application.
+    package_names : SetType
+        Unordered set of the fully-qualified names of all top-level Python
+        packages whose entry points are to be monkey-patched. Entry points for
+        *all* other packages remain unaffected, for both safety and sanity.
     scriptwriter_get_args_old : CallableTypes
         Original (i.e., pre-monkey-patched) implementation of the
         :meth:`ScriptWriter.get_args` class method.
     '''
 
     # Globals to be defined below.
-    global _PACKAGE_NAME, _SCRIPTWRITER_GET_ARGS_OLD
+    global _PACKAGE_NAMES, _SCRIPTWRITER_GET_ARGS_OLD
 
     # print(
     #     'Monkey-patching class method '
@@ -202,8 +208,8 @@ def init(package_name: str, scriptwriter_get_args_old: CallableTypes) -> None:
             '(unlikely) or unsupported (likely).'
         )
 
-    # Preserve the passed package name.
-    _PACKAGE_NAME = package_name
+    # Preserve all passed package names.
+    _PACKAGE_NAMES = package_names
 
     # Preserve the existing implementation of this class method, which our
     # monkey-patch implementation conditionally calls as needed.
@@ -222,7 +228,7 @@ def init(package_name: str, scriptwriter_get_args_old: CallableTypes) -> None:
 @type_check
 def _scriptwriter_get_args_patched(
     cls: ClassType,
-    distribution: Distribution,
+    distribution: (Distribution, VersionlessRequirement),
     script_shebang: StrOrNoneTypes = None,
 ):
     '''
@@ -235,12 +241,21 @@ def _scriptwriter_get_args_patched(
     ----------
     cls : ClassType
         The :class:`ScriptWriter` class.
-    distribution : Distribution
-        :mod:`pkg_resources`-specific object providing metadata on the Python
-        project whose entry points are to be installed by this method.
-        Confusingly, note that this class has no relationship whatsoever to
-        the identically named :class:`distutils.dist.Distribution` and
-        :class:`setuptools.dist.Distribution` classes.
+    distribution : (Distribution, VersionlessRequirement)
+        Object collecting metadata on the **distribution** (i.e.,
+        :mod:`setuptools`-installed Python project) to create these entry
+        points for. If the end user invoked the :mod:`setuptools` subcommand:
+
+        * ``develop``, then this object is an instance of the
+          :mod:`setuptools`-specific :class:`VersionlessRequirement` class.
+          Confusingly, note that this class effectively wraps the underlying
+          :mod:`pkg_resources`-specific :class:`Distribution` class as a
+          transparent class proxy. Why, :mod:`setuptools:`. Why.
+        * ``install``, then this object is an instance of the
+          :mod:`pkg_resources`-specific :class:`Distribution` class.
+          Confusingly, note that this class has no relationship whatsoever to
+          the identically named :class:`distutils.dist.Distribution` and
+          :class:`setuptools.dist.Distribution` classes.
     script_shebang : StrOrNoneTypes
         Platform-specific shebang line with which to prefix the contents of all
         entry points installed by this method. Defaults to ``None``.
@@ -249,17 +264,19 @@ def _scriptwriter_get_args_patched(
     # If this class is *NOT* "ScriptWriter", raise an exception.
     objtest.die_unless_is(cls, ScriptWriter)
 
-    # If this distribution does *NOT* signify this application, then the
-    # current call to this monkey-patched function is attempting to install a
-    # dependency of this application rather than this application itself. So...
-    if distribution.project_name != _PACKAGE_NAME:
+    # If this distribution does *NOT* correspond to a package whose entry
+    # points are to be monkey-patched by this method, then the current call to
+    # this method is attempting to install an external dependency of this
+    # application rather than this application itself. In this case...
+    if distribution.project_name not in _PACKAGE_NAMES:
         # print(
-        #     'Distribution "{}" not "{}"; '
+        #     'Distribution "{}" unrecognized; '
         #     'defaulting to unpatched installation logic.'.format(
-        #         distribution.project_name, metadata.PACKAGE_NAME))
+        #         distribution.project_name))
 
         # Defer to the original implementation of this method.
-        return _SCRIPTWRITER_GET_ARGS_OLD(distribution, script_shebang)
+        yield from _SCRIPTWRITER_GET_ARGS_OLD(distribution, script_shebang)
+        return
 
     # Print this monkey-patch.
     print(

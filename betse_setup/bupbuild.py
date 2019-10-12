@@ -62,30 +62,35 @@ def _scriptwriter_get_args_patched(cls, *args, **kwargs):
     BETSE's monkey patch of this method.
     '''
 
-    # Attempt to...
+    # Attempt to import BETSE.
     try:
-        # Defer importation of dependencies that may have yet to be installed.
-        from betse import metadata
-        from betse.lib.setuptools.command import supcmdbuild
-
-        # Properly monkey-patch the ScriptWriter.get_args() class method.
-        supcmdbuild.init(
-            package_name=metadata.PACKAGE_NAME,
-            scriptwriter_get_args_old=_SCRIPTWRITER_GET_ARGS_OLD,
-        )
-
-        # Validate that this method differs from that method, preventing
-        # unwanted infinite recursion.
-        if ScriptWriter.get_args is _scriptwriter_get_args_patched:
-            raise DistutilsClassError(
-                'Class method '
-                'setuptools.command.easy_install.ScriptWriter.get_args() not '
-                'patched by supcmdbuild.init().'
-            )
-
-        # Defer to that method.
-        return ScriptWriter.get_args(*args, **kwargs)
+        import betse
     # If setuptools has yet to install BETSE, defer to the original
     # implementation of this method.
     except ImportError:
-        return _SCRIPTWRITER_GET_ARGS_OLD(*args, **kwargs)
+        yield from _SCRIPTWRITER_GET_ARGS_OLD(*args, **kwargs)
+        return
+    # Else, setuptools has already installed BETSE. In this case, apply our
+    # BETSE-specific monkey patch.
+
+    # Defer importation of dependencies that may have yet to be installed.
+    from betse import metadata
+    from betse.lib.setuptools.command import supcmdbuild
+
+    # Properly monkey-patch the ScriptWriter.get_args() class method.
+    supcmdbuild.init(
+        package_names={metadata.PACKAGE_NAME,},
+        scriptwriter_get_args_old=_SCRIPTWRITER_GET_ARGS_OLD,
+    )
+
+    # Validate that this method differs from that method, preventing
+    # unwanted infinite recursion.
+    if ScriptWriter.get_args is _scriptwriter_get_args_patched:
+        raise DistutilsClassError(
+            'Class method '
+            'setuptools.command.easy_install.ScriptWriter.get_args() not '
+            'patched by supcmdbuild.init().'
+        )
+
+    # Defer to that method.
+    yield from ScriptWriter.get_args(*args, **kwargs)

@@ -152,7 +152,7 @@ https://pypi.python.org/pypi?%3Aaction=list_classifiers
 # ....................{ OPTIONS                           }....................
 # Setuptools-specific options. Keywords not explicitly recognized by either
 # setuptools or distutils must be added to the above dictionary instead.
-_setup_options = {
+_SETUP_OPTIONS = {
     # ..................{ CORE                              }..................
     # Self-explanatory metadata.
     'name':             metadata.PACKAGE_NAME,
@@ -274,7 +274,7 @@ customize these options (e.g., by defining custom commands).
 
 
 # While currently empty, it's likely we'll want this again... someday.
-_custom_metadata = {}
+_SETUP_OPTIONS_CUSTOM = {}
 '''
 Non-setuptools-specific metadata, used to inform custom subcommands (e.g.,
 ``freeze_file``) of supplementary metadata *not* already declared by the
@@ -288,7 +288,7 @@ instead.
 # ....................{ COMMANDS                          }....................
 # Define all application-specific setuptools commands.
 for subcommand_submodule in bupbuild, supcmdfreeze, supcmdsymlink, supcmdtest:
-    subcommand_submodule.add_subcommand(_setup_options, _custom_metadata)
+    subcommand_submodule.add_subcommand(_SETUP_OPTIONS, _SETUP_OPTIONS_CUSTOM)
 
 # ....................{ SETUP                             }....................
-setuptools.setup(**_setup_options)
+setuptools.setup(**_SETUP_OPTIONS)
