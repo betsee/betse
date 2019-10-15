@@ -26,6 +26,23 @@ would render these constants effectively useless for their principal use case.
 
 from collections import namedtuple
 
+# ....................{ LIBS ~ install : mandatory        }....................
+# This public global is externally referenced by "setup.py".
+SETUPTOOLS_VERSION_MIN = '36.7.2'
+'''
+Minimum version of :mod:`setuptools` required at both application install- and
+runtime as a human-readable ``.``-delimited string.
+
+Motivation
+----------
+This application requires the
+:meth:`setuptools.command.easy_install.ScriptWriter.get_args` class method and
+hence at least the oldest version of :mod:`setuptools` to have this method.
+Since official setuptools documentation fails to specify the exact version that
+first defined this method, we fallback to a sufficiently old version from 2017
+known to define this method.
+'''
+
 # ....................{ LIBS ~ runtime : mandatory        }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this subsection *MUST* be synchronized with:
@@ -38,19 +55,9 @@ from collections import namedtuple
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 RUNTIME_MANDATORY = {
-    #FIXME: Extract into a global constant and validate at installation time.
-    #See the BETSEE codebase for requisite logic.
-
     # setuptools is currently required at both install and runtime. At runtime,
-    # setuptools is used to validate that dependencies are available. Notably:
-    #
-    # * setuptools 36.7.2 is the oldest version for which the
-    #   setuptools.command.easy_install.ScriptWriter.get_script_args() class
-    #   method is known to have been deprecated. Technically, older versions
-    #   probably exist. Since official setuptools documentation fails to
-    #   specify the exact version that first deprecated this method, we have no
-    #   sane recourse but to accept this "old enough" version from 2017.
-    'setuptools': '>= 36.7.2',
+    # setuptools is used to validate that dependencies are available.
+    'setuptools': '>= ' + SETUPTOOLS_VERSION_MIN,
 
     # Dependencies directly required by this application. Notably:
     #

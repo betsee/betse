@@ -16,8 +16,8 @@ tasks (e.g., installation, freezing, test running) for this application.
 #
 #* The "snapd" daemon requires "systemd" as a mandatory dependency.
 #  Fortunately, "systemd" is installable under Gentoo. (Yay!)
-#* Neither the Windows Subsystem for Linux (WSL) nor macOS does *NOT* currently
-#  support "systemd" and hence does *NOT* support "snapd". Specifically:
+#* Neither the Windows Subsystem for Linux (WSL) nor macOS currently supports
+#  "systemd". Ergo, only Linux supports "snapd". That's bad. Specifically:
 #  * Although ongoing cooperation between Microsoft and Canonical strongly
 #    suggests that the WSL will probably support "systemd" (and hence possibly
 #    but *NOT* necessarily "snapd", which requires a host of Linux
@@ -81,7 +81,7 @@ tasks (e.g., installation, freezing, test running) for this application.
 # Technically, this script may import from all subpackages and submodules of
 # the this application's eponymous package. By Python mandate, the first
 # element of the "sys.path" list is guaranteed to be the directory containing
-# this script.  Python necessarily searches this directory for imports from the
+# this script. Python necessarily searches this directory for imports from the
 # local version of this application *BEFORE* any other directories (including
 # system directories containing older versions of this application). To quote:
 #
@@ -97,6 +97,11 @@ from betse import metadata, metadeps
 from betse.lib.setuptools.command import (
     supcmdfreeze, supcmdsymlink, supcmdtest)
 from betse_setup import bupbuild, buputil
+
+# ....................{ EXCEPTIONS                        }....................
+# Validate the currently installed version of setuptools to meet all
+# installation-time requirements of this application.
+buputil.die_unless_setuptools_version_at_least(metadeps.SETUPTOOLS_VERSION_MIN)
 
 # ....................{ METADATA ~ seo                    }....................
 _KEYWORDS = [
@@ -285,10 +290,10 @@ contains unrecognized keys. For safety, these keys are added to this dictionary
 instead.
 '''
 
-# ....................{ COMMANDS                          }....................
-# Define all application-specific setuptools commands.
-for subcommand_submodule in bupbuild, supcmdfreeze, supcmdsymlink, supcmdtest:
-    subcommand_submodule.add_subcommand(_SETUP_OPTIONS, _SETUP_OPTIONS_CUSTOM)
+# ....................{ SUBCOMMANDS                       }....................
+# Define all custom setuptools subcommands.
+for _subcommand_submodule in bupbuild, supcmdfreeze, supcmdsymlink, supcmdtest:
+    _subcommand_submodule.add_subcommand(_SETUP_OPTIONS, _SETUP_OPTIONS_CUSTOM)
 
 # ....................{ SETUP                             }....................
 setuptools.setup(**_SETUP_OPTIONS)

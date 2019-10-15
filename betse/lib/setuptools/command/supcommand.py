@@ -28,7 +28,7 @@ def add_subcommand(
     #FIXME: Type-check each such command to be a "Command". For unknown
     #reasons, Python is currently complaining that "freeze_dir" is not a
     #"Command", despite clearly being a "Command". </collective_shrug>
-    *subcommands
+    *subcommands,
 ) -> None:
     '''
     Define one custom :mod:`setuptools` subcommand for each passed class,

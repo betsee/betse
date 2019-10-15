@@ -37,259 +37,43 @@ side effects, we adopt the former approach.
 '''
 
 # ....................{ IMPORTS                           }....................
-import os, platform, shutil, subprocess, sys, time
-from distutils.errors import DistutilsFileError
-from os import path
+import setuptools, sys
+from distutils.version import StrictVersion
 
-# ....................{ EXCEPTIONS ~ path                 }....................
-def die_unless_basename(pathname: str, exception_message: str = None) -> None:
+# ....................{ EXCEPTIONS                        }....................
+def die_unless_setuptools_version_at_least(
+    setuptools_version_min: str) -> None:
     '''
-    Raise an exception unless the passed path is a **basename** (i.e., contains
-    no platform-specific directory separator characters).
-    '''
+    Raise an exception unless the currently installed version of
+    :mod:`setuptools` is at least as recent as the passed minimum version.
 
-    # If this path is not a basename, fail.
-    if not is_basename(pathname):
-        # If no such message was passed, default this message.
-        if not exception_message:
-            exception_message = (
-                'Pathname "{}" not a basename '
-                '(i.e., either empty or '
-                'contains a directory separator).'.format(pathname))
-        assert isinstance(exception_message, str), (
-            '"{}" not a string.'.format(exception_message))
-
-        # Raise this exception.
-        raise DistutilsFileError(exception_message)
-
-
-def die_unless_dir_or_not_found(
-    pathname: str, exception_message: str = None) -> None:
-    '''
-    Raise an exception unless the passed path is either an existing directory
-    *or* does not exist (i.e., if this path is an existing non-directory).
-    '''
-    # If such path is an existing non-directory, fail.
-    if is_path(pathname) and not is_dir(pathname):
-        # If no such message was passed, default such message.
-        if not exception_message:
-            if is_file(pathname):
-                exception_message =\
-                    'Directory "{}" already an existing file.'.format(pathname)
-            elif is_symlink(pathname):
-                exception_message =\
-                    'Directory "{}" already an existing symbolic link.'.format(
-                        pathname)
-            else:
-                exception_message = 'Path "{}" not a directory.'.format(
-                    pathname)
-        assert isinstance(exception_message, str),\
-            '"{}" not a string.'.format(exception_message)
-
-        # Raise this exception.
-        raise DistutilsFileError(exception_message)
-
-
-def die_unless_file_or_not_found(
-    pathname: str, exception_message: str = None) -> None:
-    '''
-    Raise an exception unless the passed path is either an existing non-special
-    file _or_ does not exist (e.g., if such path is an existing directory).
-    '''
-
-    # If this path exists and is *NOT* an existing non-special file, fail.
-    if is_path(pathname) and not is_file(pathname):
-        # If no such message was passed, default this message.
-        if not exception_message:
-            if is_dir(pathname):
-                exception_message = (
-                    'File "{}" already an existing directory.'.format(
-                        pathname))
-            elif is_symlink(pathname):
-                exception_message = (
-                    'File "{}" already an existing symbolic link.'.format(
-                        pathname))
-            else:
-                exception_message = 'Path "{}" not a file.'.format(pathname)
-        assert isinstance(exception_message, str), (
-            '"{}" not a string.'.format(exception_message))
-
-        # Raise this exception.
-        raise DistutilsFileError(exception_message)
-
-
-def die_unless_path(pathname: str, exception_message: str = None) -> None:
-    '''
-    Raise an exception unless the passed path exists.
-    '''
-
-    # If this path is not found, fail.
-    if not is_path(pathname):
-        # If no such message was passed, default this message.
-        if not exception_message:
-            exception_message = 'Path "{}" not found.'.format(pathname)
-        assert isinstance(exception_message, str), (
-            '"{}" not a string.'.format(exception_message))
-
-        # Raise this exception.
-        raise DistutilsFileError(exception_message)
-
-
-def die_unless_dir(dirname: str, exception_message: str = None) -> None:
-    '''
-    Raise an exception unless the passed directory exists.
-    '''
-
-    # If this directory is not found, fail.
-    if not is_dir(dirname):
-        # If no such message was passed, default such message.
-        if not exception_message:
-            exception_message = 'Directory "{}" not found.'.format(dirname)
-        assert isinstance(exception_message, str), (
-            '"{}" not a string.'.format(exception_message))
-
-        # Raise this exception. Since there exists no
-        # "DistutilsDirError" class, the next best thing is raised.
-        raise DistutilsFileError(exception_message)
-
-
-def die_unless_file(filename: str, exception_message: str = None) -> None:
-    '''
-    Raise an exception unless the passed non-special file exists.
-    '''
-
-    # If such file is not found, fail.
-    if not is_file(filename):
-        # If no such message was passed, default such message.
-        if not exception_message:
-            exception_message = 'File "{}" not found.'.format(filename)
-        assert isinstance(exception_message, str), (
-            '"{}" not a string.'.format(exception_message))
-
-        # Raise this exception.
-        raise DistutilsFileError(exception_message)
-
-
-def die_unless_symlink(filename: str) -> None:
-    '''
-    Raise an exception unless the passed symbolic link exists.
-    '''
-    assert isinstance(filename, str), (
-        '"{}" not a string.'.format(filename))
-
-    if not is_symlink(filename):
-        raise DistutilsFileError(
-            'Symbolic link "{}" not found.'.format(filename))
-
-# ....................{ TESTERS ~ os                      }....................
-def is_os_posix() -> bool:
-    '''
-    `True` if the current operating system complies with POSIX standards (e.g.,
-    as required for POSIX-compliant symbolic link support).
-
-    Typically, this implies this system to _not_ be vanilla Microsoft Windows
-    (i.e., to be either a Cygwin-enabled Windows terminal *or* a genuine
-    POSIX-compliant system).
-    '''
-    return os.name == 'posix'
-    # return False
-
-
-def is_os_os_x() -> bool:
-    '''
-    `True` if the current operating system is Apple OS X.
-    '''
-    return platform.system() == 'Darwin'
-
-# ....................{ TESTERS ~ os : windows            }....................
-def is_os_windows() -> bool:
-    '''
-    `True` if the current operating system is Microsoft Windows.
-
-    This function reports `True` for both vanilla and Cygwin Microsoft Windows.
-    '''
-    return is_os_windows_vanilla() or is_os_windows_cygwin()
-
-
-def is_os_windows_cygwin() -> bool:
-    '''
-    `True` if the current operating system is **Cygwin Microsoft Windows**
-    (i.e., running the Cygwin POSIX compatibility layer).
-    '''
-    return sys.platform == 'cygwin'
-
-
-def is_os_windows_vanilla() -> bool:
-    '''
-    `True` if the current operating system is **vanilla Microsoft Windows**
-    (i.e., _not_ running the Cygwin POSIX compatibility layer).
-    '''
-    return sys.platform == 'win32'
-
-# ....................{ TESTERS ~ path                    }....................
-def is_basename(pathname: str) -> bool:
-    '''
-    `True` only if the passed path is a **basename** (i.e., is a non-empty
-    string containing no platform-specific directory separator characters).
-    '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-
-    return len(pathname) and pathname != path.basename(pathname)
-
-
-def is_path(pathname: str) -> bool:
-    '''
-    `True` only if the passed path exists.
-    '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-
-    return path.exists(pathname)
-
-
-def is_dir(pathname: str) -> bool:
-    '''
-    `True` only if the passed directory exists.
-    '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-
-    return path.isdir(pathname)
-
-
-def is_file(pathname: str) -> bool:
-    '''
-    `True` only if the passed path is an existing non-directory file exists
-    *after* following symbolic links.
-
-    Versus `path.isfile()`
+    Parameters
     ----------
-    This function intrinsically differs from the standard `path.isfile()`
-    function. While the latter returns `True` only for non-special files and
-    hence `False` for all non-directory special files (e.g., device nodes,
-    sockets), this function returns `True` for *all* non-directory files
-    regardless of whether such files are special or not.
+    setuptools_version_min : str
+        Human-readable ``.``-delimited specifier of the minimum version of
+        :mod:`setuptools` required at installation time by this application.
 
-    **Why?** Because this function complies with POSIX semantics, whereas
-    `path.isfile()` does *not*. The specialness of non-directory files is
-    usually irrelevant; in general, it only matters whether such files are
-    directories or not. For example, the external command `rm` removes only
-    non-directory files (regardless of specialness) while the external command
-    `rmdir` removes only empty directories.
+    Raises
+    ----------
+    Exception
+        If the currently installed version of :mod:`setuptools` is older than
+        the passed minimum version.
     '''
-    return is_path(pathname) and not is_dir(pathname)
+    assert isinstance(setuptools_version_min, str), (
+        '"{}" not a string.'.format(setuptools_version_min))
 
+    # If the currently installed version of setuptools is older than this
+    # minimum version, raise an exception.
+    if (
+        StrictVersion(setuptools.__version__) <
+        StrictVersion(setuptools_version_min)
+    ):
+        raise Exception(
+            'setuptools >= {} required by this application, but only '
+            'setuptools {} found.'.format(
+                setuptools_version_min, setuptools.__version__))
 
-def is_symlink(filename: str) -> bool:
-    '''
-    `True` if the passed symbolic link exists.
-
-    `False` is returned if the passed symbolic link exists but the current user
-    has insufficient privelages to follow such link. This may constitute a bug
-    in the underlying `path.islink()` function.
-    '''
-    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-    return path.islink(filename)
-
-# ....................{ GETTERS ~ io : file               }....................
+# ....................{ GETTERS                           }....................
 def get_chars(filename: str, encoding: str = 'utf-8') -> str:
     '''
     String of all characters contained in the plaintext file with the passed
@@ -313,7 +97,7 @@ def get_chars(filename: str, encoding: str = 'utf-8') -> str:
     with open(filename, mode='rt', encoding=encoding) as text_file:
         return text_file.read()
 
-# ....................{ GETTERS ~ metadata                }....................
+
 def get_description() -> str:
     '''
     Human-readable multiline description of this application in
@@ -333,7 +117,7 @@ def get_description() -> str:
     # Relative path of this application's front-facing documentation in
     # reStructuredText format, required by PyPI. This path resides outside this
     # application's package tree and hence is inlined here rather than provided
-    # by the "betsee.guimetaapp" submodule.
+    # by the "betsee.guiappmeta" submodule.
     DESCRIPTION_FILENAME = 'README.rst'
 
     # Description read from this description file.
@@ -345,66 +129,14 @@ def get_description() -> str:
     # *NOT* required for most operations and hence mostly ignorable.
     except Exception as exception:
         description = ''
-        output_warning(
-            'Description file "{}" not found or not readable:\n{}'.format(
+        _output_warning(
+            'Description file "{}" not found or unreadable:\n{}'.format(
                 DESCRIPTION_FILENAME, exception))
 
     # Retcurn this description.
     return description
 
-# ....................{ GETTERS ~ path                    }....................
-def get_path_canonicalized(pathname: str) -> str:
-    '''
-    Get the **canonical form** (i.e., unique absolute path) of the passed path.
-
-    Specifically (in order):
-
-    * Perform **tilde expansion,** replacing a `~` character prefixing such
-      path by the absolute path of the current user's home directory.
-    * Perform **path normalization,** thus:
-      * Collapsing redundant separators (e.g., converting `//` to `/`).
-      * Converting relative to absolute path components (e.g., converting `../`
-        to the name of the parent directory of such component).
-    '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
-    return path.abspath(path.expanduser(pathname))
-
-
-def get_path_dirname(pathname: str) -> str:
-    '''
-    Get the **dirname** (i.e., parent directory) of the passed path if such
-    path has a dirname or raise an exception otherwise.
-    '''
-    # Get such dirname. Since the path.dirname() function returns the empty
-    # string for paths containing no directory separators and hence having no
-    # dirnames, assert such return value to be non-empty.
-    dirname = path.dirname(pathname)
-    assert len(dirname), 'Pathname "{}" dirname empty.'.format(pathname)
-    return dirname
-
-# ....................{ GETTERS ~ path : filetype         }....................
-def get_path_filetype(pathname: str) -> str:
-    '''
-    Get the **last filetype** (i.e., last `.`-prefixed substring of the
-    basename *not* including such `.`) of the passed path if this path has a
-    filetype _or_ `None` otherwise.
-
-    If this path contains multiple filetypes (e.g., `odium.reigns.tar.gz`),
-    this function returns only the last filetype.
-    '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
-
-    # Such filetype. (Yes, splitext() is exceedingly poorly named.)
-    filetype = path.splitext(pathname)[1]
-
-    # Get such filetype, stripping the prefixing "." from the string returned
-    # by the prior call if such path has a filetype or returning None
-    # otherwise.
-    return filetype[1:] if filetype else None
-
-# ....................{ SANITIZERS ~ metadata             }....................
+# ....................{ SANITIZERS                        }....................
 def sanitize_classifiers(
     classifiers: list,
     python_version_min_parts: tuple,
@@ -459,41 +191,10 @@ def sanitize_classifiers(
     # Return this sanitized list of classifiers.
     return classifiers_sane
 
-# ....................{ SANITIZERS ~ path                 }....................
-def sanitize_command_basename(command_basename: str) -> str:
-    '''
-    Convert the passed platform-agnostic command basename (e.g., ``pytest``)
-    into a platform-specific command basename (e.g., ``pytest.exe``).
-
-    If the passed basename contains a directory separator and hence is *not* a
-    basename, an exception is raised. Else, under:
-
-    * Windows, the passed basename is appended by ``.exe``. To avoid confusion
-      with non-Windows executables in the current ``${PATH}`` when running under
-      Wine emulation, only Windows executables are accepted when running under
-      Windows.
-    * All other platforms, the passed basename is returned as is.
-    '''
-    assert isinstance(command_basename, str), (
-        '"{}" not a string.'.format(command_basename))
-    assert len(command_basename), 'Command basename empty.'
-
-    # If this pathname is *NOT* a basename, raise an exception.
-    die_unless_basename(command_basename)
-
-    # If this is Windows *AND* this basename has no filetype, suffix this
-    # basename by ".exe".
-    if is_os_windows() and get_path_filetype(command_basename) is None:
-        # print('command basename "{}" filetype; {}'.format(
-        #     command_basename, get_path_filetype(command_basename)))
-        return command_basename + '.exe'
-
-    # Else, return this basename as is.
-    return command_basename
-
 # ....................{ OUTPUTTERS                        }....................
-def output_warning(*warnings) -> None:
+def _output_warning(*warnings) -> None:
     '''
     Print the passed warning messages to standard error.
     '''
+
     print('WARNING: ', *warnings, file=sys.stderr)
