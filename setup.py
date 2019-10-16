@@ -70,6 +70,49 @@ tasks (e.g., installation, freezing, test running) for this application.
 #Ubuntu) for automated packaging of PySide2 applications. See also:
 #    https://build-system.fman.io/
 
+# ....................{ KLUDGES                           }....................
+# Explicitly register all files and subdirectories of the root directory
+# containing this top-level "setup.py" script to be importable modules and
+# packages (respectively) for the remainder of this Python process if this
+# directory has yet to be registered.
+#
+# Technically, this should *NOT* be required. The current build framework
+# (e.g., "pip", "setuptools") should implicitly guarantee this to be the case.
+# Indeed, the "setuptools"-based "easy_install" script does just that.
+# Unfortunately, "pip" >= 19.0.0 does *NOT* guarantee this to be the case for
+# projects defining a "pyproject.toml" file -- which, increasingly, is all of
+# them. Although "pip" purports to have resolved this upstream, current stable
+# release appear to suffer the same deficiencies. See also:
+#     https://github.com/pypa/pip/issues/6163
+#
+# Note this logic necessarily duplicates the implementation of the
+# betse.util.py.module import pyimport.register_dir() function. *sigh*
+
+# Isolate this kludge to a private function for safety.
+def _register_dir() -> None:
+
+    # Avert thy eyes, purist Pythonistas!
+    import os, sys
+
+    # Absolute dirname of this directory, inspired by the following
+    # StackOverflow answer: https://stackoverflow.com/a/8663557/2809027
+    setup_dirname = os.path.dirname(os.path.realpath(__file__))
+
+    # If the current PYTHONPATH does *NOT* already contain this directory...
+    if setup_dirname not in sys.path:
+        # Print this registration.
+        print(
+            'WARNING: Registering "setup.py" directory for importation under '
+            'broken installer (e.g., pip >= 19.0.0)...',
+            file=sys.stderr)
+        # print('setup_dirname: {}\nsys.path: {!r}'.format(setup_dirname, sys.path))
+
+        # Append this directory to the current PYTHONPATH.
+        sys.path.append(setup_dirname)
+
+# Kludge us up the bomb.
+_register_dir()
+
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
@@ -79,11 +122,11 @@ tasks (e.g., installation, freezing, test running) for this application.
 # installed at some later time in the installation.
 #
 # Technically, this script may import from all subpackages and submodules of
-# the this application's eponymous package. By Python mandate, the first
-# element of the "sys.path" list is guaranteed to be the directory containing
-# this script. Python necessarily searches this directory for imports from the
-# local version of this application *BEFORE* any other directories (including
-# system directories containing older versions of this application). To quote:
+# this application's eponymous package. By Python mandate, the first item of
+# the "sys.path" list is guaranteed to be the directory containing this script.
+# Python necessarily searches this directory for imports from the local version
+# of this application *BEFORE* any other directories (including system
+# directories containing older versions of this application). To quote:
 #
 #     "As initialized upon program startup, the first item of this list,
 #      path[0], is the directory containing the script that was used to invoke
@@ -159,7 +202,16 @@ https://pypi.python.org/pypi?%3Aaction=list_classifiers
 # setuptools or distutils must be added to the above dictionary instead.
 _SETUP_OPTIONS = {
     # ..................{ CORE                              }..................
-    # Self-explanatory metadata.
+    # Self-explanatory metadata. Note that the following metadata keys are
+    # instead specified by the "setup.cfg" file,
+    #
+    # * "license_file", for unknown reasons. We should probably reconsider
+    # * "long_description", since "setup.cfg" supports convenient
+    #   "file: ${relative_filename}" syntax for transcluding the contents of
+    #   arbitrary project-relative files into metadata values. Attempting to do
+    #   so here would require safely opening this file with a context manager,
+    #   reading the contents of this file into a local variable, and passing
+    #   that variable's value as this metadata outside of that context. (Ugh.)
     'name':             metadata.PACKAGE_NAME,
     'version':          metadata.VERSION,
     'author':           metadata.AUTHORS,
@@ -167,7 +219,6 @@ _SETUP_OPTIONS = {
     'maintainer':       metadata.AUTHORS,
     'maintainer_email': metadata.AUTHOR_EMAIL,
     'description':      metadata.SYNOPSIS,
-    'long_description': buputil.get_description(),
     'url':              metadata.URL_HOMEPAGE,
     'download_url':     metadata.URL_DOWNLOAD,
 

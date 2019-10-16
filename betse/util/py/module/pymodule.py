@@ -6,8 +6,12 @@
 '''
 Low-level module and package facilities.
 
-All functions defined by this submodule accept at least a previously imported
-module object; most also accept the fully-qualified name of a module.
+All functions defined by this submodule require that modules be passed as
+fully-qualified names (i.e., ``.``-delimited).
+
+All functions defined by this submodule require that modules be at least passed
+as previously imported module objects; most also accept fully-qualified names
+of modules where applicale.
 
 See Also
 ----------

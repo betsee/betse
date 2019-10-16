@@ -260,53 +260,6 @@ def get_metadata() -> 'OrderedArgsDict':
         'frozen',   pyfreeze.is_frozen(),
     )
 
-# ....................{ ADDERS                            }....................
-#FIXME: Shift this utility function elsewhere. While useful, it's rather
-#low-level and thoroughly dissimilar from *ALL* of the other functionality
-#provided by this high-level submodule.
-@type_check
-def add_import_dirname(dirname: str) -> None:
-    '''
-    Register all files and subdirectories of the directory with the passed path
-    to be importable modules and packages (respectively) for the remainder of
-    the current Python process if this directory has not already been
-    registered *or* noop otherwise.
-
-    Specifically, this function appends this dirname to the current
-    :data:`sys.path` listing (in order) the dirnames of all directories to be
-    iteratively searched for any module or package on first importing that
-    module or package. To comply with Python standards in which the first item
-    of this list is either the dirname of the directory containing the script
-    from which this process was invoked *or* the empty string (signifying the
-    current directory), this list is appended to rather than prepended to.
-
-    Parameters
-    ----------
-    dirname : str
-        Absolute or relative path of the directory to be registered.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.path import dirs
-
-    # Log this addition.
-    logs.log_debug('Registering import directory: %s', dirname)
-
-    # If this directory does *NOT* exist or is unreadable, raise an exception.
-    dirs.die_unless_dir(dirname)
-
-    # If the current PYTHONPATH already contains this directory...
-    if dirname in sys.path:
-        # Log this edge case.
-        logs.log_debug('Ignoring already registered import directory.')
-
-        # Noop.
-        return
-    # Else, the current PYTHONPATH does *NOT* already contain this directory.
-
-    # Append this directory to the current PYTHONPATH.
-    sys.path.append(dirname)
-
 # ....................{ RUNNERS                           }....................
 @type_check
 def rerun_or_die(

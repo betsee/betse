@@ -22,6 +22,9 @@
 /freeze/build/
 /freeze/dist/
 
+# Ignore all top-level pip-specific temporary directories.
+/pip-wheel-metadata/
+
 # Ignore all top-level py.test-specific temporary directories.
 /.cache/
 /.pytest_cache/

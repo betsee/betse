@@ -230,14 +230,14 @@ repository and prior stable releases – is manually installable as follows:
 
      .. code-block:: console
 
-        sudo python3 setup.py develop
+        sudo pip install --editable .
 
    - **Non-editably,** installing a physical copy of the current BETSE codebase.
      Modifications to this code are ignored and thus require reinstallation.
 
      .. code-block:: console
 
-        sudo python3 setup.py install
+        sudo pip install .
 
 #. (\ *Optional*\ ) **Test BETSE,** running all modelling phases of a sample
    simulation from a new directory.

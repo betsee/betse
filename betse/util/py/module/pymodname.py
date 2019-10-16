@@ -6,13 +6,13 @@
 '''
 Low-level module and package name-based facilities.
 
-All functions defined by this submodule accept only fully-qualified module
-names.
+All functions defined by this submodule require that modules be passed as
+fully-qualified names (i.e., ``.``-delimited).
 
 See Also
 ----------
-:mod:`betse.util.py.module.pyname`
-    Related submodule whose functions accept imported module objects.
+:mod:`betse.util.py.module.pymodule`
+    Related submodule whose functions accept already imported module objects.
 '''
 
 # ....................{ IMPORTS                           }....................

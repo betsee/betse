@@ -73,69 +73,6 @@ def die_unless_setuptools_version_at_least(
             'setuptools {} found.'.format(
                 setuptools_version_min, setuptools.__version__))
 
-# ....................{ GETTERS                           }....................
-def get_chars(filename: str, encoding: str = 'utf-8') -> str:
-    '''
-    String of all characters contained in the plaintext file with the passed
-    filename encoded with the passed encoding.
-
-    Parameters
-    ----------
-    filename : str
-        Relative or absolute path of the plaintext text to be read.
-    encoding : optional[str]
-        Name of the encoding to be used. Defaults to UTF-8.
-
-    Returns
-    ----------
-    str
-        String of all characters decoded from this file's byte content.
-    '''
-    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-    assert isinstance(encoding, str), '"{}" not a string.'.format(encoding)
-
-    with open(filename, mode='rt', encoding=encoding) as text_file:
-        return text_file.read()
-
-
-def get_description() -> str:
-    '''
-    Human-readable multiline description of this application in
-    reStructuredText (reST) format.
-
-    To minimize synchronization woes, this description is identical to the
-    contents of the :doc:`/README.rst` file. When submitting this application
-    package to PyPI, this description is re-used verbatim as this package's
-    front matter.
-
-    Caveats
-    ----------
-    This function is I/O intensive and hence should be called sparingly --
-    ideally, only once by this application's top-level ``setup.py`` script.
-    '''
-
-    # Relative path of this application's front-facing documentation in
-    # reStructuredText format, required by PyPI. This path resides outside this
-    # application's package tree and hence is inlined here rather than provided
-    # by the "betsee.guiappmeta" submodule.
-    DESCRIPTION_FILENAME = 'README.rst'
-
-    # Description read from this description file.
-    try:
-        description = get_chars(DESCRIPTION_FILENAME)
-        # print('description: {}'.format(_DESCRIPTION))
-    # If this file is *NOT* readable, print a non-fatal warning and reduce this
-    # description to the empty string. While unfortunate, this description is
-    # *NOT* required for most operations and hence mostly ignorable.
-    except Exception as exception:
-        description = ''
-        _output_warning(
-            'Description file "{}" not found or unreadable:\n{}'.format(
-                DESCRIPTION_FILENAME, exception))
-
-    # Retcurn this description.
-    return description
-
 # ....................{ SANITIZERS                        }....................
 def sanitize_classifiers(
     classifiers: list,
