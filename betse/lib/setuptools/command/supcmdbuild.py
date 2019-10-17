@@ -10,7 +10,7 @@ Low-level custom :mod:`setuptools`-specific :class:`ScriptWriter` monkey patch.
 # ....................{ IMPORTS                           }....................
 from betse.lib.setuptools.command import supcommand
 from betse.util.io import stderrs
-from betse.util.type.obj import objtest
+from betse.util.type.cls import classes
 from betse.util.type.types import (
     type_check, CallableTypes, ClassType, SetType, StrOrNoneTypes)
 from distutils.errors import DistutilsClassError
@@ -261,9 +261,9 @@ def _scriptwriter_get_args_patched(
         entry points installed by this method. Defaults to ``None``.
     '''
 
-    # If this class is neither "ScriptWriter" nor a subclass thereof, raise an
-    # exception.
-    objtest.die_unless_instance(obj=cls, cls=ScriptWriter)
+    # If this class method is called by a class that is neither "ScriptWriter"
+    # nor a subclass thereof, raise an exception.
+    classes.die_unless_subclass(subclass=cls, superclass=ScriptWriter)
 
     # If this distribution does *NOT* correspond to a package whose entry
     # points are to be monkey-patched by this method, then the current call to

@@ -27,12 +27,41 @@ def die_unless_subclass(subclass: ClassType, superclass: ClassType) -> None:
     Raise an exception unless the first passed class inherits and is thus a
     subclass of the second passed class.
 
+    For simplicity, note that any class is considered to be a subclass of
+    itself within the context of this function. (See the example below.)
+
     Parameters
     ----------
     subclass : ClassType
         Subclass to be validated.
     superclass : ClassType
         Superclass to be validated.
+
+    Raises
+    ----------
+    BetseTypeException
+        If the first such class is *not* a subclass of the second such class.
+
+    Examples
+    ----------
+        >>> from betse.util.type.cls import classes
+        >>> class antiihnii(object): pass
+        >>> class yee_naaldlooshii(antiihnii): pass
+        >>> classes.die_unless_subclass(
+        ...     subclass=antiihnii, superclass=antiihnii)
+        >>> classes.die_unless_subclass(
+        ...     subclass=yee_naaldlooshii, superclass=yee_naaldlooshii)
+        >>> classes.die_unless_subclass(
+        ...     subclass=yee_naaldlooshii, superclass=antiihnii)
+        >>> classes.die_unless_subclass(
+        ...     subclass=antiihnii, superclass=yee_naaldlooshii)
+        Traceback (most recent call last):
+          File "/home/leycec/tmp/yilo.py", line 12, in <module>
+            subclass=antiihnii, superclass=yee_naaldlooshii)
+          File "<string>", line 24, in __die_unless_subclass_type_checked__
+          File "/home/leycec/py/betse/betse/util/type/cls/classes.py", line 63, in die_unless_subclass
+            subclass, superclass))
+        betse.exceptions.BetseTypeException: Class <class '__main__.antiihnii'> not a subclass of class <class '__main__.yee_naaldlooshii'>
     '''
 
     if not issubclass(subclass, superclass):
