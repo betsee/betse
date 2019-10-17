@@ -66,6 +66,7 @@ def die_if_instance(obj: object, cls: TestableTypes) -> None:
         classes of this tuple of classes.
     '''
 
+    # If this object is an instance of this class, raise an exception.
     if isinstance(obj, cls):
         raise BetseTypeException(
             'Object {!r} instances {!r}.'.format(obj, cls))
@@ -91,6 +92,7 @@ def die_unless_instance(obj: object, cls: TestableTypes) -> None:
         classes of this tuple of classes.
     '''
 
+    # If this object is *NOT* an instance of this class, raise an exception.
     if not isinstance(obj, cls):
         raise BetseTypeException(
             'Object {!r} not an instance of {!r}.'.format(obj, cls))

@@ -261,8 +261,9 @@ def _scriptwriter_get_args_patched(
         entry points installed by this method. Defaults to ``None``.
     '''
 
-    # If this class is *NOT* "ScriptWriter", raise an exception.
-    objtest.die_unless_is(cls, ScriptWriter)
+    # If this class is neither "ScriptWriter" nor a subclass thereof, raise an
+    # exception.
+    objtest.die_unless_instance(obj=cls, cls=ScriptWriter)
 
     # If this distribution does *NOT* correspond to a package whose entry
     # points are to be monkey-patched by this method, then the current call to
