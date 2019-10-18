@@ -152,10 +152,7 @@ basename ``__main__``.
 
 # ....................{ INITIALIZERS                      }....................
 @type_check
-def init(
-    package_names: SetType,
-    scriptwriter_get_args_old: CallableTypes,
-) -> None:
+def init(package_names: SetType) -> None:
     '''
     Initialize this submodule.
 
@@ -185,13 +182,10 @@ def init(
         Unordered set of the fully-qualified names of all top-level Python
         packages whose entry points are to be monkey-patched. Entry points for
         *all* other packages remain unaffected, for both safety and sanity.
-    scriptwriter_get_args_old : CallableTypes
-        Original (i.e., pre-monkey-patched) implementation of the
-        :meth:`ScriptWriter.get_args` class method.
     '''
 
     # Globals to be defined below.
-    global _PACKAGE_NAMES, _SCRIPTWRITER_GET_ARGS_OLD
+    global _PACKAGE_NAMES
 
     # print(
     #     'Monkey-patching class method '
@@ -209,14 +203,21 @@ def init(
         )
     # Else, the ScriptWriter.get_args() class method exists.
 
+    # If the ScriptWriter._betse_get_args_old() class method does *NOT* exist,
+    # the caller failed to preserve the original implementation of this class
+    # method. In this case, raise an exception.
+    if not hasattr(ScriptWriter, '_betse_get_args_old'):
+        raise DistutilsClassError(
+            'Class method '
+            'setuptools.command.easy_install.ScriptWriter._betse_get_args_old() '
+            'not found.'
+        )
+    # Else, the ScriptWriter._betse_get_args_old() class method exists.
+
     # Preserve all passed package names.
     _PACKAGE_NAMES = package_names
 
-    # Preserve the existing implementation of this class method, which our
-    # monkey-patch implementation conditionally calls as needed.
-    _SCRIPTWRITER_GET_ARGS_OLD = scriptwriter_get_args_old
-
-    # Monkey-patch this class method.
+    # Monkey-patch this class method a second time. This time, it's serious.
     ScriptWriter.get_args = _scriptwriter_get_args_patched
 
 # ....................{ PATCHES                           }....................
@@ -254,36 +255,18 @@ def _scriptwriter_get_args_patched(
     # nor a subclass thereof, raise an exception.
     classes.die_unless_subclass(subclass=cls, superclass=ScriptWriter)
 
-    #FIXME: Envestigate why our monkey patch no longer applies to Windows. It
-    #used to behave as expected, but no longer does. Cursory inspection of our
-    #monkey patch yields no deep insight. We'll probably need to host a Windows
-    #VM and inspect the contents of the wrapper scripts produced under the
-    #default "CMD.exe" shell. In other words, this will probably never happen.
-
-    # If either:
-    #
-    # * This platform is a non-WSL Windows variant (i.e., is either vanilla or
-    #   Cygwin Windows), then our monkey patch now appears to create broken
-    #   executables and hence must be avoided. This is rather frustrating, as
-    #   this monkey patch behaved as expected prior to being refactored into
-    #   this submodule.
-    # * This distribution does *NOT* correspond to a package whose entry points
-    #   are to be monkey-patched by this method, then the current call to this
-    #   method is attempting to install an external dependency of this
-    #   application rather than this application itself.
-    #
-    # In either case...
-    if (
-        windows.is_windows() or
-        distribution.project_name not in _PACKAGE_NAMES
-    ):
+    # If this distribution does *NOT* correspond to a package whose entry
+    # points are to be monkey-patched by this method, then the current call to
+    # this method is attempting to install an external dependency of this
+    # application rather than this application itself. In this case...
+    if distribution.project_name not in _PACKAGE_NAMES:
         # print(
         #     'Distribution "{}" unrecognized; '
         #     'defaulting to unpatched installation logic.'.format(
         #         distribution.project_name))
 
         # Defer to the original implementation of this method.
-        yield from _SCRIPTWRITER_GET_ARGS_OLD(distribution, script_shebang)
+        yield from cls._betse_get_args_old(distribution, script_shebang)
         return
 
     # Print this monkey-patch.

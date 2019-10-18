@@ -11,19 +11,8 @@ Low-level custom :mod:`setuptools`-specific :class:`ScriptWriter` monkey patch.
 from distutils.errors import DistutilsClassError
 from setuptools.command.easy_install import ScriptWriter
 
-# ....................{ GLOBALS                           }....................
-_SCRIPTWRITER_GET_ARGS_OLD = None
-'''
-Original (i.e., pre-monkey-patched) implementation of the
-:meth:`ScriptWriter.get_args` class method, which our monkey-patch
-implementation conditionally calls as needed.
-'''
-
 # ....................{ ADDERS                            }....................
 def add_subcommand(setup_options: dict, custom_metadata: dict) -> None:
-
-    # Globals to be defined below.
-    global _SCRIPTWRITER_GET_ARGS_OLD
 
     # print(
     #     'Monkey-patching class method '
@@ -41,9 +30,10 @@ def add_subcommand(setup_options: dict, custom_metadata: dict) -> None:
             '(unlikely) or unsupported (likely).'
         )
 
-    # Preserve the existing implementation of this class method, which our
-    # monkey-patch implementation conditionally calls as needed.
-    _SCRIPTWRITER_GET_ARGS_OLD = ScriptWriter.get_args
+    # Preserve the original implementation of this class method, which our
+    # monkey-patch implementation conditionally calls as needed. For
+    # future-proofing, uniquify the name of this implementation.
+    ScriptWriter._betse_get_args_old = ScriptWriter.get_args
 
     # Monkey-patch this class method.
     ScriptWriter.get_args = _scriptwriter_get_args_patched
@@ -53,7 +43,7 @@ def add_subcommand(setup_options: dict, custom_metadata: dict) -> None:
 # downstream consumers (e.g., BETSEE), this implementation is merely a proxy
 # that makes no assumptions on whether or not BETSE is currently installed.
 @classmethod
-def _scriptwriter_get_args_patched(cls, *args, **kwargs):
+def _scriptwriter_get_args_patched(cls: type, *args, **kwargs):
     '''
     Monkey-patched :meth:`ScriptWriter.get_args` class method proxy.
 
@@ -68,7 +58,7 @@ def _scriptwriter_get_args_patched(cls, *args, **kwargs):
     # If setuptools has yet to install BETSE, defer to the original
     # implementation of this method.
     except ImportError:
-        yield from _SCRIPTWRITER_GET_ARGS_OLD(*args, **kwargs)
+        yield from cls._betse_get_args_old(*args, **kwargs)
         return
     # Else, setuptools has already installed BETSE. In this case, apply our
     # BETSE-specific monkey patch.
@@ -78,14 +68,11 @@ def _scriptwriter_get_args_patched(cls, *args, **kwargs):
     from betse.lib.setuptools.command import supcmdbuild
 
     # Properly monkey-patch the ScriptWriter.get_args() class method.
-    supcmdbuild.init(
-        package_names={metadata.PACKAGE_NAME,},
-        scriptwriter_get_args_old=_SCRIPTWRITER_GET_ARGS_OLD,
-    )
+    supcmdbuild.init(package_names={metadata.PACKAGE_NAME,})
 
     # Validate that this method differs from that method, preventing
     # unwanted infinite recursion.
-    if ScriptWriter.get_args is _scriptwriter_get_args_patched:
+    if cls.get_args is _scriptwriter_get_args_patched:
         raise DistutilsClassError(
             'Class method '
             'setuptools.command.easy_install.ScriptWriter.get_args() not '
@@ -93,4 +80,4 @@ def _scriptwriter_get_args_patched(cls, *args, **kwargs):
         )
 
     # Defer to that method.
-    yield from ScriptWriter.get_args(*args, **kwargs)
+    yield from cls.get_args(*args, **kwargs)
