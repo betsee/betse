@@ -36,6 +36,31 @@ tasks (e.g., installation, freezing, test running) for this application.
 #BETSEE with a single click from the official Ubuntu Store -- which is huge.
 #Certainly, an Ubuntu snap appears to be dramatically more portable and hence
 #superior to a traditional Ubuntu PPA for most purposes.
+#FIXME: Alternately, consider bundling both BETSE and BETSEE into a single
+#AppImage. AppImage is yet another competing Linux-specific,
+#distribution-agnostic application file format championed by Travis-CI. The
+#comparative merits of AppImage versus Ubuntu snaps are unclear. Clearly,
+#considerably more research is warranted. The following article is relatively
+#recent as of this writing and concludes AppImage to be the most likely to
+#succeed going forward, largely due to *NOT* being tightly coupled to any
+#single software stack. This diverges sharply from snaps, which are tightly
+#coupled to a snapd + systemd + AppArmor workflow, which self-limits the number
+#of Linux distributions and configurations usable for snaps. See:
+#    https://www.fossmint.com/appimage-flatpak-and-snap-from-a-software-deployment-perspective
+
+#FIXME: Consider wrapping on Windows with "pynsist", a framework for generating
+#Windows installers bundling Python applications complete with a Python
+#interpreter and requisite packages.
+#FIXME: Alternately, consider usage of Briefcase, which integrates cleanly with
+#"poetry" and purports to centralize generation of platform-specific
+#executables in a platform-agnostic way -- presumably by leveraging PyInstaller
+#and similar lower-level frameworks under the hood. Sadly, Briefcase is
+#extremely immature as of this writing (i.e., 2019 Q4) and inappropriate for
+#production-ready applications.
+#FIXME: Likewise, consider the PySide2- and PyQt5-specific "fman" build system
+#integrating Qt, PySide2, PyInstaller, NSIS (under Windows), and ".deb" (under
+#Ubuntu) for automated packaging of PySide2 applications. See also:
+#    https://build-system.fman.io/
 
 #FIXME: Replace this file (i.e., "setup.py") and the "requirements-pip.txt",
 #"setup.cfg", "MANIFEST.in", and "Pipfile" files with the existing
@@ -55,20 +80,6 @@ tasks (e.g., installation, freezing, test running) for this application.
 #"poetry" is largely unusable on platforms like Gentoo. Nonetheless, let's
 #preserve this FIXME discussion for when "poetry" adopts a standard
 #installation pathway.
-
-#FIXME: Consider wrapping on Windows with "pynsist", a framework for generating
-#Windows installers bundling Python applications complete with a Python
-#interpreter and requisite packages.
-#FIXME: Alternately, consider usage of Briefcase, which integrates cleanly with
-#"poetry" and purports to centralize generation of platform-specific
-#executables in a platform-agnostic way -- presumably by leveraging PyInstaller
-#and similar lower-level frameworks under the hood. Sadly, Briefcase is
-#extremely immature as of this writing (i.e., 2019 Q4) and inappropriate for
-#production-ready applications.
-#FIXME: Likewise, consider the PySide2- and PyQt5-specific "fman" build system
-#integrating Qt, PySide2, PyInstaller, NSIS (under Windows), and ".deb" (under
-#Ubuntu) for automated packaging of PySide2 applications. See also:
-#    https://build-system.fman.io/
 
 # ....................{ KLUDGES                           }....................
 # Explicitly register all files and subdirectories of the root directory
@@ -343,7 +354,8 @@ instead.
 
 # ....................{ SUBCOMMANDS                       }....................
 # Define all custom setuptools subcommands.
-for _subcommand_submodule in bupbuild, supcmdfreeze, supcmdsymlink, supcmdtest:
+# for _subcommand_submodule in bupbuild, supcmdfreeze, supcmdsymlink, supcmdtest:
+for _subcommand_submodule in supcmdfreeze, supcmdsymlink, supcmdtest:
     _subcommand_submodule.add_subcommand(_SETUP_OPTIONS, _SETUP_OPTIONS_CUSTOM)
 
 # ....................{ SETUP                             }....................

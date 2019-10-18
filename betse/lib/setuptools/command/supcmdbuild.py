@@ -288,11 +288,6 @@ def _scriptwriter_get_args_patched(
     if script_shebang is None:
         script_shebang = cls.get_header()
 
-    assert isinstance(cls, type), '"{}" not a class.'.format(cls)
-    assert isinstance(script_shebang, str), (
-        '"{}" not a string.'.format(script_shebang))
-    #print('In BETSE ScriptWriter.get_args()!')
-
     # For each entry point of this distribution...
     for script_basename, script_type, entry_point in (
         supcommand.iter_package_distribution_entry_points(distribution)):
@@ -311,7 +306,7 @@ def _scriptwriter_get_args_patched(
                 'Entry module "{}" entry function undefined.'.format(
                 entry_point.module_name))
 
-        # Script contents, formatted according to such template.
+        # Script contents, formatted according to this template.
         script_code = _SCRIPT_TEMPLATE.format(
             # Script code calling this entry module's main function.
             entry_func_code=script_entry_func_code,
@@ -323,9 +318,7 @@ def _scriptwriter_get_args_patched(
             entry_module=entry_point.module_name,
         )
 
-        # Yield a tuple containing this metadata to the caller. Note that the
-        # _get_script_args() method called here is *NOT* the
-        # _patched_get_script_args() method defined below. Confusing, but true.
+        # Yield a tuple containing this metadata to the caller.
         for script_tuple in cls._get_script_args(
             script_type, script_basename, script_shebang, script_code):
             yield script_tuple
