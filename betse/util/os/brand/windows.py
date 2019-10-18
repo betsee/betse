@@ -161,8 +161,8 @@ def is_windows() -> bool:
 @func_cached
 def is_windows_cygwin() -> bool:
     '''
-    ``True`` only if the current platform is **Cygwin Microsoft
-    Windows** (i.e., running the Cygwin POSIX compatibility layer).
+    ``True`` only if the current platform is **Cygwin Microsoft Windows**
+    (i.e., running the Cygwin POSIX compatibility layer).
     '''
 
     return sys.platform == 'cygwin'
@@ -171,8 +171,8 @@ def is_windows_cygwin() -> bool:
 @func_cached
 def is_windows_vanilla() -> bool:
     '''
-    ``True`` only if the current platform is **vanilla Microsoft
-    Windows** (i.e., *not* running the Cygwin POSIX compatibility layer).
+    ``True`` only if the current platform is **vanilla Microsoft Windows**
+    (i.e., *not* running the Cygwin POSIX compatibility layer).
     '''
 
     return sys.platform == 'win32'
@@ -181,9 +181,9 @@ def is_windows_vanilla() -> bool:
 @func_cached
 def is_windows_wsl() -> bool:
     '''
-    ``True`` only if the current platform is **Windows Subsystem for
-    Linux (WSL)** (i.e., the Microsoft-flavoured Linux kernel optionally
-    supported by Windows 10).
+    ``True`` only if the current platform is **Windows Subsystem for Linux
+    (WSL)** (i.e., the Microsoft-flavoured Linux kernel optionally supported by
+    Windows 10).
 
     See Also
     ----------
