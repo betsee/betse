@@ -9,14 +9,15 @@ Low-level custom :mod:`setuptools`-specific :class:`ScriptWriter` monkey patch.
 
 # ....................{ IMPORTS                           }....................
 from betse.lib.setuptools.command import supcommand
+from betse.lib.setuptools.command.supcommand import (
+    SetuptoolsCommandDistributionTypes)
 from betse.util.io import stderrs
 from betse.util.type.cls import classes
 from betse.util.type.types import (
     type_check, CallableTypes, ClassType, SetType, StrOrNoneTypes)
 from distutils.errors import DistutilsClassError
-from pkg_resources import Distribution
-from setuptools.command.develop import VersionlessRequirement
-from setuptools.command.easy_install import ScriptWriter
+from setuptools.command import easy_install
+from setuptools.command.easy_install import ScriptWriter, WindowsScriptWriter
 
 # ....................{ GLOBALS                           }....................
 _PACKAGE_NAMES = None
@@ -196,10 +197,9 @@ def init(
     #     'Monkey-patching class method '
     #     'setuptools.command.easy_install.ScriptWriter.get_args()...')
 
-    # If this install of setuptools does *NOT* define a "ScriptWriter" class
-    # defining the subsequently monkey-patched class method, this install is
-    # either broken *OR* of an unsupported version. In either case, raise an
-    # exception.
+    # If the ScriptWriter.get_args() class method does *NOT* exist, this
+    # installation of setuptools is either broken *OR* of an unsupported
+    # version. In either case, raise an exception.
     if not hasattr(ScriptWriter, 'get_args'):
         raise DistutilsClassError(
             'Class method '
@@ -207,6 +207,7 @@ def init(
             'found. The current version of setuptools is either broken '
             '(unlikely) or unsupported (likely).'
         )
+    # Else, the ScriptWriter.get_args() class method exists.
 
     # Preserve all passed package names.
     _PACKAGE_NAMES = package_names
@@ -218,17 +219,39 @@ def init(
     # Monkey-patch this class method.
     ScriptWriter.get_args = _scriptwriter_get_args_patched
 
+    # If the deprecated ScriptWriter.get_script_args() class method exists,
+    # monkey-patch both that *AND* the
+    # setuptools.command.easy_install.get_script_args() alias referring to that
+    # method as well.
+    #
+    # For unknown reasons, this is required *ONLY* under Windows. The default
+    # POSIX-compatible "ScriptWriter" class implementation (which generically
+    # applies to both Linux and MacOS) does *NOT* require this. Although
+    # deprecated, the Windows-specific "WindowsExecutableLauncherWriter"
+    # subclass of the "ScriptWriter" class in most recent stable release of
+    # "setuptools" continues to mistakenly utilize this deprecated method.
+    if hasattr(ScriptWriter, 'get_script_args'):
+        ScriptWriter.get_script_args = _scriptwriter_get_script_args_patched
+        easy_install.get_script_args = ScriptWriter.get_script_args
+
+        # If the ScriptWriter.get_script_header() class method does *NOT*
+        # exist, monkey-patch that method as well.
+        if not hasattr(ScriptWriter, 'get_script_header'):
+            ScriptWriter.get_script_header = (
+                _scriptwriter_get_script_header_patched)
+            # easy_install.get_script_header = ScriptWriter.get_script_header
+
 # ....................{ PATCHES                           }....................
 # Functions monkey-patching existing methods of the "ScriptWriter" class above
 # and hence defined to have the same method signatures. The "cls" parameter
 # implicitly passed to such methods by the @classmethod decorator is guaranteed
-# to be the "ScriptWriter" class.
+# to be the "ScriptWriter" class or a subclass thereof.
 
 @classmethod
 @type_check
 def _scriptwriter_get_args_patched(
     cls: ClassType,
-    distribution: (Distribution, VersionlessRequirement),
+    distribution: SetuptoolsCommandDistributionTypes,
     script_shebang: StrOrNoneTypes = None,
 ):
     '''
@@ -241,21 +264,9 @@ def _scriptwriter_get_args_patched(
     ----------
     cls : ClassType
         The :class:`ScriptWriter` class.
-    distribution : (Distribution, VersionlessRequirement)
-        Object collecting metadata on the **distribution** (i.e.,
-        :mod:`setuptools`-installed Python project) to create these entry
-        points for. If the end user invoked the :mod:`setuptools` subcommand:
-
-        * ``develop``, then this object is an instance of the
-          :mod:`setuptools`-specific :class:`VersionlessRequirement` class.
-          Confusingly, note that this class effectively wraps the underlying
-          :mod:`pkg_resources`-specific :class:`Distribution` class as a
-          transparent class proxy. Why, :mod:`setuptools:`. Why.
-        * ``install``, then this object is an instance of the
-          :mod:`pkg_resources`-specific :class:`Distribution` class.
-          Confusingly, note that this class has no relationship whatsoever to
-          the identically named :class:`distutils.dist.Distribution` and
-          :class:`setuptools.dist.Distribution` classes.
+    distribution : SetuptoolsCommandDistributionTypes
+        **Distribution** (i.e., high-level object encapsulating metadata for a
+        :mod:`setuptools`-installed Python project).
     script_shebang : StrOrNoneTypes
         Platform-specific shebang line with which to prefix the contents of all
         entry points installed by this method. Defaults to ``None``.
@@ -288,7 +299,7 @@ def _scriptwriter_get_args_patched(
     if script_shebang is None:
         script_shebang = cls.get_header()
 
-    # For each entry point of this distribution...
+    # For each entry point defined by this distribution...
     for script_basename, script_type, entry_point in (
         supcommand.iter_package_distribution_entry_points(distribution)):
         # If this entry point provides the name of the main function in this
@@ -322,3 +333,54 @@ def _scriptwriter_get_args_patched(
         for script_tuple in cls._get_script_args(
             script_type, script_basename, script_shebang, script_code):
             yield script_tuple
+
+# ....................{ PATCHES ~ deprecated              }....................
+@classmethod
+def _scriptwriter_get_script_args_patched(
+    cls: ClassType,
+    distribution: SetuptoolsCommandDistributionTypes,
+    executable = None,
+    is_windows_vanilla: bool = False
+):
+    '''
+    Yield :meth:`ScriptWriter.write_script` argument tuples for the passed
+    distribution's **entry points** (i.e., platform-specific executables
+    running this distribution).
+
+    This function monkey-patches the deprecated
+    :meth:`ScriptWriter.get_script_args` class method.
+    '''
+    assert isinstance(cls, type), '"{}" not a class.'.format(cls)
+    # print('In BETSE ScriptWriter.get_script_args()!')
+
+    # Platform-specific entry point writer.
+    #
+    # If the newer ScriptWriter.best() class function exists, obtain this
+    # writer by calling this function.
+    script_writer = None
+    if hasattr(ScriptWriter, 'best'):
+        script_writer = (
+            WindowsScriptWriter if is_windows_vanilla else ScriptWriter).best()
+    # Else, obtain this writer by calling the older ScriptWriter.get_writer()
+    # class function.
+    else:
+        script_writer = cls.get_writer(is_windows_vanilla)
+
+    # Shebang line prefixing the contents of this script.
+    script_shebang = cls.get_script_header('', executable, is_windows_vanilla)
+
+    # Defer to the newer get_args() method. Note that this is the
+    # _patched_get_args() method defined above.
+    return script_writer.get_args(distribution, script_shebang)
+
+
+@classmethod
+def _scriptwriter_get_script_header_patched(cls: ClassType, *args, **kwargs):
+    '''
+    Defer to the deprecated
+    :func:`setuptools.command.easy_install.get_script_header` function under
+    older :mod:setuptools versions.
+    '''
+
+    from setuptools.command.easy_install import get_script_header
+    return get_script_header(*args, **kwargs)

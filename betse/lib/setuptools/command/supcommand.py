@@ -15,9 +15,35 @@ Low-level :mod:`setuptools` command facilities.
 # BETSE packages and stock Python packages.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+from betse.util.path import pathnames
 from betse.util.type.types import type_check, GeneratorType, MappingType
 from pkg_resources import Distribution, PathMetadata
 from setuptools import Command
+from setuptools.command.develop import VersionlessRequirement
+
+# ....................{ TYPES                             }....................
+SetuptoolsCommandDistributionTypes = (Distribution, VersionlessRequirement)
+'''
+**Distribution** (i.e., high-level object encapsulating metadata for a
+:mod:`setuptools`-installed Python project) as commonly passed to methods
+called by the :mod:`setuptools.command.easy_install.easy_install` class.
+
+Specifically, if the end user invoked the :mod:`setuptools` subcommand:
+
+* ``develop``, this object is an instance of the
+  :mod:`setuptools`-specific :class:`VersionlessRequirement` class.
+  Confusingly, note that this class wraps the underlying
+  :mod:`pkg_resources`-specific :class:`Distribution` class as a class proxy
+  transparently stripping versioning from this distribution's name (e.g., by
+  truncating ``foo==1.0`` to merely ``foo``).
+* ``install``, this object is an instance of the :mod:`pkg_resources`-specific
+  :class:`Distribution` class. Confusingly, note that this class has no
+  relation whatsoever to the identically named
+  :class:`distutils.dist.Distribution` and
+  :class:`setuptools.dist.Distribution` classes.
+
+Why, :mod:`setuptools:`. Why.
+'''
 
 # ....................{ ADDERS                            }....................
 @type_check
@@ -89,8 +115,7 @@ def add_subcommand(
 def iter_subcommand_entry_points(subcommand: Command) -> GeneratorType:
     '''
     Generator yielding a 3-tuple detailing each wrapper script installed for
-    the **Python distribution** (i.e., top-level package) identified by the
-    passed :mod:`setuptools` subcommand.
+    the distribution described by the passed :mod:`setuptools` subcommand.
 
     See Also
     ----------
@@ -120,14 +145,18 @@ def iter_subcommand_entry_points(subcommand: Command) -> GeneratorType:
     yield from iter_package_distribution_entry_points(distribution)
 
 
-# This function is intentionally *NOT* type-checked, due to inconsistencies in
-# the setuptools API across setuptools versions.
+@type_check
 def iter_package_distribution_entry_points(
-    distribution: '(Distribution, VersionlessRequirement)') -> GeneratorType:
+    distribution: SetuptoolsCommandDistributionTypes) -> GeneratorType:
     '''
-    Generator yielding a 3-tuple describing each wrapper script installed for
-    the passed **distribution** (i.e., mod:`pkg_resources`-specific object
-    identifying a unique top-level package).
+    Generator iteratively yielding a 3-tuple describing each wrapper script
+    installed for the passed distribution.
+
+    Parameters
+    ----------
+    distribution : SetuptoolsCommandDistributionTypes
+        **Distribution** (i.e., high-level object encapsulating metadata for a
+        :mod:`setuptools`-installed Python project).
 
     Yields
     ----------
@@ -146,30 +175,10 @@ def iter_package_distribution_entry_points(
           * If this script is console-specific, ``console``.
           * Else, ``gui``.
 
-        * ``entry_point`` is this script's `EntryPoint` object, whose
-          attributes specify the module to be imported and function to be run
-          by this script.
-
-    Parameters
-    ----------
-    distribution : Distribution, VersionlessRequirement
-        Distribution object identifying the top-level Python package to yield
-        entry points for. Specifically, either:
-
-        * A :class:`Distribution` object supplied by the ``install`` or
-          ``symlink`` subcommands.
-        * A :class:`VersionlessRequirement` object supplied by the ``develop``
-          subcommand. As the classname suggests, this object wraps the
-          corresponding `Distribution` object by stripping versioning from this
-          distribution's name (e.g., reducing ``foo==1.0`` to merely ``foo``).
+        * ``entry_point`` is this script's :class:`pkg_resources.EntryPoint`
+          object, whose attributes specify the module to be imported and
+          function to be run by this script.
     '''
-
-    # Do *NOT* bother attempting to assert the passed distribution to be an
-    # instance of either the "Distribution" or "VersionlessRequirement"
-    # classes. While the former is guaranteed to exist under all setuptools
-    # version, the latter is *NOT*. Instead, only assert this distribution to
-    # be non-None.
-    assert distribution is not None, 'Setuptools distribution expected.'
 
     # For each type of script wrapper...
     for script_type in 'console', 'gui':
@@ -178,6 +187,11 @@ def iter_package_distribution_entry_points(
         # For each script of this type...
         for script_basename, entry_point in (
             distribution.get_entry_map(script_type_group).items()):
+            # If this basename is *NOT* a basename, raise an exception. Note
+            # that similar validation is performed by the
+            # ScriptWriter.get_args() class method inspiring this function.
+            pathnames.die_unless_basename(script_basename)
+
             # Yield this 3-tuple. To simplify integration with the downstream
             # setuptools API, do *NOT* sanitize_snakecase this script's
             # basename by calling sanitize_command_basename(). Since that API

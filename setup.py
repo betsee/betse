@@ -354,8 +354,7 @@ instead.
 
 # ....................{ SUBCOMMANDS                       }....................
 # Define all custom setuptools subcommands.
-# for _subcommand_submodule in bupbuild, supcmdfreeze, supcmdsymlink, supcmdtest:
-for _subcommand_submodule in supcmdfreeze, supcmdsymlink, supcmdtest:
+for _subcommand_submodule in bupbuild, supcmdfreeze, supcmdsymlink, supcmdtest:
     _subcommand_submodule.add_subcommand(_SETUP_OPTIONS, _SETUP_OPTIONS_CUSTOM)
 
 # ....................{ SETUP                             }....................
