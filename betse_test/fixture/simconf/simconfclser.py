@@ -163,8 +163,8 @@ class SimConfTestInternal(SimConfTestABC):
         ----------
         For efficiency, note that the configuration changes applied by this
         method (listed above) reside *only* in-memory; they have yet to be
-        written back to disk. Callers are required to do so manually (e.g., the
-        ``is_overwriting_config`` parameter passed to the
+        written back to disk. Callers are required to do so manually (e.g., via
+        the optional ``is_overwrite_conf`` parameter passed to the
         :meth:`CLISimTester.run_subcommands` method).
 
         Parameters

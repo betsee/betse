@@ -11,8 +11,7 @@ configurations so as to exercise specific feature sets and edge cases.
 
 # ....................{ IMPORTS                           }....................
 from betse_test.fixture import initter
-from betse_test.fixture.simconf.simconfclser import (
-    SimConfTestExternal, SimConfTestInternal)
+from betse_test.fixture.simconf.simconfclser import SimConfTestInternal
 from pytest import fixture
 from py._path.local import LocalPath
 
@@ -131,7 +130,7 @@ def betse_sim_conf(
 
 @fixture
 def betse_sim_conf_compat(
-    betse_temp_dir: LocalPath) -> SimConfTestExternal:
+    betse_temp_dir: LocalPath) -> SimConfTestInternal:
     '''
     Per-test fixture creating and returning a wrapper around a temporary
     simulation configuration file (complete with a pickled seed,
@@ -154,7 +153,7 @@ def betse_sim_conf_compat(
 
     Returns
     ----------
-    SimConfTestExternal
+    SimConfTestInternal
         Wrapper around a temporary simulation configuration file specific to
         the current test, complete with pickled seed, initialization, and
         simulation files produced by the older version of this application.

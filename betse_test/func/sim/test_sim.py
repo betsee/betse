@@ -16,18 +16,6 @@ from betse.util.test.pytest.mark.pytskip import (
     skip_unless_matplotlib_anim_writer,)
 
 # ....................{ TESTS                             }....................
-#FIXME: This functional test is failing to disable plot display during
-#simulation, which is blatantly bad. Pertinent AppVeyor warnings include:
-#
-#    betse_test/func/sim/test_sim.py::test_cli_sim_compat
-#      C:\projects\betse\betse\science\visual\anim\animwhile.py:190: UserWarning: Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.
-#        pyplot.show()
-#    betse_test/func/sim/test_sim.py::test_cli_sim_compat
-#      C:\projects\betse\betse\science\visual\visabc.py:1044: UserWarning: Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.
-#        pyplot.pause(0.0001)
-#
-#The culprit is almost certainly our passing of "is_overwrite_conf=False"
-#below. Is this vestigial or still required? Let's try omitting this parameter.
 def test_cli_sim_compat(betse_cli_sim_compat: 'CLISimTester') -> None:
     '''
     Functional test exercising all simulation subcommands required to validate
@@ -74,9 +62,7 @@ def test_cli_sim_compat(betse_cli_sim_compat: 'CLISimTester') -> None:
         #simulation with our test suite.
         *betse_cli_sim_compat.SUBCOMMANDS_TRY,
         # *betse_cli_sim_compat.SUBCOMMANDS_PLOT,
-
-        # Avoid overwriting the previously exported simulation configuration.
-        is_overwrite_conf=False)
+    )
 
     #FIXME: We unavoidably break backward compatibility with respect to pickled
     #objects and hence currently only test backward compatibility with respect

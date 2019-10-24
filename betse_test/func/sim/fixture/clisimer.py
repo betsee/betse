@@ -9,8 +9,7 @@ BETSE CLI in the active Python interpreter.
 '''
 
 # ....................{ IMPORTS                           }....................
-from betse_test.fixture.simconf.simconfclser import (
-    SimConfTestExternal, SimConfTestInternal)
+from betse_test.fixture.simconf.simconfclser import SimConfTestInternal
 from betse_test.func.fixture.clier import CLITester
 from betse_test.func.sim.fixture.clisimclser import CLISimTester
 from pytest import fixture
@@ -86,7 +85,7 @@ def betse_cli_sim_default(
 @fixture
 def betse_cli_sim_compat(
     betse_cli: CLITester,
-    betse_sim_conf_compat: SimConfTestExternal,
+    betse_sim_conf_compat: SimConfTestInternal,
 ) -> CLISimTester:
     '''
     Per-test fixture returning an object suitable for running one or more BETSE
@@ -100,7 +99,7 @@ def betse_cli_sim_compat(
     ----------
     betse_cli : CLITester
         Object running a single simulation-specific BETSE CLI subcommand.
-    betse_sim_conf_compat : SimConfTestExternal
+    betse_sim_conf_compat : SimConfTestInternal
         Object encapsulating a temporary simulation configuration produced by
         this oldest version of this application.
 
