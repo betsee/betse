@@ -155,6 +155,9 @@ environment:
     # for Python 3.4 is no longer exercised (i.e., tested) under Windows.
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    #FIXME: Uncomment after AppVeyor bumps Miniconda support for Python 3.8.
+    # - PYTHON_VERSION: 3.8
+    #   MINICONDA_DIRNAME: C:\Miniconda38-x64
     - PYTHON_VERSION: 3.7
       MINICONDA_DIRNAME: C:\Miniconda37-x64
     - PYTHON_VERSION: 3.6

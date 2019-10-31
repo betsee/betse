@@ -5,8 +5,8 @@
 .. # For a list of all supported languages, see also:
 .. #     http://build-me-the-docs-please.readthedocs.org/en/latest/Using_Sphinx/ShowingCodeExamplesInSphinx.html#pygments-lexers
 
-.. # FIXME: Sadly, this appears to be unsupported by some ReST parsers and hence
-.. # is disabled until more widely supported. *collective shrug*
+.. # FIXME: Sadly, this appears to be unsupported by some ReST parsers and is
+.. # thus disabled until more widely supported. *collective shrug*
 .. # highlight:: console
 
 .. # ------------------( SYNOPSIS                           )------------------
@@ -33,8 +33,8 @@ BETSEE
 
 BETSEE_ (\ **BETSE E**\ nvironment) is the official open-source cross-platform
 graphical user interface (GUI) for BETSE. BETSEE_ wraps the low-level
-command-line interface (CLI) bundled with BETSE in a high-level interactive
-modelling environment optimized for both new and advanced users alike.
+command-line interface (CLI) implemented by BETSE within a high-level
+interactive modelling environment designed for new and advanced users alike.
 
 Like BETSE, BETSEE_ is `portably implemented <BETSEE codebase_>`__ in `Python
 3`_ and `permissively distributed <License_>`__ under the `BSD 2-clause
@@ -61,213 +61,76 @@ license`_. Unlike BETSE, BETSEE_ leverages the industry-standard PySide2_-based
 Installation
 ============
 
-BETSE currently supports **Linux**, **macOS**, and **Windows** out-of-the-box.
+BETSE is readily installable with either:
 
-Simple
---------
+- [\ *Recommended*\ ] pip_, the standard Python package manager:
 
-For new users, BETSE is portably installable as follows:
+  .. code-block:: console
 
-- [\ *Windows*\ ] Emulate **Ubuntu Linux** via the `Windows Subsystem for Linux
-  (WSL) <WSL_>`__. [#windows_not]_
-- Install the **Python 3.x** [#python2_not]_ (e.g., 3.6) variant of Anaconda_.
-  [#anaconda_not]_
-- Open a **Bash terminal.** [#terminal]_
-- Run the following commands.
+     pip install betse
 
-  - Enable conda-forge_.
+- Anaconda_, a third-party Python package manager:
 
-    .. code-block:: console
+  .. code-block:: console
 
-       conda config --add channels conda-forge
+     conda config --add channels conda-forge
+     conda install betse
 
-  - Install **BETSE.** [#conda_package]_
-
-    .. code-block:: console
-
-       conda install betse
-
-  - [\ *Optional*\ ] Test **BETSE.** [#test_command]_
-
-    .. code-block:: console
-
-       betse -v try
-
-.. [#windows_not]
-   The `Windows Subsystem for Linux (WSL) <WSL_>`__ and – hence BETSE itself –
-   is *only* installable under **Windows 10.** Under older Windows versions,
-   BETSE may be installed from a `virtual Linux guest <VirtualBox_>`__.
-
-.. [#python2_not]
-   Do *not* install the **Python 2.7** variant of Anaconda_. BETSE requires
-   **Python 3.x.**
-
-.. [#anaconda_not]
-   If you prefer *not* to install Anaconda_, BETSE dependencies are also
-   `manually installable <Advanced_>`__ via your platform-specific package
-   manager (e.g., Homebrew_ on macOS, APT_ on Ubuntu Linux). Doing so is
-   non-trivial and, where performed incorrectly, could produce a
-   performance-crippled single-core installation of BETSE. Anaconda_ suffers no
-   such issues and is guaranteed to produce a performance-optimized multicore
-   installation of BETSE on *all* supported platforms. We strongly recommend
-   Anaconda_ – even when you think you know better.
-
-.. [#terminal]
-   To open a `POSIX`_\ -compatible terminal under:
-
-   - **Windows:**
-
-     #. Install **Ubuntu Linux** via the `Windows Subsystem for Linux (WSL) <WSL_>`__.
-     #. Open an *Ubuntu Linux terminal.*
-
-   - **macOS:**
-
-     #. Open the *Finder*.
-     #. Open the *Applications* folder.
-     #. Open the *Utilities* folder.
-     #. Open *Terminal.app*.
-
-   - **Ubuntu Linux:**
-
-     #. Type ``Ctrl``\ +\ ``Alt``\ +\ ``t``.
-
-.. [#conda_package]
-
-   This command installs both the `most recent stable release of BETSE <conda
-   package_>`__ *and* all mandatory and most optional dependencies of this
-   release. Older stable releases are installable in a similar manner (e.g.,
-   ``conda install betse=0.7.0`` for BETSE 0.7.0). All `Anaconda packages`_ are
-   kindly hosted by the `non-profit conda-forge organization <conda-forge_>`__.
-
-.. [#test_command]
-
-   This test command:
-
-   #. Enables verbosity with the ``-v`` option, simplifying issue reporting in
-      the event of an unexpected error.
-   #. Creates a ``sample_sim/`` subdirectory in the current directory, providing
-      the default simulation for this release of BETSE. This includes *all*
-      configuration files and resources referenced by these files.
-   #. Runs all simulation phases (e.g., seed, initialization) of this simulation.
-
-   When finished, you may safely either:
-
-   - Remove this subdirectory.
-   - Rename this subdirectory (e.g., to ``my_sim/``) to serve as a basis for
-     subsequent simulations.
-   - Preserve this subdirectory as is.
-
-Advanced
---------
-
-For developers and advanced users, *any* version of BETSE – including the live
-repository and prior stable releases – is manually installable as follows:
-
-#. Install **Python 3.x** and `all dependencies <dependencies_>`__ required by
-   BETSE. Under:
-
-   - **Linux,** install `these dependencies <dependencies_>`__ via your
-     distribution-specific package manager (e.g., APT_ under Debian-based
-     distributions). Do *not* use ``pip``.\ [#pip_not]_
-   - **macOS,** either:
-
-     - (\ *Recommended*\ ) Install the **Python 3.x** variant of Anaconda_.
-     - Or both:
-
-       #. Install a third-party package manager (e.g., Homebrew_, MacPorts_).
-          Apple does *not* provide a package manager out-of-the-box.
-       #. Install `these dependencies <dependencies_>`__ via that package
-          manager. Do *not* use ``pip``.\ [#pip_not]_
-
-   - **Windows,** install the **Python 3.x** variant of Anaconda_.\ [#windows]_
-
-#. Open a **terminal.**
-#. **Download** either:
-
-   - **The unstable BETSE repository** as follows:
-
-     #. Install Git_.
-     #. Clone the ``master`` branch of this repository.
-
-        .. code-block:: console
-
-           git clone https://gitlab.com/betse/betse.git
-
-     #. Prepare for installation.
-
-        .. code-block:: console
-
-           cd betse
-
-   - **Any stable BETSE release,** including the most recent, as follows:
-
-     #. Visit our `source tarball archive <tarballs_>`__.
-     #. Click the download icon to the right of the desired release and select
-        *Download tar.gz*.
-     #. Extract the downloaded tarball into the current directory.
-
-        .. code-block:: console
-
-           tar -xvzf betse-*.tar.gz
-
-     #. (\ *Optional*\ ) Remove this tarball.
-
-        .. code-block:: console
-
-           rm betse-*.tar.gz
-
-     #. Prepare for installation.
-
-        .. code-block:: console
-
-           cd betse-*
-
-#. **Install BETSE** either:
-
-   - (\ *Recommended*\ ) **Editably,** installing a cross-platform symbolic link
-     to the current BETSE codebase. Modifications to this code are applied
-     immediately *without* requiring reinstallation.
-
-     .. code-block:: console
-
-        sudo pip install --editable .
-
-   - **Non-editably,** installing a physical copy of the current BETSE codebase.
-     Modifications to this code are ignored and thus require reinstallation.
-
-     .. code-block:: console
-
-        sudo pip install .
-
-#. (\ *Optional*\ ) **Test BETSE,** running all modelling phases of a sample
-   simulation from a new directory.
-
-   .. code-block:: console
-
-      cd /tmp && betse try
-
-
-.. [#pip_not]
-   Do *not* install scientific dependencies (e.g., NumPy_, SciPy_) with either
-   ``pip`` or ``easy_install``; doing so typically degrades BETSE to single-core
-   performance. To optimize BETSE across multiple cores, *always* install these
-   dependencies with your platform-specific package manager (e.g., Homebrew_,
-   APT_).
-
-.. [#windows]
-   Unlike Linux and macOS, Anaconda_ is (\ *effectively*\ ) required under
-   Windows. Due to Microsoft's lack of support for `POSIX`_\ -compliant
-   toolchains, *no* reasonable alternatives for installing multicore-aware
-   scientific dependencies exist.
+See our `installation instructions <install_>`__ for further details,
+including best practices for `Windows-based installation <install Windows>`__
+and `Git-based development <install git_>`__.
 
 Usage
-============
+=====
 
-Basic
------
+BETSE provides the ``betse`` command, a low-level command line interface (CLI)
+ideal for advanced users. Our sister project BETSEE_ provides the ``betsee``
+command, a high-level graphical user interface (GUI) ideal for *all* users –
+regardless of prior experience or familiarity with the command line.
 
-BETSE installs the ``betse`` command, a low-level command line interface (CLI)
-designed for experienced users. The typical CLI-based workflow resembles:
+Subcommands
+-----------
+
+The ``betse`` command accepts numerous **subcommands** (i.e., arguments passed
+to this command denoting scientific actions to be performed).
+
+Try
+~~~
+
+The ``try`` subcommand creates a default simulation in the current directory
+before running all requisite and optional phases of this simulation:
+
+.. code-block:: console
+
+   betse -v try
+
+This subcommand is typically run as a `smoke test`_ to verify that BETSE was
+installed properly and operates as expected. Specifically, this subcommand:
+
+- Enables verbosity with the ``-v`` option, simplifying issue reporting in the
+  event of an unexpected error.
+- Creates a ``sample_sim/`` subdirectory in the current directory, providing
+  the default simulation for this release of BETSE. This includes *all*
+  configuration files and resources referenced by these files.
+- Runs all simulation phases (e.g., seed, initialization) of this simulation.
+
+When finished, you may safely either:
+
++ Remove this subdirectory.
++ Rename this subdirectory (e.g., to ``my_sim/``) to serve as a basis for
+  subsequent simulations.
++ Preserve this subdirectory as is.
+
+Phases
+~~~~~~
+
+The ``try`` subcommand unconditionally runs *all* simulation phases. While
+convenient, it's often preferable to rerun only a single phase – especially
+when experimenting with computationally expensive simulations.
+
+The ``seed``, ``init``, and ``sim`` subcommands run only the seed,
+initialization, and simulation phases (respectively) for the passed simulation.
+The typical CLI-based workflow calls these subcommands in an order resembling:
 
 #. Create a default simulation configuration in a new ``my_sim/`` subdirectory
    of the current directory.
@@ -278,20 +141,20 @@ designed for experienced users. The typical CLI-based workflow resembles:
 
 #. [\ *Optional*\ ] Edit the new ``my_sim/sim_config.yml`` file with `your
    favourite text editor <Atom_>`__.
-#. Create a pseudo-random cell cluster from this simulation configuration.
+#. Seed (i.e., create) a pseudo-random cell cluster from this configuration.
 
    .. code-block:: console
 
       betse seed my_sim/sim_config.yml
 
 #. [\ *Optional*\ ] Export all enabled plots, animations, and comma-separated
-   value (CSV) files from this cell cluster.
+   value (CSV) files from this cluster.
 
    .. code-block:: console
 
       betse plot seed my_sim/sim_config.yml
 
-#. Initialize (i.e., calculate steady-state concentrations for) this cell cluster.
+#. Initialize (i.e., calculate steady-state concentrations for) this cluster.
 
    .. code-block:: console
 
@@ -304,7 +167,7 @@ designed for experienced users. The typical CLI-based workflow resembles:
 
       betse plot init my_sim/sim_config.yml
 
-#. Simulate this initialized cell cluster.
+#. Simulate this initialized cluster.
 
    .. code-block:: console
 
@@ -317,12 +180,8 @@ designed for experienced users. The typical CLI-based workflow resembles:
 
       betse plot sim my_sim/sim_config.yml
 
-Also note that our sister project BETSEE_ installs the ``betsee`` command, a
-high-level graphical user interface (GUI) designed for *all* users – regardless
-of prior experience or familiarity with the command line.
-
-Expert
---------
+Options
+-------
 
 BETSE provides a variety of command-line options and subcommands in addition to
 those synopsized above. The standalone ``betse`` and ``betse --help`` commands
@@ -334,23 +193,21 @@ describe these options and subcommands as follows:
                 [--log-level {all,debug,info,warning,error,critical,none}]
                 [--profile-type {none,call,size}]
                 [--profile-file PROFILE_FILENAME]
-                [--matplotlib-backend MATPLOTLIB_BACKEND_NAME]
+                [--matplotlib-backend MATPLOTLIB_BACKEND_NAME] [--headless]
                 {config,seed,init,sim,sim-grn,plot,info,try} ...
-
+   
    The BioElectric Tissue Simulation Engine (BETSE) is a discrete exterior
    calculus simulator for 2D computational multiphysics problems in the life
-   sciences -- including electrodiffusion, electro-osmosis, galvanotaxis,
-   voltage-gated ion channels, gene regulatory networks, and biochemical
-   reaction networks.
-
+   sciences -- including (electro)diffusion, (electro)osmosis, galvanotaxis,
+   voltage-gated ion channels, gene regulatory networks, and biochemical reaction
+   networks.
+   
    optional arguments:
      -h, --help            show this help message and exit
      -v, --verbose         print and log all messages verbosely
      -V, --version         print program version and exit
      --log-file LOG_FILENAME
                            file to log to (defaults to
-                           "/home/leycec/.betse/betse.log")
-     --log-level {all,debug,info,warning,error,critical,none}
                            minimum level of messages to log to "--log-file"
                            (defaults to "info") [overridden by "--verbose"]
      --profile-type {none,call,size}
@@ -363,10 +220,12 @@ describe these options and subcommands as follows:
                            (defaults to "/home/leycec/.betse/betse.prof")
      --matplotlib-backend MATPLOTLIB_BACKEND_NAME
                            name of matplotlib backend to use (see: "betse info")
-
+     --headless            enable headless mode (display no plots or animations)
+                           [forces "--matplotlib-backend=agg"]
+   
    subcommands:
    Exactly one of the following subcommands must be passed:
-
+   
      {config,seed,init,sim,sim-grn,plot,info,try}
        config              create a default config file for BETSE simulations
        seed                seed a new cell cluster for a config file
@@ -376,12 +235,12 @@ describe these options and subcommands as follows:
        plot                plot an initialized or simulated simulation
        info                print metadata synopsizing BETSE and current system
        try                 create, init, simulate, and plot a sample simulation
-
+   
    subcommand help:
-
+   
    For help with a specific subcommand, pass the "-h" or "--help" option to that
    subcommand. For example, for help with the "config" subcommand, run:
-
+   
        betse config --help
 
 Documentation
@@ -397,17 +256,17 @@ complete with explanatory examples, sample plots, and ample screenshots:
 Tutorials
 ---------
 
-BETSE provides a range of `hands-on tutorial materials <user_tutorial_>`__,
+BETSE provides a range of `hands-on tutorial materials <tutorial user_>`__,
 including simulation files to run key published simulations, as well as a
-`Developer's Tutorial <dev_tutorial_>`__ demonstrating how to load and work
+`Developer's Tutorial <tutorial dev_>`__ demonstrating how to load and work
 with BETSE modules, methods, and simulations in external code projects:
 
-- Official `BETSE Tutorial Simulation Packages <user_tutorial_>`__. (\ *YAML
+- Official `BETSE Tutorial Simulation Packages <tutorial user_>`__. (\ *YAML
   format.*\ )
-- Official `BETSE Developer's Tutorial <dev_tutorial_>`__. (\ *Jupyter
+- Official `BETSE Developer's Tutorial <tutorial dev_>`__. (\ *Jupyter
   Notebook format.*\ )
 
-Introduction
+Science
 ============
 
 BETSE simulates biorealistic electrochemical phenomena in `gap junction`_\
@@ -518,7 +377,7 @@ and similar biochemicals is fully integrated with `ion channels <ion
 channel_>`__, `ion pumps`_, and `gap junctions`_.
 
 Validation
-==========
+----------
 
 BETSE is peer-reviewed software receiving continual evidence-based scrutiny.
 Simulation output is reproducibly synchronized with experimental observations on
@@ -627,23 +486,6 @@ Prior grant funding sources include (in chronological order):
    by a `Paul Allen Discovery Center award`_ from the `Paul G. Allen Frontiers
    Group`_ .
 
-See Also
-========
-
-For prospective users:
-
--  `Installation <dependencies_>`__, detailing BETSE's installation with
-   exhaustive platform-specific instructions.
-
-For prospective contributors:
-
--  `Development <doc/md/DEVELOP.md>`__, detailing development of the BETSE
-   codebase – philosophy, workflow, and otherwise.
--  `Testing <doc/md/TEST.md>`__, detailing testing of the BETSE codebase –
-   `continuous integration`_, manual testing, and otherwise.
--  `Freezing <doc/md/FREEZE.md>`__, detailing conversion of the BETSE codebase
-   into redistributable platform-specific executable binaries.
-
 License
 =======
 
@@ -654,6 +496,23 @@ The logo prominently displayed on this `project page <project_>`__ is a flat
 `Noun Project`_ icon entitled `"Cow," <Cows collection_>`__ `kindly released
 <Noun Project license_>`__ under the permissive `BSD-compatible <license
 compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
+
+See Also
+========
+
+For prospective users:
+
+-  `Installation <install_>`__, detailing BETSE's installation with exhaustive
+   platform-specific instructions.
+
+For prospective contributors:
+
+-  `Development <doc/md/DEVELOP.md>`__, detailing development of the BETSE
+   codebase – philosophy, workflow, and otherwise.
+-  `Testing <doc/md/TEST.md>`__, detailing testing of the BETSE codebase –
+   `continuous integration`_, manual testing, and otherwise.
+-  `Freezing <doc/md/FREEZE.md>`__, detailing conversion of the BETSE codebase
+   into redistributable platform-specific executable binaries.
 
 .. # ------------------( LINKS ~ betse                      )------------------
 .. _codebase:
@@ -668,10 +527,14 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
    https://gitlab.com/betse/betse/issues
 .. _project:
    https://gitlab.com/betse/betse
-.. _testing:
-   https://gitlab.com/betse/betse/pipelines
 .. _tarballs:
    https://gitlab.com/betse/betse/tags
+
+.. # ------------------( LINKS ~ betse : ci                 )------------------
+.. _Appveyor:
+   https://ci.appveyor.com/project/betse/betse/branch/master
+.. _testing:
+   https://gitlab.com/betse/betse/pipelines
 
 .. # ------------------( LINKS ~ betse : docs               )------------------
 .. _BETSE 1.0 documentation:
@@ -684,14 +547,22 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
 .. # ------------------( LINKS ~ betse : local              )------------------
 .. _author list:
    doc/md/AUTHORS.md
-.. _dev_tutorial:
-   doc/md/DEV_DEMO.md
-.. _user_tutorial:
-   doc/md/TUTORIALS.md
-.. _dependencies:
-   doc/md/INSTALL.md
 .. _license:
    LICENSE
+
+.. # ------------------( LINKS ~ betse : local : install    )------------------
+.. _install:
+   doc/rst/INSTALL.rst
+.. _install git:
+   doc/rst/INSTALL.rst#git
+.. _install Windows:
+   doc/rst/INSTALL.rst#windows
+
+.. # ------------------( LINKS ~ betse : local : tutorial   )------------------
+.. _tutorial dev:
+   doc/md/DEV_DEMO.md
+.. _tutorial user:
+   doc/md/TUTORIALS.md
 
 .. # ------------------( LINKS ~ betsee                     )------------------
 .. _BETSEE:
@@ -934,6 +805,8 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
    https://en.wikipedia.org/wiki/Genetic_algorithm
 .. _knowledge-based systems:
    https://en.wikipedia.org/wiki/Knowledge-based_systems
+.. _smoke test:
+   https://en.wikipedia.org/wiki/Smoke_testing_(software)
 
 .. # ------------------( LINKS ~ os : linux                 )------------------
 .. _APT:
@@ -956,9 +829,7 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
 .. _WSL:
    https://msdn.microsoft.com/en-us/commandline/wsl/install-win10
 
-.. # ------------------( LINKS ~ software                   )------------------
-.. _Appveyor:
-   https://ci.appveyor.com/project/betse/betse/branch/master
+.. # ------------------( LINKS ~ soft                       )------------------
 .. _Atom:
    https://atom.io
 .. _dill:
@@ -971,28 +842,32 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
    https://about.gitlab.com/gitlab-ci
 .. _Graphviz:
    http://www.graphviz.org
-.. _imageio:
-   https://imageio.github.io
 .. _Libav:
    https://libav.org
-.. _Matplotlib:
-   http://matplotlib.org
-.. _NumPy:
-   http://www.numpy.org
 .. _MEncoder:
    https://en.wikipedia.org/wiki/MEncoder
-.. _Python 3:
-   https://www.python.org
-.. _py.test:
-   http://pytest.org
-.. _SciPy:
-   http://www.scipy.org
 .. _VirtualBox:
    https://www.virtualbox.org
 .. _YAML:
    http://yaml.org
 
-.. # ------------------( LINKS ~ software : conda           )------------------
+.. # ------------------( LINKS ~ soft : py                  )------------------
+.. _imageio:
+   https://imageio.github.io
+.. _Matplotlib:
+   http://matplotlib.org
+.. _NumPy:
+   http://www.numpy.org
+.. _Python 3:
+   https://www.python.org
+.. _pip:
+   https://pip.pypa.io
+.. _py.test:
+   http://pytest.org
+.. _SciPy:
+   http://www.scipy.org
+
+.. # ------------------( LINKS ~ soft : py : conda          )------------------
 .. _Anaconda:
    https://www.anaconda.com/download
 .. _Anaconda packages:
@@ -1000,7 +875,7 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
 .. _conda-forge:
    https://conda-forge.org
 
-.. # ------------------( LINKS ~ software : pyside2         )------------------
+.. # ------------------( LINKS ~ soft : py : pyside2        )------------------
 .. _PySide2:
    https://wiki.qt.io/PySide2
 .. _PySide2 5.6:
@@ -1014,7 +889,7 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
 .. _Qt 5.6:
    https://wiki.qt.io/Qt_5.6_Release
 
-.. # ------------------( LINKS ~ software : icons           )------------------
+.. # ------------------( LINKS ~ soft : icon                )------------------
 .. _Cows collection:
    https://thenounproject.com/maxim221/collection/cows
 .. _Maxim Kulikov:
@@ -1024,7 +899,7 @@ compatibility_>`__ `CC BY 3.0 license`_ by `Maxim Kulikov`_.
 .. _Noun Project license:
    https://thenounproject.com/legal
 
-.. # ------------------( LINKS ~ software : licenses        )------------------
+.. # ------------------( LINKS ~ soft : license             )------------------
 .. _license compatibility:
    https://en.wikipedia.org/wiki/License_compatibility#Compatibility_of_FOSS_licenses
 .. _BSD 2-clause license:

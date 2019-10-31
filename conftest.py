@@ -79,21 +79,28 @@ def pytest_addoption(parser: '_pytest.config.Parser') -> None:
     pass
 
 # ....................{ HOOKS ~ session                   }....................
-#FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?
-#Actually, this probably pertains to the following note in official
-#documentation: "If a pytest_sessionstart is contained in some subdirectories
-#conftest.py file, it will not be called." That said, this hook should
-#absolutely be callable from this top-level "conftest" plugin.
 def pytest_sessionstart(session):
     '''
     Hook run immediately *before* starting the current test session (i.e.,
     calling the :func:`pytest.session.main` function).
     '''
 
-    pass
+    # Defer heavyweight imports.
+    import betse, sys
+    from betse.util.py.module import pymodule
+
+    # Print the absolute dirname of the top-level "betse" package.
+    print('project path: {}'.format(pymodule.get_dirname_canonical(betse)))
+
+    # Print the current list of the (absolute or relative) dirnames of all
+    # directories to be iteratively searched for importable modules and
+    # packages, initialized from the "${PYTHONPATH}" environment variable and
+    # subsequently extended by pytest. Since Python searches this list in
+    # descending order, directories listed earlier assume precedence over
+    # directories listed later.
+    print('package path: {}'.format(sys.path))
 
 
-#FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?
 def pytest_sessionfinish(session, exitstatus):
     '''
     Hook run immediately *after* completing the current test session (i.e.,

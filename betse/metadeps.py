@@ -11,9 +11,31 @@ Design
 Metadata constants defined by this submodule are intentionally *not* defined as
 metadata properties of the :class:`betse.util.app.meta.appmetaabc` abstract
 base class. Why? Because doing so would prevent their use from the top-level
-``setup.py`` scripts defined by downstream consumers (e.g., BETSEE GUI), which
+``setup.py`` scripts defined by downstream consumers (e.g., BETSEE), which
 would render these constants effectively useless for their principal use case.
 '''
+
+#FIXME: Setuptools should no longer be required at runtime under Python >= 3.8.
+#Why? Because Python 3.8 wisely introduced the new "importlib.metadata" module,
+#enabling inspection of package manager-installed metadata (e.g., version,
+#dependencies, entry points) *WITHOUT* requiring that manager to be installed.
+#"importlib.metadata" is likely to be substantially more efficient than the
+#setuptools-specific "pkg_resources" and "setuptools" packages, which are
+#well-known to be CPU bottlenecks. Of course, supporting this sanely will
+#necessitate that we refactor the codebase as follows:
+#
+#* Define a new "betse.util.py.pyproject" submodule, providing high-level
+#  access to project-specific metadata rather than lower-level module- or
+#  package-specific metadata. This submodule should define functions generally
+#  resembling those already defined by the "betse.lib.setuptools.setuptool"
+#  submodule as follows:
+#  * If this is Python >= 3.8, these functions should be implemented in terms
+#    of the new "importlib.metadata" submodule.
+#  * If this is Python < 3.8, these functions should be implemented in terms
+#    of the old "betse.lib.setuptools.setuptool" submodule.
+#
+#For backward compatibility, the "betse.lib.setuptools.setuptool" submodule
+#should be preserved in perpetuity as is. It works, so don't break it! Please.
 
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -8,6 +8,28 @@ Low-level **decorator-based memoization** (i.e., efficient caching and reuse of
 the values returned by decorated callables) facilities.
 '''
 
+#FIXME: Generalize the @property_cached decorator as follows:
+#
+#* Under Python >= 3.8, consider deferring to the newly introduced
+#  functools.cached_property() decorator. Naturally, we'll want to investigate
+#  whether that decorator has performance comparable to our own.
+#* Under Python < 3.8, fallback to the existing implementation of the
+#  the @property_cached decorator.
+
+#FIXME: Generalize the @func_cached decorator into a new method_cached()
+#decorator whose implementation will resemeble (and possibly even be
+#effectively identical to) the existing property_cached() decorator. After
+#doing so, revise the docstring for the func_cached() function to remove all
+#reference to bound methods.
+#FIXME: After defining method_cached(), refactor this submodule as follows:
+#
+#* Create a new callable_cached() decorator, internally calling either
+#  func_cached() or method_cached() conditionally depending on whether the
+#  passed callable is a bound method or not.
+#* Rename all existing "@func_cached" decorations to "@callable_cached".
+#* Renome func_cached() to _func_cached.
+#* Renome method_cached() to _method_cached.
+
 # ....................{ IMPORTS                           }....................
 from betse.util.type.types import type_check, CallableTypes, PropertyType
 from functools import wraps
@@ -43,19 +65,6 @@ decorated property method.
 '''
 
 # ....................{ DECORATORS                        }....................
-#FIXME: Generalize a new method_cached() decorator whose implementation will
-#resemeble (and possibly even be effectively identical to) the existing
-#property_cached() decorator. After doing so, revise the docstring for the
-#func_cached() function to remove all reference to bound methods.
-#FIXME: After defining method_cached(), refactor this submodule as follows:
-#
-#* Create a new callable_cached() decorator, internally calling either
-#  func_cached() or method_cached() conditionally depending on whether the
-#  passed callable is a bound method or not.
-#* Rename all existing "@func_cached" decorations to "@callable_cached".
-#* Renome func_cached() to _func_cached.
-#* Renome method_cached() to _method_cached.
-
 #FIXME: Raise an exception if the passed callable is either an unbound or bound
 #method. Note that we may only be able to reliably test for the latter.
 @type_check
