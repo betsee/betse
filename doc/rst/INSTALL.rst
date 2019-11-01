@@ -8,143 +8,150 @@
 Installation
 ============
 
-BETSE currently supports **Linux**, **macOS**, and **Windows** out-of-the-box.
+BETSE requires:
 
-Windows
---------
+-  Either **Microsoft Windows,** **Apple macOS,** or a **Linux distribution.**
+   All other platforms (e.g., Android, FreeBSD) are explicitly unsupported at
+   this time.
+-  At least **Python 3.5** (e.g., 3.5, 3.8). All prior Python versions (e.g.,
+   Python 2.7, 3.4) are explicitly unsupported.
+-  At least **4GB RAM;** ideally, at least **16GB RAM.**\ [#thirtytwobit_not]_
 
-For Microsoft Windows 10 users, BETSE is readily installable as follows:
+.. [#thirtytwobit_not]
+   Ergo, BETSE effectively requires a **64-bit system.**  32-bit systems impose
+   a so-called `"3GB barrier" <https://en.wikipedia.org/wiki/3_GB_barrier>`__
+   preventing usage of more than 3—4GB of available RAM, which rarely suffices
+   for even small-scale BETSE simulations. This constraint extends to *all*
+   non-server 32-bit editions of Microsoft Windows.
 
-- Emulate **Ubuntu Linux** via the `Windows Subsystem for Linux (WSL) <WSL_>`__
-  bundled with Windows 10. [#windows_not]_
-- Open an **Ubuntu Linux terminal.**
-- Run the following commands.
+Linux
+=====
 
-  - Update the `Advanced Package Tool (APT) <APT_>`__ package cache.
+BETSE is installable under *most* Linux distributions as follows:
 
-    .. code-block:: console
+#. Open a **terminal.**\ [#linux_terminal]
+#. Copy-and-paste the following commands into this terminal:
 
-       sudo apt update
-  
-  - Upgrade all previously installed packages.
+   #. Install **BETSE.**
 
-    .. code-block:: console
+      .. code-block:: console
 
-       sudo apt upgrade
+         pip3 install betse
 
-  - Install **Python 3.x.**\ [#python2_not]_
+   #. [\ *Optional*\ ] Test **BETSE.**
 
-    .. code-block:: console
+      .. code-block:: console
 
-       sudo apt install python3-pip
+         betse -v try
 
-  - Install **BETSEE.**
-
-    .. code-block:: console
-
-       sudo pip3 install betse
-
-
-.. [#windows_not]
-   The `Windows Subsystem for Linux (WSL) <WSL_>`__ and (thus BETSE itself) is
-   *only* installable under **Windows 10.** Under older Windows versions, BETSE
-   may be installed from a `virtual Linux guest <VirtualBox_>`__.
-
-.. [#python2_not]
-   Do *not* install **Python 2.7.** BETSE strictly requires **Python 3.x.** 
-   Python 2.7 ,
-
-Simple
---------
-
-For new users, BETSE is readily installable as follows:
-
-- [\ *Windows*\ ] Emulate **Ubuntu Linux** via the `Windows Subsystem for Linux
-  (WSL) <WSL_>`__ bundled with Windows 10. [#windows_not]_
-- Install the **Python 3.x** [#python2_not]_ (e.g., 3.7) variant of Anaconda_.
-  [#anaconda_not]_
-- Open a **Bash terminal.** [#terminal]_
-- Run the following commands.
-
-  - Enable conda-forge_.
-
-    .. code-block:: console
-
-       conda config --add channels conda-forge
-
-  - Install **BETSE.** [#conda_package]_
-
-    .. code-block:: console
-
-       conda install betse
-
-  - [\ *Optional*\ ] Test **BETSE.** [#test_command]_
-
-    .. code-block:: console
-
-       betse -v try
-
-.. [#anaconda_not]
-   If you prefer *not* to install Anaconda_, BETSE dependencies are also
-   `manually installable <Advanced_>`__ via your platform-specific package
-   manager (e.g., Homebrew_ on macOS, APT_ on Ubuntu Linux). Doing so is
-   non-trivial and, where performed incorrectly, could produce a
-   performance-crippled single-core installation of BETSE. Anaconda_ suffers no
-   such issues and is guaranteed to produce a performance-optimized multicore
-   installation of BETSE on *all* supported platforms. We strongly recommend
-   Anaconda_ – even when you think you know better.
-
-.. [#terminal]
-   To open a `POSIX`_\ -compatible terminal under:
-
-   - **Windows:**
-
-     #. Install **Ubuntu Linux** via the `Windows Subsystem for Linux (WSL) <WSL_>`__.
-     #. Open an *Ubuntu Linux terminal.*
-
-   - **macOS:**
-
-     #. Open the *Finder*.
-     #. Open the *Applications* folder.
-     #. Open the *Utilities* folder.
-     #. Open *Terminal.app*.
+.. [#linux_terminal]
+   To open a terminal under:
 
    - **Ubuntu Linux:**
 
      #. Type ``Ctrl``\ +\ ``Alt``\ +\ ``t``.
 
-.. [#conda_package]
+macOS
+=====
 
+BETSE is installable under Apple macOS as follows:
+
+#. Install the **Python 3.x** [#python2_not]_ (e.g., 3.7) variant of
+   Anaconda_.\ [#anaconda_not]_
+#. Open the **Finder**.
+#. Open the **Applications** folder.
+#. Open the **Utilities** folder.
+#. Open *Terminal.app*.
+#. Copy-and-paste the following commands into this terminal:
+
+   #. Enable conda-forge_.
+
+      .. code-block:: console
+
+         conda config --add channels conda-forge
+
+   #. Install **BETSE.**\ [#conda_package]_
+
+      .. code-block:: console
+
+         conda install betse
+
+   #. [\ *Optional*\ ] Test **BETSE.**
+
+      .. code-block:: console
+
+         betse -v try
+
+.. [#python2_not]
+   Do *not* install **Python 2.7.** BETSE strictly requires **Python 3.x.** 
+
+.. # FIXME: Change the <Advanced_> link to a macOS-specific link.
+
+.. [#anaconda_not]
+   If you prefer *not* to install Anaconda_, BETSE is also `manually
+   installable <Advanced_>`__ via a third-party package manager (e.g.,
+   Homebrew_, MacPorts_). Doing so is non-trivial and, if performed improperly,
+   could produce a performance-crippled single-core installation of BETSE.
+   Anaconda_ suffers no such issues and is guaranteed to produce a
+   performance-optimized multicore installation of BETSE. We strongly recommend
+   Anaconda_ – even when you think you know better.
+
+.. [#conda_package]
    This command installs both the `most recent stable release of BETSE <conda
    package_>`__ *and* all mandatory and most optional dependencies of this
    release. Older stable releases are installable in a similar manner (e.g.,
    ``conda install betse=0.7.0`` for BETSE 0.7.0). All `Anaconda packages`_ are
    kindly hosted by the `non-profit conda-forge organization <conda-forge_>`__.
 
-.. [#test_command]
+Windows
+=======
 
-   This test command:
+BETSE is installable under Microsoft Windows 10 as follows:\ [#windows_not]_
 
-   #. Enables verbosity with the ``-v`` option, simplifying issue reporting in
-      the event of an unexpected error.
-   #. Creates a ``sample_sim/`` subdirectory in the current directory,
-      providing the default simulation for this release of BETSE. This includes
-      *all* configuration files and resources referenced by these files.
-   #. Runs all simulation phases (e.g., seed, initialization) of this
-      simulation.
+#. Emulate **Ubuntu Linux** via the `Windows Subsystem for Linux (WSL)
+   <WSL_>`__ bundled with Windows 10.
+#. Open an **Ubuntu Linux terminal.**
+#. Copy-and-paste the following commands into this terminal:
 
-   When finished, you may safely either:
+   #. Update the `Advanced Package Tool (APT) <APT_>`__ package cache.
+ 
+     .. code-block:: console
+ 
+        sudo apt update
+   
+   #. Upgrade all previously installed packages.
+ 
+     .. code-block:: console
+ 
+        sudo apt upgrade
+ 
+   #. Install **Python 3.x.**\ [#python2_not]_
+ 
+     .. code-block:: console
+ 
+        sudo apt install python3-pip
+ 
+   #. Install **BETSE.**
+ 
+     .. code-block:: console
+ 
+        pip3 install betse
+ 
+   #. [\ *Optional*\ ] Test **BETSE.**
+ 
+     .. code-block:: console
+ 
+        betse -v try
 
-   - Remove this subdirectory.
-   - Rename this subdirectory (e.g., to ``my_sim/``) to serve as a basis for
-     subsequent simulations.
-   - Preserve this subdirectory as is.
-
+.. [#windows_not]
+   The `Windows Subsystem for Linux (WSL) <WSL_>`__ and (thus BETSE itself) is
+   *only* installable under **Windows 10.** Under older Windows versions, BETSE
+   may be installed from a `virtual Linux guest <VirtualBox_>`__.
 
 .. # FIXME: Simplify this subsection to be Git-specific.
 
-Git
----
+Developers
+----------
 
 For developers and advanced users, *any* version of BETSE – including the live
 repository and prior stable releases – is manually installable as follows:
@@ -235,7 +242,6 @@ repository and prior stable releases – is manually installable as follows:
 
       cd /tmp && betse try
 
-
 .. # FIXME:  Actually, "pip" should now install OpenBLAS-optimized wheels for
 .. # NumPy and SciPy. Ergo, the discussion below no longer applies.
 
@@ -253,10 +259,11 @@ repository and prior stable releases – is manually installable as follows:
    scientific dependencies exist.
 
 
-.. # FIXME: Refactor everything below into the above discussion.
+.. # FIXME: Refactor everything below to provide alternative installation
+.. # instructions to those delineated above.
 
-Installation
-============
+Advanced
+--------
 
 BETSE is installable with only `two simple steps </README.rst>`__ on all
 supported platforms – complete with multicore-aware hardware
@@ -281,95 +288,7 @@ manner, the `simple installation instructions </README.rst>`__ are
 *strongly* recommended. For completeness, this document nonetheless
 details the manual approach for several popular package managers.
 
-Requirements
-------------
-
-BETSE requires:
-
--  Either **Windows,** **macOS,** or **Linux.** All other platforms
-   (e.g., Android, FreeBSD) are explicitly unsupported.
--  At least **Python 3.4** (e.g., 3.4, 3.5, 3.6). All prior Python
-   versions (e.g., Python 2.7, 3.3) are explicitly unsupported.
--  A **64-bit system.** This is principally due to the increasing
-   obsolescence and hence irrelevance of 32-bit systems for scientific
-   work. [Read: no clients or developers still use 32-bit systems.] To a
-   lesser extent, this is due to the so-called `"3GB
-   barrier" <https://en.wikipedia.org/wiki/3_GB_barrier>`__ imposed by
-   most existing 32-bit systems -- including *all* non-server 32-bit
-   editions of Microsoft Windows. This barrier prevents usage of more
-   than 3 to 4GB of available RAM, which rarely suffices for even
-   small-scale tissue simulations.
-
-Recommendations
----------------
-
-For optimal performance, BETSE also recommends:
-
--  At least **4GB RAM;** ideally, at least **16GB RAM.**
-
-Dependencies
-------------
-
-Like most Python applications, BETSE has both mandatory dependencies
-that must be installed before BETSE itself is installed *and* optional
-dependencies safely installable at any time.
-
-Unlike most Python applications, these dependencies should *not* be
-installed with ```pip`` <https://pypi.python.org/pypi/pip>`__, the
-standard Python package manager. This is especially the case for
-scientific dependencies partially implemented in C or Fortran (e.g.,
-`NumPy <http://www.numpy.org>`__, `SciPy <http://www.scipy.org>`__).
-While technically feasible, installing these dependencies with
-```pip`` <https://pypi.python.org/pypi/pip>`__ typically results in an
-unoptimized single-core installation of BETSE. \ *Again, that's bad.*\ 
-
-Mandatory
-~~~~~~~~~
-
-BETSE requires the following non-pure-Python packages – which themselves
-require non-Python precompiled libraries (e.g., C, Fortran) and hence
-are best installed manually via the system-wide package manager for your
-current operating system:
-
--  Python >= 3.4.
--  `Dill <https://github.com/uqfoundation/dill>`__ >= 0.2.3.
--  `NumPy <http://www.numpy.org>`__ >= 1.8.0.
--  `Pillow <https://python-pillow.github.io>`__ >= 2.3.0.
--  `PyYaml <http://pyyaml.org>`__ >= 3.10.
--  `SciPy <http://www.scipy.org>`__ >= 0.12.0.
--  `matplotlib <http://matplotlib.org>`__ >= 1.5.0.
--  `setuptools <https://pythonhosted.org/setuptools>`__ >= 3.3.
--  `six <https://pythonhosted.org/six>`__ >= 1.5.2.
-
-To install these dependencies, the following instructions also install
-``pip3``, the Python 3-specific release of the popular Python package
-manager ``pip``. Naturally, BETSE itself does *not* require ``pip3`` at
-runtime.
-
-Matplotlib Backend
-^^^^^^^^^^^^^^^^^^
-
-Under Linux and Windows, BETSE also requires at least one of the
-following third-party widget toolkits and corresponding matplotlib
-backends (*in descending order of preference*):
-
--  **`Tcl/Tk <https://www.tcl.tk>`__** *and* matplotlib compiled with
-   Tcl/Tk support (i.e., the ``TkAgg`` backend). This backend comes
-   highly recommended for optimal display of BETSE plots and animations
-   under both Linux and Windows.
--  **`PyQt5 <https://www.riverbankcomputing.com/software/pyqt/download5>`__**
-   *and* matplotlib compiled with Qt5 support (i.e., the ``Qt5Agg``
-   backend).
--  **`PyQt4 <https://www.riverbankcomputing.com/software/pyqt/download>`__**
-   *and* matplotlib compiled with Qt4 support (i.e., the ``Qt4Agg``
-   backend).
-
-Under macOS, BETSE instead prefers the ``MacOSX`` matplotlib backend.
-This backend comes highly recommended for optimal display of BETSE plots
-and animations under macOS, requiring no additional third-party widget
-toolkits.
-
-Linux
+POSIX
 -----
 
 BETSE is manually installable with *most* Linux-centric package
@@ -516,8 +435,8 @@ dependencies are installable in a system-wide manner as follows:
 
        $ sudo emerge betse
 
-macOS
-^^^^^
+macOS (old)
+-----------
 
 Under Apple macOS, all mandatory dependencies are installable in a
 system-wide manner with either:
@@ -697,8 +616,8 @@ under macOS as of this writing: Apple's **`Accelerate
 Framework <https://developer.apple.com/reference/accelerate/1668466-blas>`__.**
 No further BLAS or LAPACK configuration is required or recommended.
 
-Windows
-^^^^^^^
+Windows (old)
+-------------
 
     **Note:** these instructions are *woefully* inadequate at present,
     encouraging installation of the

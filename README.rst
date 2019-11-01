@@ -67,7 +67,7 @@ BETSE is readily installable with either:
 
   .. code-block:: console
 
-     pip install betse
+     pip3 install betse
 
 - Anaconda_, a third-party Python package manager:
 
@@ -76,23 +76,26 @@ BETSE is readily installable with either:
      conda config --add channels conda-forge
      conda install betse
 
-See our `installation instructions <install_>`__ for further details,
-including best practices for `Windows-based installation <install Windows>`__
-and `Git-based development <install git_>`__.
+See our `installation instructions <install_>`__ for further details, including
+best practices for `Linux <install Linux>`__, `macOS <install macOS>`__, and
+`Windows usage <install Windows>`__ as well as `Git-based development
+<install developers_>`__.
 
 Usage
 =====
 
-BETSE provides the ``betse`` command, a low-level command line interface (CLI)
-ideal for advanced users. Our sister project BETSEE_ provides the ``betsee``
-command, a high-level graphical user interface (GUI) ideal for *all* users –
-regardless of prior experience or familiarity with the command line.
+BETSE installs the ``betse`` command, a low-level command line interface (CLI)
+ideal for advanced users.
+
+BETSEE_ installs the ``betsee`` command, a high-level graphical user interface
+(GUI) ideal for *all* users – regardless of prior experience or familiarity
+with the command line.
 
 Subcommands
 -----------
 
-The ``betse`` command accepts numerous **subcommands** (i.e., arguments passed
-to this command denoting scientific actions to be performed).
+The ``betse`` command accepts numerous **subcommands** (i.e., passed arguments
+indicating actions to be performed).
 
 Try
 ~~~
@@ -104,8 +107,8 @@ before running all requisite and optional phases of this simulation:
 
    betse -v try
 
-This subcommand is typically run as a `smoke test`_ to verify that BETSE was
-installed properly and operates as expected. Specifically, this subcommand:
+This subcommand is typically run as a `smoke test`_ verifying that BETSE was
+installed properly and works as advertised. Specifically, this subcommand:
 
 - Enables verbosity with the ``-v`` option, simplifying issue reporting in the
   event of an unexpected error.
@@ -121,8 +124,8 @@ When finished, you may safely either:
   subsequent simulations.
 + Preserve this subdirectory as is.
 
-Phases
-~~~~~~
+Seed, Init, and Sim
+~~~~~~~~~~~~~~~~~~~
 
 The ``try`` subcommand unconditionally runs *all* simulation phases. While
 convenient, it's often preferable to rerun only a single phase – especially
@@ -130,7 +133,7 @@ when experimenting with computationally expensive simulations.
 
 The ``seed``, ``init``, and ``sim`` subcommands run only the seed,
 initialization, and simulation phases (respectively) for the passed simulation.
-The typical CLI-based workflow calls these subcommands in an order resembling:
+A typical CLI-based workflow calls these subcommands in order:
 
 #. Create a default simulation configuration in a new ``my_sim/`` subdirectory
    of the current directory.
@@ -148,13 +151,14 @@ The typical CLI-based workflow calls these subcommands in an order resembling:
       betse seed my_sim/sim_config.yml
 
 #. [\ *Optional*\ ] Export all enabled plots, animations, and comma-separated
-   value (CSV) files from this cluster.
+   value (CSV) files from this seed.
 
    .. code-block:: console
 
       betse plot seed my_sim/sim_config.yml
 
-#. Initialize (i.e., calculate steady-state concentrations for) this cluster.
+#. Initialize (i.e., calculate steady-state concentrations for) this seeded
+   cluster.
 
    .. code-block:: console
 
@@ -553,8 +557,12 @@ For prospective contributors:
 .. # ------------------( LINKS ~ betse : local : install    )------------------
 .. _install:
    doc/rst/INSTALL.rst
-.. _install git:
-   doc/rst/INSTALL.rst#git
+.. _install developers:
+   doc/rst/INSTALL.rst#developers
+.. _install Linux:
+   doc/rst/INSTALL.rst#linux
+.. _install macOS:
+   doc/rst/INSTALL.rst#macos
 .. _install Windows:
    doc/rst/INSTALL.rst#windows
 
