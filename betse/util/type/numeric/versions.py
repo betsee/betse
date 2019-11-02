@@ -241,12 +241,12 @@ def to_comparable(version: VersionTypes) -> VersionSetuptoolsTypes:
     #   this does *NOT* appear to be the case.
     # * The "distutils.version.LooseVersion" class, whose API resembles that of
     #   setuptools called below. However, whereas the latter API is PEP
-    #   440-conformant, the latter API is not.
+    #   440-conformant, the former API is not.
     #
-    # Note also that the pkg_resources.parse_version() called below to
-    # implement this conversion *ONLY*  accepts string parameters under older
-    # (and possibly current) setuptools versions. Passing version tuples, in
-    # particular, raises an exception resembling:
+    # Note also that the pkg_resources.parse_version() function called below
+    # *ONLY* accepts string parameters under older (and possibly current)
+    # setuptools versions. In particular, passing version tuples raises an
+    # exception resembling:
     #
     #     >>> pkg_resources.parse_version((1, 2, 3))
     #     TypeError: expected string or bytes-like object

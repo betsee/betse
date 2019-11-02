@@ -76,10 +76,10 @@ BETSE is readily installable with either:
      conda config --add channels conda-forge
      conda install betse
 
-See our `installation instructions <install_>`__ for further details, including
-best practices for `Linux <install Linux>`__, `macOS <install macOS>`__, and
-`Windows usage <install Windows>`__ as well as `Git-based development
-<install developers_>`__.
+See `installation instructions <install_>`__ for details, including best
+practices for `Linux <install Linux>`__, `macOS <install macOS>`__, and
+`Windows usage <install Windows>`__ and `Git-based development <install
+developers_>`__.
 
 Usage
 =====
@@ -101,14 +101,15 @@ Try
 ~~~
 
 The ``try`` subcommand creates a default simulation in the current directory
-before running all requisite and optional phases of this simulation:
+and runs all requisite and optional phases of this simulation:
 
 .. code-block:: console
 
    betse -v try
 
-This subcommand is typically run as a `smoke test`_ verifying that BETSE was
-installed properly and works as advertised. Specifically, this subcommand:
+This subcommand is typically run as an initial `smoke test`_ verifying that
+BETSE was installed properly and operates as advertised. Specifically, this
+subcommand:
 
 - Enables verbosity with the ``-v`` option, simplifying issue reporting in the
   event of an unexpected error.
@@ -127,12 +128,12 @@ When finished, you may safely either:
 Seed, Init, and Sim
 ~~~~~~~~~~~~~~~~~~~
 
-The ``try`` subcommand unconditionally runs *all* simulation phases. While
-convenient, it's often preferable to rerun only a single phase – especially
-when experimenting with computationally expensive simulations.
-
 The ``seed``, ``init``, and ``sim`` subcommands run only the seed,
 initialization, and simulation phases (respectively) for the passed simulation.
+While the higher-level ``try`` subcommand conveniently runs *all* simulation
+phases, it's often preferable to run only a single phase – particularly when
+experimenting with computationally expensive simulations.
+
 A typical CLI-based workflow calls these subcommands in order:
 
 #. Create a default simulation configuration in a new ``my_sim/`` subdirectory

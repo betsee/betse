@@ -38,7 +38,7 @@ side effects, we adopt the former approach.
 
 # ....................{ IMPORTS                           }....................
 import setuptools, sys
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 
 # ....................{ EXCEPTIONS                        }....................
 def die_unless_setuptools_version_at_least(
@@ -65,8 +65,8 @@ def die_unless_setuptools_version_at_least(
     # If the currently installed version of setuptools is older than this
     # minimum version, raise an exception.
     if (
-        StrictVersion(setuptools.__version__) <
-        StrictVersion(setuptools_version_min)
+        LooseVersion(setuptools.__version__) <
+        LooseVersion(setuptools_version_min)
     ):
         raise Exception(
             'setuptools >= {} required by this application, but only '
