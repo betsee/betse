@@ -76,10 +76,10 @@ BETSE is readily installable with either:
      conda config --add channels conda-forge
      conda install betse
 
-See `installation instructions <install_>`__ for details, including best
+See our `installation instructions <install_>`__ for details, including best
 practices for `Linux <install Linux>`__, `macOS <install macOS>`__, and
-`Windows usage <install Windows>`__ and `Git-based development <install
-developers_>`__.
+`Windows usage <install Windows>`__, `Git-based development <install
+developers_>`__, and `Docker-based containerization <install Docker_>`__.
 
 Usage
 =====
@@ -560,6 +560,8 @@ For prospective contributors:
    doc/rst/INSTALL.rst
 .. _install developers:
    doc/rst/INSTALL.rst#developers
+.. _install Docker:
+   doc/rst/INSTALL.rst#docker
 .. _install Linux:
    doc/rst/INSTALL.rst#linux
 .. _install macOS:
