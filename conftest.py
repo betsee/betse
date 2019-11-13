@@ -79,6 +79,12 @@ def pytest_addoption(parser: '_pytest.config.Parser') -> None:
     pass
 
 # ....................{ HOOKS ~ session                   }....................
+#FIXME: Strip all non-"tox"-isolated directories from "sys.path" when running
+#under "tox". To do so, see the informative question at:
+#    https://stackoverflow.com/questions/55737714/how-does-a-tox-environment-set-its-sys-path
+#FIXME: Raise an exception if running under "tox" but the project path
+#(i.e., "pymodule.get_dirname_canonical(betse)") is *NOT* isolated to a
+#"tox"-isolated venv.
 def pytest_sessionstart(session):
     '''
     Hook run immediately *before* starting the current test session (i.e.,
@@ -89,8 +95,16 @@ def pytest_sessionstart(session):
     import betse, sys
     from betse.util.py.module import pymodule
 
+    # Print a header for disambiguity.
+    print('------[ python paths ]------')
+
+    # Print the absolute dirname of the system-wide Python prefix and
+    # current Python prefix, which differs from the former under venvs.
+    print('python prefix (system):  ' + sys.base_prefix)
+    print('python prefix (current): ' + sys.prefix)
+
     # Print the absolute dirname of the top-level "betse" package.
-    print('project path: {}'.format(pymodule.get_dirname_canonical(betse)))
+    print('project path: ' + pymodule.get_dirname_canonical(betse))
 
     # Print the current list of the (absolute or relative) dirnames of all
     # directories to be iteratively searched for importable modules and
@@ -98,7 +112,33 @@ def pytest_sessionstart(session):
     # subsequently extended by pytest. Since Python searches this list in
     # descending order, directories listed earlier assume precedence over
     # directories listed later.
-    print('package path: {}'.format(sys.path))
+    print('import paths: ' + str(sys.path))
+
+    # Print all imported module names for debugging purposes.
+    # from betse.util.py.module import pyimport
+    # print(
+    #     '------[ imported modules ]------\n' +
+    #     pyimport.to_str_modules_imported_name())
+
+    # Print all environment variables for debugging purposes.
+    # from betse.util.os.shell import shellenv
+    # print('------[ environment variables ]------\n' + shellenv.to_str())
+
+    # Print a POSIX-specific process tree for debugging purposes.
+    # from betse.util.path.command import cmdrun
+    # cmdrun.run_or_die(command_words=('pstree',))
+
+    # # Print all attributes of the "site" module for debugging purposes.
+    # import site
+    # from betse.util.type.obj import objiter
+    # print('------[ "site" attributes ]------')
+    # for attr_name, attr_value in objiter.iter_attrs(site):
+    #     print('{}: {}'.format(attr_name, attr_value))
+    #
+    # # Print all attributes of the "sys" module for debugging purposes.
+    # print('------[ "sys" attributes ]------')
+    # for attr_name, attr_value in objiter.iter_attrs(sys):
+    #     print('{}: {}'.format(attr_name, attr_value))
 
 
 def pytest_sessionfinish(session, exitstatus):

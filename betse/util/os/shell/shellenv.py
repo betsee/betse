@@ -252,7 +252,6 @@ def to_str() -> str:
 
     # Avoid circular import dependencies.
     from betse.util.type.iterable.mapping import mappings
-    from betse.util.type.text.string import strjoin
 
     # Return the human-readable string produced by joining on newline a
     # generator comprehension yielding the colon-delimited name and value of
@@ -261,12 +260,8 @@ def to_str() -> str:
     # Note that the "environ" object is of non-standard type "os._Environ",
     # which the pprint.pformat() fails to recognize and hence format as a
     # "dict"-compatible mapping. Ergo, passing "environ" directly to the
-    # iterables.to_str() function would produce a non-human-readable string.
-    # While this can, of course, be ameliorated by converting "environ" to a
-    # "dict" first (e.g., "iterables.to_str(dict(environ))"), doing so still
-    # produces less human-readable output than the current approach.
-    # return iterables.to_str(dict(environ))
-    return strjoin.join_on_newline(
-        '{}: {}'.format(var_name, environ[var_name])
-        for var_name in mappings.iter_keys_ascending(environ)
-    )
+    # mappings.to_str_flat() function would yield a non-human-readable string.
+    # While this could be ameliorated by converting "environ" to a "dict" first
+    # (e.g., "mappings.to_str_flat(dict(environ))"), doing so still produces
+    # less human-readable output than the current approach.
+    return mappings.to_str_flat(environ)

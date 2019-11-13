@@ -33,7 +33,8 @@ def iter_attrs(obj: object) -> GeneratorType:
     '''
 
     # Defer to this generator.
-    yield from iter_attrs_implicit_matching(obj=obj, predicate=noop_attr_predicate)
+    yield from iter_attrs_implicit_matching(
+        obj=obj, predicate=noop_attr_predicate)
 
 
 @type_check

@@ -35,6 +35,9 @@
 /.eggs/
 /*.egg-info/
 
+# Ignore all top-level tox-specific temporary directories.
+/.tox/
+
 # ....................{ DIRECTORIES ~ general             }....................
 # Ignore all Python-specific cache directories.
 __pycache__/

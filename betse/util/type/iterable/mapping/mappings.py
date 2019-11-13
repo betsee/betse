@@ -175,6 +175,60 @@ def get_key_value_or_default(
     # Return this value.
     return key_value
 
+# ....................{ CONVERTERS                        }....................
+@type_check
+def to_str_flat(mapping: MappingType) -> str:
+    '''
+    Human-readable string flattening all key-value pairs of the passed
+    dictionary.
+
+    For readability, each such pair is sorted in ascending lexicographic order
+    and formatted as ``{key}: {value}\n``. Ergo:
+
+    * Each key and value is reduced to a string.
+    * Each key is delimited from its value by a colon.
+    * Each key-value pair is delimited by a newline.
+
+    Caveats
+    ----------
+    **This function assumes all keys and values of this dictionary to be
+    trivially reducible to terse strings,** where "terse" typically implies
+    these strings to be no longer than a standard terminal width of 80
+    characters. When this is *not* the case, the returned string is likely to
+    be non-human-readable.
+
+    Parameters
+    ----------
+    mapping: MappingType
+        Dictionary to be flattened.
+
+    Returns
+    ----------
+    str
+        Human-readable string flattening all key-value pairs of this
+        dictionary.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text.string import strjoin
+
+    # Return the human-readable string produced by joining on newline a
+    # generator comprehension yielding the colon-delimited name and value of
+    # all environment variables sorted in lexicographic order.
+    #
+    # Note that the "environ" object is of non-standard type "os._Environ",
+    # which the pprint.pformat() fails to recognize and hence format as a
+    # "dict"-compatible mapping. Ergo, passing "environ" directly to the
+    # iterables.to_str() function would produce a non-human-readable string.
+    # While this can, of course, be ameliorated by converting "environ" to a
+    # "dict" first (e.g., "iterables.to_str(dict(environ))"), doing so still
+    # produces less human-readable output than the current approach.
+    # return iterables.to_str(dict(environ))
+    return strjoin.join_on_newline(
+        '{}: {}'.format(key, mapping[key])
+        for key in iter_keys_ascending(mapping)
+    )
+
 # ....................{ COPIERS                           }....................
 @type_check
 def copy_deep(mapping: MappingType) -> MappingType:

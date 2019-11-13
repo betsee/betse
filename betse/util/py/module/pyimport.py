@@ -31,6 +31,31 @@ import sys
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
 
+# ....................{ CONVERTERS                        }....................
+def to_str_modules_imported_name() -> str:
+    '''
+    Human-readable string of the fully-qualified names of all previously
+    imported modules for the active Python interpreter.
+
+    For readability, these names are sorted in lexicographic order and
+    delimited by a newline.
+    '''
+    # Avoid circular import dependencies.
+    from betse.util.type.iterable.mapping import mappings
+
+    # Return the human-readable string produced by joining on newline a
+    # generator comprehension yielding the colon-delimited name and value of
+    # all environment variables sorted in lexicographic order.
+    #
+    # Note that the "environ" object is of non-standard type "os._Environ",
+    # which the pprint.pformat() fails to recognize and hence format as a
+    # "dict"-compatible mapping. Ergo, passing "environ" directly to the
+    # mappings.to_str_flat() function would yield a non-human-readable string.
+    # While this could be ameliorated by converting "environ" to a "dict" first
+    # (e.g., "mappings.to_str_flat(dict(environ))"), doing so still produces
+    # less human-readable output than the current approach.
+    return mappings.to_str_flat(sys.modules)
+
 # ....................{ REGISTRARS                        }....................
 @type_check
 def register_dir(dirname: str) -> None:

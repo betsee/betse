@@ -10,7 +10,7 @@ periodically called while simulating one or more phases) class hierarchy.
 
 # ....................{ IMPORTS                           }....................
 from betse.util.io.log import logs
-from betse.util.test import tests
+from betse.util.test import tsttest
 from betse.util.type.call.callbacks import CallbacksBC
 from betse.util.type.types import NoneType, StrOrNoneTypes
 
@@ -95,7 +95,7 @@ def make_default() -> SimCallbacksBC:
     '''
 
     # If tests are currently being run...
-    if tests.is_testing():
+    if tsttest.is_testing():
         # Log this behaviour.
         logs.log_debug('Enabling test-specific callbacks...')
 

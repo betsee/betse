@@ -44,6 +44,117 @@
 # on an external third-party free-as-in-beer CI service specific to that
 # platform and then integrating this service with GitLab.
 
+#FIXME: Refactor this workflow to leverage:
+#
+#* Multiple Python versions. Fortunately, "conda" provides builtin support for
+#  trivially doing so via conda-specific virtual environments. See:
+#      https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-python.html
+#* "tox", which we increasingly require for validating installation. Although
+#  "conda" and "tox" themselves fail to provide builtin integration with one
+#  another, the third-party "tox-conda" package trivially installable via
+#  "conda" does (e.g., "conda install tox-conda"). See:
+#      https://github.com/tox-dev/tox-conda
+#
+#Sadly, we could only find one ".gitlab-ci.yml" file leveraging "tox-conda":
+#    https://gitlab.aicrowd.com/flatland/flatland/blob/master/.gitlab-ci.yml
+#
+#Given that example, we want to enable "pip" and "tox" caching via:
+#
+#    cache:
+#        paths:
+#            - .cache/pip
+#            - .tox
+#
+#Note, however, that that example leverages the "themattrix/tox" rather than
+#"continuumio/anaconda3" Docker image -- which significantly complicates the
+#installation of Miniconda3. On the other hand, this example leverages "xvfb",
+#which we will certainly require for BETSEE CI.
+#
+#While we *COULD* refactor this pipeline to leverage the "themattrix/tox"
+#rather than "continuumio/anaconda3" Docker image as well, we're unconvinced
+#that's the ideal solution. Rather, it should be feasible to leverage "conda"
+#and "tox-conda" (as outlined above) to build a test matrix across all
+#supported Python versions.
+#FIXME: Actually, it may not necessarily make sense to integrate "tox" with
+#"conda". While nice, "tox-conda" doesn't appear all that useful; it still
+#installs dependencies with "pip" rather than "conda" by default.
+#
+#Frankly, it's unclear why we're still leveraging Miniconda3 at all. We did so
+#previously for parity with AppVeyor, as "pip" failed to support scientific
+#packages under Windows. It does now, of course. So why are we still using
+#Miniconda3, which is substantially more heavyweight than "pip", fails to
+#natively support "tox", and is non-trivial in all possible respects? We have
+#little idea. As an example of how utterly trivial "pip" + "tox" is, consider
+#this example pilfered from the ".gitlab-ci.yml" for "flax8" at:
+#    https://gitlab.com/pycqa/flake8/blob/master/.gitlab-ci.yml
+#
+#    # Are you friggin' kidding me?
+#    python35:
+#      image: python:3.5
+#      stage: test
+#      script: tox -e py35
+#
+#    python36:
+#      image: python:3.6
+#      stage: test
+#      script: tox -e py36
+#
+#    python37:
+#      image: python:3.7
+#      stage: test
+#      script: tox -e py37
+#
+#    python38:
+#      image: python:3.8
+#      stage: test
+#      script: tox -e py38
+#
+#By compare to the excrutiating setup steps we perform below (which *STILL*
+#fails to exercise a proper test matrix), the above test matrix literally could
+#not be simpler. It leverages an industry-standard stack guaranteed not to
+#break, including the official Docker Python images, pip, and tox -- all
+#without doing *ANYTHING* except the absolute bare minimum.
+#
+#While frustrating that this level of support was unavailable when BETSE
+#development first began, late is certainly better than never. Given the above,
+#consider fundamentally refactoring this as follows:
+#
+#* Rename this file to ".gitlab-ci.old.yml" for historical preservation.
+#* Define a new ".gitlab-ci.yml" based on the above sample template.
+#* Add a FIXME comment to the top of our ".appveyor.yml" file advising that
+#  configuration be refactored similarly. Assuming all goes well with the above
+#  refactoring, we'll want to drop "conda" in favour of "pip" there as well.
+#* Remove both the "requirements-conda.txt" *AND* "requirements-pip.txt" files.
+#  Both are merely dead weight at this point.
+#FIXME: Before attempting the above, we should investigate whether it might be
+#preferable to leverage "themattrix/tox" as our Docker image rather than the
+#"python:${VERSION}" Docker images leveraged above. The former are probably
+#substantially more efficient (in terms of caching) at a cost of increased
+#technical complexity and possible inefficiency (in terms of parallelization).
+#The most critical research question here is: "Does the flake8 approach
+#parallelize jobs? Does the themattrix/tox? Do neither?" Whichever one
+#parallelizes jobs is almost certainly the one we want.
+#
+#Further research is warranted here!
+#FIXME: O.K.; further research suggests *NOT* leveraging "themattrix/tox", as
+#demonstrated by the fact that numerous popular ".gitlab-ci.yml" configurations
+#leverage the thankfully simplistic "flake8" approach but *NONE* leverage the
+#overly complicated "themattrix/tox" approach. In particular, see also:
+#
+#* "coala-utils," whose ".gitlab-ci.yml" configuration cleverly augments the
+#  "flake8" approach with YAML transclusions. We absolutely do *NOT* want to
+#  use Alpine Docker images, as Alpine's MUSL core is incompatible with
+#  "manylinux" Python "pip" wheels -- which makes Alpine unusable for us. We
+#  should prominently note this somewhere above. (See also:
+#  https://github.com/docker-library/docs/issues/904). As an alternative to
+#  Alpine, consider Python "slim" Docker images -- which appear to be the next
+#  best thing. Lastly, the "coala-utils" config lives at:
+#  https://gitlab.com/coala/coala-utils/blob/master/.gitlab-ci.yml
+#* The "Where do we start" section leading the following blog post is probably
+#  an even better example than the above "coala-utils" link as to how to
+#  properly leverage YAML anchors for de-duplication DRY purposes:
+#  https://medium.com/@ju5t_/how-were-using-gitlab-to-test-and-deploy-our-application-s-to-docker-swarm-e3f556dbf8fe
+
 # ....................{ DOCKER                            }....................
 # Colon-delimited name and tag of the first- or third-party Docker image
 # registered with the Docker Hub Registery (e.g., "python:3", denoting the

@@ -18,8 +18,8 @@ from betse.util.type.decorator.decmemo import func_cached
 @func_cached
 def is_testing() -> bool:
     '''
-    ``True`` only if the active Python interpreter is currently running tests
-    (e.g., with the :mod:`pytest` test harness).
+    ``True`` only if the active Python interpreter is currently exercising
+    tests (e.g., via the :mod:`pytest` test harness).
 
     Caveats
     ----------
@@ -59,7 +59,9 @@ def is_testing() -> bool:
     # approach above, this approach does *NOT* generate spurious false
     # positives. Why? Because the main codebase is guaranteed to *NEVER* import
     # from this application's test suite. Doing so would fundamentally violate
-    # sanity in numerous ways and, in any case, is never desirable.
+    # sanity in numerous ways and, in any case, is never desirable. In
+    # particular, this application's test suite is *NOT* bundled with this
+    # application and hence *ONLY* importable during development.
 
     # Avoid circular import dependencies.
     from betse.util.app.meta import appmetaone
@@ -68,5 +70,47 @@ def is_testing() -> bool:
     # Name of the root package of this application's test suite.
     test_package_name = appmetaone.get_app_meta().test_package_name
 
-    # Return true only if this package has been previously imported from.
+    # Return true only if that package has been previously imported from.
     return pymodname.is_imported(test_package_name)
+
+
+#FIXME: The ideal implementation would detect whether the basename of the
+#command invoking the parent process is "tox" or not. While doing so under
+#Linux specifically is trivial, generalizing this detection to both macOS and
+#Windows is highly non-trivial; doing so effectively requires the third-party
+#"psutil" dependency, which is non-ideal. Nonetheless, perhaps it is time to
+#bite that bullet and simply do so. We would like to leverage "psutil"
+#elsewhere for various purposes (e.g., detecting PowerShell). Or... perhaps
+#not. Consider this heuristic:
+#
+#* If "psutil" is importable, leverage the solution given at:
+#  https://stackoverflow.com/a/24115041/2809027
+#  This is guaranteed to be the most portable and reliable approach.
+#* Else:
+#  * Under Linux, leverage the solution given at:
+#    https://stackoverflow.com/a/24114907/2809027
+#  * Under Windows, leverage the solution already documented at the
+#    "betse.util.os.brand.windows" submodule. For now, we could simply raise an
+#    exception.
+#  * Under macOS, raise an exception. Ain't no one got time for that.
+@func_cached
+def is_tox() -> bool:
+    '''
+    ``True`` only if the active Python interpreter is currently exercising
+    tests via :mod:`tox`, a high-level utility isolating lower-level test
+    harnesses (e.g., :mod:`nose`, :mod:`pytest`) to test-specific cached venvs.
+    '''
+
+    # Avoid circular import dependencies.
+    # from betse.util.py import pyvenv
+
+    #FIXME: Ugh! Ain't got no idea how to actually detect "tox" reliably.
+    #Probably have to check the process list for a parent named "tox". *sigh*
+    return False
+
+    # Return true only if...
+    # return (
+    #     # The active Python interpreter is isolated to a venv, which "tox"
+    #     # guarantees, *AND*...
+    #     pyvenv.is_venv() and
+    # )

@@ -105,7 +105,7 @@ class LogConf(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.test import tests
+        from betse.util.test import tsttest
 
         # Initialize the superclass.
         super().__init__()
@@ -131,7 +131,7 @@ class LogConf(object):
         # While deferring this configuration to elsewhere (namely, the
         # "betse_test.fixture.initter" submodule) is also feasible, doing so
         # would horrifyingly squelch all early-time debug messages.
-        if tests.is_testing():
+        if tsttest.is_testing():
             self.is_verbose = True
 
 

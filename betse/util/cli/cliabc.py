@@ -711,7 +711,7 @@ class CLIABC(object, metaclass=ABCMeta):
         # Avoid circular import dependencies.
         from betse.util.app.meta import appmetaone
         from betse.util.os import displays
-        from betse.util.test import tests
+        from betse.util.test import tsttest
         from betse.util.type.obj import objects
 
         # Log this metadata.
@@ -721,7 +721,7 @@ class CLIABC(object, metaclass=ABCMeta):
         logs.log_debug(
             'Default segmentation fault handler enabled.')
         logs.log_debug(
-            'Testing environment detected: %r', tests.is_testing())
+            'Testing environment detected: %r', tsttest.is_testing())
         logs.log_debug(
             'Headless environment detected: %r', displays.is_headless())
 
