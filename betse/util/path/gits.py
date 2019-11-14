@@ -190,7 +190,7 @@ def clone_worktree_shallow(
 
     # Avoid circular import dependencies.
     from betse.util.path import paths, pathnames
-    from betse.util.path.command import cmdrun
+    from betse.util.os.command import cmdrun
 
     # If this source directory is *NOT* a Git working tree, raise an exception.
     die_unless_worktree(src_dirname)

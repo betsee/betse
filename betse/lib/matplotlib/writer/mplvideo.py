@@ -14,7 +14,7 @@ from matplotlib.animation import FFMpegBase, MovieWriter, writers
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logs
 from betse.util.os.shell import shellstr
-from betse.util.path.command import cmdrun
+from betse.util.os.command import cmdrun
 from betse.util.type.cls import classes
 from betse.util.type.iterable.mapping.mapcls import ReversibleDict
 from betse.util.type.text import regexes

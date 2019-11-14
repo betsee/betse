@@ -107,7 +107,7 @@ def is_aqua() -> bool:
 
     # Avoid circular import dependencies.
     from betse.util.path import files
-    from betse.util.path.command.cmdexit import SUCCESS
+    from betse.util.os.command.cmdexit import SUCCESS
 
     # If the current platform is *NOT* macOS, return false.
     if not is_macos():

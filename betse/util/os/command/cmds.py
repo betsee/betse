@@ -80,7 +80,7 @@ def is_command(filename: str) -> bool:
 
     # Avoid circular import dependencies.
     from betse.util.path import files, pathnames
-    from betse.util.path.command import cmdpath
+    from betse.util.os.command import cmdpath
 
     # This path is that of an existing command if and only if either...
     return (

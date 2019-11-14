@@ -178,7 +178,7 @@ class LogConf(object):
         from betse.util.io.log.logfilter import (
             LogFilterThirdPartyDebug, LogFilterMoreThanInfo)
         from betse.util.io.log.conf.logconfformat import LogFormatterWrap
-        from betse.util.path.command import cmds
+        from betse.util.os.command import cmds
 
         # Initialize the stdout handler to:
         #
@@ -242,7 +242,7 @@ class LogConf(object):
         from betse.util.io.log.conf.logconfhandle import (
             LogHandlerFileRotateSafe)
         from betse.util.path import pathnames
-        from betse.util.path.command import cmds
+        from betse.util.os.command import cmds
         from betse.util.type.numeric import ints
 
         # Absolute or relative path of the directory containing this file.

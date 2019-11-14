@@ -96,7 +96,7 @@ def skip_unless_command(pathname: str):
     '''
 
     # Defer heavyweight imports.
-    from betse.util.path.command import cmds
+    from betse.util.os.command import cmds
 
     # If this command exists, reduce this decoration to a noop.
     if cmds.is_command(pathname):

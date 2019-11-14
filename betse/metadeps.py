@@ -231,6 +231,7 @@ RUNTIME_OPTIONAL = {
 
     # Dependencies directly required by this application.
     'distro':   '>= 1.0.4',
+    'psutil':   '>= 5.3.0',
     'pympler':  '>= 0.4.1',
     'ptpython': '>= 0.29',
 

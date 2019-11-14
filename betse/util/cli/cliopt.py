@@ -60,7 +60,7 @@ def expand_help(text: str, **kwargs) -> str:
     '''
 
     from betse import metadata
-    from betse.util.path.command import cmds
+    from betse.util.os.command import cmds
 
     return strs.remove_whitespace_presuffix(text.format(
         program_name=metadata.NAME,

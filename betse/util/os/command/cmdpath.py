@@ -69,7 +69,7 @@ def is_pathable(command_basename: str) -> bool:
 
     See Also
     ----------
-    :func:`betse.util.path.command.cmds.is_command`
+    :func:`betse.util.os.command.cmds.is_command`
         A more general-purpose and hence generally useful tester returning
         whether a command with the passed path (regardless of whether that
         path is a basename) exists.

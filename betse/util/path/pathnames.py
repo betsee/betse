@@ -359,6 +359,27 @@ def is_parent(parent_dirname: str, child_pathname: str) -> bool:
 
 # ....................{ TESTERS ~ filetype                }....................
 @type_check
+def is_filetype(pathname: str) -> bool:
+    '''
+    ``True`` only if the passed pathname is suffixed by a filetype (i.e.,
+    contains one or more ``.`` delimiters).
+
+    Parameters
+    ----------
+    pathname : str
+        Pathname to be tested.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this pathname is suffixed by a filetype.
+    '''
+
+    # Return true only if this pathname contains one or more "." delimiters.
+    return '.' in pathname
+
+
+@type_check
 def is_filetype_equals(pathname: str, filetype: str) -> bool:
     '''
     ``True`` only if the passed pathname has a filetype *and* the **last
@@ -398,8 +419,7 @@ def is_filetype_undotted_in(
     '''
     ``True`` only if the passed pathname has a filetype *and* the **last
     undotted filetype** (i.e., last ``.``-prefixed substring of the basename
-    excluding this ``.``) of this pathname is an element of the passed
-    container.
+    excluding this ``.``) of this pathname is an item of the passed container.
 
     Parameters
     ----------
@@ -407,20 +427,20 @@ def is_filetype_undotted_in(
         Pathname to be tested.
     filetypes: ContainerTypes
         Container of all undotted filetypes to test this pathname against. Each
-        element of this container should be a string *not* prefixed the ``.``
+        item of this container *must* be a string not prefixed by the ``.``
         character.
 
     Returns
     ----------
     bool
         ``True`` only if this pathname has a filetype *and* the last filetype
-        of this pathname is an element of this container.
+        of this pathname is an item of this container.
     '''
 
-    # Undotted filetype of this filename if any or None otherwise
+    # Undotted filetype of this filename if any *OR* "None" otherwise.
     filetype_undotted = get_filetype_undotted_or_none(pathname)
 
-    # Return True only if...
+    # Return true only if...
     return (
         # This pathname is suffixed by a filetype.
         filetype_undotted is not None and

@@ -116,7 +116,7 @@ def run_or_die(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import cmdexit
+    from betse.util.os.command import cmdexit
 
     # Run this command, raising an exception on command failure. For
     # reusability, reimplement the subprocess.check_call() function here rather
@@ -156,7 +156,7 @@ def get_exit_status(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command.cmdexit import FAILURE_DEFAULT
+    from betse.util.os.command.cmdexit import FAILURE_DEFAULT
 
     # Sanitize these arguments.
     popen_kwargs = _init_popen_kwargs(command_words, popen_kwargs)
@@ -421,7 +421,7 @@ def _init_popen_kwargs(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import cmds
+    from betse.util.os.command import cmds
     from betse.util.os.brand import windows
     from betse.util.os.shell import shellenv
     from betse.util.type.iterable.mapping import maptest

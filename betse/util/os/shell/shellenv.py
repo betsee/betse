@@ -22,7 +22,7 @@ to the the active Python interpreter) facilities.
 
 # ....................{ IMPORTS                           }....................
 from os import environ
-from betse.exceptions import BetseOSShellEnvException
+from betse.exceptions import BetseShellEnvException
 from betse.util.type.types import type_check, MappingType, StrOrNoneTypes
 
 # ....................{ EXCEPTIONS                        }....................
@@ -39,7 +39,7 @@ def die_unless_var(*names: str) -> None:
 
     Raises
     ----------
-    BetseOSShellEnvException
+    BetseShellEnvException
         If any such variable is undefined.
     '''
 
@@ -52,7 +52,7 @@ def die_unless_var(*names: str) -> None:
             # implicitly raise a "KeyError" exception and hence arguably
             # suffice, that exception's message is *NOT* human-readable.
             if name not in environ:
-                raise BetseOSShellEnvException(
+                raise BetseShellEnvException(
                     'Environment variable "{}" undefined.'.format(name))
 
 # ....................{ TESTERS                           }....................
@@ -115,7 +115,7 @@ def get_var(name: str) -> str:
 
     Raises
     ----------
-    BetseOSShellEnvException
+    BetseShellEnvException
         If this variable is undefined.
     '''
 
@@ -198,7 +198,7 @@ def unset_var(name: str) -> None:
 
     Raises
     ----------
-    BetseOSShellEnvException
+    BetseShellEnvException
         If this variable is undefined.
     '''
 

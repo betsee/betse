@@ -147,7 +147,7 @@ def iter_linked_filenames(filename: str) -> GeneratorType:
     # Avoid circular import dependencies.
     from betse.util.os import oses
     from betse.util.os.brand import linux
-    from betse.util.path.command import cmdrun
+    from betse.util.os.command import cmdrun
     from betse.util.type.text import regexes
 
     # If this library does *NOT* exist, raise an exception.

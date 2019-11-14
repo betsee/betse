@@ -91,7 +91,7 @@ class symlink(install):
         # Defer heavyweight imports.
         from betse.util.os.brand import macos
         from betse.util.path import dirs, pathnames
-        from betse.util.path.command import cmdrun, cmds
+        from betse.util.os.command import cmdrun, cmds
 
         # Finalize superclass options.
         super().finalize_options()

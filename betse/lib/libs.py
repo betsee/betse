@@ -192,7 +192,7 @@ def die_unless_command(*requirement_names: str) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import cmdpath
+    from betse.util.os.command import cmdpath
 
     # If any external command required by any such dependency is *NOT* found,
     # iteratively search for the first such missing command and raise a
@@ -233,7 +233,7 @@ def is_command(*requirement_names: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import cmdpath
+    from betse.util.os.command import cmdpath
 
     # Return true only if...
     return all(

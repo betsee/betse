@@ -64,7 +64,7 @@ BETSE CLI in the active Python interpreter.
 #to just call "betse config". Simple, if tedious.
 
 # ....................{ IMPORTS                           }....................
-from betse.util.path.command import cmdexit
+from betse.util.os.command import cmdexit
 from betse.util.type.types import type_check
 from pytest import fixture
 

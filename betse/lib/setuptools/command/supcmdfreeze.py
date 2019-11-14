@@ -214,7 +214,7 @@ class freeze(Command, metaclass=ABCMeta):
         # Defer heavyweight imports.
         from betse.util.io import stderrs
         from betse.util.path import dirs, pathnames
-        from betse.util.path.command import cmds
+        from betse.util.os.command import cmds
         from betse.util.os.shell import shellstr
 
         # Relative path of the top-level PyInstaller directory.

@@ -16,7 +16,7 @@ from betse.cli.repl import replenv
 from betse.lib import libs
 from betse.util.io.log import logs
 from betse.util.path import files
-from betse.util.path.command import cmdexit
+from betse.util.os.command import cmdexit
 from betse.util.type.enums import make_enum
 from betse.util.type.types import type_check
 

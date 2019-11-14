@@ -83,7 +83,7 @@ def output(*objs) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import cmds
+    from betse.util.os.command import cmds
 
     # Print these messages in a "py.test"-friendly format.
     print('[{}] {}'.format(cmds.get_current_basename(), ''.join(objs)))

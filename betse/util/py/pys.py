@@ -280,12 +280,12 @@ def rerun_or_die(
 
     See Also
     ----------
-    :func:`betse.util.path.command.cmdrun.run_or_die`
+    :func:`betse.util.os.command.cmdrun.run_or_die`
         Low-level commentary on subprocess execution.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import cmdrun
+    from betse.util.os.command import cmdrun
 
     # List of one or more shell words comprising this command.
     command_words = get_command_line_prefix() + command_args

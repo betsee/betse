@@ -17,7 +17,7 @@ This submodule is a thin wrapper intended to be:
 # ....................{ IMPORTS                           }....................
 from betse.appmeta import BetseAppMeta
 from betse.cli.climain import BetseCLI
-from betse.util.path.command import cmdexit
+from betse.util.os.command import cmdexit
 
 # ....................{ MAIN                              }....................
 def main(arg_list: list = None) -> int:

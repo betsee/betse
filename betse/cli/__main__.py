@@ -10,7 +10,7 @@ preserving backward compatibility with prior versions.
 
 # ....................{ IMPORTS                           }....................
 from betse.__main__ import main
-from betse.util.path.command import cmdexit
+from betse.util.os.command import cmdexit
 
 # ....................{ MAIN                              }....................
 # If this module is imported from the command line, run this application's CLI;

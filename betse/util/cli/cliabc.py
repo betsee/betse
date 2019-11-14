@@ -54,7 +54,7 @@ class CLIABC(object, metaclass=ABCMeta):
     _exit_status : IntOrNoneTypes
         Exit status with which to exit this application as a byte in the range
         ``[0, 255]``. Defaults to
-        :attr:`betse.util.path.command.cmdexit.SUCCESS`. Subclass
+        :attr:`betse.util.os.command.cmdexit.SUCCESS`. Subclass
         implementations of the :meth:`_do` method may explicitly override this
         default on failure as a CLI-oriented alternative to exception handling.
         Note that, although exit status is typically returned directly by
@@ -102,7 +102,7 @@ class CLIABC(object, metaclass=ABCMeta):
     def __init__(self):
 
         # Avoid circular import dependencies.
-        from betse.util.path.command.cmdexit import SUCCESS
+        from betse.util.os.command.cmdexit import SUCCESS
 
         # Initialize subclasses performing diamond inheritance if any.
         super().__init__()
@@ -143,7 +143,7 @@ class CLIABC(object, metaclass=ABCMeta):
 
         # Avoid circular import dependencies.
         from betse.util.app.meta import appmetaone
-        from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
+        from betse.util.os.command.cmdexit import SUCCESS, FAILURE_DEFAULT
 
         # Default unpassed arguments to those passed on the command line,
         # ignoring the first element of "sys.argv" (i.e., the filename of the
@@ -226,7 +226,7 @@ class CLIABC(object, metaclass=ABCMeta):
           status.
         * Explicitly set the :attr:`_exit_status` instance variable to a
           non-zero integer in the range ``[1, 255]`` (e.g.,
-          :attr:`betse.util.path.command.cmdexit.FAILURE_DEFAULT`). Note that,
+          :attr:`betse.util.os.command.cmdexit.FAILURE_DEFAULT`). Note that,
           although exit status is typically returned directly by callables,
           doing so here is infeasible due to this method already returning
           profiled objects.
@@ -300,7 +300,7 @@ class CLIABC(object, metaclass=ABCMeta):
 
         # Avoid circular import dependencies.
         from betse.util.app.meta import appmetaone
-        from betse.util.path.command import cmds
+        from betse.util.os.command import cmds
 
         # Application metadata singleton.
         app_meta = appmetaone.get_app_meta()
@@ -369,7 +369,7 @@ class CLIABC(object, metaclass=ABCMeta):
             CLIOptionVersion,
         )
         from betse.util.io.log.logenum import LogLevel
-        from betse.util.path.command import cmds
+        from betse.util.os.command import cmds
 
         # Application metadata singleton.
         app_meta = appmetaone.get_app_meta()
@@ -495,7 +495,7 @@ class CLIABC(object, metaclass=ABCMeta):
 
         # Avoid circular import dependencies.
         from betse.util.app.meta import appmetaone
-        from betse.util.path.command import cmds
+        from betse.util.os.command import cmds
         from betse.util.type.text.string import strs
 
         # Expand it like Expander.

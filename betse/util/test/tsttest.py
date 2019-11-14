@@ -85,7 +85,10 @@ def is_testing() -> bool:
 #
 #* If "psutil" is importable, leverage the solution given at:
 #  https://stackoverflow.com/a/24115041/2809027
-#  This is guaranteed to be the most portable and reliable approach.
+#  This is guaranteed to be the most portable and reliable approach. Note,
+#  however, that there's probably a slightly simpler implementation: the
+#  psutil.Process.parent() function, obviating the need for PIDs. (Noice!) See:
+#  https://github.com/giampaolo/psutil#process-management
 #* Else:
 #  * Under Linux, leverage the solution given at:
 #    https://stackoverflow.com/a/24114907/2809027

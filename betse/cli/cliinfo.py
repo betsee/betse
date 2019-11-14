@@ -38,7 +38,7 @@ def get_metadata() -> OrderedArgsDict:
     # Defer heavyweight imports.
     from betse.util.app.meta import appmetaone
     from betse.util.path import pathnames
-    from betse.util.path.command import cmds
+    from betse.util.os.command import cmds
 
     # Return this dictionary.
     return OrderedArgsDict(

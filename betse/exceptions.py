@@ -72,14 +72,6 @@ class BetseDecoratorException(BetseCallableException):
     pass
 
 
-class BetseFunctionException(BetseCallableException):
-    '''
-    Function-specific exception.
-    '''
-
-    pass
-
-
 class BetseLambdaException(BetseCallableException):
     '''
     Lambda-specific exception.
@@ -95,6 +87,25 @@ class BetseParamException(BetseCallableException):
     '''
 
     pass
+
+# ....................{ EXCEPTIONS ~ call : func          }....................
+class BetseFunctionException(BetseCallableException):
+    '''
+    Function-specific exception.
+    '''
+
+    pass
+
+
+class BetseFunctionUnimplementedException(
+    BetseFunctionException, NotImplementedError):
+    '''
+    Unimplemented function-specific exception.
+
+    This exception is typically raised from **unimplemented dependency- or
+    platform-specific functions** (i.e., functions assuming a specific
+    dependency or platform that have yet to be implemented).
+    '''
 
 # ....................{ EXCEPTIONS ~ call : method        }....................
 class BetseMethodException(BetseCallableException):
@@ -287,15 +298,31 @@ class BetsePackageException(BetseModuleException):
 # ....................{ EXCEPTIONS ~ os                   }....................
 class BetseOSException(BetseException):
     '''
-    General-purpose Low-level operating system (OS) exception.
+    General-purpose low-level operating system (OS) exception.
     '''
 
     pass
 
 
-class BetseOSShellEnvException(BetseOSException):
+class BetseShellEnvException(BetseOSException):
     '''
     Shell environment-specific exception.
+    '''
+
+    pass
+
+# ....................{ EXCEPTIONS ~ os : proc            }....................
+class BetseProcessException(BetseOSException):
+    '''
+    General-purpose low-level process exception.
+    '''
+
+    pass
+
+
+class BetseProcessNotFoundException(BetseProcessException):
+    '''
+    Low-level exception raised on failing to find a given process.
     '''
 
     pass
@@ -364,7 +391,7 @@ class BetseImageException(BetseFileException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ python               }....................
+# ....................{ EXCEPTIONS ~ py                   }....................
 class BetsePyException(BetseException):
     '''
     General-purpose low-level Python interpreter exception.
@@ -379,8 +406,8 @@ class BetsePyException(BetseException):
 
 class BetsePyFrozenException(BetsePyException):
     '''
-    Low-level exception pertaining to **frozen executables** (i.e., Python
-    codebases converted into platform-specific executables).
+    **Frozen executable** (i.e., Python codebase converted into a
+    platform-specific executable)-specific exception.
     '''
 
     pass
@@ -388,8 +415,8 @@ class BetsePyFrozenException(BetsePyException):
 
 class BetsePyIdentifierException(BetsePyException):
     '''
-    Low-level exception pertaining to **Python identifiers** (i.e., class,
-    module, or attribute name).
+    **Python identifier** (i.e., class, module, or attribute name)-specific
+    exception.
     '''
 
     pass
@@ -458,7 +485,7 @@ class BetseIntException(BetseTypeException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ type                 }....................
+# ....................{ EXCEPTIONS ~ type : iter          }....................
 class BetseIterableException(BetseTypeException):
     '''
     Iterable-specific exception.
@@ -523,7 +550,7 @@ class BetseRegexException(BetseStrException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ sim                  }....................
+# ....................{ EXCEPTIONS ~ sci : sim            }....................
 class BetseSimException(BetseException):
     '''
     General-purpose simulation exception.
@@ -571,7 +598,7 @@ class BetseSimVectorException(BetseSimException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ sim : unstable       }....................
+# ....................{ EXCEPTIONS ~ sci : sim : unstable }....................
 class BetseSimUnstableException(BetseSimException):
     '''
     Simulation-specific exception indicating the current simulation to have
@@ -591,7 +618,7 @@ class BetseSimUnstableNaNException(BetseSimUnstableException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ science : visual     }....................
+# ....................{ EXCEPTIONS ~ sci : visual         }....................
 class BetseSimVisualException(BetseSimException):
     '''
     Simulation visualization-specific exception, applicable to both plots and
@@ -608,7 +635,7 @@ class BetseSimVisualLayerException(BetseSimVisualException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ science : pipe       }....................
+# ....................{ EXCEPTIONS ~ sci : pipe           }....................
 class BetseSimPipeException(BetseSimException):
     '''
     Simulation pipeline-specific exception.

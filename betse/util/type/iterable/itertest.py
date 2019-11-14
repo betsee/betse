@@ -24,7 +24,7 @@ def die_unless_items_instance_of(
 
     Parameters
     ----------
-    iterable: IterableTypes
+    iterable : IterableTypes
         Iterable to be validated.
     cls : TestableTypes
         Class or tuple of classes to validate that all items of this iterable
@@ -67,7 +67,7 @@ def die_unless_items_unique(iterable: IterableTypes) -> None:
 
     Parameters
     ----------
-    iterable: IterableTypes
+    iterable : IterableTypes
         Iterable to be validated.
 
     Raises

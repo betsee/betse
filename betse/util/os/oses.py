@@ -14,6 +14,7 @@ Caveats
 # ....................{ IMPORTS                           }....................
 import platform
 from betse import metadata
+from betse.exceptions import BetseOSException
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
@@ -39,12 +40,12 @@ def init() -> None:
 
     # Human-readable string describing the set of all officially supported
     # platforms known to interoperate sanely with this application.
-    supported_oses = (
+    oses_supported_str = (
         'Consider running {name} only under Linux or macOS. '
         'Note that Linux is now freely emulatable under Windows 10 '
         'via the Windows Subsystem for Linux (WSL). '
         'See official installation instructions at:\n'
-        '\thttps://msdn.microsoft.com/en-us/commandline/wsl/install-win10'.format(
+        '\thttps://docs.microsoft.com/en-us/windows/wsl/install-win10'.format(
             name=metadata.NAME))
 
     # If this is a non-WSL Windows variant, log a non-fatal warning.
@@ -59,14 +60,35 @@ def init() -> None:
             '(e.g., Numpy, SciPy, Matplotlib) are known to '
             'behave suboptimally on this platform. '
             '%s',
-            supported_oses)
+            oses_supported_str)
 
     # If this platform is officially unsupported by this application, log a
     # non-fatal warning.
     if not is_supported():
         logs.log_warning(
             'Unsupported platform "%s" detected. %s',
-            get_name(), supported_oses)
+            get_name(), oses_supported_str)
+
+# ....................{ EXCEPTIONS                        }....................
+def die_if_unsupported() -> bool:
+    '''
+    Raise an exception if the current platform is officially unsupported by
+    this application.
+
+    Raises
+    ------
+    BetseOSException
+        If this platform is officially unsupported by this application.
+
+    See Also
+    ----------
+    :func:`is_supported`
+        Further details.
+    '''
+
+    # If this platform is unsupported, raise an exception.
+    if not is_supported():
+        raise BetseOSException('Platform "{}" unsupported'.format(get_name()))
 
 # ....................{ TESTERS                           }....................
 @func_cached
