@@ -62,7 +62,7 @@ def register_dir(dirname: str) -> None:
     '''
     Register all files and subdirectories of the directory with the passed
     dirname to be importable modules and packages (respectively) for the
-    remainder of the active Python process if this directory has yet to be
+    remainder of the active Python interpreter if this directory has yet to be
     registered *or* reduce to a noop otherwise (i.e., if this directory is
     registered already).
 

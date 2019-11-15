@@ -31,6 +31,9 @@ See Also
     Global test configuration applied after this configuration.
 '''
 
+# ....................{ IMPORTS                           }....................
+import os, sys
+
 # ....................{ HOOKS ~ option                    }....................
 def pytest_addoption(parser: '_pytest.config.Parser') -> None:
     '''
@@ -78,33 +81,124 @@ def pytest_addoption(parser: '_pytest.config.Parser') -> None:
 
     pass
 
-# ....................{ HOOKS ~ session                   }....................
+# ....................{ HOOKS ~ session : start           }....................
 #FIXME: Strip all non-"tox"-isolated directories from "sys.path" when running
 #under "tox". To do so, see the informative question at:
 #    https://stackoverflow.com/questions/55737714/how-does-a-tox-environment-set-its-sys-path
 #FIXME: Raise an exception if running under "tox" but the project path
 #(i.e., "pymodule.get_dirname_canonical(betse)") is *NOT* isolated to a
 #"tox"-isolated venv.
-def pytest_sessionstart(session):
+def pytest_sessionstart(session: '_pytest.main.Session') -> None:
     '''
     Hook run immediately *before* starting the current test session (i.e.,
     calling the :func:`pytest.session.main` function).
+
+    Parameters
+    ----------
+    session: _pytest.main.Session
+        :mod:`pytest`-specific test session object.
     '''
 
-    # Defer heavyweight imports.
-    import betse, sys
-    from betse.util.py.module import pymodule
+    # Sanitize import paths *BEFORE* the first module importation.
+    _clean_imports()
+
+    # Print test-specific metadata *AFTER* sanitizing import paths.
+    _print_metadata()
+
+
+def _clean_imports() -> None:
+    '''
+    Sanitize import directories (i.e., the global :attr:`sys.list` of the
+    absolute and relative dirnames of all directories to search for modules and
+    packages to be imported from).
+
+    Specifically, this function:
+
+    * If this low-level :mod:`pytest` test harness is isolated to a venv (e.g.,
+      due to being exercised by a higher-level :mod:`tox` wrapper), remove all
+      import directories *not* isolated to this venv from the global list of
+      all import directories (i.e., :attr:`sys.path`). Doing so prevents this
+      test session from accidentally importing from modules and packages *not*
+      isolated to this venv, including this application being tested.
+    '''
+
+    # True only if tests are isolated to a venv produced by either...
+    #
+    # See the betse.util.py.pvenv.is_venv() function, whose implementation is
+    # inlined below. While calling that function directly would (of course) be
+    # preferable, doing so invites chicken-and-egg issues by importing *BEFORE*
+    # sanitizing import directories.
+    is_venv = (
+        # "virtualenv", which uniquely defines the "sys.real_prefix"
+        # attribute to the absolute dirname of the top-level directory
+        # containing the system-wide Python interpreter *OR*...
+        hasattr(sys, 'real_prefix') or
+
+        # "venv", which (possibly non-uniquely) sets:
+        #
+        # * The "sys.base_prefix" attribute to the absolute dirname of the
+        #   top-level directory containing the system-wide Python interpreter.
+        # * The "sys.prefix" attribute to the absolute dirname of the
+        #   top-level directory containing the venv-specific Python interpreter
+        #   if any *OR* the system-wide Python interpreter otherwise.
+        #
+        # Note that, as Python >= 3.3 *ALWAYS* defines the "sys.base_prefix"
+        # attribute, testing this attribute's existence is unnecessary.
+        sys.prefix != sys.base_prefix
+    )
 
     # Print a header for disambiguity.
-    print('------[ python paths ]------')
+    print('------[ venv ]------')
+
+    # Print whether tests are isolated to a venv.
+    print('venv test isolation: {}'.format(is_venv))
+
+    # If tests are isolated to a venv...
+    if is_venv:
+        # Print the absolute dirname of this venv's top-level directory.
+        print('venv dir: {}'.format(sys.prefix))
+
+        # List of the absolute dirnames of all directories to search for
+        # modules and packages to be imported from, guaranteed to be isolated
+        # to this venv.
+        sys_path_new = []
+
+        # Absolute dirname of this venv's top-level directory, suffixed by a
+        # directory separator for disambiguity.
+        sys_prefix = sys.prefix + os.path.sep
+
+        # For the dirname of each directory to search for imports...
+        for import_dirname in sys.path:
+            # If this directory resides inside this venv, preserve this
+            # directory in this list as is.
+            if import_dirname.startswith(sys_prefix):
+                sys_path_new.append(import_dirname)
+            # Else, this directory resides outside this venv. In this case,
+            # narn that this directory will *NOT* be importable from.
+            else:
+                print(
+                    'WARNING: '
+                    'Ignoring non-isolated import directory "{}"...'.format(
+                        import_dirname),
+                    file=sys.stderr)
+
+        # Replace the original such list with this redacted list.
+        sys.path = sys_path_new
+
+
+def _print_metadata() -> None:
+    '''
+    Print test-specific metadata for debuggability and quality assurance (QA).
+    '''
+
+    # Print a header for disambiguity.
+    print('------[ paths ]------')
 
     # Print the absolute dirname of the system-wide Python prefix and
     # current Python prefix, which differs from the former under venvs.
-    print('python prefix (system):  ' + sys.base_prefix)
+    print('python prefix (system [base]): ' + sys.base_prefix)
+    print('python prefix (system [real]): ' + getattr(sys, 'real_prefix', ''))
     print('python prefix (current): ' + sys.prefix)
-
-    # Print the absolute dirname of the top-level "betse" package.
-    print('project path: ' + pymodule.get_dirname_canonical(betse))
 
     # Print the current list of the (absolute or relative) dirnames of all
     # directories to be iteratively searched for importable modules and
@@ -113,6 +207,13 @@ def pytest_sessionstart(session):
     # descending order, directories listed earlier assume precedence over
     # directories listed later.
     print('import paths: ' + str(sys.path))
+
+    # Defer heavyweight imports until *AFTER* printing the above metadata.
+    import betse
+    from betse.util.py.module import pymodule
+
+    # Print the absolute dirname of the top-level "betse" package.
+    print('project path: ' + pymodule.get_dirname_canonical(betse))
 
     # Print all imported module names for debugging purposes.
     # from betse.util.py.module import pyimport
@@ -140,8 +241,8 @@ def pytest_sessionstart(session):
     # for attr_name, attr_value in objiter.iter_attrs(sys):
     #     print('{}: {}'.format(attr_name, attr_value))
 
-
-def pytest_sessionfinish(session, exitstatus):
+# ....................{ HOOKS ~ session : stop            }....................
+def pytest_sessionfinish(session, exitstatus) -> None:
     '''
     Hook run immediately *after* completing the current test session (i.e.,
     calling the :func:`pytest.session.main` function).
