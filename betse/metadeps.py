@@ -262,6 +262,31 @@ See Also
 
 # ....................{ LIBS ~ testing : mandatory        }....................
 TESTING_MANDATORY = {
+    # setuptools is currently required at testing time as well. If ommitted,
+    # "tox" commonly fails at venv creation time with exceptions resembling:
+    #
+    #     GLOB sdist-make: /home/leycec/py/betse/setup.py
+    #     py36 inst-nodeps: /home/leycec/py/betse/.tox/.tmp/package/1/betse-1.1.1.zip
+    #     ERROR: invocation failed (exit code 1), logfile: /home/leycec/py/betse/.tox/py36/log/py36-3.log
+    #     =================================================== log start ===================================================
+    #     Processing ./.tox/.tmp/package/1/betse-1.1.1.zip
+    #         Complete output from command python setup.py egg_info:
+    #         Traceback (most recent call last):
+    #           File "<string>", line 1, in <module>
+    #           File "/tmp/pip-0j3y5x58-build/setup.py", line 158, in <module>
+    #             buputil.die_unless_setuptools_version_at_least(metadeps.SETUPTOOLS_VERSION_MIN)
+    #           File "/tmp/pip-0j3y5x58-build/betse_setup/buputil.py", line 74, in die_unless_setuptools_version_at_least
+    #             setuptools_version_min, setuptools.__version__))
+    #         Exception: setuptools >= 38.2.0 required by this application, but only setuptools 28.8.0 found.
+    #
+    #         ----------------------------------------
+    #     Command "python setup.py egg_info" failed with error code 1 in /tmp/pip-0j3y5x58-build/
+    #     You are using pip version 9.0.1, however version 19.3.1 is available.
+    #     You should consider upgrading via the 'pip install --upgrade pip' command.
+    #
+    #     ==================================================== log end ====================================================
+    'setuptools': '>= ' + SETUPTOOLS_VERSION_MIN,
+
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # WARNING: This py.test requirement *MUST* be manually synchronized to the
     # same requirement in the downstream "betsee.guimetadeps" submodule.

@@ -258,6 +258,12 @@ _SETUP_OPTIONS = {
     'extras_require': {
         # All optional runtime dependencies.
         'all': metadeps.get_runtime_optional_tuple(),
+
+        # All mandatory testing dependencies, copied from the "tests_require"
+        # key below into an arbitrarily named extra. This is required *ONLY*
+        # for integration with the top-level "tox.ini" file. See the "extras"
+        # key in that file for further details.
+        'test': metadeps.get_testing_mandatory_tuple(),
     },
 
     # Mandatory testing dependencies.
