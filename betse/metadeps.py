@@ -49,6 +49,24 @@ would render these constants effectively useless for their principal use case.
 from collections import namedtuple
 
 # ....................{ LIBS ~ install : mandatory        }....................
+#FIXME: The current situation of "setuptools" versioning duplication detailed
+#below is absolutely insane and incentive enough for us to gradually transition
+#away from the "setuptools"-based "setup.py" ecosystem to the "poetry"-based
+#"pyproject.toml" ecosystem. Note, however, that the latter is still largely in
+#flux -- which suggests a gestational waiting period. Early adopters always get
+#burned hard... and we've been burned hard enough. Even after "poetry"
+#solidifies, however, the transition is likely to be non-trivial. Requisite
+#changes probably include:
+#
+#* Embedding the "betse" package under a new top-level "src/" directory.
+#* Shifting the contents of both the "betse.metadata.py" *AND* "betse.metadeps"
+#  submodules into a "pyproject.toml" file. Note that doing so may
+#  fundamentally break BETSEE's current merger algorithm of these files -- an
+#  issue that may have no trivial resolution.
+#* Refactor both the "betse.metadata.py" *AND* "betse.metadeps" submodules to
+#  dynamically deserialize the "pyproject.toml" file and cache the contents of
+#  that file into Python-accessible global module variables.
+
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid dependency conflicts between "pip", "setuptools", BETSE,
 # and BETSEE, the value of this global variable *MUST* be synchronized (i.e.,
@@ -56,6 +74,9 @@ from collections import namedtuple
 # strings *MUST* be identical:
 # * "betse.metadeps.SETUPTOOLS_VERSION_MIN".
 # * "betsee.guimetadeps.SETUPTOOLS_VERSION_MIN".
+# * The "requires" setting in:
+#   * "betse/tox.ini".
+#   * "betsee/tox.ini".
 # * The "build-backend" setting in:
 #   * "betse/pyproject.toml".
 #   * "betsee/pyproject.toml".
@@ -222,14 +243,12 @@ https://setuptools.readthedocs.io/en/latest/setuptools.html#id12
 '''
 
 # ....................{ LIBS ~ runtime : optional         }....................
-#FIXME: Should these be dependencies also be added to our "setup.py" metadata,
-#perhaps as so-called "extras"? Contemplate. Consider. Devise.
 RUNTIME_OPTIONAL = {
     # To simplify subsequent lookup at runtime, project names for optional
     # dependencies should be *STRICTLY LOWERCASE*. Since setuptools parses
     # project names case-insensitively, case is only of internal relevance.
 
-    # Dependencies directly required by this application.
+    # Optional dependencies directly required by this application.
     'distro':   '>= 1.0.4',
     'psutil':   '>= 5.3.0',
     'pympler':  '>= 0.4.1',
@@ -240,7 +259,7 @@ RUNTIME_OPTIONAL = {
     # unofficial inactive "pydotplus" PyDot fork rather than the official
     # active "pydot" PyDot project, is directly required by this application.
     # NetworkX >= 1.12 reverted to supporting "pydot", thus warranting
-    # blacklisting of only NetworkX 1.11. It is confusing, maybe?
+    # blacklisting of only NetworkX 1.11. (It is confusing, maybe? Yes!)
     'networkx': '>= 1.8, != 1.11',
     'pydot': '>= 1.0.28',
 }
