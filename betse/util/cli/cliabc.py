@@ -369,17 +369,24 @@ class CLIABC(object, metaclass=ABCMeta):
             CLIOptionVersion,
         )
         from betse.util.io.log.logenum import LogLevel
-        from betse.util.os.command import cmds
 
         # Application metadata singleton.
         app_meta = appmetaone.get_app_meta()
+
+        # Application metadata submodule.
+        app_metadata = app_meta.module_metadata
 
         # Logging configuration singleton.
         log_config = logconf.get_log_conf()
 
         # Human-readable version specifier suitable for printing to end users.
         version_output = '{} {}'.format(
-            cmds.get_current_basename(), app_meta.module_metadata.VERSION)
+            app_metadata.NAME, app_metadata.VERSION)
+
+        # If this version is optionally associated with a human-readable
+        # codename, suffix this version specifier by that codename.
+        if hasattr(app_metadata, 'CODENAME'):
+            version_output += ' ({})'.format(app_metadata.CODENAME)
 
         # List of all default top-level options to be returned.
         options_top = [

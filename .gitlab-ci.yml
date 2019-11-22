@@ -44,126 +44,7 @@
 # on an external third-party free-as-in-beer CI service specific to that
 # platform and then integrating this service with GitLab.
 
-#FIXME: Refactor this workflow to leverage:
-#
-#* Multiple Python versions. Fortunately, "conda" provides builtin support for
-#  trivially doing so via conda-specific virtual environments. See:
-#      https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-python.html
-#* "tox", which we increasingly require for validating installation. Although
-#  "conda" and "tox" themselves fail to provide builtin integration with one
-#  another, the third-party "tox-conda" package trivially installable via
-#  "conda" does (e.g., "conda install tox-conda"). See:
-#      https://github.com/tox-dev/tox-conda
-#
-#Sadly, we could only find one ".gitlab-ci.yml" file leveraging "tox-conda":
-#    https://gitlab.aicrowd.com/flatland/flatland/blob/master/.gitlab-ci.yml
-#
-#Given that example, we want to enable "pip" and "tox" caching via:
-#
-#    cache:
-#        paths:
-#            - .cache/pip
-#            - .tox
-#
-#Note, however, that that example leverages the "themattrix/tox" rather than
-#"continuumio/anaconda3" Docker image -- which significantly complicates the
-#installation of Miniconda3. On the other hand, this example leverages "xvfb",
-#which we will certainly require for BETSEE CI.
-#
-#While we *COULD* refactor this pipeline to leverage the "themattrix/tox"
-#rather than "continuumio/anaconda3" Docker image as well, we're unconvinced
-#that's the ideal solution. Rather, it should be feasible to leverage "conda"
-#and "tox-conda" (as outlined above) to build a test matrix across all
-#supported Python versions.
-#FIXME: Actually, it may not necessarily make sense to integrate "tox" with
-#"conda". While nice, "tox-conda" doesn't appear all that useful; it still
-#installs dependencies with "pip" rather than "conda" by default.
-#
-#Frankly, it's unclear why we're still leveraging Miniconda3 at all. We did so
-#previously for parity with AppVeyor, as "pip" failed to support scientific
-#packages under Windows. It does now, of course. So why are we still using
-#Miniconda3, which is substantially more heavyweight than "pip", fails to
-#natively support "tox", and is non-trivial in all possible respects? We have
-#little idea. As an example of how utterly trivial "pip" + "tox" is, consider
-#this example pilfered from the ".gitlab-ci.yml" for "flax8" at:
-#    https://gitlab.com/pycqa/flake8/blob/master/.gitlab-ci.yml
-#
-#    # Are you friggin' kidding me?
-#    python35:
-#      image: python:3.5
-#      stage: test
-#      script: tox -e py35
-#
-#    python36:
-#      image: python:3.6
-#      stage: test
-#      script: tox -e py36
-#
-#    python37:
-#      image: python:3.7
-#      stage: test
-#      script: tox -e py37
-#
-#    python38:
-#      image: python:3.8
-#      stage: test
-#      script: tox -e py38
-#
-#By compare to the excrutiating setup steps we perform below (which *STILL*
-#fails to exercise a proper test matrix), the above test matrix literally could
-#not be simpler. It leverages an industry-standard stack guaranteed not to
-#break, including the official Docker Python images, pip, and tox -- all
-#without doing *ANYTHING* except the absolute bare minimum.
-#
-#While frustrating that this level of support was unavailable when BETSE
-#development first began, late is certainly better than never. Given the above,
-#consider fundamentally refactoring this as follows:
-#
-#* Rename this file to ".gitlab-ci.old.yml" for historical preservation.
-#* Define a new ".gitlab-ci.yml" based on the above sample template.
-#* Add a FIXME comment to the top of our ".appveyor.yml" file advising that
-#  configuration be refactored similarly. Assuming all goes well with the above
-#  refactoring, we'll want to drop "conda" in favour of "pip" there as well.
-#* Remove both the "requirements-conda.txt" *AND* "requirements-pip.txt" files.
-#  Both are merely dead weight at this point.
-#FIXME: Before attempting the above, we should investigate whether it might be
-#preferable to leverage "themattrix/tox" as our Docker image rather than the
-#"python:${VERSION}" Docker images leveraged above. The former are probably
-#substantially more efficient (in terms of caching) at a cost of increased
-#technical complexity and possible inefficiency (in terms of parallelization).
-#The most critical research question here is: "Does the flake8 approach
-#parallelize jobs? Does the themattrix/tox? Do neither?" Whichever one
-#parallelizes jobs is almost certainly the one we want.
-#
-#Further research is warranted here!
-#FIXME: O.K.; further research suggests *NOT* leveraging "themattrix/tox", as
-#demonstrated by the fact that numerous popular ".gitlab-ci.yml" configurations
-#leverage the thankfully simplistic "flake8" approach but *NONE* leverage the
-#overly complicated "themattrix/tox" approach. In particular, see also:
-#
-#* "coala-utils," whose ".gitlab-ci.yml" configuration cleverly augments the
-#  "flake8" approach with YAML transclusions. We absolutely do *NOT* want to
-#  use Alpine Docker images, as Alpine's MUSL core is incompatible with
-#  "manylinux" Python "pip" wheels -- which makes Alpine unusable for us. We
-#  should prominently note this somewhere above. (See also:
-#  https://github.com/docker-library/docs/issues/904). As an alternative to
-#  Alpine, consider Python "slim" Docker images -- which appear to be the next
-#  best thing. Lastly, the "coala-utils" config lives at:
-#  https://gitlab.com/coala/coala-utils/blob/master/.gitlab-ci.yml
-#* The "Where do we start" section leading the following blog post is probably
-#  an even better example than the above "coala-utils" link as to how to
-#  properly leverage YAML anchors for de-duplication DRY purposes:
-#  https://medium.com/@ju5t_/how-were-using-gitlab-to-test-and-deploy-our-application-s-to-docker-swarm-e3f556dbf8fe
-
 # ....................{ DOCKER                            }....................
-# Colon-delimited name and tag of the first- or third-party Docker image
-# registered with the Docker Hub Registery (e.g., "python:3", denoting the
-# Docker image named "python" tagged as "3"), provisioning the scientific stack
-# to be tested against. A tag is an alphanumeric label unique to an image,
-# whose name is itself an alphanumeric label unique to the set of all images
-# registered with the Docker Hub Registery. A tag typically specifies the
-# version of that image to be used.
-#
 # For a list of all available Docker images, see the search bar at the top of
 # "https://hub.docker.com". To find relevant images, consider (in order):
 #
@@ -192,33 +73,52 @@
 # Alpine Linux-based OS. Thanks to an obsessive-compulsive attention to
 # minification, Alpine Linux is ideal for Docker-based CI. While Alpine Linux
 # comes bundled with a package manager ("apk") providing a variety of
-# scientific Python packages (e.g., "py-numpy"), these packages are all
-# specific to the Python 2.7 ecosystem as of mid-2017. If and when Alpine Linux
-# provides new Python 3.x-compatible scientific Python packages, the current
-# choice of Docker image below should be revisited.
+# scientific Python packages (e.g., "py-numpy"), these packages are all sadly
+# built against the non-standard musl libc implementation optimized for Alpine
+# Linux rather than the standard glibc libc implementation bundled with most
+# Linux distributions. Technically, a glibc compatibility layer for musl named
+# "gcompat" does exist but appears to be inapplicable to Python usage. In any
+# case, musl is effectively incompatible with glibc and hence "manylinux"
+# Python wheels -- which, by de facto industry standard, are linked against
+# glibc rather than musl. So, Alpine Linux-based Docker images are entirely
+# inappropriate for Python usage and *MUST* strictly be avoided. See also:
+#     https://github.com/docker-library/docs/issues/904
+#     https://pythonspeed.com/articles/base-image-python-docker-images
 #
-# For simplicity, we currently fallback to the official Anaconda 3 Docker image
-# from Continuum Analytics. If and when Alpine Linux supports Python 3.x,
-# consider a (probably painful and hence improbable) switch. See also:
+# Consensus in the open-source Python community strongly advises use of the
+# official Python images published by Docker themselves in their so-called
+# "slim" variants (e.g., "python:3.7-slim-buster"), which officially support
+# *ALL* modern stable releases of Python. Moreover, these images are stable,
+# well-maintained, and minified almost as extremely as Alpine Linux Docker
+# images but with *NONE* of the disadvantages of the latter. See also:
 #
 # * Docker Hub Registery entry for this image:
-#   https://hub.docker.com/r/continuumio/anaconda3
+#   https://hub.docker.com/_/python
 # * Open-source GitHub repository hosting this image's Dockerfile:
 #   https://github.com/ContinuumIO/docker-images/tree/master/anaconda3
 # * Platform-specific lists of all Anaconda packages installed by default:
 #   http://repo.continuum.io/pkgs
-# * A promising alternative installing additional optional dependencies over
-#   Anaconda 3, including FFMpeg. It's fairly heavyweight (which is bad), but
-#   frequently maintained (which is good):
-#   https://hub.docker.com/r/kaggle/python
-#   https://github.com/Kaggle/docker-python
-# * A promising alternative layering Anaconda 3 onto Alpine Linux, thus
-#   circumventing several of the aforementioned issues. Unfortunately, this
-#   image is infrequently maintained and hence unreliable (which is terribad):
-#   https://github.com/vishnu2kmohan/anaconda3-docker
-image: continuumio/anaconda3:latest
 
-# ....................{ GLOBALS                           }....................
+# Colon-delimited name and tag of the Docker image registered at the Docker Hub
+# Registery (e.g., "python:3", denoting the Docker image named "python" tagged
+# as "3"), provisioning the Python stack to be tested against.
+#
+# A name is an alphanumeric label such that:
+#
+# * For third-party Docker images, the name is prefixed by an organization name
+#   delimited by a "/" character (e.g., "continuumio/anaconda3").
+# * For official Docker images published by Docker itself, the name is a bare
+#   label prefixed by *NO* such delimiter (e.g., "python").
+#
+# A tag is an alphanumeric label unique to an image, whose name is itself an
+# alphanumeric label unique across all images registered at the Docker Hub
+# Registery. A tag typically specifies the version of that image to be used.
+#
+# Lastly, note that the test matrix defined below explicitly overrides this
+# basic image for every test environment. This is only a desperate fallback.
+image: python
+
+# ....................{ GLOBALS ~ env                     }....................
 # Dictionary mapping from the name to value of each environment variable to be
 # "globally" exported and hence accessible to *ALL* commands run below.
 variables:
@@ -229,45 +129,39 @@ variables:
   # "${CI_PROJECT_DIR}/", the absolute dirname of the pipeline-specific
   # directory containing this project. See the "WARNING" below for details.
 
-  # Instruct "conda" to cache isolated environments to the build-relative
-  # directory repeated in the "cache:" section below. By default, "conda"
-  # caches to the system-wide (and hence uncacheable) "/opt/conda/envs"
-  # directory.
-  CONDA_ENVS_PATH: "${CI_PROJECT_DIR}/conda-envs"
-
-  # Instruct "conda" to cache downloaded packages to the build-relative
-  # directory repeated in the "cache:" section below. By default, "conda"
-  # caches to the system-wide (and hence uncacheable) "/opt/conda/pkgs"
-  # directory.
-  CONDA_PKGS_DIRS: "${CI_PROJECT_DIR}/conda-pkgs"
+  # Reduce the Advanced Package Tool (APT) package manager provided by this
+  # Debian Linux-based image to headless behaviour. To quote "man debconf":
+  #     "This is the anti-frontend. It never interacts with you at all, and
+  #      makes the default answers be used for all questions. It might mail
+  #      error messages to root, but that's it; otherwise it is completely
+  #      silent and unobtrusive, a perfect frontend for automatic installs. If
+  #      you are using this front-end, and require non-default answers to
+  #      questions, you will need to preseed the debconf database; see the
+  #      section below on Unattended Package Installation for more details."
+  # Note that the "apt --yes" option technically obsoletes this setting for
+  # most purposes, but that a little explicitness never hurt no one never.
+  DEBIAN_FRONTEND: noninteractive
 
   # Instruct Matplotlib to cache metadata to the build-relative directory
   # repeated in the "cache:" section below.
-  MPLCONFIGDIR: "${CI_PROJECT_DIR}/mpl-cache"
+  MPLCONFIGDIR: "${CI_PROJECT_DIR}/.mpl-cache"
+
+  # Instruct X11-specific utilities to do so as well.
+  XDG_CACHE_HOME: "${CI_PROJECT_DIR}/.cache/"
 
   # ...................{ GLOBALS ~ private                 }...................
   # Private environment variables specific to this configuration. To avoid
   # conflict with third-party applications, the name of each such variable is
   # intentionally prefixed by "_".
 
-
+# ....................{ GLOBALS ~ cache                   }....................
 cache:
-  # Enable per-branch caching, assigning each repository branch a unique cache.
-  # By default, Gitlab-CI enables per-job and per-branch caching, assigning
-  # each repository branch for each job a unique cache. While a sane default,
-  # this pipeline does *NOT* isolating each cache to each job. On the contrary,
-  # the build and test jobs defined below expect to share the same cache.
-  #
-  # For a human-readable list of permissible values for this setting, see also:
-  #     https://docs.gitlab.com/ce/ci/yaml/README.html#cache-key
-  key: "$CI_BUILD_REF_NAME"
-
   # Cache all subdirectories and files of the build directory *NOT* already
   # tracked by Git for this repository, in addition to those paths explicitly
   # cached below. In theory, all paths requiring caching should be explicitly
   # cached below; in practice, this fallback ensures that paths omitted below
   # will still be implicitly cached.
-  untracked: true
+  # untracked: true
 
   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   # WARNING: Due to an outstanding issue, GitLab-CI currently ignores *ALL*
@@ -275,7 +169,7 @@ cache:
   #     https://gitlab.com/gitlab-org/gitlab-ce/issues/4431
   # Sadly, this implies that cache paths listed below *MUST* be both relative
   # to and contained in the build directory. Ensure that each such path is
-  # prefixed by neither "/", "./", or "../" *OR* by any variable expanding to
+  # prefixed by neither "/", "./", or "../" *NOR* by any variable expanding to
   # such a path (e.g., "$HOME").
   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   #
@@ -283,107 +177,11 @@ cache:
   # preserved between CI pipelines. (Note that relative dirnames are relative
   # to the current build directory.)
   paths:
-    # Directory to which "conda" persists isolated environments.
-    - conda-envs/
-
-    # Directory to which "conda" persists downloaded packages.
-    - conda-pkgs/
-
     # Directory to which Matplotlib caches metadata (e.g., on fonts).
-    - mpl-cache/
+    - .mpl-cache/
 
-# ....................{ GLOBALS ~ script                  }....................
-# List of all external commands run *BEFORE* running those listed by the
-# "script" key of any job below. These commands build and install both this
-# application and all third-party dependencies required by this application.
-before_script:
-  # Update all system packages installed by default with this image for the
-  # duration of this CI pipeline.
-  #
-  # Since this image is frequently updated, this is ignored.
-  #- apt-get update -qy
-
-  # Install all dependencies available via the system-wide package manager,
-  # which is typically both faster and stabler than doing so via pip3.
-  #
-  # Since this image provides such dependencies by default, this is ignored.
-  # - apt-get install -y
-
-  # Import environment variables required for sane "conda" usage.
-  - source /opt/conda/etc/profile.d/conda.sh
-
-  # Configure "conda" to efficiently run headless. Dismantled, this is:
-  #
-  # * "always_yes true", automatically pass the "--yes" option to *ALL*
-  #   "conda" commands run below. This is a superficial convenience reducing
-  #   the likelihood of developer oversight and hence saving essential sanity.
-  # * "auto_update_conda false", improving both space and time complexity by
-  #   preventing "conda" from unnecessarily upgrading itself.
-  - conda config --set always_yes true --set auto_update_conda false
-
-  # Add the third-party "conda-forge" channel as the highest-priority channel,
-  # ensuring that subsequently installed dependencies prefer the versions
-  # supplied by this channel rather than any official default channels. This
-  # is strongly preferable for any number of obvious reasons, including:
-  #
-  # * Official default channels either fail to:
-  #   * Supply packages (e.g., "pyside2").
-  #   * Supply working packages (e.g., "graphviz", whose official package
-  #     appears to suffer numerous well-known deficiencies under Windows).
-  # * Parity with the existing Anaconda package for this application, which is
-  #   hosted by conda-forge for the above reasons and more. Parity with respect
-  #   to dependency installation increases the likelihood of parity between
-  #   testing results and end user experience.
-  - conda config --add channels conda-forge
-
-  # Update "conda" *SAFELY*. To circumvent a well-known hard blocker in the
-  # supposedly stable release of conda 4.4, "conda" is intentionally *NOT*
-  # updated here with a standard one-liner: "conda upgrade -y conda". For
-  # further details, see the following exhaustive GitHub issue:
-  #     https://github.com/conda/conda/issues/6811
-  - conda install --quiet --name base conda
-
-  # Print metadata identifying this Anaconda release for debuggability.
-  - conda info --all
-
-  # Create an empty Anaconda environment if not already created by a prior job
-  # *OR* silently ignore the resulting error otherwise.
-  - conda create --quiet --name conda-env || true
-
-  # Activate this environment (i.e., prepend the current ${PATH} by this
-  # environment's top-level directory).
-  - conda activate conda-env
-
-  # Install all mandatory and optional dependencies of this application into
-  # this environment from the "conda-forge" channel.
-  #
-  # Note that passing the "--file requirements-conda.txt" option to the above
-  # "conda create" command would suffice to do so for the initial creation of
-  # this environment but fail to account for subsequent changes to these
-  # dependencies; hence, environment creation and dependency installation
-  # *MUST* be separated. The efficiency hit is minimal if any.
-  #
-  # Note also that, in theory, it would be superficially feasible to replace
-  # our usage of this external requirements file with usage of the dependencies
-  # already defined for the existing Anaconda package for this application with
-  # the new "--only-deps" option introduced with conda 4.4: e.g.,
-  #
-  #     - conda install --only-deps -c conda-forge betse
-  #
-  # In practice, however, that would be a terrible idea. There exists no
-  # guarantee that the dependency list required by the most recent stable
-  # release of this application (and hence that Anaconda package) perfectly
-  # coincides with the dependency list required by the live version of this
-  # application exercised by this configuration. Moreover, doing so would also
-  # install PySide2 -- a heavyweight interactive dependency with no meaningful
-  # utility during testing.
-  #
-  # In short: "Explicit is still better than implicit."
-  - conda install --quiet --file requirements-conda.txt
-
-  # Install this project into this environment in the most efficient means
-  # possible (i.e., without copying this project into this environment).
-  - python setup.py develop
+    # Directory to which X11-specific utilities metadata (e.g., on fonts).
+    - .cache/
 
 # ....................{ STAGES                            }....................
 # List of all stages to be run by this pipeline (in order).
@@ -429,31 +227,61 @@ stages:
 # official key, thus confining the action of that key (e.g., artifact building,
 # caching, script commands) to that job.
 
-# ....................{ JOBS ~ test                       }....................
-# Test-specific job, exercising the entire test suite for this application.
-betse_test:
+# ....................{ JOBS ~ test : common              }....................
+# Mapping-style anchor to be interpolated into each job's mapping below.
+.test_common: &test_common
   # Stage to run this job under. Note that "test" is technically the default
   # stage and hence need *NOT* be explicitly specified here. For disambiguity,
   # we do so anyway.
   stage: test
 
+  # List of all external commands run *BEFORE* running those listed by the
+  # "script" key of any job below. These commands build and install both this
+  # application and all third-party dependencies required by this application.
+  before_script:
+    # Update all system packages installed by default with this image for the
+    # duration of this CI pipeline.
+    #
+    # Since this image is frequently updated, this is ignored.
+    #- apt-get update -qy
+
+    # Install all dependencies available via the system-wide package manager.
+    # Doing so is typically both faster and stabler than doing so via "pip"
+    # and, in any case, supports installation of non-Pythonic dependencies
+    # unavailable via "pip" (e.g., "graphviz").
+    - apt-get install -y graphviz
+
+    # Install all preliminary Python dependencies with "pip". Note that the
+    # "tox.ini" file provided by this project installs:
+    #
+    # * All remaining Python dependencies (e.g., "pytest", "numpy", "scipy").
+    # * This project itself (e.g., "betse").
+    - python3 -m pip install tox
+
   # List of all external commands run by this job.
   script:
-    # For debuggability, print metadata identifying the current version of this
-    # application. Since the same metadata is also printed, captured, and
-    # squelched by a functional test exercised by testing run below, doing so
-    # is redundant. Nonetheless, py.test provides no means of selectively
-    # disabling output capturing for only specific tests. For efficiency and
-    # readability, globally disabling output capturing is undesirable.
-    # Dismantled, this is:
-    #
-    # * "--headless", preventing this application from erroneously attempting
-    #   to initialize interactive-only matplotlib backends (e.g., "PyQt4").
-    - betse --headless info
+    # Instruct the high-level "tox" wrapper to run the lower-level
+    # "pytest"-based test suite for this project, isolated to a temporary venv
+    # specific to the active Python interpreter.
+    - python3 -m tox
 
-    # Run the entire "py.test"-based test suite under the following options:
-    #
-    # * "--maxfail=3", halting testing on the third failure. For discussion,
-    #   see the "betse.lib.setuptool.command.supcmdtest" submodule.
-    - py.test --maxfail=3
-    # - py.test --maxfail=3 -s
+# ....................{ JOBS ~ test : version             }....................
+# Python 3.5-specific test job, exercising this project's full test suite.
+test_python35:
+  <<: *test_common
+  image: python:3.5-slim
+
+# Python 3.6-specific test job, exercising this project's full test suite.
+test_python36:
+  <<: *test_common
+  image: python:3.6-slim
+
+# Python 3.7-specific test job, exercising this project's full test suite.
+test_python37:
+  <<: *test_common
+  image: python:3.7-slim
+
+# Python 3.8-specific test job, exercising this project's full test suite.
+test_python38:
+  <<: *test_common
+  image: python:3.8-slim
