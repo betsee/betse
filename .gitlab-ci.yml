@@ -94,6 +94,8 @@
 #
 # * Docker Hub Registery entry for this image:
 #   https://hub.docker.com/_/python
+# * Docker Hub Registery entry for the low-level image this image is based on:
+#   https://hub.docker.com/_/buildpack-deps
 # * Open-source GitHub repository hosting this image's Dockerfile:
 #   https://github.com/ContinuumIO/docker-images/tree/master/anaconda3
 # * Platform-specific lists of all Anaconda packages installed by default:
@@ -253,45 +255,49 @@ stages:
     #    Building dependency tree...
     #    Reading state information...
     #    E: Unable to locate package graphviz
-    - apt-get update -y
+    - apt-get update --quiet --yes
 
     # Install all dependencies available via the system-wide package manager.
     # Doing so is typically both faster and stabler than doing so via "pip"
     # and, in any case, supports installation of non-Pythonic dependencies
     # unavailable via "pip" (e.g., "graphviz").
-    - apt-get install -y graphviz
+    - apt-get install --quiet --yes graphviz
 
     # Install all preliminary Python dependencies with "pip". Note that the
     # "tox.ini" file provided by this project installs:
     #
     # * All remaining Python dependencies (e.g., "pytest", "numpy", "scipy").
     # * This project itself (e.g., "betse").
-    - python3 -m pip install tox
-
-  # List of all external commands run by this job.
-  script:
-    # Instruct the high-level "tox" wrapper to run the lower-level
-    # "pytest"-based test suite for this project, isolated to a temporary venv
-    # specific to the active Python interpreter.
-    - python3 -m tox
+    - python3 -m pip --quiet install tox
 
 # ....................{ JOBS ~ test : version             }....................
+# Note that non-slim Docker Python images are currently preferred to slim
+# variants with names suffixed by "-slim" (e.g., "python:3.8-slim"), as the
+# latter fail to include C and C++ compilers required to build and install
+# wheels for packages containing C extensions (e.g., "psutil"). While this
+# could be circumvented by explicitly installing C and C++ compilers under
+# slim variants, doing so would fully defeat the purpose of those variants.
+
 # Python 3.5-specific test job, exercising this project's full test suite.
 test_python35:
   <<: *test_common
-  image: python:3.5-slim
+  image: python:3.5
+  script: python3 -m tox -e py35
 
 # Python 3.6-specific test job, exercising this project's full test suite.
 test_python36:
   <<: *test_common
-  image: python:3.6-slim
+  image: python:3.6
+  script: python3 -m tox -e py36
 
 # Python 3.7-specific test job, exercising this project's full test suite.
 test_python37:
   <<: *test_common
-  image: python:3.7-slim
+  image: python:3.7
+  script: python3 -m tox -e py37
 
 # Python 3.8-specific test job, exercising this project's full test suite.
 test_python38:
   <<: *test_common
-  image: python:3.8-slim
+  image: python:3.8
+  script: python3 -m tox -e py38
