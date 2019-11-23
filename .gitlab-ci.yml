@@ -239,11 +239,21 @@ stages:
   # "script" key of any job below. These commands build and install both this
   # application and all third-party dependencies required by this application.
   before_script:
-    # Update all system packages installed by default with this image for the
-    # duration of this CI pipeline.
+    # Update all system-wide packages installed by default with this image for
+    # the temporary duration of this job and, if a package cache has yet to be
+    # created, do so.
     #
-    # Since this image is frequently updated, this is ignored.
-    #- apt-get update -qy
+    # This command *MUST* be run before attempting to install any dependencies
+    # via the system-wide package manager, as the latter requires the package
+    # cache created by the former. If omitted, the first such attempt fails
+    # with a fatal error resembling:
+    #
+    #    $ apt-get install -y graphviz
+    #    Reading package lists...
+    #    Building dependency tree...
+    #    Reading state information...
+    #    E: Unable to locate package graphviz
+    - apt-get update -y
 
     # Install all dependencies available via the system-wide package manager.
     # Doing so is typically both faster and stabler than doing so via "pip"
