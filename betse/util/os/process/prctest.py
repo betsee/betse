@@ -16,6 +16,8 @@ from betse.exceptions import (
 from betse.util.type.types import type_check
 
 # ....................{ TESTERS ~ parent                  }....................
+#FIXME: This tester is currently uncalled. Before calling this tester, the
+#optional "psutil" dependency *MUST* be uncommented in "betse.metadeps".
 @type_check
 def is_parent_command(command_basename: str) -> bool:
     '''

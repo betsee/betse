@@ -274,9 +274,9 @@ stages:
 # Note that non-slim Docker Python images are currently preferred to slim
 # variants with names suffixed by "-slim" (e.g., "python:3.8-slim"), as the
 # latter fail to include C and C++ compilers required to build and install
-# wheels for packages containing C extensions (e.g., "psutil"). While this
-# could be circumvented by explicitly installing C and C++ compilers under
-# slim variants, doing so would fully defeat the purpose of those variants.
+# wheels for Python packages both lacking official wheels *AND* containing
+# mandatory C extensions (e.g., "psutil"). Installing compilers under slim
+# variants would circumvent this but also defeat the purpose of doing so.
 
 # Python 3.5-specific test job, exercising this project's full test suite.
 test_python35:

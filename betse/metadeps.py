@@ -250,9 +250,11 @@ RUNTIME_OPTIONAL = {
 
     # Optional dependencies directly required by this application.
     'distro':   '>= 1.0.4',
-    'psutil':   '>= 5.3.0',
     'pympler':  '>= 0.4.1',
     'ptpython': '>= 0.29',
+
+    #FIXME: Uncomment once eventually used, which is probably inevitable now.
+    # 'psutil':   '>= 5.3.0',
 
     # A relatively modern version of NetworkX *EXCLUDING* 1.11, which
     # critically broke backwards compatibility by coercing use of the
