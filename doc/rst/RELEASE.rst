@@ -266,7 +266,7 @@ BETSE is releasable to all supported platforms as follows:
 
    .. code-block:: console
 
-      $ sudo python3 setup.py develop
+      $ pip3 install -e .
 
 #. (\ *Optional*\ ) **Test the remote installation of this release.**
 

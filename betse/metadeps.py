@@ -363,6 +363,7 @@ RequirementCommand.__doc__ = '''
 # * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 REQUIREMENT_NAME_TO_COMMANDS = {
+    # "pydot" requires Graphviz (i.e., "dot") to be externally installed.
     'pydot': (RequirementCommand(name='Graphviz', basename='dot'),),
 }
 '''

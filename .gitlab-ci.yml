@@ -144,12 +144,9 @@ variables:
   # most purposes, but that a little explicitness never hurt no one never.
   DEBIAN_FRONTEND: noninteractive
 
-  # Instruct Matplotlib to cache metadata to the build-relative directory
-  # repeated in the "cache:" section below.
-  MPLCONFIGDIR: "${CI_PROJECT_DIR}/.mpl-cache"
-
-  # Instruct X11-specific utilities to do so as well.
-  XDG_CACHE_HOME: "${CI_PROJECT_DIR}/.cache/"
+  # Instruct XDG-compliant packages (e.g., matplotlib) to cache metadata to the
+  # build-relative directory repeated in the "cache:" mapping below.
+  XDG_CACHE_HOME: "${CI_PROJECT_DIR}/.cache"
 
   # ...................{ GLOBALS ~ private                 }...................
   # Private environment variables specific to this configuration. To avoid
@@ -179,10 +176,7 @@ cache:
   # preserved between CI pipelines. (Note that relative dirnames are relative
   # to the current build directory.)
   paths:
-    # Directory to which Matplotlib caches metadata (e.g., on fonts).
-    - .mpl-cache/
-
-    # Directory to which X11-specific utilities metadata (e.g., on fonts).
+    # Directory to which XDG-compliant packages cache metadata (e.g., fonts).
     - .cache/
 
 # ....................{ STAGES                            }....................
@@ -213,7 +207,6 @@ cache:
 # job is now performed as a global "before_script" key. While non-ideal, there
 # appears to be no remedy as yet.
 stages:
-  # - build
   - test
 
 # ....................{ JOBS                              }....................

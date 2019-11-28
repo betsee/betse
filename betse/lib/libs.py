@@ -452,9 +452,16 @@ def _iter_requirement_commands(requirement_name: str) -> SequenceTypes:
     dependency_commands = metadeps.REQUIREMENT_NAME_TO_COMMANDS.get(
         requirement_name, ())
 
-    # Validate this tuple to contain only "RequirementCommand" instances.
+    #FIXME: Additionally validate that each "namedtuple" instance provides the
+    #"name" and "basename" fields.
+    # Validate this tuple to contain only "namedtuple" instances.
+    #
+    # Note that we intentionally do *NOT* validate this tuple to contain only
+    # "betse.metadata.RequirementCommand" instances, as downstream consumers
+    # (e.g., BETSEE) necessarily duplicate that type into their own codebases
+    # (e.g., as "betsee.guimetadata.RequirementCommand").
     itertest.die_unless_items_instance_of(
-        iterable=dependency_commands, cls=metadeps.RequirementCommand)
+        iterable=dependency_commands, cls=tuple)
 
     # Return this tuple.
     return dependency_commands
