@@ -194,10 +194,7 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 # For further details, see http://semver.org.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-#!!!!!!!!!!!!!!!!
-#FIXME: Bump back to '1.1.2' before commiting us up, please!
-#!!!!!!!!!!!!!!!!
-VERSION = '1.1.1'
+VERSION = '1.1.2'
 '''
 Human-readable application version as a ``.``-delimited string.
 '''

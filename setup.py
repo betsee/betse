@@ -244,6 +244,9 @@ _SETUP_OPTIONS = {
     'license': metadata.LICENSE,
 
     # ..................{ DEPENDENCIES                      }..................
+    # Python dependency.
+    'python_requires': '>=' + metadata.PYTHON_VERSION_MIN,
+
     # Mandatory runtime dependencies.
     'install_requires': metadeps.get_runtime_mandatory_tuple(),
 

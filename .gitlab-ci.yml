@@ -125,7 +125,7 @@ image: python
 # "globally" exported and hence accessible to *ALL* commands run below.
 variables:
   # ...................{ GLOBALS ~ public                  }...................
-  # Public environment variables specific to third-party applications.
+  # Public environment variables specific to third-party dependencies.
   #
   # Note that *ALL* pathnames to be cached below should be prefixed by
   # "${CI_PROJECT_DIR}/", the absolute dirname of the pipeline-specific
@@ -152,6 +152,13 @@ variables:
   # Private environment variables specific to this configuration. To avoid
   # conflict with third-party applications, the name of each such variable is
   # intentionally prefixed by "_".
+
+  # Whitespace-delimited list of the names of all Debian-based non-Pythonic
+  # mandatory dependencies to be installed by APT below. These include:
+  #
+  # * "graphviz", required by BETSE's optional "pydot" dependency.
+  _APT_PACKAGE_NAMES: |
+    graphviz
 
 # ....................{ GLOBALS ~ cache                   }....................
 cache:
@@ -248,13 +255,13 @@ stages:
     #    Building dependency tree...
     #    Reading state information...
     #    E: Unable to locate package graphviz
-    - apt-get update --quiet --yes
+    - apt-get update --quiet --quiet --yes
 
     # Install all dependencies available via the system-wide package manager.
     # Doing so is typically both faster and stabler than doing so via "pip"
     # and, in any case, supports installation of non-Pythonic dependencies
     # unavailable via "pip" (e.g., "graphviz").
-    - apt-get install --quiet --yes graphviz
+    - apt-get install --quiet --quiet --yes ${_APT_PACKAGE_NAMES}
 
     # Install all preliminary Python dependencies with "pip". Note that the
     # "tox.ini" file provided by this project installs:
