@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -169,9 +169,8 @@ RUNTIME_MANDATORY = {
     # A relatively modern version of "ruamel.yaml" variants is required.
     # Specifically, this application requires:
     #
-    # * At least version 0.15.24 or newer of "ruamel.yaml", which resolves a
-    #   long-standing parser issue preventing overly complex YAML markup (such
-    #   as ours) from being safely roundtripped:
+    # * ruamel.yaml >= 0.15.24, which resolves a long-standing parser issue
+    #   preventing complex YAML markup (e.g., ours) from being roundtripped:
     #   "0.15.24 (2017-08-09):
     #    * (finally) fixed longstanding issue 23 (reported by Antony Sottile),
     #      now handling comment between block mapping key and value correctly"

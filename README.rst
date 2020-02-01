@@ -61,7 +61,7 @@ license`_. Unlike BETSE, BETSEE_ leverages the industry-standard PySide2_-based
 Installation
 ============
 
-BETSE is readily installable with either:
+BETSE is universally installable with either:
 
 - [\ *Recommended*\ ] pip_, the standard Python package manager:
 
@@ -843,8 +843,6 @@ For prospective contributors:
 .. # ------------------( LINKS ~ soft                       )------------------
 .. _Atom:
    https://atom.io
-.. _dill:
-   https://pypi.python.org/pypi/dill
 .. _FFmpeg:
    https://ffmpeg.org
 .. _Git:
@@ -862,13 +860,36 @@ For prospective contributors:
 .. _YAML:
    http://yaml.org
 
+.. # ------------------( LINKS ~ soft : icon                )------------------
+.. _Cows collection:
+   https://thenounproject.com/maxim221/collection/cows
+.. _Maxim Kulikov:
+   https://thenounproject.com/maxim221
+.. _Noun Project:
+   https://thenounproject.com
+.. _Noun Project license:
+   https://thenounproject.com/legal
+
+.. # ------------------( LINKS ~ soft : license             )------------------
+.. _license compatibility:
+   https://en.wikipedia.org/wiki/License_compatibility#Compatibility_of_FOSS_licenses
+.. _BSD 2-clause license:
+   https://opensource.org/licenses/BSD-2-Clause
+.. _CC BY 3.0 license:
+   https://creativecommons.org/licenses/by/3.0
+
 .. # ------------------( LINKS ~ soft : py                  )------------------
+.. _dill:
+   https://pypi.python.org/pypi/dill
 .. _imageio:
    https://imageio.github.io
 .. _Matplotlib:
    http://matplotlib.org
 .. _NumPy:
    http://www.numpy.org
+.. _PyPI:
+   https://pypi.python.org
+.. _Python:
 .. _Python 3:
    https://www.python.org
 .. _pip:
@@ -877,6 +898,7 @@ For prospective contributors:
    http://pytest.org
 .. _SciPy:
    http://www.scipy.org
+
 
 .. # ------------------( LINKS ~ soft : py : conda          )------------------
 .. _Anaconda:
@@ -899,21 +921,3 @@ For prospective contributors:
    https://www.qt.io
 .. _Qt 5.6:
    https://wiki.qt.io/Qt_5.6_Release
-
-.. # ------------------( LINKS ~ soft : icon                )------------------
-.. _Cows collection:
-   https://thenounproject.com/maxim221/collection/cows
-.. _Maxim Kulikov:
-   https://thenounproject.com/maxim221
-.. _Noun Project:
-   https://thenounproject.com
-.. _Noun Project license:
-   https://thenounproject.com/legal
-
-.. # ------------------( LINKS ~ soft : license             )------------------
-.. _license compatibility:
-   https://en.wikipedia.org/wiki/License_compatibility#Compatibility_of_FOSS_licenses
-.. _BSD 2-clause license:
-   https://opensource.org/licenses/BSD-2-Clause
-.. _CC BY 3.0 license:
-   https://creativecommons.org/licenses/by/3.0

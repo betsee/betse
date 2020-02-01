@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2019 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -124,13 +124,14 @@ def die_unless_requirements_str(*requirements_str: str) -> None:
 def die_unless_requirement(requirement: Requirement) -> None:
     '''
     Raise an exception unless the passed :mod:`setuptools`-specific requirement
-    is satisfiable, implying the corresponding third-party package to be both
-    importable and of satisfactory version.
+    is satisfiable, implying the corresponding third-party module or package to
+    be both importable and of satisfactory version.
 
     Parameters
     ----------
     requirement : Requirement
-        Object describing this module or package's required name and version.
+        :mod:`setuptools`-specific object describing this module or package's
+        requisite name and version.
 
     Raises
     ----------
@@ -146,40 +147,13 @@ def die_unless_requirement(requirement: Requirement) -> None:
     # Human-readable exception to be raised below if any.
     betse_exception = None
 
-    try:
-        # Object describing the currently installed version of the package or
-        # module satisfying this requirement if any or "None" if this
-        # requirement cannot be guaranteed to be unsatisfied.
-        distribution = get_requirement_distribution_or_none(requirement)
+    # Human-readable name of this module or package.
+    requirement_name = requirement.project_name
 
-        # If this requirement is satisfied, we're done here.
-        if distribution is not None:
-            return
-        # Else, fallback to attempting to manually import this requirement.
-    # If setuptools found only requirements of insufficient version, a
-    # non-human-readable exception resembling the following is raised:
-    #
-    #    pkg_resources.VersionConflict: (PyYAML 3.09 (/usr/lib64/python3.3/site-packages), Requirement.parse('PyYAML>=3.10'))
-    #
-    # Detect this and raise a human-readable exception instead.
-    except VersionConflict as version_conflict:
-        betse_exception = BetseLibException(
-            'Dependency "{}" unsatisfied by installed dependency "{}".'.format(
-                version_conflict.req, version_conflict.dist))
-    #FIXME: Handle the "UnknownExtra" exception as well.
+    # Fully-qualified name of this requirement's module or package.
+    package_name = DISTUTILS_PROJECT_NAME_TO_MODULE_NAME[requirement_name]
 
-    # If raising a human-readable exception, do so. Raising this exception in
-    # the handler above would be preferable but also incite Python 3 to
-    # implicitly prepend this exception by the non-human-readable exception
-    # raised above. This convoluted logic circumvents that. (...Ugh!)
-    if betse_exception:
-        raise betse_exception
-
-    # Fully-qualified name of this requirement's package.
-    package_name = DISTUTILS_PROJECT_NAME_TO_MODULE_NAME[
-        requirement.project_name]
-
-    # Attempt to manually import this requirement's package.
+    # Attempt to manually import this requirement's module or package.
     try:
         package = import_requirement(requirement)
     # If a standard import exception is raised...
@@ -193,40 +167,79 @@ def die_unless_requirement(requirement: Requirement) -> None:
         if root_exception_message == (
             "No module named '{}'".format(package_name)):
             betse_exception = BetseLibException(
-                'Dependency "{}" not found.'.format(requirement.project_name))
+                'Dependency "{}" not found.'.format(requirement_name))
         # Else, this exception signifies an unexpected edge-case. For
         # debuggability, expose this exception to end users.
         else:
             raise BetseLibException(
-                'Dependency "{}" unimportable.'.format(
-                    requirement.project_name))
-    # Else if any other exception is raised, expose this exception to users.
-    except Exception as root_exception:
+                'Dependency "{}" unimportable.'.format(requirement_name))
+    # Else if any other exception is raised, expose this exception as is.
+    except Exception:
         raise BetseLibException(
-            'Dependency "{}" unimportable.'.format(requirement.project_name))
+            'Dependency "{}" unimportable.'.format(requirement_name))
 
-    # If a human-readable exception is to be raised, do so.
+    # If raising a human-readable exception, do so. Raising this exception in
+    # the handler above would be preferable but also incite Python 3 to
+    # implicitly prepend this exception with the non-human-readable exception
+    # raised above. This convoluted logic circumvents that. (...Ugh!)
     if betse_exception:
         raise betse_exception
 
-    # If this requirement is unversioned, return immediately for safety. While
-    # the __contains__() methods of unversioned requirements implicitly called
-    # by the "in" operator below do correctly return True for all possible
-    # versions, this package may *NOT* declare the optional "__version__"
-    # attribute; in that case, calling the modules.get_version() function below
-    # would raise a fatal exception. Avoid this by short-circuiting *NOW*.
+    # If this requirement is unversioned, all possible versions of this package
+    # satisfy this requirement, in which case this requirement is satisfied.
     if not _is_requirement_versioned(requirement):
         return
     # Else, this requirement is versioned.
 
-    # Package version if any or raise an exception otherwise.
-    package_version = pymodule.get_version(package)
+    # Package version if any *OR* "None" otherwise.
+    package_version = pymodule.get_version_or_none(package)
 
-    # If this version fails to satisfy this requirement, raise an exception.
-    if package_version not in requirement:
-        raise BetseLibException(
-            'Dependency "{}" unsatisfied by installed version {}.'.format(
-                requirement, package_version))
+    # If this package declares a version...
+    if package_version is not None:
+        # If this version satisfies this requirement,  we're done here.
+        if package_version in requirement:
+            return
+        # Else, this version fails to satisfy this requirement. In this case,
+        # raise an exception.
+        else:
+            raise BetseLibException(
+                'Dependency "{}" unsatisfied by installed version {}.'.format(
+                    requirement, package_version))
+    # Else, this package declares *NO* version. In this case, fallback to
+    # unreliable setuptools-specific logic.
+
+    # Attempt to...
+    try:
+        # Setuptools-specific object describing the current version of the
+        # package satisfying this requirement if any *OR* "None" if this
+        # requirement cannot be guaranteed to be unsatisfied.
+        distribution = get_requirement_distribution_or_none(requirement)
+
+        # If this requirement is satisfied, we're done here.
+        if distribution is not None:
+            return
+        # Else, this requirement is unsatisfied. In this case, raise a generic
+        # non-descript exception.
+        else:
+            raise BetseLibException(
+                'Dependency "{}" unsatisfied.'.format(requirement))
+    # If setuptools only found requirements of insufficient version, a
+    # non-human-readable exception resembling the following is raised:
+    #
+    #    pkg_resources.VersionConflict: (PyYAML 3.09 (/usr/lib64/python3.3/site-packages), Requirement.parse('PyYAML>=3.10'))
+    #
+    # Detect this and raise a human-readable exception instead.
+    except VersionConflict as version_conflict:
+        betse_exception = BetseLibException(
+            'Dependency "{}" unsatisfied by '
+            'installed dependency "{}".'.format(
+                version_conflict.req, version_conflict.dist))
+    #FIXME: Handle the "UnknownExtra" exception as well.
+
+    # If raising a human-readable exception, do so.
+    if betse_exception:
+        raise betse_exception
+    # Else, this requirement is satisfied.
 
 # ....................{ TESTERS                           }....................
 @type_check
@@ -260,15 +273,15 @@ def is_requirement_str(*requirements_str: str) -> bool:
 @type_check
 def is_requirement(requirement: Requirement) -> bool:
     '''
-    ``True`` only if the passed :mod:`setuptools`-specific **requirement**
-    (i.e., object describing this module or package's required name and
-    version) is satisfiable, implying the corresponding third-party package to
-    be both importable and of satisfactory version.
+    ``True`` only if the passed :mod:`setuptools`-specific requirement is
+    satisfiable, implying the corresponding third-party module or package to be
+    both importable and of satisfactory version.
 
     Parameters
     ----------
     requirement : Requirement
-        Requirement to test.
+        :mod:`setuptools`-specific object describing this module or package's
+        requisite name and version.
 
     Returns
     ----------
@@ -279,36 +292,13 @@ def is_requirement(requirement: Requirement) -> bool:
     # Avoid circular import dependencies.
     from betse.util.py.module import pymodule
 
-    try:
-        # Object describing the currently installed version of the package or
-        # module satisfying this requirement if any or "None" if this
-        # requirement cannot be guaranteed to be unsatisfied.
-        distribution = get_requirement_distribution_or_none(requirement)
-
-        # If this requirement is satisfied, we're done here.
-        if distribution is not None:
-            return True
-    # If setuptools found only requirements of insufficient version, fail.
-    except (UnknownExtra, VersionConflict):
-        return False
-
-    # If no setuptools-managed egg exists for this requirement, fallback to
-    # this lower-level strategy:
-    #
-    # 1. Import this requirement's top-level package.
-    # 2. Compare this package's "__version__" attribute (if any) with this
-    #    requirement's required version (if any).
-    #
-    # Since this strategy is inherently less reliable than setuptools-based
-    # dependency validation, the latter remains the default.
-    # print('Validating dependency: ' + requirement.project_name)
-
     # Attempt to manually import this requirement's package.
     try:
         package = import_requirement(requirement)
-    # If this package is unimportable, fail.
+    # If this package is unimportable, reduce this exception to a boolean.
     except ImportError:
         return False
+    # If any other exception is raised, expose this exception as is.
 
     # If this requirement is unversioned, all possible versions of this package
     # satisfy this requirement, in which case this requirement is satisfied.
@@ -319,8 +309,27 @@ def is_requirement(requirement: Requirement) -> bool:
     # Package version if any *OR* "None" otherwise.
     package_version = pymodule.get_version_or_none(package)
 
-    # Return "True" only if this version exists and satisfies this requirement.
-    return package_version is not None and package_version in requirement
+    # If this package declares a version...
+    if package_version is not None:
+        # Return true only if this version satisfies this requirement.
+        return package_version in requirement
+    # Else, this package declares *NO* version. In this case, fallback to
+    # unreliable setuptools-specific logic.
+
+    # Attempt to...
+    try:
+        # Setuptools-specific object describing the current version of the
+        # package satisfying this requirement if any *OR* "None" if this
+        # requirement cannot be guaranteed to be unsatisfied.
+        distribution = get_requirement_distribution_or_none(requirement)
+
+        # Return true only if this requirement is satisfied.
+        return distribution is not None
+    # If setuptools found only requirements of insufficient version, reduce
+    # this exception to a boolean.
+    except (UnknownExtra, VersionConflict):
+        return False
+    # If any other exception is raised, expose this exception as is.
 
 # ....................{ TESTERS ~ private                 }....................
 @type_check
@@ -367,11 +376,23 @@ def get_requirement_distribution_or_none(
     unsatisfied (e.g., due to this requirement being installed either without
     :mod:`setuptools` or with the :mod:`setuptools` subcommand ``develop``).
 
-    This high-level getter should *always* be called in lieu of the low-level
-    :func:`pkg_resources.get_distribution` function, which raises spurious
-    exceptions in common non-erroneous edge cases (e.g., packages installed via
-    the :mod:`setuptools` subcommand ``develop``) and is thus unsafe for
-    general-purpose use.
+    Caveats
+    ----------
+    **Callers are advised to call this getter only as a last-ditch fallback.**
+    The :mod:`setuptools`-agnostic ``pip`` and ``pip3`` commands rather than
+    the :mod:`setuptools`-specific ``easy_install`` command are now commonly
+    used to install Python 3 applications. For unknown reasons, the former
+    occasionally fail to update :mod:`setuptools`-specific distribution
+    metadata, which then become desynchronized from the underlying packages
+    described by those distributions. Instead, consider dynamically importing
+    and directly accessing attributes exposed by those packages (e.g., the
+    standard ``__init__.__version__`` package attribute).
+
+    That said, this high-level getter should *always* be called in lieu of the
+    low-level :func:`pkg_resources.get_distribution` function, which raises
+    spurious exceptions in common non-erroneous edge cases (e.g., packages
+    installed via the :mod:`setuptools` subcommand ``develop``) and is thus
+    unsafe for general-purpose use.
 
     Parameters
     ----------
