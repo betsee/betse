@@ -158,8 +158,10 @@ RUNTIME_MANDATORY = {
     #
     # * Numpy 1.13.0 first introduced the optional "axis" keyword argument to
     #   the numpy.unique() function, which this codebase commonly passes.
+    # * Pillow 6.0.0 first introduced the standard "pillow.__version__"
+    #   attribute, which this codebase now expects to exist.
     'Numpy':  '>= 1.13.0',
-    'Pillow': '>= 2.3.0',
+    'Pillow': '>= 6.0.0',
     'SciPy':  '>= 0.12.0',
     'dill':   '>= 0.2.3',
 

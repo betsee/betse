@@ -58,8 +58,9 @@ MODULE_NAME_TO_VERSION_ATTR_NAME = defaultdict(
     # Default attribute name to be returned for all unmapped modules.
     lambda: '__version__',
 
+    #FIXME: Sample entry preserved purely for posterity.
     # Module-specific attribute names.
-    PIL='PILLOW_VERSION',
+    # PIL='PILLOW_VERSION',
 )
 '''
 Dictionary mapping the fully-qualified name of a module or package (e.g.,
