@@ -141,15 +141,15 @@ def is_file(*pathnames: str) -> bool:
     This function intrinsically differs from the standard :func:`path.isfile`
     function. While the latter returns ``True`` only for non-special files and
     hence `False` for all non-directory special files (e.g., device nodes,
-    sockets), this function returns `True` for *all* non-directory files
+    sockets), this function returns ``True`` for *all* non-directory files
     regardless of whether these files are special or not.
 
     **Why?** Because this function complies with POSIX semantics, whereas
     :func:`path.isfile` does *not*. The specialness of non-directory files is
     usually irrelevant; in general, it only matters whether these files are
-    directories or not. For example, the external command ``rm`` removes only
-    non-directory files (regardless of specialness) while the external command
-    ``rmdir`` removes only empty directories.
+    directories or not. For example, the external ``rm`` command removes only
+    non-directory files (regardless of specialness) while the external
+    ``rmdir`` command removes only empty directories.
 
     Parameters
     ----------
