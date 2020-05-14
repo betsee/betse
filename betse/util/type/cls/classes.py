@@ -209,7 +209,7 @@ def get_module_name_qualified_or_none(cls: ClassType) -> StrOrNoneTypes:
 
     # Return "None" if this name is either undefined *OR* prefixed and suffixed
     # by both "__" (e.g., as is the case with "str.__module__ ==
-    # '__builtin__'") or this name otherwise
+    # '__builtin__'") *OR* this name as is otherwise.
     return (
         None
         if module_name is None or pyident.is_special(module_name) else

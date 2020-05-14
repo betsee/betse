@@ -477,6 +477,8 @@ def get_requirement_distribution_or_none(
         raise
 
 
+#FIXME: Rename to convert_requirements_dict_key_to_str() for parity with the
+#BETSEE codebase.
 @type_check
 def get_requirement_str_from_dict_key(
     requirements_dict: MappingType, requirement_name: str) -> str:
@@ -680,6 +682,8 @@ def get_requirements_dict_from_str(
     return requirements_dict
 
 # ....................{ GETTERS ~ requirements : str      }....................
+#FIXME: Rename to convert_requirements_dict_to_tuple() for parity with the
+#BETSEE codebase.
 @type_check
 def get_requirements_str_from_dict(requirements_dict: MappingType) -> tuple:
     '''
@@ -710,6 +714,8 @@ def get_requirements_str_from_dict(requirements_dict: MappingType) -> tuple:
         requirements_dict, *requirements_dict.keys())
 
 
+#FIXME: Rename to convert_requirements_dict_keys_to_tuple() for parity with the
+#BETSEE codebase. This function is painfully misnamed as is.
 @type_check
 def get_requirements_str_from_dict_keys(
     requirements_dict: MappingType, *requirement_names: str) -> tuple:

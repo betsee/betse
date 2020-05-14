@@ -24,7 +24,7 @@ channels`_, `gene regulatory networks`_, and `biochemical reaction networks`_
 
 BETSE is `portably implemented <codebase_>`__ in pure `Python 3`_,
 `continuously stress-tested <testing_>`__ with GitLab-CI_ **×** Appveyor_ **+**
-py.test_, and `permissively distributed <License_>`__ under the `BSD 2-clause
+py.test_, and `permissively distributed <license_>`__ under the `BSD 2-clause
 license`_.
 
 ======
@@ -486,10 +486,10 @@ Funding
 BETSE is currently independently financed as a volunteer open-source project.
 Prior grant funding sources include (in chronological order):
 
-#. For the five year period spanning 2015—2019, BETSE was graciously associated
+#. For the five-year period spanning 2015—2019, BETSE was graciously associated
    with the `Paul Allen Discovery Center`_ at `Tufts University`_ and supported
    by a `Paul Allen Discovery Center award`_ from the `Paul G. Allen Frontiers
-   Group`_ .
+   Group`_.
 
 License
 =======

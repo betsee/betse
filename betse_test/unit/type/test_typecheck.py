@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                            )--------------------
+# --------------------( LICENSE                           )--------------------
 # Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-Unit tests exercising the `betse.util.type.types.type_check` decorator,
-implementing a rudimentary subset of PEP 484-style type checking based on Python
-3.x function annotations.
+Unit tests exercising the :mod:`betse.util.type.types.type_check` decorator,
+implementing a rudimentary subset of PEP 484-style type checking based on
+Python 3.x function annotations.
 '''
 
-# ....................{ IMPORTS                            }....................
+# ....................{ IMPORTS                           }....................
 import pytest
 from random import Random
 
-# ....................{ TESTS                              }....................
+# ....................{ TESTS                             }....................
 def test_type_check_noop() -> None:
     '''
     Test type checking for a function with no function annotations, reducing to
@@ -31,7 +31,7 @@ def test_type_check_noop() -> None:
     # Call this function and assert the expected return value.
     assert khorne('WAAAGH!', '!HGAAAW') == 'WAAAGH!!HGAAAW'
 
-# ....................{ TESTS ~ pass : param               }....................
+# ....................{ TESTS ~ pass : param              }....................
 def test_type_check_pass_param_positional_and_keyword() -> None:
     '''
     Test type checking for a function call successfully passed annotated
@@ -147,7 +147,7 @@ def test_type_check_pass_param_str() -> None:
     assert sisters_of_battle('Abbess Sanctorum', Random()) in range(
         ESTABLISHMENT_DATE_MIN, ESTABLISHMENT_DATE_MAX + 1)
 
-# ....................{ TESTS ~ pass : return              }....................
+# ....................{ TESTS ~ pass : return             }....................
 def test_type_check_pass_return_none() -> None:
     '''
     Test type checking for a function call successfully returning ``None`` and
@@ -166,7 +166,7 @@ def test_type_check_pass_return_none() -> None:
     assert xenos(
         'Luna Wolves', diasporex='Iron Hands Legion') is None
 
-# ....................{ TESTS ~ fail                       }....................
+# ....................{ TESTS ~ fail                      }....................
 def test_type_check_fail_keyword_unknown() -> None:
     '''
     Test type checking for an annotated function call passed an unrecognized
@@ -211,7 +211,7 @@ def test_type_check_fail_param_name() -> None:
         def jokaero(weaponsmith: str, __beartype_func: str) -> str:
             return weaponsmith + __beartype_func
 
-# ....................{ TESTS ~ fail : type                }....................
+# ....................{ TESTS ~ fail : type               }....................
 def test_type_check_fail_param_str() -> None:
     '''
     Test type checking for an annotated function call failing a string
@@ -231,7 +231,8 @@ def test_type_check_fail_param_str() -> None:
         return establishment.randint(
             ESTABLISHMENT_DATE_MIN, ESTABLISHMENT_DATE_MAX)
 
-    # Call this function with an invalid type and assert the expected exception.
+    # Call this function with an invalid type and assert the expected
+    # exception.
     with pytest.raises(TypeError):
         black_legion('Horus', 'Abaddon the Despoiler')
 
@@ -250,7 +251,8 @@ def test_type_check_fail_param_nonvariadic_type() -> None:
     def eldar(isha: str, asuryan: (str, int)) -> str:
         return isha + asuryan
 
-    # Call this function with an invalid type and assert the expected exception.
+    # Call this function with an invalid type and assert the expected
+    # exception.
     with pytest.raises(TypeError):
         eldar('Mother of the Eldar', 100.100)
 
@@ -270,7 +272,8 @@ def test_type_check_fail_param_variadic_type() -> None:
         space_marines: str, *ceaseless_years: int, primarch: str) -> str:
         return space_marines + str(ceaseless_years[1]) + primarch
 
-    # Call this function with an invalid type and assert the expected exception.
+    # Call this function with an invalid type and assert the expected
+    # exception.
     with pytest.raises(TypeError):
         imperium_of_man(
             'Legiones Astartes', 30, 31, 36, 'M41', primarch='Leman Russ')
@@ -294,7 +297,7 @@ def test_type_check_fail_return_type() -> None:
     with pytest.raises(TypeError):
         necron("C'tan", 'Elder Thing')
 
-# ....................{ TESTS ~ fail : annotation          }....................
+# ....................{ TESTS ~ fail : annotation         }....................
 def test_type_check_fail_annotation_param_int() -> None:
     '''
     Test type checking for a function with an unsupported integer parameter

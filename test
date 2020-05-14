@@ -32,7 +32,7 @@ script_filename="$(canonicalize_path "${BASH_SOURCE[0]}")"
 script_dirname="$(dirname "${script_filename}")"
 
 # ....................{ MAIN                              }....................
-# Temoprarily change the current working directory to that of this project.
+# Temporarily change the current working directory to that of this project.
 pushd "${script_dirname}" >/dev/null
 
 # Run this project's test suite with all passed arguments.

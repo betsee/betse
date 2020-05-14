@@ -10,6 +10,10 @@ and :func:`instanceof`\ -friendly tuples of such types *and* the pivotal
 types.
 '''
 
+#FIXME: Refactor this submodule away entirely in favour of adding a new
+#mandatory dependency on the third-party "beartype" package and corresponding
+#@beartype.beartype decorator.
+
 # ....................{ IMPORTS                           }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies

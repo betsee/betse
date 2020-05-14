@@ -211,7 +211,7 @@ def skip_if_requirement(*requirements_str: str):
     ----------
     requirements_str : str
         Tuple of all :mod:`setuptools`-formatted requirement strings
-        identifying these dependencies (e.g., `Numpy >= 1.8.0`).
+        identifying these dependencies (e.g., ``Numpy >= 1.8.0``).
 
     Returns
     ----------
@@ -249,7 +249,7 @@ def skip_unless_requirement(*requirements_str: str):
     ----------
     requirements_str : str
         Tuple of all :mod:`setuptools`-formatted requirement strings
-        identifying these dependencies (e.g., `Numpy >= 1.8.0`).
+        identifying these dependencies (e.g., ``Numpy >= 1.8.0``).
 
     Returns
     ----------
@@ -290,17 +290,11 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
     of this lower-level decorator (which is implemented in terms of fragile
     :mod:`importlib` machinery).
 
-    See Also
-    ----------
-    :func:`skip_unless_lib_runtime_optional`
-        Higher-level decorator skipping the decorated test if the passed
-        optional runtime dependency is unsatisfiable.
-
     Parameters
     ----------
     module_name : str
         Fully-qualified name of the module to be tested for.
-    minversion : optional[str]
+    minimum_version : Optional[str]
         Optional minimum version of this module as a dot-delimited string
         (e.g., ``0.4.0``) to be tested for if any *or* ``None`` otherwise, in
         which case any version is acceptable. Defaults to ``None``.
@@ -310,6 +304,12 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
     pytest.skipif
         Decorator describing these requirements if unmet *or* the identity
         decorator reducing to a noop otherwise.
+
+    See Also
+    ----------
+    :func:`skip_unless_lib_runtime_optional`
+        Higher-level decorator skipping the decorated test if the passed
+        optional runtime dependency is unsatisfiable.
     '''
 
     return _skip_if_callable_raises_exception(

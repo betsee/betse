@@ -49,24 +49,6 @@ would render these constants effectively useless for their principal use case.
 from collections import namedtuple
 
 # ....................{ LIBS ~ install : mandatory        }....................
-#FIXME: The current situation of "setuptools" versioning duplication detailed
-#below is absolutely insane and incentive enough for us to gradually transition
-#away from the "setuptools"-based "setup.py" ecosystem to the "poetry"-based
-#"pyproject.toml" ecosystem. Note, however, that the latter is still largely in
-#flux -- which suggests a gestational waiting period. Early adopters always get
-#burned hard... and we've been burned hard enough. Even after "poetry"
-#solidifies, however, the transition is likely to be non-trivial. Requisite
-#changes probably include:
-#
-#* Embedding the "betse" package under a new top-level "src/" directory.
-#* Shifting the contents of both the "betse.metadata.py" *AND* "betse.metadeps"
-#  submodules into a "pyproject.toml" file. Note that doing so may
-#  fundamentally break BETSEE's current merger algorithm of these files -- an
-#  issue that may have no trivial resolution.
-#* Refactor both the "betse.metadata.py" *AND* "betse.metadeps" submodules to
-#  dynamically deserialize the "pyproject.toml" file and cache the contents of
-#  that file into Python-accessible global module variables.
-
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid dependency conflicts between "pip", "setuptools", BETSE,
 # and BETSEE, the value of this global variable *MUST* be synchronized (i.e.,
@@ -160,12 +142,11 @@ RUNTIME_MANDATORY = {
     #   the numpy.unique() function, which this codebase commonly passes.
     # * Pillow 5.3.0 first introduced the standard "pillow.__version__"
     #   attribute, which this codebase now expects to exist.
-    'Numpy':  '>= 1.13.0',
-    'Pillow': '>= 5.3.0',
-    'SciPy':  '>= 0.12.0',
-    'dill':   '>= 0.2.3',
-
-    # Matplotlib >= 1.5.0 is required for the newly added "viridis" colormap.
+    # * Matplotlib 1.5.0 first introduced the standard "viridis" colormap.
+    'Numpy':      '>= 1.13.0',
+    'Pillow':     '>= 5.3.0',
+    'SciPy':      '>= 0.12.0',
+    'dill':       '>= 0.2.3',
     'matplotlib': '>= 1.5.0',
 
     # A relatively modern version of "ruamel.yaml" variants is required.

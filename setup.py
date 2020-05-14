@@ -62,25 +62,6 @@ tasks (e.g., installation, freezing, test running) for this application.
 #Ubuntu) for automated packaging of PySide2 applications. See also:
 #    https://build-system.fman.io/
 
-#FIXME: Replace this file (i.e., "setup.py") and the "setup.cfg",
-#"MANIFEST.in", and "Pipfile" files with the existing "pyproject.toml" file in
-#concert with the third-party "poetry" project, which replaces Python's broken
-#build management ecosystem (e.g., distutils, setuptools, pip, pipenv) with a
-#single shell-friendly command patterned on industry-standard build management
-#utilities published for other languages (e.g., Rust's "cargo"). We have
-#manually inspected the "poetry" repository and, indeed, this is the setuptools
-#killer we have long awaited.
-#
-#Note, however, that we may still require setuptools at runtime for dependency
-#resolution -- which is quite alright, of course. Since everyone requires
-#setuptools at installation-time, setuptools remains widely available and
-#continuing to depend upon setuptools for a specific task remains sensible.
-#FIXME: Actually, don't do this. The "poetry" installer is sadly insane,
-#despite the sanity evidenced by the remainder of the "poetry" codebase. As is,
-#"poetry" is largely unusable on platforms like Gentoo. Nonetheless, let's
-#preserve this FIXME discussion for when "poetry" adopts a standard
-#installation pathway.
-
 # ....................{ KLUDGES                           }....................
 # Explicitly register all files and subdirectories of the root directory
 # containing this top-level "setup.py" script to be importable modules and
@@ -93,7 +74,7 @@ tasks (e.g., installation, freezing, test running) for this application.
 # Unfortunately, "pip" >= 19.0.0 does *NOT* guarantee this to be the case for
 # projects defining a "pyproject.toml" file -- which, increasingly, is all of
 # them. Although "pip" purports to have resolved this upstream, current stable
-# release appear to suffer the same deficiencies. See also:
+# releases appear to suffer the same deficiencies. See also:
 #     https://github.com/pypa/pip/issues/6163
 #
 # Note this logic necessarily duplicates the implementation of the
@@ -105,8 +86,7 @@ def _register_dir() -> None:
     # Avert thy eyes, purist Pythonistas!
     import os, sys
 
-    # Absolute dirname of this directory, inspired by the following
-    # StackOverflow answer: https://stackoverflow.com/a/8663557/2809027
+    # Absolute dirname of this directory inspired by this StackOverflow answer:
     setup_dirname = os.path.dirname(os.path.realpath(__file__))
 
     # If the current PYTHONPATH does *NOT* already contain this directory...
@@ -204,7 +184,7 @@ delimiting human-readable capitalized English words formally recognized by the
 
 See Also
 ----------
-https://pypi.python.org/pypi?%3Aaction=list_classifiers
+https://pypi.org/classifiers
     Plaintext list of all trove classifier strings recognized by PyPI.
 '''
 
@@ -214,9 +194,9 @@ https://pypi.python.org/pypi?%3Aaction=list_classifiers
 _SETUP_OPTIONS = {
     # ..................{ CORE                              }..................
     # Self-explanatory metadata. Note that the following metadata keys are
-    # instead specified by the "setup.cfg" file,
+    # instead specified by the "setup.cfg" file:
     #
-    # * "license_file", for unknown reasons. We should probably reconsider
+    # * "license_file", for unknown reasons. We should probably reconsider.
     # * "long_description", since "setup.cfg" supports convenient
     #   "file: ${relative_filename}" syntax for transcluding the contents of
     #   arbitrary project-relative files into metadata values. Attempting to do

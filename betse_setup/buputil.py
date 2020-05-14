@@ -10,26 +10,25 @@ subcommands.
 Design
 ----------
 This method intentionally duplicates existing utility functions provided by the
-:mod:`betse.util` subpackage. While duplication breaks DRY ("Don't Repeat
-Yourself") and hence is usually harmful, there are valid reasons to do so here.
-Namely, :mod:`betse.util` functionality:
+:mod:`util` subpackage for this project. While duplication breaks DRY ("Don't
+Repeat Yourself") and is thus considered harmful, there are valid reasons to do
+so here. Notably, the :mod:`util` subpackage:
 
-* Assumes BETSE to be available. While this is certainly the case when this
-  file resides in the BETSE codebase, this is *not* necessarily the case when
-  this file is copied into and hence resides in the codebases of other projects
-  (e.g., BETSEE). In these projects, BETSE is merely yet another dependency
-  that is typically unavailable at installation time.
-* Raises BETSE-specific exceptions rooted at the BETSE-specific
-  :class:`betse.exception.BetseException` superclass. :mod:`setuptools`
-  subcommands, on the other hand, are expected to only raise
+* Assumes this project to be available. While this is certainly the case when
+  this file resides in the codebase for this project, this is *not* necessarily
+  the case when this file is copied into and hence resides in the codebases of
+  downstream projects (e.g., BETSEE). In those projects, this project is merely
+  yet another dependency that is typically unavailable at installation time.
+* Raises project-specific exceptions rooted at a project-specific superclass.
+  :mod:`setuptools` subcommands, on the other hand, are expected to only raise
   :mod:`distutils`-specific exceptions rooted at the :mod:`distutils`-specific
   :class:`DistutilsError` superclass.
 * Assumes logging to be configured. :mod:`setuptools`, however, assumes
   logging to *not* be configured -- and provides no assistance in doing so.
 * Could theoretically import third-party dependencies unavailable at
   :mod:`setuptools subcommand time (e.g., due to the ``install`` or ``develop``
-  subcommands *not* having been run yet). While no :mod:`betse.util` submodules
-  should do so, the horrid possibility remains.
+  subcommands *not* having been run yet). While no :mod:`util` subpackage
+  submodules should do so, the horrid possibility remains.
 
 Since duplicating these functions here is no significant maintenance burden
 *and* since attempting to reuse these functions here would introduce spurious
@@ -120,7 +119,7 @@ def sanitize_classifiers(
     # formally classify this version as such.
     for python_version_minor in range(
         python_version_min_parts[1], python_version_minor_max):
-        classifiers.append(
+        classifiers_sane.append(
             'Programming Language :: Python :: {}.{}'.format(
                 PYTHON_VERSION_MAJOR, python_version_minor,))
     # print('classifiers: {}'.format(_CLASSIFIERS))

@@ -3,7 +3,8 @@
 # See "LICENSE" for further details.
 #
 # --------------------( SYNOPSIS                          )--------------------
-# Paths matching the following glob expressions are *NOT* committed by default.
+# Git-specific dotfile instructing git to avoid tracking repository paths
+# matching one or more glob expressions listed below by default.
 #
 # --------------------( SEE ALSO                          )--------------------
 # For further details, see:
@@ -11,7 +12,7 @@
 # * "man gitignore" for high-level commentary.
 # * "man 7 glob" for low-level commentary on glob syntax. Note, in particular,
 #   that glob() and hence ".gitignore" files support only a proper subset of
-#   bash- and zsh-style glob syntax.
+#   full glob syntax supported by POSIX-compatible shells (e.g., bash, zsh).
 
 # ....................{ DIRECTORIES ~ top-level           }....................
 # Ignore all top-level BETSE-specific temporary directories.

@@ -97,6 +97,15 @@ def pytest_sessionstart(session: '_pytest.main.Session') -> None:
     _clean_imports()
 
 
+#FIXME: Sufficiently general-purpose and widely useful that we should consider
+#shifting this into a newly discrete "pytest" plugin -- named, say:
+#* "pytest-pretox". Equally clever and meaningful and hence probably the best
+#   name suggested here.
+#* "pytest-retox". (Clever, and mildly meaningfull.)
+#* "pytest-detox". (Clever, but sadly meaningless.)
+#Once created, we can then require this plugin in both this *AND* the BETSEE
+#codebases. At present, we have no alternative means of sharing this code
+#between both codebases. DRY, yo!
 def _clean_imports() -> None:
     '''
     Sanitize and validate import directories (i.e., the global :attr:`sys.list`
@@ -161,7 +170,7 @@ def _clean_imports() -> None:
         #   if any *OR* the system-wide Python interpreter otherwise.
         #
         # Note that, as Python >= 3.3 *ALWAYS* defines the "sys.base_prefix"
-        # attribute, testing this attribute's existence is unnecessary.
+        # attribute, testing that attribute's existence is unnecessary.
         sys.prefix != sys.base_prefix
     )
 
@@ -325,21 +334,20 @@ def _clean_imports() -> None:
             'Leading import path "{}" not isolated to '
             'venv directory "{}".'.format(import_pathname_first, VENV_DIRNAME))
 
-    # BETSE, imported *AFTER* performing sanity checks above.
-    import betse
+    # Top-level package, imported only *AFTER* sanity checks above.
+    import betse as package
 
-    # Absolute dirname of the directory containing the top-level
-    # "betse.__init__" submodule.
-    BETSE_DIRNAME = os.path.dirname(betse.__file__)
+    # Absolute dirname of the directory defining this package.
+    PACKAGE_DIRNAME = os.path.dirname(package.__file__)
 
     # Print this dirname.
-    print('venv project path: ' + BETSE_DIRNAME)
+    print('venv project path: ' + PACKAGE_DIRNAME)
 
     # If this directory is *NOT* isolated to this venv, raise an exception.
-    if not _is_import_path_isolated(BETSE_DIRNAME):
+    if not _is_import_path_isolated(PACKAGE_DIRNAME):
         raise ValueError(
             'Project import directory "{}" not isolated to '
-            'venv directory "{}".'.format(BETSE_DIRNAME, VENV_DIRNAME))
+            'venv directory "{}".'.format(PACKAGE_DIRNAME, VENV_DIRNAME))
 
     # Print all imported module names for debugging purposes.
     # from betse.util.py.module import pyimport

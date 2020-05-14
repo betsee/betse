@@ -13,20 +13,23 @@
 # twenty distinct formats suffice to distribute a single project.
 #
 # --------------------( SEE ALSO                          )--------------------
-# https://snarky.ca/clarifying-pep-518
-#     "Clarifying PEP 518 (a.k.a. pyproject.toml)", a human-readable article
-#     from one of the principal authors of the "pyproject.toml" standard.
+# * https://snarky.ca/clarifying-pep-518
+#   "Clarifying PEP 518 (a.k.a. pyproject.toml)", a human-readable article from
+#   one of the principal authors of the "pyproject.toml" standard.
 
 # ....................{ BUILDING                          }....................
 [build-system]
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: To avoid dependency conflicts between "pip", "setuptools", BETSE,
-# and BETSEE, the value of this global variable *MUST* be synchronized (i.e.,
-# copied) across numerous files in both codebases. Specifically, the following
-# strings *MUST* be identical:
+# WARNING: To avoid dependency conflicts between "pip", "setuptools", this
+# project, and downstream dependencies of this project, the value of this
+# global variable *MUST* be synchronized (i.e., copied) across numerous files
+# in all codebases. Specifically, the following strings *MUST* be identical:
 # * "betse.metadeps.SETUPTOOLS_VERSION_MIN".
 # * "betsee.guimetadeps.SETUPTOOLS_VERSION_MIN".
+# * The "requires" setting in:
+#   * "betse/tox.ini".
+#   * "betsee/tox.ini".
 # * The "build-backend" setting in:
 #   * "betse/pyproject.toml".
 #   * "betsee/pyproject.toml".
@@ -48,7 +51,7 @@ requires = [
 # setting is left unspecified here, "pip" 19.1.0 fails on attempting to perform
 # an editable (i.e., developer-specific) install with the following error:
 #
-#     $ pip install --user --editable .                                     
+#     $ pip3 install --user --editable .
 #     Obtaining file:///home/leycec/py/betse
 #     ERROR: Error installing 'file:///home/leycec/py/betse': editable mode is
 #     not supported for pyproject.toml-style projects. pip is processing this
