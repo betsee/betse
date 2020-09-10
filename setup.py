@@ -47,7 +47,6 @@ tasks (e.g., installation, freezing, test running) for this application.
 #coupled to a snapd + systemd + AppArmor workflow, which self-limits the number
 #of Linux distributions and configurations usable for snaps. See:
 #    https://www.fossmint.com/appimage-flatpak-and-snap-from-a-software-deployment-perspective
-
 #FIXME: Consider wrapping on Windows with "pynsist", a framework for generating
 #Windows installers bundling Python applications complete with a Python
 #interpreter and requisite packages.
@@ -61,6 +60,20 @@ tasks (e.g., installation, freezing, test running) for this application.
 #integrating Qt, PySide2, PyInstaller, NSIS (under Windows), and ".deb" (under
 #Ubuntu) for automated packaging of PySide2 applications. See also:
 #    https://build-system.fman.io/
+#FIXME: All of the above now seems a bit non-standard, poorly supported, and
+#probably overkill. Instead, what we probably want to do is:
+#
+#* Compile BETSE and BETSEE from pure-Python into multiple platform-specific
+#  executables with a Python compiler, of which there really exists just one:
+#  * Nuitka, which looks ridiculously awesome. Basically, it's PyInstaller on
+#    steroids, because it does everything PyInstaller (e.g., recursive import
+#    discovery) does as well as compiling your entire app into C. "Oh, lawks!"
+#
+#If Nuitka fails, note that the "new guy on the PyInstaller block" is
+#PyOxidizer, which (as the name implies) is inspired by Rust-style packaging.
+#Basically, it does everything that PyInstaller does except it unpacks embedded
+#packages and modules into memory rather than a temporary location on the local
+#filesystem, which then produces dramatic efficiency gains. *shrug*
 
 # ....................{ KLUDGES                           }....................
 # Explicitly register all files and subdirectories of the root directory

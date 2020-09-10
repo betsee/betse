@@ -4,8 +4,7 @@
 Releasing
 =========
 
-Stable releases of BETSE are produced with a rigorous procedure reminiscent to
-that of most open-source software: *namely,*
+Stable releases are manually published with a rigorous procedure. The tl;dr is:
 
 #. A stable commit is **tagged** with an annotated Git tag.
 #. That commit is **packaged** into a compressed source tarball.
