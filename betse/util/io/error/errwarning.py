@@ -35,32 +35,47 @@ def init() -> None:
 
     # Avoid circular import dependencies.
     from betse.util.app.meta import appmetaone
+    from betse.util.test import tsttest
 
     # Log this initialization.
     logs.log_debug('Initializing warning policy...')
 
-    # If the end user did *NOT* explicitly pass the "-W" option to the external
-    # command forking the active Python interpreter (and hence expressed no
-    # warning preferences)...,
+    # If the end user explicitly passed the "-W" option to the external command
+    # forking the active Python interpreter (and hence expressed a warning
+    # preference), defer to these preferences.
     if sys.warnoptions:
-        # Defer to these preferences by simply logging this deference.
         logs.log_debug(
-            'Deferring to "-W" option passed to Python interpreter.')
-    # Else,
+            'Deferring warning policy to '
+            '"-W" option passed to Python interpreter.')
+    # Else if the active Python interpreter is currently exercising tests,
+    # defer to the test harness supervising these tests. Most harnesses
+    # (including pytest) define sane default warnings filters as well as
+    # enabling users to externally configure warnings filters from project-wide
+    # configuration files. Ergo, the current harness knows better than we do.
+    elif tsttest.is_testing():
+        logs.log_debug(
+            'Deferring warning policy to that of the parent test harness.')
+    # Else...
     else:
         # If this application has a Git-based working tree and is thus likely
         # to be under active development...
         if appmetaone.get_app_meta().is_git_worktree:
             # Log this preference.
             logs.log_debug(
-                'Unconditionally logging all warnings '
-                '(i.e., git working tree detected).')
+                'Setting warning policy to '
+                'unconditionally log all warnings '
+                '(i.e., due to detecting developer environment).')
 
-            # Unconditionally log *ALL* warnings.
+            # Discard all previously registered warnings filter *BEFORE*
+            # registering a warnings filter.
+            warnings.resetwarnings()
+
+            # Registering a warnings filter unconditionally logging *ALL*
+            # warnings, including those Python ignores by default.
             warnings.simplefilter('default')
-        # Else, preserve the default warning filter as is.
+        # Else, preserve Python's default warning filter as is.
         else:
-            logs.log_debug('Deferring to default warning filter.')
+            logs.log_debug('Deferring to default warning policy.')
 
 # ....................{ MANAGERS                          }....................
 def ignoring_deprecations() -> GeneratorType:

@@ -4,19 +4,19 @@
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                           }....................
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 from betse.util.math.geometry.polygon.geopolyconvex import clip_counterclockwise
 from betse.util.math.geometry.polygon.geopoly import orient_counterclockwise, is_convex, is_cyclic_quad
 from betse.util.io.log import logs
 from matplotlib import ticker
-from matplotlib import colors
-from matplotlib import colorbar
-from matplotlib import rcParams
-from matplotlib.collections import PolyCollection, LineCollection
-from matplotlib.patches import Circle
-from matplotlib import path
+# from matplotlib import colors
+# from matplotlib import colorbar
+# from matplotlib import rcParams
+# from matplotlib.collections import PolyCollection, LineCollection
+# from matplotlib.patches import Circle
+# from matplotlib import path
 from scipy.spatial import cKDTree, Delaunay
 
 # ....................{ CLASSES                           }....................
@@ -178,47 +178,59 @@ class DECMesh(object):
         self.tri_verts = np.column_stack((xenv, yenv))
 
     def create_tri_mesh(self):
-        """
-        Calculates the Delaunay triangulation and non-convex Hull (using alpha shapes).
-
-        """
+        '''
+        Calculate the Delaunay triangulation and non-convex hull using alpha
+        shapes.
+        '''
 
         logs.log_info("Creating triangular mesh...")
         self.trimesh_core_calcs()
 
+        # Check for bad triverts (i.e., triverts belonging to no simplexes).
         if self.single_cell is False:
-            self.sanity_check() # check for bad triverts (triverts belonging to no simplexes)
+            self.sanity_check()
 
-        # Next check for triverts with really close circumcenters, and, if necessary, merge to quads,
-        # or if requested, try merging as much of the mesh to quads as possible
-        # Find ccents that are close to one another and mark cells for quad-merge
+        # Next check for triverts with really close circumcenters and, if
+        # necessary, either merge to quads or (if requested) try merging as
+        # much of the mesh to quads as possible by finding ccents that are
+        # close to one another and marking cells for quad-merge.
         tri_tree = cKDTree(self.tri_ccents)
         di, ni = tri_tree.query(self.tri_ccents, k=2)
         mark_for_merge = []
+
         for si, ccenti in enumerate(self.tri_ccents):
-            disti = di[si, 1] # distance between circumcenter of si and nearest neighbour
-            indi = ni[si, 1] # index to nearest neighbour of si
+            # Distance between circumcenter of si and nearest neighbour.
+            disti = di[si, 1]
 
-            if self.mesh_type == 'quad': # if user wants a quad mesh anyway, append all
-                # nearest-neighbour simplices:
+            # Index to nearest neighbour of si.
+            indi = ni[si, 1]
+
+            # If user wants a quad mesh anyway, append all.
+            if self.mesh_type == 'quad':
+                # Nearest-neighbour simplices.
                 mark_for_merge.append([indi])
-
+            # Else...
             else:
-                # only mark if distance between ccents is less than 20% of the cell radius
+                # Only mark if distance between ccents is less than 20% of the
+                # cell radius.
                 if disti < self.cell_radius * self.merge_thresh:
                     mark_for_merge.append([indi])
-
-                else: # append an empty list to indicate there's no merging to be performed
+                # Append an empty list to indicate there's no merging to be
+                # performed.
+                else:
                     mark_for_merge.append([])
 
         if self.allow_merging or self.mesh_type == 'quad':
-            # merge tri elements as required:
+            # Merge tri elements as required.
             self.merge_tri_mesh(mark_for_merge)
-            # Create an updated mapping of which triangle each vertex belongs to:
+
+            # Create an updated mapping of which triangle each vertex belongs
+            # to.
             self.create_tri_map()
 
-        # process the edges and boundaries:
+        # Process the edges and boundaries.
         self.process_primary_edges()
+
 
     def trimesh_core_calcs(self):
 
@@ -307,11 +319,12 @@ class DECMesh(object):
         # Create an updated mapping of which triangle each vertex belongs to:
         self.create_tri_map()
 
+
     def remake_nums(self):
-        """
-        Calculates numerics and index arrays for all data structures
-        :return:
-        """
+        '''
+        Calculate numerics and index arrays for all data structures.
+        '''
+
         self.n_tverts = len(self.tri_verts)  # number of tri_verts
         self.tri_vert_i = np.linspace(0, self.n_tverts - 1,
                                       self.n_tverts, dtype=np.int)
@@ -319,11 +332,11 @@ class DECMesh(object):
         self.n_tcell = len(self.tri_cells)  # number of simplexes in trimesh
         self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])  # indices vector of trimesh
 
-    def merge_tri_mesh(self, merge_list):
-        """
-        Merge cells of the tri_mesh into a (potentially) mixed quad-tri mesh.
 
-        """
+    def merge_tri_mesh(self, merge_list):
+        '''
+        Merge cells of the tri_mesh into a (potentially) mixed quad-tri mesh.
+        '''
 
         logs.log_info("Merging close circumcenters...")
 
@@ -477,11 +490,11 @@ class DECMesh(object):
 
         self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])
 
+
     def process_primary_edges(self):
-        """
-        Processes the edges and boundary of the primary mesh.
-        :return:
-        """
+        '''
+        Process the edges and boundary of the primary mesh.
+        '''
 
         logs.log_info("Defining edges of tri mesh...")
 
@@ -496,14 +509,12 @@ class DECMesh(object):
 
         # Begin by creating a master set of all edges (including duplicate (vi, vj) and (vj, vi) combos:
         for verti_o in self.tri_cells:
-
             verti_i = np.roll(verti_o, -1)
 
             for vi, vj in zip(verti_o, verti_i):
                 all_edges.add((vi, vj))
 
         for va, vb in all_edges:
-
             if (va, vb) in all_edges and (vb, va) not in all_edges:
                 # if there isn't a double-pair, then add these edges to the hull:
                 # (this is based on the logic that when traversing the points of the
@@ -514,10 +525,8 @@ class DECMesh(object):
 
                 hull_edges.append([va, vb])
 
-
             if (vb, va) not in unique_edges: # otherwise add the edge to the set
                 unique_edges.add((va, vb))
-
 
         self.bflags_tverts = np.unique(hull_points)
         self.tri_edges = np.asarray(list(unique_edges))
@@ -567,34 +576,58 @@ class DECMesh(object):
         self.tri_edge_len = np.asarray(tri_edge_len)
         self.tri_tang = np.asarray(tri_tang)
 
-        # inds to inner triverts:
+        # Inds to inner triverts.
         self.inner_tvert_i = np.delete(self.tri_vert_i, self.bflags_tverts)
-        # Calculate the centroid of the whole shape:
+
+        # Calculate the centroid of the whole shape.
         self.centroid = np.mean(self.tri_verts, axis=0)
 
-    def create_tri_map(self):
-        """
-        Creates the basic mapping between triverts and simplices
-        :return:
-        """
 
-        # create an array giving a list of simplex indices for each tri_vert
+    def create_tri_map(self):
+        '''
+        Create the basic mapping between triverts and simplices.
+        '''
+
+        # Create an array giving a list of simplex indices for each tri_vert.
         verts_to_simps = [[] for i in range(len(self.tri_verts))]
 
-        # create a set containing all tri_cell inds as tuples (used to control quad merging):
+        # Create a set containing all tri_cell inds as tuples (used to control
+        # quad merging).
         self.free_to_merge = set()
 
         for ci, vertsi_o in enumerate(self.tri_cells):
-
             self.free_to_merge.add(ci)
 
             for vi in vertsi_o:
                 verts_to_simps[vi].append(ci)
 
-        self.tverts_to_tcell = np.asarray(verts_to_simps) # for each tvert, what simplices does it belong to?
+        #FIXME: This line currently raises the following worrisome warning:
+        #    numpy.VisibleDeprecationWarning: Creating an ndarray from ragged
+        #    nested sequences (which is a list-or-tuple of lists-or-tuples-or
+        #    ndarrays with different lengths or shapes) is deprecated. If you
+        #    meant to do this, you must specify 'dtype=object' when creating
+        #    the ndarray
+        #
+        #The solution would appear to be to simply stop converting this list
+        #into a NumPy array to begin with, as code elsewhere unconditionally
+        #assumes the items of "self.tverts_to_tcell" to be discrete lists of
+        #differing sizes rather than NumPy arrays. Specifically:
+        #* Privatize the "tverts_to_tcell" variable to "_tverts_to_tcell" for
+        #  sanity.
+        #* Document this variable above in the class docstring, using both the
+        #  following comment *AND* the comment above for "verts_to_simps".
+        #* Remove the following assignment entirely.
+        #* Rename "verts_to_simps" to "self.tverts_to_tcell" throughout this
+        #  method.
+
+        # For each tvert, what simplices does it belong to?
+        self.tverts_to_tcell = np.asarray(verts_to_simps)
+
 
     def create_mappings(self, ignoreb = False):
-
+        '''
+        Make various mappings for the tri-mesh.
+        '''
 
         # make the face-to-edge indices mapping for the tri_mesh:
         # tri_edges = self.tri_edges.tolist()
@@ -608,18 +641,15 @@ class DECMesh(object):
         edge_tree = cKDTree(self.tri_edges)
 
         for ci, vertsi_o in enumerate(self.tri_cells):
-
             vertsi_i = np.roll(vertsi_o, -1)
 
             for vi, vj in zip(vertsi_o, vertsi_i):
-
                 dist_e, ea = edge_tree.query([vi, vj])
 
                 if dist_e == 0.0: # If the search tree has found the matching vertices, then use the edge index ea:
                     face_to_edges[ci].append(ea) # append the edge index to the array at the cell index
                     verts_to_edges[vi].append(ea) # append the edge index to each vertex ind as well
                     verts_to_edges[vj].append(ea)
-
 
         self.tcell_to_tedges = np.asarray(face_to_edges) # tri_face index to tri_edges indices mapping
         # self.bflags_tcells = np.asarray(np.unique(bflags_tcells))  # trimesh faces on boundary
@@ -634,17 +664,19 @@ class DECMesh(object):
         self.tedges_to_tcell = np.asarray(tedges_to_tcell)
 
         if ignoreb is False:
-
             bcellso = self.tedges_to_tcell[self.bflags_tedges]
             self.bflags_tcells = np.asarray([b[0] for b in bcellso])
 
-    def define_vorverts(self):
-        """
-        When constructing a voronoi diagram, the vor mesh edges intersecting the incredible hull of the
-        tri mesh must be defined by a new set of vor mesh vertices added outside the tri mesh hull. This
-        method adds these perpendicular bisectors into the vor mesh.
 
-        """
+    def define_vorverts(self):
+        '''
+        Add perpendicular bisectors into the vor mesh.
+
+        When constructing a voronoi diagram, the vor mesh edges intersecting
+        the incredible hull of the tri mesh must be defined by a new set of vor
+        mesh vertices added outside the tri mesh hull. This method adds these
+        perpendicular bisectors into the vor mesh.
+        '''
 
         logs.log_info("Calculating Voronoi cells...")
 
@@ -658,52 +690,48 @@ class DECMesh(object):
         tri_sa_o = [] # extended tri_sa (with elements for voronoi verts on boundary)
 
         for ti, tc_indso in enumerate(self.tverts_to_tcell):
-
             tc_inds = np.unique(tc_indso)
 
             assert len(tc_indso) != 0, "Tri-vert belongs to no simplices!"
 
             if self.use_centroids:
                 vvertso = self.tri_cents[tc_inds]
-
             else:
                 vvertso = self.tri_ccents[tc_inds]
 
-            trisai = self.tri_sa[tc_inds] # collect tri surface areas for these faucets
+            # Collect tri surface areas for these faucets.
+            trisai = self.tri_sa[tc_inds]
 
-            if ti in self.bflags_tverts:  # if the trivert is on the hull
-                # get verts for trimesh edges of this neighbourhood and sort them counterclockwise:
-                # edge vertices:
+            # If the trivert is on the hull...
+            if ti in self.bflags_tverts:
+                # Get verts for trimesh edges of this neighbourhood and sort
+                # them counterclockwise: edge vertices.
                 tedge_inds = np.unique(self.tverts_to_tedges[ti])
 
                 for tei in tedge_inds:
                     if tei in self.bflags_tedges:
-                        # get the vertices of the boundary edge of the trimesh:
+                        # Get the vertices of the boundary edge of the trimesh.
                         bedge_verts = self.tri_verts[self.tri_edges[tei]]
 
-                        # midpoint of the boundary tri-edge:
+                        # Midpoint of the boundary tri-edge.
                         bedge_mid = np.mean(bedge_verts, axis =0)
-
                         simp_i = self.tedges_to_tcell[tei]
 
                         if self.use_centroids:
                             pt_o = self.tri_cents[simp_i[0]]
-
-
                         else:
                             pt_o = self.tri_ccents[simp_i[0]]
 
                         dist_diff = bedge_mid - pt_o
-
                         intpt = bedge_mid + dist_diff
 
-                        # surface area of the boundary triangle faucet:
+                        # Surface area of the boundary triangle faucet.
                         bsa = self.tri_sa[simp_i[0]]
 
                         vvertso = np.vstack((vvertso, intpt))
                         trisai = np.hstack((trisai, bsa))
 
-            # sort the voronoi verts counter-clockwise:
+            # Sort the voronoi verts counter-clockwise.
             inds_vsort = self.cc_sort_inds(vvertso)
             vverts = vvertso[inds_vsort]
             trisaj = trisai[inds_vsort]
@@ -714,10 +742,11 @@ class DECMesh(object):
             vor_sa.append(self.area(vverts))
             vor_cents.append(self.poly_centroid(vverts))
 
-            # Calculate vor edge verts:
-            vedge_verts = np.asarray([[vi, vj] for vi, vj in zip(vverts,
-                                                                 np.roll(vverts, -1, axis=0
-                                                                         ))])
+            # Calculate vor edge verts.
+            vedge_verts = np.asarray([
+                [vi, vj]
+                for vi, vj in zip(vverts, np.roll(vverts, -1, axis=0))
+            ])
 
             vor_edge_verts.extend(vedge_verts)
 
@@ -729,30 +758,32 @@ class DECMesh(object):
 
         self.vor_edge_verts = np.unique(np.asarray(vor_edge_verts), axis=0)
 
-        # Finally, process triangle mesh surface areas for use with all Voronoi verts in mesh:
+        # Finally, process triangle mesh surface areas for use with all Voronoi
+        # verts in mesh.
         tri_sa_o = np.asarray(tri_sa_o)
         vord_tree = cKDTree(self.vor_verts_duplicates)
         _, vi = vord_tree.query(self.vor_verts)
-        self.tri_sa_o = tri_sa_o[vi]  # Surface area of triangular simplices, with triangles repeated at boundary
-                                      # so that boundary Voronoi verts have surrounding reference surface area
-                                      # control volume!
+
+        # Surface area of triangular simplices, with triangles repeated at
+        # boundary so that boundary Voronoi verts have surrounding reference
+        # surface area control volume.
+        self.tri_sa_o = tri_sa_o[vi]
+
 
     def process_voredges(self):
 
         logs.log_info("Calculating Voronoi edges...")
 
-        # find edges of Voronoi dual mesh:
-        # Want vor edges to have the same index as tri_edges and to be
-        # perpendicular bisectors; therefore we're going to have one vor_edge vert pair for each tri-edge
+        # Find edges of Voronoi dual mesh. We want vor edges to have the same
+        # index as tri_edges and to be perpendicular bisectors; therefore we're
+        # going to have one vor_edge vert pair for each tri-edge.
         all_edges = set()
         vedge_set = set()
         hull_points = []
         hull_edges = []
-
         vor_mids = []
         vor_tang = []
         vor_edge_len = []
-
         vor_cells = []
 
         # vor_norm = [] # normals to vor cell surfaces (outwards pointing)
@@ -765,13 +796,15 @@ class DECMesh(object):
         # self.inner_vvert_i = np.delete(self.vor_vert_i, self.bflags_vverts)
         if self.use_centroids:
             _, self.inner_vvert_i = vor_tree.query(self.tri_cents)
-
         else:
             _, self.inner_vvert_i = vor_tree.query(self.tri_ccents)
 
         for vpts in self.vcell_verts:
-            di, vi = vor_tree.query(vpts) # get inds of the cell verts from the tree
-            vor_cells.append(vi) # append vor inds to vor verts making up the vor cell
+            # Get inds of the cell verts from the tree.
+            di, vi = vor_tree.query(vpts)
+
+            # Append vor inds to vor verts making up the vor cell
+            vor_cells.append(vi)
 
         for vedge in self.vor_edge_verts:
             di, vi = vor_tree.query(vedge)
@@ -892,7 +925,7 @@ class DECMesh(object):
 
         logs.log_info("Check for unused vertices...")
 
-        # Check to see if some vertices are not used in any simplex:
+        # Check to see if some vertices are not used in any simplex.
         unused_tverts = []
         for tvi, sverts in enumerate(self.tverts_to_tcell):
             if len(sverts) == 0:
@@ -901,18 +934,19 @@ class DECMesh(object):
         unused_tverts = np.asarray(unused_tverts)
 
         if len(unused_tverts) and self.removed_bad_verts is False:
+            logs.log_info(
+                "Some seed verts are not used in any mesh simplexes! \n"
+                "Decrease alpha_shape value to avoid this case. \n"
+                "Removing unused seed points from mesh...")
 
-            logs.log_info("Some seed verts are not used in any mesh simplexes! \n"
-                             "Decrease alpha_shape value to avoid this case. \n"
-                             "Removing unused seed points from mesh...")
-
-            # if there's a length to the unused tverts, deleted flags from data-structures:
+            # If there's a length to the unused tverts, deleted flags from
+            # data structures.
             self.tri_verts = np.delete(self.tri_verts, unused_tverts, axis = 0)
             self.n_tverts = len(self.tri_verts) # number of tri_verts
-            self.tri_vert_i = np.linspace(0, self.n_tverts - 1,
-                                          self.n_tverts, dtype=np.int)
+            self.tri_vert_i = np.linspace(
+                0, self.n_tverts - 1, self.n_tverts, dtype=np.int)
 
-            # remake the trimesh with reduced set of triverts:
+            # Remake the trimesh with reduced set of triverts.
             self.trimesh_core_calcs()
 
             self.removed_bad_verts = True
@@ -2498,13 +2532,14 @@ class DECMesh(object):
 
         return line1r
 
+
     def cc_sort_inds(self, points_o):
-        """
+        '''
         Takes an assortment of points and sorts them counterclockwise to the
         mean of the point cloud.
 
         Returns indices requried to sort the points counterclockwise.
-        """
+        '''
 
         # sort the mids counter-clockwise:
         cent = points_o.mean(axis=0)  # calculate the centre point
@@ -2513,11 +2548,11 @@ class DECMesh(object):
 
         return inds_sort
 
+
     #---Removing Points from mesh---------------------
     def cut_mesh(self, tvert_targets):
-        """
-        Delete tri_verts from the DEC mesh system and
-        rebuilt core operators.
+        '''
+        Delete tri_verts from the DEC mesh system and rebuilt core operators.
 
         Parameters
         -----------
@@ -2528,23 +2563,24 @@ class DECMesh(object):
         tedge_targets: indices to *restructure* (not delete) data on edges (used as foo2 = foo[tedge_targets])
         tcell_targets: indices to *remove* from data structure defined on tri-cells
                        (used as foo2 = np.delete(foo, tcell_targets)
+        '''
 
-        """
-
-
-        # FIXME! This DEC Mesh cutting algorithm isn't done completely. It is hacked to give the correct results
-        # to calculate the cells.lapGJ and cells.lapGJinv operators. It needs to be reworked once DEC is fully
-        # integrated. The problem is that currently BETSE cutting events may leave "hanging" tri_verts, which are
-        # connected to the mesh by an edge, but do not belong to any simplex. These should be removed, yet
-        # betse cutting event is expecting to remove data from the exact number of triverts it said to remove
-        # from the mesh -- no more and no less. Therefore, this needs to be reworked when DEC is fully integrated.
+        # FIXME! This DEC Mesh cutting algorithm isn't done completely. It is
+        # hacked to give the correct results to calculate the cells.lapGJ and
+        # cells.lapGJinv operators. It needs to be reworked once DEC is fully
+        # integrated. The problem is that currently BETSE cutting events may
+        # leave "hanging" tri_verts, which are connected to the mesh by an
+        # edge, but do not belong to any simplex. These should be removed, yet
+        # betse cutting event is expecting to remove data from the exact number
+        # of triverts it said to remove from the mesh -- no more and no less.
+        # Therefore, this needs to be reworked when DEC is fully integrated.
 
         self.tri_mids_o = self.tri_mids*1
         self.tri_edge_i_o = self.tri_edge_i*1
         # array of tedge_verts
         tedge_verts = self.tri_verts[self.tri_edges]
 
-        # Get tri-cell indices for tri-cells that will be removed:
+        # Get tri-cell indices for tri-cells that will be removed.
         tcell_targets = []
         for sublist in self.tverts_to_tcell[tvert_targets]:
             tcell_targets.extend(sublist)

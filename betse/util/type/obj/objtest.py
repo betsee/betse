@@ -188,12 +188,12 @@ def die_unless_has_method(obj: object, *method_names: str) -> None:
     from betse.util.type.obj import objects
 
     # If this object fails to define one or more of these methods...
-    if not has_method(obj, *method_names):
+    if not has_callable(obj, *method_names):
         # For the name of each such method...
         for method_name in method_names:
             # If this object fails to define a method with this name, raise an
             # exception describing this failure.
-            if not has_method(obj, method_name):
+            if not has_callable(obj, method_name):
                 raise BetseMethodException(
                     'Method "{}.{}" undefined.'.format(
                         objects.get_class_name_unqualified(obj), method_name))
@@ -221,6 +221,37 @@ def has_attr(obj: object, *attr_names: str) -> bool:
     # Return true only if, for each such attribute name, this object defines an
     # attribute with this name.
     return all(hasattr(obj, attr_name) for attr_name in attr_names)
+
+
+@type_check
+def has_callable(obj: object, *callable_names: str) -> bool:
+    '''
+    ``True`` only if the passed object defines all callables with the passed
+    names.
+
+    Parameters
+    ----------
+    obj : object
+        Object to be tested.
+    callable_names : tuple[str]
+        Tuple of the names of all callables to test this object for.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this object defines all such callables.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj import objects
+
+    # Return true only if...
+    return all(
+        # This object defines a callable with this name...
+        objects.get_callable_or_none(
+            obj=obj, callable_name=callable_name) is not None
+        # For each passed callable name.
+        for callable_name in callable_names)
 
 
 @type_check
@@ -253,37 +284,6 @@ def has_class(obj: object, *class_names: str) -> bool:
         types.is_class(getattr(obj, class_name, None))
         # For each passed class name.
         for class_name in class_names)
-
-
-@type_check
-def has_method(obj: object, *method_names: str) -> bool:
-    '''
-    ``True`` only if the passed object defines all methods with the passed
-    names.
-
-    Parameters
-    ----------
-    obj : object
-        Object to be tested.
-    method_names : tuple[str]
-        Tuple of the names of all methods to test this object for.
-
-    Returns
-    ----------
-    bool
-        ``True`` only if this object defines all such methods.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.type.obj import objects
-
-    # Return true only if...
-    return all(
-        # This object defines a method with this name...
-        objects.get_callable_or_none(
-            obj=obj, callable_name=method_name) is not None
-        # For each passed method name.
-        for method_name in method_names)
 
 # ....................{ TESTERS ~ pure                    }....................
 # Tester distinguishing pure-Python from C-based class instances. Doing so is

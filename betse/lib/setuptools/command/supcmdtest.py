@@ -244,43 +244,44 @@ class test(TestCommand):
 
         Specifically, this method monkey-patches:
 
-        * The :meth:`CaptureManager._getcapture` method to capture stderr but
-          *not* stdout (rather than neither stderr nor stdout) when the
-          :mod:`pytest` command is passed either the ``-s`` or ``--capture=no``
-          CLI options. The default approach of *not* capturing stderr prevents
-          :mod:`pytest` from capturing and hence reporting error messages in
-          failure reports, requiring tedious upwards scrolling through test
-          output to find the corresponding error messages.
+        * The :meth:`_pytest.capture` submodule to capture stderr but *not*
+          stdout (rather than neither stderr nor stdout) when the :mod:`pytest`
+          command is passed either the ``-s`` or ``--capture=no`` CLI options.
+          The default approach of *not* capturing stderr prevents :mod:`pytest`
+          from capturing and hence reporting error messages in failure reports,
+          requiring tedious upwards scrolling through test output to find the
+          corresponding error messages.
         '''
 
         # Defer heavyweight imports, including py.test classes to be
         # monkey-patched.
         from betse.exceptions import BetseTestException
         from betse.util.type.obj import objtest
-        from _pytest.capture import CaptureManager, FDCapture, MultiCapture
+        from _pytest import capture
+        from _pytest.capture import FDCapture, MultiCapture
 
-        # If the private method to be monkey-patched no longer exists, py.test
+        # If the private callable to be monkey-patched no longer exists, pytest
         # is either broken or unsupported. In either case, raise an exception.
-        if not objtest.has_method(CaptureManager, '_getcapture'):
+        if not objtest.has_callable(capture, '_get_multicapture'):
             raise BetseTestException(
-                'Method pytest.capture.CaptureManager._getcapture() '
-                'not found. The current version of py.test is either '
-                'broken (unlikely) or unsupported (likely).'
+                'Function pytest.capture._get_multicapture() not found. '
+                'The current version of py.test is either '
+                'unsupported (likely) or broken (unlikely).'
             )
 
         # Old method to be monkey-patched.
-        _getcapture_old = CaptureManager._getcapture
+        _get_multicapture_old = capture._get_multicapture
 
         # New method applying this monkey-patch.
-        def _getcapture_new(self, method):
-            if method == "no":
+        def _get_multicapture_new(method):
+            if method == 'no':
                 return MultiCapture(
                     out=False, err=True, in_=False, Capture=FDCapture)
             else:
-                return _getcapture_old(self, method)
+                return _get_multicapture_old(method)
 
         # Replace the old with the new method.
-        CaptureManager._getcapture = _getcapture_new
+        capture._get_multicapture = _get_multicapture_new
 
 
     def _run_pytest(self) -> None:

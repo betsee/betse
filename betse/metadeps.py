@@ -303,11 +303,13 @@ TESTING_MANDATORY = {
     #
     # A relatively modern version of py.test is required. Specifically:
     #
-    # * At least version 3.7.0 or newer, which introduces the package scope for
-    #   fixtures required to efficiently initialize and deinitialize
-    #   application metadata singletons for unit tests. See also:
-    #       https://docs.pytest.org/en/latest/fixture.html?highlight=scope#package-scope-experimental
-    'pytest': '>= 3.7.0',
+    # * At least version 5.4.0 or newer, which refactored the previously
+    #   defined private _pytest.capture.CaptureManager._getcapture() method
+    #   into the newly defined private _pytest.capture._getmulticapture()
+    #   function, which the "betse.lib.setuptools.command.supcmdtest" submodule
+    #   necessarily monkey-patches at test time to sanitize captured output for
+    #   long-running tests.
+    'pytest': '>= 5.4.0',
 }
 '''
 Dictionary mapping from the :mod:`setuptools`-specific project name of each

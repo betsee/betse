@@ -139,9 +139,9 @@ def is_reversible(iterable: IterableTypes) -> bool:
     # Return true only if this iterable defines either...
     return (
         # The __reversed__() special method *OR*...
-        objtest.has_method(iterable, '__reversed__') or
+        objtest.has_callable(iterable, '__reversed__') or
         # The __len__() *AND* __getitem__() special methods.
-        objtest.has_method(iterable, '__len__', '__getitem__'))
+        objtest.has_callable(iterable, '__len__', '__getitem__'))
 
 # ....................{ TESTERS ~ items                   }....................
 @type_check
@@ -225,7 +225,7 @@ def is_items_unique(iterable: IterableTypes) -> bool:
     # If this iterable implements the "collections.abc.Sized" interface and
     # hence defines the __len__ dunder method implicitly called by the len()
     # builtin explicitly called here...
-    if objtest.has_method(iterable, '__len__'):
+    if objtest.has_callable(iterable, '__len__'):
         # Number of items in this iterable.
         iterable_len = len(iterable)
 
