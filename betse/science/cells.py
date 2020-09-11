@@ -374,7 +374,7 @@ class Cells(object):
         attribute (replacing "cell" with "Voronoi region").
     '''
 
-    # ..................{ INITIALIZORS                      }..................
+    # ..................{ INITIALIZERS                      }..................
     #FIXME: Refactor this method as follows:
     #
     #* Remove the optional "p" parameter, which is no longer (and should
