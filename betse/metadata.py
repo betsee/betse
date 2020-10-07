@@ -12,27 +12,8 @@ For uniformity between this codebase and the ``setup.py`` setuptools script
 importing this module, this module also validates the version of the active
 Python 3 interpreter. An exception is raised if this version is insufficient.
 
-This application currently requires **Python 3.5.** This application previously
-required only Python 3.4.0 for access to the standard :mod:`enum` module
-introduced by that major release. Since Python 3.4.0 is approaching its
-official end-of-life (EOL) and scheduled to be decomissioned shortly, this
-application now unavoidably requires the next major release of Python despite
-currently leveraging no features introduced by that release.
-
-Note that Python < 3.4.0:
-
-* Provides insufficient machinery for dynamically inspecting modules at
-  runtime. In particular, both the long-standing :func:`imp.find_module`
-  function and the :func:`importlib.find_loader` function introduced by Python
-  3.3 require all parent packages of the passed module to be recursively
-  imported *before* these functions are called; failing to do so results in
-  these functions unconditionally returning ``None``. Since this has been the
-  source of numerous subtle issues throughout this codebase, Python 3.3 is
-  strictly out. Since most modern Linux distributions have adopted Python 3.4
-  as the default Python
-  3 interpreters, this *should* impose no hardship.
-* Fails to provide the :mod:`enum` module introduced by Python 3.4, which both
-  standardizes and simplifies enumeration implementations.
+This application currently requires **Python 3.6.** since Python 3.5.0 has now
+passed its its official end-of-life (EOL) and thus constitutes a security risk.
 
 Design
 ----------
@@ -69,14 +50,19 @@ Human-readable name of the license this application is licensed under.
 # ....................{ PYTHON ~ version                  }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this section *MUST* be synchronized with:
-# * The corresponding section of the "betsee.metadata" submodule.
+# * The corresponding section of the "betsee.guimetadata" submodule.
+# * Continuous integration test matrices, including:
+#   * The top-level "tox.ini" file.
+#   * The "environment/matrix" subkey of the top-level ".appveyor.yml" file.
+#   * Top-level "test_python"-prefixed keys of the top-level ".gitlab-ci.yml"
+#     file.
 # * Front-facing documentation (e.g., "README.rst", "doc/md/INSTALL.md").
 # On bumping the minimum required version of Python, consider also documenting
 # the justification for doing so in the "Python Version" section of this
 # submodule's docstring above.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-PYTHON_VERSION_MIN = '3.5.0'
+PYTHON_VERSION_MIN = '3.6.0'
 '''
 Human-readable minimum version of Python required by this application as a
 ``.``-delimited string.
@@ -88,7 +74,7 @@ justification of this constant's current value.
 '''
 
 
-PYTHON_VERSION_MINOR_MAX = 8
+PYTHON_VERSION_MINOR_MAX = 9
 '''
 Maximum minor stable version of this major version of Python currently released
 (e.g., ``5`` if Python 3.5 is the most recent stable version of Python 3.x).

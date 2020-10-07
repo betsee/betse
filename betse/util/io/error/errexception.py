@@ -13,6 +13,11 @@ from betse.util.type import types
 from betse.util.type.types import type_check
 from io import StringIO
 
+# Private string constants required by our ad-hoc forwardport of the removed
+# traceback._iter_chain() function. Fortuitously, these constants remain
+# unchanged in Python >= 3.5.
+from traceback import _cause_message, _context_message
+
 # ....................{ GETTERS                           }....................
 @type_check
 def get_traceback(exception: Exception) -> str:
@@ -231,45 +236,38 @@ def get_metadata(exception: Exception) -> tuple:
     return (exc_iota_buffer.getvalue(), exc_full_buffer.getvalue())
 
 # ....................{ PRIVATE ~ iterators               }....................
-# If the active Python interpreter is 3.4, import the private _iter_chain()
-# method from the standard "traceback" module.
-try:
-    from traceback import _iter_chain
-# Else, the active Python interpreter is >= 3.5, which replaced this method
-# with a new public class hierarchy (e.g., "TracebackException"). For
-# portability, forward port the traceback._iter_chain() method from the most
-# recent stable release of Python 3.4.
+# The active Python interpreter is guaranteed to now target at least Python
+# 3.6, which replaced the private traceback._iter_chain() function with a new
+# public class hierarchy (e.g., "TracebackException"). For portability, we
+# forward port the traceback._iter_chain() method from the most recent stable
+# release of Python 3.4.
 #
 # Alternately, this class hierarchy *COULD* be backported from the most recent
 # stable release of Python 3.6. Doing so, however, would be considerably more
 # difficult than simply defining a single function. Thus the current approach.
-except ImportError:
-    # Private string constants required by _iter_chain(). Fortuitously, these
-    # constants remain unchanged in Python >= 3.5.
-    from traceback import _cause_message, _context_message
 
-    def _iter_chain(exc, custom_tb=None, seen=None):
-        '''
-        Private :func:`traceback._iter_chain` method forward-ported without
-        modification from the most recent stable release of Python 3.4 as of
-        this writing (i.e., Python 3.4.3).
-        '''
+def _iter_chain(exc, custom_tb=None, seen=None):
+    '''
+    Private :func:`traceback._iter_chain` method forward-ported without
+    modification from the most recent stable release of Python 3.4 as of this
+    writing (i.e., Python 3.4.3).
+    '''
 
-        if seen is None:
-            seen = set()
-        seen.add(exc)
-        its = []
-        context = exc.__context__
-        cause = exc.__cause__
-        if cause is not None and cause not in seen:
-            its.append(_iter_chain(cause, False, seen))
-            its.append([(_cause_message, None)])
-        elif (context is not None and
-            not exc.__suppress_context__ and
-            context not in seen):
-            its.append(_iter_chain(context, None, seen))
-            its.append([(_context_message, None)])
-        its.append([(exc, custom_tb or exc.__traceback__)])
-        # itertools.chain is in an extension module and may be unavailable
-        for it in its:
-            yield from it
+    if seen is None:
+        seen = set()
+    seen.add(exc)
+    its = []
+    context = exc.__context__
+    cause = exc.__cause__
+    if cause is not None and cause not in seen:
+        its.append(_iter_chain(cause, False, seen))
+        its.append([(_cause_message, None)])
+    elif (context is not None and
+        not exc.__suppress_context__ and
+        context not in seen):
+        its.append(_iter_chain(context, None, seen))
+        its.append([(_context_message, None)])
+    its.append([(exc, custom_tb or exc.__traceback__)])
+    # itertools.chain is in an extension module and may be unavailable
+    for it in its:
+        yield from it

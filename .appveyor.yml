@@ -119,51 +119,15 @@ environment:
   # * The "betse.metadeps.RUNTIME_MANDATORY" tuple global, defining the minimum
   #   version of Numpy supported by this project.
   matrix:
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # CAUTION: Although both this project and Miniconda explicitly support
-    # Python 3.4, Miniconda no longer appears capable of installing SciPy when
-    # running Python 3.4. Attempting to do so reliably induces the following
-    # exception:
-    #
-    #    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-    #    betse_test\fixture\simconf\simconfclser.py:173: in __init__
-    #        from betse_test.fixture.simconf.simconfwrapper import (
-    #    betse_test\fixture\simconf\simconfwrapper.py:35: in <module>
-    #        from betse.science.visual.anim.animpipe import AnimCellsPipe
-    #    betse\science\visual\anim\animpipe.py:20: in <module>
-    #        from betse.science.visual.anim.anim import (
-    #    betse\science\visual\anim\anim.py:37: in <module>
-    #        from betse.science.visual.plot.plotutil import cell_mosaic, cell_mesh
-    #    betse\science\visual\plot\plotutil.py:14: in <module>
-    #        from scipy import interpolate
-    #    C:\Miniconda3-x64\envs\conda-env-3.4\lib\site-packages\scipy\interpolate\__init__.py:176: in <module>
-    #        from .interpolate import *
-    #    C:\Miniconda3-x64\envs\conda-env-3.4\lib\site-packages\scipy\interpolate\interpolate.py:21: in <module>
-    #        import scipy.special as spec
-    #    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-    #        """
-    #        
-    #        from __future__ import division, print_function, absolute_import
-    #        
-    #        from .sf_error import SpecialFunctionWarning, SpecialFunctionError
-    #        
-    #    >   from ._ufuncs import *
-    #    E   ImportError: DLL load failed: The specified module could not be found.
-    #
-    # Googling suggests this exception to be raised by improperly packaged
-    # SciPy installations under Windows. Consequently, this project's support
-    # for Python 3.4 is no longer exercised (i.e., tested) under Windows.
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     #FIXME: Uncomment after AppVeyor bumps Miniconda support for Python 3.8.
-    # - PYTHON_VERSION: 3.8
-    #   MINICONDA_DIRNAME: C:\Miniconda38-x64
+    #- PYTHON_VERSION: 3.9
+    #  MINICONDA_DIRNAME: C:\Miniconda39-x64
+    - PYTHON_VERSION: 3.8
+      MINICONDA_DIRNAME: C:\Miniconda38-x64
     - PYTHON_VERSION: 3.7
       MINICONDA_DIRNAME: C:\Miniconda37-x64
     - PYTHON_VERSION: 3.6
       MINICONDA_DIRNAME: C:\Miniconda36-x64
-    - PYTHON_VERSION: 3.5
-      MINICONDA_DIRNAME: C:\Miniconda35-x64
 
 # ....................{ COMMANDS                          }....................
 # List of all external commands to be run for each profile *BEFORE* those

@@ -8,6 +8,23 @@ Low-level **Python identifier** (i.e., class, module, or attribute name)
 facilities.
 '''
 
+# ....................{ TODO                              }....................
+#FIXME: *WOOPS.* Hilarliously, the builtin "str" type already provides a
+#standard method for efficiently detecting Python identifiers:
+#    >>> str.isidentifier?
+#    Signature: str.isidentifier(self, /)
+#    Docstring:
+#    Return True if the string is a valid Python identifier, False otherwise.
+#    Use keyword.iskeyword() to test for reserved identifiers such as "def" and
+#    "class".
+#    Type:      method_descriptor
+#Given that, the is_unqualified() function should be refactored as follows:
+#    @type_check
+#    def is_unqualified(text: str) -> bool:
+#        return text.isidentifier()
+#After doing so, remove the "_IDENTIFIER_UNQUALIFIED_REGEX_COMPILED" but *NOT*"
+#"_IDENTIFIER_UNQUALIFIED_REGEX" globals, as the former is no longer required.
+
 # ....................{ IMPORTS                           }....................
 import re
 from betse.exceptions import BetsePyIdentifierException
