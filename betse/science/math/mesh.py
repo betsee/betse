@@ -48,17 +48,30 @@ class DECMesh(object):
     ``dytpe`` fields are *not* ``object``).
 
     tri_cells : np.ndarray[List[int]]
-        Indices of cells...
-    _tverts_to_tcell : np.ndarray[List[int]]
-        Two-dimensional ragged NumPy array of :class:`Python` lists of the
-        simplex indices of all tri-verts, whose:
+        Two-dimensional ragged NumPy array of Python lists of the indices into
+        the :attr:`tri_verts` array of all points comprising each mesh
+        triangle, whose:
 
-        #. First dimension indexes tri-verts, whose length is the number of
-           tri-verts.
-        #. Second dimension is a list of the indices of all simplices belonging
-           to the currently indexed tri-vert. Since the length of each list
-           conditionally varies depending on the currently indexed tri-vert,
-           this array is ragged and *cannot* be coerced into a uniform array.
+        #. First dimension indexes mesh triangles, whose length is the number
+           of mesh triangles.
+        #. Second dimension is a list of the indices into the :attr:`tri_verts`
+           array of all points belonging to the currently indexed triangle.
+           Since mesh triangles may technically be quads rather triangles after
+           merger, the length of each such list is either 3 or 4 and thus
+           conditionally varies depending on each triangle. Ergo, this array is
+           ragged and *cannot* be coerced into a uniform array.
+    _tverts_to_tcell : np.ndarray[List[int]]
+        Two-dimensional ragged NumPy array of Python lists of the indices of
+        each triangle in the :attr:`tri_cells` array to which each mesh vertex
+        belongs, whose:
+
+        #. First dimension indexes mesh vertices, whose length is the number of
+           mesh vertices.
+        #. Second dimension is a list of the indices into the :attr:`tri_cells`
+           array of all triangles belonging to the currently indexed mesh
+           vertex. Since the length of each such list conditionally varies
+           depending on each vertex, this array is ragged and *cannot* be
+           coerced into a uniform array.
     '''
 
     # ..................{ INITIALIZERS                      }..................
@@ -267,11 +280,15 @@ class DECMesh(object):
 
 
     def trimesh_core_calcs(self):
+        '''
+        Figure out if there are super close points in the tri_verts set.
 
-        # Figure out if there are super close points in the tri_verts set:
-        # Next check for triverts with really close circumcenters, and, if necessary, merge to quads,
-        # or if requested, try merging as much of the mesh to quads as possible
-        # Find ccents that are close to one another and mark cells for quad-merge
+        Next check for triverts with really close circumcenters and, if
+        necessary, merge to quads, or if requested, try merging as much of
+        the mesh to quads as possible. Find ccents that are close to one
+        another and mark cells for quad-merge.
+        '''
+
         tri_tree = cKDTree(self.tri_verts)
         di, ni = tri_tree.query(self.tri_verts, k=2)
         mark_for_merge = set()
@@ -286,14 +303,16 @@ class DECMesh(object):
                 not_merged.add(indi)
 
         mark_for_merge = np.asarray(list(mark_for_merge), dtype=np.int)
-
         self.tri_verts = np.delete(self.tri_verts, mark_for_merge, axis = 0)
 
-        # calculate the Delaunday triangulation based on the cluster-masked seed points:
-        trimesh = Delaunay(self.tri_verts)  # Delaunay trianulation of cell centres
-        self.n_tverts = len(self.tri_verts)  # number of tri_verts
-        self.tri_vert_i = np.linspace(0, self.n_tverts - 1,
-                                      self.n_tverts, dtype=np.int)
+        # Calculate the Delaunday triangulation of cell centres based on the
+        # cluster-masked seed points.
+        trimesh = Delaunay(self.tri_verts)
+
+        # Number of tri_verts.
+        self.n_tverts = len(self.tri_verts)
+        self.tri_vert_i = np.linspace(
+            0, self.n_tverts - 1, self.n_tverts, dtype=np.int)
 
         tri_ccents = []  # circumcentres of the triangles
         tri_cents = []  # centroids of the triangles
@@ -303,7 +322,6 @@ class DECMesh(object):
         tri_cells = []  # indices to tri_verts defining each triangle (simplex)
 
         for si, vert_inds in enumerate(trimesh.simplices):
-
             abc = trimesh.points[vert_inds]
             vx, vy, r_circ, r_in = self.circumc(abc[0], abc[1], abc[2])
             cx, cy = self.poly_centroid(abc)
@@ -323,7 +341,9 @@ class DECMesh(object):
                     else:
                         flagc = 1.0
 
-                    if flagc != 0.0:  # if it's not outside the cluster region, include the simplex:
+                    # If it's not outside the cluster region, include the
+                    # simplex.
+                    if flagc != 0.0:
                         tri_ccents.append([vx, vy])
                         tri_cents.append([cx, cy])
                         tri_rcircs.append(r_circ)
@@ -331,7 +351,9 @@ class DECMesh(object):
                         tri_sa.append(sa)
                         tcell_verts.append(abc)
 
-            else:  # append all information without screening for triangle suitability
+            # Append all information without screening for triangle
+            # suitability.
+            else:
                 tri_ccents.append([vx, vy])
                 tri_cents.append([cx, cy])
                 tri_rcircs.append(r_circ)
@@ -339,7 +361,8 @@ class DECMesh(object):
                 tri_cells.append(vert_inds)
                 tcell_verts.append(abc)
 
-        self.tri_cells = np.asarray(tri_cells)  # reassign point inds to retained simplices
+        # Reassign point inds to retained simplices.
+        self.tri_cells = np.asarray(tri_cells)
 
         self.n_tcell = len(tri_cells)  # number of simplexes in trimesh
         self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])  # indices vector of trimesh
@@ -360,11 +383,14 @@ class DECMesh(object):
         '''
 
         self.n_tverts = len(self.tri_verts)  # number of tri_verts
-        self.tri_vert_i = np.linspace(0, self.n_tverts - 1,
-                                      self.n_tverts, dtype=np.int)
+        self.tri_vert_i = np.linspace(
+            0, self.n_tverts - 1, self.n_tverts, dtype=np.int)
 
-        self.n_tcell = len(self.tri_cells)  # number of simplexes in trimesh
-        self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])  # indices vector of trimesh
+        # Number of simplexes in trimesh.
+        self.n_tcell = len(self.tri_cells)
+
+        # Indices vector of trimesh.
+        self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])
 
 
     def merge_tri_mesh(self, merge_list):
@@ -520,13 +546,14 @@ class DECMesh(object):
 
                 self.free_to_merge.remove(ai)
 
-        #FIXME: Uh, oh. Looks like most of these arrays are ragged as thus
+        #FIXME: Uh, oh. Looks like most of these arrays are ragged and thus
         #erroneous as well. We'll need to *EXTREMELY* carefully decide how to
         #preserve each of these as lists-of-lists on a case-by-case basis.
         #Note additionally that "quad_cells" at least *MUST* probably be
         #preserved as a local variable rather than rewritten as
         #"self.tri_cells" above, as the latter is referenced above.
-        quad_cells = np.asarray(quad_cells)
+
+        # Two-dimensional NumPy array of lists.
         quad_ccents = np.asarray(quad_ccents)
         quad_rcircs = np.asarray(quad_rcircs)
         quad_sa = np.asarray(quad_sa)
@@ -535,7 +562,7 @@ class DECMesh(object):
         quad_cents = np.asarray(quad_cents)
 
         # Reassign all relevant quantities from original tri-mesh.
-        self.tri_cells = quad_cells # indices of cells
+        self.tri_cells = np.asarray(quad_cells, dtype=object) # indices of cells
         self.tri_ccents = quad_ccents # circumcenters
         self.tri_rcircs = quad_rcircs
         self.tri_cents = quad_cents # centroids
@@ -604,13 +631,15 @@ class DECMesh(object):
                 kk = tri_edges.index([vj, vi])
             bflags_tedges.append(kk)
 
-        self.bflags_tedges = np.asarray(bflags_tedges)  # indices of edges on the boundary
+        # Indices of edges on the boundary.
+        self.bflags_tedges = np.asarray(bflags_tedges)
 
-        self.tri_edge_i = np.linspace(0, self.n_tedges - 1, self.n_tedges, dtype=np.int)
+        self.tri_edge_i = np.linspace(
+            0, self.n_tedges - 1, self.n_tedges, dtype=np.int)
         self.inner_tedge_i = np.delete(self.tri_edge_i, self.bflags_tedges)
 
-        # Finally, go through and calculate mids, len, and tangents of tri_edges, and prepare a mapping between
-        # each vertices and edges:
+        # Finally, go through and calculate mids, len, and tangents of
+        # tri_edges, and prepare a mapping between each vertices and edges.
         for ei, (vi, vj) in enumerate(self.tri_edges):
 
             # get coordinates associated with each edge
@@ -1142,25 +1171,25 @@ class DECMesh(object):
         # get and store inverse:
         self.delta_tri_0_inv = np.linalg.pinv(self.delta_tri_0)
 
+
     def create_aux_operators(self):
-        """
+        '''
         Creates auxiliary operators required for curl, vector laplacians, etc. Note these are
         needed for the main mesh, but not for the 'mu-mesh' that is required for tensor work...
+        '''
 
-        """
         logs.log_info("Creating auxiliary operators...")
 
-        # exterior derivative operator for tri mesh operating on edges to return faces:
+        # Exterior derivative operator for tri mesh operating on edges to
+        # return faces.
         delta_tri_1 = np.zeros((self.n_tcell, self.n_tedges))
 
         tedge_tree = cKDTree(self.tri_edges)
 
         for ic, vertis_o in enumerate(self.tri_cells):
-
             vertis_1 = np.roll(vertis_o, -1)
 
             for vi, vj in zip(vertis_o, vertis_1):
-
                 disttea, ea = tedge_tree.query([vi, vj])
                 distteb, eb = tedge_tree.query([vj, vi])
 
@@ -2114,7 +2143,6 @@ class DECMesh(object):
             self.tri_sa = []  # surface area of triangle faces
 
             for i, vert_inds in enumerate(self.tri_cells):
-
                 abc = self.tri_verts[vert_inds]   # FIXME! These may be quad cells!!
                 vx, vy, r_circ, r_in = self.circumc(abc[0], abc[1], abc[2])
 
