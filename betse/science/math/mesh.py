@@ -60,6 +60,20 @@ class DECMesh(object):
            merger, the length of each such list is either 3 or 4 and thus
            conditionally varies depending on each triangle. Ergo, this array is
            ragged and *cannot* be coerced into a uniform array.
+    tcell_verts : np.ndarray[List[np.ndarray[float]]]
+        Three-dimensional ragged NumPy array of Python lists of NumPy 2-arrays
+        of the points comprising each mesh cell, whose:
+
+        #. First dimension indexes mesh cells, whose length is the number of
+           mesh cells.
+        #. Second dimension indexes the points of the current cell, whose
+           length conditionally depends on the number of points comprising each
+           cell. Since cells may be shaped as either triangles or quads after
+           merger, the length of each such list is either 3 or 4 and thus
+           conditionally varies depending on each cell. Ergo, this array is
+           ragged and *cannot* be coerced into a uniform array.
+        #. Third dimension indexes the X and Y components of the current point
+           as floating-point numbers, whole length is guaranteed to be 2.
     _tverts_to_tcell : np.ndarray[List[int]]
         Two-dimensional ragged NumPy array of Python lists of the indices of
         each triangle in the :attr:`tri_cells` array to which each mesh vertex
@@ -554,20 +568,15 @@ class DECMesh(object):
         #"self.tri_cells" above, as the latter is referenced above.
 
         # Two-dimensional NumPy array of lists.
-        quad_ccents = np.asarray(quad_ccents)
-        quad_rcircs = np.asarray(quad_rcircs)
-        quad_sa = np.asarray(quad_sa)
-
-        qcell_verts = np.asarray(qcell_verts)
         quad_cents = np.asarray(quad_cents)
 
         # Reassign all relevant quantities from original tri-mesh.
         self.tri_cells = np.asarray(quad_cells, dtype=object) # indices of cells
-        self.tri_ccents = quad_ccents # circumcenters
-        self.tri_rcircs = quad_rcircs
+        self.tri_ccents = np.asarray(quad_ccents) # circumcenters
+        self.tri_rcircs = np.asarray(quad_rcircs)
         self.tri_cents = quad_cents # centroids
-        self.tcell_verts = qcell_verts # x,y coordinates of vertices of cells
-        self.tri_sa = quad_sa  # surface area of triangle
+        self.tcell_verts = np.asarray(qcell_verts, dtype=object) # x,y coordinates of vertices of cells
+        self.tri_sa = np.asarray(quad_sa)  # surface area of triangle
 
         # Number of simplexes in trimesh.
         self.n_tcell = len(self.tri_cells)
