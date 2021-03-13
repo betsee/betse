@@ -142,12 +142,14 @@ RUNTIME_MANDATORY = {
     #   the numpy.unique() function, which this codebase commonly passes.
     # * Pillow 5.3.0 first introduced the standard "pillow.__version__"
     #   attribute, which this codebase now expects to exist.
-    # * Matplotlib 1.5.0 first introduced the standard "viridis" colormap.
+    # * Matplotlib 3.3.4, which appears to assist in resolving inscrutable
+    #   low-level non-human-readable errors under Linux resembling:
+    #       ICE default IO error handler doing an exit(), pid = 11281, errno = 4
     'Numpy':      '>= 1.13.0',
     'Pillow':     '>= 5.3.0',
     'SciPy':      '>= 0.12.0',
     'dill':       '>= 0.2.3',
-    'matplotlib': '>= 1.5.0',
+    'matplotlib': '>= 3.3.4',
 
     # A relatively modern version of "ruamel.yaml" variants is required.
     # Specifically, this application requires:

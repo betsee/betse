@@ -156,9 +156,30 @@ variables:
   # Whitespace-delimited list of the names of all Debian-based non-Pythonic
   # mandatory dependencies to be installed by APT below. These include:
   #
+  # * "gfortran", providing a GCC-based Fortran compiler required to manually
+  #   build various high-level Python scientific packages as a last-ditch
+  #   fallback (.g., SciPy subpackages like "scipy.math" under PyPy).
   # * "graphviz", required by BETSE's optional "pydot" dependency.
+  # * "libopenblas-dev", providing the standard low-level platform-optimized
+  #   scientific stack (e.g., BLAS, LAPACK) required to manually compile
+  #   various high-level Python scientific packages as a last-ditch fallback.
+  # * "python3-numpy", required by PyPy but *NOT* CPython. Why? Because
+  #   PyPI-hosted NumPy wheels only provide CPython-specific packages, which
+  #   implies that installing NumPy under PyPy requires manually compiling
+  #   NumPy from source, which then requires both a full compiler toolchain
+  #   *AND* platform-optimized stack (e.g., BLAS, LAPACK). Installing the
+  #   "python3-numpy" package is the simplest way to guarantee the latter.
+  # * "python3-scipy", for similar reasons as "python3-numpy".
+  # * "python3-pip", required to subsequently update and install packages via
+  #   the Python-specific "pip3" package manager.
   _APT_PACKAGE_NAMES: |
+    gfortran
     graphviz
+    libopenblas-dev
+    python3-dev
+    python3-numpy
+    python3-pip
+    python3-scipy
 
 # ....................{ GLOBALS ~ cache                   }....................
 cache:
