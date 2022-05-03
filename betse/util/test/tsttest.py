@@ -47,7 +47,7 @@ def is_testing() -> bool:
     #   BETSEE), the "betse.util.test" subpackage commonly does just that.
     #   Ergo, this approach is effectively infeasible here.
     # * Enabling a private boolean constant (e.g.,
-    #   "betse.util.test.tests._IS_TESTING") at py.test session start time
+    #   "betse.util.test.tests._IS_TESTING") at "pytest" session start time
     #   (e.g., from a session-wide autouse fixture or
     #   betse_test.conftest.pytest_configure() hook). While technically
     #   feasible, this approach is considerably less trivial *AND* invites

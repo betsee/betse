@@ -319,8 +319,7 @@ def get_substr_first_index_or_none(text: str, substr: str) -> IntOrNoneTypes:
 #
 #* The "char" parameter accepted by each function to "anchor".
 #* The "_char" in each function name to "_substr" -- or possibly even remove
-#  the "_preceding_char" entirely (e.g., get_prefix_or_none() rather than
-#  get_prefix_or_none()).
+#  the "_preceding_char" entirely.
 #* Revise docstrings accordingly.
 
 @type_check

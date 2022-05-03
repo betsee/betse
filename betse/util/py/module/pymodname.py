@@ -286,6 +286,13 @@ def import_module(
         time).
     '''
 
+    #FIXME: This is extraneous and should thus be removed. The
+    #importlib.import_module() function called below explicitly raises a
+    #well-named "ModuleNotFoundError" exception if this module is unimportable.
+    #Indeed, the is_module() function called by the die_unless_module()
+    #function is suspiciously complex and probably broken in various edge
+    #cases, particularly under newer Python interpreters.
+
     # If this module is unimportable, raise an exception.
     die_unless_module(module_name, exception_message)
 

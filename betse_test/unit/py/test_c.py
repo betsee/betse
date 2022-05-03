@@ -57,9 +57,9 @@ def test_is_c_monkeypatched(monkeypatch) -> None:
     # Arbitrary Numpy submodule guaranteed to be implemented as a C extension.
     numpy_c_extension = numpys.get_c_extension()
 
-    # Remove the the PEP 302-specific "__loader__" attribute of each such
-    # module before performing testing. Since this attribute need *NOT* exist,
-    # prevent exceptions from being raised if this attribute does *NOT* exist.
+    # Remove the PEP 302-specific "__loader__" attribute of each such module
+    # before performing testing. Since this attribute need *NOT* exist, prevent
+    # exceptions from being raised if this attribute does *NOT* exist.
     for module_object in (pymodule, numpy_c_extension):
         monkeypatch.delattr(module_object, name='__loader__', raising=False)
 

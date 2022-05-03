@@ -8,16 +8,8 @@ Low-level **decorator-based memoization** (i.e., efficient caching and reuse of
 the values returned by decorated callables) facilities.
 '''
 
-#FIXME: Generalize the @property_cached decorator as follows:
-#
-#* Under Python >= 3.8, consider deferring to the newly introduced
-#  functools.cached_property() decorator. Naturally, we'll want to investigate
-#  whether that decorator has performance comparable to our own.
-#* Under Python < 3.8, fallback to the existing implementation of the
-#  the @property_cached decorator.
-
 #FIXME: Generalize the @func_cached decorator into a new method_cached()
-#decorator whose implementation will resemeble (and possibly even be
+#decorator whose implementation will resemble (and possibly even be
 #effectively identical to) the existing property_cached() decorator. After
 #doing so, revise the docstring for the func_cached() function to remove all
 #reference to bound methods.
@@ -65,8 +57,12 @@ decorated property method.
 '''
 
 # ....................{ DECORATORS                        }....................
-#FIXME: Raise an exception if the passed callable is either an unbound or bound
-#method. Note that we may only be able to reliably test for the latter.
+#FIXME: Raise an exception if the passed callable is a bound method. Note that
+#we have *NO* means of reliably testing for unbound methods, which are
+#indistinguishable from non-class functions. *ALL* attempts to differentiate
+#the two fail under one or more edge cases. See also these failed attempts to
+#do just that at this StackOverflow question:
+#    https://stackoverflow.com/questions/8793233/python-can-a-decorator-determine-if-a-function-is-being-defined-inside-a-class
 @type_check
 def func_cached(func: CallableTypes) -> CallableTypes:
     '''
@@ -173,6 +169,11 @@ def property_cached(property_method: CallableTypes) -> PropertyType:
 
     Caveats
     ----------
+    **This decorator should always be preferred over the standard**
+    :func:`functools.cached_property` decorator available under Python >= 3.8.
+    This decorator is substantially more efficient in both space and time than
+    that decorator -- which is, of course, the entire point of caching.
+
     **This decorator does not destroy bound property methods.** Technically,
     the most efficient means of caching a property value into an instance is to
     replace the property method currently bound to that instance with an
@@ -184,14 +185,18 @@ def property_cached(property_method: CallableTypes) -> PropertyType:
     the former to the latter. Sadly, doing so introduces numerous subtle issues
     with no plausible workaround.
 
-    In particular, replacing property methods by instance variables prevents
-    pickling logic elsewhere from automatically excluding cached property
-    values, forcing these values to *always* be pickled to disk. This is bad.
-    Cached property values are *always* safely recreatable in memory (and hence
-    need *not* be pickled) and typically space-consumptive in memory (and hence
-    best *not* pickled). The slight efficiency gain from replacing property
-    methods by instance variables is hardly worth the significant space loss
-    from pickling these variables.
+    In particular, replacing property methods by instance variables:
+
+    * Permits callers to erroneously set **read-only properties** (i.e.,
+      properties lacking setter methods), a profound violation of one of the
+      principle use cases for properties.
+    * Prevents pickling logic elsewhere from automatically excluding cached
+      property values, forcing these values to *always* be pickled to disk.
+      This is bad. Cached property values are *always* safely recreatable in
+      memory (and hence need *not* be pickled) and typically space-consumptive
+      in memory (and hence best *not* pickled). The slight efficiency gain from
+      replacing property methods by instance variables is hardly worth the
+      significant space loss from pickling these variables.
 
     .. _StackOverflow answer:
         https://stackoverflow.com/a/36684652/2809027
@@ -228,9 +233,9 @@ def property_cached(property_method: CallableTypes) -> PropertyType:
     #     return self.__dict__[{property_name!r}]
     #
     # * Dynamically getting and setting a property-specific attribute of
-    #   the current object: e.g.,
-    #   the internal dictionary for the current object, timed to be
-    #   approximately 1.5 times as slow as exception handling: e.g.,
+    #   the current object (e.g., the internal dictionary for the current
+    #   object), timed to be approximately 1.5 times as slow as exception
+    #   handling: e.g.,
     #
     #     if not hasattr(self, {property_name!r}):
     #         setattr(self, {property_name!r}, __property_method(self))

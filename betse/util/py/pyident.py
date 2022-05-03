@@ -24,6 +24,14 @@ facilities.
 #        return text.isidentifier()
 #After doing so, remove the "_IDENTIFIER_UNQUALIFIED_REGEX_COMPILED" but *NOT*"
 #"_IDENTIFIER_UNQUALIFIED_REGEX" globals, as the former is no longer required.
+#FIXME: *WOOPS.* It's a good thing that str.isidentifier() exists, as PEP 3131
+#introduces Unicode identifiers to Python:
+#    https://www.python.org/dev/peps/pep-3131
+#We never knew this was a thing, honestly. Unlike Raku (Perl 6), which openly
+#embraces and arguably abuses Unicode for everything, we've never actually seen
+#real-world Python code in the wild using Unicode identifiers. In response,
+#we'll need to significantly update the regular expressions below. Or perhaps
+#we simply don't care enough at the moment to generalize this....? *sigh*
 
 # ....................{ IMPORTS                           }....................
 import re

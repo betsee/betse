@@ -444,16 +444,10 @@ Contact
 
 To contact `Dr. Pietak`_, the principal developer of the BETSE codebase and
 first or second author of all above papers, cordially direct correspondence to
-either:
+the personal e-mail account of `Dr. Pietak`_: [#e-mail]_
 
-* The `anonymous contact form <Organic Mechanics Contact_>`__ at `Organic
-  Mechanics`_, the personal archives of all material published to date by
-  `Dr. Pietak`_ – including papers, presentations, textbooks, and additional
-  theoretical work.
-* The personal e-mail account of `Dr. Pietak`_: [#e-mail]_
-
-  * *Username:* **alexis** ``{dot}`` **pietak**
-  * *Hostname:* **gmail** ``{dot}`` **com**
+* *Username:* **alexis** ``{dot}`` **pietak**
+* *Hostname:* **gmail** ``{dot}`` **com**
 
 To report a software issue (e.g., bug, crash, or other unexpected behaviour)
 *or* request a new feature in BETSE, consider `submitting a new issue <issue
@@ -467,9 +461,6 @@ generous user contributions that your user experience can continue to improve.
 
    * Replacing the ``{dot}`` substring with the ``.`` charecter.
    * Concatenating the username and hostname strings with the ``@`` character.
-
-   For this reason, consider directing correspondence to the `anonymous contact
-   form <Organic Mechanics Contact_>`__ at `Organic Mechanics`_ instead.
 
 Authors
 =======
