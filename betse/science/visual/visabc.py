@@ -313,6 +313,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # to manually perform such logic in a forward-compatible manner
         # effectively remains infeasible. So, we necessarily defer to "pyplot".
         self._figure = pyref.proxy_weak(pyplot.figure())
+        # self._figure = pyplot.figure()
 
         # Figure axes scaled to the extent of the current 2D environment as a
         # weak rather than strong (the default) reference, thus avoiding

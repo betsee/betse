@@ -141,11 +141,29 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
         # removes all arrowhead patches of other visuals already plotted for
         # this time step and is hence non-ideal. But no alternatives exist.
         except NotImplementedError:
-            self._visual.axes.patches = [
-                patch
-                for patch in self._visual.axes.patches
-                if not isinstance(patch, FancyArrowPatch)
-            ]
+            #FIXME: This simplistic approach *USED* to work. For unknown and
+            #presumably indefensible reason, some undisclosed newer version of
+            #matplotlib silently broke backward compatibility by preventing this
+            #from working. This now reasons the unreadable exception:
+            #    AttributeError: can't set attribute 'patches'
+            #Sadly, no one else has reported a similar issue on the matplotlib
+            #issue tracker. We thus have no recourse but to attempt a completely
+            #different workaround now. *sigh*
+            # self._visual.axes.patches = [
+            #     patch
+            #     for patch in self._visual.axes.patches
+            #     if not isinstance(patch, FancyArrowPatch)
+            # ]
+
+            # Rather than attempting to replace the axes patches, instead
+            # selectively search for and remove *ALL* arrow-specific axes
+            # patches. Again, this is highly non-ideal. It is what it is.
+            #
+            # This workaround is inspired by this StackOverflow answer:
+            #     https://stackoverflow.com/a/61932726/5049231
+            for artist in self._visual.axes.get_children():
+                if isinstance(artist, FancyArrowPatch):
+                    artist.remove()
 
         # Replot this streamplot for this time step.
         self._layer_first()

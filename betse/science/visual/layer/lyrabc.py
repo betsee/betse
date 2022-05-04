@@ -149,6 +149,7 @@ class LayerCellsABC(object, metaclass=ABCMeta):
         # yields this object (rather than non-deterministically yielding "None"
         # if this object is unexpectedly garbage-collected).
         self._visual = pyref.proxy_weak(visual)
+        # self._visual = visual
 
         # Classify this zorder unmodified.
         self._zorder = zorder
