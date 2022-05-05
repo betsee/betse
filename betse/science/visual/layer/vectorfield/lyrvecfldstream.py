@@ -144,7 +144,7 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
             #FIXME: This simplistic approach *USED* to work. For unknown and
             #presumably indefensible reason, some undisclosed newer version of
             #matplotlib silently broke backward compatibility by preventing this
-            #from working. This now reasons the unreadable exception:
+            #from working. This now raises the unreadable exception:
             #    AttributeError: can't set attribute 'patches'
             #Sadly, no one else has reported a similar issue on the matplotlib
             #issue tracker. We thus have no recourse but to attempt a completely
@@ -155,11 +155,11 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
             #     if not isinstance(patch, FancyArrowPatch)
             # ]
 
-            # Rather than attempting to replace the axes patches, instead
+            # Rather than attempting to replace the entire axes patches, instead
             # selectively search for and remove *ALL* arrow-specific axes
             # patches. Again, this is highly non-ideal. It is what it is.
             #
-            # This workaround is inspired by this StackOverflow answer:
+            # This workaround is strongly inspired by this StackOverflow answer:
             #     https://stackoverflow.com/a/61932726/5049231
             for artist in self._visual.axes.get_children():
                 if isinstance(artist, FancyArrowPatch):

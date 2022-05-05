@@ -3,13 +3,14 @@
 # Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-r'''
+'''
 Core **type** (i.e., class) functionality, enumerating a variety of core types
-and :func:`instanceof`\ -friendly tuples of such types *and* the pivotal
+and :func:`instanceof`-friendly tuples of such types *and* the pivotal
 :func:`type_check` decorator validating callable parameters to be of such
 types.
 '''
 
+# ....................{ TODO                              }....................
 #FIXME: Refactor this submodule away entirely in favour of adding a new
 #mandatory dependency on the third-party "beartype" package and corresponding
 #@beartype.beartype decorator.

@@ -299,18 +299,6 @@ stages:
 # mandatory C extensions (e.g., "psutil"). Installing compilers under slim
 # variants would circumvent this but also defeat the purpose of doing so.
 
-# Python 3.6-specific test job, exercising this project's full test suite.
-test_python36:
-  <<: *test_common
-  image: python:3.6
-  script: python3 -m tox -e py36
-
-# Python 3.7-specific test job, exercising this project's full test suite.
-test_python37:
-  <<: *test_common
-  image: python:3.7
-  script: python3 -m tox -e py37
-
 # Python 3.8-specific test job, exercising this project's full test suite.
 test_python38:
   <<: *test_common
@@ -322,3 +310,9 @@ test_python39:
   <<: *test_common
   image: python:3.9
   script: python3 -m tox -e py39
+
+# Python 3.10-specific test job, exercising this project's full test suite.
+test_python310:
+  <<: *test_common
+  image: python:3.10
+  script: python3 -m tox -e py310

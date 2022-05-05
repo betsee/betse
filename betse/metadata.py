@@ -62,7 +62,7 @@ Human-readable name of the license this application is licensed under.
 # submodule's docstring above.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-PYTHON_VERSION_MIN = '3.6.0'
+PYTHON_VERSION_MIN = '3.8.0'
 '''
 Human-readable minimum version of Python required by this application as a
 ``.``-delimited string.
@@ -74,7 +74,7 @@ justification of this constant's current value.
 '''
 
 
-PYTHON_VERSION_MINOR_MAX = 9
+PYTHON_VERSION_MINOR_MAX = 11
 '''
 Maximum minor stable version of this major version of Python currently released
 (e.g., ``5`` if Python 3.5 is the most recent stable version of Python 3.x).

@@ -193,7 +193,6 @@ class LayerCellsVectorDiscreteMembranesDeformed(
     def _layer_next_color_mappables(self) -> None:
 
         #FIXME: Submit a matplotlib issue concerning this, please.
-
         # Manually remove all triangulation meshes plotted for the prior time
         # step by iterating over all matplotlib collection objects and
         # preserving all such objects that are *NOT* such meshes. Doing so also
@@ -202,7 +201,6 @@ class LayerCellsVectorDiscreteMembranesDeformed(
         #
         # Actually, that's not quite accurate. The following alternative exists,
         # but silently reduces to a noop for unknown reasons:
-        #
         #     # For each triangulation mesh plotted for the prior time step...
         #     for cell_tri_mesh in self._cell_tri_meshes:
         #         # Remove this mesh from the current figure axes. Sadly, doing
@@ -212,11 +210,26 @@ class LayerCellsVectorDiscreteMembranesDeformed(
         #         # successful from unsuccessful removal attempt, this call is
         #         # currently assumed to always unsuccessfully reduce to a noop.
         #         cell_tri_mesh.remove()
-        self._visual.axes.collections = [
-            collection
-            for collection in self._visual.axes.collections
-            if not isinstance(collection, TriMesh)
-        ]
+        #FIXME: This previously working animation code no longer works and has
+        #thus been disabled. Instead, we adopt an ad-hoc workaround employed by
+        #betse.science.visual.layer.vectorfield.lyrvecfldstream._layer_next().
+        #Specifically, this approach now raises the unreadable exception:
+        #    AttributeError: can't set attribute
+        # self._visual.axes.collections = [
+        #     collection
+        #     for collection in self._visual.axes.collections
+        #     if not isinstance(collection, TriMesh)
+        # ]
+
+        # Rather than attempting to replace the entire axes collections, instead
+        # selectively search for and remove *ALL* trimesh-specific axes
+        # collections. Again, this is highly non-ideal. It is what it is.
+        #
+        # This workaround is strongly inspired by this StackOverflow answer:
+        #     https://stackoverflow.com/a/61932726/5049231
+        for artist in self._visual.axes.get_children():
+            if isinstance(artist, TriMesh):
+                artist.remove()
 
         # Return new triangulation meshes for all cells for this time step.
         return self._layer_first_color_mappables()

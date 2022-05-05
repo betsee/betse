@@ -2,6 +2,36 @@
 # Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 #
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# CAUTION: This previously working Appveyor configuration no longer works and
+# has thus been disabled. It seems likely that this line below is the culprit:
+#     - cmd: set "PATH=%MINICONDA_DIRNAME%;%MINICONDA_DIRNAME%\\Scripts;%PATH%;"
+# That is *NOT* the official way to enable Anaconda support within Appveyor.
+# Nonetheless, Microsoft Windows is currently a sufficiently low priority to
+# render this ignorable. Science == POSIX. Microsoft Windows users would be
+# better served by their installing the Windows Subsystem for Linux (WSL) than
+# by our throwing scarce volunteer resources at a dissipating audience.
+#
+# To reenable Appveyor support at some future date:
+# * Visit the "Settings / General" configuration panel on GitLab.
+# * Add a new badge with these settings:
+#   https://ci.appveyor.com/api/projects/status/{HIDDEN}/branch/%{default_branch}?svg=true
+#        ...where "{HIDDEN}" is a secret string known only to us.
+# * Visit the "Settings / Webhooks" configuration panel on GitLab.
+# * Add a new webhook with these settings:
+#   URL: https://ci.appveyor.com/api/gitlab/webhook?id={HIDDEN}
+#        ...where "{HIDDEN}" is a secret string known only to us.
+#   Trigger: "Push events" and "Tag push events"
+#   SSL: Enable SSL verification
+#
+# That said, it's probably simpler and saner to simply migrate from GitLab to
+# GitHub at this point. The former offers:
+# * Unlimited CI minutes through GitHub Actions.
+# * Transparent cross-platform CI support for *ALL* supported platforms
+#   (including Microsoft Windows) through GitHub Actions.
+# * GitHub Sponsors enabling a prospective funding drive.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
 # --------------------( SYNOPSIS                          )--------------------
 # Project-wide Appveyor configuration, integrating the third-party
 # Windows-specific free-as-in-beer continuous integration (CI) service exposed
@@ -65,11 +95,12 @@
 #   skeleton leverages the general-purpose "pip" package manager rather than
 #   the Anaconda-specific "conda" package manager and hence is sadly useless.
 
+# ....................{ TODO                               }....................
 #FIXME: Auto-generate a pip-compliant binary Windows wheel file for this
 #project *AFTER* all successful test runs. For examples, see:
 #    https://raw.githubusercontent.com/AndrewAnnex/SpiceyPy/master/appveyor.yml
 
-# ....................{ CONFIGURATION                     }....................
+# ....................{ CONFIGURATION                      }....................
 # Disable .NET integration. Python projects are implicitly built during
 # installation.
 build: false
