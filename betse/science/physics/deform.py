@@ -1,13 +1,15 @@
-
 #!/usr/bin/env python3
+# ....................{ LICENSE                            }....................
 # Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+# ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science import sim_toolbox as stb
 from betse.util.io.log import logs
 from scipy.interpolate import SmoothBivariateSpline
 
+# ....................{ FUNCTIONS                          }....................
 def getDeformation(sim, cells, t, p):
     """
     Calculate the deformation of the cell cluster under the action of
@@ -246,11 +248,11 @@ def timeDeform(sim, cells, t, p):
 
 
 def implement_deform_timestep(sim, cells, t, p):
-    """
-    Implements the deformation of the tissue cluster based on divergence-free deformation
-    calculated for cell centres.
+    '''
+    Implements the deformation of the tissue cluster based on divergence-free
+    deformation calculated for cell centres.
+    '''
 
-    """
     # create a smooth bivariate spline to interpolate deformation data from cells:
     cellinterp_x = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_x, kx=4, ky=4)
     cellinterp_y = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_y, kx=4, ky=4)
@@ -261,7 +263,6 @@ def implement_deform_timestep(sim, cells, t, p):
 
     xv2 = cells.mem_verts[:, 0] + dxv
     yv2 = cells.mem_verts[:, 1] + dyv
-
 
     # calculate new cell centres:
     cell_cent_x = np.dot(cells.M_sum_mems, xv2*cells.mem_sa)/cells.cell_sa
@@ -274,14 +275,14 @@ def implement_deform_timestep(sim, cells, t, p):
     # repackage the vertices:
     cell_verts2 = []
 
-    for i, pts in enumerate(cells.cell_verts):
+    for i, _ in enumerate(cells.cell_verts):
         vx = xv2[cells.cell_to_mems[i]]
         vy = yv2[cells.cell_to_mems[i]]
 
         pts2 = np.column_stack((vx, vy))
         cell_verts2.append(pts2)
 
-    cells.cell_verts = np.asarray(cell_verts2)
+    cells.cell_verts = np.asarray(cell_verts2, dtype=object)
     cells.cell_centres = np.column_stack((cell_cent_x, cell_cent_y))
 
     # # calculate deformations wrt the ecm using the smooth bivariate spline:

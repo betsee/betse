@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# ....................{ LICENSE                           }....................
+# ....................{ LICENSE                            }....................
 # Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# ....................{ TODO                              }....................
+# ....................{ TODO                               }....................
 #FIXME: Get face to edge mappings for tri and vor.
 #FIXME: Make mids mappers.
 
@@ -14,7 +14,7 @@
 #following canonical StackOverflow post on the subject:
 #    https://stackoverflow.com/a/30960883/2809027
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 # import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -316,7 +316,7 @@ class DECMesh(object):
                     mark_for_merge.add(vi)
                 not_merged.add(indi)
 
-        mark_for_merge = np.asarray(list(mark_for_merge), dtype=np.int)
+        mark_for_merge = np.asarray(list(mark_for_merge), dtype=int)
         self.tri_verts = np.delete(self.tri_verts, mark_for_merge, axis = 0)
 
         # Calculate the Delaunday triangulation of cell centres based on the
@@ -326,7 +326,7 @@ class DECMesh(object):
         # Number of tri_verts.
         self.n_tverts = len(self.tri_verts)
         self.tri_vert_i = np.linspace(
-            0, self.n_tverts - 1, self.n_tverts, dtype=np.int)
+            0, self.n_tverts - 1, self.n_tverts, dtype=int)
 
         tri_ccents = []  # circumcentres of the triangles
         tri_cents = []  # centroids of the triangles
@@ -398,7 +398,7 @@ class DECMesh(object):
 
         self.n_tverts = len(self.tri_verts)  # number of tri_verts
         self.tri_vert_i = np.linspace(
-            0, self.n_tverts - 1, self.n_tverts, dtype=np.int)
+            0, self.n_tverts - 1, self.n_tverts, dtype=int)
 
         # Number of simplexes in trimesh.
         self.n_tcell = len(self.tri_cells)
@@ -644,7 +644,7 @@ class DECMesh(object):
         self.bflags_tedges = np.asarray(bflags_tedges)
 
         self.tri_edge_i = np.linspace(
-            0, self.n_tedges - 1, self.n_tedges, dtype=np.int)
+            0, self.n_tedges - 1, self.n_tedges, dtype=int)
         self.inner_tedge_i = np.delete(self.tri_edge_i, self.bflags_tedges)
 
         # Finally, go through and calculate mids, len, and tangents of
@@ -729,9 +729,12 @@ class DECMesh(object):
                     verts_to_edges[vi].append(ea) # append the edge index to each vertex ind as well
                     verts_to_edges[vj].append(ea)
 
-        self.tcell_to_tedges = np.asarray(face_to_edges) # tri_face index to tri_edges indices mapping
+        # tri_face index to tri_edges indices mapping.
+        self.tcell_to_tedges = np.asarray(face_to_edges, dtype=object)
         # self.bflags_tcells = np.asarray(np.unique(bflags_tcells))  # trimesh faces on boundary
-        self.tverts_to_tedges = np.asarray(verts_to_edges) # for each tever, what edges does it belong to?
+
+        # For each tever, what edges does it belong to?
+        self.tverts_to_tedges = np.asarray(verts_to_edges, dtype=object)
 
         tedges_to_tcell = [[] for xi in self.tri_edges]
 
@@ -739,7 +742,7 @@ class DECMesh(object):
             for ei in edge_inds:
                 tedges_to_tcell[ei].append(tcell_i)
 
-        self.tedges_to_tcell = np.asarray(tedges_to_tcell)
+        self.tedges_to_tcell = np.asarray(tedges_to_tcell, dtype=object)
 
         if ignoreb is False:
             bcellso = self.tedges_to_tcell[self.bflags_tedges]
@@ -828,7 +831,7 @@ class DECMesh(object):
 
             vor_edge_verts.extend(vedge_verts)
 
-        self.vcell_verts = np.asarray(vcell_verts)
+        self.vcell_verts = np.asarray(vcell_verts, dtype=object)
         self.vor_verts_duplicates = vor_verts*1
         self.vor_verts = np.unique(np.asarray(vor_verts), axis=0)
         self.vor_sa = np.asarray(vor_sa)
@@ -949,7 +952,7 @@ class DECMesh(object):
         vor_edge_len = np.asarray(vor_edge_len)
         vor_tang = np.asarray(vor_tang)
 
-        self.vor_cells = np.asarray(vor_cells)
+        self.vor_cells = np.asarray(vor_cells, dtype=object)
 
         # last step is to map each vor_edge to its dual tri_edge
         # this is done using edge midpoints, which are nearly identical for
@@ -978,7 +981,8 @@ class DECMesh(object):
 
 
         self.n_vedges = len(self.vor_edges)
-        self.vor_edge_i = np.linspace(0, self.n_vedges - 1, self.n_vedges, dtype=np.int)
+        self.vor_edge_i = np.linspace(
+            0, self.n_vedges - 1, self.n_vedges, dtype=int)
 
         # self.vor_norm = np.asarray(vor_norm) # normals to vor cell surfaces (outwards pointing)
         # self.tri_norm = np.asarray(tri_norm) # normals to tri cell surfaces (outwards pointing)
@@ -988,8 +992,10 @@ class DECMesh(object):
         self.n_vcells = len(self.vor_cells)
 
         # Define indices arrays for vor mesh:
-        self.vor_vert_i = np.linspace(0, self.n_vverts - 1, self.n_vverts, dtype=np.int)
-        self.vor_cell_i = np.linspace(0, self.n_vcells - 1, self.n_vcells, dtype=np.int)
+        self.vor_vert_i = np.linspace(
+            0, self.n_vverts - 1, self.n_vverts, dtype=int)
+        self.vor_cell_i = np.linspace(
+            0, self.n_vcells - 1, self.n_vcells, dtype=int)
 
         # get final bounds for the cluster:
         xmin = self.vor_verts[:, 0].min()
@@ -1023,7 +1029,7 @@ class DECMesh(object):
             self.tri_verts = np.delete(self.tri_verts, unused_tverts, axis = 0)
             self.n_tverts = len(self.tri_verts) # number of tri_verts
             self.tri_vert_i = np.linspace(
-                0, self.n_tverts - 1, self.n_tverts, dtype=np.int)
+                0, self.n_tverts - 1, self.n_tverts, dtype=int)
 
             # Remake the trimesh with reduced set of triverts.
             self.trimesh_core_calcs()
@@ -1734,20 +1740,27 @@ class DECMesh(object):
 
         return curl_F
 
+
     def verts_to_mids(self, Sv, gtype = 'tri'):
-        """
-        Maps property S from vertices of mesh to midpoints of edges using barycentric interpolation.
+        '''
+        Maps property S from vertices of mesh to midpoints of edges using
+        barycentric interpolation.
 
         Parameters
         ------------
         Sv -- property defined at vertices (verts depend on gtype)
-        gtype  -- if transformation is from triverts to trimids or vorverts to vormids
+        gtype : str
+            Either:
+
+            * ``"tri"``, in which case the transformation is from triverts to
+              trimids.
+            * ``"vor"``, in which case the transformation is from  or vorverts
+              to vormids.
 
         Returns
         --------
         Sm  -- property at edge mids
-
-        """
+        '''
 
         if gtype == 'tri':
             assert(len(Sv) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
@@ -1805,21 +1818,27 @@ class DECMesh(object):
     #
     #     return Sv
 
+
     def mids_to_verts(self, Sm, gtype = 'tri'):
-        """
-        Maps property Sm from edge mids of mesh to vertices using integration to take an average of the
-        function.
+        '''
+        Maps property Sm from edge mids of mesh to vertices using integration to
+        take an average of the function.
 
         Parameters
         ------------
         Sm -- property at edge mids
-        gtype  -- if transformation is from triverts to trimids or vorverts to vormids
+        gtype : str
+            Either:
+
+            * ``"tri"``, in which case the transformation is from triverts to
+              trimids.
+            * ``"vor"``, in which case the transformation is from  or vorverts
+              to vormids.
 
         Returns
         --------
         Sv  -- property defined at vertices (final verts correspond to gtype)
-
-        """
+        '''
 
         if gtype == 'tri':
             assert(len(Sm) == self.n_tedges), "Length of array passed to grad is not edges length"
@@ -2086,21 +2105,25 @@ class DECMesh(object):
 
         return lapFx_inv, lapFy_inv
 
+
     def helmholtz_hodge(self, Fx, Fy, gtype = 'tri', btype=1):
-        """
-        Decomposes a vector field Fx, Fy into curl-free (gPhi_x, gPhi_y) and div-free (cPsi_x, cPsi_y) components
-        using the Helmholtz-Hodge (HH) decomposition, where F is constructed in terms of the grad of a scalar
-        potential Phi and the curl of a (z-axis oriented) vector potential Psi_z:
+        '''
+        Decomposes a vector field Fx, Fy into curl-free (gPhi_x, gPhi_y) and
+        div-free (cPsi_x, cPsi_y) components using the Helmholtz-Hodge (HH)
+        decomposition, where F is constructed in terms of the grad of a scalar
+        potential Phi and the curl of a (z-axis oriented) vector potential
+        Psi_z:
 
-        F = grad Phi + curl Psi_z + H
+            F = grad Phi + curl Psi_z + H
 
-        (where 'H' is a harmonic field component that can be found after the HH decomosition is complete by
-         calculating: H = F - grad Phi - curl Psi_z.)
+        (where 'H' is a harmonic field component that can be found after the HH
+        decomosition is complete by calculating: H = F - grad Phi - curl Psi_z.)
 
-        Note that because natural connectivity exists in the orthogonal DEC grids, performing the HH decomp
-        with gtype = 'tri' represents an 'open' or 'free' boundary condition for the fields (especially evident
-        in the div-free component), whereas gtype = 'vor' represents a closed boundary where there is zero normal
-        flux of the div-free component.
+        Note that because natural connectivity exists in the orthogonal DEC
+        grids, performing the HH decomp with gtype = 'tri' represents an 'open'
+        or 'free' boundary condition for the fields (especially evident in the
+        div-free component), whereas gtype = 'vor' represents a closed boundary
+        where there is zero normal flux of the div-free component.
 
         Parameters
         -----------
@@ -2112,8 +2135,8 @@ class DECMesh(object):
         ----------
         cPsi_x, cPsi_y: curl of vector potential Psi_z; div-free components of initial field F (on DEC mesh mids)
         gPhi_x, gPhi_y: grad of scalar potential Phi; curl-free components of initial field F (on DEC mesh mids)
+        '''
 
-        """
         if gtype == 'tri':
             op_gtype = 'vor'
 
@@ -2536,13 +2559,15 @@ class DECMesh(object):
 
         return R, area, cx, cy
 
+
     def inter_pt(self, line1, line2):
-        """
+        '''
         Returns the intersection point of two lines in 2D.
+
         :param line1: array of arrays representing two points on the first line
         :param line2: array of arrays representing two points on the second line
         :return: ptx, pty, the point of intersection
-        """
+        '''
 
         x1 = line1[0][0]
         y1 = line1[0][1]
@@ -2688,11 +2713,14 @@ class DECMesh(object):
         self.tri_cells = np.asarray(self.tri_cells)
 
         self.n_tverts = len(self.tri_verts)  # number of tri_verts
-        self.tri_vert_i = np.linspace(0, self.n_tverts - 1,
-                                      self.n_tverts, dtype=np.int)
+        self.tri_vert_i = np.linspace(
+            0, self.n_tverts - 1, self.n_tverts, dtype=int)
 
-        self.n_tcell = len(self.tri_cells)  # number of simplexes in trimesh
-        self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])  # indices vector of trimesh
+        # Number of simplexes in trimesh.
+        self.n_tcell = len(self.tri_cells)
+
+        # Indices vector of trimesh.
+        self.tri_cell_i = np.asarray([i for i in range(self.n_tcell)])
 
         # Reconstruct tri_edges. Get tri-edge indices for edges that need to be
         # removed.
@@ -2705,7 +2733,7 @@ class DECMesh(object):
         tri_edges = []
 
         # Reconstruct edges in terms of new tri_vert array inds.
-        for ii, everts in enumerate(tedge_verts):
+        for everts in tedge_verts:
             edge_inds = tri_vtree.query(everts)[1]
             if len(edge_inds) == 2:
                 tri_edges.append(edge_inds)
@@ -2713,7 +2741,8 @@ class DECMesh(object):
         self.tri_edges = np.asarray(tri_edges)
 
         self.n_tedges = len(self.tri_edges)  # number of edges in trimesh
-        self.tri_edge_i = np.linspace(0, self.n_tedges - 1, self.n_tedges, dtype=np.int)
+        self.tri_edge_i = np.linspace(
+            0, self.n_tedges - 1, self.n_tedges, dtype=int)
 
         self.tri_mids = np.delete(self.tri_mids, tedge_targs, axis = 0)
         self.tri_edge_len = np.delete(self.tri_edge_len, tedge_targs, axis =0)
@@ -3085,15 +3114,15 @@ class DECMesh(object):
 
         return fig, axarr
 
-    def plot_test_C(self, gtype = 'vor', btype = 2, size = (10, 8), print_errors = True):
-        """
-        Analytical function comparison for the Helmholtz-Hodge decomposition of a vector field into
-        its divergence-free and curl-free components.
+    def plot_test_C(
+        self, gtype = 'vor', btype = 2, size = (10, 8), print_errors = True):
+        '''
+        Analytical function comparison for the Helmholtz-Hodge decomposition of
+        a vector field into its divergence-free and curl-free components.
 
         As the 'vor' mesh represents an open/free boundary, this condition best
         replicates the analytical math equations.
-
-        """
+        '''
 
         ax = self.centroid[0]
         ay = self.centroid[1]

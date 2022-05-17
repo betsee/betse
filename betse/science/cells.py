@@ -8,15 +8,15 @@ import math
 import numpy as np
 from numpy import ndarray
 from scipy import interpolate as interp
-from scipy import ndimage
-from scipy.spatial import Voronoi, cKDTree
+from scipy.ndimage import gaussian_filter
+from scipy.spatial import cKDTree  # Voronoi
 from betse.exceptions import BetseSequenceException, BetseSimConfException
 from betse.science import filehandling as fh
 from betse.science.enum.enumconf import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
-from betse.util.math.geometry.polygon.geopolyconvex import clip_counterclockwise
-from betse.util.math.geometry.polygon.geopoly import orient_counterclockwise, is_convex
+# from betse.util.math.geometry.polygon.geopolyconvex import clip_counterclockwise
+# from betse.util.math.geometry.polygon.geopoly import orient_counterclockwise, is_convex
 from betse.science.phase.phasecls import SimPhase
 from betse.util.io.log import logs
 from betse.util.type.decorator.decmemo import property_cached
@@ -25,7 +25,7 @@ from betse.util.type.types import (
     type_check, NumericOrSequenceTypes, SequenceTypes)
 from betse.lib.numpy import nparray
 from betse.util.type.text import regexes
-from betse.science.tissue.picker.tispickimage import TissuePickerImage
+# from betse.science.tissue.picker.tispickimage import TissuePickerImage
 from betse.science.math.mesh import DECMesh
 
 # ....................{ CLASSES                           }....................
@@ -1013,7 +1013,7 @@ class Cells(object):
                 pt_scale.append(p.scale_cell*pt_zero + centre)
             self.cell_verts.append(np.asarray(pt_scale))
 
-        self.cell_verts = np.asarray(self.cell_verts)
+        self.cell_verts = np.asarray(self.cell_verts, dtype=object)
 
         # self.cell_vol = []   # storage for cell volumes
         self.cell_sa = []    # whole cell surface areas
@@ -1090,7 +1090,7 @@ class Cells(object):
 
         #---post processing and calculating peripheral structures-----------------------------------------------------
 
-        self.mem_mids = np.asarray(mem_mids)
+        self.mem_mids = np.asarray(mem_mids, dtype=object)
 
         self.mem_mids_flat, indmap_mem, _ = tb.flatten(mem_mids)
         self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
@@ -1132,18 +1132,18 @@ class Cells(object):
             # One-dimensional Numpy array of the indices of all membranes of
             # the current cell. Note that:
             #
-            # * "self.mem_to_cells == cell_index" is a Numpy boolean array
+            # * "self.mem_to_cells == cell_index" is a Numpy boolean array.
             # * ndarray.nonzero() returns an n-tuple of the indices of all items
             #   of this boolean array evaluating to True, where "n" is the
             #   number of dimensions of the "mem_to_cells" array. Since this
             #   array is one-dimensional, this is guaranteed to be a 1-tuple
             #   whose first item providing this array is indexed at "[0]".
             #
-            #It is confusing. It is Numpy.
+            # It is confusing. It is Numpy.
             mems_index = (self.mem_to_cells == cell_index).nonzero()[0]
             self.cell_to_mems.append(mems_index)
 
-        self.cell_to_mems = np.asarray(self.cell_to_mems)
+        self.cell_to_mems = np.asarray(self.cell_to_mems, dtype=object)
 
         #----------------------------------------------------------
         # cell surface area:
@@ -1560,22 +1560,18 @@ class Cells(object):
             self.num_nn.append(len(indices))
 
         self.average_nn = (sum(self.num_nn)/len(self.num_nn))
-
         self.num_nn = np.asarray(self.num_nn)
+        self.cell_nn = np.asarray(self.cell_nn, dtype=object)
 
-        self.cell_nn = np.asarray(self.cell_nn)
-
-        # nearest neighbours to the boundary cells:
+        # Nearest neighbours to the boundary cells.
         nn_bound = self.cell_nn[self.bflags_cells]
         nn_bound, _,_ = tb.flatten(nn_bound)
 
         self.nn_bound = []
         for ind in nn_bound:  # take out the shared values:
-
             if ind not in self.bflags_cells:
                 self.nn_bound.append(ind)
 
-        # Perfect bflags mems:
 
     def makeECM(self,p):
 
@@ -1684,7 +1680,7 @@ class Cells(object):
             _, eci = points_tree_ecm.query(mem_pts)
             cell_to_ecm.append(eci.tolist())
 
-        self.cell_to_ecm = np.asarray(cell_to_ecm)
+        self.cell_to_ecm = np.asarray(cell_to_ecm, dtype=object)
 
         self.all_points = np.vstack((self.cell_centres, self.ecm_points))
         self.all_points_imap = np.hstack((self.cell_i, self.ecm_i))
@@ -1694,17 +1690,18 @@ class Cells(object):
         self.adl = len(self.all_points)
 
         points_tree_mems = cKDTree(self.mem_mids_flat)
-        ecm_to_mems_o = points_tree_mems.query_ball_point(self.ecm_points, r = 10*p.cell_space)
+        ecm_to_mems_o = points_tree_mems.query_ball_point(
+            self.ecm_points, r=10*p.cell_space)
 
         ecm_to_mems = []
         ecm_to_cells = []
-        for i, ecm_is in enumerate(ecm_to_mems_o):
 
+        for i, ecm_is in enumerate(ecm_to_mems_o):
             ecm_to_mems.append(ecm_is)
             ecm_to_cells.append(self.mem_to_cells[ecm_is])
 
-        self.ecm_to_mems = np.asarray(ecm_to_mems)
-        self.ecm_to_cells = np.asarray(ecm_to_cells)
+        self.ecm_to_mems = np.asarray(ecm_to_mems, dtype=object)
+        self.ecm_to_cells = np.asarray(ecm_to_cells, dtype=object)
 
         # Surface area and volume of ecm spaces:
         self.ecm_vol = []
@@ -1985,7 +1982,7 @@ class Cells(object):
                 if cell not in flags:  # if the cell is not in the removal list
                     new_cell_nn[i].append(cell)
 
-        self.cell_nn_connected = np.asarray(new_cell_nn)
+        self.cell_nn_connected = np.asarray(new_cell_nn, dtype=object)
 
         # Redo the number and average nearest neighbours per cell:
         self.num_nn = []  # initialize a list that will hold number of nns to a cell
@@ -2017,27 +2014,22 @@ class Cells(object):
         # calculate gap junction vectors
         self.calc_gj_vects(p)
 
-    def calc_gj_vects(self,p):
 
-        """
-        Recalculate nearest neighbour (gap junction)
-        vectors.
+    def calc_gj_vects(self,p):
+        '''
+        Recalculate nearest neighbour (gap junction) vectors.
 
         Used in deformation sequence.
-        """
+        '''
 
         self.nn_mids = []
-
         self.nn_tx = []  # tangent vector to gap junction (through neighboring cell centres)
         self.nn_ty = []
-
-
         self.nn_len = []  # distance between neighbouring cell centres
 
         self.nn_edges = [[] for x in self.mem_i]  # line segment between neighbouring cell centres
 
         for mem_i, mem_j in enumerate(self.nn_i):
-
             cell_i, cell_j = self.cell_nn_i[mem_i]
 
             # calculate vectors for the pairing:
@@ -2057,9 +2049,7 @@ class Cells(object):
             if tang_mag == 0.0:
                 tang_x = 0
                 tang_y = 0
-
             else:
-
                 tang_x = tang_x_o/tang_mag
                 tang_y = tang_y_o/tang_mag
 
@@ -2075,11 +2065,8 @@ class Cells(object):
             len_mag = np.sqrt(len_xo**2 + len_yo**2)
 
             if len_mag == 0.0:
-
                 self.nn_len.append(-1) # FIXME -- this seems like a horrific idea...
-
             else:
-
                 self.nn_len.append(len_mag)
 
             self.nn_tx.append(tang_x)
@@ -2099,7 +2086,6 @@ class Cells(object):
         self.cell_nn_ty = []
 
         for cell_i, cell_j in self.cell_nn_i:
-
             pt1 = self.cell_centres[cell_i]
             pt2 = self.cell_centres[cell_j]
 
@@ -2108,7 +2094,6 @@ class Cells(object):
 
             if norm_tang != 0:
                 tang = tang_o/norm_tang
-
             else:
                 norm_tang = 1
                 tang = tang_o/norm_tang
@@ -2121,17 +2106,17 @@ class Cells(object):
         self.cell_nn_tx = np.asarray(self.cell_nn_tx)
         self.cell_nn_ty = np.asarray(self.cell_nn_ty)
 
-        # mapping between gap junction index and cell:
+        # Mapping between gap junction index and cell:
         self.cell_to_nn_full = [[] for x in range(len(self.cell_i))]
 
         for i, (cell_i, cell_j) in enumerate(self.cell_nn_i):
-
-            if cell_i != cell_j:  # if it's not a boundary membrane...
-
+            # If it's not a boundary membrane...
+            if cell_i != cell_j:
                 self.cell_to_nn_full[cell_i].append(i)
                 self.cell_to_nn_full[cell_j].append(i)
 
-        self.cell_to_nn_full = np.asarray(self.cell_to_nn_full)
+        self.cell_to_nn_full = np.asarray(self.cell_to_nn_full, dtype=object)
+
 
     @type_check
     def save_cluster(self, phase: SimPhase) -> None:
@@ -2153,11 +2138,12 @@ class Cells(object):
         datadump = [self, phase.p]
         fh.saveSim(phase.p.seed_pickle_filename, datadump)
 
+
     def make_maskM(self,p):
-        """
-        Create structures for plotting interpolated data on cell centres
-        and differentiating between the cell cluster and environment.
-        """
+        '''
+        Create structures for plotting interpolated data on cell centres and
+        differentiating between the cell cluster and environment.
+        '''
 
         voronoiTree = cKDTree(self.xypts)
         _, self.map_voronoi2ecm = voronoiTree.query(self.ecm_verts_unique)
@@ -2178,14 +2164,14 @@ class Cells(object):
             self.voronoi_mask,(self.Xgrid,self.Ygrid),
             method='linear',fill_value=0)
 
-        self.maskM = ndimage.filters.gaussian_filter(self.maskM, 1, mode='nearest')
+        self.maskM = gaussian_filter(self.maskM, 1, mode='nearest')
         self.maskM = np.round(self.maskM,0)
 
         self.maskECM = interp.griddata(
             (X.ravel(),Y.ravel()),self.maskM.ravel(),
             (self.X, self.Y),
             method='linear',fill_value=0)
-        self.maskECM = ndimage.filters.gaussian_filter(self.maskECM, 1, mode='nearest')
+        self.maskECM = gaussian_filter(self.maskECM, 1, mode='nearest')
         self.maskECM = np.round(self.maskECM,0)
 
         self.inds_env = list(*(self.maskECM.ravel() == 0).nonzero())
@@ -2196,13 +2182,15 @@ class Cells(object):
         vertTree = cKDTree(self.voronoi_centres)
         _, self.cell_to_grid = vertTree.query(self.cell_centres)
 
+
     def intra_updater(self,p):
-        """
-        Calculates a matrix that takes values on membrane midpoints,
-        interpolates them to cell vertices, and adds them all together as half
-        of a finite volume integration for the pie-box regions. The other half
-        will come from the centroid region value.
-        """
+        '''
+        Calculate a matrix that takes values on membrane midpoints, interpolate
+        them to cell vertices, and add them all together as half of a finite
+        volume integration for the pie-box regions.
+
+        The other half will come from the centroid region value.
+        '''
 
         self.M_int_mems = np.zeros((len(self.mem_i), len(self.mem_i)))
 
@@ -2229,8 +2217,8 @@ class Cells(object):
 
         logs.log_info('Creating computational tools for mechanical deformation... ')
 
-        # create a data structure that will allow us to repackage ecm_verts and re-build the
-        # cells world after deforming ecm_verts_unique:
+        # create a data structure that will allow us to repackage ecm_verts and
+        # re-build the cells world after deforming ecm_verts_unique:
 
         # first get the search-points tree:
         ecmTree = cKDTree(self.ecm_verts_unique)
@@ -2238,7 +2226,6 @@ class Cells(object):
         self.inds2ecmVerts = []
 
         for verts in self.ecm_verts:
-
             sublist = []
 
             for v in verts:
@@ -2246,13 +2233,14 @@ class Cells(object):
                 sublist.append(ind)
             self.inds2ecmVerts.append(sublist)
 
-        self.inds2ecmVerts = np.asarray(self.inds2ecmVerts)
+        self.inds2ecmVerts = np.asarray(self.inds2ecmVerts, dtype=object)
+
 
     def eosmo_tools(self,p):
 
-        # if studying lateral movement of pumps and channels in membrane,
-        # create a matrix that will take a continuous gradient for a value on a cell membrane:
-        # returns gradient tangent to cell membrane
+        # If studying lateral movement of pumps and channels in membrane, create
+        # a matrix that will take a continuous gradient for a value on a cell
+        # membrane: returns gradient tangent to cell membrane.
 
         self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
 

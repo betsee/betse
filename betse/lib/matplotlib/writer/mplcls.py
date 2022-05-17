@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,13 +9,13 @@ Matplotlib-specific classes writing animations as frames.
 
 #FIXME: Consider contributing most or all of this submodule back to matplotlib.
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from matplotlib.animation import writers, MovieWriter
 
-# ....................{ CLASSES                           }....................
+# ....................{ CLASSES                            }....................
 @writers.register('noop')
 class NoopMovieWriter(MovieWriter):
     '''
@@ -38,17 +38,17 @@ class NoopMovieWriter(MovieWriter):
     of this subclass to the :meth:`Animation.save` method.
     '''
 
-    # ..................{ SUPERCLASS ~ class                }..................
+    # ..................{ SUPERCLASS ~ class                 }..................
     @classmethod
     def isAvailable(cls):
         '''
-        Notify users that this class does _not_ depend on external commands and
+        Notify users that this class does *not* depend on external commands and
         hence is *always* available.
         '''
 
         return True
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     def __init__(self, *args, **kwargs) -> None:
         '''
         Initialize this writer.
@@ -65,11 +65,11 @@ class NoopMovieWriter(MovieWriter):
         kwargs['extra_args'] = list()
         super().__init__(*args, **kwargs)
 
-    # ..................{ SUPERCLASS                        }..................
+    # ..................{ SUPERCLASS                         }..................
     def grab_frame(self, **kwargs) -> None:
         '''
-        Prevent the superclass :meth:`grab_frame` method from writing this
-        frame to the current sink for this writer.
+        Prevent the superclass :meth:`grab_frame` method from writing this frame
+        to the current sink for this writer.
 
         This writer fails to redefine the :meth:`_frame_sink` method and hence
         defaults to the sink provided by the superclass: stdin. Since stdin is
@@ -80,11 +80,10 @@ class NoopMovieWriter(MovieWriter):
         pass
 
 
-    def cleanup(self):
+    def finish(self):
         '''
-        Prevent the superclass :meth:`cleanup` method from attempting to
-        capture output from an external process no longer forked by this
-        subclass.
+        Prevent the superclass :meth:`finish` method from attempting to capture
+        output from an external process no longer forked by this subclass.
         '''
 
         pass

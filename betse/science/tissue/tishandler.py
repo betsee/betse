@@ -1125,13 +1125,13 @@ class TissueHandler(object):
         removal_flags = np.zeros(len(cells.cell_i))
         removal_flags[target_inds_cell] = 1
 
-        for i,flag in enumerate(removal_flags):
+        for i, flag in enumerate(removal_flags):
             if flag == 0:
                 new_cell_centres.append(cells.cell_centres[i])
                 new_ecm_verts.append(cells.ecm_verts[i])
 
         cells.cell_centres = np.asarray(new_cell_centres)
-        cells.ecm_verts = np.asarray(new_ecm_verts)
+        cells.ecm_verts = np.asarray(new_ecm_verts, dtype=object)
 
         # recalculate ecm_verts_unique:
         ecm_verts_flat,_,_ = tb.flatten(cells.ecm_verts)
