@@ -136,8 +136,7 @@ RUNTIME_MANDATORY = {
     # setuptools is used to validate that dependencies are available.
     'setuptools': '>= ' + SETUPTOOLS_VERSION_MIN,
 
-    # Dependencies directly required by this application. Notably:
-    #
+    # Scientific stack. Dismantled, this is:
     # * Numpy 1.13.0 first introduced the optional "axis" keyword argument to
     #   the numpy.unique() function, which this codebase commonly passes.
     # * Pillow 5.3.0 first introduced the standard "pillow.__version__"
@@ -145,15 +144,13 @@ RUNTIME_MANDATORY = {
     # * Matplotlib 3.3.4, which appears to assist in resolving inscrutable
     #   low-level non-human-readable errors under Linux resembling:
     #       ICE default IO error handler doing an exit(), pid = 11281, errno = 4
-    'Numpy':      '>= 1.13.0',
+    'Numpy':      '>= 1.22.0',
     'Pillow':     '>= 5.3.0',
     'SciPy':      '>= 0.12.0',
     'dill':       '>= 0.2.3',
     'matplotlib': '>= 3.3.4',
 
-    # A relatively modern version of "ruamel.yaml" variants is required.
-    # Specifically, this application requires:
-    #
+    # IO stack. Dismantled, this is:
     # * ruamel.yaml >= 0.15.24, which resolves a long-standing parser issue
     #   preventing complex YAML markup (e.g., ours) from being roundtripped:
     #   "0.15.24 (2017-08-09):
@@ -165,6 +162,11 @@ RUNTIME_MANDATORY = {
     #   with a modern object-oriented approach. Supporting both isn't worth the
     #   substantial increase in maintenance debt.
     'ruamel.yaml': '>= 0.15.24',
+
+    # QA stack. Dismantled, this is:
+    # * beartype >= 0.10.0, which first defined the "beartype.typing"
+    #   compatibility layer widely used throughout this codebase.
+    'beartype': '>= 0.10.0',
 
     # Dependencies indirectly required by this application but only optionally
     # required by dependencies directly required by this application. Since the

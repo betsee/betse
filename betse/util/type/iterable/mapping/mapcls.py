@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -45,8 +45,12 @@ type or an analogue thereof).
 #      )
 #* Replace all existing references to the "collections.OrderedDict" type with
 #  the above "DictOrdered" type.
+#FIXME: Actually, BETSE only supports Python >= 3.8 now. Ergo, just
+#unconditionally assume dictionaries to be ordered and drop all existing
+#references to the obsolete (and possibly now even deprecated)
+#"collections.OrderedDict" type.
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from betse.exceptions import (
     BetseMappingException, BetseMethodUnimplementedException)
 from betse.util.type import types
@@ -60,14 +64,14 @@ from betse.util.type.types import (
 )
 from collections import OrderedDict
 
-# ....................{ GLOBALS                           }....................
+# ....................{ GLOBALS                            }....................
 _DEFAULT_DICT_ID = 0
 '''
 Unique arbitrary identifier with which to uniquify the class name of the next
 :func:`DefaultDict`-derived type.
 '''
 
-# ....................{ CLASSES ~ default                 }....................
+# ....................{ CLASSES ~ default                  }....................
 #FIXME: Donate back to StackOverflow. The standard "defaultdict" class is
 #sufficiently useless that numerous users would probably find this useful.
 @type_check

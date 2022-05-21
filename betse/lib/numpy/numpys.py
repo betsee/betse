@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -42,12 +42,20 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 #machine learning workflows at Google (e.g., DeepMind), but sufficiently
 #generalized as to support a wide variety of computational needs -- like ours.
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import numpy
-from betse.util.io.log import logs
+from beartype.typing import (
+    Dict,
+    Optional,
+)
+from betse.util.io.log.logs import (
+    log_debug,
+    log_exception,
+    log_warning,
+)
 from betse.util.os import dlls
 from betse.util.os.brand import linux, macos, posix
-from betse.util.path import dirs, files, pathnames
+from betse.util.path import dirs, pathnames
 from betse.util.py import pys
 from betse.util.py.module import pymodname, pymodule
 from betse.util.type.decorator.decmemo import func_cached
@@ -56,21 +64,20 @@ from betse.util.type.iterable.mapping.mapcls import OrderedArgsDict
 from betse.util.type.numeric import versions
 from betse.util.type.text import regexes
 from betse.util.type.types import BoolOrNoneTypes, ModuleType
-from numpy import __config__ as numpy_config
 
-# ....................{ GLOBALS                           }....................
+# ....................{ GLOBALS                            }....................
 VERSION = numpy.__version__
 '''
 Human-readable :mod:`numpy` version string (e.g., ``1.14.5``).
 '''
 
-# ....................{ GLOBALS ~ opt_info                }....................
+# ....................{ GLOBALS ~ opt_info                 }....................
 # Fully initialized by the _init_globals() function below.
 _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX = None
 '''
 Uncompiled regular expression heuristically matching the basenames of optimized
 BLAS shared libraries in the ``libraries`` list of the global
-:data:`numpy.__config__.blas_opt_info` dictionary.
+:data:`numpy.distutils.__config__.blas_opt_info` dictionary.
 
 This expression does *not* match the strict superset of optimized BLAS shared
 libraries that are also optimized, as doing so in a cross-platform manner is
@@ -113,7 +120,7 @@ _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_DIRS_REGEX = None
 '''
 Uncompiled regular expression heuristically matching the dirnames of optimized
 BLAS shared libraries in the `libraries` list of the global
-:data:`numpy.__config__.blas_opt_info` dictionary.
+:data:`numpy.distutils.__config__.blas_opt_info` dictionary.
 
 See Also
 ----------
@@ -132,15 +139,15 @@ _OPTIMIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_MACOS = {
 }
 '''
 Set of all strings in the `extra_link_args` list of the global
-:data:`numpy.__config__.blas_opt_info` dictionary heuristically corresponding
-to macOS-specific optimized BLAS shared libraries.
+:data:`numpy.distutils.__config__.blas_opt_info` dictionary heuristically
+corresponding to macOS-specific optimized BLAS shared libraries.
 
 Unlike all other such libraries, Numpy does _not_ declare unique dictionary
 globals describing macOS-specific BLAS shared libraries when linked against.
 Hence, this lower-level solution.
 '''
 
-# ....................{ GLOBALS ~ linked lib              }....................
+# ....................{ GLOBALS ~ linked lib               }....................
 # Fully initialized by the _init_globals() function below.
 _OPTIMIZED_BLAS_LINKED_LIB_BASENAME_REGEX = None
 '''
@@ -166,7 +173,7 @@ See Also
     Further details.
 '''
 
-# ....................{ INITIALIZERS                      }....................
+# ....................{ INITIALIZERS                       }....................
 # For simplicity, this function is called below on the first importation of
 # this submodule rather than explicitly called by callers.
 def init() -> None:
@@ -182,14 +189,14 @@ def init() -> None:
     '''
 
     # Log this initialization.
-    logs.log_debug('Initializing NumPy...')
+    log_debug('Initializing NumPy...')
 
     # Initialize all uninitialized global variables of this submodule.
     _init_globals()
 
     # If Numpy linked against an unoptimized BLAS, log a non-fatal warning.
     if not is_blas_optimized():
-        logs.log_warning(
+        log_warning(
             'Numpy unoptimized; scaling down to single-core operation. '
             'Consider installing an optimized multithreaded '
             'CBLAS implementation (e.g., OpenBLAS, ATLAS, ACML, MKL) and '
@@ -292,7 +299,7 @@ def _init_globals() -> None:
     _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_DIRS_REGEX = (
         _OPTIMIZED_BLAS_LINKED_LIB_DIRNAME_REGEX)
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 @func_cached
 def is_blas_optimized() -> bool:
     '''
@@ -326,9 +333,10 @@ def is_blas_optimized() -> bool:
         # Attempt to...
         try:
             # Log the current heuristic being attempted.
-            logs.log_debug(
+            log_debug(
                 'Detecting BLAS by heuristic %s()...',
-                tester_heuristic.__name__)
+                tester_heuristic.__name__,
+            )
 
             # Call this tester, capturing the result for subsequent handling.
             tester_result = tester_heuristic()
@@ -337,7 +345,7 @@ def is_blas_optimized() -> bool:
             # optimized or non-optimized...
             if tester_result is not None:
                 # Log this result.
-                logs.log_debug('BLAS optimization detected: %r', tester_result)
+                log_debug('BLAS optimization detected: %r', tester_result)
 
                 # Return this result.
                 return tester_result
@@ -346,13 +354,13 @@ def is_blas_optimized() -> bool:
         # Detecting Numpy optimization is non-essential and hence hardly worth
         # halting the application over.
         except Exception as exception:
-            logs.log_exception(exception)
+            log_exception(exception)
 
     # Else, all heuristics failed to definitively identify Numpy to be either
     # optimized or non-optimized. For safety, assume the latter.
     return False
 
-# ....................{ TESTERS ~ private                 }....................
+# ....................{ TESTERS ~ private                  }....................
 def _is_blas_optimized_conda() -> BoolOrNoneTypes:
     '''
     ``True`` only if the active Python interpreter is managed by ``conda`` *or*
@@ -383,11 +391,11 @@ def _is_blas_optimized_conda() -> BoolOrNoneTypes:
     # erroneously halt the detection process here.)
     return pys.is_conda() or None
 
-# ....................{ TESTERS ~ private : opt_info      }....................
+# ....................{ TESTERS ~ private : opt_info       }....................
 def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
     '''
     ``True`` only if the first item of the ``libraries`` list of the global
-    :data:`numpy.__config__.blas_opt_info` dictionary heuristically
+    :data:`numpy.distutils.__config__.blas_opt_info` dictionary heuristically
     corresponds to that of an optimized BLAS implementation, ``False`` if a
     non-fatal error condition arises (e.g., due this list or dictionary being
     undefined), *or* ``None`` otherwise.
@@ -397,26 +405,21 @@ def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
 
     Numpy does *not* define a public API exposing this boolean to callers.
     Numpy only defines a private API defining a medley of metadata from which
-    this boolean is indirectly derivable: the :mod:`numpy.__config__`
+    this boolean is indirectly derivable: the :mod:`numpy.distutils.__config__`
     submodule. The :func:`numpy.distutils.misc_util.generate_config_py`
     function programmatically fabricates the contents of the
-    :mod:`numpy.__config__` submodule at Numpy installation time. Ergo, this
-    function introspectively inspects these contents for uniquely identifying
-    metadata in a portable manner.
+    :mod:`numpy.distutils.__config__` submodule at Numpy installation time.
+    Ergo, this function introspectively inspects these contents for uniquely
+    identifying metadata in a portable manner.
     '''
 
-    # Global BLAS linkage dictionary for this Numpy installation if any or
-    # "None" otherwise. Technically, this dictionary should *ALWAYS* be
-    # defined.  Reality probably occasionally begs to disagree, however.
-    blas_opt_info = getattr(numpy_config, 'blas_opt_info', None)
+    # NumPy BLAS metadata if found *OR* "None" otherwise.
+    blas_opt_info = _get_blas_opt_info_or_none()
 
-    # If this dictionary is undefined, log a non-fatal warning and return
-    # False. While sad, this is *NOT* worth raising an exception over.
+    # If this metadata does *NOT* exist, silently reduce to a noop.
     if blas_opt_info is None:
-        logs.log_warning(
-            'Numpy installation misconfigured: '
-            '"numpy.__config__.blas_opt_info" dictionary not found.')
-        return False
+        return None
+    # Else, this metadata exists.
 
     # List of the uniquely identifying substrings of all BLAS library basenames
     # this version of Numpy is linked against in a high-level manner if any or
@@ -456,14 +459,22 @@ def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
 def _is_blas_optimized_opt_info_library_dirs() -> BoolOrNoneTypes:
     '''
     ``True`` only if the first element of the `library_dirs` list of the
-    global :data:`numpy.__config__.blas_opt_info` dictionary heuristically
-    corresponds to that of an optimized BLAS implementation, ``False`` if a
-    non-fatal error condition arises (e.g., due this list or dictionary being
-    undefined), *or* ``None`` otherwise.
+    global :data:`numpy.distutils.__config__.blas_opt_info` dictionary
+    heuristically corresponds to that of an optimized BLAS implementation,
+    ``False`` if a non-fatal error condition arises (e.g., due this list or
+    dictionary being undefined), *or* ``None`` otherwise.
 
     This function returns ``None`` when unable to deterministically decide this
     boolean, in which case a subsequent heuristic will attempt to do so.
     '''
+
+    # NumPy BLAS metadata if found *OR* "None" otherwise.
+    blas_opt_info = _get_blas_opt_info_or_none()
+
+    # If this metadata does *NOT* exist, silently reduce to a noop.
+    if blas_opt_info is None:
+        return None
+    # Else, this metadata exists.
 
     # List of the dirnames of all BLAS libraries this version of Numpy is
     # linked against in a high-level manner if any or "None" otherwise.
@@ -477,9 +488,9 @@ def _is_blas_optimized_opt_info_library_dirs() -> BoolOrNoneTypes:
     # "'extra_link_args': ['-Wl,-framework', '-Wl,Accelerate']" on macOS), this
     # list should *NOT* exist. In most other cases, this list should exist. To
     # avoid edge cases, this list is ignored if absent.
-    blas_dirnames = numpy_config.blas_opt_info.get('library_dirs', None)
+    blas_dirnames = blas_opt_info.get('library_dirs', None)
 
-    # If this list is either undefined or empty, silently noop.
+    # If this list is either undefined or empty, silently reduce to a noop.
     if not blas_dirnames:
         return None
     # Else, this list is non-empty.
@@ -507,8 +518,8 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     '''
     ``True`` only if the current platform is macOS *and* the
     ``extra_link_args`` list of the global
-    :data:`numpy.__config__.blas_opt_info` dictionary both exists *and*
-    heuristically corresponds to that of an optimized BLAS implementation
+    :data:`numpy.distutils.__config__.blas_opt_info` dictionary both exists
+    *and* heuristically corresponds to that of an optimized BLAS implementation
     specific to macOS (e.g., Accelerate, vecLib), ``False`` if a non-fatal error
     condition arises (e.g., due this list or dictionary being undefined), *or*
     ``None`` otherwise.
@@ -518,8 +529,9 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
 
     Unlike all other BLAS implementations, macOS-specific BLAS implementations
     are linked against with explicit linker flags rather than pathnames. For
-    further confirmation that the :attr:`numpy.__config__.blas_opt_info`
-    dictionary defines these flags when linked to these implementations, see:
+    further confirmation that the
+    :attr:`numpy.distutils.__config__.blas_opt_info` dictionary defines these
+    flags when linked to these implementations, see:
 
     * https://trac.macports.org/ticket/22200
     * https://github.com/BVLC/caffe/issues/2677
@@ -527,10 +539,18 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     When life buys you cat food, you eat cat food.
     '''
 
-    # If the current platform is *NOT* macOS, continue to the next heuristic.
+    # If the current platform is *NOT* macOS, silently reduce to a noop.
     if not macos.is_macos():
         return None
     # Else, the current platform is macOS.
+
+    # NumPy BLAS metadata if found *OR* "None" otherwise.
+    blas_opt_info = _get_blas_opt_info_or_none()
+
+    # If this metadata does *NOT* exist, silently reduce to a noop.
+    if blas_opt_info is None:
+        return None
+    # Else, this metadata exists.
 
     # List of all implementation-specific link arguments with which Numpy
     # linked against the current BLAS implementation if any or "None".
@@ -538,8 +558,7 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     # Note that the "blas_opt_info" dictionary global is guaranteed to exist
     # due to the previously called _is_blas_optimized_opt_info_basename()
     # function.
-    blas_link_args_list = numpy_config.blas_opt_info.get(
-        'extra_link_args', None)
+    blas_link_args_list = blas_opt_info.get('extra_link_args', None)
 
     # If no such argument exists, continue to the next heuristic. Since this
     # list is strictly optional, no errors or warnings are logged.
@@ -561,14 +580,14 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     # Else, instruct our caller to continue to the next heuristic.
     return None
 
-# ....................{ TESTERS ~ private : linkage       }....................
+# ....................{ TESTERS ~ private : linkage        }....................
 def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     '''
     ``True`` only if the current platform is POSIX-compliant and hence
     supports symbolic links *and* the first item of the ``libraries`` list of
-    the global :data:`numpy.__config__.blas_opt_info` dictionary is a symbolic
-    link masquerading as either the unoptimized reference BLAS implementation
-    but in fact linking to an optimized BLAS implementation.
+    the global :data:`numpy.distutils.__config__.blas_ilp64_opt_info` dictionary
+    is a symbolic link masquerading as either the unoptimized reference BLAS
+    implementation but in fact linking to an optimized BLAS implementation.
 
     This function returns ``None`` when unable to deterministically decide this
     boolean, in which case a subsequent heuristic will attempt to do so.
@@ -589,12 +608,20 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     if not linux.is_linux():
         return None
 
+    # NumPy BLAS metadata if found *OR* "None" otherwise.
+    blas_opt_info = _get_blas_opt_info_or_none()
+
+    # If this metadata does *NOT* exist, silently reduce to a noop.
+    if blas_opt_info is None:
+        return None
+    # Else, this metadata exists.
+
     # First element of the list of uniquely identifying substrings of all BLAS
     # library basenames this version of Numpy is linked against.
     #
     # Note that this list is guaranteed to both exist and be non-empty due to
     # the previously called _is_blas_optimized_opt_info_basename() function.
-    blas_basename_substr = numpy_config.blas_opt_info['libraries'][0]
+    blas_basename_substr = blas_opt_info['libraries'][0]
 
     # If this element appears to be neither the reference BLAS or CBLAS
     # implementations (e.g., "blas", "cblas", "refblas", "refcblas"), continue
@@ -604,14 +631,15 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
 
     # Arbitrary Numpy C extension.
     #
-    # Unfortunately, the "numpy.__config__" API fails to specify the absolute
-    # paths of the libraries it links against. Since there exists no reliable
-    # means of reverse engineering these paths from this API, these paths must
-    # be obtained by another means: specifically, by querying the standard
-    # "numpy.core.multiarray" C extension installed under all supported Numpy
-    # for the absolute paths of all external shared libraries to which this
-    # extension links -- exactly one of which is guaranteed to be the absolute
-    # path of what appears to be a reference BLAS or CBLAS implementation.
+    # Unfortunately, the "numpy.distutils.__config__" API fails to specify the
+    # absolute paths of the libraries it links against. Since there exists no
+    # reliable means of reverse engineering these paths from this API, these
+    # paths must be obtained by another means: specifically, by querying the
+    # standard "numpy.core.multiarray" C extension installed under all supported
+    # Numpy for the absolute paths of all external shared libraries to which
+    # this extension links -- exactly one of which is guaranteed to be the
+    # absolute path of what appears to be a reference BLAS or CBLAS
+    # implementation.
     numpy_lib = get_c_extension()
 
     # Absolute filename of this C extension.
@@ -656,7 +684,7 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     # Else, instruct our caller to continue to the next heuristic.
     return None
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 @func_cached
 def get_c_extension() -> ModuleType:
     '''
@@ -706,7 +734,7 @@ def get_c_extension_name_qualified() -> str:
         'numpy.core.multiarray'
     )
 
-# ....................{ GETTERS ~ metadata                }....................
+# ....................{ GETTERS ~ metadata                 }....................
 def get_metadatas() -> tuple:
     '''
     Tuple of 2-tuples ``(metedata_name, metadata_value)``, describing all
@@ -732,21 +760,112 @@ def get_blas_metadata() -> OrderedArgsDict:
     # This dictionary.
     metadata = OrderedArgsDict('optimized', is_blas_optimized())
 
-    # Set of all keys of the dictionary global synopsizing this metadata,
-    # sorted in ascending lexicographic order for readability.
-    blas_opt_info_keys = itersort.sort_ascending(
-        tuple(numpy_config.blas_opt_info.keys()))
+    # NumPy BLAS metadata if found *OR* "None" otherwise.
+    blas_opt_info = _get_blas_opt_info_or_none()
 
-    # For each such key...
-    for blas_opt_info_key in blas_opt_info_keys:
-        # The value of this key, unconditionally converted into a string and
-        # then trimmed to a reasonable string length. The values of numerous
-        # keys (e.g., "libraries", "sources") commonly exceed this length,
-        # hampering readability for little to no gain. Excise them all.
-        metadata[blas_opt_info_key] = strs.trim(
-            obj=numpy_config.blas_opt_info[blas_opt_info_key],
-            max_len=256,
-        )
+    # If this metadata exists...
+    if blas_opt_info is not None:
+        # Set of all keys of the dictionary global synopsizing this metadata,
+        # sorted in ascending lexicographic order for readability.
+        blas_opt_info_keys = itersort.sort_ascending(
+            tuple(blas_opt_info.keys()))
+
+        # For each such key...
+        for blas_opt_info_key in blas_opt_info_keys:
+            # The value of this key, unconditionally converted into a string and
+            # then trimmed to a reasonable string length. The values of numerous
+            # keys (e.g., "libraries", "sources") commonly exceed this length,
+            # hampering readability for little to no gain. Excise them all.
+            metadata[blas_opt_info_key] = strs.trim(
+                obj=blas_opt_info[blas_opt_info_key],
+                max_len=256,
+            )
 
     # Return this dictionary.
     return metadata
+
+# ....................{ GETTERS ~ private                  }....................
+@func_cached
+def _get_blas_opt_info_or_none() -> Optional[Dict[str, object]]:
+    '''
+    **NumPy BLAS metadata** (i.e., dictionary mapping from human-readable
+    strings to corresponding objects describing how NumPy found, linked against,
+    and included headers from an external BLAS shared library at NumPy
+    installation time) if such metadata exists *or* ``None`` otherwise (i.e., if
+    NumPy failed to catalogue this metadata at installation time).
+
+    Numpy does *not* define a public API exposing this metadata to callers.
+    Numpy only defines a private API defining a medley of metadata, only some of
+    which we particularly care about. Moreover, the attribute name of this
+    metadata unreliably changes depending on various external conditions --
+    including the minor version of NumPy and whether or not NumPy linked against
+    a visibly 64-bit version of a BLAS library. The
+    :func:`numpy.distutils.misc_util.generate_config_py` function
+    programmatically fabricates the contents of the
+    :mod:`numpy.distutils.__config__` submodule at Numpy installation time.
+    Ergo, this function introspectively inspects these contents for uniquely
+    identifying metadata in a hopefully portable manner.
+
+    Returns
+    ----------
+    Optional[Dict[str, object]]
+        Either:
+
+        * If NumPy BLAS metadata exists, that metadata.
+        * Else, ``None``.
+    '''
+
+    # Attempt to...
+    #
+    # Note that most (or perhaps *ALL*) of the following logic is inherently
+    # fragile. NumPy developers themselves admit that this API is private and
+    # will, in all likelihood, entirely go away under a future NumPy release:
+    #     This is all going to change when we change build systems, we won't be
+    #     preserving the "system_info" type output.
+    #
+    # Future-proofing dictates that we gate *ALL* of the following logic with
+    # protective exception handling guarding against mischief from NumPy devs.
+    try:
+        # Defer fragile imports from private third-party APIs.
+        from numpy.distutils import __config__ as numpy_config
+
+        # BLAS metadata if NumPy linked against a 32-bit BLAS shared library
+        # *OR* "None" otherwise.
+        blas_opt_info = getattr(numpy_config, 'blas_opt_info', None)
+
+        # If this metadata is defined, return this metadata as is.
+        if blas_opt_info is not None:
+            return blas_opt_info
+        # Else, this metadata is undefined.
+
+        # BLAS metadata if NumPy linked against a 64-bit BLAS shared library
+        # *OR* "None" otherwise.
+        blas_opt_info = getattr(numpy_config, 'blas_ilp64_opt_info', None)
+
+        # If this metadata is defined, return this metadata as is.
+        if blas_opt_info is not None:
+            return blas_opt_info
+        # Else, this metadata is undefined.
+
+        # Log a non-fatal warning.
+        log_warning(
+            (
+                'NumPy %s installation misconfigured '
+                '(i.e., "numpy.distutils.__config__.blas_opt_info" and '
+                '"numpy.distutils.__config__.blas_ilp64_opt_info" '
+                'dictionaries not found).'
+            ),
+            VERSION,
+        )
+    # If *ANY* of the above fragile imports failed, log a non-fatal warning.
+    except ImportError:
+        log_warning(
+            (
+                'NumPy %s unsupported '
+                '(i.e., "numpy.distutils.__config__" submodule not found).'
+            ),
+            VERSION,
+        )
+
+    # Return "None" as a fallback, because everything else failed.
+    return None

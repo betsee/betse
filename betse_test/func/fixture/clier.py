@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -63,12 +63,12 @@ BETSE CLI in the active Python interpreter.
 #clearly won't work for frozen commands. Instead, if running frozen, we'll need
 #to just call "betse config". Simple, if tedious.
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from betse.util.os.command import cmdexit
 from betse.util.type.types import type_check
 from pytest import fixture
 
-# ....................{ CONSTANTS                         }....................
+# ....................{ CONSTANTS                          }....................
 _CLI_OPTIONS_MANDATORY = (
     '--verbose',
     '--log-level=none',
@@ -96,7 +96,7 @@ fixture:
   automation.
 '''
 
-# ....................{ CLASSES                           }....................
+# ....................{ CLASSES                            }....................
 class CLITester(object):
     '''
     BETSE CLI test runner, efficiently testing a single subcommand of the
@@ -120,7 +120,7 @@ class CLITester(object):
       :data:`_CLI_OPTIONS_MANDATORY` tuple global.
     '''
 
-    # ..................{ RUNNERS                           }..................
+    # ..................{ RUNNERS                            }..................
     @type_check
     def run(self, *args: str) -> None:
         '''
@@ -164,7 +164,7 @@ class CLITester(object):
             'BETSE CLI failed with exit status {} '
             'given arguments: {}'.format(exit_status, args_evolved))
 
-# ....................{ FIXTURES                          }....................
+# ....................{ FIXTURES                           }....................
 # Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_cli() -> CLITester:
