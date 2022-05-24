@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -222,7 +222,7 @@ def is_exception_pathname_invalid(exception: WindowsErrorType) -> bool:
     # attribute exclusive to such intsances.
     return exception.winerror == _ERROR_INVALID_NAME
 
-# ....................{ TESTERS ~ version                 }....................
+# ....................{ TESTERS ~ version                  }....................
 @func_cached
 def is_version_10_or_newer() -> bool:
     '''
@@ -231,12 +231,13 @@ def is_version_10_or_newer() -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os import kernels
+    from betse.util.os.kernels import is_version_greater_than_or_equal_to
 
-    # Return true only if the current Windows kernel version is at least 10.
-    return kernels.is_version_greater_than_or_equal_to('10.0.0')
+    # Return true only if this platform is Windows *AND* this version of the
+    # Windows kernel is at least 10.
+    return is_windows() and is_version_greater_than_or_equal_to('10.0.0')
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 @func_cached
 def get_api_version() -> str:
     '''

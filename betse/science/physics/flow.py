@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.science import sim_toolbox as stb
-# from scipy.ndimage.filters import gaussian_filter
+# from scipy.ndimage import gaussian_filter
 # from betse.science.math import finitediff as fd
 
 # ....................{ GETTERS                           }....................

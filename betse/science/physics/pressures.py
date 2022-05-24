@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 
 import numpy as np
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import gaussian_filter
 
 
 def osmotic_P(sim, cells, p):

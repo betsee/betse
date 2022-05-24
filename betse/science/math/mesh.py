@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ....................{ LICENSE                            }....................
-# Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 # ....................{ TODO                               }....................
@@ -2710,7 +2710,7 @@ class DECMesh(object):
         for tvrts in self.tcell_verts:
             self.tri_cells.append(tri_vtree.query(tvrts)[1])
 
-        self.tri_cells = np.asarray(self.tri_cells)
+        self.tri_cells = np.asarray(self.tri_cells, dtype=object)
 
         self.n_tverts = len(self.tri_verts)  # number of tri_verts
         self.tri_vert_i = np.linspace(

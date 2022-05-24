@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                            }....................
@@ -8,7 +8,7 @@ from scipy import interpolate
 from betse.lib.pil import pilnumpy
 from betse.lib.pil.pilnumpy import ImageModeType
 from betse.util.path import pathnames
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import gaussian_filter
 from betse.science.math import finitediff as fd
 
 # ....................{ IMPORTS                            }....................

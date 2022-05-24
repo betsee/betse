@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
-# Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -15,18 +15,201 @@ https://matplotlib.org/examples/color/colormaps_reference.html
     with matplotlib.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSequenceException
 from betse.util.io.log import logs
 from betse.util.type.iterable import sequences
 from betse.util.type.numeric import ints
 from betse.util.type.types import type_check, SequenceTypes
-from matplotlib import cm as colormaps
-from matplotlib.colors import Colormap, LinearSegmentedColormap
+from matplotlib import colormaps
+from matplotlib.cm import (
+    get_cmap,
+    register_cmap,
+)
+from matplotlib.colors import (
+    Colormap,
+    LinearSegmentedColormap,
+)
 
-# ....................{ CLASSES                           }....................
-class MplColormapScheme(object):
+# ....................{ GETTERS                            }....................
+@type_check
+def get_colormap(name: str) -> Colormap:
+    '''
+    Matplotlib colormap with the passed name, including both standard colormaps
+    bundled with matplotlib *and* application-specific colormaps registered by
+    this submodule.
+
+    This function is a convenience wrapper for the
+    :func:`matplotlib.cm.get_cmap` function, provided only as a slightly
+    better-named utility to callers.
+
+    Parameters
+    ----------
+    name : str
+        Name of the colormap to be retrieved. If this is:
+
+        * A standard colormap bundled with matplotlib, this should be the name
+          of the attribute in the :mod:`matplotlib.cm` module corresponding to
+          the desired colormap (e.g., ``Blues``, ``jet``, ``rainbow``).
+        * An application-specific colormap registered by this submodule, this
+          should be the ``name`` parameter initializing an
+          :class:`_MplColormapScheme` instance contained in the
+          ``COLORMAP_SCHEMES`` tuple defined within the :func:`init` function.
+
+    Returns
+    ----------
+    Colormap
+        Matplotlib colormap with this name.
+
+    See Also
+    ----------
+    http://matplotlib.org/examples/color/colormaps_reference.html
+        List of supported colormaps.
+    '''
+
+    return get_cmap(name)
+
+# ....................{ ITERATORS                         }....................
+def iter_colormap_names() -> SequenceTypes:
+    '''
+    Sequence of the names of all colormaps currently registered with matplotlib
+    (in sorted lexicographic order).
+
+    Caveats
+    -----------
+    **This function should be called only after this submodule has been
+    initialized** (i.e., after the :func:`init` function has been called).
+    While this function *is* safely callable beforehand, doing so prevents this
+    function from returning the names of all application-specific colormaps
+    registered by that function.
+
+    **This function does not memoize this sequence** (e.g., by decorating this
+    function with :func:`betse.util.type.decorator.decmemo.func_cached`). This
+    sequence may change over the lifetime of this application and hence
+    *cannot* be implicitly cached on the first call to this function. Instead,
+    callers may prefer to manually cache this sequence for efficiency.
+    '''
+
+    # In theory, this implementation would simply defer to the existing
+    # matplotlib.pyplot.colormaps() function returning the exact same sequence.
+    # In practice, doing so is infeasible in the general case. Why? Because
+    # merely importing the "matplotlib.pyplot" submodule incurs non-trivial,
+    # non-deterministic, and irreversible side effects -- notably, the
+    # selection of a default backend.
+    #
+    # Inevitably, some external caller will call this function *BEFORE*
+    # selecting a default backend, implying that this function *CANNOT* import
+    # from the "matplotlib.pyplot" submodule. Instead, this function inlines
+    # the body of the matplotlib.pyplot.colormaps() function here. Fortunately,
+    # the body of this function reduces to a trivial one-liner.
+    return sorted(colormaps)
+
+# ....................{ INITIALIZERS                       }....................
+def init() -> None:
+    '''
+    Initialize this module by registering all application-specific colormaps
+    with matplotlib, enabling these colormaps to be trivially retrieved with
+    the standard :func:`matplotlib.cm.get_cmap` function.
+
+    This function is intended to be called at matplotlib initialization time.
+    '''
+
+    # Enable these globals to be locally assigned to below.
+    global _is_initted
+
+    # ..................{ INITTED                            }..................
+    # If this submodule has already been initialized, reduce to a noop.
+    if _is_initted:
+        logs.log_debug('Ignoring attempt to reregister custom matplotlib colormaps...')
+        return
+    # Else, this submodule has *NOT* yet been initialized.
+
+    # Note this submodule has now been initialized.
+    _is_initted = True
+
+    # Log this initialization attempt.
+    logs.log_debug('Registering custom matplotlib colormaps...')
+
+    # ..................{ COLOURS                            }..................
+    # Primary colours.
+    BLACK = (  0,   0,   0)
+    GREEN = (  0, 255,   0)
+    RED   = (255,   0,   0)
+    BLUE  = (  0,   0, 255)
+
+    # Secondary colours.
+    CYAN    = (  9, 232, 239)
+    MAGENTA = (239,  52, 236)
+    # ORANGE  = (255, 164,  61)
+
+    GREY_DARK = (51, 51, 51)
+
+    GREEN_LIGHT  = (184, 255, 104)
+    PURPLE_LIGHT = (219, 104, 255)
+
+    BLUE_PALE = ( 56, 132, 255)
+    RED_PALE  = (244,  66,  66)
+
+    AQUA =  (53, 255, 211)
+    AQUA2 = (71, 255, 218)
+
+    GOLD   = (255, 231,  55)
+    YELLOW = (255, 246, 130)
+
+    # Salmon orange and/or red.
+    SALMON  = (255, 111, 54)
+    SALMON2 = (255, 117, 71)
+
+    # ..................{ COLORMAPS                         }..................
+    # Tuple of all application-specific colormaps iteratively registered below.
+    COLORMAP_SCHEMES = (
+        # Black-based colormaps.
+        _MplColormapScheme(name='betse_electric_cyan',    colors=(BLACK, CYAN)),
+        _MplColormapScheme(name='betse_electric_gold',    colors=(BLACK, YELLOW)),
+        _MplColormapScheme(name='betse_electric_green',   colors=(BLACK, GREEN)),
+        _MplColormapScheme(name='betse_electric_magenta', colors=(BLACK, MAGENTA)),
+        _MplColormapScheme(name='betse_electric_orange',  colors=(BLACK, SALMON2)),
+        _MplColormapScheme(name='betse_electric_blue',    colors=(BLACK, BLUE_PALE)),
+
+        # Grey-based colormaps.
+        _MplColormapScheme(name='betse_blue_chalkboard',    colors=(GREY_DARK, BLUE_PALE)),
+        _MplColormapScheme(name='betse_cyan_chalkboard',    colors=(GREY_DARK, CYAN)),
+        _MplColormapScheme(name='betse_gold_chalkboard',    colors=(GREY_DARK, GOLD)),
+        _MplColormapScheme(name='betse_green_chalkboard',   colors=(GREY_DARK, GREEN)),
+        _MplColormapScheme(name='betse_magenta_chalkboard', colors=(GREY_DARK, MAGENTA)),
+        _MplColormapScheme(name='betse_orange_chalkboard',  colors=(GREY_DARK, SALMON)),
+
+        # Salmon-based colormaps.
+        _MplColormapScheme(name='betse_alien_chalkboard', colors=(SALMON2, GREY_DARK, AQUA2)),
+        _MplColormapScheme(name='betse_alien_pale',       colors=(SALMON2, BLACK, AQUA2)),
+        _MplColormapScheme(name='betse_alien_solid',      colors=(SALMON, BLACK, AQUA)),
+
+        # Purple-based colormaps.
+        _MplColormapScheme(name='betse_purple_green_chalkboard', colors=(MAGENTA, GREY_DARK, GREEN)),
+        _MplColormapScheme(name='betse_purple_green_pale',       colors=(PURPLE_LIGHT, BLACK, GREEN_LIGHT)),
+        _MplColormapScheme(name='betse_purple_green_solid',      colors=(MAGENTA, BLACK, GREEN)),
+
+        # Blue-based colormaps.
+        _MplColormapScheme(name='betse_red_blue_chalkboard', colors=(BLUE, GREY_DARK, RED)),
+        _MplColormapScheme(name='betse_red_blue_pale',       colors=(BLUE_PALE, BLACK, RED_PALE)),
+        _MplColormapScheme(name='betse_red_blue_solid',      colors=(BLUE, BLACK, RED)),
+    )
+
+    # ..................{ REGISTRATION                       }..................
+    # Register each such colormap with matplotlib.
+    for colormap_scheme in COLORMAP_SCHEMES:
+        colormap_scheme.register()
+
+# ....................{ PRIVATE ~ globals                  }....................
+_is_initted = False
+'''
+``True`` only if the :func:`init` function has already been called under the
+active Python interpreter.
+'''
+
+# ....................{ PRIVATE ~ classes                  }....................
+class _MplColormapScheme(object):
     '''
     Matplotlib-specific **colormap scheme** (i.e., collection of parameters
     sufficient to subsequently define a standard linear-segmented colormap).
@@ -60,7 +243,8 @@ class MplColormapScheme(object):
         self,
 
         # Mandatory parameters.
-        name: str, colors: SequenceTypes,
+        name: str,
+        colors: SequenceTypes,
 
         # Optional parameters. All default values defined below should ideally
         # be identical to the same default values defined by matplotlib.
@@ -127,7 +311,7 @@ class MplColormapScheme(object):
         self._colors = colors
         self._gamma = gamma
 
-    # ..................{ REGISTERERS                       }..................
+    # ..................{ REGISTERERS                        }..................
     @type_check
     def register(self) -> Colormap:
         '''
@@ -153,163 +337,8 @@ class MplColormapScheme(object):
             self._name, colors_normalized, N=256, gamma=self._gamma)
 
         # Register this colormap with matplotlib.
-        colormaps.register_cmap(cmap=colormap)
+        register_cmap(cmap=colormap)
 
         # Return this colormap.
         return colormap
 
-# ....................{ INITIALIZERS                      }....................
-def init() -> None:
-    '''
-    Initialize this module by registering all application-specific colormaps
-    with matplotlib, enabling these colormaps to be trivially retrieved with
-    the standard :func:`matplotlib.cm.get_cmap` function.
-
-    This function is intended to be called at matplotlib initialization time.
-    '''
-
-    # Log this initialization attempt.
-    logs.log_debug('Registering custom matplotlib colormaps...')
-
-    # ..................{ COLOURS                           }..................
-    # Primary colours.
-    BLACK = (  0,   0,   0)
-    GREEN = (  0, 255,   0)
-    RED   = (255,   0,   0)
-    BLUE  = (  0,   0, 255)
-
-    # Secondary colours.
-    CYAN    = (  9, 232, 239)
-    MAGENTA = (239,  52, 236)
-    # ORANGE  = (255, 164,  61)
-
-    GREY_DARK = (51, 51, 51)
-
-    GREEN_LIGHT  = (184, 255, 104)
-    PURPLE_LIGHT = (219, 104, 255)
-
-    BLUE_PALE = ( 56, 132, 255)
-    RED_PALE  = (244,  66,  66)
-
-    AQUA =  (53, 255, 211)
-    AQUA2 = (71, 255, 218)
-
-    GOLD   = (255, 231,  55)
-    YELLOW = (255, 246, 130)
-
-    # Salmon orange and/or red.
-    SALMON  = (255, 111, 54)
-    SALMON2 = (255, 117, 71)
-
-    # ..................{ COLORMAPS                         }..................
-    # Tuple of all application-specific colormaps iteratively registered below.
-    COLORMAP_SCHEMES = (
-        # Black-based colormaps.
-        MplColormapScheme(name='betse_electric_cyan',    colors=(BLACK, CYAN)),
-        MplColormapScheme(name='betse_electric_gold',    colors=(BLACK, YELLOW)),
-        MplColormapScheme(name='betse_electric_green',   colors=(BLACK, GREEN)),
-        MplColormapScheme(name='betse_electric_magenta', colors=(BLACK, MAGENTA)),
-        MplColormapScheme(name='betse_electric_orange',  colors=(BLACK, SALMON2)),
-        MplColormapScheme(name='betse_electric_blue',    colors=(BLACK, BLUE_PALE)),
-
-        # Grey-based colormaps.
-        MplColormapScheme(name='betse_blue_chalkboard',    colors=(GREY_DARK, BLUE_PALE)),
-        MplColormapScheme(name='betse_cyan_chalkboard',    colors=(GREY_DARK, CYAN)),
-        MplColormapScheme(name='betse_gold_chalkboard',    colors=(GREY_DARK, GOLD)),
-        MplColormapScheme(name='betse_green_chalkboard',   colors=(GREY_DARK, GREEN)),
-        MplColormapScheme(name='betse_magenta_chalkboard', colors=(GREY_DARK, MAGENTA)),
-        MplColormapScheme(name='betse_orange_chalkboard',  colors=(GREY_DARK, SALMON)),
-
-        # Salmon-based colormaps.
-        MplColormapScheme(name='betse_alien_chalkboard', colors=(SALMON2, GREY_DARK, AQUA2)),
-        MplColormapScheme(name='betse_alien_pale',       colors=(SALMON2, BLACK, AQUA2)),
-        MplColormapScheme(name='betse_alien_solid',      colors=(SALMON, BLACK, AQUA)),
-
-        # Purple-based colormaps.
-        MplColormapScheme(name='betse_purple_green_chalkboard', colors=(MAGENTA, GREY_DARK, GREEN)),
-        MplColormapScheme(name='betse_purple_green_pale',       colors=(PURPLE_LIGHT, BLACK, GREEN_LIGHT)),
-        MplColormapScheme(name='betse_purple_green_solid',      colors=(MAGENTA, BLACK, GREEN)),
-
-        # Blue-based colormaps.
-        MplColormapScheme(name='betse_red_blue_chalkboard', colors=(BLUE, GREY_DARK, RED)),
-        MplColormapScheme(name='betse_red_blue_pale',       colors=(BLUE_PALE, BLACK, RED_PALE)),
-        MplColormapScheme(name='betse_red_blue_solid',      colors=(BLUE, BLACK, RED)),
-    )
-
-    # ..................{ REGISTRATION                      }..................
-    # Register each such colormap with matplotlib.
-    for colormap_scheme in COLORMAP_SCHEMES:
-        colormap_scheme.register()
-
-# ....................{ GETTERS                           }....................
-@type_check
-def get_colormap(name: str) -> Colormap:
-    '''
-    Matplotlib colormap with the passed name, including both standard colormaps
-    bundled with matplotlib *and* application-specific colormaps registered by
-    this submodule.
-
-    This function is a convenience wrapper for the
-    :func:`matplotlib.cm.get_cmap` function, provided only as a slightly
-    better-named utility to callers.
-
-    Parameters
-    ----------
-    name : str
-        Name of the colormap to be retrieved. If this is:
-
-        * A standard colormap bundled with matplotlib, this should be the name
-          of the attribute in the :mod:`matplotlib.cm` module corresponding to
-          the desired colormap (e.g., ``Blues``, ``jet``, ``rainbow``).
-        * An application-specific colormap registered by this submodule, this
-          should be the ``name`` parameter initializing an
-          :class:`MplColormapScheme` instance contained in the
-          ``COLORMAP_SCHEMES`` tuple defined within the :func:`init` function.
-
-    Returns
-    ----------
-    Colormap
-        Matplotlib colormap with this name.
-
-    See Also
-    ----------
-    http://matplotlib.org/examples/color/colormaps_reference.html
-        List of supported colormaps.
-    '''
-
-    return colormaps.get_cmap(name)
-
-# ....................{ ITERATORS                         }....................
-def iter_colormap_names() -> SequenceTypes:
-    '''
-    Sequence of the names of all colormaps currently registered with matplotlib
-    (in sorted lexicographic order).
-
-    Caveats
-    -----------
-    **This function should be called only after this submodule has been
-    initialized** (i.e., after the :func:`init` function has been called).
-    While this function *is* safely callable beforehand, doing so prevents this
-    function from returning the names of all application-specific colormaps
-    registered by that function.
-
-    **This function does not memoize this sequence** (e.g., by decorating this
-    function with :func:`betse.util.type.decorator.decmemo.func_cached`). This
-    sequence may change over the lifetime of this application and hence
-    *cannot* be implicitly cached on the first call to this function. Instead,
-    callers may prefer to manually cache this sequence for efficiency.
-    '''
-
-    # In theory, this implementation would simply defer to the existing
-    # matplotlib.pyplot.colormaps() function returning the exact same sequence.
-    # In practice, doing so is infeasible in the general case. Why? Because
-    # merely importing the "matplotlib.pyplot" submodule incurs non-trivial,
-    # non-deterministic, and irreversible side effects -- notably, the
-    # selection of a default backend.
-    #
-    # Inevitably, some external caller will call this function *BEFORE*
-    # selecting a default backend, implying that this function *CANNOT* import
-    # from the "matplotlib.pyplot" submodule. Instead, this function inlines
-    # the body of the matplotlib.pyplot.colormaps() function here. Fortunately,
-    # the body of this function reduces to a trivial one-liner.
-    return sorted(colormaps.cmap_d)

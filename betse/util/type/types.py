@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -468,12 +468,14 @@ See Also
     Further details.
 '''
 
-# ....................{ TUPLES ~ version                  }....................
+# ....................{ TUPLES ~ version                   }....................
 VersionSetuptoolsTypes = (
     # PEP 440-compliant version type.
     pkg_resources.packaging.version.Version,
+
+    #FIXME: Deprecated and likely removed by the time you read this.
     # PEP 440-uncompliant version type.
-    pkg_resources.packaging.version.LegacyVersion,
+    # pkg_resources.packaging.version.LegacyVersion,
 )
 '''
 Tuple of all :mod:`setuptools`-specific version types (i.e., types instantiated

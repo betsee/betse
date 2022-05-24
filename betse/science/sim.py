@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# ....................{ LICENSE                           }....................
-# Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
+# ....................{ LICENSE                            }....................
+# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import copy, time
 import numpy as np
 from betse.exceptions import BetseSimException, BetseSimUnstableException
@@ -22,15 +22,15 @@ from betse.science.physics.ion_current import get_current
 from betse.science.physics.pressures import osmotic_P
 from betse.science.phase.phasecls import SimPhase
 from betse.science.enum.enumphase import SimPhaseKind
-from betse.science.organelles.microtubules import Mtubes
+# from betse.science.organelles.microtubules import Mtubes
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.io.log import logs
 from betse.util.type.contexts import noop_context
 from betse.util.type.types import type_check, NoneType
 from numpy import ndarray
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import gaussian_filter
 
-# ....................{ CLASSES                           }....................
+# ....................{ CLASSES                            }....................
 class Simulator(object):
     '''
     Phase-specific simulator, simulating networked cell bioelectrical activity

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2014-2020 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 #FIXME: Consider moving this submodule into the channel-specific
