@@ -23,23 +23,9 @@ channels`_, `gene regulatory networks`_, and `biochemical reaction networks`_
 (e.g., metabolism).
 
 BETSE is `portably implemented <codebase_>`__ in pure `Python 3`_,
-`continuously stress-tested <testing_>`__ with GitLab-CI_ **×** Appveyor_ **+**
-py.test_, and `permissively distributed <license_>`__ under the `BSD 2-clause
-license`_.
-
-======
-BETSEE
-======
-
-BETSEE_ (\ **BETSE E**\ nvironment) is the official open-source cross-platform
-graphical user interface (GUI) for BETSE. BETSEE_ wraps the low-level
-command-line interface (CLI) implemented by BETSE within a high-level
-interactive modelling environment designed for new and advanced users alike.
-
-Like BETSE, BETSEE_ is `portably implemented <BETSEE codebase_>`__ in `Python
-3`_ and `permissively distributed <License_>`__ under the `BSD 2-clause
-license`_. Unlike BETSE, BETSEE_ leverages the industry-standard PySide2_-based
-`Qt 5 <Qt_>`_ application framework to deliver a modern scientific workflow.
+`continuously stress-tested <testing_>`__ via `GitHub Actions`_ **×** tox_ **×**
+pytest_ **×** Codecov_, and `permissively distributed <license_>`__ under the
+`BSD 2-clause license`_.
 
 .. # ------------------( TABLE OF CONTENTS                  )------------------
 .. # Blank line. By default, Docutils appears to only separate the subsequent
@@ -838,8 +824,6 @@ For prospective contributors:
    https://ffmpeg.org
 .. _Git:
    https://git-scm.com/downloads
-.. _GitLab-CI:
-   https://about.gitlab.com/gitlab-ci
 .. _Graphviz:
    http://www.graphviz.org
 .. _Libav:
@@ -850,6 +834,10 @@ For prospective contributors:
    https://www.virtualbox.org
 .. _YAML:
    http://yaml.org
+
+.. # ------------------( LINKS ~ soft : github              )------------------
+.. _GitHub Actions:
+   https://github.com/features/actions
 
 .. # ------------------( LINKS ~ soft : icon                )------------------
 .. _Cows collection:
@@ -885,11 +873,8 @@ For prospective contributors:
    https://www.python.org
 .. _pip:
    https://pip.pypa.io
-.. _py.test:
-   http://pytest.org
 .. _SciPy:
    http://www.scipy.org
-
 
 .. # ------------------( LINKS ~ soft : py : conda          )------------------
 .. _Anaconda:
@@ -899,7 +884,15 @@ For prospective contributors:
 .. _conda-forge:
    https://conda-forge.org
 
-.. # ------------------( LINKS ~ soft : py : pyside2        )------------------
+.. # ------------------( LINKS ~ soft : py : package : test )------------------
+.. _Codecov:
+   https://about.codecov.io
+.. _pytest:
+   https://docs.pytest.org
+.. _tox:
+   https://tox.readthedocs.io
+
+.. # ------------------( LINKS ~ soft : py : package : pys2 )------------------
 .. _PySide2:
    https://wiki.qt.io/PySide2
 .. _PySide2 5.6:

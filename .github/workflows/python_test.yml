@@ -1,0 +1,217 @@
+---
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# GitHub-specific continuous integration (CI) configuration, enabling the usual
+# GitHub Actions workflow for pure-Python packages exercised by "tox".
+#
+# --------------------( SEE ALSO                           )--------------------
+# * https://hynek.me/articles/python-github-actions
+#   Well-authored blog post strongly inspiring this configuration.
+
+# ....................{ TODO                               }....................
+#FIXME: [CACHING] Add support for caching "pip" downloads across runs.
+#Currently, unresolved issues in GitHub Actions prevents sane caching of "pip"
+#downloads. Naturally, horrifying hacks circumventing these issues do exist but
+#are presumably worse than these issues. See also this pertinent comment:
+#    https://github.com/actions/cache/issues/342#issuecomment-673371329
+
+# ....................{ METADATA                           }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: Changes to this name *MUST* be manually synchronized with:
+# * The "|GitHub Actions badge|" image URL in our top-level "README.rst".
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Non-human-readable (i.e., machine-readable) label associated with this
+# GitHub Actions workflow.
+name: test
+
+# ....................{ TRIGGER                            }....................
+# Confine testing to only...
+#
+# Note that "**" matches all (possibly deeply "/"-nested) branches. See also:
+# * https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
+#   GitHub-specific glob syntax for matching branches and tags below.
+on:
+  # Pushes to the main branch. Pushes to other branches are assumed to be
+  # developer-specific and thus already tested locally by that developer.
+  push:
+    branches:
+      - main
+  # Pull requests against the main branch. Pull requests against other branches
+  # should, ideally, *NEVER* occur; if and when they do, we ignore them.
+  pull_request:
+    branches:
+      - main  # '**'
+
+# ....................{ VARIABLES                          }....................
+# List of private environment variables specific to this configuration and
+# globally set for *ALL* jobs declared below. To avoid conflict with
+# third-party processes, prefix the name of each variable by "_".
+env:
+  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  # CAUTION: Optional in-flight test-time dependencies (e.g., NumPy, mypy) are
+  # intentionally listed in the "betse.meta.LIBS_TESTTIME_OPTIONAL" global
+  # rather than below. "tox" isolates both the package being tested and its
+  # dependency tree to virtual environments. Listing in-flight dependencies
+  # here would install those dependencies outside those virtual environments,
+  # thus reducing to a pointless, expensive, and failure-prone noop.
+  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  # Whitespace-delimited list of the names of all Python packages to be
+  # installed by "pip" below. Although this package has *NO* mandatory runtime
+  # dependencies, fully exercising all tests necessitates these pre-flight
+  # test-time dependencies. These include:
+  # * "tox", the only mandatory test-time dependency.
+  _PIP_PACKAGE_NAMES: |
+    tox
+
+# ....................{ MAIN                               }....................
+jobs:
+  # ...................{ TESTS                              }...................
+  # Job iteratively exercising our test suite against all Python interpreters
+  # supported by this package (and also measuring the coverage of that suite).
+  tests:
+    # ..................{ MATRIX                             }..................
+    strategy:
+      matrix:
+        # List of all platform-specific Docker images to test against,
+        # including:
+        # * The latest Long-Term Service (LTS) release of Ubuntu Linux, still
+        #   the most popular Linux distro and thus a sane baseline.
+        # * The latest *whatever* release of Microsoft Windows. Although Linux
+        #   and macOS are both POSIX-compliant and thus crudely comparable from
+        #   the low-level CLI perspective, Windows is POSIX-noncompliant and
+        #   thus heavily divergent from both macOS and Linux.
+        # * The latest *whatever* release of Apple macOS. We don't particularly
+        #   need to exercise tests on macOS, given the platform's patent
+        #   POSIX-compliant low-level similarities to Linux, but... what the
+        #   heck. Why not? Since this is the lowest priority, we defer macOS
+        #   testing until last.
+        platform: [ubuntu-latest, windows-latest, macos-latest]
+
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # WARNING: Changes to this section *MUST* be manually synchronized with:
+        # * The "envlist" setting of the "[tox]" subsection in "tox.ini".
+        # * The "include" setting below.
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        # List of all "tox" environments (defined by the "envlist" setting of
+        # the "[tox]" subsection in "tox.ini") to be tested, which the
+        # ${TOXENV} environment variable declared below exposes to "tox".
+        tox-env:
+          - py38-coverage
+          - py39-coverage
+          - py310-coverage
+          #FIXME: Uncomment after Python 3.11 CI behaves as expected. Currently,
+          #Python 3.11 CI unexpectedly fails on attempting to compile NumPy
+          #wheels from within a Docker environment, which is clearly something
+          #this workflow should *NEVER* attempt. Since it currently is and we
+          #have insufficient time to diagnose this, avoid Python 3.11 for now.
+          # - py311-coverage
+          - pypy37-coverage
+          - pypy38-coverage
+
+        # Map each "tox" environment name listed in the "tox-env" list above to
+        # the corresponding "python-version" string supported by the
+        # "actions/setup-python" GitHub Action run below.
+        #
+        # Note that:
+        # * Python version specifiers *MUST* be quoted: e.g.,
+        #     # Do this.
+        #     python-version: "3.10"
+        #     # Do *NOT* do this.
+        #     python-version: 3.10
+        #   Why? Because YAML sensibly treats an unquoted literal satisfying
+        #   floating-point syntax as a floating-point number and thus silently
+        #   truncates *ALL* ignorable zeroes suffixing that number (e.g.,
+        #   truncating 3.10 to 3.1). That then results in non-human-readable CI
+        #   errors, as discussed upstream at:
+        #     https://github.com/actions/setup-python/issues/160#issuecomment-724485470
+        # * Python pre-releases may be selected with a space-delimited range
+        #   embedded in a single quoted version specifier. For example,
+        #   selecting the Python 3.11 pre-release reduces to:
+        #     python-version: "3.11.0-alpha - 3.11.0"
+        include:
+          - tox-env: py38-coverage
+            python-version: "3.8"
+          - tox-env: py39-coverage
+            python-version: "3.9"
+          - tox-env: py310-coverage
+            python-version: "3.10"
+          #FIXME: Reduce to simply "3.11" after Python 3.11 goes live.
+          # - tox-env: py311-coverage
+          #   python-version: "3.11.0-alpha - 3.11.0"
+          - tox-env: pypy37-coverage
+            python-version: "pypy-3.7"
+          - tox-env: pypy38-coverage
+            python-version: "pypy-3.8"
+          #FIXME: Uncomment after PyPy 3.9 goes live.
+          # - tox-env: pypy39-coverage
+          #   python-version: "pypy-3.9"
+
+    # ..................{ SETTINGS                           }..................
+    # Arbitrary human-readable description.
+    name: "[${{ matrix.platform }}] Python ${{ matrix.python-version }} CI"
+
+    # Name of the current Docker image to run tests under.
+    runs-on: "${{ matrix.platform }}"
+
+    # Time in minutes to wait on the command pipeline run below to exit
+    # *BEFORE* sending a non-graceful termination request (i.e., "SIGTERM"
+    # under POSIX-compliant systems).
+    timeout-minutes: 10
+
+    # ..................{ VARIABLES                          }..................
+    # External shell environment variables exposed to commands run below.
+    env:
+      # Prevent "pip" from wasting precious continuous integration (CI) minutes
+      # deciding whether it should be upgrading. We're *NOT* upgrading you,
+      # "pip". Accept this and let us test faster.
+      PIP_NO_PIP_VERSION_CHECK: 1
+
+      # Map from the current item of the "tox-env" list defined above to the
+      # ${TOXENV} environment variable recognized by "tox".
+      TOXENV: "${{ matrix.tox-env }}"
+
+    # ..................{ PROCESS                            }..................
+    steps:
+      - name: 'Checking out repository...'
+        uses: 'actions/checkout@v2'
+      - name: "Installing Python ${{ matrix.python-version }}..."
+        uses: 'actions/setup-python@v2'
+        with:
+          python-version: "${{ matrix.python-version }}"
+      - name: 'Displaying Python metadata...'
+        run: |
+          python -VV
+          python -m site
+      # Note that:
+      # * This command *MUST* be platform-agnostic by running under both:
+      #   * POSIX-compliant platforms (e.g., Linux, macOS).
+      #   * POSIX-noncompliant platforms (e.g., Windows).
+      #   In particular, commands that assume a POSIX-compliant shell (e.g.,
+      #   Bash) *MUST* be avoided.
+      # * Packaging dependencies (e.g., "pip") are upgraded *BEFORE* all
+      #   remaining dependencies (e.g., "tox").
+      - name: 'Upgrading packager dependencies...'
+        run: |
+          python -m pip --quiet install --upgrade pip setuptools wheel
+      - name: 'Installing package dependencies...'
+        run: |
+          python -m pip --quiet install --upgrade ${{ env._PIP_PACKAGE_NAMES }}
+      - name: 'Testing package with "tox"...'
+        run: |
+          # Dismantled, this is:
+          # * "--skip-missing-interpreters=false" disables the corresponding
+          #   "skip_missing_interpreters = true" setting globally enabled by
+          #   our top-level "tox.ini" configuration, forcing CI failures for
+          #   unavailable Python environments. See also:
+          #       https://github.com/tox-dev/tox/issues/903
+          python -m tox --skip-missing-interpreters=false
+      - name: 'Publishing test coverage to Codecov...'
+        uses: 'codecov/codecov-action@v1'
+        with:
+          name: "${{ matrix.platform }}-${{ matrix.python-version }}"
+          # file: ./coverage.xml
+          # name: ${{ runner.os }}-${{ matrix.python-version }}

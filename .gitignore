@@ -1,12 +1,12 @@
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 #
-# --------------------( SYNOPSIS                          )--------------------
+# --------------------( SYNOPSIS                           )--------------------
 # Git-specific dotfile instructing git to avoid tracking repository paths
 # matching one or more glob expressions listed below by default.
 #
-# --------------------( SEE ALSO                          )--------------------
+# --------------------( SEE ALSO                           )--------------------
 # For further details, see:
 #
 # * "man gitignore" for high-level commentary.
@@ -14,7 +14,7 @@
 #   that glob() and hence ".gitignore" files support only a proper subset of
 #   full glob syntax supported by POSIX-compatible shells (e.g., bash, zsh).
 
-# ....................{ DIRECTORIES ~ top-level           }....................
+# ....................{ DIRECTORIES ~ top-level            }....................
 # Ignore all top-level BETSE-specific temporary directories.
 /output/
 /sample_sim/
@@ -39,7 +39,7 @@
 # Ignore all top-level tox-specific temporary directories.
 /.tox/
 
-# ....................{ DIRECTORIES ~ general             }....................
+# ....................{ DIRECTORIES ~ general              }....................
 # Ignore all Python-specific cache directories.
 __pycache__/
 
@@ -49,7 +49,12 @@ __pycache__/
 # Ignore all Rope-specific subdirectories.
 .ropeproject/
 
-# ....................{ FILES ~ top-level                 }....................
+# ....................{ FILES ~ top-level                  }....................
+# Ignore all top-level Coverage.py-specific output files.
+/.coverage
+/.coverage.*
+/coverage.xml
+
 # Ignore all top-level Nose-specific output files.
 /nosetests.xml
 
@@ -64,7 +69,7 @@ __pycache__/
 # Ignore top-level symbolic links to BETSE-dependent projects (e.g., BETSEE).
 /betsee_link
 
-# ....................{ FILES ~ general                   }....................
+# ....................{ FILES ~ general                    }....................
 # Ignore all BETSE-specific output files.
 *.btse
 
