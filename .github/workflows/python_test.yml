@@ -109,8 +109,9 @@ jobs:
           #this workflow should *NEVER* attempt. Since it currently is and we
           #have insufficient time to diagnose this, avoid Python 3.11 for now.
           # - py311-coverage
-          - pypy37-coverage
           - pypy38-coverage
+          #FIXME: Uncomment after PyPy 3.9 goes live.
+          # - pypy39-coverage
 
         # Map each "tox" environment name listed in the "tox-env" list above to
         # the corresponding "python-version" string supported by the
@@ -142,8 +143,6 @@ jobs:
           #FIXME: Reduce to simply "3.11" after Python 3.11 goes live.
           # - tox-env: py311-coverage
           #   python-version: "3.11.0-alpha - 3.11.0"
-          - tox-env: pypy37-coverage
-            python-version: "pypy-3.7"
           - tox-env: pypy38-coverage
             python-version: "pypy-3.8"
           #FIXME: Uncomment after PyPy 3.9 goes live.
