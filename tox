@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# --------------------( LICENSE                           )--------------------
+# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                          )--------------------
+# Bash shell script wrapping this project's tox-based test suite, passing
+# sane default options suitable for interactive terminal testing and otherwise
+# passing all passed arguments as is to the "tox" command.
+#
+# This script is defined as a Bash rather than Bourne script purely for the
+# canonical ${BASH_SOURCE} string global, reliably providing the absolute
+# pathnames of this script and hence this script's directory.
+#
+# --------------------( CAVEATS                           )--------------------
+# *THE HIGHER-LEVEL "tox" SCRIPT SHOULD TYPICALLY BE RUN INSTEAD.* This
+# lower-level script only exercises this project against the single Python
+# interpreter associated with the "pytest" command and is thus suitable *ONLY*
+# as a rapid sanity check. Meanwhile, the higher-level "tox" command exercises
+# this project against all installed Python interpreters and is thus suitable
+# as a full-blown correctness check (e.g., before submitting pull requests).
+
+# ....................{ PREAMBLE                          }....................
+# Enable strictness for sanity.
+set -e
+
+# ....................{ ARRAYS                            }....................
+# Array of all arguments with which to invoke Python.
+#
+# Note that the "-X dev" option enabling the Python Development Mode (PDM) need
+# *NOT* be explicitly passed to "tox", as the ${PYTHONDEVMODE} shell variable
+# in the "tox.ini" file already enables the PDM.
+PYTHON_ARGS=( command python3 )
+# PYTHON_ARGS=( command python3.8 )
+# PYTHON_ARGS=( command python3.9 )
+# PYTHON_ARGS=( command python3.10 )
+# PYTHON_ARGS=( command python3.11 )
+# PYTHON_ARGS=( command pypy3.7 )
+
+# ....................{ FUNCTIONS                         }....................
+# str canonicalize_path(str pathname)
+#
+# Canonicalize the passed pathname.
+function canonicalize_path() {
+    # Validate and localize all passed arguments.
+    (( $# == 1 )) || {
+        echo 'Expected exactly one argument.' 1>&2
+        return 1
+    }
+    local pathname="${1}"
+
+    # The "readlink" command's GNU-specific "-f" option would be preferable but
+    # is unsupported by macOS's NetBSD-specific version of "readlink". Instead,
+    # just defer to Python for portability.
+    command python3 -c "
+import os, sys
+print(os.path.realpath(os.path.expanduser(sys.argv[1])))" "${pathname}"
+}
+
+# ....................{ PATHS                             }....................
+# Absolute or relative filename of this script.
+script_filename="$(canonicalize_path "${BASH_SOURCE[0]}")"
+
+# Absolute or relative dirname of the directory directly containing this
+# script, equivalent to the top-level directory for this project.
+script_dirname="$(dirname "${script_filename}")"
+
+# ....................{ MAIN                              }....................
+# Temporarily change the current working directory to that of this project.
+pushd "${script_dirname}" >/dev/null
+
+#FIXME: Excise us up, please. This no longer appears to be working as intended
+#as has, in fact, obstructed sanity on multiple occasions.
+# # Comma-delimited list of all tox environments. Dismantled, this is:
+# #
+# # * "tox -l", listing all environments defined by the "envlist" default.
+# # * "grep linux", removing all duplicate platform-specific environments from
+# #   that list.
+# # * "paste ...", converting all newlines in that "grep" output into commas
+# #   expected by the parent "tox -e" command.
+# #
+# # This pipeline is gratefully inspired by this StackOverflow answer:
+# #     https://stackoverflow.com/a/56387013/2809027
+# tox_envs="$(command tox -l | command paste -sd "," -)"
+#
+# # Strip the optional "-coverage" suffix from these environments, preventing
+# # tox from measuring coverage. While tox can be made to measure coverage at the
+# # command line, coverage is best measured either:
+# # * Directly by "pytest" from the command line.
+# # * Indirectly by "tox" from continuous integration (CI).
+# tox_envs="${tox_envs//-coverage}"
+#
+# # Print this munged list for debuggability.
+# echo "Exercising tox environments \"${tox_envs}\"..."
+#
+# # Run this project's tox-based test suite with all passed arguments.
+# # Dismantled, this is:
+# #
+# # * "tox -e", exercising only the passed comma-delimited list of environments.
+# #   Note this implicitly disables the "envlist" default in "tox.ini".
+# "${PYTHON_ARGS[@]}" -m tox -e "${tox_envs}" "${@}"
+
+# Run this project's tox-based test suite with all passed arguments.
+"${PYTHON_ARGS[@]}" -m tox "${@}"
+
+# 0-based exit code reported by the prior command.
+exit_code=$?
+
+# Revert the current working directory to the prior such directory.
+popd >/dev/null
+
+# Report the same exit code from this script.
+exit ${exit_code}

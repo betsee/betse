@@ -228,7 +228,7 @@ https://setuptools.readthedocs.io/en/latest/setuptools.html#id12
     Human-readable list of these dependencies.
 '''
 
-# ....................{ LIBS ~ runtime : optional         }....................
+# ....................{ LIBS ~ runtime : optional          }....................
 RUNTIME_OPTIONAL = {
     # To simplify subsequent lookup at runtime, project names for optional
     # dependencies should be *STRICTLY LOWERCASE*. Since setuptools parses
@@ -267,7 +267,7 @@ See Also
     of strings (e.g., within :download:`/setup.py`).
 '''
 
-# ....................{ LIBS ~ testing : mandatory        }....................
+# ....................{ LIBS ~ testing : mandatory         }....................
 TESTING_MANDATORY = {
     # setuptools is currently required at testing time as well. If ommitted,
     # "tox" commonly fails at venv creation time with exceptions resembling:
@@ -292,21 +292,20 @@ TESTING_MANDATORY = {
     #     You should consider upgrading via the 'pip install --upgrade pip' command.
     #
     #     ==================================================== log end ====================================================
-    'setuptools': '>= ' + SETUPTOOLS_VERSION_MIN,
+    'setuptools': f'>= {SETUPTOOLS_VERSION_MIN}',
 
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # WARNING: This py.test requirement *MUST* be manually synchronized to the
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # WARNING: This pytest requirement *MUST* be manually synchronized to the
     # same requirement in the downstream "betsee.guimetadeps" submodule.
     # Failure to do so is guaranteed to raise exceptions at BETSEE startup.
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    # For simplicity, py.test should remain the only hard dependency for
-    # testing on local machines. While our setuptools-driven testing regime
-    # optionally leverages third-party py.test plugins (e.g., "pytest-xdist"),
-    # these plugins are *NOT* required for simple testing.
+    # For simplicity, pytest should remain the only hard dependency for testing
+    # on local machines. While our setuptools-driven testing regime optionally
+    # leverages third-party py.test plugins (e.g., "pytest-xdist"), these
+    # plugins are *NOT* required for simple testing.
     #
-    # A relatively modern version of py.test is required. Specifically:
-    #
+    # A relatively modern version of pytest is required. Specifically:
     # * At least version 5.4.0 or newer, which refactored the previously
     #   defined private _pytest.capture.CaptureManager._getcapture() method
     #   into the newly defined private _pytest.capture._getmulticapture()
@@ -326,6 +325,22 @@ See Also
     Further details on dictionary structure.
 :download:`/doc/md/INSTALL.md`
     Human-readable list of these dependencies.
+'''
+
+
+LIBS_TESTTIME_MANDATORY_COVERAGE = (
+    'coverage >=5.5',
+)
+'''
+**Mandatory test-time coverage package dependencies** (i.e., dependencies
+required to measure test coverage for this package) as a tuple of
+:mod:`setuptools`-specific requirements strings of the format ``{project_name}
+{comparison1}{version1},...,{comparisonN}{versionN}``.
+
+See Also
+----------
+:data:`LIBS_RUNTIME_OPTIONAL`
+    Further details.
 '''
 
 # ....................{ LIBS ~ commands                   }....................

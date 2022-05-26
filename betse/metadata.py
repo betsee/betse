@@ -53,9 +53,9 @@ Human-readable name of the license this application is licensed under.
 # * The corresponding section of the "betsee.guimetadata" submodule.
 # * Continuous integration test matrices, including:
 #   * The top-level "tox.ini" file.
-#   * The "environment/matrix" subkey of the top-level ".appveyor.yml" file.
-#   * Top-level "test_python"-prefixed keys of the top-level ".gitlab-ci.yml"
-#     file.
+#   * The "jobs/tests/strategy/matrix/{tox-env,include/python-version}"
+#     settings of the GitHub Actions-specific
+#     ".github/workflows/python_test.yml" file.
 # * Front-facing documentation (e.g., "README.rst", "doc/md/INSTALL.md").
 # On bumping the minimum required version of Python, consider also documenting
 # the justification for doing so in the "Python Version" section of this
@@ -283,14 +283,13 @@ responding to public correspondence).
 '''
 
 # ....................{ METADATA ~ urls                   }....................
-URL_HOMEPAGE = 'https://gitlab.com/betse/betse'
+URL_HOMEPAGE = 'https://github.com/betsee/betse'
 '''
 URL of this application's homepage.
 '''
 
 
-URL_DOWNLOAD = '{}/repository/archive.tar.gz?ref=v{}'.format(
-    URL_HOMEPAGE, VERSION)
+URL_DOWNLOAD = f'{URL_HOMEPAGE}/archive/{VERSION}.tar.gz'
 '''
 URL of the source tarball for the current version of this application.
 
@@ -299,6 +298,18 @@ human-readable current version of this application (e.g., ``v0.4.0``) to exist.
 Typically, no such tag exists for live versions of this application -- which
 have yet to be stabilized and hence tagged. Hence, this URL is typically valid
 *only* for previously released (rather than live) versions of this application.
+'''
+
+
+URL_ISSUES = f'{URL_HOMEPAGE}/issues'
+'''
+URL of this package's issue tracker.
+'''
+
+
+URL_RELEASES = f'{URL_HOMEPAGE}/releases'
+'''
+URL of this package's release list.
 '''
 
 # ....................{ METADATA ~ python                 }....................

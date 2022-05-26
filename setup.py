@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,6 +8,7 @@
 tasks (e.g., installation, freezing, test running) for this application.
 '''
 
+# ....................{ TODO                               }....................
 #FIXME: Consider bundling both BETSE and BETSEE into a single Ubuntu snap,
 #which has effectively emerged as the de facto cross-distro format for
 #distributing POSIX-compatible applications, enabling a hypothetical "BETSEE"
@@ -75,7 +76,7 @@ tasks (e.g., installation, freezing, test running) for this application.
 #packages and modules into memory rather than a temporary location on the local
 #filesystem, which then produces dramatic efficiency gains. *shrug*
 
-# ....................{ KLUDGES                           }....................
+# ....................{ KLUDGES                            }....................
 # Explicitly register all files and subdirectories of the root directory
 # containing this top-level "setup.py" script to be importable modules and
 # packages (respectively) for the remainder of this Python process if this
@@ -138,7 +139,6 @@ _register_dir()
 #
 # See also: https://stackoverflow.com/a/10097543/2809027
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 import setuptools
 from betse import metadata, metadeps
 from betse.lib.setuptools.command import (
@@ -156,7 +156,7 @@ _KEYWORDS = [
     'multiphysics',
     'science',
     'simulator',
-    'disecrete exterior calculus',
+    'discrete exterior calculus',
 ]
 '''
 List of all lowercase alphabetic keywords synopsising this application.
@@ -185,6 +185,7 @@ _CLASSIFIERS = [
     'License :: OSI Approved :: BSD License',
     'Natural Language :: English',
     'Operating System :: OS Independent',
+    'Programming Language :: Python :: 3 :: Only',
     'Topic :: Scientific/Engineering :: Bio-Informatics',
 ]
 '''
@@ -223,10 +224,23 @@ _SETUP_OPTIONS = {
     'maintainer':       metadata.AUTHORS,
     'maintainer_email': metadata.AUTHOR_EMAIL,
     'description':      metadata.SYNOPSIS,
+
+    # ..................{ URLS                               }..................
     'url':              metadata.URL_HOMEPAGE,
     'download_url':     metadata.URL_DOWNLOAD,
 
-    # ..................{ PYPI                              }..................
+    # Dictionary mapping from arbitrary human-readable terse names describing
+    # various package-related URLs to those URLs.
+    'project_urls': {
+        'Source':       metadata.URL_HOMEPAGE,
+        'Issues':       metadata.URL_ISSUES,
+        'Releases':     metadata.URL_RELEASES,
+
+        #FIXME: Uncomment after we actually have meaningful RTD documentation.
+        # 'Documentation': 'https://betse.readthedocs.io',
+    },
+
+    # ..................{ PYPI                               }..................
     # PyPi-specific metadata.
     'classifiers': buputil.sanitize_classifiers(
         classifiers=_CLASSIFIERS,
@@ -236,9 +250,9 @@ _SETUP_OPTIONS = {
     'keywords': _KEYWORDS,
     'license': metadata.LICENSE,
 
-    # ..................{ DEPENDENCIES                      }..................
+    # ..................{ DEPENDENCIES                       }..................
     # Python dependency.
-    'python_requires': '>=' + metadata.PYTHON_VERSION_MIN,
+    'python_requires': f'>={metadata.PYTHON_VERSION_MIN}',
 
     # Mandatory runtime dependencies.
     'install_requires': metadeps.get_runtime_mandatory_tuple(),
@@ -255,17 +269,22 @@ _SETUP_OPTIONS = {
         # All optional runtime dependencies.
         'all': metadeps.get_runtime_optional_tuple(),
 
-        # All mandatory testing dependencies, copied from the "tests_require"
-        # key below into an arbitrarily named extra. This is required *ONLY*
-        # for integration with the top-level "tox.ini" file. See the "extras"
-        # key in that file for further details.
-        'test': metadeps.get_testing_mandatory_tuple(),
+        # All mandatory tox-specific testing dependencies, copied from the
+        # "tests_require" key below into an arbitrarily named extra. This is
+        # required *ONLY* for integration with the top-level "tox.ini" file.
+        # See the "extras" key in that file for further details.
+        'test-tox': metadeps.get_testing_mandatory_tuple(),
+
+        # All mandatory coverage-specific testing dependencies as an
+        # arbitrarily named extra, required *ONLY* for integration with the
+        # top-level "tox.ini" file. See the "extras" key in that file.
+        'test-tox-coverage': metadeps.LIBS_TESTTIME_MANDATORY_COVERAGE,
     },
 
     # Mandatory testing dependencies.
     'tests_require': metadeps.get_testing_mandatory_tuple(),
 
-    # ..................{ PACKAGES                          }..................
+    # ..................{ PACKAGES                           }..................
     # List of the fully-qualified names of all Python packages (i.e.,
     # directories containing zero or more Python modules) to be installed,
     # including the top-level application package and all subpackages of that
@@ -280,11 +299,11 @@ _SETUP_OPTIONS = {
     # * "freeze", providing PyInstaller-specific functionality required only for
     #   application freezing (i.e., conversion into an executable binary).
     #
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # WARNING: This inspection intentionally omits subdirectories containing no
     # "__init__.py" file, despite the remainder of the Python ecosystem
     # commonly accepting such subdirectories as subpackages.
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     'packages': setuptools.find_packages(exclude=(
         metadata.PACKAGE_NAME + '_test',
         metadata.PACKAGE_NAME + '_test.*',
@@ -294,7 +313,7 @@ _SETUP_OPTIONS = {
         'freeze',
     )),
 
-    # ..................{ PATHS                             }..................
+    # ..................{ PATHS                              }..................
     # Cross-platform script wrappers dynamically created at installation time.
     'entry_points': {
         # CLI-specific scripts.
@@ -354,10 +373,10 @@ contains unrecognized keys. For safety, these keys are added to this dictionary
 instead.
 '''
 
-# ....................{ SUBCOMMANDS                       }....................
+# ....................{ SUBCOMMANDS                        }....................
 # Define all custom setuptools subcommands.
 for _subcommand_submodule in bupbuild, supcmdfreeze, supcmdsymlink, supcmdtest:
     _subcommand_submodule.add_subcommand(_SETUP_OPTIONS, _SETUP_OPTIONS_CUSTOM)
 
-# ....................{ SETUP                             }....................
+# ....................{ SETUP                              }....................
 setuptools.setup(**_SETUP_OPTIONS)

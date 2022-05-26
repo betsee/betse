@@ -1,4 +1,4 @@
-.. # ------------------( SYNOPSIS                           )------------------
+.. # ------------------( SYNOPSIS                            )------------------
 
 =========
 Releasing
@@ -6,15 +6,19 @@ Releasing
 
 Stable releases are manually published with a rigorous procedure. The tl;dr is:
 
-#. A stable commit is **tagged** with an annotated Git tag.
-#. That commit is **packaged** into a compressed source tarball.
-#. That tarball is **uploaded** to third-party services for public consumption.
+#. A stable commit is **tagged** with an annotated Git tag of the proper format
+   expected by the automation triggered by...
+#. That tag is **pushed** to GitHub_, which triggers the automated publication
+   of both source tarballs and binary wheels of this stable commit in various
+   popular formats to both GitHub_ itself and `PyPI`_ using the GitHub_ Actions
+   CI/CD workflow configured by the ``.github/workflows/pythonrelease.yml``
+   file. (\ *Phew!*\ )
 
 While technically optional, this procedure reduces the likelihood of
 installation and usage woes by downstream consumers (\ *e.g.,* end users,
 package maintainers) and is thus effectively mandatory.
 
-.. # ------------------( TABLE OF CONTENTS                  )------------------
+.. # ------------------( TABLE OF CONTENTS                   )------------------
 .. # Blank line. By default, Docutils appears to only separate the subsequent
 .. # table of contents heading from the prior paragraph by less than a single
 .. # blank line, hampering this table's readability and aesthetic comeliness.
@@ -29,33 +33,12 @@ package maintainers) and is thus effectively mandatory.
 .. contents:: **Contents**
    :local:
 
-.. # ------------------( DESCRIPTION                        )------------------
+.. # ------------------( DESCRIPTION                         )------------------
 
 Procedure
 ============
 
 BETSE is releasable to all supported platforms as follows:
-
-#. **Install** wheel_, a third-party pure-Python package permitting this
-   release to be packaged into a cross-platform pre-compiled binary
-   distribution supported by both PyPI_ and ``pip``. This mandatory dependency
-   augments setuptools with the ``bdist_wheel`` subcommand invoked below.
-
-   .. code-block:: console
-
-      $ sudo pip3 install wheel
-
-#. (\ *Optional*\ ) **Install** twine_, a third-party pure-Python package
-   simplifying remote communication with both `PyPI itself <PyPI_>`__ and
-   `Test PyPI`_. While optional, securely registering and uploading PyPI
-   distributions *without* twine_ is typically non-trivial, banal, and tedious.
-   :sup:`Your mileage may vary.` **Do not attempt to install twine via the
-   Debian-based package manager "apt", as doing so typically produces a subtly
-   broken "twine" installation.** Instead, *always* install twine_ via ``pip``.
-
-   .. code-block:: console
-
-      $ sudo pip3 install twine
 
 #. (\ *Optional*\ ) **Validate reStructuredText (reST) rendering.** The
    human-readable description for this release derives directly from `the
@@ -68,85 +51,33 @@ BETSE is releasable to all supported platforms as follows:
 
    #. Install the ``collective.checkdocs`` Python package.
 
-      .. code-block:: console
+      .. code-block:: shell-session
 
          $ sudo pip3 install collective.checkdocs
 
-   #. Validate the PyPI-specific compatilibility of `this file <readme_>`__.
+   #. Validate the PyPI-specific compatibility of `this file <readme_>`__.
 
-      .. code-block:: console
+      .. code-block:: shell-session
 
          $ python3 setup.py checkdocs
 
-   #. After submitting this release to PyPI via twine_ below, manually browse
-      to `the PyPI-hosted page <PyPI BETSE_>`__ for this project and verify by
+   #. After submitting this release to PyPI below, manually browse to `the
+      PyPI-hosted page <PyPI betse_>`__ for this project and verify by
       cursory inspection that this project's description is rendered as HTML.
 
-#. (\ *Optional*\ ) **Bump release metadata.** Assuming the prior release
-   followed these instructions, release metadata has already been bumped in
-   preparation for the next (i.e., this) release. If another bump is required
-   (e.g., to upgrade this release from a patch to a minor or even major
-   update), this bump should be performed *before* tagging this release. For
-   details, see the eponymous *"Bump release metadata."* instructions below.
-#. (\ *Optional*\ ) **List all existing tags.** For reference, listing all
-   previously created tags *before* creating new tags is often advisable.
+#. (\ *Optional*\ ) **Install** wheel_, a third-party pure-Python package
+   permitting this release to be packaged into a cross-platform pre-compiled
+   binary distribution supported by both PyPI_ and ``pip``. This optional
+   dependency augments setuptools with the ``bdist_wheel`` subcommand invoked
+   below when locally testing the generation of binary wheels.
 
-   .. code-block:: console
+   .. code-block:: shell-session
 
-      $ git tag
+      $ sudo pip3 install wheel
 
-#. **Create an announcement commit,** ideally as an **empty commit** (i.e.,
-   commit containing only a message rather than both changes *and* a message).
-   Empty announcements reduce the likelihood of introducing last-minute
-   instability into an otherwise stable release. Of course, this assumes that
-   the prior non-empty commit passed all continuous integration (CI) hosts.
+#. (\ *Optional*\ ) **Test packaging both a source tarball and binary wheel.**
 
-   .. code-block:: console
-
-      $ git commit --allow-empty
-
-   This commit should have a message whose:
-
-   * First line is of the format ``"BETSE {version} ({codename}) released."``,
-     where:
-
-     * ``{version}`` is the current value of the ``betse.metadata.__version__``
-       global.
-     * ``{codename}`` is the current value of the ``betse.metadata.CODENAME``
-       global.
-
-   * Remaining lines are a changelog synopsizing the most significant changes
-     implemented by this release – ideally in the enumerated format given
-     below.
-
-   For example::
-
-       BETSE 0.4.0 (Glad Galvani) released.
-
-       Significant changes include:
-
-       * Tissue profiles generalized.
-       * Animation video encoding supported.
-       * Simulation stability and efficiency improved.
-
-#. **Tag this commit.** An annotated tag\ [#tags]_ should be created whose:
-
-   * Name is ``v{version}``, where:
-
-     * ``v`` is an arbitrary prefix preserving historical consistency with
-       previous tag names in this repository.
-     * ``{version}`` is the current value of the ``betse.metadata.__version__``
-       global.
-
-   * Message is the same commit message created above.
-
-   .. code-block:: console
-
-      $ git tag -a v{version}
-
-#. **Package both a source tarball and binary wheel.**
-
-   .. code-block:: console
+   .. code-block:: shell-session
 
       $ python3 setup.py sdist bdist_wheel
 
@@ -154,7 +85,7 @@ BETSE is releasable to all supported platforms as follows:
    ``${version}`` is the purely numeric version of this release (e.g.,
    ``0.4.1``). Verify by inspection that no unwanted paths were packaged.
 
-   .. code-block:: console
+   .. code-block:: shell-session
 
       $ tar -tvzf dist/betse-${version}.tar.gz | less
 
@@ -166,26 +97,26 @@ BETSE is releasable to all supported platforms as follows:
 
       #. **Create a new empty (venv)** (i.e., virtual environment).
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ python3 -m venv --clear /tmp/betse-sdist
 
       #. **Install this source tarball into this venv.**\ [#venv]_
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ /tmp/betse-sdist/bin/pip3 install wheel
             $ /tmp/betse-sdist/bin/pip3 install dist/betse-${version}.tar.gz
 
       #. **Test this release from this venv.**
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ cd /tmp && /tmp/betse-sdist/bin/betse try
 
       #. **Remove this venv and return to the prior directory.**
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ rm -rf /tmp/betse-sdist && cd -
 
@@ -193,77 +124,180 @@ BETSE is releasable to all supported platforms as follows:
 
       #. **Create a new empty venv.**
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ python3 -m venv --clear /tmp/betse-wheel
 
       #. **Install this binary wheel into this venv.**\ [#venv]_
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ /tmp/betse-wheel/bin/pip3 install \
               dist/betse-${version}-py3-none-any.whl
 
       #. **Test this release from this venv.**
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ cd /tmp && /tmp/betse-wheel/bin/betse try
 
       #. **Remove this venv and sample simulation and return to the prior
          directory.**
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ rm -rf /tmp/betse-wheel /tmp/sample_sim && cd -
 
-#. **Bump release metadata.** In preparation for developing the next release:
+#. (\ *Optional*\ ) **Bump release metadata.** Assuming the prior release
+   followed these instructions, release metadata has already been bumped in
+   preparation for the next (i.e., this) release. If another bump is required
+   (e.g., to upgrade this release from a patch to a minor or even major
+   update), this bump should be performed *before* tagging this release. For
+   details, see the eponymous *"Bump release metadata."* instructions below.
+#. (\ *Optional*\ ) **List all existing tags.** For reference, listing all
+   previously created tags *before* creating new tags is often advisable.
 
-   #. The ``betse.metadata.__version__`` global should be incremented according
-      to the `best practices <Version Nomenclature_>`__ provided below.
-   #. The ``betse.metadata.CODENAME`` global should be incremented according
-      to the `best practices <Codename Nomenclature_>`__ provided below.
+   .. code-block:: shell-session
 
-#. (\ *Optional*\ ) **Bump downstream metadata.** This includes:
+      $ git tag
 
-   * BETSEE_, whose current version strictly requires at least the current
-     version of BETSE. To guarantee this, the external
-     ``betsee.guimetadata.VERSION`` string variable of the former should be
-     bumped to reflect the latter. For maintainability, note that bumping that
-     variable also automatically bumps the version of BETSE required by
-     BETSEE_. For example, setting ``betsee.guimetadata.VERSION = '0.8.4.0'``
-     also bumps the version of BETSE required by BETSEE_ to ``0.8.4``.
+#. **Create an announcement commit,** ideally as an **empty commit** (i.e.,
+   commit containing only a message rather than both changes *and* a message).
+   Empty announcements reduce the likelihood of introducing last-minute
+   instability into an otherwise stable release. Of course, this assumes that
+   the prior non-empty commit passed all continuous integration (CI) hosts.
+
+   .. code-block:: shell-session
+
+      $ git commit --allow-empty
+
+   This commit should have a message whose:
+
+   * First line is of the format ``"betse {version} released."``, where
+     ``{version}`` is the current value of the ``betse.__version__`` global.
+   * Remaining lines are a changelog synopsizing the significant changes
+     implemented by this release -- ideally in GitHub-flavoured Markdown (GHFM)
+     format, as depicted below. Note that this format requires enabling the
+     ``[commit] cleanup = scissors`` setting in the ``~/.gitconfig`` file, as
+     ``git`` otherwise treats lines prefixed by "#" characters (e.g., Markdown
+     headers) in commit messages as ignorable comments to be removed.
+
+   For example:
+
+   .. code-block:: markdown
+
+      **betse 0.0.1** released.
+
+      This major release brings titillating support for **this**, **that**, and
+      **PEP numbers compliance**.
+
+      This major release resolves **some issues** and merges **some pull
+      requests.** Noteworthy changes include:
+
+      ## Compatibility Improved
+
+      * **Python >= 3.9.0.** This release officially supports the first stable
+        release of the Python 3.9.x series (i.e., Python 3.9.0).
+
+      ## Compatibility Broken
+
+      * **None.** This release preserves backward compatibility with the prior
+        stable release.
+
+      ## Packaging Improved
+
+      * **macOS Homebrew tap,** just 'cause.
+
+      ## Dependencies Bumped
+
+      * **`setuptools` >= 38.2.0,** just 'cause.
+
+      ## Features Added
+
+      * **Type library,** just 'cause.
+
+      ## Features Improved
+
+      * **`@betse` performance,** just 'cause.
+
+      ## Features Optimized
+
+      * **`@betse` performance,** just 'cause.
+
+      ## Features Deprecated
+
+      * **`@betse.moar` submodule,** to be removed in `betse` 0.1.0.
+
+      ## Features Removed
+
+      * **None.**
+
+      ## Issues Resolved
+
+      * **#3,** just 'cause.
+      * **pypa/pip#6163,** just 'cause.
+
+      ## Tests Improved
+
+      * **GitLab CI + `tox`,** just 'cause.
+
+      ## Documentation Revised
+
+      * **Installation instructions,** just 'cause.
+
+      ## API Changed
+
+      * Renamed:
+        * `betse.roar` subpackage to `betse.hoar`.
+      * Added:
+        * `betse.soar` submodule.
+      * Improved:
+        * `betse.lore` subpackage.
+      * Removed:
+        * `betse._boar` submodule.
+
+#. **Tag this commit.** An annotated tag\ [#tags]_ should be created whose:
+
+   * Name is ``v{version}``, where ``{version}`` is the current value of the
+     ``betse.__version__`` global.
+   * Message is the same commit message created above.
+
+   .. code-block:: shell-session
+
+      $ git tag -a v{version}
+
+#. **Bump release metadata.** In preparation for developing the next release,
+   the ``betse.meta.VERSION`` global should be incremented according to
+   the `best practices <Version Nomenclature_>`__ detailed below.
 
 #. **Create another announcement commit.** This commit should have a message
-   whose first line is of the format ``"BETSE {version} ({codename})
-   started."``, where:
-
-     * ``{version}`` is the new value of the ``betse.metadata.__version__``
-       global.
-     * ``{codename}`` is the new value of the ``betse.metadata.CODENAME``
-       global.
-
+   whose first line is of the format ``"betse {version} started."``, where
+   ``{version}`` is the new value of the ``betse.__version__`` global.
    Since no changelog for this release yet exists, a single-line message
    suffices for this commit. For example::
 
-       BETSE 0.4.1 (Gladder Galvani) started.
+       **betse 0.4.1** started.
 
-#. **Push this tagged commit.** After doing so, Gitlab will automatically
-   publish source tarballs in various formats (e.g., ``.zip``, ``.tar.bz2``)
-   containing the contents of this repository at this tagged commit in this
-   project's `source tarball archive <tarballs_>`__. No further work is
-   required to distribute source tarballs via Gitlab.
+#. **Push these commits and tags.** After doing so, GitHub will automatically
+   publish source tarballs and binary wheels in various popular formats (e.g.,
+   ``.zip``, ``.tar.bz2``) containing the contents of this repository at this
+   tagged commit to this project's `GitHub releases page <tarballs_>`__ and
+   `PyPI releases portal <PyPI betse_>`__. No further work is required to
+   distribute this release to *any* service – excluding third-party package
+   managers (e.g., Anaconda_) and platforms (e.g., Linux distributions), which
+   typically require manual intervention. **This release has now been
+   officially distributed to GitHub and PyPI.**
 
-   .. code-block:: console
+   .. code-block:: shell-session
 
       $ git push && git push --tags
 
 #. **Reinstall this package.** Doing so updates the setuptools-specific
    version associated with its internal installation of this package, ensuring
    that subsequent attempts to install downstream packages requiring this
-   version (e.g., BETSEE) will succeed as expected.
+   version (e.g., BETSE_, BETSEE_) will behave as expected.
 
-   .. code-block:: console
+   .. code-block:: shell-session
 
       $ pip3 install -e .
 
@@ -278,7 +312,7 @@ BETSE is releasable to all supported platforms as follows:
          `official instructions <Test PyPI instructions_>`__ for doing so.
       #. **Register this project with** `Test PyPI`_.
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ python3 setup.py register -r testpypi
 
@@ -289,37 +323,45 @@ BETSE is releasable to all supported platforms as follows:
 
       #. **Upload this source tarball and binary wheel to** `Test PyPI`_.
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ twine upload -r testpypi dist/betse-${version}*
 
       #. **Create a new empty venv.**
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ python3 -m venv --clear /tmp/betse-pypi
 
       #. **Install this release into this venv.**\ [#venv]_
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ /tmp/betse-pypi/bin/pip3 install \
               install -i https://testpypi.python.org/pypi betse
 
       #. **Test this release from this venv.**
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ cd /tmp && /tmp/betse-pypi/bin/betse try
 
       #. **Remove this venv and sample simulation and return to the prior
          directory.**
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ rm -rf /tmp/betse-pypi /tmp/sample_sim && cd -
 
-#. **Publish this release to** `PyPI`_.
+#. (\ *Obsolete*\ ) **Manually publish this release to** `PyPI`_.
+
+   .. note::
+
+      The following instructions have been obsoleted by the GitHub_ Actions
+      CI/CD workflow configured by the ``.github/workflows/pythonrelease.yml``
+      file, which now automates publication of both source tarballs and binary
+      wheels of this this stable release in various popular formats to both
+      GitHub_ itself and `PyPI`_ when pushing the tag for this release above.
 
    #. **Create a** `PyPI user`_.
    #. **Validate the primary e-mail address associated with this account,**
@@ -327,12 +369,18 @@ BETSE is releasable to all supported platforms as follows:
       upload (and hence creation) for this project.
    #. **Create a** ``~/.pypirc`` **dotfile,** ideally by following the
       `official instructions <Test PyPI instructions_>`__ for doing so.
+   #. **Package both a source tarball and binary wheel.**
+
+      .. code-block:: shell-session
+
+         $ python3 setup.py sdist bdist_wheel
+
    #. **Upload this source tarball and binary wheel to** `PyPI`_. If this is
       the first such upload for this project, a `PyPI`_-hosted project page
       will be implicitly created by this upload. `PyPI` neither requires,
       recommends, nor supports end user intervention in this process.
 
-      .. code-block:: console
+      .. code-block:: shell-session
 
          $ twine upload dist/betse-${version}*
 
@@ -345,26 +393,26 @@ BETSE is releasable to all supported platforms as follows:
 
       #. **Create a new empty venv.**
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ python3 -m venv --clear /tmp/betse-pypi
 
       #. **Install this release into this venv.**\ [#venv]_
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ /tmp/betse-pypi/bin/pip3 install betse
 
       #. **Test this release from this venv.**
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ cd /tmp && /tmp/betse-pypi/bin/betse try
 
       #. **Remove this venv and sample simulation and return to the prior
          directory.**
 
-         .. code-block:: console
+         .. code-block:: shell-session
 
             $ rm -rf /tmp/betse-pypi /tmp/sample_sim && cd -
 
@@ -373,9 +421,9 @@ BETSE is releasable to all supported platforms as follows:
 
    * Our official `Anaconda package`_, automatically produced for all supported
      platforms from the `conda recipe`_ hosted at the `conda-forge feedstock`_
-     maintained by a co-maintainer of BETSE. Updating this package thus reduces
-     to updating this recipe. To do so, avoid directly pushing to any branch
-     (including ``master``) of the `feedstock repository`_, as doing so
+     maintained by the maintainer of betse. Updating this package thus
+     reduces to updating this recipe. To do so, avoid directly pushing to any
+     branch (including ``master``) of the `feedstock repository`_, as doing so
      conflicts with `conda-forge`_ automation; instead (in order):
 
      #. Remotely create a `GitHub`_ account.
@@ -384,7 +432,7 @@ BETSE is releasable to all supported platforms as follows:
      #. Locally clone this forked feedstock repository.
      #. Locally create a new branch of this repository specific to this update.
 
-        .. code-block:: console
+        .. code-block:: shell-session
 
            $ git checkout -b betse-${version}
 
@@ -394,7 +442,7 @@ BETSE is releasable to all supported platforms as follows:
         * The sha256 hash of the updated tarball *must* be manually embedded in
           this recipe. To obtain this hash remotely (in order):
 
-          * Browse to `the PyPI-hosted page <PyPI BETSE_>`__ for this project.
+          * Browse to `the PyPI-hosted page <PyPI betse_>`__ for this project.
           * Click the *Download Files* link.
           * Click the *SHA256* link to the right of the updated tarball.
           * Paste the resulting string as the value of the ``sha256`` Jinja2
@@ -402,13 +450,13 @@ BETSE is releasable to all supported platforms as follows:
 
      #. Locally stage and commit these changes.
 
-        .. code-block:: console
+        .. code-block:: shell-session
 
            $ git commit --all
 
      #. Locally push these changes to the upstream fork.
 
-        .. code-block:: console
+        .. code-block:: shell-session
 
            $ git push --set-upstream origin betse-v${version}
 
@@ -419,7 +467,7 @@ BETSE is releasable to all supported platforms as follows:
      updating a recipe." <conda-forge update recipe_>`__
 
    * Our official `Gentoo Linux ebuild`_, currently hosted at the `raiagent
-     overlay`_ maintained by a co-maintainer of BETSE.
+     overlay`_ maintained by the maintainer of betse.
 
 Thus begins the dawn of a new scientific epoch.
 
@@ -466,39 +514,21 @@ three ``.``-delimited integers ``{major}.{minor}.{patch}``, where:
 
 When in doubt, bump only the minor version and reset only the patch version.
 
-Codename Nomenclature
-=====================
-
-This application should be **code named** (i.e., assigned a new human-readable
-code name) according to the following crude distortion of the `Ubuntu code name
-schema`_. Each code name *must* consist of two capitalized English words
-``{adjective} {bioelectrician}``, where:
-
-* ``{adjective}`` is an arbitrary adjective whose first letter is the same as
-  that of the first character of the subsequent ``{bioelectrician}``.
-* ``{bioelectrician}`` is the last name of an arbitrary academic associated
-  with the long-standing field of bioelectricity.
-
-Unlike the `Ubuntu code name schema`_, the first letter of the code name for
-each version need *not* succeed the first letter of the code name for the prior
-version. For our insignificant purposes, preserving alphabetization across code
-names is a fruitless and hence worthless goal.
-
-.. # ------------------( LINKS ~ betse                      )------------------
+.. # ------------------( LINKS ~ betse                    )------------------
 .. _readme:
-   https://gitlab.com/betse/betse/blob/master/README.rst
+   https://github.com/betse/betse/blob/main/README.rst
 .. _tarballs:
-   https://gitlab.com/betse/betse/tags
-.. _PyPI BETSE:
+   https://github.com/betse/betse/releases
+.. _PyPI betse:
    https://pypi.python.org/pypi/betse
 
-.. # ------------------( LINKS ~ betse : gentoo             )------------------
+.. # ------------------( LINKS ~ betse : gentoo           )------------------
 .. _Gentoo Linux ebuild:
-   https://github.com/leycec/raiagent/tree/master/sci-biology/betse
+   https://github.com/leycec/raiagent/tree/master/dev-python/betse
 .. _raiagent overlay:
    https://github.com/leycec/raiagent
 
-.. # ------------------( LINKS ~ betse : conda              )------------------
+.. # ------------------( LINKS ~ betse : conda            )------------------
 .. _Anaconda package:
    https://anaconda.org/conda-forge/betse
 .. _conda recipe:
@@ -507,11 +537,7 @@ names is a fruitless and hence worthless goal.
 .. _feedstock repository:
    https://github.com/leycec/betse-feedstock
 
-.. # ------------------( LINKS ~ betsee                     )------------------
-.. _BETSEE:
-   https://gitlab.com/betse/betsee
-
-.. # ------------------( LINKS ~ python                     )------------------
+.. # ------------------( LINKS ~ py                          )------------------
 .. _Semantic Versioning:
    http://semver.org
 .. _twine:
@@ -519,7 +545,7 @@ names is a fruitless and hence worthless goal.
 .. _wheel:
    https://wheel.readthedocs.io
 
-.. # ------------------( LINKS ~ python : conda             )------------------
+.. # ------------------( LINKS ~ py : conda                  )------------------
 .. _conda-forge:
    https://conda-forge.org
 .. _conda-forge FAQ:
@@ -527,7 +553,13 @@ names is a fruitless and hence worthless goal.
 .. _conda-forge update recipe:
    https://conda-forge.org/docs/conda-forge_gotchas.html#using-a-fork-vs-a-branch-when-updating-a-recipe
 
-.. # ------------------( LINKS ~ python : pypi              )------------------
+.. # ------------------( LINKS ~ py : package                )------------------
+.. _BETSE:
+   https://github.com/betsee/betse
+.. _BETSEE:
+   https://github.com/betsee/betsee
+
+.. # ------------------( LINKS ~ py : pypi                   )------------------
 .. _Test PyPI:
    https://testpypi.python.org/pypi
 .. _Test PyPI instructions:
@@ -539,8 +571,6 @@ names is a fruitless and hence worthless goal.
 .. _PyPI user:
    https://pypi.python.org/pypi?%3Aaction=register_form
 
-.. # ------------------( LINKS ~ software                   )------------------
+.. # ------------------( LINKS ~ service                     )------------------
 .. _GitHub:
    https://github.com
-.. _Ubuntu code name schema:
-   https://wiki.ubuntu.com/DevelopmentCodeNames
