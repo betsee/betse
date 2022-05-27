@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,21 +7,21 @@
 High-level logging configuration classes.
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid circular import dependencies, avoid importing from *ANY*
 # application-specific modules at the top-level -- excluding those explicitly
 # known *NOT* to import from this module. Since all application-specific
 # modules should *ALWAYS* be able to safely import from this module at any
 # scoping level, circularities are best avoided here rather than elsewhere.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import logging, os, sys
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type.types import type_check
 from logging import Handler, RootLogger, StreamHandler
 
-# ....................{ CONFIG                            }....................
+# ....................{ CONFIG                             }....................
 #FIXME: Update docstring to reflect the new default configuration.
 class LogConf(object):
     '''
@@ -94,7 +94,7 @@ class LogConf(object):
         Root logger handler printing to standard output.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     def __init__(self):
         '''
         Initialize this logging configuration.
@@ -331,7 +331,7 @@ class LogConf(object):
         # Register this handler with the root logger.
         self._logger_root.addHandler(self._logger_root_handler_file)
 
-    # ..................{ DEINITIALIZERS                    }..................
+    # ..................{ DEINITIALIZERS                     }..................
     def deinit(self) -> None:
         '''
         Deinitialize this logging configuration.
@@ -393,7 +393,7 @@ class LogConf(object):
         self._logger_root_handler_stderr = None
         self._logger_root_handler_stdout = None
 
-    # ..................{ PROPERTIES ~ logger               }..................
+    # ..................{ PROPERTIES ~ logger                }..................
     # Read-only properties prohibiting write access to external callers.
 
     @property
@@ -404,7 +404,7 @@ class LogConf(object):
 
         return self._logger_root
 
-    # ..................{ PROPERTIES ~ handler              }..................
+    # ..................{ PROPERTIES ~ handler               }..................
     @property
     def handler_file(self) -> Handler:
         '''
@@ -432,7 +432,7 @@ class LogConf(object):
 
         return self._logger_root_handler_stdout
 
-    # ..................{ PROPERTIES ~ level                }..................
+    # ..................{ PROPERTIES ~ level                 }..................
     @property
     def file_level(self) -> LogLevel:
         '''
@@ -451,7 +451,7 @@ class LogConf(object):
 
         self._logger_root_handler_file.setLevel(file_level)
 
-    # ..................{ PROPERTIES ~ level : verbose      }..................
+    # ..................{ PROPERTIES ~ level : verbose       }..................
     @property
     def is_verbose(self) -> bool:
         '''
@@ -494,7 +494,7 @@ class LogConf(object):
         if is_verbose:
             logs.log_debug('Standard output verbosity enabled.')
 
-    # ..................{ PROPERTIES ~ path                 }..................
+    # ..................{ PROPERTIES ~ path                  }..................
     @property
     def filename(self) -> str:
         '''

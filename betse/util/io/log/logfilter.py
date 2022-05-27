@@ -15,7 +15,6 @@ Low-level logging filter subclasses.
 # must *ALWAYS* be able to safely import from this module at any level, these
 # circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 from betse import metadata
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type.types import type_check

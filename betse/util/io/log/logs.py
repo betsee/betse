@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -40,14 +40,14 @@ the root logger.
 #
 #    http://victorlin.me/posts/2012/08/26/good-logging-practice-in-python
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid circular import dependencies, avoid importing from *ANY*
 # application-specific modules at the top-level -- excluding those explicitly
 # known *NOT* to import from this module. Since all application-specific
 # modules must *ALWAYS* be able to safely import from this module at any level,
 # these circularities are best avoided here rather than elsewhere.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import logging, sys, traceback
 from betse.util.io.log.logenum import LogLevel
@@ -55,7 +55,7 @@ from betse.util.type import types
 from betse.util.type.types import type_check, StrOrNoneTypes
 from logging import Logger
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 @type_check
 def get_logger(logger_name: StrOrNoneTypes = None) -> Logger:
     '''
@@ -100,7 +100,7 @@ def get_logger(logger_name: StrOrNoneTypes = None) -> Logger:
     # Return this logger.
     return logging.getLogger(logger_name)
 
-# ....................{ LOGGERS ~ banner                  }....................
+# ....................{ LOGGERS ~ banner                   }....................
 @type_check
 def log_banner(*args, **kwargs) -> None:
     '''
@@ -130,7 +130,7 @@ def log_banner(*args, **kwargs) -> None:
     # Log this banner with level "INFO".
     log_info(banner)
 
-# ....................{ LOGGERS ~ level                   }....................
+# ....................{ LOGGERS ~ level                    }....................
 @type_check
 def log_levelled(message: str, level: LogLevel, *args, **kwargs) -> None:
     '''
@@ -207,25 +207,13 @@ def log_error(message: str, *args, **kwargs) -> None:
 
     logging.error(message, *args, **kwargs)
 
-# ....................{ LOGGERS ~ exception               }....................
+# ....................{ LOGGERS ~ exception                }....................
 @type_check
 def log_exception(exception: Exception) -> None:
     '''
     Log the passed exception with the root logger.
     '''
 
-    # While all loggers provide an exception() method for logging exceptions,
-    # the output produced by these methods is in the same format as that
-    # produced by the Python interpreter on uncaught exceptions. In order, this
-    # is:
-    #
-    # * This exception's non-human-readable stack trace.
-    # * This exception's human-readable error message.
-    #
-    # Since this format is (arguably) unreadable for non-developers, this
-    # exception is reformatted for readability. Sadly, this precludes calling
-    # our logger's exception() method.
-    #
     # Attempt to...
     try:
         # Avoid circular import dependencies.
@@ -234,50 +222,25 @@ def log_exception(exception: Exception) -> None:
         from betse.util.io.log.conf import logconf
 
         # Terse synopsis and verbose traceback for this exception.
-        exc_synopsis, exc_traceback = errexception.get_metadata(exception)
+        _, exc_traceback = errexception.get_metadata(exception)
 
         # Singleton logging configuration for the current Python process.
         log_config = logconf.get_log_conf()
 
-        # If the end user requested that nothing be logged to disk, respect
-        # this request by logging tracebacks to the error level and hence
-        # stderr.  (Avoid printing the synopsis already embedded in these
-        # tracebacks.)
-        if log_config.file_level >= LogLevel.NONE:
+        # Previous minimum level of messages to log to disk.
+        log_config_file_level = log_config.file_level
+
+        # Temporarily coerce this to the debug level, ensuring tracebacks are
+        # *ALWAYS* at least logged to disk rather than possibly discarded.
+        log_config.file_level = LogLevel.DEBUG
+
+        # Attempt to log tracebacks to the error level and hence stderr. Note
+        # that we avoid re-printing the synopsis embedded in these tracebacks.
+        try:
             log_error(exc_traceback)
-        # Else, the end user requested that at least something be logged to
-        # disk. For debuggability, the logging level of the file handler is
-        # temporarily decreased to the debug level, guaranteeing that
-        # tracebacks are *ALWAYS* at least logged to disk rather than
-        # (possibly) discarded.  For readability, tracebacks are only logged to
-        # stderr if explicitly requested by the end user.
-        else:
-            # If verbosity is disabled, output this synopsis to stderr;
-            # else, tracebacks containing this synopsis are already
-            # output to stderr by logging performed below.
-            if not log_config.is_verbose:
-                # Print this synopsis followed by a human-readable reference to
-                # the current logfile.
-                stderrs.output(
-                    '{}\n\nFor details, see "{}".'.format(
-                        exc_synopsis, log_config.filename))
-
-            # Previous minimum level of messages to log to disk.
-            log_config_file_level = log_config.file_level
-
-            # Temporarily coerce this to the debug level, ensuring that
-            # tracebacks are *ALWAYS* at least logged to disk.
-            log_config.file_level = LogLevel.DEBUG
-
-            # Attempt to...
-            try:
-                # Log tracebacks to the debug level and hence *NOT* stderr by
-                # default, isolating tracebacks to disk. This is a Good Thing.
-                # Tracebacks supply more detail than desired by typical users.
-                log_debug(exc_traceback)
-            # Revert to the previous level even if an exception is raised.
-            finally:
-                log_config.file_level = log_config_file_level
+        # Revert to the previous level even if an exception is raised.
+        finally:
+            log_config.file_level = log_config_file_level
     # If this handling raises an exception, catch and print this exception
     # via the standard Python library, guaranteed not to raise exceptions.
     except Exception:
