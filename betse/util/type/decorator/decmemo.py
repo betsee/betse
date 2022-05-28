@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -22,13 +22,13 @@ the values returned by decorated callables) facilities.
 #* Renome func_cached() to _func_cached.
 #* Renome method_cached() to _method_cached.
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from betse.util.type.types import type_check, CallableTypes, PropertyType
 from functools import wraps
 
 if False: wraps  # silence contemptible IDE warnings
 
-# ....................{ CONSTANTS                         }....................
+# ....................{ CONSTANTS                          }....................
 CALLABLE_CACHED_VAR_NAME_PREFIX = '_betse_cached__'
 '''
 Substring prefixing the names of all private instance variables to which all
@@ -42,21 +42,21 @@ pickling filtering) to uniquely match and act upon these variables.
 '''
 
 
-FUNCTION_CACHED_VAR_NAME = CALLABLE_CACHED_VAR_NAME_PREFIX + 'function_value'
+FUNCTION_CACHED_VAR_NAME = f'{CALLABLE_CACHED_VAR_NAME_PREFIX}function_value'
 '''
 Name of the private instance variable to which the :func:`func_cached`
 decorator statically caches the value returned by the decorated function.
 '''
 
 
-PROPERTY_CACHED_VAR_NAME_PREFIX = CALLABLE_CACHED_VAR_NAME_PREFIX + 'property_'
+PROPERTY_CACHED_VAR_NAME_PREFIX = f'{CALLABLE_CACHED_VAR_NAME_PREFIX}property_'
 '''
 Substring prefixing the names of all private instance variables to which the
 :func:`property_cached` decorator dynamically caches the value returned by the
 decorated property method.
 '''
 
-# ....................{ DECORATORS                        }....................
+# ....................{ DECORATORS                         }....................
 #FIXME: Raise an exception if the passed callable is a bound method. Note that
 #we have *NO* means of reliably testing for unbound methods, which are
 #indistinguishable from non-class functions. *ALL* attempts to differentiate

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,23 +7,23 @@
 Apple macOS-specific facilities.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import platform
 from betse.exceptions import BetseOSException
-from betse.util.io.log import logs
+from betse.util.io.log.logs import log_warning
 from betse.util.type.decorator.decmemo import func_cached
 from ctypes import CDLL, byref, c_int
 
-# ....................{ CONSTANTS                         }....................
+# ....................{ CONSTANTS                          }....................
 _SECURITY_FRAMEWORK_DYLIB_FILENAME = (
     '/System/Library/Frameworks/Security.framework/Security')
 '''
-Absolute path of the system-wide `Security.framework` Macho-O shared library
+Absolute path of the system-wide ``"Security.framework"`` Macho-O shared library
 providing the macOS-specific security context for the current process.
 
 This library is dynamically loadable into the address space of the current
 process with the :class:`ctypes.CDLL` class. Since all Macho-O shared libraries
-necessarily have the filetype `dylib`, this filetype is safely omitted here.
+necessarily have the filetype ``".dylib"``, this filetype can be safely omitted.
 '''
 
 
@@ -60,7 +60,7 @@ https://opensource.apple.com/source/libsecurity_authorization/libsecurity_author
     C header defining this bit flag.
 '''
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS                         }....................
 def die_unless_macos() -> None:
     '''
     Raise an exception unless the current platform is Apple macOS.
@@ -78,7 +78,7 @@ def die_unless_macos() -> None:
     if not is_macos():
         raise BetseOSException('{} not macOS.'.format(oses.get_name()))
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 @func_cached
 def is_macos() -> bool:
     '''
@@ -106,7 +106,7 @@ def is_aqua() -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import files
+    from betse.util.path.files import is_file
     from betse.util.os.command.cmdexit import SUCCESS
 
     # If the current platform is *NOT* macOS, return false.
@@ -114,16 +114,28 @@ def is_aqua() -> bool:
         return False
     # Else, the current platform is macOS.
 
+    # If the system-wide Macho-O shared library providing the macOS
+    # security context for the current process does *NOT* exist (after
+    # following symbolic links)...
+    if not is_file(_SECURITY_FRAMEWORK_DYLIB_FILENAME):
+        # Emit a non-fatal warning. Theoretically, this shared library should
+        # *ALWAYS* exist across all macOS versions (including those still
+        # actively maintained as of 2022 Q2). Pragmatically, this shared library
+        # appears to *NOT* exist (for unknown reasons) on GitHub Actions macOS
+        # runners. He have no control over GitHub Actions. Let's complain! \o/
+        log_warning(
+            'macOS shared library "%s" not found.',
+            _SECURITY_FRAMEWORK_DYLIB_FILENAME)
+
+        # Return false.
+        return False
+    # Else, this shared library exists.
+
     # Attempt all of the following in a safe manner catching, logging, and
     # converting exceptions into a false return value. This tester is *NOT*
     # mission-critical and hence should *NOT* halt the application on
     # library-specific failures.
     try:
-        # If the system-wide Macho-O shared library providing the macOS
-        # security context for the current process does *NOT* exist (after
-        # following symbolic links), raise an exception.
-        files.die_unless_file(_SECURITY_FRAMEWORK_DYLIB_FILENAME)
-
         # Dynamically load this library into the address space of this process.
         security_framework = CDLL(_SECURITY_FRAMEWORK_DYLIB_FILENAME)
 
@@ -157,13 +169,19 @@ def is_aqua() -> bool:
             # corresponding bit flag enabled.
             session_attributes.value & _SECURITY_SESSION_HAS_GRAPHIC_ACCESS
         )
+    # If the above logic failed with any exception...
+    except Exception as exception:
+        # Human-readable exception message harvested from this exception,
+        # defined as either:
+        # * If this exception is a platform-specific "OSError" (as is likely due
+        #   to calling low-level platform-specific macOS kernel functions
+        #   above), the "OSError.strerror" instance variable of this exception.
+        # * Else, the standard string representation of this exception.
+        exception_message = getattr(exception, 'strerror', str(exception))
 
-    # If the above logic fails with any exception...
-    except Exception as exc:
         # Log a non-fatal warning informing users of this failure.
-        logs.log_warning(
-            'macOS-specific SessionGetInfo() C function failed: {}'.format(
-                exc.strerror))
+        log_warning(
+            'macOS SessionGetInfo() function failed, as %s.', exception_message)
 
-        # Assume this process to *NOT* have access to the Aqua display server.
-        return False
+    # Assume this process to *NOT* have access to the Aqua display server.
+    return False
