@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -11,7 +11,7 @@ on whether the conditions signified by the passed parameters are satisfied
 (e.g., the importability of the passed module name).
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import pytest
 from betse.util.type.types import (
     type_check,
@@ -23,11 +23,11 @@ from betse.util.type.types import (
 )
 from betse.util.test.pytest.mark import pytmark
 
-# ....................{ IMPORTS ~ private                 }....................
+# ....................{ IMPORTS ~ private                  }....................
 # Sadly, the following imports require private modules and packages.
 from _pytest.runner import Skipped
 
-# ....................{ SKIP                              }....................
+# ....................{ SKIP                               }....................
 skip_if = pytest.mark.skipif
 '''
 Conditionally skip the decorated test or fixture with the passed human-readable
@@ -68,7 +68,7 @@ def skip(reason: str):
 
     return skip_if(True, reason=reason)
 
-# ....................{ SKIP ~ command                    }....................
+# ....................{ SKIP ~ command                     }....................
 @type_check
 def skip_unless_command(pathname: str):
     '''
@@ -105,7 +105,7 @@ def skip_unless_command(pathname: str):
     else:
         return skip('Command "{}" not found.'.format(pathname))
 
-# ....................{ SKIP ~ host                       }....................
+# ....................{ SKIP ~ host                        }....................
 def skip_if_ci_gitlab():
     '''
     Skip the decorated test if tests are currently running under a remote
@@ -158,7 +158,7 @@ def skip_unless_matplotlib_anim_writer(writer_name: str):
             'Matplotlib animation writer "{}" either '
             'not found or unrecognized.'.format(writer_name))
 
-# ....................{ SKIP ~ lib : optional             }....................
+# ....................{ SKIP ~ lib : optional              }....................
 @type_check
 def skip_unless_lib_runtime_optional(*lib_names: str):
     '''
@@ -199,7 +199,7 @@ def skip_unless_lib_runtime_optional(*lib_names: str):
         args=lib_names,
     )
 
-# ....................{ SKIP ~ lib : requirement          }....................
+# ....................{ SKIP ~ lib : requirement           }....................
 @type_check
 def skip_if_requirement(*requirements_str: str):
     '''
@@ -269,7 +269,7 @@ def skip_unless_requirement(*requirements_str: str):
         args=requirements_str,
     )
 
-# ....................{ SKIP ~ module                     }....................
+# ....................{ SKIP ~ module                      }....................
 @type_check
 def skip_unless_module(module_name: str, minimum_version: str = None):
     '''
@@ -318,7 +318,27 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
         args=(module_name, minimum_version),
     )
 
-# ....................{ SKIP ~ plugin                     }....................
+# ....................{ SKIP ~ os                          }....................
+def skip_if_os_macos():
+    '''
+    Skip the decorated test if tests are currently running under an operating
+    system running the Apple macOS kernel.
+
+    Returns
+    ----------
+    pytest.skipif
+        Decorator describing these requirements if unmet *or* the identity
+        decorator successfully reducing to a noop otherwise.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.util.os.brand.macos import is_macos
+
+    # Skip this test or fixture if tests are running under macOS.
+    return skip_if(is_macos(), reason=(
+        'Test or fixture currently incompatible with Apple macOS.'))
+
+# ....................{ SKIP ~ plugin                      }....................
 def skip_unless_plugin_xdist():
     '''
     Skip the decorated test if the ``pytest-xdist`` plugin is *not* installed.
@@ -340,7 +360,7 @@ def skip_unless_plugin_xdist():
 
     return skip_unless_module('xdist')
 
-# ....................{ PRIVATE ~ skip                    }....................
+# ....................{ PRIVATE ~ skip                     }....................
 @type_check
 def _skip_if_callable_raises_exception(
     # Mandatory parameters.

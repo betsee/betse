@@ -217,7 +217,7 @@ def die_unless_parent_dir(pathname: str) -> None:
     # exception.
     die_unless_dir(pathnames.get_dirname(pathname))
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 @type_check
 def is_dir(dirname: str) -> bool:
     '''
@@ -312,7 +312,7 @@ def is_subdir(parent_dirname: str, child_dirname: str) -> bool:
     # Return true only if this dirname is this parent's canonicalized dirname.
     return parent_dirname == common_dirname
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 @type_check
 def get_parent_dir_last(pathname: str) -> str:
     '''
@@ -361,7 +361,7 @@ def get_parent_dir_last(pathname: str) -> str:
     # Return this existing directory component.
     return dirname_component
 
-# ....................{ GETTERS ~ mtime : recursive       }....................
+# ....................{ GETTERS ~ mtime : recursive        }....................
 #FIXME: Consider contributing the get_mtime_recursive_newest() function as an
 #answer to the following StackOverflow question:
 #    https://stackoverflow.com/questions/26498285/find-last-update-time-of-a-directory-includes-all-levels-of-sub-folders

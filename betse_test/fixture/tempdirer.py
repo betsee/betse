@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,10 +7,10 @@
 Fixtures creating temporary directories isolated for safety to specific tests.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from pytest import fixture
 
-# ....................{ FIXTURES                          }....................
+# ....................{ FIXTURES                           }....................
 # Test-scope fixture creating and returning a new object for each unique test.
 @fixture
 def betse_temp_dir(
@@ -64,7 +64,7 @@ def betse_temp_dir(
         text=test_name,
         prefix='test_',
         exception_message=(
-            'Test name "{}" not prefixed by "test_".'.format(test_name)),
+            f'Test name "{test_name}" not prefixed by "test_".'),
     )
 
     # Create this temporary directory and wrap this directory's absolute path

@@ -76,7 +76,7 @@ def die_unless_macos() -> None:
 
     # If the current platform is *NOT* macOS, raise an exception.
     if not is_macos():
-        raise BetseOSException('{} not macOS.'.format(oses.get_name()))
+        raise BetseOSException(f'{oses.get_name()} not macOS.')
 
 # ....................{ TESTERS                            }....................
 @func_cached
