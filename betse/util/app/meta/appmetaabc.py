@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -23,8 +23,8 @@ synopsizing application metadata via read-only properties) hierarchy.
 #path given by a global below. Ultimately, *ALL* of the codebase-specific
 #globals declared below (e.g., "DATA_DIRNAME") should go away.
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from modules guaranteed to exist at the start of
 # installation. This includes all standard Python and application modules but
@@ -32,7 +32,7 @@ synopsizing application metadata via read-only properties) hierarchy.
 # installed at some later time in the installation. Likewise, to avoid circular
 # import dependencies, the top-level of this module should avoid importing
 # application modules where feasible.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from abc import ABCMeta
 from betse.exceptions import BetseGitException
@@ -40,7 +40,7 @@ from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import type_check, ModuleType, StrOrNoneTypes
 
-# ....................{ SUPERCLASSES                      }....................
+# ....................{ SUPERCLASSES                       }....................
 class AppMetaABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **application metadata singleton** (i.e.,
@@ -81,7 +81,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         reduce to a noop when ``True``.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     def __init__(self, *args, **kwargs) -> None:
         '''
         Initialize both this application metadata singleton and the current
@@ -222,7 +222,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         oses.init()
         pys.init()
 
-    # ..................{ INITIALIZERS ~ libs               }..................
+    # ..................{ INITIALIZERS ~ libs                }..................
     @type_check
     def init_libs(
         self, matplotlib_backend_name: StrOrNoneTypes = None) -> None:
@@ -292,7 +292,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         else:
             self.init_libs(*args, **kwargs)
 
-    # ..................{ DEINITIALIZERS                    }..................
+    # ..................{ DEINITIALIZERS                     }..................
     def deinit(self) -> None:
         '''
         Deinitialize this application metadata singleton and hence the current
@@ -327,7 +327,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # singleton.
         appmetaone.unset_app_meta()
 
-    # ..................{ SUBCLASS ~ properties             }..................
+    # ..................{ SUBCLASS ~ properties              }..................
     # Subclasses are required to implement the following abstract properties.
 
     @abstractproperty
@@ -374,7 +374,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         pass
 
-    # ..................{ PROPERTIES ~ bool                 }..................
+    # ..................{ PROPERTIES ~ bool                  }..................
     @property_cached
     def is_git_worktree(self) -> bool:
         '''
@@ -386,7 +386,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         return self.git_worktree_dirname_or_none is not None
 
-    # ..................{ PROPERTIES ~ module               }..................
+    # ..................{ PROPERTIES ~ module                }..................
     @property_cached
     def module_metadata(self) -> ModuleType:
         '''
@@ -467,7 +467,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # Return this validated submodule.
         return module_metadeps
 
-    # ..................{ PROPERTIES ~ package              }..................
+    # ..................{ PROPERTIES ~ package               }..................
     @property_cached
     def package(self) -> ModuleType:
         '''
@@ -496,7 +496,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # By the power of Grayskull...
         return pymodule.get_name_qualified(module=self.package)
 
-    # ..................{ PROPERTIES ~ package : test       }..................
+    # ..................{ PROPERTIES ~ package : test        }..................
     @property_cached
     def test_package(self) -> ModuleType:
         '''
@@ -542,7 +542,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # When our powers combine!
         return self.package_name + '_test'
 
-    # ..................{ PROPERTIES ~ dir                  }..................
+    # ..................{ PROPERTIES ~ dir                   }..................
     @property_cached
     def project_dirname(self) -> str:
         '''
@@ -628,8 +628,8 @@ class AppMetaABC(object, metaclass=ABCMeta):
         Denote:
 
         * ``{package_name}`` the value of the :meth:`package_name` property for
-          this application (e.g., ``betse`` for BETSE).
-        * ``{username}`` the name of the current user (e.g., ``leycec``).
+          this application: e.g., ``betse`` for BETSE.
+        * ``{username}`` the name of the current user: e.g., ``leycec``.
 
         Then the dirname returned by this property is:
 
@@ -665,8 +665,32 @@ class AppMetaABC(object, metaclass=ABCMeta):
             )
         # If Windows, prefer a Windows-specific directory.
         elif windows.is_windows():
-            dot_dirname = pathnames.join(
-                shellenv.get_var('APPDATA'), self.package_name)
+            # Absolute dirname of the parent directory of all Windows-specific
+            # dot directories, conditionally obtained via iteration inspection
+            # of a cascading series of decreasingly preferred shell environment
+            # variables:
+            # * '%LOCALAPPDATA%', the user-specific directory containing local
+            #   application data *NOT* synced across remote roaming profiles.
+            # * '%APPDATA%', the user-specific directory containing local
+            #   application data synced across remote roaming profiles. Since
+            #   there exists *NO* demonstrable reason to sync BETSE log files
+            #   across remote roaming profiles, '%LOCALAPPDATA%' is preferred to
+            #   '%APPDATA%'.
+            # * '%HOME%', the user-specific home directory.
+            #
+            # In theory, the '%LOCALAPPDATA%' variable should *ALWAYS* be
+            # defined under Windows; so, the fallbacks should *NEVER* be
+            # leveraged. In practice, edge-case environments like the GitHub
+            # Actions Windows runner frequently fail to declare these critical
+            # environment variables; so, we do. *shrug*
+            dot_parent_dirname = (
+                shellenv.get_var_or_default('LOCALAPPDATA',
+                shellenv.get_var_or_default('APPDATA',
+                f'{shellenv.get_var("HOME")}/AppData/Local'
+            )))
+
+            # Absolute dirname of the Windows-specific BETSE dot directory.
+            dot_dirname = pathnames.join(dot_parent_dirname, self.package_name)
         # Else...
         else:
             # If this platform is POSIX-incompatible, raise an exception.
@@ -674,7 +698,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
             # Prefer a POSIX-compatible directory.
             dot_dirname = pathnames.join(
-                pathnames.get_home_dirname(), '.' + self.package_name)
+                pathnames.get_home_dirname(), f'.{self.package_name}')
 
         # Create this directory if needed.
         dirs.make_unless_dir(dot_dirname)
@@ -682,7 +706,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # Return this dirname.
         return dot_dirname
 
-    # ..................{ PROPERTIES ~ dir : data           }..................
+    # ..................{ PROPERTIES ~ dir : data            }..................
     @property_cached
     def data_dirname(self) -> str:
         '''
@@ -706,7 +730,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # this directory exists *OR* raise an exception otherwise.
         return apppath.get_dirname(package=self.package, dirname='data')
 
-    # ..................{ PROPERTIES ~ dir : git            }..................
+    # ..................{ PROPERTIES ~ dir : git             }..................
     @property_cached
     def git_worktree_dirname(self) -> str:
         '''
@@ -774,7 +798,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # Behold! It is a one-liner.
         return gits.get_package_worktree_dirname_or_none(self.package)
 
-    # ..................{ PROPERTIES ~ dir : test           }..................
+    # ..................{ PROPERTIES ~ dir : test            }..................
     @property_cached
     def test_dirname(self) -> str:
         '''
@@ -827,7 +851,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # exists *OR* raise an exception otherwise.
         return dirs.join_or_die(self.test_dirname, 'data')
 
-    # ..................{ PROPERTIES ~ file                 }..................
+    # ..................{ PROPERTIES ~ file                  }..................
     @property_cached
     def log_default_filename(self) -> str:
         '''

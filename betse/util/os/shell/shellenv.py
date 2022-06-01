@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,24 +8,23 @@ Low-level **environment** (i.e., set of all external shell variables exported
 to the the active Python interpreter) facilities.
 '''
 
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: For safety, all attempts to get, set, or unset environment variables
 # should act on the low-level global "os.environ" dictionary directly rather
 # than calling the high-level getenv(), setenv(), or unsetenv() functions. To
 # quote official Python documentation:
-#
 #     Calling putenv() directly does not change os.environ, so it's better to
 #     modify os.environ.
 #
 # See http://docs.python.org/library/os.html#os.environ.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from os import environ
 from betse.exceptions import BetseShellEnvException
 from betse.util.type.types import type_check, MappingType, StrOrNoneTypes
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS                         }....................
 @type_check
 def die_unless_var(*names: str) -> None:
     '''
@@ -53,9 +52,11 @@ def die_unless_var(*names: str) -> None:
             # suffice, that exception's message is *NOT* human-readable.
             if name not in environ:
                 raise BetseShellEnvException(
-                    'Environment variable "{}" undefined.'.format(name))
+                    f'Environment variable "{name}" undefined by shell '
+                    f'environment:\n{to_str()}'
+                )
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 @type_check
 def is_var(*names: str) -> bool:
     '''
@@ -80,7 +81,7 @@ def is_var(*names: str) -> bool:
     # of the corresponding dictionary global.
     return maptest.has_keys(mapping=environ, keys=names)
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 def get_env() -> MappingType:
     '''
     Dictionary mapping the name of each environment variable to the string
@@ -96,7 +97,7 @@ def get_env() -> MappingType:
 
     return environ.copy()
 
-# ....................{ GETTERS ~ var                     }....................
+# ....................{ GETTERS ~ var                      }....................
 @type_check
 def get_var(name: str) -> str:
     '''
@@ -167,7 +168,7 @@ def get_var_or_none(name: str) -> StrOrNoneTypes:
 
     return environ.get(name, None)
 
-# ....................{ SETTERS                           }....................
+# ....................{ SETTERS                            }....................
 @type_check
 def set_var(name: str, value: str) -> None:
     '''
@@ -183,7 +184,7 @@ def set_var(name: str, value: str) -> None:
 
     environ[name] = value
 
-# ....................{ UNSETTERS                         }....................
+# ....................{ UNSETTERS                          }....................
 @type_check
 def unset_var(name: str) -> None:
     '''
@@ -239,7 +240,7 @@ def unset_var_if_set(name: str) -> None:
     # Unset this variable.
     del environ[name]
 
-# ....................{ CONVERTERS                        }....................
+# ....................{ CONVERTERS                         }....................
 def to_str() -> str:
     '''
     Human-readable string of all environment variables.
