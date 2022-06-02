@@ -425,8 +425,8 @@ modulator function properties:   # set properties of modulating functions which 
     end frequency: 1e3       # end frequency
 
   gradient_bitmap:   # generate a spatial gradient of a property from an imported bitmap image (png)
-    file: geo/ellipse/gradient.png
-    z-offset: 0.0
+    file: geo/ellipse/gradient.png  #Red is treated as positive, blue is treated as negative, and
+    z-offset: 0.0   #black is treated as zero.
 
 # ----------------------------------------------------------------------------------------------------------------------
 # GLOBAL INTERVENTIONS
