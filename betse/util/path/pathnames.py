@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +7,7 @@
 Low-level pathname (e.g., basename, dirname, filetype) facilities.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import errno, os
 from betse.exceptions import BetsePathnameException
 from betse.util.io.log import logs
@@ -15,7 +15,7 @@ from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import type_check, ContainerTypes, StrOrNoneTypes
 from os import path as os_path
 
-# ....................{ CONSTANTS                         }....................
+# ....................{ CONSTANTS                          }....................
 INVALID_PATHNAME = '\0'
 '''
 Pathname guaranteed to be invalid on all supported platforms.
@@ -28,7 +28,7 @@ these errors into raised exceptions. Under Linux, for example, a
 :class:`TypeError` exception of message ``"embedded NUL character"`` is raised.
 '''
 
-# ....................{ EXCEPTIONS ~ absolute             }....................
+# ....................{ EXCEPTIONS ~ absolute              }....................
 def die_if_absolute(*pathnames: str) -> None:
     '''
     Raise an exception if any passed pathname is absolute.
@@ -78,7 +78,7 @@ def die_if_relative(*pathnames: str) -> None:
                 'Pathname "{}" relative rather than absolute.'.format(
                     pathname))
 
-# ....................{ EXCEPTIONS ~ basename             }....................
+# ....................{ EXCEPTIONS ~ basename              }....................
 def die_if_basename(pathname: str) -> None:
     '''
     Raise an exception if the passed pathname is a **pure basename** (i.e.,
@@ -112,7 +112,7 @@ def die_unless_basename(pathname: str) -> None:
             'Pathname "{}" contains one or more directory separators'
             "(i.e., '{}' characters).".format(pathname, os_path.sep))
 
-# ....................{ EXCEPTIONS ~ parent               }....................
+# ....................{ EXCEPTIONS ~ parent                }....................
 def die_unless_parent(parent_dirname: str, child_pathname: str) -> bool:
     '''
     Raise an exception unless the second passed pathname is a child of (i.e.,
@@ -136,7 +136,7 @@ def die_unless_parent(parent_dirname: str, child_pathname: str) -> bool:
             'Pathname "{}" not in dirname "{}".'.format(
                 child_pathname, parent_dirname,))
 
-# ....................{ EXCEPTIONS ~ filetype             }....................
+# ....................{ EXCEPTIONS ~ filetype              }....................
 def die_unless_filetype_equals(pathname: str, filetype: str) -> None:
     '''
     Raise an exception unless the passed path has the passed filetype.
@@ -151,7 +151,7 @@ def die_unless_filetype_equals(pathname: str, filetype: str) -> None:
         raise BetsePathnameException(
             'Pathname "{}" filetype not "{}".'.format(pathname, filetype))
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 @type_check
 def is_pathname(pathname: str) -> bool:
     '''
@@ -284,7 +284,7 @@ def is_pathname(pathname: str) -> bool:
     # If any other exception was raised, this is an unrelated fatal issue
     # (e.g., a bug). Permit this exception to unwind the call stack.
 
-# ....................{ TESTERS ~ absolute                }....................
+# ....................{ TESTERS ~ absolute                 }....................
 @type_check
 def is_absolute(pathname: str) -> bool:
     '''
@@ -315,7 +315,7 @@ def is_relative(pathname: str) -> bool:
 
     return not is_absolute(pathname)
 
-# ....................{ TESTERS ~ basename                }....................
+# ....................{ TESTERS ~ basename                 }....................
 @type_check
 def is_basename(pathname: str) -> bool:
     '''
@@ -325,7 +325,7 @@ def is_basename(pathname: str) -> bool:
 
     return os_path.sep not in pathname
 
-# ....................{ TESTERS ~ parent                  }....................
+# ....................{ TESTERS ~ parent                   }....................
 @type_check
 def is_parent(parent_dirname: str, child_pathname: str) -> bool:
     '''
@@ -357,7 +357,7 @@ def is_parent(parent_dirname: str, child_pathname: str) -> bool:
     # Return true only if this child pathname is suffixed by this dirname.
     return strs.is_prefix(text=child_pathname, prefix=parent_dirname_suffixed)
 
-# ....................{ TESTERS ~ filetype                }....................
+# ....................{ TESTERS ~ filetype                 }....................
 @type_check
 def is_filetype(pathname: str) -> bool:
     '''
@@ -448,7 +448,7 @@ def is_filetype_undotted_in(
         filetype_undotted in filetypes_undotted
     )
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 @type_check
 def get_basename(pathname: str) -> str:
     '''
@@ -457,7 +457,7 @@ def get_basename(pathname: str) -> str:
 
     return os_path.basename(pathname)
 
-# ....................{ GETTERS ~ dirname                 }....................
+# ....................{ GETTERS ~ dirname                  }....................
 def get_dirname(pathname: str) -> str:
     '''
     **Dirname** (i.e., parent directory) of the passed path if this path has a
@@ -498,7 +498,7 @@ def get_dirname_or_empty(pathname: str) -> str:
 
     return os_path.dirname(pathname)
 
-# ....................{ GETTERS ~ dirname : system        }....................
+# ....................{ GETTERS ~ dirname : system         }....................
 @func_cached
 def get_root_dirname() -> str:
     '''
@@ -533,7 +533,7 @@ def get_home_dirname() -> str:
 
     Raises
     ----------
-    :exc:`BetseDirException`
+    BetseDirException
         If this user has no home directory.
     '''
 
@@ -549,7 +549,7 @@ def get_home_dirname() -> str:
     # Return this directory's path.
     return home_dirname
 
-# ....................{ GETTERS ~ filetype                }....................
+# ....................{ GETTERS ~ filetype                 }....................
 @type_check
 def get_pathname_sans_filetype(pathname: str) -> str:
     '''
@@ -583,7 +583,7 @@ def get_pathname_sans_filetypes(pathname: str) -> str:
     # and stripped basename; else only return this stripped basename.
     return join(dirname, basename) if dirname else basename
 
-# ....................{ GETTERS ~ filetype : undotted     }....................
+# ....................{ GETTERS ~ filetype : undotted      }....................
 @type_check
 def get_filetype_dotted_or_none(pathname: str) -> StrOrNoneTypes:
     '''
@@ -651,7 +651,7 @@ def get_filetype_undotted_or_none(pathname: str) -> StrOrNoneTypes:
     # otherwise.
     return filetype[1:] if filetype is not None else None
 
-# ....................{ DOTTERS                           }....................
+# ....................{ DOTTERS                            }....................
 @type_check
 def dot_filetype(filetype: str) -> str:
     '''
@@ -746,7 +746,7 @@ def canonicalize(pathname: str) -> str:
 
     return os_path.realpath(os_path.expanduser(pathname))
 
-# ....................{ JOINERS                           }....................
+# ....................{ JOINERS                            }....................
 @type_check
 def join(*partnames: str) -> str:
     '''
@@ -792,7 +792,7 @@ def join(*partnames: str) -> str:
     # Return the concatenation of these partnames.
     return os_path.join(*partnames)
 
-# ....................{ RELATIVIZERS                      }....................
+# ....................{ RELATIVIZERS                       }....................
 @type_check
 def relativize(src_dirname: str, trg_pathname: str) -> str:
     '''

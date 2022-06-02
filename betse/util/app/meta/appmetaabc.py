@@ -651,6 +651,9 @@ class AppMetaABC(object, metaclass=ABCMeta):
         from betse.util.os.brand import macos, posix, windows
         from betse.util.os.shell import shellenv
         from betse.util.path import dirs, pathnames
+        from betse.util.path.pathnames import (
+            get_home_dirname,
+        )
 
         # Absolute dirname of this directory.
         dot_dirname = None
@@ -658,7 +661,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         # If macOS, prefer a macOS-specific directory.
         if macos.is_macos():
             dot_dirname = pathnames.join(
-                pathnames.get_home_dirname(),
+                get_home_dirname(),
                 'Library',
                 'Application Support',
                 self.package_name,
@@ -676,7 +679,9 @@ class AppMetaABC(object, metaclass=ABCMeta):
             #   there exists *NO* demonstrable reason to sync BETSE log files
             #   across remote roaming profiles, '%LOCALAPPDATA%' is preferred to
             #   '%APPDATA%'.
-            # * '%HOME%', the user-specific home directory.
+            # * A manually constructed user-specific directory containing local
+            #   application data intended to resolve to the same dirname as
+            #   '%LOCALAPPDATA%'.
             #
             # In theory, the '%LOCALAPPDATA%' variable should *ALWAYS* be
             # defined under Windows; so, the fallbacks should *NEVER* be
@@ -686,7 +691,11 @@ class AppMetaABC(object, metaclass=ABCMeta):
             dot_parent_dirname = (
                 shellenv.get_var_or_default('LOCALAPPDATA',
                 shellenv.get_var_or_default('APPDATA',
-                f'{shellenv.get_var("HOME")}/AppData/Local'
+                pathnames.join(
+                    get_home_dirname(),
+                    'AppData',
+                    'Local',
+                ),
             )))
 
             # Absolute dirname of the Windows-specific BETSE dot directory.
