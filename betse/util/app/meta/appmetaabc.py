@@ -651,9 +651,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         from betse.util.os.brand import macos, posix, windows
         from betse.util.os.shell import shellenv
         from betse.util.path import dirs, pathnames
-        from betse.util.path.pathnames import (
-            get_home_dirname,
-        )
+        from betse.util.path.pathnames import get_home_dirname
 
         # Absolute dirname of this directory.
         dot_dirname = None
