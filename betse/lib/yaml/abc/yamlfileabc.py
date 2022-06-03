@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +7,7 @@
 Abstract base classes of all YAML-backed file wrapper subclasses.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from betse.lib.yaml import yamls
 from betse.lib.yaml.abc.yamlabc import YamlABC
 from betse.util.io.log import logs
@@ -17,7 +17,7 @@ from betse.util.type.descriptor.descs import abstractclassproperty_readonly
 from betse.util.type.iterable.iterators import empty_iterator
 from betse.util.type.types import type_check, IterableTypes
 
-# ....................{ SUPERCLASSES                      }....................
+# ....................{ SUPERCLASSES                       }....................
 class YamlFileABC(YamlABC):
     '''
     Abstract base class of all **YAML-backed file wrapper** (i.e., high-level
@@ -51,7 +51,7 @@ class YamlFileABC(YamlABC):
         ``None`` otherwise.
     '''
 
-    # ..................{ MAKERS                            }..................
+    # ..................{ MAKERS                             }..................
     @classmethod
     @type_check
     def make(cls, conf_filename: str, *args, **kwargs) -> (
@@ -84,7 +84,7 @@ class YamlFileABC(YamlABC):
         # Return this instance.
         return yaml_file_conf
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     def __init__(self) -> None:
         '''
         Initialize this YAML file wrapper in the **unload state** (i.e.,
@@ -100,7 +100,7 @@ class YamlFileABC(YamlABC):
         self._conf_dirname = None
         self._conf_filename = None
 
-    # ..................{ PROPERTIES ~ read-only            }..................
+    # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from resetting these attributes.
 
     @property
@@ -162,7 +162,7 @@ class YamlFileABC(YamlABC):
         # Return this property.
         return self._conf_dirname
 
-    # ..................{ LOADERS                           }..................
+    # ..................{ LOADERS                            }..................
     @type_check
     def load(self, conf_filename: str, **kwargs) -> None:
         '''
@@ -219,7 +219,7 @@ class YamlFileABC(YamlABC):
         self._conf_dirname = None
         self._conf_filename = None
 
-    # ..................{ SAVERS                            }..................
+    # ..................{ SAVERS                             }..................
     #FIXME: For brevity, rename the following parameters:
     #
     #* "is_conf_file_overwritable" to "is_file_overwritable".
@@ -240,7 +240,7 @@ class YamlFileABC(YamlABC):
         Serialize (i.e., save, write) the low-level mapping or sequence
         internally persisted in this wrapper to the YAML-formatted file with
         the passed filename, copying *all* external resources internally
-        referenced by this mapping or sequence into this file's directory.
+        referenced by this mapping or sequence into that file's directory.
 
         This method effectively implements the "Save As..." GUI metaphor.
         Specifically, this method (in order):
@@ -289,8 +289,7 @@ class YamlFileABC(YamlABC):
 
         # Log this save.
         logs.log_debug(
-            'Saving YAML file: %s -> %s',
-            self._conf_filename, conf_filename)
+            'Saving YAML file: %s -> %s', self._conf_filename, conf_filename)
 
         # Serialize this mapping or sequence to this file.
         #
@@ -317,7 +316,6 @@ class YamlFileABC(YamlABC):
             # directory into the directory of this target file (e.g., via
             # "dirs.copy(src_dirname, pathnames.get_dirname(conf_filename))")
             # fails for the following subtle reasons:
-            #
             # * This target directory may be already exist, which dirs.copy()
             #   prohibits even when the directory is empty.
             # * This target configuration file basename may differ from that of
@@ -365,7 +363,7 @@ class YamlFileABC(YamlABC):
             is_overwritable=True,
         )
 
-    # ..................{ COPIERS                           }..................
+    # ..................{ COPIERS                            }..................
     def copy(
         self,
         src_conf_filename: str,
@@ -409,7 +407,7 @@ class YamlFileABC(YamlABC):
         # Save this source file to this target file.
         self.save(trg_conf_filename, **kwargs)
 
-    # ..................{ SETTERS                           }..................
+    # ..................{ SETTERS                            }..................
     @type_check
     def _set_conf_filename(self, conf_filename: str) -> None:
         '''
@@ -433,7 +431,7 @@ class YamlFileABC(YamlABC):
         # Unique absolute dirname of the parent directory of this file.
         self._conf_dirname = pathnames.get_dirname(self._conf_filename)
 
-    # ..................{ SUBCLASS ~ optional               }..................
+    # ..................{ SUBCLASS ~ optional                }..................
     # Methods intended to be optionally overriden by subclasses.
 
     def _iter_conf_subdir_basenames(self) -> IterableTypes:
@@ -460,7 +458,7 @@ class YamlFileABC(YamlABC):
         # Default to the empty iterator.
         return empty_iterator()
 
-# ....................{ SUPERCLASSES ~ default            }....................
+# ....................{ SUPERCLASSES ~ default             }....................
 #FIXME: Is this genuinely required anymore? It would probably be saner to
 #simply refactor all remaining calls to the copy_default() method to call the
 #copy() method instead with the default simulation configuration file.
@@ -484,7 +482,7 @@ class YamlFileDefaultABC(YamlFileABC):
     default simulation configuration file).
     '''
 
-    # ..................{ PROPERTIES                        }..................
+    # ..................{ PROPERTIES                         }..................
     # Subclasses are required to implement these abstract class properties.
 
     @abstractclassproperty_readonly
@@ -497,13 +495,13 @@ class YamlFileDefaultABC(YamlFileABC):
 
         pass
 
-    # ..................{ COPIERS                           }..................
+    # ..................{ COPIERS                            }..................
     @type_check
     def copy_default(self, trg_conf_filename: str, **kwargs) -> None:
         '''
         Copy the default YAML-formatted file specific to this subclass to the
-        YAML-formatted file with the passed filename *and* all external
-        resources from the directory of the former into that of the latter.
+        the passed filename *and* all external resources from the directory of
+        the former into that of the latter.
 
         This method effectively implements the "New..." GUI metaphor.
 

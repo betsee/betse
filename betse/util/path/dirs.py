@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -12,7 +12,7 @@ Low-level directory facilities.
 #this subpackage is intentionally *NOT* named "dir", as doing so would conflict
 #with the standard dir() builtin.
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import os, shutil, time
 from betse.exceptions import BetseDirException, BetsePathException
 from betse.util.io.log import logs
@@ -28,7 +28,7 @@ from betse.util.type.types import (
 from distutils import dir_util
 from os import path as os_path
 
-# ....................{ ENUMERATIONS                      }....................
+# ....................{ ENUMERATIONS                       }....................
 DirOverwritePolicy = make_enum(
     class_name='DirOverwritePolicy',
     member_names=(
@@ -56,7 +56,7 @@ OVERWRITE : enum
     laxest and thus riskiest such policy.
 '''
 
-# ....................{ GLOBALS                           }....................
+# ....................{ GLOBALS                            }....................
 # There exist only two possible directory separators for all modern platforms.
 # Hence, this reliably suffices with no error handling required.
 SEPARATOR_REGEX = r'/' if os_path.sep == '/' else r'\\'
@@ -70,7 +70,7 @@ Specifically, under:
 * All other platforms, this is `/`.
 '''
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS                         }....................
 @type_check
 def die_if_dir(*dirnames: str) -> None:
     '''
@@ -176,7 +176,7 @@ def join_or_die(*pathnames: str) -> str:
     # Return this dirname.
     return dirname
 
-# ....................{ EXCEPTIONS ~ subdir               }....................
+# ....................{ EXCEPTIONS ~ subdir                }....................
 @type_check
 def die_if_subdir(parent_dirname: str, child_dirname: str) -> None:
     '''
@@ -203,7 +203,7 @@ def die_if_subdir(parent_dirname: str, child_dirname: str) -> None:
             '"{}" is a subdirectory of "{}".'.format(
                 child_dirname, parent_dirname))
 
-# ....................{ EXCEPTIONS ~ parent               }....................
+# ....................{ EXCEPTIONS ~ parent                }....................
 @type_check
 def die_unless_parent_dir(pathname: str) -> None:
     '''
@@ -294,6 +294,7 @@ def is_subdir(parent_dirname: str, child_dirname: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
+    from betse.util.os.brand.windows import is_windows
     from betse.util.path import pathnames
 
     # Canonicalized child and parent dirnames, conditionally resolving both
@@ -305,9 +306,29 @@ def is_subdir(parent_dirname: str, child_dirname: str) -> bool:
     parent_dirname = pathnames.canonicalize(parent_dirname)
     child_dirname  = pathnames.canonicalize(child_dirname)
 
-    # Longest common dirname shared between these dirnames if any *OR* the root
-    # directory otherwise (e.g., "/" under Linux).
-    common_dirname = os_path.commonpath((parent_dirname, child_dirname))
+    # Attempt to...
+    try:
+        # Longest common dirname shared between these dirnames if any *OR* the
+        # root directory otherwise (e.g., "/" under Linux).
+        common_dirname = os_path.commonpath((parent_dirname, child_dirname))
+    # If the commonpath() builtin raises a "ValueError" exception *AND*...
+    except ValueError as exception:
+        #FIXME: Consider raising an upstream issue against the CPython issue
+        #tracker. This behaviour is unexpected and hostile to platform-portable
+        #resilience throughout the Python ecosystem.
+        # The current platform is Microsoft Windows *AND* this exception message
+        # is a well-known message raised by the Windows-specific standard
+        # "ntpath" module indicating the two passed pathnames to reside on
+        # different drives (e.g., "C:/" and "D:/"), silently ignore this
+        # exception. This Windows-specific behaviour is fundamentally broken.
+        # Since two pathnames residing on different drives have no common path,
+        # the Windows-specific commonpath() implementation should return false
+        # rather than raise an exception. Force this to be the case here!
+        if is_windows() and str(exception) == "Paths don't have the same drive":
+            pass
+        # Else, re-raise this unexpected exception.
+        else:
+            raise 
 
     # Return true only if this dirname is this parent's canonicalized dirname.
     return parent_dirname == common_dirname
@@ -487,7 +508,7 @@ get_mtime_recursive_newest.__doc__ = '''
         insufficient permissions).
     '''
 
-# ....................{ COPIERS                           }....................
+# ....................{ COPIERS                            }....................
 @type_check
 def copy_dir_into_dir(
     src_dirname: str, trg_dirname: str, *args, **kwargs) -> None:
@@ -799,7 +820,7 @@ def copy_dir(
         raise BetseDirException(
             'Overwrite policy "{}" unrecognized.'.format(overwrite_policy))
 
-# ....................{ MAKERS                            }....................
+# ....................{ MAKERS                             }....................
 @type_check
 def make_unless_dir(*dirnames: str) -> None:
     '''
@@ -863,7 +884,7 @@ def make_parent_unless_dir(*pathnames: str) -> None:
     for pathname in pathnames:
         make_unless_dir(get_dirname(canonicalize(pathname)))
 
-# ....................{ MAKERS ~ convenience              }....................
+# ....................{ MAKERS ~ convenience               }....................
 def canonicalize_and_make_unless_dir(dirname: str) -> str:
     '''
     Create the directory with the passed absolute or relative path if this
@@ -911,7 +932,7 @@ def join_and_make_unless_dir(*partnames: str) -> str:
     # Return this dirname.
     return dirname
 
-# ....................{ ITERATORS                         }....................
+# ....................{ ITERATORS                          }....................
 @type_check
 def iter_basenames(dirname: str) -> SequenceTypes:
     '''
@@ -935,7 +956,7 @@ def iter_basenames(dirname: str) -> SequenceTypes:
     # Sequence of all such basenames.
     return os.listdir(dirname)
 
-# ....................{ ITERATORS ~ subdir                }....................
+# ....................{ ITERATORS ~ subdir                 }....................
 @type_check
 def iter_subdirnames(dirname: str) -> GeneratorType:
     '''
@@ -1011,7 +1032,7 @@ def iter_subdir_basenames(dirname: str) -> SequenceTypes:
     # Return this sequence of basenames as is.
     return subdir_basenames
 
-# ....................{ RECURSORS ~ subdir                }....................
+# ....................{ RECURSORS ~ subdir                 }....................
 @type_check
 def recurse_subdirnames(dirname: str) -> GeneratorType:
     '''
@@ -1043,7 +1064,7 @@ def recurse_subdirnames(dirname: str) -> GeneratorType:
     # relative dirname of each subdirectory of this directory.
     return (subdirname for subdirname, _, _ in _walk(dirname))
 
-# ....................{ REMOVERS                          }....................
+# ....................{ REMOVERS                           }....................
 @type_check
 def remove_dir(dirname: str) -> None:
     '''
@@ -1089,7 +1110,7 @@ def remove_dir(dirname: str) -> None:
     # Log this successful completion.
     logs.log_info('Directory removed.')
 
-# ....................{ PRIVATE ~ raisers                 }....................
+# ....................{ PRIVATE ~ raisers                  }....................
 @type_check
 def _raise_exception_dir(dirname: str) -> CallableTypes:
     '''
@@ -1156,7 +1177,7 @@ def _raise_exception_dir(dirname: str) -> CallableTypes:
     # Return this closure.
     return _raise_exception_dir_inner
 
-# ....................{ PRIVATE ~ walkers                 }....................
+# ....................{ PRIVATE ~ walkers                  }....................
 # Undocumented os.fwalk() and os.walk() wrappers defaulting to a sane "onerror"
 # callable (namely, the _raise_exception_dir() closure defined above), but
 # otherwise identical to their standard variants.
