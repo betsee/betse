@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -24,18 +24,18 @@ class. Why? Because doing so would prevent their use from the top-level
 would render these constants effectively useless for their principal use case.
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from modules guaranteed to exist at the start of
 # installation. This includes all standard Python and application modules but
 # *NOT* third-party dependencies, which if currently uninstalled will only be
 # installed at some later time in the installation.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
 
-# ....................{ METADATA                          }....................
+# ....................{ METADATA                           }....................
 NAME = 'BETSE'
 '''
 Human-readable application name.
@@ -47,8 +47,8 @@ LICENSE = '2-clause BSD'
 Human-readable name of the license this application is licensed under.
 '''
 
-# ....................{ PYTHON ~ version                  }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ PYTHON ~ version                   }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this section *MUST* be synchronized with:
 # * The corresponding section of the "betsee.guimetadata" submodule.
 # * Continuous integration test matrices, including:
@@ -60,7 +60,7 @@ Human-readable name of the license this application is licensed under.
 # On bumping the minimum required version of Python, consider also documenting
 # the justification for doing so in the "Python Version" section of this
 # submodule's docstring above.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 PYTHON_VERSION_MIN = '3.8.0'
 '''
@@ -151,8 +151,8 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
         'is only Python {}. We feel deep sadness for you.'.format(
             NAME, PYTHON_VERSION_MIN, PYTHON_VERSION))
 
-# ....................{ METADATA ~ version                }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ METADATA ~ version                 }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: When modifying the current version of this application below,
 # consider adhering to the Semantic Versioning schema. Specifically, the
 # version should consist of three "."-delimited integers
@@ -178,7 +178,7 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 #
 # When in doubt, increment only the minor version and reset the patch version.
 # For further details, see http://semver.org.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 VERSION = '1.2.0'
 '''
@@ -207,7 +207,7 @@ VERSION_PARTS = _convert_version_str_to_tuple(VERSION)
 Machine-readable application version as a tuple of integers.
 '''
 
-# ....................{ METADATA ~ tag                    }....................
+# ....................{ METADATA ~ tag                     }....................
 GIT_TAG_COMPAT_OLDEST = 'v0.5.0'
 '''
 Git-specific tag of the oldest version of this application for which the
@@ -230,7 +230,7 @@ See Also
     compatibility with this older version.
 '''
 
-# ....................{ METADATA ~ synopsis               }....................
+# ....................{ METADATA ~ synopsis                }....................
 # Note that a human-readable multiline description is exposed via the top-level
 # "setup.py" script. This description is inefficiently culled from the contents
 # of the top-level "README.rst" file and hence omitted here. (Doing so here
@@ -264,7 +264,7 @@ PyPI, which accepts reStructuredText (rst) and is thus passed the contents of
 the top-level :doc:`/README` file instead.
 '''
 
-# ....................{ METADATA ~ authors                }....................
+# ....................{ METADATA ~ authors                 }....................
 AUTHORS = 'Alexis Pietak, Cecil Curry, et al.'
 '''
 Human-readable list of all principal authors of this application as a
@@ -282,7 +282,7 @@ Email address of the principal corresponding author (i.e., the principal author
 responding to public correspondence).
 '''
 
-# ....................{ METADATA ~ urls                   }....................
+# ....................{ METADATA ~ urls                    }....................
 URL_HOMEPAGE = 'https://github.com/betsee/betse'
 '''
 URL of this application's homepage.
@@ -312,7 +312,7 @@ URL_RELEASES = f'{URL_HOMEPAGE}/releases'
 URL of this package's release list.
 '''
 
-# ....................{ METADATA ~ python                 }....................
+# ....................{ METADATA ~ python                  }....................
 PACKAGE_NAME = NAME.lower()
 '''
 Fully-qualified name of the top-level Python package implementing this

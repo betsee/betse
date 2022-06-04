@@ -186,7 +186,7 @@ BETSE is releasable to all supported platforms as follows:
 
    .. code-block:: markdown
 
-      **betse 0.0.1** released.
+      **BETSE 0.0.1** released.
 
       This major release brings titillating support for **this**, **that**, and
       **PEP numbers compliance**.
