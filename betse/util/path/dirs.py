@@ -306,16 +306,20 @@ def is_subdir(parent_dirname: str, child_dirname: str) -> bool:
     parent_dirname = pathnames.canonicalize(parent_dirname)
     child_dirname  = pathnames.canonicalize(child_dirname)
 
-    # Attempt to...
+    # Longest common dirname shared between these dirnames if any *OR* the root
+    # directory otherwise (e.g., "/" under Linux), defaulting to the empty
+    # string to ensure the comparison below fails if this is *NOT* set below.
+    common_dirname = ''
+
+    # Attempt to decide this longest common dirname.
     try:
-        # Longest common dirname shared between these dirnames if any *OR* the
-        # root directory otherwise (e.g., "/" under Linux).
         common_dirname = os_path.commonpath((parent_dirname, child_dirname))
-    # If the commonpath() builtin raises a "ValueError" exception *AND*...
+    # If commonpath() raised a "ValueError" exception *AND*...
     except ValueError as exception:
         #FIXME: Consider raising an upstream issue against the CPython issue
         #tracker. This behaviour is unexpected and hostile to platform-portable
         #resilience throughout the Python ecosystem.
+
         # The current platform is Microsoft Windows *AND* this exception message
         # is a well-known message raised by the Windows-specific standard
         # "ntpath" module indicating the two passed pathnames to reside on
@@ -328,7 +332,8 @@ def is_subdir(parent_dirname: str, child_dirname: str) -> bool:
             pass
         # Else, re-raise this unexpected exception.
         else:
-            raise 
+            raise
+    # Else, the commonpath() builtin raises a "ValueError" exception *AND*...
 
     # Return true only if this dirname is this parent's canonicalized dirname.
     return parent_dirname == common_dirname
