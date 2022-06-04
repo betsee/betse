@@ -267,7 +267,7 @@ BETSE is releasable to all supported platforms as follows:
       $ git tag -a v{version}
 
 #. **Bump release metadata.** In preparation for developing the next release,
-   the ``betse.meta.VERSION`` global should be incremented according to
+   the ``betse.metadata.VERSION`` global should be incremented according to
    the `best practices <Version Nomenclature_>`__ detailed below.
 
 #. **Create another announcement commit.** This commit should have a message
@@ -276,7 +276,7 @@ BETSE is releasable to all supported platforms as follows:
    Since no changelog for this release yet exists, a single-line message
    suffices for this commit. For example::
 
-       **betse 0.4.1** started.
+       **BETSE 0.4.1** started.
 
 #. **Push these commits and tags.** After doing so, GitHub will automatically
    publish source tarballs and binary wheels in various popular formats (e.g.,
