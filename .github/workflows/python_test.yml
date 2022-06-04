@@ -113,7 +113,15 @@ jobs:
           #this workflow should *NEVER* attempt. Since it currently is and we
           #have insufficient time to diagnose this, avoid Python 3.11 for now.
           # - py311-coverage
-          - pypy38-coverage
+          #FIXME: Uncomment after scientific dependencies (e.g., NumPy) are
+          #actually sanely installable under macOS + PyPy. macOS ships with
+          #Accelerate, blatantly broken macOS-specific BLAS and LAPACK shared
+          #libraries that fundamentally break NumPy on installation. Since NumPy
+          #fails to ship macOS + PyPy wheels, NumPy installation under macOS +
+          #PyPy requires building NumPy from source against Accelerate, which
+          #then painfully fails. For now, disabling PyPy entirely is the only
+          #sensible choice. *sigh*
+          # - pypy38-coverage
           #FIXME: Uncomment after PyPy 3.9 goes live.
           # - pypy39-coverage
 
@@ -147,8 +155,9 @@ jobs:
           #FIXME: Reduce to simply "3.11" after Python 3.11 goes live.
           # - tox-env: py311-coverage
           #   python-version: "3.11.0-alpha - 3.11.0"
-          - tox-env: pypy38-coverage
-            python-version: "pypy-3.8"
+          #FIXME: Uncomment after resolving macOS + PyPy 3.8 installation woes.
+          # - tox-env: pypy38-coverage
+          #   python-version: "pypy-3.8"
           #FIXME: Uncomment after PyPy 3.9 goes live.
           # - tox-env: pypy39-coverage
           #   python-version: "pypy-3.9"
