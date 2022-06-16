@@ -96,7 +96,9 @@ def single_cell(pc, cells, p):
         # Don't broadcast; keep as single cell:
         mod_funk = mod_funk_cells + p.mod_single_cell_offset
 
-    return mod_funk
+    dynamics = lambda t: 1
+
+    return mod_funk, dynamics
 
 def gradient_x(pc, cells,p):
     """
