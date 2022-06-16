@@ -61,7 +61,8 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L] (if mit enabled!)
     transmem: False   # substance embeded in membrane (and therefore movable by extracellular fields, flow?)
     update intracellular: False  # allows you to shut off intracellular transport for fast diffusion with stability
-    initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+    initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y',
+                               #'gradient_r', 'gradient_bitmap', 'single_cell', or 'None')
     TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
     GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)
     TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
@@ -73,7 +74,8 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm
       apply to: ["Spot"]       # Apply growth only to one or more specific tissue profiles (e.g.,
                                # ["Spot", "Crest"]) or "all" for everything.
-      modulator function: gradient_x  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+      modulator function: gradient_x  # spatial modulation of production, options 'gradient_x','gradient_y',
+                                      # 'gradient_r', 'gradient_bitmap', 'single_cell' or 'None'
       activators: None         # list of defined substances or simulation ions activating expression
       Km activators: None      # list of half-maximum values for activators
       n activators: None       # list of Hill exponent of activators

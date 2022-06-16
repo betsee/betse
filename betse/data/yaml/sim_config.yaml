@@ -428,6 +428,9 @@ modulator function properties:   # set properties of modulating functions which 
     file: geo/ellipse/gradient.png  #Red is treated as positive, blue is treated as negative, and
     z-offset: 0.0   #black is treated as zero.
 
+  single_cell:           # randomly select a boundary cell and make that the maxima of the modulation
+    z-offset: 0.0
+
 # ----------------------------------------------------------------------------------------------------------------------
 # GLOBAL INTERVENTIONS
 # ----------------------------------------------------------------------------------------------------------------------

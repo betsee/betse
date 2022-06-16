@@ -69,6 +69,34 @@ def f_sweep(pc, cells, p) -> tuple:
 
     return scalar, y
 
+def single_cell(pc, cells, p):
+    '''
+    Randomly selects a single cell on the cluster boundary and generates a modulator
+    function with a max value at the single cell and zero value elsewhere (with offset)
+
+    Parameters
+    ----------
+    pc                 Indices of membranes or cells
+    cells              Instance of Cells module
+    p                  Instance of parameters
+    '''
+
+    # Randomly choose a boundary cell:
+    cell_ind = np.random.choice(cells.bflags_cells)
+
+    # Create an array of zeros with length equal to number of cell centres and add the
+    # single cell index as the only value:
+    mod_funk_cells = np.zeros(len(cells.cell_i))
+    mod_funk_cells[cell_ind] = 1.0
+
+    if len(pc) == len(cells.mem_i):
+        # Let's broadcast it out to membranes of the randomly chosen cell:
+        mod_funk = mod_funk_cells[cells.mem_to_cells] + p.mod_single_cell_offset
+    elif len(pc) == len(cells.cell_i):
+        # Don't broadcast; keep as single cell:
+        mod_funk = mod_funk_cells + p.mod_single_cell_offset
+
+    return mod_funk
 
 def gradient_x(pc, cells,p):
     """

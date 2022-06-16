@@ -991,6 +991,14 @@ class Parameters(YamlFileDefaultABC):
             self.grad_bm_fn = None
             self.grad_bm_offset = None
 
+        chk2 = self._conf['modulator function properties'].get('single_cell', None)
+
+        if chk2 is not None:
+            self.mod_single_cell_offset = float(chk2['z-offset'])
+
+        else:
+            self.mod_single_cell_offset = None
+
         # ................{ EXPORTS ~ colormap                }................
         #FIXME: Non-ideal. Ideally, *ONLY* the name of each such colormap would
         #be stored in this object. Storing the actual colormap object as we do
