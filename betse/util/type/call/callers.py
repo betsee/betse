@@ -265,13 +265,15 @@ def get_caller_module_name(call_stack_index: int = 2) -> str:
                 '(i.e., not in range [0, {}]).'.format(
                     call_stack_index, call_stack_index_max))
 
-        # Caller stack frame metadata as an instance of the 5-tuple
+        # Caller stack frame metadata as a 5-tuple
         # "(frame, filename, lineno, function, code_context, index)".
         caller_frame_metadata = call_stack[call_stack_index]
+        # print(f'caller_frame_metadata={caller_frame_metadata.frame.f_globals}')
 
         # Return the fully-qualified name of the parent module of the callable
         # associated with this frame.
-        return inspect.getmodulename(caller_frame_metadata[1])
+        return caller_frame_metadata.frame.f_globals['__name__']
+        # return inspect.getmodulename(caller_frame_metadata[1])
     # For safety, explicitly release *ALL* call stack frames obtained above.
     # Failing to do so invites memory leaks due to circular references. See:
     #     https://docs.python.org/3/library/inspect.html#the-interpreter-stack

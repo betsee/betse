@@ -204,7 +204,12 @@ def make_enum(
     itertest.die_unless_items_instance_of(iterable=member_names, cls=str)
 
     # Fully-qualified name of the module defining this enumeration type.
-    module_name = callers.get_caller_module_name()
+    # Note that the obfuscatory magic "4" here is due to the additional
+    # stack frames implicitly added to the stack by the @type_check
+    # decorator of both this function *AND* the get_caller_module_name()
+    # function. Without those frames, this would simply be "2" as expected.
+    module_name = callers.get_caller_module_name(call_stack_index=4)
+    # print(f'make_enum(): module_name={module_name}')
 
     # Type of enumeration superclass to be subclassed. Specifically, if the
     # caller requested that the members of this enumeration be:
@@ -218,12 +223,14 @@ def make_enum(
         value=class_name,
         names=member_names,
         module=module_name,
-        qualname='{}.{}'.format(module_name, class_name),
+        qualname=class_name,
+#        qualname='{}.{}'.format(module_name, class_name),
     )
 
     # If passed a docstring, assign this subclass this docstring.
     if doc is not None:
         enum_subclass.__doc__ = doc
+#    print(f'enum_sublass={enum_subclass.__module__}, {enum_subclass.__name__}, {enum_subclass.__qualname__}')
 
     # Return this subclass.
     return enum_subclass
