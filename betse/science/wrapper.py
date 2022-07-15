@@ -35,15 +35,20 @@ class BetseWrapper(object):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, config_filename):
+        '''
+        Initialization routines for the BETSE Wrapper
+        '''
 
-        self.model_init(*args, **kwargs)  # Initializes the model when called
+        self._config_filename = config_filename
 
-    def model_init(self, config_filename, new_mesh=True, verbose=True,
-                   run_init=True, run_sim=False):
+        # self.model_init(*args, **kwargs)  # Initializes the model when called
+
+    def run_pipeline(self, new_mesh=True, verbose=True,
+                     run_init=True, run_sim=False):
         """
-        Initializes the BETSE modelling object, which includes creating or loading
-        a cell cluster, running an init phase simulation and running a sim phase simulation.
+        Runs and entire BETSE modelling pipeline, which includes creating or loading
+        a cell cluster, running an init phase simulation, and running a sim phase simulation.
 
         Parameters:
         --------------
@@ -63,7 +68,7 @@ class BetseWrapper(object):
         # Make an instance of the BETSE 'parameters' object based on
         # settings in the configuration file supplied:
 
-        self.p = p.make(config_filename)
+        self.p = p.make(self._config_filename)
 
         self.verbose = verbose  # save verbosity setting
 
@@ -84,7 +89,116 @@ class BetseWrapper(object):
             self._init_runner(runsim=run_sim)
 
         if self.verbose is True:
-            logs.log_info("Successfully generated betse model!")
+            logs.log_info("Successfully run betse pipeline!")
+
+    def run_seed(self, verbose=False):
+        '''
+        Initializes the BETSE modelling object, which includes creating
+        a cell cluster.
+
+        Parameters:
+        --------------
+        config_filename : str
+            Full path to the configuration file for the simulation.
+        '''
+        self.p = p.make(self._config_filename)
+
+        self.verbose = verbose  # save verbosity setting
+
+        log_config = logconf.get_log_conf()
+
+        if verbose:
+            log_config.handler_stdout.setLevel(LogLevel.INFO)
+
+        else:
+            log_config = logconf.get_log_conf()
+
+            # Reduce logging verbosity to improve readability.
+            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+
+        self._make_mesh(new_mesh=True)  # make a BETSE cell cluster
+
+        if self.verbose is True:
+            logs.log_info("Successfully created a new BETSE cell cluster object!")
+
+
+    def run_init(self, new_mesh=True, verbose=False):
+        '''
+        Initializes the BETSE modelling object, which includes creating or loading
+        a cell cluster, and running an init phase simulation.
+
+        Parameters:
+        --------------
+        config_filename : str
+            Full path to the configuration file for the simulation.
+        new_mesh : bool
+            Whether to generate a whole new mesh (True) or try to load a saved one (False).
+        verbose: bool
+            Spit out comments (True) or stay silent (False).
+
+        '''
+        # Make an instance of the BETSE 'parameters' object based on
+        # settings in the configuration file supplied:
+
+        self.p = p.make(self._config_filename)
+
+        self.verbose = verbose  # save verbosity setting
+
+        log_config = logconf.get_log_conf()
+
+        if verbose:
+            log_config.handler_stdout.setLevel(LogLevel.INFO)
+
+        else:
+            log_config = logconf.get_log_conf()
+
+            # Reduce logging verbosity to improve readability.
+            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+
+        self._make_mesh(new_mesh=new_mesh)  # make or load a BETSE cell cluster
+
+        self._init_runner(runsim=False)
+
+        if self.verbose is True:
+            logs.log_info("Successfully run initialization on BETSE model!")
+
+    def run_sim(self, verbose=False):
+        '''
+        Loads a previously-made BETSE cell cluster and init phase simulation to run
+        the sim phase simulation.
+
+        Parameters:
+        --------------
+        config_filename : str
+            Full path to the configuration file for the simulation.
+        verbose: bool
+            Spit out comments (True) or stay silent (False).
+
+        '''
+        # Make an instance of the BETSE 'parameters' object based on
+        # settings in the configuration file supplied:
+
+        self.p = p.make(self._config_filename)
+
+        self.verbose = verbose  # save verbosity setting
+
+        log_config = logconf.get_log_conf()
+
+        if verbose:
+            log_config.handler_stdout.setLevel(LogLevel.INFO)
+
+        else:
+            log_config = logconf.get_log_conf()
+
+            # Reduce logging verbosity to improve readability.
+            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+
+        self._make_mesh(new_mesh=False)  # load a BETSE cell cluster
+
+        self._sim_runner() # Run the BETSE simulation
+
+        if self.verbose is True:
+            logs.log_info("Successfully run simulation on BETSE model!")
 
     def _make_mesh(self, new_mesh=False):
         """
@@ -120,7 +234,6 @@ class BetseWrapper(object):
                     logs.log_warning("File not found; Creating a new 2D Grid")
 
                 # Make a new mesh
-
                 self.simrun = SimRunner(self.p)
                 phase = self.simrun.seed()  # Go ahead and make a new cluster
                 self.phase = phase
@@ -169,6 +282,38 @@ class BetseWrapper(object):
         # short forms of commonly used data structures from BETSE sim object, based on
         # ion settings for 'basic' profile:
 
+        # re-assign commonly used dimensional parameters:
+        self._assign_shorts(self.phase.cells)
+
+    def _sim_runner(self):
+        """
+        Run the BETSE cell cluster through the initialization specified in
+        the loaded configuration file.
+
+        Parameters
+        ----------
+        runsim : bool
+
+        """
+
+        self.phase = self.simrun.sim()
+
+        # short forms of commonly used data structures from BETSE sim object, based on
+        # ion settings for 'basic' profile:
+
+        # re-assign commonly used dimensional parameters:
+        self._assign_shorts(self.phase.cells)
+
+    def _assign_shorts(self, cells):
+        """
+        Assigns short forms to commonly used mesh components.
+
+        Parameters
+        -----------
+        cells: a Betse cell cluster object
+
+        """
+
         # Data defined on cell centrepoints (self.xc, self.yc):
         self.vm_ave = self.phase.sim.vm_ave  # Vmem state averaged over a whole cell [V]
         self.cc_cells = self.phase.sim.cc_cells  # Array of cytosolic ion conc arrays [mol/m^3]
@@ -196,18 +341,6 @@ class BetseWrapper(object):
         self.iM = self.phase.sim.iM  # Index of M ion in array-of-arrays
         self.iP = self.phase.sim.iP  # Index of P ion in array-of-arrays
 
-        # re-assign commonly used dimensional parameters:
-        self._assign_shorts(self.phase.cells)
-
-    def _assign_shorts(self, cells):
-        """
-        Assigns short forms to commonly used mesh components.
-
-        Parameters
-        -----------
-        cells: a Betse cell cluster object
-
-        """
 
         # points of cell centres:
 
