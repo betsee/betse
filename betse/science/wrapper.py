@@ -200,6 +200,33 @@ class BetseWrapper(object):
         if self.verbose is True:
             logs.log_info("Successfully run simulation on BETSE model!")
 
+    def run_sim_grn(self, new_mesh=True, verbose=False):
+        '''
+        Run only the BETSE GRN of the model (no bioelectricity).
+
+        '''
+        self.p = p.make(self._config_filename)
+
+        self.verbose = verbose  # save verbosity setting
+
+        log_config = logconf.get_log_conf()
+
+        if verbose:
+            log_config.handler_stdout.setLevel(LogLevel.INFO)
+
+        else:
+            log_config = logconf.get_log_conf()
+
+            # Reduce logging verbosity to improve readability.
+            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+
+        self._make_mesh(new_mesh=new_mesh)  # load a BETSE cell cluster
+
+        self.phase = self.simrun.sim_grn()  # Run the BETSE simulation as GRN-only
+
+        if self.verbose is True:
+            logs.log_info("Successfully run GRN-only simulation on BETSE model!")
+
     def _make_mesh(self, new_mesh=False):
         """
         Generates or loads a saved 2D Voronoi mesh for the BETSE simulation, based
