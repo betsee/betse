@@ -10,18 +10,29 @@ from comma-separated value (CSV) files.
 
 # ....................{ IMPORTS                           }....................
 import numpy as np
+from beartype import beartype
+from beartype.typing import (
+    Dict,
+    Iterable,
+    Optional,
+)
 from betse.exceptions import BetseSequenceException, BetseStrException
 from betse.util.io.log import logs
 from betse.util.path import dirs
 from betse.util.type import types
-from betse.util.type.types import type_check
-from collections import OrderedDict
 
 # ....................{ WRITERS                           }....................
 #FIXME: Donate this function back to Numpy as a new np.savecsv() function
 #paralleling the existing np.savetxt() function.
-@type_check
-def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
+@beartype
+def write_csv(
+    # Mandatory parameters.
+    filename: str,
+    column_name_to_values: Dict[str, Iterable],
+
+    # Optional parameters.
+    column_name_to_format: Optional[Dict[str, str]] = None,
+) -> None:
     '''
     Serialize each key-value pair of the passed ordered dictionary into a new
     column in comma-separated value (CSV) format to the plaintext file with the
@@ -46,14 +57,29 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
     filename : str
         Absolute or relative path of the plaintext file to be written. If this
         file already exists, this file is silently overwritten.
-    column_name_to_values: OrderedDict
-        Ordered dictionary of all columns to be serialized such that:
+    column_name_to_values: Dict[str, Iterable]
+        Dictionary of all columns to be serialized such that:
 
         * Each key of this dictionary is a **column name** (i.e., terse string
           describing the type of data contained in this column).
         * Each value of this dictionary is **column data** (i.e.,
           one-dimensional sequence of all arbitrary data comprising this
           column).
+    column_name_to_format : Optional[Dict[str, str]]
+        Dictionary of all format strings formatting each column such that:
+
+        * Each key of this dictionary is a **column name** (i.e., terse string
+          describing the type of data contained in this column).
+        * Each key of this dictionary is a **format string** (i.e.,
+          ``%``-prefixed format string as fully documented by the "list of
+          specifiers, one per column" subsection for the ``fmt`` parameter
+          accepted by the low-level :func:`numpy.savetxt` function wrapped by
+          this high-level writer function).
+
+        This dictionary *must* have the exact same keys as the
+        ``column_name_to_values`` dictionary.  Defaults to ``None``, in which
+        case NumPy unconditionally defaults to reasonable floating-point format
+        strings for *all* columns.
 
     Raises
     ----------
@@ -76,6 +102,30 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
 
     # Log this serialization.
     logs.log_debug('Writing CSV file: %s', filename)
+
+    # Tuple of all format strings to be passed to the numpy.savetxt() function
+    # below (in column order), defaulting to the same format string as accepted
+    # by that function for simplicity.
+    columns_format = '%.18e'
+
+    # If passed a dictionary of format strings...
+    if column_name_to_format is not None:
+        # If the column names listed by this dictionary from those listed by
+        # the dictionary of values, raise an exception.
+        if column_name_to_format.keys() != column_name_to_values.keys():
+            raise BetseSequenceException(
+                f'"column_name_to_format" keys '
+                f'{repr(column_name_to_format.keys())} != '
+                f'"column_name_to_values" keys '
+                f'{repr(column_name_to_values.keys())} != '
+            )
+        # Else, these column names coincide.
+
+        # Tuple of these format strings (in the same order).
+        columns_format = tuple(
+            column_format
+            for column_format in column_name_to_format.values()
+        )
 
     # Create the directory containing this file if needed and hence raise
     # filesystem-related exceptions *BEFORE* performing any subsequent logic.
@@ -176,6 +226,7 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
     np.savetxt(
         fname=filename,
         X=rows_values,
+        fmt=columns_format,
         header=columns_name,
         delimiter=',',
 

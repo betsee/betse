@@ -8,6 +8,7 @@ Classes to easily run BETSE simulations from an external script.
 '''
 
 # ....................{ IMPORTS                            }....................
+import os
 import numpy as np
 from betse.science.simrunner import SimRunner
 from betse.science import filehandling as fh
@@ -19,9 +20,13 @@ from betse.util.io.log import logs
 from betse.util.io.log.conf import logconf
 from betse.util.io.log.logenum import LogLevel
 from scipy import interpolate
+from betse.lib.numpy.npcsv import write_csv
 from betse.lib.pil import pilnumpy
 from betse.lib.pil.pilnumpy import ImageModeType
 from betse.science.math import finitediff as fd
+from betse.lib import libs
+from betse.science.chemistry.netplot import plot_master_network
+from collections import OrderedDict
 
 # ....................{ Main                            }....................
 
@@ -162,6 +167,7 @@ class BetseWrapper(object):
         if self.verbose is True:
             logs.log_info("Successfully run initialization on BETSE model!")
 
+
     def run_sim(self, verbose=False):
         '''
         Loads a previously-made BETSE cell cluster and init phase simulation to run
@@ -199,6 +205,171 @@ class BetseWrapper(object):
 
         if self.verbose is True:
             logs.log_info("Successfully run simulation on BETSE model!")
+
+    def load_seed(self, verbose=False):
+        '''
+
+        '''
+        self.p = p.make(self._config_filename)
+
+        self.verbose = verbose  # save verbosity setting
+
+        log_config = logconf.get_log_conf()
+
+        if verbose:
+            log_config.handler_stdout.setLevel(LogLevel.INFO)
+
+        else:
+            log_config = logconf.get_log_conf()
+
+            # Reduce logging verbosity to improve readability.
+            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+
+        if not files.is_file(self.p.seed_pickle_filename):  # If file doesn't exist...
+            if self.verbose is True:
+                logs.log_warning("File not found. Run seed to create a cell cluster.")
+
+        else:  # Otherwise, load the saved cell cluster:
+            if self.verbose is True:
+                logs.log_info("Loading 2D Grid from file.")
+
+            # Load from previous creation:
+            cells, _ = fh.loadWorld(self.p.seed_pickle_filename)
+
+            self.simrun = SimRunner(self.p)
+
+            # Simulation phase, created after unpickling these objects above
+            self.phase = SimPhase(
+                kind=SimPhaseKind.SEED,
+                p=self.p,
+                cells=cells,
+            )
+
+    def load_init(self, verbose=False):
+        '''
+
+        '''
+        self.p = p.make(self._config_filename)
+
+        self.verbose = verbose  # save verbosity setting
+
+        log_config = logconf.get_log_conf()
+
+        if verbose:
+            log_config.handler_stdout.setLevel(LogLevel.INFO)
+
+        else:
+            log_config = logconf.get_log_conf()
+
+            # Reduce logging verbosity to improve readability.
+            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+
+        if not files.is_file(self.p.init_pickle_filename):  # If file doesn't exist...
+            if self.verbose is True:
+                logs.log_warning("File not found. Run init to create an initialization.")
+
+        else:  # Otherwise, load the saved cell cluster:
+            if self.verbose is True:
+                logs.log_info("Loading BETSE init from file.")
+
+            sim, cells, _ = fh.loadSim(self.p.init_pickle_filename)
+
+            self.simrun = SimRunner(self.p)
+
+            # Simulation phase, created after unpickling these objects above
+            self.phase = SimPhase(
+                kind=SimPhaseKind.INIT,
+                p=self.p,
+                cells=cells,
+                sim=sim,
+            )
+
+            if self.verbose is True:
+                logs.log_info("Successfully loaded init of BETSE model!")
+
+    def load_sim(self, verbose=False):
+        '''
+
+        '''
+        self.p = p.make(self._config_filename)
+
+        self.verbose = verbose  # save verbosity setting
+
+        log_config = logconf.get_log_conf()
+
+        if verbose:
+            log_config.handler_stdout.setLevel(LogLevel.INFO)
+
+        else:
+            log_config = logconf.get_log_conf()
+
+            # Reduce logging verbosity to improve readability.
+            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+
+        if not files.is_file(self.p.sim_pickle_filename):  # If file doesn't exist...
+            if self.verbose is True:
+                logs.log_warning("File not found. Run sim to create a simulation.")
+
+        else:  # Otherwise, load the saved cell cluster:
+            if self.verbose is True:
+                logs.log_info("Loading BETSE sim from file.")
+
+            sim, cells, _ = fh.loadSim(self.p.sim_pickle_filename)
+
+            self.simrun = SimRunner(self.p)
+
+            # Simulation phase, created after unpickling these objects above
+            self.phase = SimPhase(
+                kind=SimPhaseKind.SIM,
+                p=self.p,
+                cells=cells,
+                sim=sim,
+            )
+
+            if self.verbose is True:
+                logs.log_info("Successfully loaded sim of BETSE model!")
+
+    def load_simgrn(self, verbose=False):
+        '''
+
+        '''
+        self.p = p.make(self._config_filename)
+
+        self.verbose = verbose  # save verbosity setting
+
+        log_config = logconf.get_log_conf()
+
+        if verbose:
+            log_config.handler_stdout.setLevel(LogLevel.INFO)
+
+        else:
+            log_config = logconf.get_log_conf()
+
+            # Reduce logging verbosity to improve readability.
+            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+
+        if not files.is_file(self.p.sim_pickle_filename):  # If file doesn't exist...
+            if self.verbose is True:
+                logs.log_warning("File not found. Run sim_grn to create a new grn simulation.")
+
+        else:  # Otherwise, load the saved cell cluster:
+            if self.verbose is True:
+                logs.log_info("Loading simulated grn from file.")
+
+            init, _, _ = fh.loadSim(self.p.init_pickle_filename)
+            grn, cells, _ = fh.loadSim(self.p.grn_pickle_filename)
+
+            # Simulation phase.
+            self.phase = SimPhase(
+                kind=SimPhaseKind.INIT,
+                cells=cells,
+                sim=init,
+                p=self.p)
+
+            self.phase.sim.grn.core = grn
+
+            if self.verbose is True:
+                logs.log_info("Successfully loaded simulated grn of BETSE model!")
 
     def run_sim_grn(self, new_mesh=True, verbose=False):
         '''
@@ -243,7 +414,7 @@ class BetseWrapper(object):
         if new_mesh is True:  # If 'new mesh' is requested, make a whole new cell cluster
 
             if self.verbose is True:
-                logs.log_info("Creating a new 2D Grid.")
+                logs.log_info("Creating a new cell cluster.")
 
             # Create a new grid:
 
@@ -258,7 +429,7 @@ class BetseWrapper(object):
 
             if not files.is_file(self.p.seed_pickle_filename):  # If it doesn't exist...
                 if self.verbose is True:
-                    logs.log_warning("File not found; Creating a new 2D Grid")
+                    logs.log_warning("File not found; Creating a new cell cluster...")
 
                 # Make a new mesh
                 self.simrun = SimRunner(self.p)
@@ -267,7 +438,7 @@ class BetseWrapper(object):
 
             else:  # Otherwise, load the saved cell cluster:
                 if self.verbose is True:
-                    logs.log_info("Loading a 2D Grid from file.")
+                    logs.log_info("Loading a cell cluster from file.")
 
                 # Load from previous creation:
                 cells, _ = fh.loadWorld(self.p.seed_pickle_filename)
@@ -405,6 +576,176 @@ class BetseWrapper(object):
         self.mdl = len(cells.mem_i)
         self.edl = len(cells.ecm_mids)
         self.envdl = len(cells.xypts)
+
+    def analyze_network(self, verbose=True, plot_network=False, save_csv=True):
+        '''
+        Analyzes the node connectivity (node degree) of a BETSE GRN (if simulated) and
+        optionally exports results to csv (save_csv = True). The graph of the GRN can also
+        be optionally exported (plot_network=True).
+
+        '''
+
+        if self.phase.sim.grn is not None:
+            # Import optional dependencies for working with networks:
+            # Defer importation of optional runtime dependencies until necessary.
+            pydot, networkx = libs.import_runtime_optional('pydot', 'networkx')
+
+            # Working with BETSE's networks:
+            # Access the gene regulatory network core:
+            grn = self.phase.sim.grn.core
+
+            graph_pydot = plot_master_network(grn, self.p)
+
+            if plot_network is True:
+                # Save the pydot graph to an svg file:
+                # Initialize saving:
+                grn.init_saving(self.phase.cells, self.p, plot_type='init', nested_folder_name='GRN')
+
+                # Optionally print the location of the image path using: print(grn.imagePath)
+                savename = os.path.join(grn.imagePath[0:-4], 'OptimizedNetworkGraph.svg')
+                graph_pydot.write_svg(savename, prog='dot')
+
+                if verbose is True:
+                    logs.log_info(f"Model GRN network image saved to {savename}.")
+
+            # Convert the pydot graph to a networkx file:
+            graph_network = networkx.nx_pydot.from_pydot(graph_pydot)
+
+            # Compute the connectivity degree of graph nodes:
+            degree_list = np.asarray(sorted(networkx.degree(graph_network)))
+
+            # determine the connectivity degree values as an array of floats:
+            degree_vals = np.asarray(degree_list[:, 1], dtype=float)
+
+            # get the indices into the degree list that will sort the connectivity from high to low:
+            inds_sort = np.flip(np.argsort(degree_vals))
+
+            # get the node names and degree values sorted from highest to lowest connectivity degree:
+            sorted_nodes = degree_list[inds_sort, 0]
+            sorted_vals = degree_list[inds_sort, 1]
+
+            if verbose is True:
+                for node, val in zip(sorted_nodes, sorted_vals):
+                    logs.log_info(f'{repr(node)}, {repr(val)}')
+
+
+            if save_csv is True:
+                savename = os.path.join(grn.imagePath[0:-4], 'NetworkConnectivity.csv')
+                column_name_to_values = {
+                    'Node name': sorted_nodes,
+                    'Connectivity': sorted_vals,
+                }
+                column_name_to_format = {
+                    'Node name': '%s',
+                    'Connectivity': '%s',
+                }
+
+                write_csv(
+                    filename=savename,
+                    column_name_to_values=column_name_to_values,
+                    column_name_to_format=column_name_to_format,
+                )
+
+                if verbose is True:
+                    logs.log_info(f"Analyzed BETSE model GRN network and exported csv to {savename}.")
+
+        else:
+            if verbose is True:
+                logs.log_info(f"No GRN present in this BETSE model.")
+
+        return sorted_nodes, sorted_vals
+
+    def plot_network(self, verbose=True):
+        '''
+        Exports an svg of BETSE's GRN (if simulated).
+
+        '''
+
+        if self.phase.sim.grn is not None:
+            # Working with BETSE's networks:
+            # Access the gene regulatory network core:
+            grn = self.phase.sim.grn.core
+
+            graph_pydot = plot_master_network(grn, self.p)
+
+            # Save the pydot graph to an svg file:
+            # Initialize saving:
+            grn.init_saving(self.phase.cells, self.p, plot_type='init', nested_folder_name='GRN')
+
+            # Optionally print the location of the image path using: print(grn.imagePath)
+            savename = os.path.join(grn.imagePath[0:-4], 'OptimizedNetworkGraph.svg')
+            graph_pydot.write_svg(savename, prog='dot')
+
+            if verbose is True:
+                logs.log_info(f"Model GRN network image saved to {savename}.")
+
+        else:
+            if verbose is True:
+                logs.log_info(f"No GRN present in this BETSE model.")
+
+    def get_network(self, verbose=True, as_networkx=False):
+        '''
+        Returns Betse's GRN (if simulated) as a pydot (as_networkx=False) or networkx (as_networkx = True)
+        Digraph object.
+        '''
+        if self.phase.sim.grn is not None:
+            # Working with BETSE's networks:
+            # Access the gene regulatory network core:
+            grn = self.phase.sim.grn.core
+
+            graph_net = plot_master_network(grn, self.p)
+
+            if as_networkx is True:
+                networkx = libs.import_runtime_optional('networkx')
+                # Convert the pydot graph to a networkx file:
+                graph_net = networkx.nx_pydot.from_pydot(graph_net)
+
+        else:
+            if verbose is True:
+                logs.log_info(f"No GRN present in this BETSE model.")
+            graph_net = None
+
+        return graph_net
+
+    def get_betse_grn(self, verbose=True):
+        '''
+        Returns BETSE's GRN modelling object (if a GRN is simulated in the BETSE model).
+        '''
+        if self.phase.sim.grn is not None:
+            # Working with BETSE's networks:
+            # Access the gene regulatory network core:
+            grn = self.phase.sim.grn.core
+
+        else:
+            if verbose is True:
+                logs.log_info(f"No GRN present in this BETSE model.")
+            grn = None
+
+        return grn
+    def get_connected_grn_elements(self, verbose=False):
+        '''
+        Returns a list of sets of connected nodes of BETSE's GRN (if simulated).
+
+        '''
+        graph_network = self.get_network(verbose=verbose, as_networkx=True)
+
+        if graph_network is not None:
+            graph_network_o = graph_network.to_undirected()
+            networkx = libs.import_runtime_optional('networkx')
+            connected_elements = sorted(networkx.connected_components(graph_network_o))
+
+            if verbose is True:
+                print(connected_elements)
+
+        else:
+            if verbose is True:
+                logs.log_info(f"No GRN present in this BETSE model.")
+            connected_elements = None
+
+        return connected_elements
+
+
+
 
     def interp_bitmap_to_cells(self, bitmap_filename, to_mems=True, smooth=False):
         '''
