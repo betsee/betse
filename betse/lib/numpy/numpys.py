@@ -77,7 +77,7 @@ _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX = None
 '''
 Uncompiled regular expression heuristically matching the basenames of optimized
 BLAS shared libraries in the ``libraries`` list of the global
-:data:`numpy.distutils.__config__.blas_opt_info` dictionary.
+:data:`numpy.__config__.blas_opt_info` dictionary.
 
 This expression does *not* match the strict superset of optimized BLAS shared
 libraries that are also optimized, as doing so in a cross-platform manner is
@@ -120,7 +120,7 @@ _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_DIRS_REGEX = None
 '''
 Uncompiled regular expression heuristically matching the dirnames of optimized
 BLAS shared libraries in the `libraries` list of the global
-:data:`numpy.distutils.__config__.blas_opt_info` dictionary.
+:data:`numpy.__config__.blas_opt_info` dictionary.
 
 See Also
 ----------
@@ -139,7 +139,7 @@ _OPTIMIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_MACOS = {
 }
 '''
 Set of all strings in the `extra_link_args` list of the global
-:data:`numpy.distutils.__config__.blas_opt_info` dictionary heuristically
+:data:`numpy.__config__.blas_opt_info` dictionary heuristically
 corresponding to macOS-specific optimized BLAS shared libraries.
 
 Unlike all other such libraries, Numpy does _not_ declare unique dictionary
@@ -395,7 +395,7 @@ def _is_blas_optimized_conda() -> BoolOrNoneTypes:
 def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
     '''
     ``True`` only if the first item of the ``libraries`` list of the global
-    :data:`numpy.distutils.__config__.blas_opt_info` dictionary heuristically
+    :data:`numpy.__config__.blas_opt_info` dictionary heuristically
     corresponds to that of an optimized BLAS implementation, ``False`` if a
     non-fatal error condition arises (e.g., due this list or dictionary being
     undefined), *or* ``None`` otherwise.
@@ -405,10 +405,10 @@ def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
 
     Numpy does *not* define a public API exposing this boolean to callers.
     Numpy only defines a private API defining a medley of metadata from which
-    this boolean is indirectly derivable: the :mod:`numpy.distutils.__config__`
-    submodule. The :func:`numpy.distutils.misc_util.generate_config_py`
+    this boolean is indirectly derivable: the :mod:`numpy.__config__`
+    submodule. The :func:`numpy.misc_util.generate_config_py`
     function programmatically fabricates the contents of the
-    :mod:`numpy.distutils.__config__` submodule at Numpy installation time.
+    :mod:`numpy.__config__` submodule at Numpy installation time.
     Ergo, this function introspectively inspects these contents for uniquely
     identifying metadata in a portable manner.
     '''
@@ -459,7 +459,7 @@ def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
 def _is_blas_optimized_opt_info_library_dirs() -> BoolOrNoneTypes:
     '''
     ``True`` only if the first element of the `library_dirs` list of the
-    global :data:`numpy.distutils.__config__.blas_opt_info` dictionary
+    global :data:`numpy.__config__.blas_opt_info` dictionary
     heuristically corresponds to that of an optimized BLAS implementation,
     ``False`` if a non-fatal error condition arises (e.g., due this list or
     dictionary being undefined), *or* ``None`` otherwise.
@@ -518,7 +518,7 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     '''
     ``True`` only if the current platform is macOS *and* the
     ``extra_link_args`` list of the global
-    :data:`numpy.distutils.__config__.blas_opt_info` dictionary both exists
+    :data:`numpy.__config__.blas_opt_info` dictionary both exists
     *and* heuristically corresponds to that of an optimized BLAS implementation
     specific to macOS (e.g., Accelerate, vecLib), ``False`` if a non-fatal error
     condition arises (e.g., due this list or dictionary being undefined), *or*
@@ -530,7 +530,7 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     Unlike all other BLAS implementations, macOS-specific BLAS implementations
     are linked against with explicit linker flags rather than pathnames. For
     further confirmation that the
-    :attr:`numpy.distutils.__config__.blas_opt_info` dictionary defines these
+    :attr:`numpy.__config__.blas_opt_info` dictionary defines these
     flags when linked to these implementations, see:
 
     * https://trac.macports.org/ticket/22200
@@ -585,7 +585,7 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     '''
     ``True`` only if the current platform is POSIX-compliant and hence
     supports symbolic links *and* the first item of the ``libraries`` list of
-    the global :data:`numpy.distutils.__config__.blas_ilp64_opt_info` dictionary
+    the global :data:`numpy.__config__.blas_ilp64_opt_info` dictionary
     is a symbolic link masquerading as either the unoptimized reference BLAS
     implementation but in fact linking to an optimized BLAS implementation.
 
@@ -631,7 +631,7 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
 
     # Arbitrary Numpy C extension.
     #
-    # Unfortunately, the "numpy.distutils.__config__" API fails to specify the
+    # Unfortunately, the "numpy.__config__" API fails to specify the
     # absolute paths of the libraries it links against. Since there exists no
     # reliable means of reverse engineering these paths from this API, these
     # paths must be obtained by another means: specifically, by querying the
@@ -800,9 +800,9 @@ def _get_blas_opt_info_or_none() -> Optional[Dict[str, object]]:
     metadata unreliably changes depending on various external conditions --
     including the minor version of NumPy and whether or not NumPy linked against
     a visibly 64-bit version of a BLAS library. The
-    :func:`numpy.distutils.misc_util.generate_config_py` function
+    :func:`numpy.misc_util.generate_config_py` function
     programmatically fabricates the contents of the
-    :mod:`numpy.distutils.__config__` submodule at Numpy installation time.
+    :mod:`numpy.__config__` submodule at Numpy installation time.
     Ergo, this function introspectively inspects these contents for uniquely
     identifying metadata in a hopefully portable manner.
 
@@ -827,7 +827,33 @@ def _get_blas_opt_info_or_none() -> Optional[Dict[str, object]]:
     # protective exception handling guarding against mischief from NumPy devs.
     try:
         # Defer fragile imports from private third-party APIs.
-        from numpy.distutils import __config__ as numpy_config
+        #
+        # Attempt to import the "numpy.__config__" submodule first defined by
+        # NumPy >= 1.23.0.
+        try:
+            from numpy import __config__ as numpy_config
+        # If doing so fails, this *MUST* be an older version of NumPy that
+        # instead defines the deprecated "numpy.distutils.__config__" submodule.
+        # In this case, attempt to import that instead.
+        #
+        # Note that importing this submodule under NumPy >= 1.23.0 emits a
+        # deprecation warning resembling:
+        #     `numpy.distutils` is deprecated since NumPy 1.23.0, as a result
+        #     of the deprecation of `distutils` itself. It will be removed for
+        #     Python >= 3.12. For older Python versions it will remain present.
+        #     It is recommended to use `setuptools < 60.0` for those Python versions.
+        #     For more details, see:
+        #       https://numpy.org/devdocs/reference/distutils_status_migration.html
+        except ImportError:
+            from numpy.distutils import __config__ as numpy_config
+        # If doing so fails, this version of NumPy is probably broken in various
+        # ways. While we *COULD* (and possibly *SHOULD*) allow this
+        # "ImportError" to unwind the call stack and terminate the active Python
+        # process, we instead catch and coerce this "ImportError" into a
+        # non-fatal warning below. Why? Because that's what we've always done,
+        # of course. Preserving backward compatibility has tenuous value. BETSE
+        # is already fragile enough. There's no upside to breaking previously
+        # working behaviour, especially when we don't particularly need to.
 
         # BLAS metadata if NumPy linked against a 32-bit BLAS shared library
         # *OR* "None" otherwise.
@@ -851,8 +877,8 @@ def _get_blas_opt_info_or_none() -> Optional[Dict[str, object]]:
         log_warning(
             (
                 'NumPy %s installation misconfigured '
-                '(i.e., "numpy.distutils.__config__.blas_opt_info" and '
-                '"numpy.distutils.__config__.blas_ilp64_opt_info" '
+                '(i.e., "numpy.__config__.blas_opt_info" and '
+                '"numpy.__config__.blas_ilp64_opt_info" '
                 'dictionaries not found).'
             ),
             VERSION,
@@ -861,8 +887,8 @@ def _get_blas_opt_info_or_none() -> Optional[Dict[str, object]]:
     except ImportError:
         log_warning(
             (
-                'NumPy %s unsupported '
-                '(i.e., "numpy.distutils.__config__" submodule not found).'
+                'NumPy %s unsupported (i.e., "numpy.__config__" and '
+                '"numpy.distutils.__config__" submodules not found).'
             ),
             VERSION,
         )
