@@ -40,14 +40,55 @@ class BetseWrapper(object):
 
     """
 
-    def __init__(self, config_filename):
+    def __init__(self, config_filename, log_level=None):
         '''
-        Initialization routines for the BETSE Wrapper
+        Initialization routines for the BETSE Wrapper.
+
+        Parameters
+        ----------
+        config_filename : str
+            Path to the config filename to run the betse simulation.
+
+        log_level : str, valid options are:
+            'ALL'
+            'DEBUG'
+            'INFO'
+            'WARNING'
+            'ERROR'
+            'CRITICAL'
+            'NONE'
+            String applying custom settings to the logging level of the BetseWrapper. If the log_level is
+            specified by one of the above strings, then it overrides the verbose key in BetseWrapper
+            methods with the specified logging function.
+
         '''
 
         self._config_filename = config_filename
 
-        # self.model_init(*args, **kwargs)  # Initializes the model when called
+        if log_level is not None:
+            self._log_level = getattr(logs.LogLevel, log_level, None)
+
+        else:
+            self._log_level = None
+
+    def _set_logging(self, verbose=False):
+        '''
+        Set the logging properties of the BetseWrapper.
+        '''
+        self.verbose = verbose  # save verbosity setting
+
+        log_config = logconf.get_log_conf() # get log file config settings
+
+        if self._log_level is None: # if there is no user-specified logging
+
+            if verbose:
+                log_config.handler_stdout.setLevel(LogLevel.INFO)
+
+            else:
+                log_config.handler_stdout.setLevel(LogLevel.WARNING)
+
+        else: # otherwise, if user has set a log level, apply it:
+            log_config.handler_stdout.setLevel(self._log_level)
 
     def run_pipeline(self, new_mesh=True, verbose=True,
                      run_init=True, run_sim=False):
@@ -75,18 +116,7 @@ class BetseWrapper(object):
 
         self.p = p.make(self._config_filename)
 
-        self.verbose = verbose  # save verbosity setting
-
-        log_config = logconf.get_log_conf()
-
-        if verbose:
-            log_config.handler_stdout.setLevel(LogLevel.INFO)
-
-        else:
-            log_config = logconf.get_log_conf()
-
-            # Reduce logging verbosity to improve readability.
-            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+        self._set_logging(verbose=verbose)
 
         self._make_mesh(new_mesh=new_mesh)  # make or load a BETSE cell cluster
 
@@ -110,16 +140,7 @@ class BetseWrapper(object):
 
         self.verbose = verbose  # save verbosity setting
 
-        log_config = logconf.get_log_conf()
-
-        if verbose:
-            log_config.handler_stdout.setLevel(LogLevel.INFO)
-
-        else:
-            log_config = logconf.get_log_conf()
-
-            # Reduce logging verbosity to improve readability.
-            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+        self._set_logging(verbose=verbose)
 
         self._make_mesh(new_mesh=True)  # make a BETSE cell cluster
 
@@ -149,16 +170,7 @@ class BetseWrapper(object):
 
         self.verbose = verbose  # save verbosity setting
 
-        log_config = logconf.get_log_conf()
-
-        if verbose:
-            log_config.handler_stdout.setLevel(LogLevel.INFO)
-
-        else:
-            log_config = logconf.get_log_conf()
-
-            # Reduce logging verbosity to improve readability.
-            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+        self._set_logging(verbose=verbose)
 
         self._make_mesh(new_mesh=new_mesh)  # make or load a BETSE cell cluster
 
@@ -188,16 +200,7 @@ class BetseWrapper(object):
 
         self.verbose = verbose  # save verbosity setting
 
-        log_config = logconf.get_log_conf()
-
-        if verbose:
-            log_config.handler_stdout.setLevel(LogLevel.INFO)
-
-        else:
-            log_config = logconf.get_log_conf()
-
-            # Reduce logging verbosity to improve readability.
-            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+        self._set_logging(verbose=verbose)
 
         self._make_mesh(new_mesh=False)  # load a BETSE cell cluster
 
@@ -214,16 +217,7 @@ class BetseWrapper(object):
 
         self.verbose = verbose  # save verbosity setting
 
-        log_config = logconf.get_log_conf()
-
-        if verbose:
-            log_config.handler_stdout.setLevel(LogLevel.INFO)
-
-        else:
-            log_config = logconf.get_log_conf()
-
-            # Reduce logging verbosity to improve readability.
-            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+        self._set_logging(verbose=verbose)
 
         if not files.is_file(self.p.seed_pickle_filename):  # If file doesn't exist...
             if self.verbose is True:
@@ -253,16 +247,7 @@ class BetseWrapper(object):
 
         self.verbose = verbose  # save verbosity setting
 
-        log_config = logconf.get_log_conf()
-
-        if verbose:
-            log_config.handler_stdout.setLevel(LogLevel.INFO)
-
-        else:
-            log_config = logconf.get_log_conf()
-
-            # Reduce logging verbosity to improve readability.
-            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+        self._set_logging(verbose=verbose)
 
         if not files.is_file(self.p.init_pickle_filename):  # If file doesn't exist...
             if self.verbose is True:
@@ -295,16 +280,7 @@ class BetseWrapper(object):
 
         self.verbose = verbose  # save verbosity setting
 
-        log_config = logconf.get_log_conf()
-
-        if verbose:
-            log_config.handler_stdout.setLevel(LogLevel.INFO)
-
-        else:
-            log_config = logconf.get_log_conf()
-
-            # Reduce logging verbosity to improve readability.
-            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+        self._set_logging(verbose=verbose)
 
         if not files.is_file(self.p.sim_pickle_filename):  # If file doesn't exist...
             if self.verbose is True:
@@ -337,16 +313,7 @@ class BetseWrapper(object):
 
         self.verbose = verbose  # save verbosity setting
 
-        log_config = logconf.get_log_conf()
-
-        if verbose:
-            log_config.handler_stdout.setLevel(LogLevel.INFO)
-
-        else:
-            log_config = logconf.get_log_conf()
-
-            # Reduce logging verbosity to improve readability.
-            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+        self._set_logging(verbose=verbose)
 
         if not files.is_file(self.p.sim_pickle_filename):  # If file doesn't exist...
             if self.verbose is True:
@@ -380,16 +347,7 @@ class BetseWrapper(object):
 
         self.verbose = verbose  # save verbosity setting
 
-        log_config = logconf.get_log_conf()
-
-        if verbose:
-            log_config.handler_stdout.setLevel(LogLevel.INFO)
-
-        else:
-            log_config = logconf.get_log_conf()
-
-            # Reduce logging verbosity to improve readability.
-            log_config.handler_stdout.setLevel(LogLevel.WARNING)
+        self._set_logging(verbose=verbose)
 
         self._make_mesh(new_mesh=new_mesh)  # load a BETSE cell cluster
 
