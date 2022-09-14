@@ -33,9 +33,9 @@ class LogHandlerFileRotateSafe(RotatingFileHandler):
     The standard :class:`RotatingFileHandler` class is thread- but *not*
     process-safe. Concurrent attempts to log to the same physical file from
     multiple processes can and typically will produce fatal race conditions
-    producing raised exceptions from one or more of these processes. On logfile
-    rotation, each process will aggressively contend with each other process
-    for write access to the same physical file to be rotated.
+    producing raised exceptions from one or more of these processes. On
+    logfile rotation, each process will aggressively contend with each other
+    process for write access to the same physical file to be rotated.
 
     This :class:`RotatingFileHandler` subclass is both thread- *and*
     process-safe, obviating these concerns.

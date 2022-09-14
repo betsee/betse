@@ -10,6 +10,8 @@ Classes to easily run BETSE simulations from an external script.
 # ....................{ IMPORTS                            }....................
 import os
 import numpy as np
+from beartype import beartype
+from beartype.typing import Optional
 from betse.science.simrunner import SimRunner
 from betse.science import filehandling as fh
 from betse.util.path import files
@@ -26,21 +28,29 @@ from betse.lib.pil.pilnumpy import ImageModeType
 from betse.science.math import finitediff as fd
 from betse.lib import libs
 from betse.science.chemistry.netplot import plot_master_network
-from collections import OrderedDict
 
 # ....................{ Main                            }....................
-
 class BetseWrapper(object):
     """
-    Object allowing for simple creation of BETSE cell cluster and simulation object
-    that can be easily worked with in an external script using BETSE as a dependency.
+    Object allowing for simple creation of BETSE cell cluster and simulation
+    object that can be easily worked with in an external script using BETSE
+    as a dependency.
 
-    This class creates (or optionally loads) a BETSE cells object, runs (or optionally loads)
-    an init phase, and optionally runs a sim phase.
-
+    This class creates (or optionally loads) a BETSE cells object, runs
+    (or optionally loads) an init phase, and optionally runs a sim phase.
     """
 
-    def __init__(self, config_filename, log_level=None):
+    @beartype
+    def __init__(
+        self,
+
+        # Mandatory parameters.
+        config_filename: str,
+
+        # Optional parameters.
+        log_filename : Optional[str] = None,
+        log_level: Optional[str] = None,
+    ) -> None:
         '''
         Initialization routines for the BETSE Wrapper.
 
@@ -48,50 +58,75 @@ class BetseWrapper(object):
         ----------
         config_filename : str
             Path to the config filename to run the betse simulation.
+        log_filename : Optional[str]
+            Absolute or relative filename to log simulation messages into.
+            Defaults to ``None``, in which case the default filename is
+            used.
+        log_level : Optional[str]
+            Valid options are:
 
-        log_level : str, valid options are:
-            'ALL'
-            'DEBUG'
-            'INFO'
-            'WARNING'
-            'ERROR'
-            'CRITICAL'
-            'NONE'
-            String applying custom settings to the logging level of the BetseWrapper. If the log_level is
-            specified by one of the above strings, then it overrides the verbose key in BetseWrapper
-            methods with the specified logging function.
+            * 'ALL'.
+            * 'DEBUG'.
+            * 'INFO'.
+            * 'WARNING'.
+            * 'ERROR'.
+            * 'CRITICAL'.
+            * 'NONE'.
 
+            String applying custom settings to the logging level of the
+            BetseWrapper. If the log_level is specified by one of the above
+            strings, then it overrides the verbose key in BetseWrapper methods
+            with the specified logging function.
         '''
 
+        # Classify all passed parameters.
         self._config_filename = config_filename
+        self._log_filename = log_filename
 
         if log_level is not None:
             self._log_level = getattr(logs.LogLevel, log_level, None)
-
         else:
             self._log_level = None
 
-    def _set_logging(self, verbose=False):
+
+    @beartype
+    def _set_logging(self, verbose: bool = False) -> None:
         '''
         Set the logging properties of the BetseWrapper.
         '''
+
         self.verbose = verbose  # save verbosity setting
 
-        log_config = logconf.get_log_conf() # get log file config settings
+        # Logging configuration singleton.
+        log_config = logconf.get_log_conf()
 
-        if self._log_level is None: # if there is no user-specified logging
+        # If the user passed a log filename, reconfigure our logging
+        # configuration to log to this file.
+        if self._log_filename is not None:
+            log_config.filename = self._log_filename
+        # Else, the user passed *NO* log filename. In this case, accept the
+        # current default log filename.
 
+        # If the user passed *NO* log level, default to a log level
+        # corresponding to the passed verbosity.
+        if self._log_level is None:
             if verbose:
                 log_config.handler_stdout.setLevel(LogLevel.INFO)
-
             else:
                 log_config.handler_stdout.setLevel(LogLevel.WARNING)
-
-        else: # otherwise, if user has set a log level, apply it:
+        # Else, the user has set a log level. In this case, apply it.
+        else:
             log_config.handler_stdout.setLevel(self._log_level)
 
-    def run_pipeline(self, new_mesh=True, verbose=True,
-                     run_init=True, run_sim=False):
+
+    @beartype
+    def run_pipeline(
+        self,
+        new_mesh: bool = True,
+        verbose: bool = True,
+        run_init: bool = True,
+        run_sim: bool = False,
+    ) -> None:
         """
         Runs and entire BETSE modelling pipeline, which includes creating or loading
         a cell cluster, running an init phase simulation, and running a sim phase simulation.

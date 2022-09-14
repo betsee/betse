@@ -17,9 +17,14 @@ High-level logging configuration classes.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import logging, os, sys
+from beartype import beartype
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type.types import type_check
-from logging import Handler, RootLogger, StreamHandler
+from logging import (
+    Handler,
+    RootLogger,
+    StreamHandler,
+)
 
 # ....................{ CONFIG                             }....................
 #FIXME: Update docstring to reflect the new default configuration.
@@ -256,10 +261,11 @@ class LogConf(object):
             # Preserve the previously set minimum level of messages to log.
             file_level = self._logger_root_handler_file.level
 
-            # If the root logger has also already been created, remove this
-            # handler from this root logger.
+            # If the root logger has also already been created, deinitialize
+            # this handler from this root logger.
             if self._logger_root is not None:
-                self._logger_root.removeHandler(self._logger_root_handler_file)
+                self._deinit_logger_root_handler(
+                    self._logger_root_handler_file)
 
         # If the dirname of the directory containing this file is non-empty,
         # create this directory if needed. Note this dirname is empty when this
@@ -362,16 +368,32 @@ class LogConf(object):
         #. Removes that handler from the root logger.
         '''
 
-        # For each handler previously added to the root logger...
+        # For each handler previously added to the root logger, deinitialize
+        # that handler.
         #
         # For safety, a shallow copy of the list of handlers to be removed
         # rather than the actual list being modified here is iterated over.
         for root_handler in tuple(self._logger_root.handlers):
-            # Close all open file handles associated with this handler.
-            root_handler.close()
+            self._deinit_logger_root_handler(root_handler)
 
-            # Remove this handler from the root logger.
-            self._logger_root.removeHandler(root_handler)
+
+    @beartype
+    def _deinit_logger_root_handler(self, root_handler: Handler) -> None:
+        '''
+        Deinitialize the passed root logger handler.
+
+        Specifically, this method:
+
+        #. Closes all open file handles associated with this handler, including
+           the logfile handle opened by the :meth:`__init__` method.
+        #. Removes this handler from the root logger.
+        '''
+
+        # Close all open file handles associated with this handler.
+        root_handler.close()
+
+        # Remove this handler from the root logger.
+        self._logger_root.removeHandler(root_handler)
 
 
     def _deinit_vars(self) -> None:

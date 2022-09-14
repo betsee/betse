@@ -1597,6 +1597,12 @@ class Simulator(object):
                 # self.mtubes_x_time.append(self.mtubes.mtubes_x * 1)
                 # self.mtubes_y_time.append(self.mtubes.mtubes_y * 1)
 
+                # Record membrane potentials:
+                ddc = np.copy(self.Dm_cells)
+                ddc.tolist()
+                self.dd_time.append(ddc)
+                ddc = None
+
                 self.I_cell_x_time.append(self.J_cell_x * 1)
                 self.I_cell_y_time.append(self.J_cell_y * 1)
 
