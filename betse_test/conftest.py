@@ -24,8 +24,8 @@ import pytest
 # Import fixtures required to be manually required by other fixtures and tests.
 
 from betse.util.test.pytest.fixture.pytfixture import monkeypatch_session
-from betse_test.fixture.tempdirer import betse_temp_dir
-from betse_test.fixture.simconf.simconfer import (
+from betse_test._fixture.tempdirer import betse_temp_dir
+from betse_test._fixture.simconf.simconfer import (
     betse_sim_conf,
     betse_sim_conf_default,
     betse_sim_conf_compat,
@@ -39,7 +39,7 @@ from betse_test.fixture.simconf.simconfer import (
 #FIXME: This fixture has been temporarily superceded by the
 #betse_test.conftest.pytest_configure() and pytest_unconfigure() hooks until
 #inevitably required yet again.
-# from betse_test.fixture.initter import betse_init_session
+# from betse_test._fixture.initter import betse_init_session
 
 # ....................{ HOOKS ~ configure                 }....................
 def pytest_configure(config) -> None:
@@ -60,7 +60,7 @@ def pytest_configure(config) -> None:
     '''
 
     # Defer heavyweight imports.
-    from betse_test.fixture import initter
+    from betse_test._fixture import initter
 
     # Prepend a leading newline, which py.test curiously neglects to do itself.
     print('\n')
@@ -76,7 +76,7 @@ def pytest_unconfigure(config) -> None:
 
     # Defer heavyweight imports.
     from betse.util.test.pytest import pytests
-    from betse_test.fixture import initter
+    from betse_test._fixture import initter
 
     # Deinitialize the application metadata singleton.
     initter.deinit_app()

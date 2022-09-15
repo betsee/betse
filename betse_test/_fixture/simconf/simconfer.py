@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,13 +9,13 @@ isolated to specific tests, which typically modify the contents of these
 configurations so as to exercise specific feature sets and edge cases.
 '''
 
-# ....................{ IMPORTS                           }....................
-from betse_test.fixture import initter
-from betse_test.fixture.simconf.simconfclser import SimConfTestInternal
+# ....................{ IMPORTS                            }....................
+from betse_test._fixture import initter
+from betse_test._fixture.simconf.simconfclser import SimConfTestInternal
 from pytest import fixture
 from py._path.local import LocalPath
 
-# ....................{ FIXTURES                          }....................
+# ....................{ FIXTURES ~ default                 }....................
 @fixture
 def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     '''
@@ -59,35 +59,35 @@ def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
     # this temporary directory and sanitized therein.
     sim_state = SimConfTestInternal(
         src_conf_filename=Parameters.conf_default_filename,
-        trg_conf_filepath=betse_temp_dir.join('sim_config.yaml'))
+        trg_conf_filepath=betse_temp_dir.join('sim_config.yaml'),
+    )
 
     # Return this wrapper *WITHOUT* minifying this configuration.
     return sim_state
 
-
+# ....................{ FIXTURES ~ minified                }....................
 @fixture
 def betse_sim_conf(
     betse_sim_conf_default: SimConfTestInternal) -> SimConfTestInternal:
     '''
-    Per-test fixture creating a temporary minified simulation configuration
-    file and returning a wrapper around this file.
+    Per-test fixture creating a temporary minified simulation configuration file
+    and returning a wrapper around this file.
 
     Configuration Modifications (On-disk)
     ----------
     This fixture copies the default simulation configuration file for this
-    application, complete with all external assets (e.g., geometry masks)
-    referenced and required by this file, into a temporary directory whose
+    application -- complete with all external assets (e.g., geometry masks)
+    referenced and required by this file -- into a temporary directory whose
     basename is the name of the test requesting this fixture excluding the
     prefixing substring ``test_``. When requested by the
-    ``test_cli_sim_default`` test, for example, this fixture creates a
-    temporary simulation configuration file
-    ``{tmpdir}/cli_sim_default/sim_config.yaml`` for the absolute path
-    ``{tmpdir}`` of this test session's root temporary directory (e.g.,
-    ``/tmp/pytest-0/cli_sim_default/sim_config.yaml``).
+    ``test_cli_sim_default`` test, for example, this fixture creates a temporary
+    simulation configuration file ``{tmpdir}/cli_sim_default/sim_config.yaml``
+    for the absolute path ``{tmpdir}`` of this test session's root temporary
+    directory (e.g., ``/tmp/pytest-0/cli_sim_default/sim_config.yaml``).
 
-    This directory and thus simulation configuration is safely accessible
-    *only* for the duration of the current test. Subsequently run tests and
-    fixtures *cannot* safely reuse this configuration.
+    This directory and thus simulation configuration is safely accessible *only*
+    for the duration of the current test. Subsequently run tests and fixtures
+    *cannot* safely reuse this configuration.
 
     Configuration Modifications (In-memory)
     ----------
@@ -100,10 +100,10 @@ def betse_sim_conf(
     * The space and time costs associated with simulating this configuration
       are safely minimized in a manner preserving all features.
 
-    Since this fixture does *not* write these changes back to this file, the
-    parent fixture or test is expected to do so manually (e.g., by calling the
-    :meth:`SimConfTestInternal.p.save_inplace` method on the object returned
-    by this fixture).
+    Since this fixture writes these changes back to this file, the parent
+    fixture or test is *not* required to do so manually (e.g., by calling the
+    :meth:`SimConfTestInternal.p.save_inplace` method on the object returned by
+    this fixture).
 
     Parameters
     ----------
@@ -113,30 +113,31 @@ def betse_sim_conf(
     Returns
     ----------
     SimConfTestInternal
-        Wrapper around a temporary simulation configuration
-        file specific to the current test, including such metadata as:
+        Wrapper around a temporary simulation configuration file specific to the
+        current test, including such metadata as:
 
         * The absolute path of this configuration's on-disk YAML file.
-        * This configuration's in-memory dictionary deserialized from this
-          file.
+        * This configuration's in-memory dictionary deserialized from this file.
     '''
 
     # Minimize the space and time costs associated with this configuration.
     betse_sim_conf_default.config.minify()
 
+    # Save these changes back to the same file.
+    betse_sim_conf_default.p.save_inplace()
+
     # Return this wrapper.
     return betse_sim_conf_default
 
-
+# ....................{ FIXTURES ~ compatible              }....................
 @fixture
 def betse_sim_conf_compat(
     betse_temp_dir: LocalPath) -> SimConfTestInternal:
     '''
     Per-test fixture creating and returning a wrapper around a temporary
-    simulation configuration file (complete with a pickled seed,
-    initialization, and simulation) produced by the oldest version of this
-    application for which the current version of this application guarantees
-    backward compatibility.
+    simulation configuration file (complete with a pickled seed, initialization,
+    and simulation) produced by the oldest version of this application for which
+    the current version of this application guarantees backward compatibility.
 
     Caveats
     ----------
@@ -161,22 +162,21 @@ def betse_sim_conf_compat(
 
     # Defer heavyweight imports.
     from betse import metadata
+    from betse.util.app.meta import appmetaone
     from betse.util.path import files
-    from betse.util.py.module import pymodule
 
     # Initialize the application metadata singleton, as required by the
     # subsequent instantiation of the "SimConfTestInternal" subclass.
     initter.init_app()
 
-    # Absolute dirname of the directory of the root "betse_test" package.
-    betse_test_dirname = pymodule.get_dirname('betse_test')
+    # Absolute dirname of the directory providing test data.
+    test_data_dirname = appmetaone.get_app_meta().test_data_dirname
 
     # Absolute filename of the default simulation configuration file produced
     # by the oldest version of this application for which the current version
     # of this application guarantees backward compatibility.
     src_conf_filename = files.join_or_die(
-        betse_test_dirname,
-        'data',
+        test_data_dirname,
         metadata.GIT_TAG_COMPAT_OLDEST,
         'yaml',
         'sim_config.yaml',

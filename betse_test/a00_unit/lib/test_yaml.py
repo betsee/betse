@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,11 +7,11 @@
 Unit tests for the :mod:`betse.lib.yaml` subpackage.
 '''
 
-# ....................{ IMPORTS                           }....................
-from betse_test.fixture.simconf.simconfclser import SimConfTestInternal
+# ....................{ IMPORTS                            }....................
+from betse_test._fixture.simconf.simconfclser import SimConfTestInternal
 from py._path.local import LocalPath
 
-# ....................{ TESTS                             }....................
+# ....................{ TESTS                              }....................
 def test_yaml_copy(
     betse_sim_conf: SimConfTestInternal,
     betse_temp_dir: LocalPath,

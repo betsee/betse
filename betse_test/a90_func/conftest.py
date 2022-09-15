@@ -5,8 +5,7 @@
 
 # ....................{ IMPORTS ~ fixture                 }....................
 '''
-Global functional test configuration for the simulation-specific portion of
-BETSE's command-line interface (CLI).
+Global functional test configuration for BETSE's command-line interface (CLI).
 
 ``py.test`` implicitly imports all functionality defined by this module into
 all CLI-specific functional test modules. Since this functionality now includes
@@ -15,8 +14,4 @@ tests may reference these fixtures without explicit imports.
 '''
 
 # ....................{ IMPORTS ~ fixture                 }....................
-from betse_test.func.sim.fixture.clisimer import (
-    betse_cli_sim,
-    betse_cli_sim_default,
-    betse_cli_sim_compat,
-)
+from betse_test.a90_func._fixture.clier import betse_cli

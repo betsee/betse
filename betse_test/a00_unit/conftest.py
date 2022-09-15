@@ -17,4 +17,4 @@ fixtures without explicit imports.
 # typically *NOT* manually required by specific tests, *AFTER* importing all
 # non-autouse fixtures possibly required by these autouse fixtures above.
 
-from betse_test.fixture.initter import betse_init_package
+from betse_test._fixture.initter import betse_init_package

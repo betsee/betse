@@ -856,7 +856,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
 
         # Return the absolute dirname of this directory if this directory
         # exists *OR* raise an exception otherwise.
-        return dirs.join_or_die(self.test_dirname, 'data')
+        return dirs.join_or_die(self.test_dirname, '_data')
 
     # ..................{ PROPERTIES ~ file                  }..................
     @property_cached

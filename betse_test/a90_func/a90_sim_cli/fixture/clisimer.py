@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,13 +8,13 @@ Fixtures and fixture classes efficiently exercising multiple subcommands of the
 BETSE CLI in the active Python interpreter.
 '''
 
-# ....................{ IMPORTS                           }....................
-from betse_test.fixture.simconf.simconfclser import SimConfTestInternal
-from betse_test.func.fixture.clier import CLITester
-from betse_test.func.sim.fixture.clisimclser import CLISimTester
+# ....................{ IMPORTS                            }....................
+from betse_test._fixture.simconf.simconfclser import SimConfTestInternal
+from betse_test.a90_func._fixture.clier import CLITester
+from betse_test.a90_func.a90_sim_cli.fixture.clisimclser import CLISimTester
 from pytest import fixture
 
-# ....................{ FIXTURES                          }....................
+# ....................{ FIXTURES                           }....................
 @fixture
 def betse_cli_sim(
     betse_cli: CLITester,

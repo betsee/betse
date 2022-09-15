@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -24,7 +24,7 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 #to this "Parameters" object, which increasingly provides all test
 #functionality. We're not quite there yet -- but we will be, eventually.
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 # This subclass imports from submodules defined by the main codebase and is
 # thus *NOT* safely importable from fixture submodules directly imported by
 # "conftest" plugin modules. To defer the importation of this submodule until
@@ -40,7 +40,7 @@ from betse.science.pipe.export.pipeexps import SimPipesExport
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
 
-# ....................{ SUPERCLASSES                      }....................
+# ....................{ SUPERCLASSES                       }....................
 class SimConfigTestWrapper(object):
     '''
     **Test-specific simulation configuration wrapper** (i.e., object wrapping a
@@ -66,7 +66,7 @@ class SimConfigTestWrapper(object):
         High-level simulation configuration encapsulated by this test wrapper.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self, p: Parameters) -> None:
         '''
@@ -81,7 +81,7 @@ class SimConfigTestWrapper(object):
         # Classify all passed parameters.
         self.p = p
 
-    # ..................{ PROPERTIES ~ float                }..................
+    # ..................{ PROPERTIES ~ float                 }..................
     @property
     def environment_size(self) -> float:
         '''
@@ -107,7 +107,7 @@ class SimConfigTestWrapper(object):
         # Coerce the passed number to a float for safety.
         self.p.conf['world options']['world size'] = float(environment_size)
 
-    # ..................{ MINIMIZERS                        }..................
+    # ..................{ MINIMIZERS                         }..................
     #FIXME: Additionally, the three time durations defined by the
     #"self.p.conf['gene regulatory network settings']['sim-grn settings']"
     #dictionary must also be minified. For simplicity, unconditionally minify
@@ -222,31 +222,7 @@ class SimConfigTestWrapper(object):
             self.p.sim_time_total,
         )
 
-    # ..................{ DISABLERS                         }..................
-    #FIXME: The implementation of the following methods is fundamentally unsafe.
-    #If the structure of the underlying YAML file changes, these methods could
-    #silently fail (e.g., if the "plot while solving" option were renamed to
-    #"is plotting during"). To combat this, all attempts to directly modify the
-    #"self.p.conf" dictionary below *MUST* instead defer to a newly defined
-    #set_config_option() method accepting one or more key names followed by the
-    #value to set such keys to: e.g.,
-    #
-    #    set_config_option(('results options', 'plot while solving'), False)
-    #
-    #If the passed configuration option does *NOT* already exist, that method
-    #should raise a human-readable exception. Inevitable future problem solved!
-
-    def disable_visuals(self) -> None:
-        '''
-        Disable all visual exports, including displaying and saving of all in-
-        and post-simulation plots and animations.
-        '''
-
-        self.p.anim.is_after_sim = False
-        self.p.anim.is_while_sim = False
-        self.p.plot.is_after_sim = False
-
-
+    # ..................{ DISABLERS                          }..................
     def disable_interaction(self) -> None:
         '''
         Disable all simulation configuration options either requiring
@@ -261,7 +237,18 @@ class SimConfigTestWrapper(object):
         self.p.anim.is_while_sim_show = False
         self.p.plot.is_after_sim_show = False
 
-    # ..................{ ENABLERS                          }..................
+
+    def disable_visuals(self) -> None:
+        '''
+        Disable all visual exports, including displaying and saving of all in-
+        and post-simulation plots and animations.
+        '''
+
+        self.p.anim.is_after_sim = False
+        self.p.anim.is_while_sim = False
+        self.p.plot.is_after_sim = False
+
+    # ..................{ ENABLERS                           }..................
     def enable_networks(self) -> None:
         '''
         Enable both biochemical reaction and gene regulatory networks.
@@ -270,7 +257,7 @@ class SimConfigTestWrapper(object):
         self.p.conf['gene regulatory network settings'][
             'gene regulatory network simulated'] = True
 
-    # ..................{ ENABLERS ~ export                 }..................
+    # ..................{ ENABLERS ~ export                  }..................
     @type_check
     def enable_anim_video(self, writer_name: str, filetype: str) -> None:
         '''
@@ -314,16 +301,7 @@ class SimConfigTestWrapper(object):
         self.p.anim.is_after_sim_save = True
         self.p.plot.is_after_sim_save = True
 
-    # ..................{ ENABLERS ~ solver : fast          }..................
-    def _enable_solver_fast(self) -> None:
-        '''
-        Enable the equivalent circuit-based BETSE solver *and* disable all
-        simulation features unsupported by this solver.
-        '''
-
-        self.p.solver_type = SolverType.FAST
-
-
+    # ..................{ ENABLERS ~ solver : fast           }..................
     def enable_solver_fast_exports(self) -> None:
         '''
         Enable all possible exports (e.g., CSVs, plots, animations) supported
@@ -365,15 +343,16 @@ class SimConfigTestWrapper(object):
         # Enable saving of these exports.
         self.enable_visuals_save()
 
-    # ..................{ ENABLERS ~ solver : full          }..................
-    def _enable_solver_full(self) -> None:
+
+    def _enable_solver_fast(self) -> None:
         '''
-        Enable the complete BETSE solver.
+        Enable the equivalent circuit-based BETSE solver *and* disable all
+        simulation features unsupported by this solver.
         '''
 
-        self.p.solver_type = SolverType.FULL
+        self.p.solver_type = SolverType.FAST
 
-
+    # ..................{ ENABLERS ~ solver : full           }..................
     def enable_solver_full_vg_ions(self) -> None:
         '''
         Enable all voltage-gated ion channels (e.g., sodium, potassium) *and*
@@ -390,8 +369,7 @@ class SimConfigTestWrapper(object):
         * The voltage-gated sodium (Na+) channel ``Nav1p2``, corresponding to
           the adult human brain.
         * The voltage-gated potassium (K+) channel ``K_Slow``.
-        * Decreased time step and sampling rates, ensuring simulation
-          stability.
+        * Decreased time step and sampling rates, ensuring simulation stability.
         * Increased duration and cell count, exposing simulation instabilities.
 
         For efficiency, this method disables all visuals -- including both in-
@@ -440,6 +418,14 @@ class SimConfigTestWrapper(object):
         # # voltage_gated_potassium_channel['max value'] = 5.0e-7
         # voltage_gated_potassium_channel['apply to'] = ['base',]
 
+
+    def _enable_solver_full(self) -> None:
+        '''
+        Enable the complete BETSE solver.
+        '''
+
+        self.p.solver_type = SolverType.FULL
+
     # ..................{ ENABLERS ~ solver : full : exports }..................
     def enable_solver_full_exports_ecm(self) -> None:
         '''
@@ -479,7 +465,7 @@ class SimConfigTestWrapper(object):
         # spaces.
         self._enable_exports(requirements_omit=phasereqs.ECM)
 
-    # ..................{ PRIVATE ~ enablers                }..................
+    # ..................{ PRIVATE ~ enablers                 }..................
     @type_check
     def _enable_exports(
         self,
@@ -575,7 +561,7 @@ class SimConfigTestWrapper(object):
                 # Copy across the type of this export subconfiguration.
                 pipe_exporter_conf.kind = pipe_exporter_metadata.kind
 
-    # ..................{ PRIVATE ~ enablers : solver       }..................
+    # ..................{ PRIVATE ~ enablers : solver        }..................
     def _enable_solver_full_features(self) -> None:
         '''
         Enable all simulation features required by all exports (e.g., CSVs,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,12 +8,12 @@
 within a given scope of the current test session).
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from betse.util.type.types import GeneratorType
 from contextlib import contextmanager
 from pytest import fixture
 
-# ....................{ FIXTURES ~ package                }....................
+# ....................{ FIXTURES ~ package                 }....................
 @fixture(scope='package', autouse=True)
 def betse_init_package() -> None:
     '''
@@ -26,7 +26,7 @@ def betse_init_package() -> None:
     prerequisite before exercising *any* application functionality. Since
     functional (but *not* unit) tests already implicitly initialize this
     singleton, this fixture is typically only imported by the top-level unit
-    testing subpackage (e.g., :mod:`betse_test.unit`).
+    testing subpackage (e.g., :mod:`betse_test.a00_unit`).
 
     See Also
     ----------
@@ -120,8 +120,8 @@ def init_app() -> None:
     subsequent test-agnostic initialization of either this application or
     dependencies on the first importation of the :mod:`betse.science`
     subpackage -- as in fixtures importing from that subpackage (e.g., the
-    :mod:`betse_test.fixture.simconf.simconfer` fixture importing the
-    :mod:`betse_test.fixture.simconf.simconfwrapper` submodule importing the
+    :mod:`betse_test._fixture.simconf.simconfer` fixture importing the
+    :mod:`betse_test._fixture.simconf.simconfwrapper` submodule importing the
     :med:`betse.science.config.confwrap` submodule).
     '''
 
