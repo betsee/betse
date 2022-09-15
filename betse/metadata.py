@@ -180,7 +180,7 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 # For further details, see http://semver.org.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-VERSION = '1.3.0'
+VERSION = '1.2.3'
 '''
 Human-readable application version as a ``.``-delimited string.
 '''
