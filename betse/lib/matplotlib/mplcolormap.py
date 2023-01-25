@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -23,10 +23,6 @@ from betse.util.type.iterable import sequences
 from betse.util.type.numeric import ints
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import colormaps
-from matplotlib.cm import (
-    get_cmap,
-    register_cmap,
-)
 from matplotlib.colors import (
     Colormap,
     LinearSegmentedColormap,
@@ -41,8 +37,8 @@ def get_colormap(name: str) -> Colormap:
     this submodule.
 
     This function is a convenience wrapper for the
-    :func:`matplotlib.cm.get_cmap` function, provided only as a slightly
-    better-named utility to callers.
+    :meth:`matplotlib.colormaps.__getindex__` dunder method, provided only as a
+    human-readable utility to assist readability and maintainability.
 
     Parameters
     ----------
@@ -68,9 +64,9 @@ def get_colormap(name: str) -> Colormap:
         List of supported colormaps.
     '''
 
-    return get_cmap(name)
+    return colormaps[name]
 
-# ....................{ ITERATORS                         }....................
+# ....................{ ITERATORS                          }....................
 def iter_colormap_names() -> SequenceTypes:
     '''
     Sequence of the names of all colormaps currently registered with matplotlib
@@ -100,9 +96,9 @@ def iter_colormap_names() -> SequenceTypes:
     #
     # Inevitably, some external caller will call this function *BEFORE*
     # selecting a default backend, implying that this function *CANNOT* import
-    # from the "matplotlib.pyplot" submodule. Instead, this function inlines
-    # the body of the matplotlib.pyplot.colormaps() function here. Fortunately,
-    # the body of this function reduces to a trivial one-liner.
+    # from the "matplotlib.pyplot" submodule. Instead, this function inlines the
+    # body of the matplotlib.pyplot.colormaps() function here. Fortunately, the
+    # body of this function reduces to a trivial one-liner.
     return sorted(colormaps)
 
 # ....................{ INITIALIZERS                       }....................
@@ -121,7 +117,8 @@ def init() -> None:
     # ..................{ INITTED                            }..................
     # If this submodule has already been initialized, reduce to a noop.
     if _is_initted:
-        logs.log_debug('Ignoring attempt to reregister custom matplotlib colormaps...')
+        logs.log_debug(
+            'Ignoring attempt to reregister custom matplotlib colormaps...')
         return
     # Else, this submodule has *NOT* yet been initialized.
 
@@ -161,7 +158,7 @@ def init() -> None:
     SALMON  = (255, 111, 54)
     SALMON2 = (255, 117, 71)
 
-    # ..................{ COLORMAPS                         }..................
+    # ..................{ COLORMAPS                          }..................
     # Tuple of all application-specific colormaps iteratively registered below.
     COLORMAP_SCHEMES = (
         # Black-based colormaps.
@@ -337,7 +334,7 @@ class _MplColormapScheme(object):
             self._name, colors_normalized, N=256, gamma=self._gamma)
 
         # Register this colormap with matplotlib.
-        register_cmap(cmap=colormap)
+        colormaps.register(colormap)
 
         # Return this colormap.
         return colormap

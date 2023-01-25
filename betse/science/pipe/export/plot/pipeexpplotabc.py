@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
-# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -64,10 +64,11 @@ plots produced after initialization and simulation) abstract base classes.
 #each non-blocking plot and each thread, the simplest mechanism would be to
 #simply cache that plot's figure as an attribute of that thread. Sweet, no?
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import matplotlib
-from betse.lib.matplotlib import mplfigure, mplutil
+from betse.lib.matplotlib import mplfigure
 from betse.lib.matplotlib.matplotlibs import mpl_config
+from betse.lib.matplotlib.mplutil import ignoring_deprecations_mpl
 from betse.science.phase.phasecls import SimPhase
 from betse.science.pipe.export.pipeexpabc import SimPipeExportABC
 from betse.util.io.log import logs
@@ -75,7 +76,7 @@ from betse.util.path import dirs, pathnames
 from betse.util.type.types import type_check
 from matplotlib import pyplot
 
-# ....................{ SUBCLASSES                        }....................
+# ....................{ SUBCLASSES                         }....................
 class SimPipeExportPlotABC(SimPipeExportABC):
     '''
     Abstract base class of all **post-simulation plot pipelines** (i.e.,
@@ -137,8 +138,8 @@ class SimPipeExportPlotABC(SimPipeExportABC):
     @type_check
     def _export(self, phase: SimPhase, basename: str) -> None:
         '''
-        Export the current plot to the current screen if displaying plots
-        and/or to a file with the passed basename if saving plots.
+        Export the current plot to the current screen if displaying plots and/or
+        to a file with the passed basename if saving plots.
 
         Parameters
         -----------
@@ -166,7 +167,7 @@ class SimPipeExportPlotABC(SimPipeExportABC):
             # Temporarily yield the time slice for the smallest amount of time
             # required by the current matplotlib backend to handle queued
             # events in the GUI-specific event loop of the current process.
-            with mplutil.deprecations_ignored():
+            with ignoring_deprecations_mpl():
                 pyplot.pause(0.0001)
 
             # Disable the "fake" non-blocking behavior enabled by the prior

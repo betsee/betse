@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -120,7 +120,7 @@ def is_aqua() -> bool:
     if not is_file(_SECURITY_FRAMEWORK_DYLIB_FILENAME):
         # Emit a non-fatal warning. Theoretically, this shared library should
         # *ALWAYS* exist across all macOS versions (including those still
-        # actively maintained as of 2022 Q2). Pragmatically, this shared library
+        # actively maintained as of 2023 Q2). Pragmatically, this shared library
         # appears to *NOT* exist (for unknown reasons) on GitHub Actions macOS
         # runners. He have no control over GitHub Actions. Let's complain! \o/
         log_warning(

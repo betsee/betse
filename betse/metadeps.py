@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -141,14 +141,14 @@ RUNTIME_MANDATORY = {
     #   the numpy.unique() function, which this codebase commonly passes.
     # * Pillow 5.3.0 first introduced the standard "pillow.__version__"
     #   attribute, which this codebase now expects to exist.
-    # * Matplotlib 3.3.4, which appears to assist in resolving inscrutable
-    #   low-level non-human-readable errors under Linux resembling:
-    #       ICE default IO error handler doing an exit(), pid = 11281, errno = 4
+    # * Matplotlib 3.6.0, which first deprecated various APIs and then
+    #   introduced newer replacements for those APIs (e.g., the new
+    #   "matplotlib.colormaps" subpackage).
     'Numpy':      '>= 1.22.0',
     'Pillow':     '>= 5.3.0',
     'SciPy':      '>= 0.12.0',
     'dill':       '>= 0.2.3',
-    'matplotlib': '>= 3.3.4',
+    'matplotlib': '>= 3.6.0',
 
     # IO stack. Dismantled, this is:
     # * ruamel.yaml >= 0.15.24, which resolves a long-standing parser issue

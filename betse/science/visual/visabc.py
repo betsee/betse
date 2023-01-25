@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
-# Copyright 2014-2022 by Alexis Pietak & Cecil Curry.
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -29,15 +29,17 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 #"betse.science.visual.plot.plotutil" functions into subclasses of the
 #"LayerCellsABC" base class defined elsewhere. Ultimate power fights the dark deceit!
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import numpy as np
 from abc import ABCMeta
 from betse.exceptions import BetseSimVisualException
-from betse.lib.matplotlib import mplfigure, mplutil
+from betse.lib.matplotlib import mplfigure
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_PATCH, ZORDER_STREAM
+from betse.lib.matplotlib.mplutil import ignoring_deprecations_mpl
 from betse.lib.numpy import nparray
-from betse.science.config.export.visual.confexpvisabc import SimConfVisualCellsABC
+from betse.science.config.export.visual.confexpvisabc import (
+    SimConfVisualCellsABC)
 from betse.science.math import mathunit
 from betse.science.phase.phasecls import SimPhase
 from betse.science.visual.layer.lyrabc import LayerCellsABC
@@ -1041,7 +1043,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Since this warning is overly verbose and safely ignorable, we do so.
         # While mildly inefficient, ignoring this warning is preferable to the
         # alternatives of enraging, berating, and frightening end users.
-        with mplutil.deprecations_ignored():
+        with ignoring_deprecations_mpl():
             pyplot.pause(0.0001)
 
 
