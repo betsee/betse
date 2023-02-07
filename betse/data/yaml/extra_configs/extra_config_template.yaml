@@ -103,6 +103,12 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       maximum rate: 1.0e-8   # maximum rate constant of pumping [mol/s]
       pump Km: 1.0e-3       # 1/2 rate point coefficient for molecule in pump reaction
       uses ATP: False      # uses ATP or facilitated transport?
+    clamp cell conc:      # Change the environmental concentration of molecule from the global boundary
+      event happens: False     # turn the event on (True) or off (False)
+      change start: 1.0          # time to start change [s]
+      change finish: 7.0        # time to end change and return to original [s]
+      change rate: 1.0           # rate of change [s]
+      concentration: 1e-3      # target concentration for duration of change [mmol/L]
     change at bounds:      # Change the environmental concentration of molecule from the global boundary
       event happens: False     # turn the event on (True) or off (False)
       change start: 1.0          # time to start change [s]

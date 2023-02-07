@@ -545,6 +545,24 @@ class MasterOfNetworks(object):
                 else:
                     mol.active_pumping = False
 
+                # assign cell concentration clamp event properties
+                cell_clamp = mol_dic.get('clamp cell conc', None)
+
+                if cell_clamp is not None:
+                    mol.cell_clamp = True
+                    mol.cell_clamp_event = bool(cell_clamp['event happens'])
+                    mol.cell_clamp_start = float(cell_clamp['change start'])
+                    mol.cell_clamp_end = float(cell_clamp['change finish'])
+                    mol.cell_clamp_rate = float(cell_clamp['change rate'])
+                    mol.cell_clamp_target = float(cell_clamp['concentration'])
+
+                else:
+                    mol.cell_clamp = False
+                    mol.cell_clamp_event = False
+                    mol.cell_clamp_start = 99999
+                    mol.cell_clamp_end = 9999999
+
+
                 # assign boundary change event properties
                 cab = mol_dic.get('change at bounds', None)
 
@@ -2908,8 +2926,11 @@ class MasterOfNetworks(object):
 
                 # If this is the simulation phase and the global boundary for
                 # this molecule requires updating, do so.
-                if obj.change_bounds and phase.kind is SimPhaseKind.SIM:
+                if obj.change_bounds and phase.kind:
                     obj.update_boundary(t, p)
+
+                if obj.cell_clamp:
+                    obj.cell_clamp_method(t, p, cells)
 
                 # Transport the molecule through gap junctions and environment.
                 obj.transport(sim, cells, p)
@@ -6043,6 +6064,31 @@ class Molecule(object):
                 self.c_env[:] = (
                     self.change_bounds_target*effector_MorphEnv +
                     self.c_envo*(1-effector_MorphEnv))
+
+
+    def cell_clamp_method(self, t, p, cells):
+        """
+        Run a dynamic event in the sim, which alters concentration at the global boundary.
+
+        t:          simulation world time
+        p:          parameters instance
+
+        """
+
+        if self.cell_clamp_event and t >= self.cell_clamp_start and t<=self.cell_clamp_end:
+            # if there is a clamp on this substance:
+            effector_MorphCell = tb.pulse(t,
+                                          self.cell_clamp_start,
+                                          self.cell_clamp_end,
+                                          self.cell_clamp_rate)
+
+            self.c_cells = (
+                    self.cell_clamp_target * effector_MorphCell +
+                    self.c_cello * (1 - effector_MorphCell))
+
+            # print(f"Value of mod {effector_MorphCell}")
+
+            # self.cc_at_mem = self.c_cells[cells.mem_to_cells]
 
     #FIXME: Ideally, this method should be refactored to comply with the
     #new pipeline API.
