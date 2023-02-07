@@ -98,7 +98,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       n inhibitors: None        # list of Hill exponent of inhibitors
       zone inhibitors: None   # location of concentration having an influence ('cell' or 'env')
     active pumping:      # use ATP driven pumps to actively move the substance across membranes?
-      turn on: False           # turn pumping on?
+      turn on: False           # turn pumping on?   
       pump to cell: True      # pump from extracellular space to cell (True) or reverse (False)?
       maximum rate: 1.0e-8   # maximum rate constant of pumping [mol/s]
       pump Km: 1.0e-3       # 1/2 rate point coefficient for molecule in pump reaction
