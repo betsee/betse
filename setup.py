@@ -118,8 +118,8 @@ def _register_dir() -> None:
 # Kludge us up the bomb.
 _register_dir()
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from packages guaranteed to exist at the start of
 # installation. This includes all standard Python and application packages but
@@ -138,19 +138,93 @@ _register_dir()
 #      the Python interpreter."
 #
 # See also: https://stackoverflow.com/a/10097543/2809027
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-import setuptools
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+import os, setuptools
 from betse import metadata, metadeps
 from betse.lib.setuptools.command import (
     supcmdfreeze, supcmdsymlink, supcmdtest)
 from betse_setup import bupbuild, buputil
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS                         }....................
 # Validate the currently installed version of setuptools to meet all
 # installation-time requirements of this application.
 buputil.die_unless_setuptools_version_at_least(metadeps.SETUPTOOLS_VERSION_MIN)
 
-# ....................{ METADATA ~ seo                    }....................
+# ....................{ METADATA ~ paths                   }....................
+_PACKAGE_NONDATA_NAMES = setuptools.find_packages(exclude=(
+    metadata.PACKAGE_NAME + '_test',
+    metadata.PACKAGE_NAME + '_test.*',
+    metadata.PACKAGE_NAME + '_setup',
+    metadata.PACKAGE_NAME + '_setup.*',
+    'build',
+    'freeze',
+))
+'''
+List of the fully-qualified names of all **non-data Python packages** (i.e.,
+directories containing the standard ``"__init__.py"`` file and zero or more
+Python modules) to be installed, including the top-level application package and
+all subpackages of that package. This thus excludes:
+
+* The top-level test package and all subpackages of this package, test
+  functionality *not* intended to be installed with this application.
+* The top-level setup package and all subpackages of this package,
+  setuptools functionality required only for application installation.
+* ``"build"``, caching both setuptools metadata and a complete copy of this
+  package, required only by a prior application installation.
+* ``"freeze"``, providing PyInstaller-specific functionality required only for
+  application freezing (i.e., conversion into an executable binary).
+'''
+
+
+_PACKAGE_DATA_NAMES = [
+    f'{metadata.PACKAGE_NAME}.data.{package_data_name}'
+    for package_data_name in setuptools.find_namespace_packages(
+        where=os.path.join(metadata.PACKAGE_NAME, 'data'))
+]
+'''
+List of the fully-qualified names of all **data Python pseudo-packages** (i.e.,
+directories containing *no* standard ``"__init__.py"`` file and zero or more
+data paths) to be installed.
+
+Note that this is largely nonsensical. Ideally, a project subdirectory
+containing *no* standard ``"__init__.py"`` file would be transparently treated
+by both Python itself and :mod:`setuptools` as an unimportable non-package
+directory rather than an importable package. Ideally, *only* directories
+containing ``"__init__.py"`` files would be treated as importable packages.
+Sadly, :pep:`420` (i.e., "Implicit Namespace Packages") fundamentally broke this
+reasonable expectation by unconditionally forcing *all* project subdirectories
+to be importable packages regardless of developer wants, needs, or expectations.
+
+:mod:`setuptools` now "complies" with this nonsense by requiring that data
+directories by explicitly listed as namespace packages. Of course, data
+directories are *not* namespace packages -- but nobody in either the official
+PyPA or CPython communities appears to care. If this is *not* done,
+:mod:`setuptools` now emits one deprecation warning for each data subdirectory
+and file resembling:
+
+    Installing '{data_path}' as data is deprecated, please list it in `packages`.
+
+Lastly, note that we could also avoid this unctuous list comprehension
+altogether by simply replacing the above call to
+:func:`setuptools.find_packages` with
+:func:`setuptools.find_namespace_packages`. Then why do we not do so? Because
+doing so would make things even worse. Why? Because then :mod:`setuptools` would
+erroneously match *all* subdirectories of this root repository directory as
+importable packages to be installed -- including obviously irrelevant root
+subdirectories like ``"{package_name}.egg-info"``, ``".github"``, ``".github"``,
+``"doc"``, and ``"pip-wheel-metadata"``. Since the set of all such
+subdirectories frequently changes with upstream revisions beyond our control,
+explicitly specifying this set by listing these ignorable subdirectories in an
+``exclude`` parameter is infeasible. In short, this is the least bad thing.
+
+See Also
+----------
+https://github.com/pypa/setuptools/issues/3340
+    Upstream :mod:`setuptools` issue where :mod:`setuptools` casually admit to
+    breaking their entire toolchain for no demonstrably good reason.
+'''
+
+# ....................{ METADATA ~ seo                     }....................
 _KEYWORDS = [
     'biology',
     'multiphysics',
@@ -202,11 +276,11 @@ https://pypi.org/classifiers
     Plaintext list of all trove classifier strings recognized by PyPI.
 '''
 
-# ....................{ OPTIONS                           }....................
+# ....................{ OPTIONS                            }....................
 # Setuptools-specific options. Keywords not explicitly recognized by either
 # setuptools or distutils must be added to the above dictionary instead.
 _SETUP_OPTIONS = {
-    # ..................{ CORE                              }..................
+    # ..................{ CORE                               }..................
     # Self-explanatory metadata. Note that the following metadata keys are
     # instead specified by the "setup.cfg" file:
     #
@@ -284,35 +358,6 @@ _SETUP_OPTIONS = {
     # Mandatory testing dependencies.
     'tests_require': metadeps.get_testing_mandatory_tuple(),
 
-    # ..................{ PACKAGES                           }..................
-    # List of the fully-qualified names of all Python packages (i.e.,
-    # directories containing zero or more Python modules) to be installed,
-    # including the top-level application package and all subpackages of that
-    # package. This thus excludes:
-    #
-    # * The top-level test package and all subpackages of this package, test
-    #   functionality *NOT* intended to be installed with this application.
-    # * The top-level setup package and all subpackages of this package,
-    #   setuptools functionality required only for application installation.
-    # * "build", caching both setuptools metadata and a complete copy of this
-    #   package, required only by a prior application installation.
-    # * "freeze", providing PyInstaller-specific functionality required only for
-    #   application freezing (i.e., conversion into an executable binary).
-    #
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # WARNING: This inspection intentionally omits subdirectories containing no
-    # "__init__.py" file, despite the remainder of the Python ecosystem
-    # commonly accepting such subdirectories as subpackages.
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    'packages': setuptools.find_packages(exclude=(
-        metadata.PACKAGE_NAME + '_test',
-        metadata.PACKAGE_NAME + '_test.*',
-        metadata.PACKAGE_NAME + '_setup',
-        metadata.PACKAGE_NAME + '_setup.*',
-        'build',
-        'freeze',
-    )),
-
     # ..................{ PATHS                              }..................
     # Cross-platform script wrappers dynamically created at installation time.
     'entry_points': {
@@ -340,6 +385,9 @@ _SETUP_OPTIONS = {
     # employed by everyone. Setuptools, your death is coming.
     'include_package_data': True,
 
+    # List of the fully-qualified names of all Python packages to be installed.
+    'packages': _PACKAGE_DATA_NAMES + _PACKAGE_NONDATA_NAMES,
+
     # Install to an uncompressed directory rather than a compressed archive.
     #
     # While nothing technically precludes the latter, doing so substantially
@@ -358,8 +406,12 @@ This dictionary signifies the set of all application-specific :mod:`setuptools`
 options. Submodules of the top-level :mod:`betse_setup` package subsequently
 customize these options (e.g., by defining custom commands).
 '''
-# print('extras: {}'.format(setup_options['extras_require']))
 
+#FIXME: Setuptools debug statements, preserved for posterity. Note that "pip"
+#silences this output *UNLESS* an exception is raised below. *sigh*
+# print('extras: {}'.format(_SETUP_OPTIONS['extras_require']))
+# print('packages: {}'.format(_SETUP_OPTIONS['packages']))
+# raise ValueError('ohgods')
 
 # While currently empty, it's likely we'll want this again... someday.
 _SETUP_OPTIONS_CUSTOM = {}
