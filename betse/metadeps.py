@@ -15,6 +15,12 @@ base class. Why? Because doing so would prevent their use from the top-level
 would render these constants effectively useless for their principal use case.
 '''
 
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# CAUTION: This submodule has largely (but *NOT* entirely) been obsoleted by the
+# top-level "pyproject.toml" file, which should be strongly preferred and
+# towards which we should refactor this project away from this submodule.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 #FIXME: Setuptools should no longer be required at runtime under Python >= 3.8.
 #Why? Because Python 3.8 wisely introduced the new "importlib.metadata" module,
 #enabling inspection of package manager-installed metadata (e.g., version,

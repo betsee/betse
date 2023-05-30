@@ -6,15 +6,6 @@
 '''
 Metadata constants synopsizing high-level application behaviour.
 
-Python Version
-----------
-For uniformity between this codebase and the ``setup.py`` setuptools script
-importing this module, this module also validates the version of the active
-Python 3 interpreter. An exception is raised if this version is insufficient.
-
-This application currently requires **Python 3.6.** since Python 3.5.0 has now
-passed its its official end-of-life (EOL) and thus constitutes a security risk.
-
 Design
 ----------
 Metadata constants defined by this submodule are intentionally *not* defined as
@@ -23,6 +14,12 @@ class. Why? Because doing so would prevent their use from the top-level
 ``setup.py`` scripts defined by downstream consumers (e.g., BETSEE GUI), which
 would render these constants effectively useless for their principal use case.
 '''
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# CAUTION: This submodule has largely (but *NOT* entirely) been obsoleted by the
+# top-level "pyproject.toml" file, which should be strongly preferred and
+# towards which we should refactor this project away from this submodule.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -48,29 +45,10 @@ Human-readable name of the license this application is licensed under.
 '''
 
 # ....................{ PYTHON ~ version                   }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: Changes to this section *MUST* be synchronized with:
-# * The corresponding section of the "betsee.guimetadata" submodule.
-# * Continuous integration test matrices, including:
-#   * The top-level "tox.ini" file.
-#   * The "jobs/tests/strategy/matrix/{tox-env,include/python-version}"
-#     settings of the GitHub Actions-specific
-#     ".github/workflows/python_test.yml" file.
-# * Front-facing documentation (e.g., "README.rst", "doc/md/INSTALL.md").
-# On bumping the minimum required version of Python, consider also documenting
-# the justification for doing so in the "Python Version" section of this
-# submodule's docstring above.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 PYTHON_VERSION_MIN = '3.8.0'
 '''
 Human-readable minimum version of Python required by this application as a
 ``.``-delimited string.
-
-See Also
-----------
-"Python Version" section of this submodule's docstring for a detailed
-justification of this constant's current value.
 '''
 
 
@@ -152,34 +130,6 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
             NAME, PYTHON_VERSION_MIN, PYTHON_VERSION))
 
 # ....................{ METADATA ~ version                 }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: When modifying the current version of this application below,
-# consider adhering to the Semantic Versioning schema. Specifically, the
-# version should consist of three "."-delimited integers
-# "{major}.{minor}.{patch}", where:
-#
-# * "{major}" specifies the major version, incremented only when either:
-#   * Breaking configuration file backward compatibility. Since this
-#     application's public API is its configuration file format rather than a
-#     subset of the code itself (e.g., public submodules, classes), no change
-#     to the code itself can be considered to break backward compatibility
-#     unless that change breaks the configuration file format.
-#   * Implementing headline-worthy functionality (e.g., a GUI). Technically,
-#     this condition breaks the Semantic Versioning schema, which stipulates
-#     that *ONLY* changes breaking backward compatibility warrant major bumps.
-#     But this is the real world. In the real world, significant improvements
-#     are rewarded with significant version changes.
-#   In either case, the minor and patch versions both reset to 0.
-# * "{minor}" specifies the minor version, incremented only when implementing
-#   customary functionality in a manner preserving such compatibility. In this
-#   case, the patch version resets to 0.
-# * "{patch}" specifies the patch version, incremented only when correcting
-#   outstanding issues in a manner preserving such compatibility.
-#
-# When in doubt, increment only the minor version and reset the patch version.
-# For further details, see http://semver.org.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 VERSION = '1.4.0'
 '''
 Human-readable application version as a ``.``-delimited string.

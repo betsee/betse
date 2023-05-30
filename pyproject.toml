@@ -13,74 +13,257 @@
 # twenty distinct formats suffice to distribute a single project.
 #
 # --------------------( MOTIVATION                         )--------------------
-# This configuration is now required in various edge cases to avoid fatal errors
-# under Python's modern build toolchain. Notably, "pip" now refuses to install
-# this project under containerized environments (e.g., Docker, which the popular
-# documentation host ReadTheDocs (RTD) leverages) with extremely verbose and
-# thus mostly unreadable fatal errors resembling:
-#     Processing /home/docs/checkouts/readthedocs.org/user_builds/beartype/checkouts/latest
-#       Preparing metadata (setup.py): started
-#       Preparing metadata (setup.py): finished with status 'error'
-#       error: subprocess-exited-with-error
-#
-#       × python setup.py egg_info did not run successfully.
-#       │ exit code: 1
-#       ╰─> [1 lines of output]
-#           ERROR: Can not execute `setup.py` since setuptools is not available in the build environment.
-#           [end of output]
-#
-#       note: This error originates from a subprocess, and is likely not a problem with pip.
-#     error: metadata-generation-failed
-#
-#     × Encountered error while generating package metadata.
-#     ╰─> See above for output.
-#
-#     note: This is an issue with the package mentioned above, not pip.
-#     hint: See above for details.
+# This project previously leveraged "setuptools" via the "setuptools"-specific
+# "setup.py" script, like most projects at the time. Like its predecessor
+# "distutils", "setuptools" is now widely regarded as legacy software. Moreover,
+# "setuptools" has repeatedly broken backward compatibility with respect to
+# "setup.py" scripts and thus proven itself to be a poor steward for legacy
+# projects still leveraging those scripts. In short, "setuptools" is no longer a
+# viable path forward. This vendor-agnostic configuration remedies that deficit
+# by abandoning "setuptools" entirely in favour of modern alternatives: namely,
+# Hatch, which the Python Packaging Authority (PyPA) has officially adopted.
 #
 # --------------------( SEE ALSO                           )--------------------
-# * https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
-#   Official "setuptools" documentation on integrating "setuptools" with PEP 621
-#   (i.e., this file).
 # * https://snarky.ca/clarifying-pep-518
 #   "Clarifying PEP 518 (a.k.a. pyproject.toml)", a human-readable article from
 #   one of the principal authors of the "pyproject.toml" standard.
 
-# ....................{ BUILDING                           }....................
-[build-system]
+# ....................{ TODO                               }....................
+#FIXME: Specify package data as well, please. See also:
+#    https://hatch.pypa.io/latest/config/build/#patterns
 
-# List of all Python packages required to build (i.e., install) this project
-# from both codebase tarballs and binary wheels.
+# ....................{ PEP 621                            }....................
+# PEP 621-compliant section generically defining project metadata in a build
+# tool-agnostic manner.
 #
-# Note that:
-# * Setuptools 50.0 is fundamentally broken in numerous ways (including ways
-#   that both break and do not break installation of this project) and *MUST*
-#   thus be blacklisted. See also:
-#   https://github.com/pypa/setuptools/issues/2350
-#   https://github.com/pypa/setuptools/issues/2352
-#   https://github.com/pypa/setuptools/issues/2353
-requires = [
-    'setuptools!=50.0',
-    'wheel',
+# Note that poetry currently ignores this section but does intend to comply with
+# PEP 621 for some future release. Indeed, it appears likely that poetry (and
+# other "pyproject.toml"-based build tools) will *EVENTUALLY* deprecate their
+# existing support for build tool-specific metadata. See also this currently
+# open issue on the subject:
+#     https://github.com/python-poetry/roadmap/issues/3
+[project]
+
+# Fully-qualified name of this project's top-level Python package.
+name = "betse"
+
+# Human-readable single-line synopsis of this project.
+#
+# By PyPI design, this string must *NOT* span multiple lines or paragraphs.
+description = """\
+The BioElectric Tissue Simulation Engine (BETSE) is a discrete exterior \
+calculus simulator for 2D computational multiphysics problems in the life \
+sciences -- including (electro)diffusion, (electro)osmosis, galvanotaxis, \
+voltage-gated ion channels, gene regulatory networks, and biochemical \
+reaction networks.\
+"""
+
+# Relative filename of the license file this project is licensed under.
+#
+# Note that PEP 621 prohibits this table (i.e., dictionary) from defining both
+# the "file" and "text" keys (e.g., 'text = "MIT"'). While defining both would
+# certainly be preferable, the "file" key takes precedence over the "text" key.
+license = { file = "LICENSE" }
+
+# Relative filename of the human-readable file introducing this project.
+readme = "README.rst"
+
+# List of all lowercase alphabetic keywords synopsising this project.
+#
+# These keywords may be arbitrarily selected so as to pretend to improve search
+# engine optimization (SEO). In actuality, they do absolutely nothing.
+keywords = [
+    "biology",
+    "multiphysics",
+    "science",
+    "simulator",
 ]
 
-# Explicitly notify "pip" that we leverage the top-level "setuptools"-backed
-# "setup.py" script as our installation infrastructure.
+# List of all PyPI-specific trove classifier strings synopsizing this project.
+# Each such string *MUST* contain either two or three " :: " substrings
+# delimiting human-readable capitalized English words formally recognized by the
+# "distutils"-specific register() command. See also:
+# * https://pypi.org/classifiers
+#   Plaintext list of all trove classifier strings recognized by PyPI.
+classifiers = [
+    # PyPI-specific version type. The number specified here is a magic constant
+    # with no relation to this package's version numbering scheme. *sigh*
+    "Development Status :: 5 - Production/Stable",
+
+    # Miscellaneous metadata.
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+# List of all principal authors of this package as a list of tables (i.e.,
+# dictionaries) defining both the names and e-mail addresses of these authors.
 #
-# Note that this is explicitly required for temporary backward compatibility
-# with "pip" 19.1.0, which erroneously violated PEP 51{7,8} by failing to
-# fallback to a sane default value in the absence of this setting. If this
-# setting is left unspecified here, "pip" 19.1.0 fails on attempting to perform
-# an editable (i.e., developer-specific) install with the following error:
-#     $ pip3 install --user --editable .
-#     Obtaining file:///home/leycec/py/betse
-#     ERROR: Error installing 'file:///home/leycec/py/betse': editable mode is
-#     not supported for pyproject.toml-style projects. pip is processing this
-#     project as pyproject.toml-style because it has a pyproject.toml file.
-#     Since the project has a setup.py and the pyproject.toml has no
-#     "build-backend" key for the "build_system" value, you may pass
-#     --no-use-pep517 to opt out of pyproject.toml-style processing. See PEP
-#     517 for details on pyproject.toml-style projects.
+# These authors should be thought of as the corresponding authors of a paper.
+# Academic correspondence should be redirected to these authors.
+authors = [
+    { name="Alexis Pietak", email="<alexis.pietak@gmail.com>" },
+]
+
+# List of all secondary authors of this package as a list of tables (i.e.,
+# dictionaries) defining both the names and e-mail addresses of these authors.
 #
-# See also: https://github.com/pypa/pip/issues/6434
-build-backend = 'setuptools.build_meta'
+# These authors significantly contributed to the development of this project,
+# but lack the scientific expertise to respond to external inquiries. Therefore,
+# academic correspondence should *NOT* be redirected to these authors.
+maintainers = [
+    { name="Cecil Curry", email="<leycec@gmail.com>" },
+]
+
+# List of the names of all settings recognized by this PEP 621-compliant section
+# that the build backend (specified below) allows to be dynamically harvested
+# from this project's top-level Python package. Supported settings include:
+# * "version", which this build backend typically harvests from the PEP
+#   8-compliant "{name}.__version__" dunder global.
+# * "description", which this build backend typically harvests from the module
+#   docstring defined by the "{name}.__init__" submodule.
+dynamic = ["version"]
+
+# ....................{ PEP 621 ~ urls                     }....................
+# Table (i.e., dictionary) mapping from the PyPI-recognized name of each
+# relevant project URL to that URL.
+[project.urls]
+
+#FIXME: Prefer a documentation-specific site, please.
+# URL of this project's homepage.
+Homepage = "https://calculion.streamlit.app"
+
+#FIXME: Replace with a link to more suitable documentation, please.
+# URL of this project's documentation.
+Documentation = "https://github.com/betsee/betse/blob/main/README.rst"
+
+# URL of this project's source code repository.
+Repository = "https://github.com/betsee/betse"
+
+# URL of this project's release list.
+Releases = "https://github.com/betsee/betse/releases"
+
+# URL of this project's issue tracker.
+Issues = "https://github.com/betsee/betse/issues"
+
+# ....................{ PEP 621 ~ dependencies : mandatory }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: Changes to this setting *MUST* be synchronized with:
+# * Continuous integration test matrices, including:
+#   * The top-level "tox.ini" file.
+#   * The "jobs/tests/strategy/matrix/{tox-env,include/python-version}"
+#     settings of the GitHub Actions-specific
+#     ".github/workflows/python_test.yml" file.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+# Python interpreter versions required by this package.
+#
+# A relatively recent version of Python is required due to:
+# * PEP 585-compliant type hints (e.g., "list[str]"), now leveraged through the
+#   codebase due both to convenience and PEP 585's timely deprecation of PEP
+#   484-compliant type hints (e.g., "typing.list[str]") by 2026 -- which
+#   renders PEP 484-compliant type hints genuinely dangerous in 2021.
+# * "importlib.metadata", first introduced with Python 3.8.0.
+#
+# Note that:
+# * Our mandatory runtime dependency on "pyvista" transitively requires "vtk".
+#   For unknown reasons, "vtk" has yet to publish Python 3.10 wheels. Since
+#   "vtk" is *ONLY* installable via binary wheels, this effectively means that
+#   "vtk" and thus "pyvista" and thus this package currently *CANNOT* be
+#   installed under Python 3.10 using "pip". See also this unresolved VTK issue:
+#       https://gitlab.kitware.com/vtk/vtk/-/issues/18335
+requires-python = ">=3.8"
+
+# List of all mandatory runtime dependencies.
+dependencies = [
+    # Scientific stack. Dismantled, this is:
+    # * Numpy 1.13.0 first introduced the optional "axis" keyword argument to
+    #   the numpy.unique() function, which this codebase commonly passes.
+    # * Pillow 5.3.0 first introduced the standard "pillow.__version__"
+    #   attribute, which this codebase now expects to exist.
+    # * Matplotlib 3.6.0, which first deprecated various APIs and then
+    #   introduced newer replacements for those APIs (e.g., the new
+    #   "matplotlib.colormaps" subpackage).
+    "Numpy >=1.22.0",
+    "Pillow >=5.3.0",
+    "SciPy >=0.12.0",
+    "dill >=0.2.3",
+    "matplotlib >=3.6.0",
+
+    # IO stack. Dismantled, this is:
+    # * ruamel.yaml >= 0.15.24, which resolves a long-standing parser issue
+    #   preventing complex YAML markup (e.g., ours) from being roundtripped:
+    #   "0.15.24 (2017-08-09):
+    #    * (finally) fixed longstanding issue 23 (reported by Antony Sottile),
+    #      now handling comment between block mapping key and value correctly"
+    # * The new "ruamel.yaml" API first introduced in 0.15.0. While older
+    #   versions strictly adhere to the functional PyYAML-compatible API, newer
+    #   versions break backward compatibility by entirely supplanting that API
+    #   with a modern object-oriented approach. Supporting both isn't worth the
+    #   substantial increase in maintenance debt.
+    "ruamel.yaml >=0.15.24",
+
+    # QA stack. Dismantled, this is:
+    # * beartype >= 0.10.0, which first defined the "beartype.typing"
+    #   compatibility layer widely used throughout this codebase.
+    "beartype >=0.10.0",
+]
+
+# ....................{ PEP 621 ~ dependencies : optional  }....................
+# List of all extras (i.e., settings with arbitrary names whose values are lists
+# of optional dependencies, which external end user-oriented package managers
+# like "pip" and "conda" then permit to be installed via those names).
+[project.optional-dependencies]
+
+# List of all optional runtime dependencies.
+all = [
+    # A relatively modern version of NetworkX *EXCLUDING* 1.11, which critically
+    # broke backwards compatibility by coercing use of the unofficial inactive
+    # "pydotplus" PyDot fork rather than the official active "pydot" PyDot
+    # project, is directly required by this application. NetworkX >= 1.12
+    # reverted to supporting "pydot", thus warranting blacklisting of only
+    # NetworkX 1.11. (It is confusing, maybe? Yes!)
+    "networkx >=1.2",
+    "pydot >=1.0.28",
+]
+
+# List of all mandatory test-time dependencies.
+test = [
+    # For simplicity, pytest should remain the only hard dependency for testing
+    # on local machines. While our testing regime optionally leverages
+    # third-party py.test plugins (e.g., "pytest-xdist"), these plugins are
+    # *NOT* required for simple testing.
+    #
+    # A relatively modern version of pytest is required. Specifically:
+    # * At least version 5.4.0 or newer, which refactored the previously
+    #   defined private _pytest.capture.CaptureManager._getcapture() method
+    #   into the newly defined private _pytest.capture._getmulticapture()
+    #   function, which the "betse.lib.setuptools.command.supcmdtest" submodule
+    #   necessarily monkey-patches at test time to sanitize captured output for
+    #   long-running tests.
+    "pytest >=5.4.0",
+
+    # Mandatory test-time coverage package dependencies (i.e., dependencies
+    # required to measure test coverage for this package).
+    "coverage >=5.5",
+]
+
+# List of all mandatory documentation-time dependencies.
+doc = ["sphinx"]
+
+# ....................{ PEP 517                            }....................
+# PEP 517-compliant section declaring the third-party build tools required to
+# install this "pyproject.toml"-based project.
+[build-system]
+
+# List of all third-party Python packages required to build (i.e., install) this
+# project from both codebase tarballs and binary wheels.
+requires = ["hatchling>=1.14.0"]
+
+# Fully-qualified name of the Python submodule of a third-party Python package
+# listed above to be imported at runtime by third-party Python package managers
+# (e.g., "pip") to build this project.
+build-backend = "hatchling.build"

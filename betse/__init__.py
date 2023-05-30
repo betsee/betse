@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -11,8 +11,8 @@ provided by the :mod:`betse.metadata` module commonly inspected by external
 automation.
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from modules guaranteed to exist at the start of
 # installation. This includes all standard Python and application modules but
@@ -20,15 +20,15 @@ automation.
 # installed at some later time in the installation. Likewise, to avoid circular
 # import dependencies, the top-level of this module should avoid importing
 # application modules where feasible.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 # For PEP 8 compliance, versions constants expected by external automation are
 # imported under their PEP 8-mandated names.
 from betse.metadata import VERSION as __version__
 from betse.metadata import VERSION_PARTS as __version_info__
 
-# ....................{ GLOBALS                           }....................
+# ....................{ GLOBALS                            }....................
 # Document all global variables imported into this namespace above.
 
 __version__
