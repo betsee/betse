@@ -95,7 +95,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 
@@ -134,20 +140,20 @@ dynamic = ["version"]
 
 #FIXME: Prefer a documentation-specific site, please.
 # URL of this project's homepage.
-Homepage = "https://calculion.streamlit.app"
+"Homepage" = "https://calculion.streamlit.app"
 
 #FIXME: Replace with a link to more suitable documentation, please.
 # URL of this project's documentation.
-Documentation = "https://github.com/betsee/betse/blob/main/README.rst"
+"Documentation" = "https://github.com/betsee/betse/blob/main/README.rst"
 
 # URL of this project's source code repository.
-Repository = "https://github.com/betsee/betse"
+"Repository" = "https://github.com/betsee/betse"
 
 # URL of this project's release list.
-Releases = "https://github.com/betsee/betse/releases"
+"Releases" = "https://github.com/betsee/betse/releases"
 
 # URL of this project's issue tracker.
-Issues = "https://github.com/betsee/betse/issues"
+"Issues" = "https://github.com/betsee/betse/issues"
 
 # ....................{ PEP 621 ~ dependencies : mandatory }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -267,3 +273,50 @@ requires = ["hatchling>=1.14.0"]
 # listed above to be imported at runtime by third-party Python package managers
 # (e.g., "pip") to build this project.
 build-backend = "hatchling.build"
+
+# ....................{ NON-PEP                            }....................
+# PEP-noncompliant sections declaring settings unique to third-party build tools
+# required to install this "pyproject.toml"-based project.
+
+# ....................{ NON-PEP ~ hatch                    }....................
+# PEP-noncompliant section declaring Hatch-specific version settings.
+[tool.hatch.version]
+
+#FIXME: If this fails, the following alternative should suffice:
+#    source = "vcs"
+#    [tool.hatch.build.hooks.vcs]
+#    version-file = "betse/__init__.py"
+# Relative filename of the Python submodule defining the PEP 8-compliant
+# "__version__" dunder global, which Hatch statically parses to obtain the
+# current version of this project.
+path = "betse/__init__.py"
+
+# ....................{ NON-PEP ~ hatch : path             }....................
+# PEP-noncompliant section declaring Hatch-specific build settings.
+[tool.hatch.build]
+
+#FIXME: Insufficient. Although this suffices for binary distributions, we should
+#also define an additional "include = " setting in a new
+#"[tool.hatch.build.targets.sdist]" section, please.
+
+# Whitelist of one or more Bash-style glob expressions matching the relative
+# pathnames of all paths to be included in source distributions (e.g., tarballs)
+# and binary distributions (e.g., wheels) created by Hatch for this project.
+#
+# Note that Hatch *ALWAYS* implicitly includes at least these files in source
+# distributions:
+# * ".gitignore".
+# * "AUTHORS".
+# * "LICENSE".
+# * "README*".
+# * "pyproject.toml".
+include = [
+    # Glob expression recursively matching *ALL* Python submodules, regardless
+    # of the directory containing those submodules.
+    "**/*.py",
+
+    # Relative dirname of this project's data subdirectory (i.e., unimportable
+    # subdirectory bundled with this project containing *ONLY* Python-agnostic
+    # media files).
+    "betse/data/",
+]
