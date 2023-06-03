@@ -8,6 +8,11 @@
 tasks (e.g., installation, freezing, test running) for this application.
 '''
 
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# CAUTION: This submodule has been entirely obsoleted by the top-level
+# "pyproject.toml" file and should be removed at the earliest possible commit.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 # ....................{ TODO                               }....................
 #FIXME: Consider bundling both BETSE and BETSEE into a single Ubuntu snap,
 #which has effectively emerged as the de facto cross-distro format for

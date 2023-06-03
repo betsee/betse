@@ -23,6 +23,12 @@
 # by abandoning "setuptools" entirely in favour of modern alternatives: namely,
 # Hatch, which the Python Packaging Authority (PyPA) has officially adopted.
 #
+# --------------------( USAGE                              )--------------------
+# Common Hatch commans include:
+#
+#     # Validate this file. *ALWAYS* run this command after modifying this file.
+#     $ hatch project metadata | less
+#
 # --------------------( SEE ALSO                           )--------------------
 # * https://snarky.ca/clarifying-pep-518
 #   "Clarifying PEP 518 (a.k.a. pyproject.toml)", a human-readable article from
@@ -111,7 +117,7 @@ classifiers = [
 # These authors should be thought of as the corresponding authors of a paper.
 # Academic correspondence should be redirected to these authors.
 authors = [
-    { name="Alexis Pietak", email="<alexis.pietak@gmail.com>" },
+    { name="Alexis Pietak", email="alexis.pietak@gmail.com" },
 ]
 
 # List of all secondary authors of this package as a list of tables (i.e.,
@@ -121,7 +127,7 @@ authors = [
 # but lack the scientific expertise to respond to external inquiries. Therefore,
 # academic correspondence should *NOT* be redirected to these authors.
 maintainers = [
-    { name="Cecil Curry", email="<leycec@gmail.com>" },
+    { name="Cecil Curry", email="leycec@gmail.com" },
 ]
 
 # List of the names of all settings recognized by this PEP 621-compliant section
@@ -132,28 +138,6 @@ maintainers = [
 # * "description", which this build backend typically harvests from the module
 #   docstring defined by the "{name}.__init__" submodule.
 dynamic = ["version"]
-
-# ....................{ PEP 621 ~ urls                     }....................
-# Table (i.e., dictionary) mapping from the PyPI-recognized name of each
-# relevant project URL to that URL.
-[project.urls]
-
-#FIXME: Prefer a documentation-specific site, please.
-# URL of this project's homepage.
-"Homepage" = "https://calculion.streamlit.app"
-
-#FIXME: Replace with a link to more suitable documentation, please.
-# URL of this project's documentation.
-"Documentation" = "https://github.com/betsee/betse/blob/main/README.rst"
-
-# URL of this project's source code repository.
-"Repository" = "https://github.com/betsee/betse"
-
-# URL of this project's release list.
-"Releases" = "https://github.com/betsee/betse/releases"
-
-# URL of this project's issue tracker.
-"Issues" = "https://github.com/betsee/betse/issues"
 
 # ....................{ PEP 621 ~ dependencies : mandatory }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -260,6 +244,28 @@ test = [
 # List of all mandatory documentation-time dependencies.
 doc = ["sphinx"]
 
+# ....................{ PEP 621 ~ urls                     }....................
+# Table (i.e., dictionary) mapping from the PyPI-recognized name of each
+# relevant project URL to that URL.
+[project.urls]
+
+#FIXME: Prefer a documentation-specific site, please.
+# URL of this project's homepage.
+"Homepage" = "https://calculion.streamlit.app"
+
+#FIXME: Replace with a link to more suitable documentation, please.
+# URL of this project's documentation.
+"Documentation" = "https://github.com/betsee/betse/blob/main/README.rst"
+
+# URL of this project's source code repository.
+"Repository" = "https://github.com/betsee/betse"
+
+# URL of this project's release list.
+"Releases" = "https://github.com/betsee/betse/releases"
+
+# URL of this project's issue tracker.
+"Issues" = "https://github.com/betsee/betse/issues"
+
 # ....................{ PEP 517                            }....................
 # PEP 517-compliant section declaring the third-party build tools required to
 # install this "pyproject.toml"-based project.
@@ -279,17 +285,15 @@ build-backend = "hatchling.build"
 # required to install this "pyproject.toml"-based project.
 
 # ....................{ NON-PEP ~ hatch                    }....................
-# PEP-noncompliant section declaring Hatch-specific version settings.
+# PEP-noncompliant section declaring Hatch-specific version settings. See also:
+# * Official documentation for this section.
+#   https://hatch.pypa.io/latest/version
 [tool.hatch.version]
 
-#FIXME: If this fails, the following alternative should suffice:
-#    source = "vcs"
-#    [tool.hatch.build.hooks.vcs]
-#    version-file = "betse/__init__.py"
-# Relative filename of the Python submodule defining the PEP 8-compliant
-# "__version__" dunder global, which Hatch statically parses to obtain the
-# current version of this project.
-path = "betse/__init__.py"
+# Relative filename of the Python submodule defining either a PEP 8-compliant
+# "__version__" dunder global *OR* a PEP-noncompliant "VERSION" global, which
+# Hatch then statically parses to obtain the current version of this project.
+path = "betse/metadata.py"
 
 # ....................{ NON-PEP ~ hatch : path             }....................
 # PEP-noncompliant section declaring Hatch-specific build settings.
@@ -302,21 +306,60 @@ path = "betse/__init__.py"
 # Whitelist of one or more Bash-style glob expressions matching the relative
 # pathnames of all paths to be included in source distributions (e.g., tarballs)
 # and binary distributions (e.g., wheels) created by Hatch for this project.
-#
-# Note that Hatch *ALWAYS* implicitly includes at least these files in source
-# distributions:
-# * ".gitignore".
-# * "AUTHORS".
-# * "LICENSE".
-# * "README*".
-# * "pyproject.toml".
+# This suffices for binary but *NOT* source distributions, which typically
+# include additional files (e.g., documentation, licenses, metadata) *NOT*
+# suitable for inclusion in binary distributions.
 include = [
-    # Glob expression recursively matching *ALL* Python submodules, regardless
-    # of the directory containing those submodules.
-    "**/*.py",
+    # Glob expression recursively matching *ALL* Python submodules in this
+    # project's package directory.
+    "betse/**/*.py",
 
     # Relative dirname of this project's data subdirectory (i.e., unimportable
     # subdirectory bundled with this project containing *ONLY* Python-agnostic
     # media files).
     "betse/data/",
+]
+
+# PEP-noncompliant section declaring Hatch-specific build settings when
+# building source distributions (e.g., tarballs).
+[tool.hatch.build.targets.sdist]
+
+# Whitelist of one or more Bash-style glob expressions matching the relative
+# pathnames of all paths to be included in source distributions (e.g., tarballs)
+# but *NOT* binary distributions (e.g., wheels) created by Hatch.
+#
+# Note that:
+# * This setting is the Hatch-specific equivalent of the setuptools-specific
+#   "MANIFEST.in" file, which serves a similar (albeit non-standard, poorly
+#   documented, and obfuscatory) purpose in the setuptools community.
+# * Hatch *ALWAYS* implicitly includes at least these files in source
+#   distributions:
+#   * ".gitignore".
+#   * "AUTHORS".
+#   * "LICENSE".
+#   * "README*".
+#   * "pyproject.toml".
+#
+# Nonetheless, explicit is better than implicit. Trusting all future versions of
+# Hatch to preserve this contract is a bridge too far for us. Ergo, we
+# explicitly match *ALL* paths to be included in source distributions here.
+include = [
+    # Relative basenames of all requisite top-level installation-time files.
+    "LICENSE",
+    "README.rst",
+    "conftest.py",
+    "pyproject.toml",
+    "pytest",
+    "pytest.ini",
+    "tox",
+    "tox.ini",
+
+    # Relative dirnames of all requisite top-level installation-time
+    # directories, including:
+    # * All files documenting this project.
+    "doc/",
+
+    # Glob expression recursively matching *ALL* Python submodules in this
+    # project's test suite.
+    "betse_test/**/*.py",
 ]
