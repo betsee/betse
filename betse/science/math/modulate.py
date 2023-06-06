@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from scipy import interpolate
 from betse.lib.pil import pilnumpy
 from betse.lib.pil.pilnumpy import ImageModeType
-from betse.util.path import pathnames
-from scipy.ndimage import gaussian_filter
 from betse.science.math import finitediff as fd
+from betse.util.math.mathinterp import interp2d_linear
+from betse.util.path import pathnames
+# from scipy.ndimage import gaussian_filter
 
 # ....................{ IMPORTS                            }....................
 def periodic(pc,cells,p):
@@ -299,7 +300,8 @@ def gradient_bitmap(pc, cells, p, bitmap_filename = None):
     xa = np.linspace(xmi, xma, a1_F.shape[1])
     ya = np.linspace(ymi, yma, a1_F.shape[0])
 
-    spline_F = interpolate.interp2d(xa, ya, a1_F, kind='linear', fill_value=0.0)
+    spline_F = interp2d_linear(xa, ya, a1_F)
+    # spline_F = interpolate.interp2d(xa, ya, a1_F, kind='linear', fill_value=0.0)
     fe = spline_F(xx, yy)
 
     fe = fd.integrator(fe, sharp=0.5) # smooth a little to avoid bizarre visual effects

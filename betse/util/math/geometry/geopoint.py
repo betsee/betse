@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,13 +7,13 @@
 Primitive two-dimensional point functionality.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseMathLineException, BetseMathPointException
 from betse.util.type.iterable import iterables
 from betse.util.type.types import (
     type_check, BoolTypes, NumericTypes, NumpyArrayType, SequenceTypes)
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS                         }....................
 @type_check
 def die_unless_point(*points: SequenceTypes) -> None:
     '''
@@ -57,7 +57,7 @@ def die_unless_point(*points: SequenceTypes) -> None:
                         '(i.e., one or more coordinates '
                         'not numbers): {!r}'.format(point))
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 @type_check
 def is_point(*points: SequenceTypes) -> bool:
     '''
@@ -277,7 +277,7 @@ def is_left_of_vector(
             (subject_point[0] - vector_tail_point[0])
     )
 
-# ....................{ INTERSECTERS                      }....................
+# ....................{ INTERSECTERS                       }....................
 @type_check
 def intersect_lines(
     line1_point1: SequenceTypes,

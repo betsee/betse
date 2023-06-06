@@ -273,7 +273,7 @@ doc = ["sphinx"]
 
 # List of all third-party Python packages required to build (i.e., install) this
 # project from both codebase tarballs and binary wheels.
-requires = ["hatchling>=1.14.0"]
+requires = ["hatchling >=1.14.0"]
 
 # Fully-qualified name of the Python submodule of a third-party Python package
 # listed above to be imported at runtime by third-party Python package managers

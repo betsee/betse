@@ -13,10 +13,12 @@ from betse.exceptions import BetseImageException
 from betse.lib.pil import pilnumpy
 from betse.lib.pil.pilnumpy import ImageModeType
 from betse.science.tissue.picker.tispickcls import TissuePickerABC
+from betse.util.math.mathinterp import interp2d_linear
 from betse.util.path import files, pathnames
 from betse.util.type.types import type_check, NumericSimpleTypes, SequenceTypes
 from numpy import ndarray
-from scipy import interpolate
+# from scipy import interpolate
+from scipy.interpolate import RectBivariateSpline
 from scipy.spatial import ConvexHull
 
 # ....................{ CLASSES ~ utility                  }....................
@@ -137,11 +139,22 @@ class TissuePickerImageMask(object):
         xpts = np.linspace(x_min, x_max, self.msize)
         ypts = np.linspace(y_min, y_max, self.msize)
 
+        #FIXME: This doesn't appear to be quite right. Either that, or our
+        #interp2d_linear() implementation isn't quite right. Gah!
+        # Unravel these vectors as required by the interp2d_linear() function.
+        xpts_2d_grid, ypts_2d_grid = np.meshgrid(xpts, ypts)
+        xpts_2d = xpts_2d_grid.ravel()
+        ypts_2d = ypts_2d_grid.ravel()
+        clipping_matrix_2d = self.clipping_matrix.ravel()
+
         # Create an interpolation function that returns zero if the query point
         # is outside the mask and 1 if the query point is in the mask.
-        self.clipping_function = interpolate.interp2d(
+        self.clipping_function = interp2d_linear(
             xpts, ypts, self.clipping_matrix)
-        self.clipping_function_fast = interpolate.RectBivariateSpline(
+            # xpts_2d, ypts_2d, clipping_matrix_2d)
+        # self.clipping_function = interpolate.interp2d(
+        #     xpts, ypts, self.clipping_matrix)
+        self.clipping_function_fast = RectBivariateSpline(
             xpts, ypts, self.clipping_matrix)
 
         # Store some additional information relating to bounding polygon of the

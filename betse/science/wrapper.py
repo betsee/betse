@@ -12,22 +12,22 @@ import os
 import numpy as np
 from beartype import beartype
 from beartype.typing import Optional
-from betse.science.simrunner import SimRunner
 from betse.science import filehandling as fh
-from betse.util.path import files
-from betse.science.phase.phasecls import SimPhase
 from betse.science.enum.enumphase import SimPhaseKind
 from betse.science.parameters import Parameters as p
-from betse.util.io.log import logs
-from betse.util.io.log.conf import logconf
-from betse.util.io.log.logenum import LogLevel
-from scipy import interpolate
+from betse.science.phase.phasecls import SimPhase
+from betse.science.simrunner import SimRunner
+from betse.lib import libs
 from betse.lib.numpy.npcsv import write_csv
 from betse.lib.pil import pilnumpy
 from betse.lib.pil.pilnumpy import ImageModeType
-from betse.science.math import finitediff as fd
-from betse.lib import libs
 from betse.science.chemistry.netplot import plot_master_network
+from betse.science.math import finitediff as fd
+from betse.util.io.log import logs
+from betse.util.io.log.conf import logconf
+from betse.util.io.log.logenum import LogLevel
+from betse.util.math.mathinterp import interp2d_linear
+from betse.util.path import files
 
 # ....................{ CLASSES                            }....................
 class BetseWrapper(object):
@@ -575,8 +575,7 @@ class BetseWrapper(object):
         '''
         Interpolate a greyscale bitmap (supplied in the bitmap_filename string)
         to the cell cluster. The resulting interpolation is an array of floats,
-        where
-        0.0 is black and 255.0 is white.
+        where 0.0 is black and 255.0 is white.
 
         Parameters
         -------------
@@ -627,7 +626,8 @@ class BetseWrapper(object):
         xa = np.linspace(xmi, xma, a1.shape[1])
         ya = np.linspace(ymi, yma, a1.shape[0])
 
-        spline_F = interpolate.interp2d(xa, ya, a1, kind='linear', fill_value=0.0)
+        spline_F = interp2d_linear(xa, ya, a1)
+        # spline_F = interpolate.interp2d(xa, ya, a1, kind='linear', fill_value=0.0)
         fe = spline_F(xx, yy)
 
         if smooth:
@@ -636,6 +636,7 @@ class BetseWrapper(object):
         f = fe.ravel()[xmap]
 
         return f
+
     # ..................{ PRIVATE                            }..................
     @beartype
     def _set_logging(self, verbose: bool = False) -> None:
