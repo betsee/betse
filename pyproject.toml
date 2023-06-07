@@ -29,6 +29,9 @@
 #     # Validate this file. *ALWAYS* run this command after modifying this file.
 #     $ hatch project metadata | less
 #
+#     # Build both a source (tarball) *AND* binary distribution (wheel).
+#     $ hatch build -t sdist -t wheel
+#
 # --------------------( SEE ALSO                           )--------------------
 # * https://snarky.ca/clarifying-pep-518
 #   "Clarifying PEP 518 (a.k.a. pyproject.toml)", a human-readable article from
@@ -299,17 +302,18 @@ path = "betse/metadata.py"
 # PEP-noncompliant section declaring Hatch-specific build settings.
 [tool.hatch.build]
 
-#FIXME: Insufficient. Although this suffices for binary distributions, we should
-#also define an additional "include = " setting in a new
-#"[tool.hatch.build.targets.sdist]" section, please.
+# PEP-noncompliant section declaring Hatch-specific build settings when
+# building binary distributions (e.g., wheels).
+[tool.hatch.build.targets.wheel]
 
 # Whitelist of one or more Bash-style glob expressions matching the relative
-# pathnames of all paths to be included in source distributions (e.g., tarballs)
-# and binary distributions (e.g., wheels) created by Hatch for this project.
-# This suffices for binary but *NOT* source distributions, which typically
-# include additional files (e.g., documentation, licenses, metadata) *NOT*
-# suitable for inclusion in binary distributions.
+# pathnames of all paths to be included in binary distributions (e.g., wheels)
+# but *NOT* source distributions (e.g., tarballs) created by Hatch.
 include = [
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # CAUTION: Synchronize with glob expressions for source distributions below.
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     # Glob expression recursively matching *ALL* Python submodules in this
     # project's package directory.
     "betse/**/*.py",
@@ -345,6 +349,7 @@ include = [
 # explicitly match *ALL* paths to be included in source distributions here.
 include = [
     # Relative basenames of all requisite top-level installation-time files.
+    ".gitignore",
     "LICENSE",
     "README.rst",
     "conftest.py",
@@ -362,4 +367,17 @@ include = [
     # Glob expression recursively matching *ALL* Python submodules in this
     # project's test suite.
     "betse_test/**/*.py",
+
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # CAUTION: Synchronize with glob expressions for binary distributions above.
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    # Glob expression recursively matching *ALL* Python submodules in this
+    # project's package directory.
+    "betse/**/*.py",
+
+    # Relative dirname of this project's data subdirectory (i.e., unimportable
+    # subdirectory bundled with this project containing *ONLY* Python-agnostic
+    # media files).
+    "betse/data/",
 ]
