@@ -316,12 +316,12 @@ include = [
 
     # Glob expression recursively matching *ALL* Python submodules in this
     # project's package directory.
-    "betse/**/*.py",
+    "/betse/**/*.py",
 
     # Relative dirname of this project's data subdirectory (i.e., unimportable
     # subdirectory bundled with this project containing *ONLY* Python-agnostic
     # media files).
-    "betse/data/",
+    "/betse/data/",
 ]
 
 # PEP-noncompliant section declaring Hatch-specific build settings when
@@ -348,25 +348,27 @@ include = [
 # Hatch to preserve this contract is a bridge too far for us. Ergo, we
 # explicitly match *ALL* paths to be included in source distributions here.
 include = [
-    # Relative basenames of all requisite top-level installation-time files.
+    # Relative basenames of all requisite files residing in *ANY* directory.
     ".gitignore",
-    "LICENSE",
-    "README.rst",
-    "conftest.py",
-    "pyproject.toml",
-    "pytest",
-    "pytest.ini",
-    "tox",
-    "tox.ini",
+
+    # Relative basenames of all requisite top-level installation-time files.
+    "/LICENSE",
+    "/README.rst",
+    "/conftest.py",
+    "/pyproject.toml",
+    "/pytest",
+    "/pytest.ini",
+    "/tox",
+    "/tox.ini",
 
     # Relative dirnames of all requisite top-level installation-time
     # directories, including:
     # * All files documenting this project.
-    "doc/",
+    "/doc/",
 
     # Glob expression recursively matching *ALL* Python submodules in this
     # project's test suite.
-    "betse_test/**/*.py",
+    "/betse_test/**/*.py",
 
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # CAUTION: Synchronize with glob expressions for binary distributions above.
@@ -374,10 +376,10 @@ include = [
 
     # Glob expression recursively matching *ALL* Python submodules in this
     # project's package directory.
-    "betse/**/*.py",
+    "/betse/**/*.py",
 
     # Relative dirname of this project's data subdirectory (i.e., unimportable
     # subdirectory bundled with this project containing *ONLY* Python-agnostic
     # media files).
-    "betse/data/",
+    "/betse/data/",
 ]
