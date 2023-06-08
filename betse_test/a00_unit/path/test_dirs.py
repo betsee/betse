@@ -113,8 +113,8 @@ def test_packages_init() -> None:
     Unit test the :func:`betse.util.path.dirs.recurse_subdirnames` function by
     validating that all **non-data subdirectories** (i.e., subdirectories
     containing only pure-Python) of *all* top-level package directories of this
-    project (i.e., :mod:`betse`, :mod:`betse_setup`, :mod:`betse_test`) contain
-    the mandatory ``__init__.py`` special file.
+    project (i.e., :mod:`betse` and :mod:`betse_test`) contain the mandatory
+    ``__init__.py`` special file.
 
     Caveats
     ----------
@@ -142,7 +142,7 @@ def test_packages_init() -> None:
     '''
 
     # Defer heavyweight imports.
-    import betse, betse_setup, betse_test
+    import betse, betse_test
     from betse.util.app.meta import appmetaone
     from betse.util.io.log import logs
     from betse.util.path import dirs, files, pathnames
@@ -150,7 +150,7 @@ def test_packages_init() -> None:
     from betse.util.type.text.string import strs
 
     # Tuple of all top-level packages.
-    PACKAGES = (betse, betse_setup, betse_test)
+    PACKAGES = (betse, betse_test)
 
     # Tuple of the absolute dirnames of all top-level package directories.
     PACKAGE_DIRNAMES = (pymodule.get_dirname(package) for package in PACKAGES)
