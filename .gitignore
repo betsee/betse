@@ -73,9 +73,6 @@ __pycache__/
 # Ignore all BETSE-specific output files.
 *.btse
 
-# Ignore all data interchange files.
-*.csv
-
 # Ignore all audio and video files.
 *.mp4
 
