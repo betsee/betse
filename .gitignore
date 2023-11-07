@@ -76,6 +76,9 @@ __pycache__/
 # Ignore all audio and video files.
 *.mp4
 
+# Ignore all macOS-specific cache files.
+.DS_Store
+
 # Ignore all Python-specific cache files.
 *.py[cod]
 
