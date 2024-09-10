@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                           )--------------------
-# Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -143,18 +143,17 @@ RUNTIME_MANDATORY = {
     'setuptools': '>= ' + SETUPTOOLS_VERSION_MIN,
 
     # Scientific stack. Dismantled, this is:
-    # * Numpy 1.13.0 first introduced the optional "axis" keyword argument to
-    #   the numpy.unique() function, which this codebase commonly passes.
+    # * Numpy 2.0.0 introduced wide-sweeping changes, including permanent
+    #   removal of only previously deprecated public attributes and APIs.
     # * Pillow 5.3.0 first introduced the standard "pillow.__version__"
     #   attribute, which this codebase now expects to exist.
-    # * Matplotlib 3.6.0, which first deprecated various APIs and then
-    #   introduced newer replacements for those APIs (e.g., the new
-    #   "matplotlib.colormaps" subpackage).
-    'Numpy':      '>= 1.22.0',
+    # * Matplotlib 3.9.0 introduced wide-sweeping changes, including permanent
+    #   removal of only previously deprecated public attributes and APIs.
+    'Numpy':      '>= 2.0.0',
     'Pillow':     '>= 5.3.0',
     'SciPy':      '>= 0.12.0',
     'dill':       '>= 0.2.3',
-    'matplotlib': '>= 3.6.0',
+    'matplotlib': '>= 3.9.0',
 
     # IO stack. Dismantled, this is:
     # * ruamel.yaml >= 0.15.24, which resolves a long-standing parser issue

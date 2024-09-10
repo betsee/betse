@@ -1,11 +1,44 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
 High-level support facilities for Numpy, a mandatory runtime dependency.
 '''
+
+# ....................{ TODO                               }....................
+#FIXME: Tragically, most of this submodule no longer behaves as expected. NumPy
+#2.0.0 fundamentally broke backward compatibility by removing most of the
+#"numpy.__config__" attributes as well as the entire "numpy.distutils"
+#subpackage required to reliably introspect NumPy parallelization.
+#
+#Note that, technically, there *DOES* exist a new "numpy.__config__.CONFIG"
+#dictionary providing these interesting key-value pairs:
+#    >>> print(numpy.__config__.CONFIG)
+#    ['Build Dependencies': ['blas': ['detection method': 'pkgconfig',
+#                                     'found': True,
+#                                     'include directory': '/usr/include',
+#                                     'lib directory': '/usr/lib64',
+#                                     'name': 'cblas',
+#                                     'openblas configuration': 'unknown',
+#                                     'pc file directory': '/usr/lib64/pkgconfig',
+#                                     'version': '3.12.0'],
+#                            'lapack': ['detection method': 'pkgconfig',
+#                                       'found': True,
+#                                       'include directory': '/usr/include',
+#                                       'lib directory': '/usr/lib64',
+#                                       'name': 'lapack',
+#                                       'openblas configuration': 'unknown',
+#                                       'pc file directory': '/usr/lib64/pkgconfig',
+#                                       'version': '3.12.0']],
+#     ... ]
+#
+#Despite both of the above "openblas configuration" keys having a value of
+#"unknown", however, this local Gentoo machine does in fact leverage OpenBLAS as
+#its BLAS and LAPACK implementations. Ergo, even inspecting those keys fails to
+#sufficiently detect NumPy parallelization. Since NumPy parallelization can no
+#longer be reliably detected, we no longer attempt to do so. It is what it is.
 
 #FIXME: Add detection support for NVBLAS, the Nvidia GPU-specific equivalent of
 #AMD's ACML. Naturally, further research is required.
@@ -194,14 +227,16 @@ def init() -> None:
     # Initialize all uninitialized global variables of this submodule.
     _init_globals()
 
-    # If Numpy linked against an unoptimized BLAS, log a non-fatal warning.
-    if not is_blas_optimized():
-        log_warning(
-            'Numpy unoptimized; scaling down to single-core operation. '
-            'Consider installing an optimized multithreaded '
-            'CBLAS implementation (e.g., OpenBLAS, ATLAS, ACML, MKL) and '
-            'reinstalling Numpy to use this implementation.'
-        )
+    #FIXME: Permanently disabled, as NumPy parallelization can no longer be
+    #reliably detected. See "FIXME:" comment above for further details. *sigh*
+    # # If Numpy linked against an unoptimized BLAS, log a non-fatal warning.
+    # if not is_blas_optimized():
+    #     log_warning(
+    #         'Numpy unoptimized; scaling down to single-core operation. '
+    #         'Consider installing an optimized multithreaded '
+    #         'CBLAS implementation (e.g., OpenBLAS, ATLAS, ACML, MKL) and '
+    #         'reinstalling Numpy to use this implementation.'
+    #     )
 
 
 def _init_globals() -> None:
@@ -758,7 +793,10 @@ def get_blas_metadata() -> OrderedArgsDict:
     from betse.util.type.text.string import strs
 
     # This dictionary.
-    metadata = OrderedArgsDict('optimized', is_blas_optimized())
+    #FIXME: Permanently disabled, as NumPy parallelization can no longer be
+    #reliably detected. See "FIXME:" comment above for further details. *sigh*
+    # metadata = OrderedArgsDict('optimized', is_blas_optimized())
+    metadata = OrderedArgsDict()
 
     # NumPy BLAS metadata if found *OR* "None" otherwise.
     blas_opt_info = _get_blas_opt_info_or_none()
@@ -807,7 +845,7 @@ def _get_blas_opt_info_or_none() -> Optional[Dict[str, object]]:
     identifying metadata in a hopefully portable manner.
 
     Returns
-    ----------
+    -------
     Optional[Dict[str, object]]
         Either:
 
@@ -830,22 +868,7 @@ def _get_blas_opt_info_or_none() -> Optional[Dict[str, object]]:
         #
         # Attempt to import the "numpy.__config__" submodule first defined by
         # NumPy >= 1.23.0.
-        try:
-            from numpy import __config__ as numpy_config
-        # If doing so fails, this *MUST* be an older version of NumPy that
-        # instead defines the deprecated "numpy.distutils.__config__" submodule.
-        # In this case, attempt to import that instead.
-        #
-        # Note that importing this submodule under NumPy >= 1.23.0 emits a
-        # deprecation warning resembling:
-        #     `numpy.distutils` is deprecated since NumPy 1.23.0, as a result
-        #     of the deprecation of `distutils` itself. It will be removed for
-        #     Python >= 3.12. For older Python versions it will remain present.
-        #     It is recommended to use `setuptools < 60.0` for those Python versions.
-        #     For more details, see:
-        #       https://numpy.org/devdocs/reference/distutils_status_migration.html
-        except ImportError:
-            from numpy.distutils import __config__ as numpy_config
+        from numpy import __config__ as numpy_config
         # If doing so fails, this version of NumPy is probably broken in various
         # ways. While we *COULD* (and possibly *SHOULD*) allow this
         # "ImportError" to unwind the call stack and terminate the active Python
@@ -855,31 +878,39 @@ def _get_blas_opt_info_or_none() -> Optional[Dict[str, object]]:
         # is already fragile enough. There's no upside to breaking previously
         # working behaviour, especially when we don't particularly need to.
 
-        # BLAS metadata if NumPy linked against a 32-bit BLAS shared library
-        # *OR* "None" otherwise.
-        blas_opt_info = getattr(numpy_config, 'blas_opt_info', None)
+        # NumPy install-time configuration metadata if available *OR* "None".
+        # Note that this metadata should *ALWAYS* be available.
+        numpy_metadata = getattr(numpy_config, 'CONFIG', None)
 
-        # If this metadata is defined, return this metadata as is.
-        if blas_opt_info is not None:
-            return blas_opt_info
-        # Else, this metadata is undefined.
+        # NumPy install-time BLAS configuration metadata if available *OR*
+        # "None". Note that this metadata should *ALWAYS* be available.
+        numpy_metadata_blas = None
 
-        # BLAS metadata if NumPy linked against a 64-bit BLAS shared library
-        # *OR* "None" otherwise.
-        blas_opt_info = getattr(numpy_config, 'blas_ilp64_opt_info', None)
+        # If this metadata is defined...
+        if numpy_metadata is not None:
+            # NumPy install-time linkage metadata if available *OR* "None". Note
+            # that this metadata should *ALWAYS* be available.
+            numpy_metadata_link = numpy_metadata.get('Build Dependencies')
 
-        # If this metadata is defined, return this metadata as is.
-        if blas_opt_info is not None:
-            return blas_opt_info
+            # If this metadata is defined...
+            if numpy_metadata_link is not None:
+                # NumPy install-time BLAS linkage metadata if available *OR*
+                # "None". Note that this metadata should *ALWAYS* be available.
+                numpy_metadata_blas = numpy_metadata_link.get('blas')
+
+                # If this metadata is defined, return this metadata as is.
+                if numpy_metadata_blas is not None:
+                    return numpy_metadata_blas
+                # Else, this metadata is undefined.
+            # Else, this metadata is undefined.
         # Else, this metadata is undefined.
 
         # Log a non-fatal warning.
         log_warning(
             (
                 'NumPy %s installation misconfigured '
-                '(i.e., "numpy.__config__.blas_opt_info" and '
-                '"numpy.__config__.blas_ilp64_opt_info" '
-                'dictionaries not found).'
+                '(i.e., "numpy.__config__.CONFIG[\'blas\']" '
+                'subdictionary not found).'
             ),
             VERSION,
         )
@@ -887,8 +918,8 @@ def _get_blas_opt_info_or_none() -> Optional[Dict[str, object]]:
     except ImportError:
         log_warning(
             (
-                'NumPy %s unsupported (i.e., "numpy.__config__" and '
-                '"numpy.distutils.__config__" submodules not found).'
+                'NumPy %s unsupported '
+                '(i.e., "numpy.__config__" submodule not found).'
             ),
             VERSION,
         )

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
-# Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
 High-level support facilities for matplotlib, a mandatory runtime dependency.
 
 Backends
-----------
+--------
 matplotlib supports numerous **interactive backends** (i.e., bindings to
 external GUI-specific widget toolkits), only one of which will be imported by
 matplotlib at runtime. If the caller specifies no such backend, a default
@@ -68,7 +68,10 @@ from betse.util.io.error import errexception
 from betse.util.io.log import logs
 from betse.util.io.log.conf import logconf
 from betse.util.io.log.logenum import LogLevel
-from betse.util.os import displays, kernels, oses
+from betse.util.os import (
+    displays,
+    kernels,
+)
 from betse.util.os.brand import macos
 from betse.util.py.module import pymodname
 from betse.util.type.iterable import itersort
@@ -841,16 +844,16 @@ class MplConfig(object):
         '''
 
         # Importing this submodule may have side effects and is thus deferred.
-        #
-        # "all_backends" is the canonical sequence of all publicly supported
-        # backends, defined as the concatenation of these subsidiary sequences:
-        #
+        from matplotlib.backends import backend_registry
+
+        # List of all publicly supported backends, defined as the concatenation
+        # of these subsidiary lists:
         # * "interactive_bk", listing all supported interative backends.
         # * "non_interactive_bk", listing all supported non-interative
         #   backends.
         #
-        # Note that this sequence excludes numerous privately supported
-        # backends residing in the "matplotlib.backends" subpackage (e.g.,
+        # Note that this list excludes numerous privately supported backends
+        # residing in the "matplotlib.backends" subpackage (e.g.,
         # "matplotlib.backends.backend_webagg_core"). Obsolete versions of
         # Matplotlib permitted callers to enable these backends; ergo, this
         # property was previously implemented to dynamically introspect the
@@ -858,12 +861,12 @@ class MplConfig(object):
         # of all "backend_"-prefixed submodules residing in this subpackage.
         # Modern versions of Matplotlib prohibit callers from enabling these
         # backends; ergo, this property now defers to this sequence.
-        from matplotlib.rcsetup import all_backends
+        backend_names = backend_registry.list_builtin()
 
         # Return a new sequence containing all items from "all_backends"
         # lowercased and lexicographically sorted.
         return itersort.sort_ascending(
-            backend_name.lower() for backend_name in all_backends)
+            backend_name.lower() for backend_name in backend_names)
 
     # ..................{ PROPERTIES ~ backend : names: pri }..................
     @property_cached
