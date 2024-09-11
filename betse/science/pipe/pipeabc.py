@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
-High-level **simulation pipeline** (i.e., container of related, albeit
-isolated, simulation actions to be run iteratively) functionality.
+High-level **simulation pipeline** (i.e., container of related, albeit isolated,
+simulation actions to be run iteratively) functionality.
 '''
 
 #FIXME: Metadata duplication between pipeline and pipeline runner classes has
@@ -41,8 +41,8 @@ isolated, simulation actions to be run iteratively) functionality.
 #
 #Voila! Frankly trivial, but fairly involved. A real-world dichotomy in action.
 
-# ....................{ IMPORTS                           }....................
-from abc import ABCMeta
+# ....................{ IMPORTS                            }....................
+from abc import ABCMeta, abstractproperty
 from betse.exceptions import BetseSimPipeException
 from betse.science.config.export.confexpabc import SimConfExportABC
 from betse.science.phase.phasecls import SimPhase
@@ -62,7 +62,7 @@ from betse.util.type.types import (
     SequenceTypes,
 )
 
-# ....................{ METACLASSES                       }....................
+# ....................{ METACLASSES                        }....................
 class SimPipeABCMeta(ABCMeta):
     '''
     Metaclass of the abstract :class:`SimPipeABC` base class and all concrete
@@ -83,7 +83,7 @@ class SimPipeABCMeta(ABCMeta):
         StackOverflow answer mildly inspiring this class.
     '''
 
-    # ..................{ CONSTRUCTORS                      }..................
+    # ..................{ CONSTRUCTORS                       }..................
     def __new__(
         metacls: ClassType,
         class_name: str,
@@ -109,7 +109,8 @@ class SimPipeABCMeta(ABCMeta):
             # pipeline's runner prefix.
             runner_metadata.kind = strs.remove_prefix(
                 text=runner_method_name,
-                prefix=subcls._RUNNER_METHOD_NAME_PREFIX)
+                prefix=subcls._RUNNER_METHOD_NAME_PREFIX,
+            )
 
             # Set this runner's human-readable type to that of this pipeline.
             runner_metadata.noun_singular_lowercase = subcls._NOUN_SINGULAR
@@ -120,7 +121,7 @@ class SimPipeABCMeta(ABCMeta):
         # Return this sanitized "SimPipeABC" subclass.
         return subcls
 
-# ....................{ SUPERCLASSES                      }....................
+# ....................{ SUPERCLASSES                       }....................
 #FIXME: Revise docstring to account for the recent large-scale class redesign.
 class SimPipeABC(object, metaclass=SimPipeABCMeta):
     '''
@@ -174,7 +175,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         implemented by this subclass (e.g., ``animations``, ``plots``).
     '''
 
-    # ..................{ SUBCLASS ~ properties             }..................
+    # ..................{ SUBCLASS ~ properties              }..................
     # Subclasses are required to implement the following abstract properties.
 
     @abstractclassproperty_readonly
@@ -185,9 +186,14 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         but *not* necessarily lowercase.
         '''
 
-        pass
+        # Return a nonsensical placeholder constant to satisfy @beartype. *sigh*
+        return '"SimPipeABC._NOUN_SINGULAR" undefined'
+        # raise NotImplementedError(
+        #     f'Simulation pipe subclass {repr(cls)} '
+        #     f'abstract property "_NOUN_SINGULAR" unimplemented.'
+        # )
 
-    # ..................{ CLASS ~ properties : concrete     }..................
+    # ..................{ CLASS ~ properties : concrete      }..................
     @classproperty_readonly
     def _NOUN_PLURAL(cls) -> str:
         '''
@@ -224,7 +230,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
 
         return  'run_'
 
-    # ..................{ CLASS ~ iterators                 }..................
+    # ..................{ CLASS ~ iterators                  }..................
     @classmethod
     def iter_runners_method(cls) -> GeneratorType:
         '''
@@ -249,7 +255,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
         yield from objiter.iter_methods_prefixed(
             obj=cls, prefix=cls._RUNNER_METHOD_NAME_PREFIX)
 
-    # ..................{ CLASS ~ iterators : metadata      }..................
+    # ..................{ CLASS ~ iterators : metadata       }..................
     @classmethod
     def iter_runners_metadata(cls) -> GeneratorType:
         '''
@@ -293,7 +299,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
             for runner_metadata in cls.iter_runners_metadata()
         )
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self) -> None:
         '''
@@ -324,7 +330,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
 
         pass
 
-    # ..................{ SUBCLASS ~ methods                }..................
+    # ..................{ SUBCLASS ~ methods                 }..................
     # Subclasses are required to implement the following abstract methods.
 
     @abstractmethod
@@ -355,7 +361,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
 
         pass
 
-    # ..................{ PROPERTIES                        }..................
+    # ..................{ PROPERTIES                         }..................
     @property
     def name(self) -> str:
         '''
@@ -367,7 +373,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
 
         return '{} pipeline'.format(self._NOUN_SINGULAR)
 
-    # ..................{ PROPERTIES ~ private              }..................
+    # ..................{ PROPERTIES ~ private               }..................
     @type_check
     def _is_enabled(self, phase: SimPhase) -> bool:
         '''
@@ -392,7 +398,7 @@ class SimPipeABC(object, metaclass=SimPipeABCMeta):
 
         return True
 
-    # ..................{ ITERATORS                         }..................
+    # ..................{ ITERATORS                          }..................
     @type_check
     def iter_runners_enabled(self, phase: SimPhase) -> GeneratorType:
         '''

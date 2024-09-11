@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,16 +7,16 @@
 Top-level abstract base class of all command line interface (CLI) subclasses.
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
 # top-level of this module may import *ONLY* from submodules guaranteed to:
 # * Exist, including standard Python and application modules.
 # * Never raise exceptions on importation (e.g., due to module-level logic).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 import sys
 from abc import ABCMeta, abstractmethod
+from beartype.typing import Optional
 from betse.util.io.log import logs
 from betse.util.io.log.conf import logconf
 from betse.util.py.pyprofile import profile_callable, ProfileType
@@ -30,7 +30,7 @@ from betse.util.type.types import (
     SequenceOrNoneTypes,
 )
 
-# ....................{ SUPERCLASS                        }....................
+# ....................{ SUPERCLASS                         }....................
 class CLIABC(object, metaclass=ABCMeta):
     '''
     Top-level abstract base class of all command line interface (CLI)
@@ -98,7 +98,7 @@ class CLIABC(object, metaclass=ABCMeta):
         ``none``.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     def __init__(self):
 
         # Avoid circular import dependencies.
@@ -118,7 +118,7 @@ class CLIABC(object, metaclass=ABCMeta):
         self._profile_filename = None
         self._profile_type = None
 
-    # ..................{ RUNNERS                           }..................
+    # ..................{ RUNNERS                            }..................
     # This method is effectively the main callable of this entire application.
     # This method is thus defined here rather than below, mostly for emphasis.
     @type_check
@@ -209,7 +209,7 @@ class CLIABC(object, metaclass=ABCMeta):
         # Report this application's exit status to the parent process.
         return self._exit_status
 
-    # ..................{ SUBCLASS ~ mandatory              }..................
+    # ..................{ SUBCLASS ~ mandatory               }..................
     # The following methods *MUST* be implemented by subclasses.
 
     @abstractmethod
@@ -234,7 +234,7 @@ class CLIABC(object, metaclass=ABCMeta):
 
         pass
 
-    # ..................{ SUBCLASS ~ mandatory : property   }..................
+    # ..................{ SUBCLASS ~ mandatory : property    }..................
     # The following properties *MUST* be implemented by subclasses.
 
     @abstractproperty
@@ -247,7 +247,7 @@ class CLIABC(object, metaclass=ABCMeta):
 
         pass
 
-    # ..................{ SUBCLASS ~ optional               }..................
+    # ..................{ SUBCLASS ~ optional                }..................
     # The following methods may but need *NOT* be implemented by subclasses.
 
     def _config_arg_parsing(self) -> None:
@@ -259,7 +259,7 @@ class CLIABC(object, metaclass=ABCMeta):
 
         pass
 
-    # ..................{ PROPERTIES : arg parser : kwargs  }..................
+    # ..................{ PROPERTIES : arg parser : kwargs   }..................
     @property
     def arg_parser_kwargs(self) -> MappingType:
         '''
@@ -325,7 +325,7 @@ class CLIABC(object, metaclass=ABCMeta):
         # Return this dictionary.
         return arg_parser_top_kwargs
 
-    # ..................{ PROPERTIES ~ options              }..................
+    # ..................{ PROPERTIES ~ options               }..................
     @property
     def _options_top(self) -> SequenceTypes:
         '''
@@ -471,19 +471,19 @@ class CLIABC(object, metaclass=ABCMeta):
 
 
     @property
-    def _matplotlib_backend_name_forced(self) -> str:
+    def _matplotlib_backend_name_forced(self) -> Optional[str]:
         '''
         Name of the default :mod:`matplotlib` backend to be initialized at
-        application startup *or* ``None`` if this CLI exposes the
+        application startup *or* :data:`None` if this CLI exposes the
         ``--matplotlib-backend`` option enabling end users to specify the name
         of any :mod:`matplotlib` backend.
 
-        Defaults to ``None``.
+        Defaults to :data:`None`.
         '''
 
         return None
 
-    # ..................{ EXPANDERS                         }..................
+    # ..................{ EXPANDERS                          }..................
     @type_check
     def expand_help(self, text: str, **kwargs) -> str:
         '''
@@ -512,7 +512,7 @@ class CLIABC(object, metaclass=ABCMeta):
             **kwargs
         ))
 
-    # ..................{ ARGS                              }..................
+    # ..................{ ARGS                               }..................
     def _parse_args(self) -> None:
         '''
         Parse all currently passed command-line arguments.
@@ -570,14 +570,14 @@ class CLIABC(object, metaclass=ABCMeta):
         for option in self._options_top:
             option.add(self._arg_parser_top)
 
-    # ..................{ OPTIONS                           }..................
+    # ..................{ OPTIONS                            }..................
     def _parse_options_top(self) -> None:
         '''
         Parse **top-level options** (i.e., options globally applicable to all
         subcommands previously declared by the :meth:`_options_top` property).
 
         Design
-        ----------
+        ------
         Subclasses requiring subclass-specific options are encouraged to
         override this method.
         '''
@@ -633,7 +633,7 @@ class CLIABC(object, metaclass=ABCMeta):
         self._profile_filename = self._args.profile_filename
         self._profile_type = ProfileType[self._args.profile_type.upper()]
 
-    # ..................{ DEPENDENCIES                      }..................
+    # ..................{ DEPENDENCIES                       }..................
     def _init_app_libs(self) -> None:
         '''
         (Re-)initialize all mandatory runtime dependencies of this application
@@ -672,7 +672,7 @@ class CLIABC(object, metaclass=ABCMeta):
         # (Re-)initialize all mandatory runtime dependencies.
         app_meta.init_libs(matplotlib_backend_name=matplotlib_backend_name)
 
-    # ..................{ LOGGERS                           }..................
+    # ..................{ LOGGERS                            }..................
     def _log_header(self) -> None:
         '''
         Display a human-readable synopsis of this application, typically by
@@ -732,7 +732,7 @@ class CLIABC(object, metaclass=ABCMeta):
         logs.log_debug(
             'Headless environment detected: %r', displays.is_headless())
 
-    # ..................{ EXCEPTIONS                        }..................
+    # ..................{ EXCEPTIONS                         }..................
     @type_check
     def _handle_exception(self, exception: Exception) -> None:
         '''

@@ -169,9 +169,9 @@ RUNTIME_MANDATORY = {
     'ruamel.yaml': '>= 0.15.24',
 
     # QA stack. Dismantled, this is:
-    # * beartype >= 0.10.0, which first defined the "beartype.typing"
-    #   compatibility layer widely used throughout this codebase.
-    'beartype': '>= 0.10.0',
+    # * beartype >= 0.18.0, the most recent @beartype stable release as of 2023.
+    #   In other words, if you are reading this, this should probably be bumped.
+    'beartype': '>= 0.18.0',
 
     # Dependencies indirectly required by this application but only optionally
     # required by dependencies directly required by this application. Since the

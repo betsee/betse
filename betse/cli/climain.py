@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,14 +7,13 @@
 Concrete subclasses defining this application's command line interface (CLI).
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
 # top-level of this module may import *ONLY* from submodules guaranteed to:
 # * Exist, including standard Python and application modules.
 # * Never raise exceptions on importation (e.g., due to module-level logic).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 from betse.cli import cliinfo
 from betse.util.cli.clicmd import (
     CLISubcommander,
@@ -30,7 +29,7 @@ from betse.util.path import files, pathnames
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import SequenceTypes
 
-# ....................{ SUBCLASS                          }....................
+# ....................{ SUBCLASS                           }....................
 class BetseCLI(CLISubcommandableABC):
     '''
     Command line interface (CLI) for this application.
@@ -43,7 +42,7 @@ class BetseCLI(CLISubcommandableABC):
         Defaults to ``False``.
     '''
 
-    # ..................{ SUPERCLASS ~ property : commands  }..................
+    # ..................{ SUPERCLASS ~ property : commands   }..................
     @property_cached
     def _subcommander_top(self) -> CLISubcommander:
 
@@ -252,7 +251,7 @@ from input files defined by this configuration.
 
             ))
 
-    # ..................{ SUPERCLASS ~ property : options   }..................
+    # ..................{ SUPERCLASS ~ property : options    }..................
     @property
     def _options_top(self) -> SequenceTypes:
 
@@ -283,13 +282,17 @@ from input files defined by this configuration.
         # Else, allow the displays_is_headless() function to implicitly detect
         # whether this interpreter is actually running headless.
 
-    # ..................{ SUPERCLASS ~ help                 }..................
+    # ..................{ SUPERCLASS ~ help                  }..................
     def _log_header(self) -> None:
 
         cliinfo.log_header()
 
-    # ..................{ PROPERTIES                        }..................
+    # ..................{ PROPERTIES                         }..................
+    #FIXME: For unknown reasons, caching this property currently induces
+    #*EXTREME* failure across the entire codebase. Let us quietly pretend this
+    #isn't happening, friends of BETSE. *sigh*
     @property_cached
+    # @property
     def _sim_runner(self) -> 'betse.science.simrunner.SimRunner':
         '''
         Simulation runner running simulation subcommands on the YAML-formatted
@@ -306,7 +309,7 @@ from input files defined by this configuration.
         # Create and return a simulation runner for this configuration.
         return SimRunner(p=p)
 
-    # ..................{ SUBCOMMANDS                       }..................
+    # ..................{ SUBCOMMANDS                        }..................
     def _do_info(self) -> None:
         '''
         Run the ``info`` subcommand.
@@ -314,7 +317,7 @@ from input files defined by this configuration.
 
         cliinfo.log_info()
 
-    # ..................{ SUBCOMMANDS ~ sim                 }..................
+    # ..................{ SUBCOMMANDS ~ sim                  }..................
     def _do_try(self) -> object:
         '''
         Run the ``try`` subcommand and return the result of doing so.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,16 +8,15 @@ Low-level **Numpy type conversion** (i.e., functions converting Numpy arrays to
 and from various types) facilities.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import numpy as np
 # from betse.util.io.log import logs
 from betse.util.type.iterable import sequences
 from betse.util.type.types import (
     type_check, ClassType, IterableTypes, NumpyArrayType,)
 
-# ....................{ GLOBALS                           }....................
+# ....................{ GLOBALS                            }....................
 DTYPE_UNSIGNED_TO_SIGNED = {
-    np.uint0:  np.int8,
     np.uint8:  np.int16,
     np.uint16: np.int32,
     np.uint32: np.int64,
@@ -29,12 +28,12 @@ data types are these unsigned types in the most space- and time-efficient
 manner.
 
 See Also
-----------
-:func:`to_signed`
+--------
+:func:`.to_signed`
     Further discussion.
 '''
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 def is_array(obj: object) -> bool:
     '''
     ``True`` only if the passed object is a Numpy array.
@@ -42,7 +41,7 @@ def is_array(obj: object) -> bool:
 
     return isinstance(obj, NumpyArrayType)
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 #FIXME: Shift elsewhere, as this function does no conversions and hence has no
 #commonality with the remainder of this submodule -- say, into a new
 #"betse.lib.numpy.npindex" submodule.
@@ -67,7 +66,7 @@ def get_subarray_indices(
         items also found in the subarray.
 
     See Also
-    ----------
+    --------
     https://stackoverflow.com/a/8251757/2809027
         StackOverflow answer strongly inspiring this implementation.
     '''
@@ -91,7 +90,7 @@ def get_subarray_indices(
     # Return a non-masked rather than masked array for generality.
     return superarray_subarray_mask_indices.data
 
-# ....................{ CONVERTERS ~ iterable             }....................
+# ....................{ CONVERTERS ~ iterable              }....................
 @type_check
 def from_iterable(iterable: IterableTypes) -> NumpyArrayType:
     '''
@@ -187,7 +186,7 @@ def to_iterable(array: NumpyArrayType, cls: ClassType) -> IterableTypes:
     # Else, return an iterable converted from this list.
     return cls(array_list)
 
-# ....................{ CONVERTERS ~ signed               }....................
+# ....................{ CONVERTERS ~ signed                }....................
 @type_check
 def to_signed(array: NumpyArrayType) -> NumpyArrayType:
     '''
@@ -196,8 +195,8 @@ def to_signed(array: NumpyArrayType) -> NumpyArrayType:
 
     If this array's data type is:
 
-    * Already signed (e.g., :attr:`np.int32`, :attr:`np.float64`), this array
-      is returned unmodified.
+    * Already signed (e.g., :attr:`np.int32`, :attr:`np.float64`), this array is
+      returned unmodified.
     * Unsigned (e.g., :attr:`np.uint8`), a new signed array preserving the
       contents of this array is returned.
 
@@ -226,7 +225,7 @@ def to_signed(array: NumpyArrayType) -> NumpyArrayType:
         Possibly unsigned Numpy array to be converted into a signed array.
 
     Returns
-    ----------
+    -------
     NumpyArrayType
         Signed Numpy array converted from this possibly unsigned array.
     '''

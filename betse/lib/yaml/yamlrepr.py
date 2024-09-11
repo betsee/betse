@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,16 +8,16 @@ Yet Another Markup Language (YAML) **representer** (i.e., callable serializing
 all objects of the same type into well-formatted YAML) functionality.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 # from betse.util.type.types import type_check  #, MappingOrSequenceTypes
 
-# ....................{ GLOBALS ~ private                 }....................
+# ....................{ GLOBALS ~ private                  }....................
 _TAG_NUMPY_NDARRAY = '!ndarray'
 '''
 YAML-formatted tag identifying each YAML sequence converted from a Numpy array.
 '''
 
-# ....................{ ADDERS                            }....................
+# ....................{ ADDERS                             }....................
 def add_representers(representer: object) -> None:
     '''
     Add all **custom representers** (i.e., callables serializing all objects of
@@ -74,13 +74,13 @@ def add_representers(representer: object) -> None:
     import numpy
 
     # Represent all core Numpy types.
-    representer.add_representer(numpy.ndarray,  _represent_numpy_ndarray)
-    representer.add_representer(numpy.bool_,    _represent_numpy_bool)
-    representer.add_representer(numpy.complex_, _represent_numpy_complex)
-    representer.add_representer(numpy.float_,   _represent_numpy_float)
-    representer.add_representer(numpy.int_,     _represent_numpy_int)
+    representer.add_representer(numpy.ndarray,    _represent_numpy_ndarray)
+    representer.add_representer(numpy.bool,       _represent_numpy_bool)
+    representer.add_representer(numpy.complex128, _represent_numpy_complex)
+    representer.add_representer(numpy.float64,    _represent_numpy_float)
+    representer.add_representer(numpy.int64,      _represent_numpy_int)
 
-# ....................{ REPRESENTERS                      }....................
+# ....................{ REPRESENTERS                       }....................
 def _represent_numpy_ndarray(dumper, ndarray: 'numpy.ndarray') -> str:
     '''
     Convert the passed Numpy array into a YAML-formatted string.
@@ -100,7 +100,7 @@ def _represent_numpy_ndarray(dumper, ndarray: 'numpy.ndarray') -> str:
         Numpy array to be converted into a YAML-formatted string.
 
     Returns
-    ----------
+    -------
     str
         YAML-formatted string representing this Numpy array.
     '''
@@ -115,7 +115,7 @@ def _represent_numpy_ndarray(dumper, ndarray: 'numpy.ndarray') -> str:
     return dumper.represent_mapping(_TAG_NUMPY_NDARRAY, array_params)
 
 
-def _represent_numpy_bool(dumper, npbool: 'numpy.bool_') -> str:
+def _represent_numpy_bool(dumper, npbool: 'numpy.bool') -> str:
     '''
     Convert the passed Numpy boolean into a YAML-formatted string.
 
@@ -126,11 +126,11 @@ def _represent_numpy_bool(dumper, npbool: 'numpy.bool_') -> str:
     ----------
     dumper: yaml.Dumper
         Object converting arbitrary Python objects to YAML-formatted strings.
-    npbool: numpy.ndarray
+    npbool: numpy.bool
         Numpy boolean to be converted into a YAML-formatted string.
 
     Returns
-    ----------
+    -------
     str
         YAML-formatted string representing this Numpy bool.
     '''
@@ -138,7 +138,7 @@ def _represent_numpy_bool(dumper, npbool: 'numpy.bool_') -> str:
     return dumper.represent_bool(bool(npbool))
 
 
-def _represent_numpy_complex(dumper, npcomplex: 'numpy.complex_') -> str:
+def _represent_numpy_complex(dumper, npcomplex: 'numpy.complex128') -> str:
     '''
     Convert the passed Numpy complex number into a YAML-formatted string.
 
@@ -149,11 +149,11 @@ def _represent_numpy_complex(dumper, npcomplex: 'numpy.complex_') -> str:
     ----------
     dumper: yaml.Dumper
         Object converting arbitrary Python objects to YAML-formatted strings.
-    npcomplex: numpy.ndarray
+    npcomplex: numpy.complex128
         Numpy complex number to be converted into a YAML-formatted string.
 
     Returns
-    ----------
+    -------
     str
         YAML-formatted string representing this Numpy complex number.
     '''
@@ -161,7 +161,7 @@ def _represent_numpy_complex(dumper, npcomplex: 'numpy.complex_') -> str:
     return dumper.represent_complex(complex(npcomplex))
 
 
-def _represent_numpy_float(dumper, npfloat: 'numpy.float_') -> str:
+def _represent_numpy_float(dumper, npfloat: 'numpy.float64') -> str:
     '''
     Convert the passed Numpy float into a YAML-formatted string.
 
@@ -172,11 +172,11 @@ def _represent_numpy_float(dumper, npfloat: 'numpy.float_') -> str:
     ----------
     dumper: yaml.Dumper
         Object converting arbitrary Python objects to YAML-formatted strings.
-    npfloat: numpy.ndarray
+    npfloat: numpy.float64
         Numpy float to be converted into a YAML-formatted string.
 
     Returns
-    ----------
+    -------
     str
         YAML-formatted string representing this Numpy float.
     '''
@@ -184,7 +184,7 @@ def _represent_numpy_float(dumper, npfloat: 'numpy.float_') -> str:
     return dumper.represent_float(float(npfloat))
 
 
-def _represent_numpy_int(dumper, npint: 'numpy.int_') -> str:
+def _represent_numpy_int(dumper, npint: 'numpy.int64') -> str:
     '''
     Convert the passed Numpy integer into a YAML-formatted string.
 
@@ -195,11 +195,11 @@ def _represent_numpy_int(dumper, npint: 'numpy.int_') -> str:
     ----------
     dumper: yaml.Dumper
         Object converting arbitrary Python objects to YAML-formatted strings.
-    npint: numpy.ndarray
+    npint: numpy.int64
         Numpy integer to be converted into a YAML-formatted string.
 
     Returns
-    ----------
+    -------
     str
         YAML-formatted string representing this Numpy integer.
     '''

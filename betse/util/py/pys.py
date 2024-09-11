@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,12 +7,12 @@
 High-level Python facilities pertaining to the active Python interpreter.
 
 Caveats
-----------
-Word size-specific functions (e.g., :func:`is_wordsize_64`) are generally
+-------
+Word size-specific functions (e.g., :func:`.is_wordsize_64`) are generally
 considered poor form. Call these functions *only* where necessary.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import platform, sys
 from betse import metadata
 from betse.exceptions import BetsePyException
@@ -21,7 +21,7 @@ from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import (
     type_check, MappingOrNoneTypes, SequenceTypes)
 
-# ....................{ INITIALIZERS                      }....................
+# ....................{ INITIALIZERS                       }....................
 def init() -> None:
     '''
     Validate the active Python interpreter.
@@ -48,7 +48,7 @@ def init() -> None:
             'Consider running {name} only under a '
             '64-bit Python interpreter.'.format(name=metadata.NAME))
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 @func_cached
 def is_conda() -> bool:
     '''
@@ -92,7 +92,7 @@ def is_conda() -> bool:
     # Return true only if this file exists.
     return files.is_file(conda_history_filename)
 
-# ....................{ TESTERS ~ wordsize                }....................
+# ....................{ TESTERS ~ wordsize                 }....................
 @func_cached
 def is_wordsize_32() -> bool:
     '''
@@ -126,7 +126,7 @@ def is_wordsize_64() -> bool:
     #     32-bit executable binary embedded in a so-called "universal binary."
     return sys.maxsize > ints.INT_VALUE_MAX_32_BIT
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 @func_cached
 def get_wordsize() -> int:
     '''
@@ -154,7 +154,7 @@ def get_version() -> str:
 
     return platform.python_version()
 
-# ....................{ GETTERS ~ path                    }....................
+# ....................{ GETTERS ~ path                     }....................
 @func_cached
 def get_command_line_prefix() -> list:
     '''
@@ -242,8 +242,8 @@ def get_shebang() -> str:
     # Return this string prefixed by the shebang identifier.
     return '#!' + py_command
 
-# ....................{ GETTERS ~ metadata                }....................
-def get_metadata() -> 'OrderedArgsDict':
+# ....................{ GETTERS ~ metadata                 }....................
+def get_metadata() -> 'betse.util.type.iterable.mapping.mapcls.OrderedArgsDict':
     '''
     Ordered dictionary synopsizing the active Python interpreter.
     '''
@@ -260,7 +260,7 @@ def get_metadata() -> 'OrderedArgsDict':
         'frozen',   pyfreeze.is_frozen(),
     )
 
-# ....................{ RUNNERS                           }....................
+# ....................{ RUNNERS                            }....................
 @type_check
 def rerun_or_die(
     command_args: SequenceTypes,
@@ -275,11 +275,11 @@ def rerun_or_die(
         List of zero or more arguments to pass to this interpreter.
     popen_kwargs : optional[MappingType]
         Dictionary of all keyword arguments to pass to the
-        :meth:`subprocess.Popen.__init__` method. Defaults to ``None``, in
+        :meth:`subprocess.Popen.__init__` method. Defaults to :data:`None`, in
         which case the empty dictionary is assumed.
 
     See Also
-    ----------
+    --------
     :func:`betse.util.os.command.cmdrun.run_or_die`
         Low-level commentary on subprocess execution.
     '''

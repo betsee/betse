@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,19 +7,18 @@
 High-level logging configuration functionality.
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid circular import dependencies, avoid importing from *ANY*
 # application-specific modules at the top-level -- excluding those explicitly
 # known *NOT* to import from this module. Since all application-specific
 # modules should *ALWAYS* be able to safely import from this module at any
 # scoping level, circularities are best avoided here rather than elsewhere.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 from betse.exceptions import BetseLogException
 from betse.util.type.types import type_check
 
-# ....................{ GLOBALS                           }....................
+# ....................{ GLOBALS                            }....................
 _log_conf = None
 '''
 Singleton logging configuration for the current Python process.
@@ -29,7 +28,7 @@ simplifies modification of logging levels at runtime (e.g., in response to
 command-line arguments or configuration file settings).
 '''
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS                         }....................
 def die_unless_log_conf() -> None:
     '''
     Raise an exception unless a logging configuration already exists.
@@ -55,7 +54,7 @@ def die_unless_log_conf() -> None:
             'logconf.deinit() having been called).'
         )
 
-# ....................{ INITIALIZERS                      }....................
+# ....................{ INITIALIZERS                       }....................
 @type_check
 def init() -> None:
     '''
@@ -131,13 +130,13 @@ def deinit() -> None:
     # Nullify this singleton global for safety *AFTER* all other actions above.
     _log_conf = None
 
-# ....................{ GETTERS                           }....................
-def get_log_conf() -> 'LogConf':
+# ....................{ GETTERS                            }....................
+def get_log_conf() -> 'betse.util.io.log.conf.logconfcls.LogConf':
     '''
     Singleton logging configuration for the active Python process.
 
     Raises
-    ----------
+    ------
     BetseLogException
         If no singleton logging configuration currently exists.
     '''

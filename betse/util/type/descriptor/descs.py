@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,7 +8,7 @@ Low-level **non-data descriptor** (i.e., objects satisfying the non-data
 descriptor protocol, typically defined at class scope) facilities.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from betse.util.type.types import (
     type_check,
     CallableTypes,
@@ -16,7 +16,7 @@ from betse.util.type.types import (
     ClassBoundMethodTypes,
 )
 
-# ....................{ CLASSES                           }....................
+# ....................{ CLASSES                            }....................
 class ClassPropertyReadOnly(object):
     '''
     **Read-only class property** (i.e., property bound to a class rather than
@@ -46,7 +46,7 @@ class ClassPropertyReadOnly(object):
         Class-bound getter method underlying this property.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self, getter: ClassBoundMethodTypes) -> None:
         '''
@@ -61,7 +61,7 @@ class ClassPropertyReadOnly(object):
         # Classify this getter.
         self._getter = getter
 
-    # ..................{ GETTERS                           }..................
+    # ..................{ GETTERS                            }..................
     def __get__(self, obj: object, cls: ClassOrNoneTypes = None) -> object:
         '''
         Value of this read-only class property.
@@ -76,7 +76,7 @@ class ClassPropertyReadOnly(object):
         # underlying class-bound method descriptor with this object and class.
         return self._getter.__get__(obj, cls)()
 
-# ....................{ DECORATORS                        }....................
+# ....................{ DECORATORS                         }....................
 @type_check
 def classproperty_readonly(getter: CallableTypes) -> ClassPropertyReadOnly:
     '''
@@ -115,7 +115,8 @@ def classproperty_readonly(getter: CallableTypes) -> ClassPropertyReadOnly:
     return ClassPropertyReadOnly(abstract_getter)
 
 
-def abstractclassproperty_readonly(getter: CallableTypes) -> None:
+def abstractclassproperty_readonly(getter: CallableTypes) -> (
+    ClassPropertyReadOnly):
     '''
     **Abstract read-only class property** (i.e., property bound to a class
     rather than an instance of a class with no corresponding setter and hence

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -6,6 +7,7 @@
 Low-level utility functions specific to single-frame plots.
 '''
 
+# ....................{ IMPORTS                            }....................
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,7 +16,7 @@ import numpy.ma as ma
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
 
-
+# ....................{ PLOTTERS                           }....................
 def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
 
     tvect_data=[x[celli]*1000 for x in sim.vm_time]
@@ -365,6 +367,7 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
         ax.axis([xmin,xmax,ymin,ymax])
 
         return fig,ax,ax_cb
+
 
 def plotPrettyPolyData(data, sim, cells, p, fig=None, ax=None, clrAutoscale = True, clrMin = None, clrMax = None,
     clrmap = None, number_cells=False, current_overlay = False,plotIecm=False):
@@ -728,6 +731,7 @@ def plotConnectionData(cells, p, fig = None, ax=None, zdata=None,clrmap=None,col
         ax.axis([xmin,xmax,ymin,ymax])
 
         return fig, ax, ax_cb
+
 
 def plotBoundCells(points_flat,bflags,cells, p, fig=None, ax=None):
         """
@@ -1370,11 +1374,17 @@ def env_mesh(data, ax, cells, p, clrmap, ignore_showCells=False):
 
 def cell_mosaic(
     data,
-    ax: 'matplotlib.axes.Axes',
-    cells: 'Cells',
-    p: 'Parameters',
+    # ax,
+    #FIXME: This matplotlib class is dynamically unimportable by @beartype for
+    #some reason. *shrug*
+    # ax: 'matplotlib.axes.Axes',
+    cells: 'betse.science.cells.Cells',
+    p: 'betse.science.parameters.Parameters',
     clrmap: 'matplotlib.colors.Colormap',
-) -> (PolyCollection, 'matplotlib.axes.Axes'):
+):
+#FIXME: This matplotlib class is dynamically unimportable by @beartype for
+#some reason. *shrug*
+# ) -> (PolyCollection, 'matplotlib.axes.Axes'):
     """
     Sets up a mosaic plot for cell data on an existing axis.
 

@@ -23,6 +23,12 @@ automation.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # ....................{ IMPORTS                            }....................
+# Subject all subsequent imports to @beartype-based hybrid runtime-static
+# type-checking *BEFORE* importing anything further.
+# from beartype import BeartypeConf
+from beartype.claw import beartype_this_package
+beartype_this_package()
+
 # For PEP 8 compliance, versions constants expected by external automation are
 # imported under their PEP 8-mandated names.
 from betse.metadata import VERSION as __version__

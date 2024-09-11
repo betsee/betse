@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,7 +9,7 @@ encapsulating the current state of a single simulation feature for a given
 simulation phase).
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from abc import ABCMeta
 from betse.science.phase.phasecls import SimPhase
 # from betse.util.io.log import logs
@@ -21,7 +21,7 @@ from betse.util.type.types import (
     MappingOrNoneTypes,
 )
 
-# ....................{ SUPERCLASSES                      }....................
+# ....................{ SUPERCLASSES                       }....................
 class SimPhaseRequirementABC(metaclass=ABCMeta):
     '''
     Abstract base class of all **simulation phase requirement** (i.e., object
@@ -29,7 +29,7 @@ class SimPhaseRequirementABC(metaclass=ABCMeta):
     simulation phase) subclasses.
     '''
 
-    # ..................{ PROPERTIES ~ abstract             }..................
+    # ..................{ PROPERTIES ~ abstract              }..................
     # Subclasses are required to implement the following abstract properties.
 
     @abstractproperty
@@ -64,7 +64,7 @@ class SimPhaseRequirementABC(metaclass=ABCMeta):
 
         pass
 
-# ....................{ SUBCLASSES ~ requirement          }....................
+# ....................{ SUBCLASSES ~ requirement           }....................
 class SimPhaseRequirement(SimPhaseRequirementABC):
     '''
     **Simulation phase requirement** (i.e., high-level object encapsulating the
@@ -99,7 +99,7 @@ class SimPhaseRequirement(SimPhaseRequirementABC):
         typically be lower- rather than uppercase.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
@@ -133,7 +133,7 @@ class SimPhaseRequirement(SimPhaseRequirementABC):
         self._set_satisfied = set_satisfied
         self._name = name
 
-    # ..................{ PROPERTIES                        }..................
+    # ..................{ PROPERTIES                         }..................
     # Subclasses are required to implement the following abstract properties.
 
     @property
@@ -148,7 +148,7 @@ class SimPhaseRequirement(SimPhaseRequirementABC):
     def set_satisfied(self) -> CallableTypes:
         return self._set_satisfied
 
-# ....................{ SUBCLASSES ~ requirement : body   }....................
+# ....................{ SUBCLASSES ~ requirement : body    }....................
 class SimPhaseRequirementEmbodied(SimPhaseRequirement):
     '''
     String-based simulation phase requirement, initialized by strings defining
@@ -166,7 +166,7 @@ class SimPhaseRequirementEmbodied(SimPhaseRequirement):
         so assists debugging elsewhere in the codebase.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
@@ -270,7 +270,7 @@ class SimPhaseRequirementBoolExpr(SimPhaseRequirementEmbodied):
     common case of a requirement reducing to a single boolean.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self, bool_expr: str, *args, **kwargs) -> None:
         '''
@@ -309,7 +309,7 @@ class SimPhaseRequirementEnumExpr(SimPhaseRequirementEmbodied):
     common case of a requirement reducing to a single enumeration member.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,

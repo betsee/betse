@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,7 +9,7 @@ encapsulating the current state of a single simulation feature for a given
 simulation phase).
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from betse.science.phase.phasecls import SimPhase
 from betse.science.phase.require.abc.phasereqabc import SimPhaseRequirementABC
 # from betse.util.io.log import logs
@@ -19,14 +19,14 @@ from betse.util.type.iterable.set.setcls import FrozenSetSubclassable
 from betse.util.type.text.string import strjoin
 from betse.util.type.types import type_check, IterableOrNoneTypes, NoneType
 
-# ....................{ SUBCLASSES ~ requirements         }....................
+# ....................{ SUBCLASSES ~ requirements          }....................
 class SimPhaseRequirements(SimPhaseRequirementABC, FrozenSetSubclassable):
     '''
     Immutable set of simulation phase requirements, requiring zero or more
     arbitrary requirements to be satisfied.
 
     Operators
-    ----------
+    ---------
     This set strictly conforms to the :class:`frozenset` API and hence supports
     the following set operators for combining multiple instances of this class:
 
@@ -55,15 +55,15 @@ class SimPhaseRequirements(SimPhaseRequirementABC, FrozenSetSubclassable):
     In all respects, however, this set is usable as a :class:`frozenset`.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __new__(cls, iterable: IterableOrNoneTypes = None) -> (
-        'betse.science.phase.require.abc.phasereqset.SimPhaseRequirements'):
+    def __new__(
+        cls, iterable: IterableOrNoneTypes = None) -> 'SimPhaseRequirements':
         '''
         Create, initialize, and return this requirement.
 
         Design
-        ----------
+        ------
         To satisfy the :class:`frozenset` API, this method *must* accept only
         a single iterable. To quote `official documentation`_:
 
@@ -107,7 +107,7 @@ class SimPhaseRequirements(SimPhaseRequirementABC, FrozenSetSubclassable):
         # logs.log_info('requirements for "%s": %r', self.name, self)
         # return self
 
-    # ..................{ SUPERCLASS ~ requirement          }..................
+    # ..................{ SUPERCLASS ~ requirement           }..................
     # Abstract properties required to be implemented by the
     # "SimPhaseRequirementABC" superclass.
 
@@ -153,9 +153,9 @@ class SimPhaseRequirements(SimPhaseRequirementABC, FrozenSetSubclassable):
     @type_check
     def set_satisfied(self, phase: SimPhase) -> None:
         '''
-        Modify the passed simulation phase as needed to ensure that all
-        child requirements composed by this parent requirement are satisfied
-        by this phase.
+        Modify the passed simulation phase as needed to ensure that all child
+        requirements composed by this parent requirement are satisfied by this
+        phase.
         '''
 
         # For each child requirement of this parent requirement...
@@ -163,7 +163,7 @@ class SimPhaseRequirements(SimPhaseRequirementABC, FrozenSetSubclassable):
             # Ensure this child requirement is satisfied by this phase.
             requirement.set_satisfied(phase)
 
-    # ..................{ TESTERS                           }..................
+    # ..................{ TESTERS                            }..................
     # For orthogonality with the existing frozenset.isdisjoint() method, this
     # method is intentionally *NOT* named is_intersection().
     def isintersection(self, other: object) -> bool:
@@ -176,7 +176,7 @@ class SimPhaseRequirements(SimPhaseRequirementABC, FrozenSetSubclassable):
 
         return not self.isdisjoint(other)
 
-# ....................{ TYPES                             }....................
+# ....................{ TYPES                              }....................
 SimPhaseRequirementsOrNoneTypes = (SimPhaseRequirements, NoneType)
 '''
 Tuple of both the immutable requirements set tupe *and* that of the singleton

@@ -976,325 +976,338 @@ This includes:
   real-world utility in enforcing this constraint.
 '''
 
-# ....................{ DECORATORS                        }....................
+# ....................{ DECORATORS                         }....................
+#FIXME: Excise us up, please. Since doing so would needlessly consume infinitely
+#scarce open-source volunteer time for *NO* gain, we currently prefer to simply
+#reduce this obsolete decorator to the identity noop decorator.
+#
+#Note that this decorator has been obsoleted by package-wide application of the
+#beartype_this_package() import hook in the "betse.__init__" submodule.
+def type_check(func: CallableTypes) -> CallableTypes:
+    return func
+
+#FIXME: Excise us up, please.
+# if True:
+#     from beartype import beartype
+#     type_check = beartype
 # If the active Python interpreter is *NOT* optimized (e.g., option "-O" was
 # *NOT* passed to this interpreter), enable type checking.
-if __debug__:
-    def type_check(func: CallableTypes) -> CallableTypes:
-        '''
-        Decorate the passed **callable** (e.g., function, method) to validate
-        both all annotated parameters passed to this callable *and* the
-        annotated value returned by this callable if any.
-
-        This decorator performs rudimentary type checking based on Python 3.x
-        function annotations, as officially documented by PEP 484 ("Type
-        Hints"). While PEP 484 supports arbitrarily complex type composition,
-        this decorator requires *all* parameter and return value annotations to
-        be either:
-
-        * Classes (e.g., :class:`int`, :class:`OrderedDict`).
-        * Tuples of classes (e.g., ``(int, OrderedDict)``).
-
-        If optimizations are enabled by the active Python interpreter (e.g.,
-        due to option ``-O`` passed to this interpreter), this decorator
-        reduces to a noop.
-
-        Raises
-        ----------
-        NameError
-            If any parameter has the reserved name ``__beartype_func``.
-        TypeError
-            If either:
-
-            * Any parameter or return value annotation is neither:
-
-              * A type.
-              * A tuple of types.
-
-            * The kind of any parameter is unrecognized. This should *never*
-              happen, assuming no significant changes to Python semantics.
-        '''
-
-        # Human-readable name of this function for use in exceptions.
-        func_name = func.__name__ + '()'
-
-        # Machine-readable name of the type-checking function to be dynamically
-        # created and returned by this decorator. To efficiently (albeit
-        # non-perfectly) avoid clashes with existing attributes of the module
-        # defining this function, this name is mildly obfuscated while still
-        # preserving human-readability.
-        func_type_checked_name = '__{}_type_checked__'.format(func.__name__)
-
-        # "inspect.Signature" instance encapsulating this callable's signature.
-        func_sig = inspect.signature(func)
-
-        # Raw string of Python statements comprising the body of this wrapper,
-        # including (in order):
-        #
-        # * A private "__beartype_func" parameter initialized to this function.
-        #   In theory, the "func" parameter passed to this decorator should be
-        #   accessible as a closure-style local in this wrapper. For unknown
-        #   reasons (presumably, a subtle bug in the exec() builtin), this is
-        #   not the case. Instead, a closure-style local must be simulated by
-        #   passing the "func" parameter to this function at function
-        #   definition time as the default value of an arbitrary parameter. To
-        #   ensure this default is *NOT* overwritten by a function accepting a
-        #   parameter of the same name, this edge case is tested for below.
-        # * Assert statements type checking parameters passed to this callable.
-        # * A call to this callable.
-        # * An assert statement type checking the value returned by this
-        #   callable.
-        #
-        # While there exist numerous alternatives (e.g., appending to a list or
-        # bytearray before joining the elements of that iterable into a
-        # string), these alternatives are either slower (as in the case of a
-        # list, due to the high up-front cost of list construction) or
-        # substantially more cumbersome (as in the case of a bytearray). Since
-        # string concatenation is heavily optimized by the official CPython
-        # interpreter, the simplest approach is (curiously) the most ideal.
-        func_body = '''
-def {func_type_checked_name}(*args, __beartype_func=__beartype_func, **kwargs):
-'''.format(func_type_checked_name=func_type_checked_name)
-
-        # For the name of each parameter passed to this callable and the
-        # "inspect.Parameter" instance encapsulating this parameter (in the
-        # passed order)...
-        for func_arg_index, func_arg in enumerate(
-            func_sig.parameters.values()):
-            # If this callable redefines a parameter initialized to a default
-            # value by this wrapper, raise an exception. Permitting this
-            # unlikely edge case would permit unsuspecting users to
-            # "accidentally" override these defaults.
-            if func_arg.name == '__beartype_func':
-                raise NameError(
-                    'Parameter {} reserved for use by @type_check.'.format(
-                        func_arg.name))
-
-            # Annotation for this parameter if any *OR* "Parameter.empty"
-            # otherwise (i.e., if this parameter is unannotated).
-            func_arg_annotation = func_arg.annotation
-
-            # If this parameter is annotated and non-ignorable for purposes of
-            # type checking, type check this parameter with this annotation.
-            if (func_arg_annotation is not Parameter.empty and
-                func_arg.kind not in _PARAMETER_KIND_IGNORED):
-                # Human-readable label describing this annotation.
-                func_arg_annotation_label = (
-                    '{} parameter "{}" type annotation'.format(
-                        func_name, func_arg.name))
-
-                # Validate this annotation.
-                _check_type_annotation(
-                    annotation=func_arg_annotation,
-                    annotation_label=func_arg_annotation_label,)
-
-                # String evaluating to this parameter's annotated type.
-                func_arg_type_expr = (
-                    '__beartype_func.__annotations__[{!r}]'.format(
-                        func_arg.name))
-
-                # String evaluating to this parameter's current value when
-                # passed as a keyword.
-                func_arg_value_key_expr = 'kwargs[{!r}]'.format(func_arg.name)
-
-                # Replace all classnames in this annotation by the
-                # corresponding classes.
-                func_body += _get_code_replacing_annotation_by_types(
-                    annotation=func_arg_annotation,
-                    annotation_expr=func_arg_type_expr,
-                    annotation_label=func_arg_annotation_label,)
-
-                # If this parameter is actually a tuple of positional variadic
-                # parameters, iteratively check these parameters.
-                if func_arg.kind is Parameter.VAR_POSITIONAL:
-                    func_body += '''
-    for __beartype_arg in args[{arg_index!r}:]:
-        if not isinstance(__beartype_arg, {arg_type_expr}):
-            raise TypeError(
-                '{func_name} positional variadic parameter '
-                '{arg_index} {{}} not a {{!r}}'.format(
-                    trim(__beartype_arg), {arg_type_expr}))
-'''.format(
-                        func_name=func_name,
-                        arg_name=func_arg.name,
-                        arg_index=func_arg_index,
-                        arg_type_expr=func_arg_type_expr,
-                    )
-                # Else if this parameter is keyword-only, check this parameter
-                # only by lookup in the variadic "**kwargs" dictionary.
-                elif func_arg.kind is Parameter.KEYWORD_ONLY:
-                    func_body += '''
-    if {arg_name!r} in kwargs and not isinstance(
-        {arg_value_key_expr}, {arg_type_expr}):
-        raise TypeError(
-            '{func_name} keyword-only parameter '
-            '{arg_name}={{}} not a {{!r}}'.format(
-                trim({arg_value_key_expr}), {arg_type_expr}))
-'''.format(
-                        func_name=func_name,
-                        arg_name=func_arg.name,
-                        arg_type_expr=func_arg_type_expr,
-                        arg_value_key_expr=func_arg_value_key_expr,
-                    )
-                # Else, this parameter may be passed either positionally or as
-                # a keyword. Check this parameter both by lookup in the
-                # variadic "**kwargs" dictionary *AND* by index into the
-                # variadic "*args" tuple.
-                else:
-                    # String evaluating to this parameter's current value when
-                    # passed positionally.
-                    func_arg_value_pos_expr = 'args[{!r}]'.format(
-                        func_arg_index)
-
-                    func_body += '''
-    if not (
-        isinstance({arg_value_pos_expr}, {arg_type_expr})
-        if {arg_index} < len(args) else
-        isinstance({arg_value_key_expr}, {arg_type_expr})
-        if {arg_name!r} in kwargs else True):
-            raise TypeError(
-                '{func_name} parameter {arg_name}={{}} not of {{!r}}'.format(
-                trim({arg_value_pos_expr} if {arg_index} < len(args) else {arg_value_key_expr}),
-                {arg_type_expr}))
-'''.format(
-                    func_name=func_name,
-                    arg_name=func_arg.name,
-                    arg_index=func_arg_index,
-                    arg_type_expr=func_arg_type_expr,
-                    arg_value_key_expr=func_arg_value_key_expr,
-                    arg_value_pos_expr=func_arg_value_pos_expr,
-                )
-
-        # Value of the annotation for this callable's return value.
-        func_return_annotation = func_sig.return_annotation
-
-        # If this callable's return value is both annotated and non-ignorable
-        # for purposes of type checking, type check this value.
-        if func_return_annotation not in _RETURN_ANNOTATION_IGNORED:
-            # Human-readable label describing this annotation.
-            func_return_annotation_label = (
-                '{} return type annotation'.format(func_name))
-
-            # Validate this annotation.
-            _check_type_annotation(
-                annotation=func_return_annotation,
-                annotation_label=func_return_annotation_label,)
-
-            # Strings evaluating to this parameter's annotated type and
-            # currently passed value, as above.
-            func_return_type_expr = (
-                "__beartype_func.__annotations__['return']")
+# elif __debug__:
+#     def type_check(func: CallableTypes) -> CallableTypes:
+#         '''
+#         Decorate the passed **callable** (e.g., function, method) to validate
+#         both all annotated parameters passed to this callable *and* the
+#         annotated value returned by this callable if any.
+#
+#         This decorator performs rudimentary type checking based on Python 3.x
+#         function annotations, as officially documented by PEP 484 ("Type
+#         Hints"). While PEP 484 supports arbitrarily complex type composition,
+#         this decorator requires *all* parameter and return value annotations to
+#         be either:
+#
+#         * Classes (e.g., :class:`int`, :class:`OrderedDict`).
+#         * Tuples of classes (e.g., ``(int, OrderedDict)``).
+#
+#         If optimizations are enabled by the active Python interpreter (e.g.,
+#         due to option ``-O`` passed to this interpreter), this decorator
+#         reduces to a noop.
+#
+#         Raises
+#         ----------
+#         NameError
+#             If any parameter has the reserved name ``__beartype_func``.
+#         TypeError
+#             If either:
+#
+#             * Any parameter or return value annotation is neither:
+#
+#               * A type.
+#               * A tuple of types.
+#
+#             * The kind of any parameter is unrecognized. This should *never*
+#               happen, assuming no significant changes to Python semantics.
+#         '''
+#
+#         # Human-readable name of this function for use in exceptions.
+#         func_name = func.__name__ + '()'
+#
+#         # Machine-readable name of the type-checking function to be dynamically
+#         # created and returned by this decorator. To efficiently (albeit
+#         # non-perfectly) avoid clashes with existing attributes of the module
+#         # defining this function, this name is mildly obfuscated while still
+#         # preserving human-readability.
+#         func_type_checked_name = '__{}_type_checked__'.format(func.__name__)
+#
+#         # "inspect.Signature" instance encapsulating this callable's signature.
+#         func_sig = inspect.signature(func)
+#
+#         # Raw string of Python statements comprising the body of this wrapper,
+#         # including (in order):
+#         #
+#         # * A private "__beartype_func" parameter initialized to this function.
+#         #   In theory, the "func" parameter passed to this decorator should be
+#         #   accessible as a closure-style local in this wrapper. For unknown
+#         #   reasons (presumably, a subtle bug in the exec() builtin), this is
+#         #   not the case. Instead, a closure-style local must be simulated by
+#         #   passing the "func" parameter to this function at function
+#         #   definition time as the default value of an arbitrary parameter. To
+#         #   ensure this default is *NOT* overwritten by a function accepting a
+#         #   parameter of the same name, this edge case is tested for below.
+#         # * Assert statements type checking parameters passed to this callable.
+#         # * A call to this callable.
+#         # * An assert statement type checking the value returned by this
+#         #   callable.
+#         #
+#         # While there exist numerous alternatives (e.g., appending to a list or
+#         # bytearray before joining the elements of that iterable into a
+#         # string), these alternatives are either slower (as in the case of a
+#         # list, due to the high up-front cost of list construction) or
+#         # substantially more cumbersome (as in the case of a bytearray). Since
+#         # string concatenation is heavily optimized by the official CPython
+#         # interpreter, the simplest approach is (curiously) the most ideal.
+#         func_body = '''
+# def {func_type_checked_name}(*args, __beartype_func=__beartype_func, **kwargs):
+# '''.format(func_type_checked_name=func_type_checked_name)
+#
+#         # For the name of each parameter passed to this callable and the
+#         # "inspect.Parameter" instance encapsulating this parameter (in the
+#         # passed order)...
+#         for func_arg_index, func_arg in enumerate(
+#             func_sig.parameters.values()):
+#             # If this callable redefines a parameter initialized to a default
+#             # value by this wrapper, raise an exception. Permitting this
+#             # unlikely edge case would permit unsuspecting users to
+#             # "accidentally" override these defaults.
+#             if func_arg.name == '__beartype_func':
+#                 raise NameError(
+#                     'Parameter {} reserved for use by @type_check.'.format(
+#                         func_arg.name))
+#
+#             # Annotation for this parameter if any *OR* "Parameter.empty"
+#             # otherwise (i.e., if this parameter is unannotated).
+#             func_arg_annotation = func_arg.annotation
+#
+#             # If this parameter is annotated and non-ignorable for purposes of
+#             # type checking, type check this parameter with this annotation.
+#             if (func_arg_annotation is not Parameter.empty and
+#                 func_arg.kind not in _PARAMETER_KIND_IGNORED):
+#                 # Human-readable label describing this annotation.
+#                 func_arg_annotation_label = (
+#                     '{} parameter "{}" type annotation'.format(
+#                         func_name, func_arg.name))
+#
+#                 # Validate this annotation.
+#                 _check_type_annotation(
+#                     annotation=func_arg_annotation,
+#                     annotation_label=func_arg_annotation_label,)
+#
+#                 # String evaluating to this parameter's annotated type.
+#                 func_arg_type_expr = (
+#                     '__beartype_func.__annotations__[{!r}]'.format(
+#                         func_arg.name))
+#
+#                 # String evaluating to this parameter's current value when
+#                 # passed as a keyword.
+#                 func_arg_value_key_expr = 'kwargs[{!r}]'.format(func_arg.name)
+#
+#                 # Replace all classnames in this annotation by the
+#                 # corresponding classes.
+#                 func_body += _get_code_replacing_annotation_by_types(
+#                     annotation=func_arg_annotation,
+#                     annotation_expr=func_arg_type_expr,
+#                     annotation_label=func_arg_annotation_label,)
+#
+#                 # If this parameter is actually a tuple of positional variadic
+#                 # parameters, iteratively check these parameters.
+#                 if func_arg.kind is Parameter.VAR_POSITIONAL:
+#                     func_body += '''
+#     for __beartype_arg in args[{arg_index!r}:]:
+#         if not isinstance(__beartype_arg, {arg_type_expr}):
+#             raise TypeError(
+#                 '{func_name} positional variadic parameter '
+#                 '{arg_index} {{}} not a {{!r}}'.format(
+#                     trim(__beartype_arg), {arg_type_expr}))
+# '''.format(
+#                         func_name=func_name,
+#                         arg_name=func_arg.name,
+#                         arg_index=func_arg_index,
+#                         arg_type_expr=func_arg_type_expr,
+#                     )
+#                 # Else if this parameter is keyword-only, check this parameter
+#                 # only by lookup in the variadic "**kwargs" dictionary.
+#                 elif func_arg.kind is Parameter.KEYWORD_ONLY:
+#                     func_body += '''
+#     if {arg_name!r} in kwargs and not isinstance(
+#         {arg_value_key_expr}, {arg_type_expr}):
+#         raise TypeError(
+#             '{func_name} keyword-only parameter '
+#             '{arg_name}={{}} not a {{!r}}'.format(
+#                 trim({arg_value_key_expr}), {arg_type_expr}))
+# '''.format(
+#                         func_name=func_name,
+#                         arg_name=func_arg.name,
+#                         arg_type_expr=func_arg_type_expr,
+#                         arg_value_key_expr=func_arg_value_key_expr,
+#                     )
+#                 # Else, this parameter may be passed either positionally or as
+#                 # a keyword. Check this parameter both by lookup in the
+#                 # variadic "**kwargs" dictionary *AND* by index into the
+#                 # variadic "*args" tuple.
+#                 else:
+#                     # String evaluating to this parameter's current value when
+#                     # passed positionally.
+#                     func_arg_value_pos_expr = 'args[{!r}]'.format(
+#                         func_arg_index)
+#
+#                     func_body += '''
+#     if not (
+#         isinstance({arg_value_pos_expr}, {arg_type_expr})
+#         if {arg_index} < len(args) else
+#         isinstance({arg_value_key_expr}, {arg_type_expr})
+#         if {arg_name!r} in kwargs else True):
+#             raise TypeError(
+#                 '{func_name} parameter {arg_name}={{}} not of {{!r}}'.format(
+#                 trim({arg_value_pos_expr} if {arg_index} < len(args) else {arg_value_key_expr}),
+#                 {arg_type_expr}))
+# '''.format(
+#                     func_name=func_name,
+#                     arg_name=func_arg.name,
+#                     arg_index=func_arg_index,
+#                     arg_type_expr=func_arg_type_expr,
+#                     arg_value_key_expr=func_arg_value_key_expr,
+#                     arg_value_pos_expr=func_arg_value_pos_expr,
+#                 )
+#
+#         # Value of the annotation for this callable's return value.
+#         func_return_annotation = func_sig.return_annotation
+#
+#         # If this callable's return value is both annotated and non-ignorable
+#         # for purposes of type checking, type check this value.
+#         if func_return_annotation not in _RETURN_ANNOTATION_IGNORED:
+#             # Human-readable label describing this annotation.
+#             func_return_annotation_label = (
+#                 '{} return type annotation'.format(func_name))
+#
+#             # Validate this annotation.
+#             _check_type_annotation(
+#                 annotation=func_return_annotation,
+#                 annotation_label=func_return_annotation_label,)
+#
+#             # Strings evaluating to this parameter's annotated type and
+#             # currently passed value, as above.
+#             func_return_type_expr = (
+#                 "__beartype_func.__annotations__['return']")
+# #             func_body += '''
+# #     print('Return annotation: {{}}'.format({func_return_type_expr}))
+# # '''.format(func_return_type_expr=func_return_type_expr)
+#
+#             # Replace all classnames in this annotation by the corresponding
+#             # classes.
+#             func_body += _get_code_replacing_annotation_by_types(
+#                 annotation=func_return_annotation,
+#                 annotation_expr=func_return_type_expr,
+#                 annotation_label=func_return_annotation_label,)
+#
+#             # Call this callable, type check the returned value, and return
+#             # this value from this wrapper.
 #             func_body += '''
-#     print('Return annotation: {{}}'.format({func_return_type_expr}))
-# '''.format(func_return_type_expr=func_return_type_expr)
-
-            # Replace all classnames in this annotation by the corresponding
-            # classes.
-            func_body += _get_code_replacing_annotation_by_types(
-                annotation=func_return_annotation,
-                annotation_expr=func_return_type_expr,
-                annotation_label=func_return_annotation_label,)
-
-            # Call this callable, type check the returned value, and return
-            # this value from this wrapper.
-            func_body += '''
-    __beartype_return_value = __beartype_func(*args, **kwargs)
-    if not isinstance(__beartype_return_value, {return_type}):
-        raise TypeError(
-            '{func_name} return value {{}} not of {{!r}}'.format(
-                trim(__beartype_return_value), {return_type}))
-    return __beartype_return_value
-'''.format(func_name=func_name, return_type=func_return_type_expr)
-        # Else, call this callable and return this value from this wrapper.
-        else:
-            func_body += '''
-    return __beartype_func(*args, **kwargs)
-'''
-
-        # Dictionary mapping from local attribute name to value. For
-        # efficiency, only attributes required by the body of this wrapper are
-        # copied from the current namespace. (See below.)
-        local_attrs = {'__beartype_func': func}
-
-        #FIXME: Actually, we absolutely *DO* want to leverage the example
-        #documented below of leveraging the compile() builtin. We want to do so
-        #explicitly to pass something other than "<string>" here -- ideally,
-        #"func.__code__.co_filename", ensuring that this wrapper function
-        #shares the same absolute filename as that of the original function.
-        #Note that a similar example (also leveraging the exec() builtin, which
-        #frankly seems excessive) is also given by:
-        #    https://stackoverflow.com/a/42478041/2809027
-        #
-        #Failure to do so reduces tracebacks induced by exceptions raised by
-        #this wrapper to non-human-readability, which is less than ideal: e.g.,
-        #
-        #    ModuleNotFoundError: No module named 'betsee.util.widget.abc.guiwdgabc'
-        #
-        #    Traceback (most recent call last):
-        #      File "/home/leycec/py/betsee/betsee/gui/simconf/stack/widget/mixin/guisimconfwdgeditscalar.py", line 313, in _set_alias_to_widget_value_if_sim_conf_open
-        #        widget=self, value_old=self._widget_value_last)
-        #      File "<string>", line 25, in func_type_checked
-        #      File "/home/leycec/py/betsee/betsee/gui/simconf/stack/widget/mixin/guisimconfwdgeditscalar.py", line 409, in __init__
-        #        *args, widget=widget, synopsis=widget.undo_synopsis, **kwargs)
-        #      File "<string>", line 13, in func_type_checked
-        #
-        #Note the final traceback line, which is effectively useless.
-
-        # Attempt to define this wrapper as a closure of this decorator. For
-        # obscure and presumably uninteresting reasons, Python fails to locally
-        # declare this closure when the locals() dictionary is passed; to
-        # capture this closure, a local dictionary must be passed instead.
-        #
-        # Note that the same result may also be achieved via the compile()
-        # builtin and "types.FunctionType" class: e.g.,
-        #
-        #     func_code = compile(func_body, "<string>", "exec").co_consts[0]
-        #     return types.FunctionType(
-        #         code=func_code,
-        #         globals=globals(),
-        #         argdefs=('__beartype_func', func)
-        #     )
-        #
-        # Since doing so is both more verbose and obfuscatory for no tangible
-        # gain, the current circumspect approach is preferred.
-        try:
-            # print('@type_check {}() wrapper\n{}'.format(func_name, func_body))
-            exec(func_body, globals(), local_attrs)
-        # If doing so fails for any reason...
-        except Exception:
-            # Log the body of this function for debugging purposes. To avoid
-            # circular import dependencies, the low-level "logging" API is
-            # accessed directly here.
-            logging.error(
-                '@type_check %s() wrapper unparseable:\n%s',
-                func_name, func_body)
-
-            # Re-raise this exception.
-            raise
-
-        # This wrapper.
-        #
-        # Note that, as the above logic successfully compiled this wrapper,
-        # this dictionary is guaranteed to contain a key with this wrapper's
-        # name whose value is this wrapper. Ergo, no additional validation of
-        # the existence of this key or type of this wrapper need be performed.
-        func_type_checked = local_attrs[func_type_checked_name]
-
-        # Propagate identifying metadata (stored as special attributes) from
-        # the original function to this wrapper for debuggability, including:
-        #
-        # * "__name__", the unqualified name of this function.
-        # * "__doc__", the docstring of this function (if any).
-        # * "__module__", the fully-qualified name of this function's module.
-        functools.update_wrapper(wrapper=func_type_checked, wrapped=func)
-
-        # Return this wrapper.
-        return func_type_checked
-# Else, the active Python interpreter is optimized. In this case, disable type
-# checking by reducing this decorator to the identity decorator.
-else:
-    def type_check(func: CallableTypes) -> CallableTypes:
-        return func
+#     __beartype_return_value = __beartype_func(*args, **kwargs)
+#     if not isinstance(__beartype_return_value, {return_type}):
+#         raise TypeError(
+#             '{func_name} return value {{}} not of {{!r}}'.format(
+#                 trim(__beartype_return_value), {return_type}))
+#     return __beartype_return_value
+# '''.format(func_name=func_name, return_type=func_return_type_expr)
+#         # Else, call this callable and return this value from this wrapper.
+#         else:
+#             func_body += '''
+#     return __beartype_func(*args, **kwargs)
+# '''
+#
+#         # Dictionary mapping from local attribute name to value. For
+#         # efficiency, only attributes required by the body of this wrapper are
+#         # copied from the current namespace. (See below.)
+#         local_attrs = {'__beartype_func': func}
+#
+#         #FIXME: Actually, we absolutely *DO* want to leverage the example
+#         #documented below of leveraging the compile() builtin. We want to do so
+#         #explicitly to pass something other than "<string>" here -- ideally,
+#         #"func.__code__.co_filename", ensuring that this wrapper function
+#         #shares the same absolute filename as that of the original function.
+#         #Note that a similar example (also leveraging the exec() builtin, which
+#         #frankly seems excessive) is also given by:
+#         #    https://stackoverflow.com/a/42478041/2809027
+#         #
+#         #Failure to do so reduces tracebacks induced by exceptions raised by
+#         #this wrapper to non-human-readability, which is less than ideal: e.g.,
+#         #
+#         #    ModuleNotFoundError: No module named 'betsee.util.widget.abc.guiwdgabc'
+#         #
+#         #    Traceback (most recent call last):
+#         #      File "/home/leycec/py/betsee/betsee/gui/simconf/stack/widget/mixin/guisimconfwdgeditscalar.py", line 313, in _set_alias_to_widget_value_if_sim_conf_open
+#         #        widget=self, value_old=self._widget_value_last)
+#         #      File "<string>", line 25, in func_type_checked
+#         #      File "/home/leycec/py/betsee/betsee/gui/simconf/stack/widget/mixin/guisimconfwdgeditscalar.py", line 409, in __init__
+#         #        *args, widget=widget, synopsis=widget.undo_synopsis, **kwargs)
+#         #      File "<string>", line 13, in func_type_checked
+#         #
+#         #Note the final traceback line, which is effectively useless.
+#
+#         # Attempt to define this wrapper as a closure of this decorator. For
+#         # obscure and presumably uninteresting reasons, Python fails to locally
+#         # declare this closure when the locals() dictionary is passed; to
+#         # capture this closure, a local dictionary must be passed instead.
+#         #
+#         # Note that the same result may also be achieved via the compile()
+#         # builtin and "types.FunctionType" class: e.g.,
+#         #
+#         #     func_code = compile(func_body, "<string>", "exec").co_consts[0]
+#         #     return types.FunctionType(
+#         #         code=func_code,
+#         #         globals=globals(),
+#         #         argdefs=('__beartype_func', func)
+#         #     )
+#         #
+#         # Since doing so is both more verbose and obfuscatory for no tangible
+#         # gain, the current circumspect approach is preferred.
+#         try:
+#             # print('@type_check {}() wrapper\n{}'.format(func_name, func_body))
+#             exec(func_body, globals(), local_attrs)
+#         # If doing so fails for any reason...
+#         except Exception:
+#             # Log the body of this function for debugging purposes. To avoid
+#             # circular import dependencies, the low-level "logging" API is
+#             # accessed directly here.
+#             logging.error(
+#                 '@type_check %s() wrapper unparseable:\n%s',
+#                 func_name, func_body)
+#
+#             # Re-raise this exception.
+#             raise
+#
+#         # This wrapper.
+#         #
+#         # Note that, as the above logic successfully compiled this wrapper,
+#         # this dictionary is guaranteed to contain a key with this wrapper's
+#         # name whose value is this wrapper. Ergo, no additional validation of
+#         # the existence of this key or type of this wrapper need be performed.
+#         func_type_checked = local_attrs[func_type_checked_name]
+#
+#         # Propagate identifying metadata (stored as special attributes) from
+#         # the original function to this wrapper for debuggability, including:
+#         #
+#         # * "__name__", the unqualified name of this function.
+#         # * "__doc__", the docstring of this function (if any).
+#         # * "__module__", the fully-qualified name of this function's module.
+#         functools.update_wrapper(wrapper=func_type_checked, wrapped=func)
+#
+#         # Return this wrapper.
+#         return func_type_checked
+# # Else, the active Python interpreter is optimized. In this case, disable type
+# # checking by reducing this decorator to the identity decorator.
+# else:
+#     def type_check(func: CallableTypes) -> CallableTypes:
+#         return func
 
 
 def _get_code_replacing_annotation_by_types(
@@ -1726,7 +1739,7 @@ def is_sequence_nonstr_nonempty(obj: object) -> bool:
     is not a string, *and* contains at least one element).
 
     '''
-    return is_sequence_nonstr(obj) and len(obj)
+    return is_sequence_nonstr(obj) and bool(obj)
 
 # ....................{ TESTERS ~ error                    }....................
 def is_exception(obj: object) -> bool:
@@ -1881,7 +1894,7 @@ def is_str_nonempty(obj: object) -> bool:
     comprising one or more characters and hence _not_ the empty string).
     '''
 
-    return is_str(obj) and len(obj)
+    return is_str(obj) and bool(obj)
 
 # ....................{ FORMATTERS                         }....................
 # This string-centric function is defined in this module rather than in the
