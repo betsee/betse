@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,17 +7,16 @@
 Application-specific exception hierarchy.
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during application startup, this module may
 # import *ONLY* from modules guaranteed to exist at startup. This includes all
 # standard Python and application modules but *NOT* third-party dependencies,
 # which if unimportable will only be validated at some later time in startup.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 from abc import ABCMeta
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS                         }....................
 #FIXME: Define an __init__() method asserting that the passed exception message
 #is non-None, which Python permits by default but which is functionally useless.
 class BetseException(Exception, metaclass=ABCMeta):
@@ -46,7 +45,7 @@ class BetseMetaAppException(BetseException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ call                 }....................
+# ....................{ EXCEPTIONS ~ call                  }....................
 class BetseCallableException(BetseException):
     '''
     General-purpose exception applicable to all **callables** (e.g., functions,
@@ -88,7 +87,7 @@ class BetseParamException(BetseCallableException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ call : func          }....................
+# ....................{ EXCEPTIONS ~ call : func           }....................
 class BetseFunctionException(BetseCallableException):
     '''
     Function-specific exception.
@@ -107,7 +106,7 @@ class BetseFunctionUnimplementedException(
     dependency or platform that have yet to be implemented).
     '''
 
-# ....................{ EXCEPTIONS ~ call : method        }....................
+# ....................{ EXCEPTIONS ~ call : method         }....................
 class BetseMethodException(BetseCallableException):
     '''
     Method-specific exception.
@@ -130,7 +129,7 @@ class BetseMethodUnimplementedException(
     alternative for defining optional methods. Hence, this exception.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     def __init__(self) -> None:
 
         # Avoid circular import dependencies.
@@ -140,7 +139,7 @@ class BetseMethodUnimplementedException(
         super().__init__('Method {}() unimplemented.'.format(
             callers.get_caller_basename()))
 
-# ....................{ EXCEPTIONS ~ call : descriptor    }....................
+# ....................{ EXCEPTIONS ~ call : descriptor     }....................
 class BetseDescriptorException(BetseCallableException):
     '''
     Descriptor-specific exception.
@@ -154,8 +153,7 @@ class BetseExprAliasException(BetseDescriptorException):
     '''
     pass
 
-
-# ....................{ EXCEPTIONS ~ cli                  }....................
+# ....................{ EXCEPTIONS ~ cli                   }....................
 class BetseCLIException(BetseException):
     '''
     General-purpose command-line interface (CLI) exception.
@@ -180,7 +178,7 @@ class BetseCLIArgParserException(BetseCLIArgException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ lib                  }....................
+# ....................{ EXCEPTIONS ~ lib                   }....................
 class BetseLibException(BetseException):
     '''
     General-purpose exception applicable to third-party dependencies.
@@ -212,7 +210,7 @@ class BetseYamlException(BetseException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ log                  }....................
+# ....................{ EXCEPTIONS ~ log                   }....................
 class BetseLogException(BetseException):
     '''
     Logging-specific exception.
@@ -247,10 +245,18 @@ class BetseLogRaceException(BetseLogException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ math                 }....................
+# ....................{ EXCEPTIONS ~ math                  }....................
 class BetseMathException(BetseException):
     '''
     General-purpose exception applicable to all low-level math algorithms.
+    '''
+
+    pass
+
+
+class BetseMathInterpolationException(BetseMathException):
+    '''
+    Interpolation-specific math exception.
     '''
 
     pass
@@ -279,7 +285,7 @@ class BetseMathPolygonException(BetseMathException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ module               }....................
+# ....................{ EXCEPTIONS ~ module                }....................
 class BetseModuleException(BetseException):
     '''
     Module-specific exception.
@@ -295,7 +301,7 @@ class BetsePackageException(BetseModuleException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ os                   }....................
+# ....................{ EXCEPTIONS ~ os                    }....................
 class BetseOSException(BetseException):
     '''
     General-purpose low-level operating system (OS) exception.
@@ -311,7 +317,7 @@ class BetseShellEnvException(BetseOSException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ os : proc            }....................
+# ....................{ EXCEPTIONS ~ os : proc             }....................
 class BetseProcessException(BetseOSException):
     '''
     General-purpose low-level process exception.
@@ -327,7 +333,7 @@ class BetseProcessNotFoundException(BetseProcessException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ path                 }....................
+# ....................{ EXCEPTIONS ~ path                  }....................
 class BetsePathnameException(BetseException):
     '''
     Pathname-specific exception.
@@ -367,7 +373,7 @@ class BetseGitException(BetsePathException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ path : file          }....................
+# ....................{ EXCEPTIONS ~ path : file           }....................
 class BetseFileException(BetsePathException):
     '''
     File-specific exception.
@@ -391,7 +397,7 @@ class BetseImageException(BetseFileException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ py                   }....................
+# ....................{ EXCEPTIONS ~ py                    }....................
 class BetsePyException(BetseException):
     '''
     General-purpose low-level Python interpreter exception.
@@ -421,7 +427,7 @@ class BetsePyIdentifierException(BetsePyException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ test                 }....................
+# ....................{ EXCEPTIONS ~ test                  }....................
 class BetseTestException(BetseException):
     '''
     General-purpose exception pertaining to this application's test suite.
@@ -453,7 +459,7 @@ class BetseTestParamException(BetseTestException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ type                 }....................
+# ....................{ EXCEPTIONS ~ type                  }....................
 class BetseTypeException(BetseException):
     '''
     General-purpose exception applicable to all types (i.e., classes).
@@ -485,7 +491,7 @@ class BetseIntException(BetseTypeException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ type : iter          }....................
+# ....................{ EXCEPTIONS ~ type : iter           }....................
 class BetseIterableException(BetseTypeException):
     '''
     Iterable-specific exception.
@@ -501,7 +507,7 @@ class BetseSequenceException(BetseIterableException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ type : iter : map    }....................
+# ....................{ EXCEPTIONS ~ type : iter : map     }....................
 class BetseMappingException(BetseIterableException):
     '''
     Dictionary-specific exception.
@@ -525,7 +531,7 @@ class BetseMappingValueException(BetseMappingException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ type : str           }....................
+# ....................{ EXCEPTIONS ~ type : str            }....................
 class BetseStrException(BetseTypeException):
     '''
     String-specific  exception.
@@ -550,7 +556,7 @@ class BetseRegexException(BetseStrException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ sci : sim            }....................
+# ....................{ EXCEPTIONS ~ sci : sim             }....................
 class BetseSimException(BetseException):
     '''
     General-purpose simulation exception.
@@ -598,7 +604,7 @@ class BetseSimVectorException(BetseSimException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ sci : sim : unstable }....................
+# ....................{ EXCEPTIONS ~ sci : sim : unstable  }....................
 class BetseSimUnstableException(BetseSimException):
     '''
     Simulation-specific exception indicating the current simulation to have
@@ -618,7 +624,7 @@ class BetseSimUnstableNaNException(BetseSimUnstableException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ sci : visual         }....................
+# ....................{ EXCEPTIONS ~ sci : visual          }....................
 class BetseSimVisualException(BetseSimException):
     '''
     Simulation visualization-specific exception, applicable to both plots and
@@ -635,7 +641,7 @@ class BetseSimVisualLayerException(BetseSimVisualException):
 
     pass
 
-# ....................{ EXCEPTIONS ~ sci : pipe           }....................
+# ....................{ EXCEPTIONS ~ sci : pipe            }....................
 class BetseSimPipeException(BetseSimException):
     '''
     Simulation pipeline-specific exception.
@@ -661,7 +667,7 @@ class BetseSimPipeRunnerUnsatisfiedException(BetseSimPipeException):
         string is neither capitalized *nor* punctuated.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     def __init__(self, result: str, reason: str) -> None:
         '''
         Initialize this exception.

@@ -1252,13 +1252,13 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             zorder=ZORDER_STREAM,
         )
 
-    # ..................{ PLOTTERS ~ cell                   }..................
+    # ..................{ PLOTTERS ~ cell                    }..................
     #FIXME: Pretty intense, and obviously better refactored two distinct
     #"LayerCellsABC" subclasses. This will probably prove pivotal to
     #implementing deformations sanely.
     #FIXME: After doing so, excise *ALL* of the methods below.
 
-    def _plot_cells_sans_ecm(self, *args, **kwargs) -> 'Collection':
+    def _plot_cells_sans_ecm(self, *args, **kwargs) -> PolyCollection:
         '''
         Plot and return an intracellular plot of all cells with colours
         corresponding to the passed vector of arbitrary cell data (e.g.,
@@ -1285,8 +1285,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         method called by this method (e.g., `_plot_cell_mosaic()`).
 
         Returns
-        --------
-        Collection
+        -------
+        PolyCollection
             Plot produced by plotting the passed cell data.
         '''
 
@@ -1298,7 +1298,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
     def _update_cell_plot_sans_ecm(
         self,
-        cell_plot: 'Collection',
+        cell_plot: PolyCollection,
         cell_data: np.ndarray,
         *args, **kwargs
     ) -> None:
@@ -1309,7 +1309,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         Parameters
         -----------
-        cell_plot : Collection
+        cell_plot : PolyCollection
             Cell plot previously returned by either the
             :meth:`_plot_cells_sans_ecm` *or*
             :meth:`_revive_cell_plot_sans_ecm` method.
@@ -1342,10 +1342,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
     def _revive_cell_plots_sans_ecm(
         self,
-        cell_plot: 'Collection',
+        cell_plot: PolyCollection,
         cell_data: np.ndarray,
         *args, **kwargs
-    ) -> 'Collection':
+    ) -> PolyCollection:
         '''
         Recreate the passed intracellular plot and return a similar plot of all
         cells with colours corresponding to the passed vector of arbitrary cell
@@ -1373,7 +1373,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         Parameters
         -----------
-        cell_plot : Collection
+        cell_plot : PolyCollection
             Cell plot previously returned by either the
             :meth:`_plot_cells_sans_ecm` *or*
             :meth:`_revive_cell_plots_sans_ecm` method.
@@ -1385,7 +1385,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         Returns
         --------
-        Collection
+        PolyCollection
             Plot produced by replotting the passed cell data.
         '''
         assert types.is_sequence_nonstr(cell_data), (
