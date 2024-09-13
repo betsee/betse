@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -11,10 +11,10 @@ This submodule principally defines utility functions simplifying access to
 more specific submodule.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from betse.util.type.types import ClassType, ModuleType
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 def get_pytest_fixtures_submodule() -> ModuleType:
     '''
     Version-specific private :mod:`pytest` submodule providing fixture classes.
@@ -63,7 +63,7 @@ def get_pytest_fixture_lookup_error_type() -> ClassType:
     # Return this exception class defined by this submodule.
     return pytest_fixtures_submodule.FixtureLookupError
 
-# ....................{ OUTPUTTERS                        }....................
+# ....................{ OUTPUTTERS                         }....................
 def output(*objs) -> None:
     '''
     Print all passed objects as is to standard output in a format mimicking
@@ -76,10 +76,12 @@ def output(*objs) -> None:
     with the builtin function of the same name.
 
     Examples
-    ----------
-        >>> from betse.util.test.pytest import pytests
-        >>> pytests.output('Ego, ergo simulare.')
-        [py.test] Ego, ergo simulare.
+    --------
+    .. code-block:: pycon
+
+       >>> from betse.util.test.pytest import pytests
+       >>> pytests.output('Ego, ergo simulare.')
+       [py.test] Ego, ergo simulare.
     '''
 
     # Avoid circular import dependencies.

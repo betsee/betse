@@ -115,13 +115,6 @@ def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
         If at least passed dependency is unsatisfiable.
     '''
 
-    # If the "pkg_resources" setuptools dependency is missing, raise an
-    # exception *BEFORE* importing this dependency below.
-    pymodname.die_unless_module(
-        module_name='pkg_resources',
-        exception_message='Mandatory dependency "pkg_resources" not found.',
-    )
-
     # Import the following submodule, which globally imports "pkg_resources",
     # *AFTER* validating "pkg_resources" to be importable.
     from betse.lib.setuptools import setuptool

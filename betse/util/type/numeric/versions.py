@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
 Low-level versioning facilities.
 
-Version Specifiers
-----------
+Design
+------
 For generality, most callables defined by this submodule accept `PEP
 440-compliant`_ version specifiers in any of several permissible formats. As
 encapsulated by the :data:`VersionTypes` tuple, these are:
@@ -24,12 +24,12 @@ encapsulated by the :data:`VersionTypes` tuple, these are:
    https://www.python.org/dev/peps/pep-0440
 '''
 
-# ....................{ IMPORTS                           }....................
-import pkg_resources
+# ....................{ IMPORTS                            }....................
 from betse.util.type.types import (
     type_check, VersionSetuptoolsTypes, VersionTypes)
+from setuptools import pkg_resources
 
-# ....................{ TESTERS ~ greater                 }....................
+# ....................{ TESTERS ~ greater                  }....................
 @type_check
 def is_greater_than(version_1: VersionTypes, version_2: VersionTypes) -> bool:
     '''

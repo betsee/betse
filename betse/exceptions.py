@@ -270,6 +270,14 @@ class BetseMathLineException(BetseMathException):
     pass
 
 
+class BetseMathMeshException(BetseMathException):
+    '''
+    Mesh-specific math exception.
+    '''
+
+    pass
+
+
 class BetseMathPointException(BetseMathException):
     '''
     Point-specific math exception.

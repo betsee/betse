@@ -105,7 +105,7 @@ def from_iterable(iterable: IterableTypes) -> NumpyArrayType:
     * A Numpy array, this array is returned unmodified.
 
     Caveats
-    ----------
+    -------
     **This high-level function should always be called in lieue of the
     :func:`np.asarray` function,** which is fundamentally unsafe and should
     *never* be called directly. Unlike this function, the :func:`np.asarray`
@@ -114,16 +114,18 @@ def from_iterable(iterable: IterableTypes) -> NumpyArrayType:
     and sanity checking, preventing that function's overly permissive design
     imperatives from corrupting the fragile purity of this codebase: e.g.,
 
-        >>> import numpy as np
-        >>> np.asarray(None)
-        array(None, dtype=object)
-        >>> np.asarray(
-        ...     'We are the Bug. '
-        ...     'Your computational and technological distinctiveness '
-        ...     'will be added to our own. Resistance is futile.'
-        ... )
-        array('We are the Bug. Your computational and technological distinctiveness will be added to our own. Resistance is futile.',
-        dtype='<U116')
+    .. code-block:: pycon
+
+       >>> import numpy as np
+       >>> np.asarray(None)
+       array(None, dtype=object)
+       >>> np.asarray(
+       ...     'We are the Bug. '
+       ...     'Your computational and technological distinctiveness '
+       ...     'will be added to our own. Resistance is futile.'
+       ... )
+       array('We are the Bug. Your computational and technological distinctiveness will be added to our own. Resistance is futile.',
+       dtype='<U116')
 
     Parameters
     ----------
@@ -131,7 +133,7 @@ def from_iterable(iterable: IterableTypes) -> NumpyArrayType:
         Iterable to be converted into a Numpy array.
 
     Returns
-    ----------
+    -------
     NumpyArrayType
         Numpy array converted from this iterable.
     '''
@@ -167,7 +169,7 @@ def to_iterable(array: NumpyArrayType, cls: ClassType) -> IterableTypes:
         Type of the iterable to convert this array into.
 
     Returns
-    ----------
+    -------
     IterableTypes
         Iterable converted from this Numpy array.
     '''

@@ -9,12 +9,11 @@ dependency simplifying inspection of application dependencies.
 '''
 
 # ....................{ IMPORTS                           }....................
-import pkg_resources
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
 from betse.util.type.types import (
     type_check,
-    DistributionOrNoneTypes,
+    # DistributionOrNoneTypes,
     GeneratorType,
     MappingType,
     ModuleType,
@@ -22,7 +21,8 @@ from betse.util.type.types import (
     SequenceTypes,
 )
 from collections import OrderedDict
-from pkg_resources import (
+from setuptools import pkg_resources
+from setuptools.pkg_resources import (
     DistributionNotFound,
     Requirement,
     UnknownExtra,
@@ -363,10 +363,9 @@ def _is_requirement_versioned(requirement: Requirement) -> bool:
     # only if this requirement's specifier is *NOT* the empty string.
     return requirement.specifier != ''
 
-# ....................{ GETTERS ~ requirement             }....................
+# ....................{ GETTERS ~ requirement              }....................
 @type_check
-def get_requirement_distribution_or_none(
-    requirement: Requirement) -> DistributionOrNoneTypes:
+def get_requirement_distribution_or_none(requirement: Requirement) -> object:  # DistributionOrNoneTypes:
     '''
     :class:`Distribution` instance describing the currently installed version
     of the top-level third-party module or package satisfying the passed
@@ -400,7 +399,7 @@ def get_requirement_distribution_or_none(
         Object describing this module or package's required name and version.
 
     Returns
-    ----------
+    -------
     DistributionOrNoneTypes
         Object describing the currently installed version of the package or
         module satisfying this requirement if any *or* ``None`` otherwise.

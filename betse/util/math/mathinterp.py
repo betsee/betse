@@ -4,41 +4,24 @@
 # See "LICENSE" for further details.
 
 '''
-Project-wide **interpolators** (i.e., low-level callables interpolating two- and
-three-dimensional meshes defined from one set of points onto another set of
-points).
+Project-wide **mathematical interpolators** (i.e., low-level callables
+interpolating two- and three-dimensional meshes defined from one set of points
+onto another set of points).
 '''
 
 # ....................{ IMPORTS                            }....................
 from beartype.typing import (
-    Annotated,
     Callable,
 )
-from beartype.vale import (
-    IsAttr,
-    IsEqual,
-)
 from betse.exceptions import BetseMathInterpolationException
-from functools import partial
+from betse.util.type.typehints import NDArrayNdim1, NDArrayNdim2
+# from functools import partial
 from numpy import ndarray
 from scipy.interpolate import (
     RectBivariateSpline,
     # bisplev,
     # bisplrep,
 )
-
-# ....................{ HINTS                              }....................
-#FIXME: Shift into a more general-purpose submodule, please. *sigh*
-NDArrayNdim1 = Annotated[ndarray, IsAttr['ndim', IsEqual[1]]]
-'''
-PEP-compliant type hint matching a 1-dimensional NumPy array.
-'''
-
-
-NDArrayNdim2 = Annotated[ndarray, IsAttr['ndim', IsEqual[2]]]
-'''
-PEP-compliant type hint matching a 2-dimensional NumPy array.
-'''
 
 # ....................{ INTERPOLATORS                      }....................
 def interp2d_linear(
@@ -85,11 +68,11 @@ def interp2d_linear(
 
     Parameters
     ----------
-    x: ndarray
+    x: NDArrayNdim1
         Source 1-dimensional X coordinates to interpolate from.
-    y: ndarray
+    y: NDArrayNdim1
         Source 1-dimensional Y coordinates to interpolate from.
-    z: ndarray
+    z: NDArrayNdim2
         Source 2-dimensional Z values to interpolate from.
 
     Returns

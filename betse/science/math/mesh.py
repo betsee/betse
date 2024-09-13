@@ -15,25 +15,19 @@
 #    https://stackoverflow.com/a/30960883/2809027
 
 # ....................{ IMPORTS                            }....................
-# import matplotlib.cm as cm
-import matplotlib.pyplot as plt
 import numpy as np
+from beartype.typing import Tuple
+from betse.exceptions import BetseMathMeshException
+from betse.util.io.log import logs
 from betse.util.math.geometry.polygon.geopoly import (
     is_convex, is_cyclic_quad, orient_counterclockwise,)
 from betse.util.math.geometry.polygon.geopolyconvex import (
     clip_counterclockwise)
-from betse.util.io.log import logs
-from matplotlib import ticker
-from numpy import array
+from betse.util.math.mathoper import cross2d
+from numpy import array, ndarray
 from scipy.spatial import cKDTree, Delaunay
-# from matplotlib import colors
-# from matplotlib import colorbar
-# from matplotlib import rcParams
-# from matplotlib.collections import PolyCollection, LineCollection
-# from matplotlib.patches import Circle
-# from matplotlib import path
 
-# ....................{ CLASSES                           }....................
+# ....................{ CLASSES                            }....................
 class DECMesh(object):
     '''
     Discrete Exterior Calculus (DEC) mesh system providing primal triangulation
@@ -971,14 +965,12 @@ class DECMesh(object):
         # Finally, need to correct the orientation of the voronoi edges to make them all 90 degree
         # rotations of the tri mesh:
         for ei, (vti, tti) in enumerate(zip(self.vor_tang, self.tri_tang)):
-
-            sign = np.sign(np.cross(tti, vti))
+            sign = np.sign(cross2d(tti, vti))
 
             if sign == 1.0:
                 self.vor_tang[ei] = -vti
                 va, vb = self.vor_edges[ei]
                 self.vor_edges[ei] = [vb, va]
-
 
         self.n_vedges = len(self.vor_edges)
         self.vor_edge_i = np.linspace(
@@ -1066,8 +1058,7 @@ class DECMesh(object):
         tri_tang = []  # tangent vectors to tri_edges
         # tri_norm = []  # tangent vectors to vor_edges
 
-        sflux_n = [] # dot product between vor cell normal and tricell tangents
-
+        # sflux_n = [] # dot product between vor cell normal and tricell tangents
 
         for pts in self.vcell_verts: # FIXME calculate tri cell properties here too (each vcell index maps to tri vert index)
             # Calculate centroid and area of the voronoi polygon:
@@ -1299,37 +1290,34 @@ class DECMesh(object):
             gS_vor = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, Sv) # grad with respect to vor mesh
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         gradSx = self.tri_tang[:,0]*gS_tri + self.tri_tang[:,1]*gS_vor
         gradSy = self.vor_tang[:,0]*gS_tri + self.vor_tang[:,1]*gS_vor
 
-
         return gradSx, gradSy
 
-    def grad_uv(self, Sv, gtype ='tri'):
-        """
-        Gradient of scalar quantity 'S' with respect to the
-        tangent vectors of tri_mesh (gtype = 'tri') or vor_mesh
-        (gtype = 'vor').
 
-        Note that this discrete grad is a directional derivative with
-        respect to the tangents of the mesh, and is not a true grad in the x- and y-
+    def grad_uv(self, Sv, gtype = 'tri'):
+        '''
+        Gradient of scalar quantity 'S' with respect to the tangent vectors of
+        tri_mesh (gtype = 'tri') or vor_mesh (gtype = 'vor').
+
+        Note that this discrete grad is a directional derivative with respect to
+        the tangents of the mesh, and is not a true grad in the x- and y-
         coordinate system.
 
         Parameters
-        -----------
+        ----------
         S   -- a scalar array defined on tri_verts or vor_verts, depending on gtype
         gtype -- specifies if grad is taken with respect to tri mesh or vor mesh
 
         Returns
-        ----------
+        -------
         gradSx, gradSy  -- the x and y components of the directional derivative of S
-
-        """
+        '''
 
         if gtype == 'tri':
-
             assert(len(Sv) == self.n_tverts), "Length of array passed to grad is not tri_verts length"
 
             gS = np.dot(self.delta_tri_0, Sv) # grad with respect to tri mesh
@@ -1349,10 +1337,10 @@ class DECMesh(object):
             gradSy = (1/self.vor_edge_len)*gS*self.vor_tang[:, 1]
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
-
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return gradSx, gradSy
+
 
     def grad(self, S, gtype ='tri'):
         """
@@ -1391,9 +1379,10 @@ class DECMesh(object):
             gradS = (1/self.vor_edge_len)*np.dot(self.delta_vor_0, S)
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return gradS
+
 
     def div_xy(self, Fx, Fy, gtype = 'tri', btype=1):
         """
@@ -1436,7 +1425,7 @@ class DECMesh(object):
                 divF[self.inner_tvert_i] = divFo
 
             else:
-                raise Exception("valid btype is 1 or 2")
+                raise BetseMathMeshException("valid btype is 1 or 2")
 
         elif gtype == 'vor':
 
@@ -1454,10 +1443,10 @@ class DECMesh(object):
                 divF[self.inner_vvert_i] = divFo
 
             else:
-                raise Exception("valid btype is 1 or 2")
+                raise BetseMathMeshException("valid btype is 1 or 2")
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
 
         return divF
@@ -1502,7 +1491,7 @@ class DECMesh(object):
                 divF[self.inner_tvert_i] = divFo
 
             else:
-                raise Exception("valid btype is 1 or 2")
+                raise BetseMathMeshException("valid btype is 1 or 2")
 
         elif gtype == 'vor':
 
@@ -1518,10 +1507,10 @@ class DECMesh(object):
                 divF[self.inner_vvert_i] = divFo
 
             else:
-                raise Exception("valid btype is 1 or 2")
+                raise BetseMathMeshException("valid btype is 1 or 2")
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
 
         return divF
@@ -1574,7 +1563,7 @@ class DECMesh(object):
             lapS = self.div(gS, gtype = 'vor', btype=btype)
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return lapS
 
@@ -1619,7 +1608,7 @@ class DECMesh(object):
                                                                S[self.inner_tvert_i]*(self.vor_sa[self.inner_tvert_i])))
 
             else:
-                raise Exception("valid btype is 1 or 2")
+                raise BetseMathMeshException("valid btype is 1 or 2")
 
         elif gtype == 'vor':
 
@@ -1640,10 +1629,10 @@ class DECMesh(object):
                                                                     S[self.inner_vvert_i]*(self.tri_sa)))
 
             else:
-                raise Exception("valid btype is 1 or 2")
+                raise BetseMathMeshException("valid btype is 1 or 2")
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return lapS_inv
 
@@ -1698,7 +1687,7 @@ class DECMesh(object):
             curlFz_y = -gfx
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return curlFz_x, curlFz_y
 
@@ -1736,7 +1725,7 @@ class DECMesh(object):
             curl_F = (1/self.vor_sa)*np.dot(-self.delta_tri_0.T, (self.vor_edge_len)*Ft)
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return curl_F
 
@@ -1778,7 +1767,7 @@ class DECMesh(object):
             Sm = np.dot(MM, Sv)
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return Sm
 
@@ -1814,7 +1803,7 @@ class DECMesh(object):
     #
     #     else:
     #
-    #         raise Exception("valid gtype is 'tri' or 'vor'")
+    #         raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
     #
     #     return Sv
 
@@ -1861,7 +1850,7 @@ class DECMesh(object):
 
         else:
 
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return Sv
 
@@ -1893,7 +1882,7 @@ class DECMesh(object):
             Sd = np.dot(np.abs(-self.delta_vor_0.T), self.tri_edge_len*Sv_edges)/path_len_vor
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
 
         return Sd
@@ -1940,7 +1929,7 @@ class DECMesh(object):
             ccS = self.div(gS, gtype='tri', btype=btype)
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return ccS
 
@@ -1980,7 +1969,7 @@ class DECMesh(object):
                                                                Fz[self.inner_tvert_i]*(self.vor_sa[self.inner_tvert_i])))
 
             else:
-                raise Exception("valid btype is 1 or 2")
+                raise BetseMathMeshException("valid btype is 1 or 2")
 
         elif gtype == 'tri':
 
@@ -2001,10 +1990,10 @@ class DECMesh(object):
                                                                     Fz[self.inner_vvert_i]*(self.tri_sa)))
 
             else:
-                raise Exception("valid btype is 1 or 2")
+                raise BetseMathMeshException("valid btype is 1 or 2")
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return ccS_inv
 
@@ -2052,7 +2041,7 @@ class DECMesh(object):
             lapFy = ccft*self.vor_tang[:, 1]
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return lapFx, lapFy
 
@@ -2101,7 +2090,7 @@ class DECMesh(object):
             lapFy_inv = lapFt_inv*self.vor_tang[:, 1]
 
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         return lapFx_inv, lapFy_inv
 
@@ -2650,19 +2639,18 @@ class DECMesh(object):
 
 
     #---Removing Points from mesh---------------------
-    def cut_mesh(self, tvert_targets: np.ndarray) -> (
-        'Tuple[np.ndarray, np.ndarray]'):
+    def cut_mesh(self, tvert_targets: ndarray) -> Tuple[ndarray, ndarray]:
         '''
         Delete tri-verts from the DEC mesh system and rebuild core operators.
 
         Parameters
-        -----------
+        ----------
         tvert_targets : np.ndarray
             One-dimensional Numpy array of the indices of all tri-verts to be
             removed from this mesh.
 
         Returns
-        ---------
+        -------
         tedge_targets: ?
             Indices to *restructure* (not delete) data on edges (used as
             ``foo2 = foo[tedge_targets]``).
@@ -2787,6 +2775,10 @@ class DECMesh(object):
         replicates the analytical math equations.
         '''
 
+        # Defer heavyweight imports.
+        from matplotlib import pyplot as plt
+        from matplotlib import ticker
+
         # Generate analytical math.
         if gtype == 'tri':
             xo = self.tri_verts[:, 0]
@@ -2795,7 +2787,7 @@ class DECMesh(object):
             xo = self.vor_verts[:, 0]
             yo = self.vor_verts[:, 1]
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         # xm = self.tri_mids[:,0]
         # ym = self.tri_mids[:,1]
@@ -2964,15 +2956,26 @@ class DECMesh(object):
 
         return fig, axarr
 
-    def plot_test_B(self, a=0.02, b=5.0e-6, size = (10, 6), gtype = 'vor', print_errors = True):
-        """
+
+    def plot_test_B(
+        self,
+        a = 0.02,
+        b = 5.0e-6,
+        size = (10, 6),
+        gtype = 'vor',
+        print_errors = True,
+    ):
+        '''
         Compare DEC-based calculation of grad of grad with an
         analytical solution.
 
-        Also, all vector fields are ultimately mapped to 'tri' verts because this makes for
-        a clearer plot, therefore there is no mesh option for this test.
+        Also, all vector fields are ultimately mapped to 'tri' verts because
+        this makes for a clearer plot, therefore there is no mesh option for
+        this test.
+        '''
 
-        """
+        # Defer heavyweight imports.
+        from matplotlib import pyplot as plt
 
         # xo = self.tri_verts[:, 0]
         # yo = self.tri_verts[:, 1]
@@ -2981,14 +2984,12 @@ class DECMesh(object):
             xo = self.tri_verts[:, 0]
             yo = self.tri_verts[:, 1]
             opgtype = 'vor' # opposite (dual) grid
-
         elif gtype == 'vor':
             xo = self.vor_verts[:, 0]
             yo = self.vor_verts[:, 1]
             opgtype = 'tri'  # opposite (dual) grid
-
         else:
-            raise Exception("valid gtype is 'tri' or 'vor'")
+            raise BetseMathMeshException("valid gtype is 'tri' or 'vor'")
 
         xm = self.tri_mids[:, 0]
         ym = self.tri_mids[:, 1]
@@ -3114,8 +3115,14 @@ class DECMesh(object):
 
         return fig, axarr
 
+
     def plot_test_C(
-        self, gtype = 'vor', btype = 2, size = (10, 8), print_errors = True):
+        self,
+        gtype = 'vor',
+        btype = 2,
+        size = (10, 8),
+        print_errors = True,
+    ):
         '''
         Analytical function comparison for the Helmholtz-Hodge decomposition of
         a vector field into its divergence-free and curl-free components.
@@ -3123,6 +3130,9 @@ class DECMesh(object):
         As the 'vor' mesh represents an open/free boundary, this condition best
         replicates the analytical math equations.
         '''
+
+        # Defer heavyweight imports.
+        from matplotlib import pyplot as plt
 
         ax = self.centroid[0]
         ay = self.centroid[1]
@@ -3136,7 +3146,7 @@ class DECMesh(object):
             yo = self.vor_verts[:,1]
 
         else:
-            raise Exception("'tri' and 'vor' are only valid mesh types.")
+            raise BetseMathMeshException("'tri' and 'vor' are only valid mesh types.")
 
         # Define an analytical function representing a scalar potential:
         self.Phi_o = (xo - ax) ** 2 + (yo - ay) ** 2
@@ -3168,7 +3178,6 @@ class DECMesh(object):
         # Attempt to reconstruct the force-field F using the DEC-derived HH components:
         self.Fx_ = self.gPhix_ + self.cPsix_
         self.Fy_ = self.gPhiy_ + self.cPsiy_
-
 
         self.error_Fx = np.sqrt((self.Fxo - self.Fx_)**2)
         self.error_Fy = np.sqrt((self.Fyo - self.Fy_)**2)

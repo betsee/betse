@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,7 +9,7 @@ run by :mod:`pytest` *before* passed command-line arguments are parsed) for
 this test suite.
 
 Caveats
-----------
+-------
 For safety, this configuration should contain *only* early-time hooks
 absolutely required by :mod:`pytest` design to be defined in this
 configuration. Hooks for which this is the case (e.g.,
@@ -26,15 +26,15 @@ This file is the aforementioned ``conftest.py`` file "...situated at the tests
 root directory."
 
 See Also
-----------
+--------
 :mod:`betse_test.conftest`
     Global test configuration applied after this configuration.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import os, sys
 
-# ....................{ HOOKS ~ option                    }....................
+# ....................{ HOOKS ~ option                     }....................
 def pytest_addoption(parser: '_pytest.config.Parser') -> None:
     '''
     Hook run immediately on :mod:`pytest` startup *before* parsing command-line

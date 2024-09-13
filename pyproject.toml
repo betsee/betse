@@ -168,7 +168,7 @@ dynamic = ["version"]
 #   "vtk" and thus "pyvista" and thus this package currently *CANNOT* be
 #   installed under Python 3.10 using "pip". See also this unresolved VTK issue:
 #       https://gitlab.kitware.com/vtk/vtk/-/issues/18335
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 # List of all mandatory runtime dependencies.
 dependencies = [

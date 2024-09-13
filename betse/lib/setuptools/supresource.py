@@ -26,9 +26,9 @@ https://setuptools.readthedocs.io/en/latest/pkg_resources.html#resourcemanager-a
 #  *ALL* functions defined below.
 
 # ....................{ IMPORTS                           }....................
-import pkg_resources
 from betse.util.type.types import type_check
-from pkg_resources import Requirement
+from setuptools import pkg_resources
+from setuptools.pkg_resources import Requirement
 
 # ....................{ TESTERS                           }....................
 @type_check

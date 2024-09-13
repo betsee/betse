@@ -1,6 +1,6 @@
 ---
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2023 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 #
 # --------------------( SYNOPSIS                           )--------------------
@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: "Checking out repository..."
-        uses: 'actions/checkout@v3'
+        uses: 'actions/checkout@v4'
       - name: "Publishing GitHub release..."
         uses: 'ncipollo/release-action@v1'
         with:
@@ -60,9 +60,9 @@ jobs:
 
     steps:
       - name: "Checking out repository..."
-        uses: 'actions/checkout@v3'
+        uses: 'actions/checkout@v4'
       - name: "Installing latest stable Python 3.x..."
-        uses: 'actions/setup-python@v3'
+        uses: 'actions/setup-python@v5'
         with:
           python-version: '3.x'
 

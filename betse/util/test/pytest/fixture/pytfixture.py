@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,20 +7,19 @@
 High-level :mod:`pytest` fixtures.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from pytest import fixture
 
-# ....................{ FIXTURES                          }....................
+# ....................{ FIXTURES                           }....................
 @fixture(scope='session')
-def monkeypatch_session() -> '_pytest.monkeypatch.MonkeyPatch':
+def monkeypatch_session():
     '''
     Session-scoped ``monkeypatch`` fixture.
 
     Caveats
-    ----------
-    **The ``monkeypatch`` fixture should never be referenced from
-    session-scoped fixtures.** Doing so raises the following fatal error on
-    session startup:
+    -------
+    **The ``monkeypatch`` fixture should never be referenced from session-scoped
+    fixtures.** Doing so raises the following fatal error on session startup:
 
         ScopeMismatch: You tried to access the 'function' scoped fixture
         'monkeypatch' with a 'session' scoped request object, involved
@@ -30,13 +29,13 @@ def monkeypatch_session() -> '_pytest.monkeypatch.MonkeyPatch':
     referenced from session-scoped fixtures instead.
 
     Returns
-    ----------
+    -------
     _pytest.monkeypatch.MonkeyPatch
         Object returned by the `monkeypatch` fixture keeping a record of
         :func:`setattr`, item, environment, and :attr:`sys.path` changes.
 
     See Also
-    ----------
+    --------
     https://github.com/pytest-dev/pytest/issues/363#issuecomment-406536200
         GitHub comment strongly inspiring this implementation.
     '''

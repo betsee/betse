@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,10 +7,10 @@
 Unit tests for the :mod:`betse.util.math.geometry.geopoint` submodule.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import pytest
 
-# ....................{ TESTS                             }....................
+# ....................{ TESTS                              }....................
 def test_is_left_of_vector() -> None:
     '''
     Unit test the

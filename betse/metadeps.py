@@ -71,59 +71,15 @@ from collections import namedtuple
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # This public global is externally referenced by "setup.py".
-SETUPTOOLS_VERSION_MIN = '38.2.0'
+SETUPTOOLS_VERSION_MIN = '74.0.0'
 '''
 Minimum version of :mod:`setuptools` required at both application install- and
 runtime as a human-readable ``.``-delimited string.
 
 Motivation
 ----------
-This version derives from both:
-
-* BETSE requirements. BETSE requires the
-  :meth:`setuptools.command.easy_install.ScriptWriter.get_args` class method
-  and hence at least the oldest version of :mod:`setuptools` to have this
-  method. Since official setuptools documentation fails to specify the exact
-  version that first defined this method, we fallback to a sufficiently old
-  version from 2017 known to define this method: :mod:`setuptools` >= 36.7.2.
-* BETSEE requirements. BETSEE requires :mod:`PySide2`, which is distributed as
-  a wheel and thus requires wheel support, which in turns requires either
-  ``pip`` >= 1.4.0 or :mod:`setuptools` >= 38.2.0. While ``pip`` 1.4.0 is
-  relatively ancient, :mod:`setuptools` 38.2.0 is comparatively newer. If the
-  current version of :mod:`setuptools` is *not* explicitly validated at
-  installation time, older :mod:`setuptools` versions fail on attempting to
-  install :mod:`PySide2` with non-human-readable fatal errors resembling:
-
-    $ sudo python3 setup.py develop
-    running develop
-    running egg_info
-    writing betsee.egg-info/PKG-INFO
-    writing dependency_links to betsee.egg-info/dependency_links.txt
-    writing entry points to betsee.egg-info/entry_points.txt
-    writing requirements to betsee.egg-info/requires.txt
-    writing top-level names to betsee.egg-info/top_level.txt
-    reading manifest template 'MANIFEST.in'
-    writing manifest file 'betsee.egg-info/SOURCES.txt'
-    running build_ext
-    Creating /usr/lib64/python3.6/site-packages/betsee.egg-link (link to .)
-    Saving /usr/lib64/python3.6/site-packages/easy-install.pth
-    Installing betsee script to /usr/bin
-    changing mode of /usr/bin/betsee to 755
-
-    Installed /home/leycec/py/betsee
-    Processing dependencies for betsee==0.9.2.0
-    Searching for PySide2
-    Reading https://pypi.python.org/simple/PySide2/
-    No local packages or working download links found for PySide2
-    error: Could not find suitable distribution for Requirement.parse('PySide2')
-
-Since these two versions superficially conflict, this string global reduces to
-the version satisfying both constraints (i.e., the newest of these two
-versions). Equivalently:
-
-.. code-block:: console
-
-   SETUPTOOLS_VERSION_MIN == max('36.7.2', '38.2.0') == '38.2.0'
+BETSE requires a fairly modern version of :mod:`setuptools` providing the
+bundled (albeit deprecated) :mod:`setuptools.pkg_resources` subpackage.
 '''
 
 # ....................{ LIBS ~ runtime : mandatory        }....................

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,10 +7,10 @@
 High-level :mod:`pytest`-specific abstract base class (ABC) hierarchies.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 from abc import ABCMeta
 
-# ....................{ CLASSES                           }....................
+# ....................{ CLASSES                            }....................
 # FIXME: The "_first_failure_method_name" attribute documented below is
 # dynamically set on the py.test object encapsulating this class instance
 # rather than this actual class instance. This may or may not be a bad thing.
@@ -36,9 +36,9 @@ class SerialTestABC(metaclass=ABCMeta):
         (i.e., if no such methods have yet to fail).
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     @staticmethod
-    def is_test_serial(item: 'pytest.main.Item') -> bool:
+    def is_test_serial(item) -> bool:
         '''
         ``True`` only if the passed test callable is **serial** (i.e., a method
         of a subclass of this class).
@@ -53,7 +53,7 @@ class SerialTestABC(metaclass=ABCMeta):
             Metadata encapsulating this test callable (e.g., function, method).
 
         Returns
-        ----------
+        -------
         bool
             ``True`` only if this test is serial.
         '''

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -12,15 +12,15 @@ this test suite.
 into *all* submodules of this subpackage.
 
 See Also
-----------
+--------
 :mod:`conftest`
     Root test configuration applied before this configuration.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import pytest
 
-# ....................{ IMPORTS ~ fixture : manual        }....................
+# ....................{ IMPORTS ~ fixture : manual         }....................
 # Import fixtures required to be manually required by other fixtures and tests.
 
 from betse.util.test.pytest.fixture.pytfixture import monkeypatch_session
@@ -31,7 +31,7 @@ from betse_test._fixture.simconf.simconfer import (
     betse_sim_conf_compat,
 )
 
-# ....................{ IMPORTS ~ fixture : autouse       }....................
+# ....................{ IMPORTS ~ fixture : autouse        }....................
 # Import fixtures automatically run at the start of the current test session,
 # typically *NOT* manually required by specific tests, *AFTER* importing all
 # non-autouse fixtures possibly required by these autouse fixtures above.
@@ -41,7 +41,7 @@ from betse_test._fixture.simconf.simconfer import (
 #inevitably required yet again.
 # from betse_test._fixture.initter import betse_init_session
 
-# ....................{ HOOKS ~ configure                 }....................
+# ....................{ HOOKS ~ configure                  }....................
 def pytest_configure(config) -> None:
     '''
     Hook run immediately *after* parsing all command-line options and loading
@@ -54,7 +54,7 @@ def pytest_configure(config) -> None:
       manner suitable for unit testing.
 
     See Also
-    ----------
+    --------
     :func:`_init_app`
         Further details on application initialization.
     '''
@@ -84,8 +84,8 @@ def pytest_unconfigure(config) -> None:
     # Print this closure.
     pytests.output('Ego, ergo simulare.')
 
-# ....................{ HOOKS ~ test                      }....................
-def pytest_runtest_setup(item: 'pytest.main.Item') -> None:
+# ....................{ HOOKS ~ test                       }....................
+def pytest_runtest_setup(item) -> None:
     '''
     Hook run immediately *before* running the passed test.
 
@@ -103,7 +103,7 @@ def pytest_runtest_setup(item: 'pytest.main.Item') -> None:
         Metadata encapsulating this test callable (e.g., function, method).
 
     See Also
-    ----------
+    --------
     https://pytest.org/latest/example/simple.html#incremental-testing-test-steps
         Official py.test code snippet inspiring this implementation.
     '''
@@ -173,8 +173,7 @@ def pytest_runtest_setup(item: 'pytest.main.Item') -> None:
                 test_instance._first_failure_method_name))
 
 
-def pytest_runtest_makereport(
-    item: 'pytest.main.Item', call: 'pytest.runner.CallInfo'):
+def pytest_runtest_makereport(item, call):
     '''
     Hook run immediately *after* the passed test returned the passed result.
 
@@ -194,7 +193,7 @@ def pytest_runtest_makereport(
         calling this test callable.
 
     See Also
-    ----------
+    --------
     https://pytest.org/latest/example/simple.html#incremental-testing-test-steps
         Official py.test code snippet inspiring this implementation.
     '''

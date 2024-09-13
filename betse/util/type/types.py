@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -10,21 +10,21 @@ and :func:`instanceof`-friendly tuples of such types *and* the pivotal
 types.
 '''
 
-# ....................{ TODO                              }....................
+# ....................{ TODO                               }....................
 #FIXME: Refactor this submodule away entirely in favour of adding a new
 #mandatory dependency on the third-party "beartype" package and corresponding
 #@beartype.beartype decorator.
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies
 # *AND* avoid non-halting recursive imports when imported at the top-level
 # of other modules in the "betse.util" package, this module may import *ONLY*
 # from stock Python packages. (By definition, this excludes both application
 # and third-party packages.)
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import functools, inspect, logging, pkg_resources, re
+import functools, inspect, logging, re
 from argparse import ArgumentParser, _SubParsersAction
 from collections import deque
 from collections.abc import (
@@ -41,7 +41,7 @@ from collections.abc import (
 from enum import Enum, EnumMeta
 from io import IOBase
 from inspect import Parameter, Signature
-from pkg_resources import Distribution
+from setuptools import pkg_resources
 from weakref import ref, CallableProxyType, ProxyType, WeakMethod
 
 # Import the following types as is into the namespace of this submodule,
@@ -817,7 +817,7 @@ Tuple of the type of all types *and* that of the ``None`` singleton.
 '''
 
 
-DistributionOrNoneTypes = (Distribution, NoneType)
+DistributionOrNoneTypes = (pkg_resources.Distribution, NoneType)
 '''
 Tuple of the type of all :mod:`setuptools`-specific package metadata objects
 *and* that of the ``None`` singleton.
