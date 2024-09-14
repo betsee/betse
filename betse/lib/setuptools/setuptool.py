@@ -8,6 +8,9 @@ High-level support facilities for :mod:`pkg_resources`, a mandatory runtime
 dependency simplifying inspection of application dependencies.
 '''
 
+#FIXME: *EXCISE THIS ENTIRE SUBMODULE, PLEASE.* This should no longer be
+#required, due to importing deprecated functionality.
+
 # ....................{ IMPORTS                           }....................
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
@@ -142,7 +145,7 @@ def die_unless_requirement(requirement: Requirement) -> None:
     # Avoid circular import dependencies.
     from betse.util.py.module import pymodule
     from betse.util.py.module.pymodname import (
-        DISTUTILS_PROJECT_NAME_TO_MODULE_NAME)
+        DEPENDENCY_TO_MODULE_NAME)
 
     # Human-readable exception to be raised below if any.
     betse_exception = None
@@ -151,7 +154,7 @@ def die_unless_requirement(requirement: Requirement) -> None:
     requirement_name = requirement.project_name
 
     # Fully-qualified name of this requirement's module or package.
-    package_name = DISTUTILS_PROJECT_NAME_TO_MODULE_NAME[requirement_name]
+    package_name = DEPENDENCY_TO_MODULE_NAME[requirement_name]
 
     # Attempt to manually import this requirement's module or package.
     try:
@@ -952,10 +955,10 @@ def import_requirement(requirement: Requirement) -> ModuleType:
     # Avoid circular import dependencies.
     from betse.util.py.module import pymodname
     from betse.util.py.module.pymodname import (
-        DISTUTILS_PROJECT_NAME_TO_MODULE_NAME)
+        DEPENDENCY_TO_MODULE_NAME)
 
     # Fully-qualified name of this requirement's package.
-    package_name = DISTUTILS_PROJECT_NAME_TO_MODULE_NAME[
+    package_name = DEPENDENCY_TO_MODULE_NAME[
         requirement.project_name]
 
     # Log this importation, which can often have unexpected side effects.

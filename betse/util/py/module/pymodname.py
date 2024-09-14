@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -10,18 +10,18 @@ All functions defined by this submodule require that modules be passed as
 fully-qualified names (i.e., ``.``-delimited).
 
 See Also
-----------
+--------
 :mod:`betse.util.py.module.pymodule`
     Related submodule whose functions accept already imported module objects.
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies,
 # the top-level of this module may import *ONLY* from packages guaranteed to
 # exist at installation time -- which typically means *ONLY* BETSE packages and
 # stock Python packages.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import importlib, sys
 from betse.exceptions import BetseModuleException
@@ -33,8 +33,8 @@ from collections import defaultdict
 from importlib import util as importlib_util
 from importlib.machinery import ModuleSpec
 
-# ....................{ GLOBALS                           }....................
-DISTUTILS_PROJECT_NAME_TO_MODULE_NAME = DefaultDict(
+# ....................{ GLOBALS                            }....................
+DEPENDENCY_TO_MODULE_NAME = DefaultDict(
     missing_key_value=lambda self, missing_key: missing_key,
     initial_mapping={
         'Numpy':  'numpy',
@@ -44,9 +44,10 @@ DISTUTILS_PROJECT_NAME_TO_MODULE_NAME = DefaultDict(
     }
 )
 '''
-Dictionary mapping a relevant :mod:`distutils`-specific project name (e.g.,
-``PyYAML``) to the fully-qualified name of the corresponding module or package
-providing that project (e.g., ``yaml``).
+Dictionary mapping the human-readable name of an open-source project hosted by
+the Python Packaging Index (PyPI) (e.g., ``PyYAML``) to the corresponding
+fully-qualified name of the corresponding module or package providing that
+project (e.g., ``yaml``).
 
 All modules and packages explicitly unmapped by this dictionary default to the
 identity mapping -- that is, mapping the fully-qualified names of those modules
@@ -72,7 +73,7 @@ All modules and packages explicitly unmapped by this dictionary default to the
 canonical ``__version__`` attribute name.
 '''
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS                         }....................
 @type_check
 def die_if_module(module_name: str) -> None:
     '''
@@ -85,13 +86,13 @@ def die_if_module(module_name: str) -> None:
         Fully-qualified name of the module to be validated.
 
     Raises
-    ----------
+    ------
     BetseModuleException
         If this module exists.
 
     See Also
-    ----------
-    :func:`is_module`
+    --------
+    :func:`.is_module`
         Further details.
     '''
 
@@ -120,7 +121,7 @@ def die_unless_module(
         module name.
 
     Raises
-    ----------
+    ------
     ImportError
         If this module either does not exist *or* does exist but is
         unimportable (e.g., due to module-scoped side effects at importation
@@ -130,8 +131,8 @@ def die_unless_module(
         :class:`betse.exceptions.BetseModuleException`).
 
     See Also
-    ----------
-    :func:`is_module`
+    --------
+    :func:`.is_module`
         Further details.
     '''
 
@@ -144,7 +145,7 @@ def die_unless_module(
         # Raise this exception. (See the docstring for further details.)
         raise ImportError(exception_message)
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 @type_check
 def is_module(module_name: str) -> bool:
     '''
@@ -152,7 +153,7 @@ def is_module(module_name: str) -> bool:
     (i.e., is importable under the active Python interpreter).
 
     Caveats
-    ----------
+    -------
     In common edge cases, **this function may import all parent modules of this
     module as well as this module itself as a side effect.** Specifically, if
     this module is:
@@ -168,7 +169,7 @@ def is_module(module_name: str) -> bool:
         Fully-qualified name of the module to be tested.
 
     Returns
-    ----------
+    -------
     bool
         ``True`` only if this module exists.
     '''
@@ -231,7 +232,7 @@ def is_imported(*module_names: str) -> bool:
     # all(). It is awesome.
     return all(module_name in sys.modules for module_name in module_names)
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 @type_check
 def get_parent_module_name_or_none(module_name: str) -> StrOrNoneTypes:
     '''
@@ -245,7 +246,7 @@ def get_parent_module_name_or_none(module_name: str) -> StrOrNoneTypes:
         Fully-qualified name of the module to be munged.
 
     Returns
-    ----------
+    -------
     StrOrNoneTypes
         Either:
 
@@ -260,7 +261,7 @@ def get_parent_module_name_or_none(module_name: str) -> StrOrNoneTypes:
     return strs.get_prefix_or_none(
         text=module_name, anchor='.', is_first=False)
 
-# ....................{ IMPORTERS                         }....................
+# ....................{ IMPORTERS                          }....................
 @type_check
 def import_module(
     module_name: str, exception_message: StrOrNoneTypes = None) -> ModuleType:
@@ -279,7 +280,7 @@ def import_module(
         module name.
 
     Raises
-    ----------
+    ------
     ImportError
         If this module either does not exist *or* does exist but is
         unimportable (e.g., due to module-scoped side effects at importation
@@ -324,7 +325,7 @@ def unimport_module_if_imported(*module_names: str) -> None:
             del sys.modules[module_name]
         # Else, this module has *NOT* yet been imported. Ignore this module.
 
-# ....................{ MAKERS                            }....................
+# ....................{ MAKERS                             }....................
 @type_check
 def make_module(
     module_name: str,
@@ -364,7 +365,7 @@ def make_module(
         the *only* initial reference to this module.
 
     Raises
-    ----------
+    ------
     BetseModuleException
         If a module with this name already exists.
     ImportError
@@ -372,7 +373,7 @@ def make_module(
         packages of this module do *not* already exist.
 
     See Also
-    ----------
+    --------
     https://stackoverflow.com/questions/2931950/dynamic-module-creation
         StackOverflow *question* strongly inspiring this implementation. Note
         that, against all expectations, this question is substantially more

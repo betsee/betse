@@ -7,13 +7,16 @@
 Metadata constants synopsizing high-level application dependencies.
 
 Design
-----------
+------
 Metadata constants defined by this submodule are intentionally *not* defined as
 metadata properties of the :class:`betse.util.app.meta.appmetaabc` abstract
 base class. Why? Because doing so would prevent their use from the top-level
 ``setup.py`` scripts defined by downstream consumers (e.g., BETSEE), which
 would render these constants effectively useless for their principal use case.
 '''
+
+#FIXME: *ENTIRELY REMOVE THIS SUBMODULE,* which should no longer be required
+#anywhere and is only obfuscating actual logic that *IS* still required.
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # CAUTION: This submodule has largely (but *NOT* entirely) been obsoleted by the
@@ -43,19 +46,18 @@ would render these constants effectively useless for their principal use case.
 #For backward compatibility, the "betse.lib.setuptools.setuptool" submodule
 #should be preserved in perpetuity as is. It works, so don't break it! Please.
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from modules guaranteed to exist at the start of
 # installation. This includes all standard Python and application modules but
 # *NOT* third-party dependencies, which if currently uninstalled will only be
 # installed at some later time in the installation.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 from collections import namedtuple
 
-# ....................{ LIBS ~ install : mandatory        }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ LIBS ~ install : mandatory         }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid dependency conflicts between "pip", "setuptools", BETSE,
 # and BETSEE, the value of this global variable *MUST* be synchronized (i.e.,
 # copied) across numerous files in both codebases. Specifically, the following
@@ -68,7 +70,7 @@ from collections import namedtuple
 # * The "build-backend" setting in:
 #   * "betse/pyproject.toml".
 #   * "betsee/pyproject.toml".
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # This public global is externally referenced by "setup.py".
 SETUPTOOLS_VERSION_MIN = '74.0.0'
@@ -82,20 +84,21 @@ BETSE requires a fairly modern version of :mod:`setuptools` providing the
 bundled (albeit deprecated) :mod:`setuptools.pkg_resources` subpackage.
 '''
 
-# ....................{ LIBS ~ runtime : mandatory        }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ LIBS ~ runtime : mandatory         }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this subsection *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
-# * The "betse.util.py.module.pymodname.DISTUTILS_PROJECT_NAME_TO_MODULE_NAME"
+# * The "betse.util.py.module.pymodname.DEPENDENCY_TO_MODULE_NAME"
 #   dictionary, converting between the setuptools-specific names listed below
 #   and the Python-specific module names imported by this application.
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
 # * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 RUNTIME_MANDATORY = {
-    # setuptools is currently required at both install and runtime. At runtime,
-    # setuptools is used to validate that dependencies are available.
+    # setuptools is currently still required at runtime for the deprecated
+    # "setuptools.pkg_resources" subpackage. At runtime, setuptools is used to
+    # validate that dependencies are available.
     'setuptools': '>= ' + SETUPTOOLS_VERSION_MIN,
 
     # Scientific stack. Dismantled, this is:
@@ -107,7 +110,7 @@ RUNTIME_MANDATORY = {
     #   removal of only previously deprecated public attributes and APIs.
     'Numpy':      '>= 2.0.0',
     'Pillow':     '>= 5.3.0',
-    'SciPy':      '>= 0.12.0',
+    'SciPy':      '>= 1.14.0',
     'dill':       '>= 0.2.3',
     'matplotlib': '>= 3.9.0',
 
@@ -341,48 +344,3 @@ See Also
 :download:`/doc/md/INSTALL.md`
     Human-readable list of these dependencies.
 '''
-
-# ....................{ GETTERS                           }....................
-def get_runtime_mandatory_tuple() -> tuple:
-    '''
-    Tuple listing the :mod:`setuptools`-specific requirement string containing
-    the mandatory name and optional version and extras constraints of each
-    mandatory runtime dependency for this application, dynamically converted
-    from the :data:`metadata.RUNTIME_MANDATORY` dictionary.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import setuptool
-
-    # Return this dictionary coerced into a tuple.
-    return setuptool.get_requirements_str_from_dict(RUNTIME_MANDATORY)
-
-
-def get_runtime_optional_tuple() -> tuple:
-    '''
-    Tuple listing the :mod:`setuptools`-specific requirement string containing
-    the mandatory name and optional version and extras constraints of each
-    optional runtime dependency for this application, dynamically converted
-    from the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import setuptool
-
-    # Return this dictionary coerced into a tuple.
-    return setuptool.get_requirements_str_from_dict(RUNTIME_OPTIONAL)
-
-
-def get_testing_mandatory_tuple() -> tuple:
-    '''
-    Tuple listing the :mod:`setuptools`-specific requirement string containing
-    the mandatory name and optional version and extras constraints of each
-    mandatory testing dependency for this application, dynamically converted
-    from the :data:`metadata.RUNTIME_OPTIONAL` dictionary.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import setuptool
-
-    # Return this dictionary coerced into a tuple.
-    return setuptool.get_requirements_str_from_dict(TESTING_MANDATORY)
