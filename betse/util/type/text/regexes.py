@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,7 +7,7 @@
 Low-level **regex** (i.e., Python-compatible regular expression) facilities.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import re
 from betse.exceptions import BetseRegexException
 from betse.util.type.types import (
@@ -24,7 +24,7 @@ from betse.util.type.types import (
     StrOrNoneTypes,
 )
 
-# ....................{ FLAGS                             }....................
+# ....................{ FLAGS                              }....................
 FLAG_MULTILINE = re.MULTILINE
 '''
 When specified, the pattern character:
@@ -41,7 +41,7 @@ By default:
   the newline (if any) at the end of this string.
 '''
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS                         }....................
 @type_check
 def die_unless_match(text: str, regex: RegexTypes, **kwargs) -> str:
     '''
@@ -127,7 +127,7 @@ def die_unless_replace_substrs_line(
         **kwargs
     )
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 def is_match(text: str, regex: RegexTypes, **kwargs) -> bool:
     '''
     ``True`` only if zero or more characters anchored to the beginning of the
@@ -186,7 +186,7 @@ def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
 
     return get_match_line_first_or_none(text, regex, **kwargs) is not None
 
-# ....................{ MATCHERS ~ group : named          }....................
+# ....................{ MATCHERS ~ group : named           }....................
 def get_match_groups_named(
     text: str, regex: RegexTypes, **kwargs) -> MappingType:
     '''
@@ -244,7 +244,7 @@ def get_match_groups_named(
 
     return get_match(text, regex, **kwargs).groupdict()
 
-# ....................{ MATCHERS ~ group : number         }....................
+# ....................{ MATCHERS ~ group : number          }....................
 def get_match_groups_numbered(
     text: str, regex: RegexTypes, **kwargs) -> SequenceTypes:
     '''
@@ -327,7 +327,7 @@ def get_match_groups_numbered_or_none(
     match = get_match_or_none(text, regex, **kwargs)
     return match.groups() if match is not None else None
 
-# ....................{ MATCHERS ~ group : number : index }....................
+# ....................{ MATCHERS ~ group : number : index  }....................
 @type_check
 def get_match_group_first(
     text: str, regex: RegexTypes, **kwargs) -> str:
@@ -424,7 +424,7 @@ def get_match_group_first_or_none(
     match = get_match_or_none(text, regex, **kwargs)
     return match.group(1) if match is not None else None
 
-# ....................{ MATCHERS ~ full : first           }....................
+# ....................{ MATCHERS ~ full : first            }....................
 def get_match_full_first_or_none(
     text: str, regex: RegexTypes, **kwargs) -> SequenceOrNoneTypes:
     '''
@@ -463,7 +463,7 @@ def get_match_full_first_or_none(
     match = get_match_or_none(text, regex, **kwargs)
     return match.group(0) if match is not None else None
 
-# ....................{ MATCHERS ~ obj                    }....................
+# ....................{ MATCHERS ~ obj                     }....................
 def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
     '''
     Match object obtained by matching zero or more characters anchored to the
@@ -560,7 +560,7 @@ def get_match_or_none(
     # Return the only object matching this string against this expression.
     return re.match(regex, text, **kwargs)
 
-# ....................{ MATCHERS ~ obj : first            }....................
+# ....................{ MATCHERS ~ obj : first             }....................
 @type_check
 def get_match_first_or_none(
     text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
@@ -606,7 +606,7 @@ def get_match_first_or_none(
     # Return the first object matching this string against this expression.
     return re.search(regex, text, **kwargs)
 
-# ....................{ MATCHERS ~ obj : line : first     }....................
+# ....................{ MATCHERS ~ obj : line : first      }....................
 @type_check
 def get_match_line_first_or_none(
     text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
@@ -659,7 +659,7 @@ def get_match_line_first_or_none(
     # Return the first object matching this string against this expression.
     return re.search(regex, text, **kwargs)
 
-# ....................{ ITERATORS                         }....................
+# ....................{ ITERATORS                          }....................
 @type_check
 def iter_matches(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     '''
@@ -759,7 +759,7 @@ def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     # Return this generator.
     return re.finditer(regex, text, **kwargs)
 
-# ....................{ REMOVERS                          }....................
+# ....................{ REMOVERS                           }....................
 def remove_substrs(text: str, regex: RegexTypes, **kwargs) -> str:
     '''
     Remove all substrings in the passed string matching the passed regular
@@ -789,7 +789,7 @@ def remove_substrs(text: str, regex: RegexTypes, **kwargs) -> str:
 
     return replace_substrs(text=text, regex=regex, replacement='', **kwargs)
 
-# ....................{ REPLACERS                         }....................
+# ....................{ REPLACERS                          }....................
 @type_check
 def replace_substrs(
     text: str,
@@ -848,7 +848,7 @@ def replace_substrs(
     # Substitute, if you please.
     return re.sub(regex, replacement, text, **kwargs)
 
-# ....................{ REPLACERS : line                  }....................
+# ....................{ REPLACERS : line                   }....................
 @type_check
 def replace_substrs_line(
     text: str,
@@ -910,7 +910,7 @@ def replace_substrs_line(
     # Substitute, if you please.
     return re.sub(regex, replacement, text, **kwargs)
 
-# ....................{ COMPILERS                         }....................
+# ....................{ COMPILERS                          }....................
 @type_check
 def compile_regex(regex: str, **kwargs) -> RegexCompiledType:
     '''
@@ -925,7 +925,7 @@ def compile_regex(regex: str, **kwargs) -> RegexCompiledType:
     function.
 
     Returns
-    ----------
+    -------
     RegexCompiledType
         This compiled regular expression.
     '''
@@ -933,7 +933,7 @@ def compile_regex(regex: str, **kwargs) -> RegexCompiledType:
     # Return this regular expression compiled.
     return re.compile(regex, **kwargs)
 
-# ....................{ SUBSTITUTERS                      }....................
+# ....................{ SUBSTITUTERS                       }....................
 @type_check
 def _init_kwargs_flags_nonline(regex: RegexTypes, kwargs: MappingType) -> None:
     '''

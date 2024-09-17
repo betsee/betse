@@ -8,6 +8,26 @@ Unit tests for the :mod:`betse.util.math.mathoper` submodule.
 '''
 
 # ....................{ TESTS                              }....................
+def test_det1d() -> None:
+    '''
+    Unit test the :func:`betse.util.math.mathoper.det1d` function.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.util.math.mathoper import det1d
+    from numpy import asarray
+
+    # Two-dimensional input arrays.
+    arr1 = asarray([1, 2])
+    arr2 = asarray([4, 5])
+
+    # One-dimensional cross product of these arrays.
+    determinant = det1d(arr1, arr2)
+
+    # Assert this cross product is as expected.
+    assert determinant == -3
+
+
 def test_cross2d() -> None:
     '''
     Unit test the :func:`betse.util.math.mathoper.cross2d` function.

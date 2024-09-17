@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,31 +7,30 @@
 Low-level :mod:`matplotlib`-specific figure functionality.
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To allow matplotlib defaults (e.g., backend, logging) to be replaced
 # with application-specific preferences, the unsafe "matplotlib.pyplot"
 # submodule must *NOT* be imported here at the top-level.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, MatplotlibFigureType
 
-# ....................{ EXCEPTIONS                        }....................
-def die_unless_figure() -> bool:
+# ....................{ EXCEPTIONS                         }....................
+def die_unless_figure() -> None:
     '''
-    Raise an exception
-    ``True`` only if one or more figures are currently open with the
+    Raise an exception if *no* figures are currently open with the
     :mod:`matplotlib.pyplot` GCF API.
 
     Raises
-    -----------
+    ------
     BetseMatplotlibException
         If no figures are currently open with this API.
 
     See Also
-    -----------
+    --------
     :func:`is_figure`
         Further details.
     '''
@@ -39,7 +38,7 @@ def die_unless_figure() -> bool:
     if not is_figure():
         raise BetseMatplotlibException('No matplotlib figures currently open.')
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 def is_figure() -> bool:
     '''
     ``True`` only if one or more figures are currently open with the
@@ -54,7 +53,7 @@ def is_figure() -> bool:
     # currently open figures. Welcome to Matplotlib Hell, where all is well.
     return bool(pyplot.get_fignums())
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 def get_figure_current() -> MatplotlibFigureType:
     '''
     Figure most recently opened with the :mod:`matplotlib.pyplot` GCF API.
@@ -72,7 +71,7 @@ def get_figure_current() -> MatplotlibFigureType:
     # Three-letter acronyms do *NOT* constitute a human-readable API.
     return pyplot.gcf()
 
-# ....................{ CLOSERS                           }....................
+# ....................{ CLOSERS                            }....................
 @type_check
 def close_figure(figure: MatplotlibFigureType) -> None:
     '''

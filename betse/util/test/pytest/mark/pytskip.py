@@ -222,7 +222,8 @@ def skip_if_requirement(*requirements_str: str):
 
     # Defer heavyweight imports.
     from betse.exceptions import BetseLibException
-    from betse.lib.setuptools import setuptool
+    from betse.lib.libs import die_unless_runtime_optional
+    # from betse.lib.setuptools import setuptool
     from betse.util.type.text.string import strjoin
 
     # Human-readable message justifying the skipping of this test or fixture.
@@ -232,7 +233,8 @@ def skip_if_requirement(*requirements_str: str):
     # Skip this test if one or more such dependences are satisfiable.
     return _skip_unless_callable_raises_exception(
         exception_type=BetseLibException,
-        func=setuptool.die_unless_requirements_str,
+        func=die_unless_runtime_optional,
+        # func=setuptool.die_unless_requirements_str,
         args=requirements_str,
         reason=reason,
     )
@@ -260,12 +262,14 @@ def skip_unless_requirement(*requirements_str: str):
 
     # Defer heavyweight imports.
     from betse.exceptions import BetseLibException
-    from betse.lib.setuptools import setuptool
+    from betse.lib.libs import die_unless_runtime_optional
+    # from betse.lib.setuptools import setuptool
 
     # Skip this test if one or more such dependences are unsatisfiable.
     return _skip_if_callable_raises_exception(
         exception_type=BetseLibException,
-        func=setuptool.die_unless_requirements_str,
+        func=die_unless_runtime_optional,
+        # func=setuptool.die_unless_requirements_str,
         args=requirements_str,
     )
 

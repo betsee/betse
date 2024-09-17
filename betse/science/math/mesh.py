@@ -23,7 +23,7 @@ from betse.util.math.geometry.polygon.geopoly import (
     is_convex, is_cyclic_quad, orient_counterclockwise,)
 from betse.util.math.geometry.polygon.geopolyconvex import (
     clip_counterclockwise)
-from betse.util.math.mathoper import cross2d
+from betse.util.math.mathoper import det1d
 from numpy import array, ndarray
 from scipy.spatial import cKDTree, Delaunay
 
@@ -924,9 +924,12 @@ class DECMesh(object):
         # Finally, go through and calculate mids, len, and tangents of tri_edges, and prepare a mapping between
         # each vertices and edges:
         for ei, (vi, vj) in enumerate(vor_edges):
-            # get coordinates associated with each edge
+            # Coordinates associated with each edge, each defined as a
+            # 1-dimensional array of only 2 numbers.
             vpi = self.vor_verts[vi]
             vpj = self.vor_verts[vj]
+            # print(f'vpi: {repr(vpi)}')
+            # print(f'vpj: {repr(vpj)}')
 
             tan_v = vpj - vpi
 
@@ -962,10 +965,16 @@ class DECMesh(object):
         self.vor_edge_len = vor_edge_len[map_vedge_to_tedge]
         self.vor_tang = vor_tang[map_vedge_to_tedge]
 
-        # Finally, need to correct the orientation of the voronoi edges to make them all 90 degree
-        # rotations of the tri mesh:
+        # Finally, need to correct the orientation of the voronoi edges to make
+        # them all 90 degree rotations of the tri mesh:
         for ei, (vti, tti) in enumerate(zip(self.vor_tang, self.tri_tang)):
-            sign = np.sign(cross2d(tti, vti))
+            # print(f'ei: {repr(ei)}')
+            # print(f'tti: {repr(tti)}')
+            # print(f'vti: {repr(vti)}')
+            # print(f'vor_tang: {repr(vor_tang)}')
+            # print(f'vor_tang (mapped): {repr(self.vor_tang)}')
+            # print(f'tri_tang (mapped): {repr(self.tri_tang)}')
+            sign = np.sign(det1d(tti, vti))
 
             if sign == 1.0:
                 self.vor_tang[ei] = -vti

@@ -25,12 +25,12 @@ encapsulated by the :data:`VersionTypes` tuple, these are:
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type.types import (
-    type_check, VersionSetuptoolsTypes, VersionTypes)
-from setuptools import pkg_resources
+from beartype.typing import Tuple
+from betse.exceptions import BetseVersionException
+from betse.util.type.decorator.decmemo import func_cached
+from betse.util.type.types import RegexCompiledType, VersionTypes
 
 # ....................{ TESTERS ~ greater                  }....................
-@type_check
 def is_greater_than(version_1: VersionTypes, version_2: VersionTypes) -> bool:
     '''
     ``True`` only if the first passed version is strictly greater than the
@@ -44,24 +44,23 @@ def is_greater_than(version_1: VersionTypes, version_2: VersionTypes) -> bool:
         Second version (e.g., ``1.0.2``, ``(1, 0, 2)``) to be tested.
 
     Returns
-    ----------
+    -------
     bool
         ``True`` only if the first version is greater than the second version.
 
     Raises
-    ----------
-    pkg_resources.packaging.version.InvalidVersion
+    ------
+    BetseVersionException
         If either version is *not* `PEP 440-compliant`_.
 
     .. _PEP 440-compliant:
        https://www.python.org/dev/peps/pep-0440
     '''
 
-    # Nothing is hard. Everything is easy
+    # Nothing is hard. Everything is easy.
     return to_comparable(version_1) > to_comparable(version_2)
 
 
-@type_check
 def is_greater_than_or_equal_to(
     version_1: VersionTypes, version_2: VersionTypes) -> bool:
     '''
@@ -76,14 +75,14 @@ def is_greater_than_or_equal_to(
         Second version (e.g., ``1.0.2``, ``(1, 0, 2)``) to be tested.
 
     Returns
-    ----------
+    -------
     bool
         ``True`` only if the first version is greater than or equal to the
         second version.
 
     Raises
-    ----------
-    pkg_resources.packaging.version.InvalidVersion
+    ------
+    BetseVersionException
         If either version is *not* `PEP 440-compliant`_.
 
     .. _PEP 440-compliant:
@@ -93,8 +92,7 @@ def is_greater_than_or_equal_to(
     # Nothing is easy, until it is.
     return to_comparable(version_1) >= to_comparable(version_2)
 
-# ....................{ TESTERS ~ less                    }....................
-@type_check
+# ....................{ TESTERS ~ less                     }....................
 def is_less_than(version_1: VersionTypes, version_2: VersionTypes) -> bool:
     '''
     ``True`` only if the first passed version is strictly less than the second
@@ -108,13 +106,13 @@ def is_less_than(version_1: VersionTypes, version_2: VersionTypes) -> bool:
         Second version (e.g., ``1.0.2``, ``(1, 0, 2)``) to be tested.
 
     Returns
-    ----------
+    -------
     bool
         ``True`` only if the second version is less than the first version.
 
     Raises
-    ----------
-    pkg_resources.packaging.version.InvalidVersion
+    ------
+    BetseVersionException
         If either version is *not* `PEP 440-compliant`_.
 
     .. _PEP 440-compliant:
@@ -125,7 +123,6 @@ def is_less_than(version_1: VersionTypes, version_2: VersionTypes) -> bool:
     return to_comparable(version_1) < to_comparable(version_2)
 
 
-@type_check
 def is_less_than_or_equal_to(
     version_1: VersionTypes, version_2: VersionTypes) -> bool:
     '''
@@ -140,14 +137,14 @@ def is_less_than_or_equal_to(
         Second version (e.g., ``1.0.2``, ``(1, 0, 2)``) to be tested.
 
     Returns
-    ----------
+    -------
     bool
         ``True`` only if the second version is less than or equal to the first
         version.
 
     Raises
-    ----------
-    pkg_resources.packaging.version.InvalidVersion
+    ------
+    BetseVersionException
         If either version is *not* `PEP 440-compliant`_.
 
     .. _PEP 440-compliant:
@@ -157,9 +154,8 @@ def is_less_than_or_equal_to(
     # Everything is easy, until it isn't.
     return to_comparable(version_1) <= to_comparable(version_2)
 
-# ....................{ CONVERTERS                        }....................
-@type_check
-def to_comparable(version: VersionTypes) -> VersionSetuptoolsTypes:
+# ....................{ CONVERTERS                         }....................
+def to_comparable(version: VersionTypes) -> Tuple[int, ...]:
     '''
     Passed version converted into a **comparable version type** (i.e., type
     suitable for use both as parameters to callables accepting arbitrary
@@ -193,7 +189,7 @@ def to_comparable(version: VersionTypes) -> VersionSetuptoolsTypes:
       :class:`VersionSetuptoolsTypes` is returned as is.
 
     Caveats
-    ----------
+    -------
     The version returned by this function is *only* safely comparable with
     versions of the same type. In particular, the
     :class:`VersionSetuptoolsTypes` type does *not* necessarily support direct
@@ -207,33 +203,34 @@ def to_comparable(version: VersionTypes) -> VersionSetuptoolsTypes:
         Version (e.g., ``2.0.1``, ``(2, 0, 1)``) to be converted.
 
     Returns
-    ----------
+    -------
     VersionSetuptoolsTypes
         :mod:`setuptools`-specific version converted from this version.
 
     Raises
-    ----------
-    pkg_resources.packaging.version.InvalidVersion
+    ------
+    BetseVersionException
         If this version is *not* `PEP 440-compliant`_.
 
     .. _PEP 440-compliant:
        https://www.python.org/dev/peps/pep-0440
 
     Examples
-    ----------
-    >>> from betse.util.type.numeric import versions
-    >>> versions.to_comparable('2.4.14.2.1.356.23')
-    Version('2.4.14.2.1.356.23')
-    >>> versions.to_comparable((2, 4, 14, 2, 1, 356, 23))
-    (2, 4, 14, 2, 1, 356, 23)
+    --------
+    .. code-block:: python
+
+       >>> from betse.util.type.numeric import versions
+       >>> versions.to_comparable('2.4.14.2.1.356.23')
+       Version('2.4.14.2.1.356.23')
+       >>> versions.to_comparable((2, 4, 14, 2, 1, 356, 23))
+       (2, 4, 14, 2, 1, 356, 23)
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.text.string import strjoin, strs
+    from betse.util.type.text.regexes import replace_substrs
 
     # Note that there are *MANY* approaches for converting strings into
     # comparable versions, including:
-    #
     # * The packaging.version.parse() function, whose API resembles that of
     #   setuptools called below. In theory, the "packaging" package *SHOULD* be
     #   a setuptools dependency and hence always importable wherever the
@@ -242,43 +239,94 @@ def to_comparable(version: VersionTypes) -> VersionSetuptoolsTypes:
     # * The "distutils.version.LooseVersion" class, whose API resembles that of
     #   setuptools called below. However, whereas the latter API is PEP
     #   440-conformant, the former API is not.
-    #
-    # Note also that the pkg_resources.parse_version() function called below
-    # *ONLY* accepts string parameters under older (and possibly current)
-    # setuptools versions. In particular, passing version tuples raises an
-    # exception resembling:
-    #
-    #     >>> pkg_resources.parse_version((1, 2, 3))
-    #     TypeError: expected string or bytes-like object
-    #
-    # Setuptools. It's actually good for something. Sort of. Who knew?
-    #
-    # If this is a tuple-formatted version, convert this tuple into a
-    # string-formatted version first. Why? Because older (and possibly current)
-    # implementations of the pkg_resources.parse_version() explicitly raise
-    # exceptions when passed parameters of type other than "str". *MEGASIGH*
-    if isinstance(version, tuple):
-        # Tuple-formatted version such that each item is guaranteed to be a
-        # string rather than an integer, as required for joining these items
-        # together into a composite string-formatted version.
-        version_str_tuple = tuple(
-            str(version_part) for version_part in version)
+    # * The setuptools.pkg_resources.parse_version() function previously called
+    #   below. As "setuptools" has since deprecated "pkg_resources", however,
+    #   deferring to that function is no longer a reasonable proposition.
 
-        # String-formatted version converted from this tuple.
-        version = strjoin.join_on_dot(version_str_tuple)
-
-    # This version *MUST* now be either a string or setuptools object.
-    #
     # If this is a string-formatted version...
     if isinstance(version, str):
-        # Globally replace all "~" with "-" characters in this version. See the
-        # function docstring. (Synopsis: PySide2 versioning is insane.)
-        version = strs.replace_substrs(
-            text=version, substr='~', replacement='-')
+        # Compiled regular expression matching all invalid delimiters (e.g.,
+        # "a", "b", "rc") in "."-delimited version specifiers.
+        VERSION_INVALID_DELIMITER_REGEX = _get_version_invalid_delimiter_regex()
 
-        # Convert this string into a setuptools-specific version.
-        return pkg_resources.parse_version(version)
-    # Else, this *MUST* by definition be a setuptools-specific version. In
-    # this case, return this version as is.
-    else:
-        return version
+        # Sanitized version, replacing each invalid delimiter in this
+        # unsanitized version with the valid delimiter ".".
+        version_sanitized = replace_substrs(
+            text=version,
+            regex=VERSION_INVALID_DELIMITER_REGEX,
+            replacement='.',
+        )
+
+        # List of one or more string-formatted version components split from
+        # this sanitized version on "." delimiters. Note that this behaves as
+        # expected when this version contains *NO* "." delimiters.
+        version_sanitized_list = version_sanitized.split('.')
+
+        # Attempt to...
+        try:
+            # Tuple of one or more integer-formatted version components, coerced
+            # from this list of strings.
+            version = tuple(
+                int(version_item)
+                for version_item in version_sanitized_list
+            )
+        except Exception as exception:
+            raise BetseVersionException(
+                f'PEP 440 version {repr(version)} invalid '
+                f'(i.e., contains one or more characters that are neither '
+                f'integers nor "." delimiters).'
+            ) from exception
+    # Else, this is *NOT* a string-formatted version.
+    #
+    # In either case, this is now a tuple-formatted version.
+    assert isinstance(version, tuple), f'{repr(version)} not version tuple.'
+
+    # If one or more items of this tuple are *NOT* integers, this tuple does
+    # *NOT* actually signify a valid version. In this case, raise an exception.
+    if not all(
+        isinstance(version_item, int)
+        for version_item in version
+    ):
+        raise BetseVersionException(
+            f'PEP 440 version {repr(version)} invalid '
+            f'(i.e., contains one or more characters that are neither '
+            f'integers nor "." delimiters).'
+        )
+    # Else, all items of this tuple are integers, implying that this tuple
+    # signifies a valid version.
+
+    # Return this tuple-formatted version as is.
+    return version
+
+# ....................{ PRIVATE ~ getters                  }....................
+@func_cached
+def _get_version_invalid_delimiter_regex() -> RegexCompiledType:
+    '''
+    Compiled regular expression matching all **invalid delimiters** in
+    ``"."``-delimited version specifiers.
+
+    Invalid delimiters typically denote pre-release "sub-versions," including
+    such substrings as:
+
+    * The ``"a"`` in ``"149.0a5"``.
+    * The ``"b"`` in ``"1.3.0b0"``.
+    * The ``"rc"`` in ``"0.19.0rc1"``.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.text.regexes import compile_regex
+
+    # Create, return, and cache this expression.
+    return compile_regex(
+        r'(?:'
+        # Dismantled, this is:
+        # * "a", a single character signifying an alpha pre-release.
+        # * "b", a single character signifying a beta pre-release.
+        # * "~", a PySide2-specific delimiter intended to signify a "-". Look.
+        #   Don't ask. Just accept that the real world is a nasty place.
+        # * "-", a non-standard delimiter in some version specifiers.
+        r'[ab~-]|'
+        # Release candidate pre-release suffix.
+        r'rc'
+        r')'
+    )

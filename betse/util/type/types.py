@@ -41,7 +41,6 @@ from collections.abc import (
 from enum import Enum, EnumMeta
 from io import IOBase
 from inspect import Parameter, Signature
-from setuptools import pkg_resources
 from weakref import ref, CallableProxyType, ProxyType, WeakMethod
 
 # Import the following types as is into the namespace of this submodule,
@@ -469,22 +468,7 @@ See Also
 '''
 
 # ....................{ TUPLES ~ version                   }....................
-VersionSetuptoolsTypes = (
-    # PEP 440-compliant version type.
-    pkg_resources.packaging.version.Version,
-
-    #FIXME: Deprecated and likely removed by the time you read this.
-    # PEP 440-uncompliant version type.
-    # pkg_resources.packaging.version.LegacyVersion,
-)
-'''
-Tuple of all :mod:`setuptools`-specific version types (i.e., types instantiated
-and returned by the stable :func:`pkg_resources.parse_version` function bundled
-with :mod:`setuptools`).
-'''
-
-
-VersionComparableTypes = (tuple,) + VersionSetuptoolsTypes
+VersionComparableTypes = (tuple,)
 '''
 Tuple of all **comparable version types** (i.e., types suitable for use both as
 parameters to callables accepting arbitrary version specifiers *and* as
@@ -497,7 +481,7 @@ conversion to a comparable version type (e.g., by calling the
 :func:`betse.util.type.numeric.version.to_comparable` function).
 
 Caveats
-----------
+-------
 Note that all types listed by this tuple are *only* safely comparable with
 versions of the same type. In particular, the :class:`VersionSetuptoolsTypes`
 type does *not* necessarily support direct comparison with either the
@@ -814,13 +798,6 @@ Tuple of all callable classes *and* the type of the ``None`` singleton.
 ClassOrNoneTypes = (ClassType, NoneType)
 '''
 Tuple of the type of all types *and* that of the ``None`` singleton.
-'''
-
-
-DistributionOrNoneTypes = (pkg_resources.Distribution, NoneType)
-'''
-Tuple of the type of all :mod:`setuptools`-specific package metadata objects
-*and* that of the ``None`` singleton.
 '''
 
 

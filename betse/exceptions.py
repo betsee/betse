@@ -203,6 +203,15 @@ class BetsePyDotException(BetseLibException):
     pass
 
 
+class BetseVersionException(BetseLibException):
+    '''
+    Version specifier-specific exception applicable to third-party dependency.
+    versions.
+    '''
+
+    pass
+
+
 class BetseYamlException(BetseException):
     '''
     Yet Another Markup Language (YAML)-specific exception.

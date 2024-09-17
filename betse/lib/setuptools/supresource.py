@@ -108,7 +108,7 @@ def get_pathname(module_name: (str, Requirement), pathname: str) -> str:
         :func:`os.path.join`).
 
     Returns
-    ----------
+    -------
     str
         Absolute path of this resource.
     '''

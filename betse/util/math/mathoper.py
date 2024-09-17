@@ -10,9 +10,53 @@ SciPy themselves).
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type.typehints import NDArrayNdim1, NDArrayNdim2
+from betse.util.type.typehints import (
+    NDArrayNdim1,
+    NDArrayNdim1Size2,
+    NDArrayNdim2,
+)
+from numbers import Number
 
-# ....................{ INTERPOLATORS                      }....................
+# ....................{ OPERATIONS ~ 1d                    }....................
+def det1d(arr1: NDArrayNdim1Size2, arr2: NDArrayNdim1Size2) -> Number:
+    '''
+    Scalar determinant of two one-dimensional input **2-arrays** (i.e., arrays
+    containing exactly two numbers each).
+
+    This function literally computes the following one-liner:
+
+    .. code-block:: pycon
+
+       >>> import numpy as np
+       >>> arr1 = np.asarray([1, 2])
+       >>> arr2 = np.asarray([4, 5])
+       >>> det1d = arr1[0] * arr2[1] - arr1[1] * arr2[0]
+       >>> det1d
+       -3
+
+    Caveats
+    -------
+    This function is often (but *not* always) called in lieu of the official
+    :func:`numpy.linalg.det` function, which requires that both of the passed
+    2-arrays be congealed into a single two-dimensional input array. Weird!
+
+    Parameters
+    ----------
+    arr1: NDArrayNdim2
+        First 1-dimensional input 2-array to take the determinant of.
+    arr2: NDArrayNdim2
+        Second 1-dimensional input 2-array to take the determinant of.
+
+    Returns
+    -------
+    Number
+        Scalar determinant of these one-dimensional input 2-arrays.
+    '''
+
+    # Return us up the one-liner for great justice!
+    return arr1[0] * arr2[1] - arr1[1] * arr2[0]
+
+# ....................{ OPERATIONS ~ 2d                    }....................
 def cross2d(arr1: NDArrayNdim2, arr2: NDArrayNdim2) -> NDArrayNdim1:
     '''
     One-dimensional cross product of two two-dimensional input arrays.
@@ -50,4 +94,5 @@ def cross2d(arr1: NDArrayNdim2, arr2: NDArrayNdim2) -> NDArrayNdim1:
         One-dimensional cross product of these two-dimensional input arrays.
     '''
 
+    # Return us up the one-liner bomb.
     return arr1[..., 0] * arr2[..., 1] - arr1[..., 1] * arr2[..., 0]

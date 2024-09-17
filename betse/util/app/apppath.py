@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,8 +9,8 @@ application, regardless of the package manager used to install that application
 on the local filesystem) hierarchy.
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from modules guaranteed to exist at the start of
 # installation. This includes all standard Python and application modules but
@@ -18,12 +18,12 @@ on the local filesystem) hierarchy.
 # installed at some later time in the installation. Likewise, to avoid circular
 # import dependencies, the top-level of this module should avoid importing
 # application modules where feasible.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # from betse.util.io.log import logs
 from betse.util.type.types import type_check, ModuleOrStrTypes
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 @type_check
 def get_pathname(package: ModuleOrStrTypes, pathname: str) -> str:
     '''
@@ -87,7 +87,7 @@ def get_pathname(package: ModuleOrStrTypes, pathname: str) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.lib.setuptools import supresource
+    # from betse.lib.setuptools import supresource
     from betse.util.path import pathnames, paths
     from betse.util.py import pyfreeze
     from betse.util.py.module import pymodule
@@ -98,8 +98,8 @@ def get_pathname(package: ModuleOrStrTypes, pathname: str) -> str:
     # If this pathname is absolute rather than relative, raise an exception.
     pathnames.die_if_absolute(pathname)
 
-    # Name of this package.
-    package_name = pymodule.get_name_qualified(package)
+    # # Name of this package.
+    # package_name = pymodule.get_name_qualified(package)
 
     # If this application is frozen by PyInstaller, canonicalize this path
     # relative to the directory to which this application is unfrozen.
@@ -111,12 +111,15 @@ def get_pathname(package: ModuleOrStrTypes, pathname: str) -> str:
         #this can be generalized. If this cannot be generalized, then some
         #other means will be needed to achieve the same or a similar effect.
         app_pathname = pathnames.join(app_frozen_dirname, pathname)
-    # Else if this application is a setuptools-installed script wrapper,
-    # canonicalize this path by deferring to the setuptools resource API.
-    elif supresource.is_dir(
-        module_name=package_name, dirname=pathname):
-        app_pathname = supresource.get_pathname(
-            module_name=package_name, pathname=pathname)
+    #FIXME: It's unclear exactly what the Hatch-specific equivalent to a
+    #setuptools-specific "resource" is or even if there *IS* an equivalent. For
+    #now, let's deprecate all "supresource" usage entirely. *sigh*
+    # # Else if this application is a setuptools-installed script wrapper,
+    # # canonicalize this path by deferring to the setuptools resource API.
+    # elif supresource.is_dir(
+    #     module_name=package_name, dirname=pathname):
+    #     app_pathname = supresource.get_pathname(
+    #         module_name=package_name, pathname=pathname)
     # Else, the current application is either a setuptools-symlinked script
     # wrapper *OR* was invoked via the secretive "python3 -m betse"
     # command. In either case, this directory's path is directly obtainable
