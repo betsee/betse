@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,14 +8,13 @@ Top-level abstract base class of all **subcommandable command line interface
 (CLI)** (i.e., CLI accepting one or more subcommands) subclasses.
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
 # top-level of this module may import *ONLY* from submodules guaranteed to:
 # * Exist, including standard Python and application modules.
 # * Never raise exceptions on importation (e.g., due to module-level logic).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 from betse.util.cli.cliabc import CLIABC
 from betse.util.cli.clicmd import CLISubcommander, CLISubcommandParent
 from betse.util.py import pyident
@@ -24,7 +23,7 @@ from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.obj import objects
 from betse.util.type.types import type_check, ArgParserType
 
-# ....................{ SUBCLASS                          }....................
+# ....................{ SUBCLASS                           }....................
 class CLISubcommandableABC(CLIABC):
     '''
     Top-level abstract base class of all **subcommandable command line
@@ -36,7 +35,7 @@ class CLISubcommandableABC(CLIABC):
     subcommands should directly subclass this rather than that superclass.
     '''
 
-    # ..................{ SUBCLASS ~ properties             }..................
+    # ..................{ SUBCLASS ~ properties              }..................
     # The following properties *MUST* be implemented by subclasses.
 
     @abstractproperty
@@ -55,7 +54,7 @@ class CLISubcommandableABC(CLIABC):
 
         pass
 
-    # ..................{ SUPERCLASS ~ properties           }..................
+    # ..................{ SUPERCLASS ~ properties            }..................
     @property_cached
     def _help_epilog(self) -> str:
 
@@ -77,13 +76,13 @@ subcommand. For example, for help with the "{subcommand_name}" subcommand, run:
 ;    {{script_basename}} {subcommand_name} --help
 '''.format(subcommand_name=subcommands[0].name)
 
-    # ..................{ SUPERCLASS ~ args                 }..................
+    # ..................{ SUPERCLASS ~ args                  }..................
     def _config_arg_parsing(self) -> None:
 
         # Container of all top-level argument subparsers for this application.
         self._subcommander_top.add(cli=self, arg_parser=self._arg_parser_top)
 
-    # ..................{ SUPERCLASS ~ cli                  }..................
+    # ..................{ SUPERCLASS ~ cli                   }..................
     def _do(self) -> object:
         '''
         Implement this command-line interface (CLI).

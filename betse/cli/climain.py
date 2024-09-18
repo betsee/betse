@@ -288,11 +288,7 @@ from input files defined by this configuration.
         cliinfo.log_header()
 
     # ..................{ PROPERTIES                         }..................
-    #FIXME: For unknown reasons, caching this property currently induces
-    #*EXTREME* failure across the entire codebase. Let us quietly pretend this
-    #isn't happening, friends of BETSE. *sigh*
     @property_cached
-    # @property
     def _sim_runner(self) -> 'betse.science.simrunner.SimRunner':
         '''
         Simulation runner running simulation subcommands on the YAML-formatted

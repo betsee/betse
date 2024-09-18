@@ -157,7 +157,7 @@ def iter_linked_filenames(filename: str) -> GeneratorType:
     if linux.is_linux():
         # String listing all libraries linked to by this library captured from
         # stdout printed by this command. For example, when passed the absolute
-        # path of the file defining the "numpy.core.multiarray" C extension,
+        # path of the file defining the "numpy._core.multiarray" C extension,
         # this command prints stdout resembling:
         #
         # multiarray.cpython-34.so:

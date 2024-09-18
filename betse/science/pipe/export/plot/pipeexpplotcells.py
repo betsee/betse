@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,7 +8,7 @@
 simulated data of all cells in the cell cluster).
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.config.export.visual.confexpvisplot import (
     SimConfExportPlotCells)
@@ -26,7 +26,7 @@ from collections import OrderedDict
 from matplotlib import pyplot
 from matplotlib.collections import LineCollection, PolyCollection
 
-# ....................{ SUBCLASSES                        }....................
+# ....................{ SUBCLASSES                         }....................
 class SimPipeExportPlotCells(SimPipeExportPlotABC):
     '''
     **Post-simulation cell cluster plot pipeline** (i.e., object iteratively
@@ -35,17 +35,17 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
     simulation configuration).
     '''
 
-    # ..................{ SUPERCLASS ~ properties           }..................
+    # ..................{ SUPERCLASS ~ properties            }..................
     @classproperty_readonly
     def _NOUN_SINGULAR(cls) -> str:
         return 'cell cluster plot'
 
-    # ..................{ SUPERCLASS                        }..................
+    # ..................{ SUPERCLASS                         }..................
     @type_check
     def iter_runners_conf(self, phase: SimPhase) -> SequenceTypes:
         return phase.p.plot.plots_cells_after_sim
 
-    # ..................{ EXPORTERS ~ channel               }..................
+    # ..................{ EXPORTERS ~ channel                }..................
     # @piperunner(
     #     categories=('Ion Channel', 'Density Factor',),
     #     requirements={phasereqs.ELECTROOSMOSIS,},
@@ -72,7 +72,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
     #     # Export this plot to disk and/or display.
     #     self._export(basename='final_channels_2D')
 
-    # ..................{ EXPORTERS ~ cluster               }..................
+    # ..................{ EXPORTERS ~ cluster                }..................
     # This exporter is solver- and feature-agnostic.
 
     @piperunner(categories=('Cell Cluster', 'Mask',))
@@ -101,7 +101,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='cluster_mask')
 
-    # ..................{ EXPORTERS ~ cluster : tissue      }..................
+    # ..................{ EXPORTERS ~ cluster : tissue       }..................
     # This exporter is solver- and feature-agnostic.
     @piperunner(categories=('Cell Cluster', 'Tissue and Cut Profiles',))
     def export_tissue_cuts(
@@ -255,7 +255,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='cluster_mosaic')
 
-    # ..................{ EXPORTERS ~ current               }..................
+    # ..................{ EXPORTERS ~ current                }..................
     @piperunner(
         categories=('Current Density', 'Intracellular',),
         requirements=phasereqs.ELECTRIC_CURRENT,
@@ -327,7 +327,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='Final_Current_extracellular')
 
-    # ..................{ EXPORTERS ~ deform                }..................
+    # ..................{ EXPORTERS ~ deform                 }..................
     @piperunner(
         categories=('Deformation', 'Total',),
         requirements=phasereqs.DEFORM,
@@ -359,7 +359,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='final_displacement_2D')
 
-    # ..................{ EXPORTERS ~ diffusion             }..................
+    # ..................{ EXPORTERS ~ diffusion              }..................
     @piperunner(
         categories=('Diffusion Weights', 'Extracellular',),
         requirements=phasereqs.ECM,
@@ -396,7 +396,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='env_diffusion_weights')
 
-    # ..................{ EXPORTERS ~ electric              }..................
+    # ..................{ EXPORTERS ~ electric               }..................
     @piperunner(
         categories=('Electric Field', 'Intracellular',),
         requirements=phasereqs.ELECTRIC_FIELD,
@@ -458,7 +458,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='Final_Electric_Field_ECM')
 
-    # ..................{ EXPORTERS ~ fluid                 }..................
+    # ..................{ EXPORTERS ~ fluid                  }..................
     @piperunner(
         categories=('Fluid Flow', 'Intracellular',),
         requirements=phasereqs.FLUID,
@@ -518,7 +518,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='final_vel_2D_env')
 
-    # ..................{ EXPORTERS ~ ion : calcium         }..................
+    # ..................{ EXPORTERS ~ ion : calcium          }..................
     @piperunner(
         categories=('Ion Concentration', 'Calcium', 'Intracellular',),
         requirements=phasereqs.ION_CALCIUM,
@@ -582,7 +582,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='Final_environmental_calcium')
 
-    # ..................{ EXPORTERS ~ gap junction          }..................
+    # ..................{ EXPORTERS ~ gap junction           }..................
     # These exporters are solver- and feature-agnostic.
 
     @piperunner(categories=('Gap Junction', 'Connectivity Network',))
@@ -661,7 +661,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='final_gjState')
 
-    # # ..................{ EXPORTERS ~ microtubule           }..................
+    # # ..................{ EXPORTERS ~ microtubule          }..................
     #FIXME: Restore after proper support for microtubules is implemented.
     # @piperunner(
     #     categories=('Microtubule', 'Coherence',),
@@ -716,7 +716,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
     #     # Export this plot to disk and/or display.
     #     self._export(phase=phase, basename='Final_Microtubules')
 
-    # ..................{ EXPORTERS ~ pump                  }..................
+    # ..................{ EXPORTERS ~ pump                   }..................
     # @piperunner(
     #     categories=('Ion Pump', 'Density Factor',),
     #     requirements={phasereqs.ELECTROOSMOSIS,},
@@ -773,7 +773,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='final_NaKPump_2D')
 
-    # ..................{ EXPORTERS ~ pressure              }..................
+    # ..................{ EXPORTERS ~ pressure               }..................
     @piperunner(
         categories=('Pressure', 'Total',),
         requirements=phasereqs.PRESSURE_TOTAL,
@@ -807,7 +807,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='final_P_2D_gj')
 
-    # ..................{ EXPORTERS ~ voltage               }..................
+    # ..................{ EXPORTERS ~ voltage                }..................
     @piperunner(
         categories=('Voltage', 'Extracellular',),
         requirements=phasereqs.VOLTAGE_EXTRA,
@@ -889,7 +889,7 @@ class SimPipeExportPlotCells(SimPipeExportPlotABC):
         # Export this plot to disk and/or display.
         self._export(phase=phase, basename='Final_Polarity')
 
-    # ..................{ EXPORTERS ~ voltage : vmem        }..................
+    # ..................{ EXPORTERS ~ voltage : vmem         }..................
     @piperunner(categories=('Voltage', 'Transmembrane', 'Actual',))
     def export_voltage_membrane(
         self, phase: SimPhase, conf: SimConfExportPlotCells) -> None:

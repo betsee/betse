@@ -255,118 +255,135 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
         return fig, ax, ax_cb
 
 
-def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = True, clrMin = None, clrMax = None,
-    clrmap = None, number_cells=False, current_overlay = False,plotIecm=False):
-        """
-        Assigns color-data to each polygon in a cell cluster diagram and
-        returns a plot instance (fig, axes).
+def plotPolyData(
+    sim,
+    cells,
+    p,
+    fig = None,
+    ax = None,
+    zdata = None,
+    clrAutoscale: bool = True,
+    clrMin = None,
+    clrMax = None,
+    clrmap = None,
+    number_cells: bool = False,
+    current_overlay: bool = False,
+    plotIecm: bool =False,
+):
+    """
+    Assigns color-data to each polygon in a cell cluster diagram and returns a
+    plot instance (fig, axes).
 
-        Parameters
-        ----------
-        cells : Cells
-            Data structure holding all world information about cell geometry.
-        zdata : optional[numpy.ndarray]
-            A data array with each scalar entry corresponding to a cell's data
-            value (for instance, concentration or voltage). If zdata is not
-            supplied, the cells will be plotted with a uniform color; if zdata
-            is the string `random`, a random data set will be created and
-            plotted.
-        clrAutoscale : optional[bool]
-            If `True`, the colorbar is autoscaled to the max and min of zdata.
-        clrMin : optional[float]
-            Set the colorbar to a user-specified minimum value.
-        clrMax : optional[float]
-            Set the colorbar to a user-specified maximum value.
-        clrmap : optional[matplotlib.cm]
-            The colormap to use for plotting. Must be specified as cm.mapname.
-            A list of available mapnames is supplied at:
-            http://matplotlib.org/examples/color/colormaps_reference.html
+    Parameters
+    ----------
+    cells : Cells
+        Data structure holding all world information about cell geometry.
+    zdata : optional[numpy.ndarray]
+        A data array with each scalar entry corresponding to a cell's data
+        value (for instance, concentration or voltage). If zdata is not
+        supplied, the cells will be plotted with a uniform color; if zdata
+        is the string `random`, a random data set will be created and
+        plotted.
+    clrAutoscale : optional[bool]
+        If `True`, the colorbar is autoscaled to the max and min of zdata.
+    clrMin : optional[float]
+        Set the colorbar to a user-specified minimum value.
+    clrMax : optional[float]
+        Set the colorbar to a user-specified maximum value.
+    clrmap : optional[matplotlib.cm]
+        The colormap to use for plotting. Must be specified as cm.mapname.
+        A list of available mapnames is supplied at:
+        http://matplotlib.org/examples/color/colormaps_reference.html
 
-        Returns
-        -------
-        fig, ax
-            Matplotlib figure and axes instances for the plot.
+    Returns
+    -------
+    fig, ax
+        Matplotlib figure and axes instances for the plot.
 
-        Notes
-        -------
-        This method Uses `matplotlib.collections.PolyCollection`,
-        `matplotlib.cm`, `matplotlib.pyplot`, and numpy arrays and hence is
-        computationally slow. Avoid calling this method for large collectives
-        (e.g., larger than 500 x 500 um).
-        """
+    Notes
+    -------
+    This method Uses `matplotlib.collections.PolyCollection`,
+    `matplotlib.cm`, `matplotlib.pyplot`, and numpy arrays and hence is
+    computationally slow. Avoid calling this method for large collectives
+    (e.g., larger than 500 x 500 um).
+    """
 
-        if fig is None:
-            fig = plt.figure()# define the figure and axes instances
-        if ax is None:
-            ax = plt.subplot(111)
-            #ax = plt.axes()
+    if fig is None:
+        fig = plt.figure()# define the figure and axes instances
+    if ax is None:
+        ax = plt.subplot(111)
+        #ax = plt.axes()
 
-        if zdata is None:  # if user doesn't supply data
-            z = np.ones(len(cells.cell_verts)) # create flat data for plotting
+    if zdata is None:  # if user doesn't supply data
+        z = np.ones(len(cells.cell_verts)) # create flat data for plotting
 
-        #FIXME: This is a bit cumbersome. Ideally, a new "is_zdata_random"
-        #boolean parameter defaulting to "False" should be tested, instead.
-        #Whack-a-mole with a big-fat-pole!
+    #FIXME: This is a bit cumbersome. Ideally, a new "is_zdata_random"
+    #boolean parameter defaulting to "False" should be tested, instead.
+    #Whack-a-mole with a big-fat-pole!
 
-        # If random data is requested, do so. To avoid erroneous and expensive
-        # elementwise comparisons when "zdata" is neither None nor a string,
-        # "zdata" must be guaranteed to be a string *BEFORE* testing this
-        # parameter as a string. Numpy prints scary warnings otherwise: e.g.,
-        #
-        #     FutureWarning: elementwise comparison failed; returning scalar
-        #     instead, but in the future will perform elementwise comparison
-        elif isinstance(zdata, str) and zdata == 'random':
-            z = np.random.random(len(cells.cell_verts)) # create some random data for plotting
-        else:
-            z = zdata
+    # If random data is requested, do so. To avoid erroneous and expensive
+    # elementwise comparisons when "zdata" is neither None nor a string,
+    # "zdata" must be guaranteed to be a string *BEFORE* testing this
+    # parameter as a string. Numpy prints scary warnings otherwise: e.g.,
+    #
+    #     FutureWarning: elementwise comparison failed; returning scalar
+    #     instead, but in the future will perform elementwise comparison
+    elif isinstance(zdata, str) and zdata == 'random':
+        z = np.random.random(len(cells.cell_verts)) # create some random data for plotting
+    else:
+        z = zdata
 
-        # Make the polygon collection and add it to the plot.
-        if clrmap is None:
-            #clrmap = p.default_cm
-            clrmap = cm.rainbow
+    # Make the polygon collection and add it to the plot.
+    if clrmap is None:
+        #clrmap = p.default_cm
+        clrmap = cm.rainbow
 
-        if p.showCells is True:
-            coll, ax = cell_mosaic(z,ax,cells,p,p.default_cm)
-        else:
-            coll, ax = cell_mesh(z,ax,cells,p,p.default_cm)
+    if p.showCells:
+        # print(f'????   ax type: {type(ax)}????')
+        # print(f'????cells type: {type(cells)}????')
+        coll, ax = cell_mosaic(
+            data=z, ax=ax, cells=cells, p=p, clrmap=p.default_cm)
+    else:
+        coll, ax = cell_mesh(
+            z, ax, cells, p, p.default_cm)
 
-        # points = np.multiply(cells.cell_verts, p.um)
-        #
-        # coll = PolyCollection(points, array=z, cmap=clrmap, edgecolors='none')
-        # ax.add_collection(coll)
-        ax.axis('equal')
+    # points = np.multiply(cells.cell_verts, p.um)
+    #
+    # coll = PolyCollection(points, array=z, cmap=clrmap, edgecolors='none')
+    # ax.add_collection(coll)
+    ax.axis('equal')
 
-        # Add a colorbar for the PolyCollection
+    # Add a colorbar for the PolyCollection
 
-        if zdata is not None and clrAutoscale is True:
-            maxval = np.max(zdata,axis=0)
-            minval = np.min(zdata,axis=0)
+    if zdata is not None and clrAutoscale is True:
+        maxval = np.max(zdata,axis=0)
+        minval = np.min(zdata,axis=0)
 
-            coll.set_clim(minval,maxval)
-            ax_cb = fig.colorbar(coll,ax=ax)
+        coll.set_clim(minval,maxval)
+        ax_cb = fig.colorbar(coll,ax=ax)
 
-        elif clrAutoscale is False and zdata is not None:
-            coll.set_clim(clrMin,clrMax)
-            ax_cb = fig.colorbar(coll,ax=ax)
+    elif clrAutoscale is False and zdata is not None:
+        coll.set_clim(clrMin,clrMax)
+        ax_cb = fig.colorbar(coll,ax=ax)
 
-        elif zdata is None:
-            ax_cb = None
+    elif zdata is None:
+        ax_cb = None
 
-        if number_cells is True:
-            for i,cll in enumerate(cells.cell_centres):
-                ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
+    if number_cells is True:
+        for i,cll in enumerate(cells.cell_centres):
+            ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
-        if current_overlay is True:
-            streams, ax = I_overlay(sim,cells,p,ax,plotIecm)
+    if current_overlay is True:
+        streams, ax = I_overlay(sim,cells,p,ax,plotIecm)
 
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
+    xmin = cells.xmin*p.um
+    xmax = cells.xmax*p.um
+    ymin = cells.ymin*p.um
+    ymax = cells.ymax*p.um
 
-        ax.axis([xmin,xmax,ymin,ymax])
+    ax.axis([xmin,xmax,ymin,ymax])
 
-        return fig,ax,ax_cb
+    return fig,ax,ax_cb
 
 
 def plotPrettyPolyData(data, sim, cells, p, fig=None, ax=None, clrAutoscale = True, clrMin = None, clrMax = None,
@@ -1374,10 +1391,7 @@ def env_mesh(data, ax, cells, p, clrmap, ignore_showCells=False):
 
 def cell_mosaic(
     data,
-    # ax,
-    #FIXME: This matplotlib class is dynamically unimportable by @beartype for
-    #some reason. *shrug*
-    # ax: 'matplotlib.axes.Axes',
+    ax: 'matplotlib.axes._axes.Axes',
     cells: 'betse.science.cells.Cells',
     p: 'betse.science.parameters.Parameters',
     clrmap: 'matplotlib.colors.Colormap',

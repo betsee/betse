@@ -670,7 +670,7 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     # absolute paths of the libraries it links against. Since there exists no
     # reliable means of reverse engineering these paths from this API, these
     # paths must be obtained by another means: specifically, by querying the
-    # standard "numpy.core.multiarray" C extension installed under all supported
+    # standard "numpy._core.multiarray" C extension installed under all supported
     # Numpy for the absolute paths of all external shared libraries to which
     # this extension links -- exactly one of which is guaranteed to be the
     # absolute path of what appears to be a reference BLAS or CBLAS
@@ -747,26 +747,26 @@ def get_c_extension_name_qualified() -> str:
     Specifically, this function returns either:
 
     * If this is Numpy >= 1.16.0, the newly unified
-      :mod:`numpy.core._multiarray_umath` C extension. To quote a comment
-      heading the pure-Python :mod:`numpy.core.multiarray` submodule in recent
+      :mod:`numpy._core._multiarray_umath` C extension. To quote a comment
+      heading the pure-Python :mod:`numpy._core.multiarray` submodule in recent
       versions of Numpy:
 
-          Create the ``numpy.core.multiarray`` namespace for backward
+          Create the ``numpy._core.multiarray`` namespace for backward
           compatibility. In v1.16 the ``multiarray`` and ``umath`` c-extension
           modules were merged into a single ``_multiarray_umath`` extension
           module. So we replicate the old namespace by importing from the
           extension module.
 
-    * Else, the obsoleted :mod:`numpy.core.multiarray` C extension.
+    * Else, the obsoleted :mod:`numpy._core.multiarray` C extension.
     '''
 
     # Return either...
     return (
         # If Numpy >= 1.16.0, this newly unified C extension.
-        'numpy.core._multiarray_umath'
+        'numpy._core._multiarray_umath'
         if versions.is_greater_than_or_equal_to(VERSION, '1.16.0') else
         # Else, Numpy < 1.16.0. In this case, this obsoleted C extension.
-        'numpy.core.multiarray'
+        'numpy._core.multiarray'
     )
 
 # ....................{ GETTERS ~ metadata                 }....................

@@ -16,7 +16,10 @@ Top-level abstract base class of all command line interface (CLI) subclasses.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 import sys
 from abc import ABCMeta, abstractmethod
-from beartype.typing import Optional
+from beartype.typing import (
+    Collection,
+    Optional,
+)
 from betse.util.io.log import logs
 from betse.util.io.log.conf import logconf
 from betse.util.py.pyprofile import profile_callable, ProfileType
@@ -27,7 +30,7 @@ from betse.util.type.types import (
     ArgParserType,
     MappingType,
     SequenceTypes,
-    SequenceOrNoneTypes,
+    # SequenceOrNoneTypes,
 )
 
 # ....................{ SUPERCLASS                         }....................
@@ -122,7 +125,7 @@ class CLIABC(object, metaclass=ABCMeta):
     # This method is effectively the main callable of this entire application.
     # This method is thus defined here rather than below, mostly for emphasis.
     @type_check
-    def run(self, arg_list: SequenceOrNoneTypes = None) -> int:
+    def run(self, arg_list: Collection[str] | None = None) -> int:
         '''
         Run the command-line interface (CLI) defined by this subclass with the
         passed argument list if non-``None`` *or* the external argument list
@@ -131,12 +134,12 @@ class CLIABC(object, metaclass=ABCMeta):
         Parameters
         ----------
         arg_list : optional[SequenceTypes]
-            Sequence of zero or more arguments to pass to this interface.
-            Defaults to ``None``, in which case arguments passed on the command
-            line (i.e., :data:`sys.argv`) are leveraged instead.
+            Collection of zero or more arguments to pass to this interface.
+            Defaults to :data:`None`, in which case arguments passed on the
+            command line (i.e., :data:`sys.argv`) are leveraged instead.
 
         Returns
-        ----------
+        -------
         int
             Exit status of this interface in the range ``[0, 255]``.
         '''

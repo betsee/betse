@@ -44,7 +44,7 @@ def add_representers(representer: object) -> None:
         FutureWarning: comparison to `None` will result in an elementwise
         object comparison in the future.
           if data in [None, ()]:
-        a: !!python/object/apply:numpy.core.multiarray._reconstruct
+        a: !!python/object/apply:numpy._core.multiarray._reconstruct
           args:
           - !!python/name:numpy.ndarray ''
           - !!python/tuple [0]

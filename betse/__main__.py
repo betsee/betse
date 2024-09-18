@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -14,13 +14,14 @@ This submodule is a thin wrapper intended to be:
   ``python -m betse.cli``).
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
+from beartype.typing import Collection
 from betse.appmeta import BetseAppMeta
 from betse.cli.climain import BetseCLI
 from betse.util.os.command import cmdexit
 
-# ....................{ MAIN                              }....................
-def main(arg_list: list = None) -> int:
+# ....................{ MAIN                               }....................
+def main(arg_list: Collection[str] = None) -> int:
     '''
     Run this application's command-line interface (CLI) with the passed
     arguments if non-``None`` *or* with the arguments passed on the command
@@ -31,13 +32,13 @@ def main(arg_list: list = None) -> int:
 
     Parameters
     ----------
-    arg_list : list
-        List of zero or more arguments to pass to this interface. Defaults to
-        ``None``, in which case arguments passed on the command line (i.e.,
-        :attr:`sys.argv`) will be used instead.
+    arg_list : Collection[str]
+        Collection of zero or more string arguments to pass to this interface.
+        Defaults to :data:`None`, in which case arguments passed on the command
+        line (i.e., :attr:`sys.argv`) will be used instead.
 
     Returns
-    ----------
+    -------
     int
         Exit status of this interface and hence this process as an unsigned
         byte (i.e., integer in the range ``[0, 255]``).

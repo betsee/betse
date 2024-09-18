@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -19,13 +19,13 @@ See Also
     Related submodule whose functions accept only fully-qualified names.
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory
 # dependencies, the top-level of this module may import *ONLY* from packages
 # guaranteed to exist at installation time -- which typically means *ONLY*
 # BETSE packages and stock Python packages.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse.exceptions import BetseModuleException
 from betse.util.io.log import logs
@@ -39,7 +39,7 @@ from betse.util.type.types import (
 )
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS                         }....................
 @type_check
 def die_if_builtin(module: ModuleOrStrTypes) -> None:
     '''
@@ -74,7 +74,7 @@ def die_if_builtin(module: ModuleOrStrTypes) -> None:
             '(i.e., "{0}.__file__" undefined).'.format(
                 get_name_qualified(module)))
 
-# ....................{ EXCEPTIONS ~ name                 }....................
+# ....................{ EXCEPTIONS ~ name                  }....................
 @type_check
 def die_unless_topmost(module: ModuleOrStrTypes) -> None:
     '''
@@ -103,7 +103,7 @@ def die_unless_topmost(module: ModuleOrStrTypes) -> None:
             '(i.e., contains one or more "." delimiters).'.format(
                 get_name_qualified(module)))
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 @type_check
 def is_module(obj: object) -> bool:
     '''
@@ -141,7 +141,7 @@ def is_builtin(module: ModuleOrStrTypes) -> bool:
     # attribute, required to be defined by all modules *EXCEPT* builtins.
     return not hasattr(module, '__file__')
 
-# ....................{ TESTERS ~ c                       }....................
+# ....................{ TESTERS ~ c                        }....................
 @type_check
 def is_c(module: ModuleOrStrTypes) -> bool:
     '''
@@ -158,12 +158,12 @@ def is_c(module: ModuleOrStrTypes) -> bool:
         * A previously imported module object.
 
     Returns
-    ----------
+    -------
     bool
         ``True`` only if this module is implemented in C.
 
     See Also
-    ----------
+    --------
     :func:`is_builtin`
     :func:`is_c_extension`
         Further details.
@@ -188,7 +188,7 @@ def is_c_extension(module: ModuleOrStrTypes) -> bool:
         * A previously imported module object.
 
     Returns
-    ----------
+    -------
     bool
         ``True`` only if this module is a C extension.
     '''
@@ -227,7 +227,7 @@ def is_c_extension(module: ModuleOrStrTypes) -> bool:
     # C extension specific to the current platform.
     return module_filetype in EXTENSION_SUFFIXES
 
-# ....................{ TESTERS : name                    }....................
+# ....................{ TESTERS : name                     }....................
 @type_check
 def is_topmost(module: ModuleOrStrTypes) -> bool:
     '''
@@ -255,7 +255,7 @@ def is_topmost(module: ModuleOrStrTypes) -> bool:
     # Return true only if this name contains no "." delimiters.
     return '.' not in module_name
 
-# ....................{ GETTERS ~ attr : global           }....................
+# ....................{ GETTERS ~ attr : global            }....................
 #FIXME: Rename this getter to iter_global_names() for orthogonality with
 #similar iterators in the "betse.util.type.obj.objiter" submodule.
 @type_check
@@ -300,7 +300,7 @@ def get_global_names(module: ModuleOrStrTypes) -> SetType:
         )
     }
 
-# ....................{ GETTERS ~ name                    }....................
+# ....................{ GETTERS ~ name                     }....................
 @type_check
 def get_name_qualified(module: ModuleOrStrTypes) -> str:
     '''
@@ -331,7 +331,7 @@ def get_name_qualified(module: ModuleOrStrTypes) -> str:
     # Who let the one-liners out?
     return module.__name__
 
-# ....................{ GETTERS ~ path                    }....................
+# ....................{ GETTERS ~ path                     }....................
 @type_check
 def get_filename(module: ModuleOrStrTypes) -> str:
     '''
@@ -390,7 +390,7 @@ def get_filename(module: ModuleOrStrTypes) -> str:
     # Return this attribute's value.
     return module.__file__
 
-# ....................{ GETTERS ~ path : dir              }....................
+# ....................{ GETTERS ~ path : dir               }....................
 @type_check
 def get_dirname(module: ModuleOrStrTypes) -> str:
     '''
@@ -453,7 +453,7 @@ def get_dirname_canonical(module: ModuleOrStrTypes) -> str:
     # Return this dirname canonicalized.
     return pathnames.canonicalize(get_dirname(module))
 
-# ....................{ GETTERS ~ version                 }....................
+# ....................{ GETTERS ~ version                  }....................
 @type_check
 def get_version(module: ModuleOrStrTypes) -> str:
     '''
@@ -519,7 +519,7 @@ def get_version_or_none(module: ModuleOrStrTypes) -> StrOrNoneTypes:
     # Return this version.
     return module_version
 
-# ....................{ RESOLVERS                         }....................
+# ....................{ RESOLVERS                          }....................
 @type_check
 def resolve_module(module: ModuleOrStrTypes) -> ModuleType:
     '''
@@ -542,7 +542,7 @@ def resolve_module(module: ModuleOrStrTypes) -> ModuleType:
         * A previously imported module object.
 
     Returns
-    ----------
+    -------
     ModuleType
         Module object resolved from the passed parameter.
     '''

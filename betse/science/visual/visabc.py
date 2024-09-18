@@ -7,6 +7,7 @@
 Abstract base classes of all Matplotlib-based plot and animation subclasses.
 '''
 
+# ....................{ TODO                               }....................
 #FIXME: Visuals currently exhibit extremely non-ideal behaviour, including:
 #
 #* Repeated display of OS-level notifications resembling '"Figure 1" is ready'.
@@ -68,7 +69,7 @@ from matplotlib.image import AxesImage
 from matplotlib.patches import FancyArrowPatch
 from matplotlib.streamplot import StreamplotSet
 
-# ....................{ SUPERCLASSES                      }....................
+# ....................{ SUPERCLASSES                       }....................
 class VisualCellsABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **cell cluster visual** (i.e., plot or animation
@@ -155,7 +156,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         currently being plotted.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
@@ -173,7 +174,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         axes_x_label: str = 'Spatial Distance [um]',
         axes_y_label: str = 'Spatial Distance [um]',
         colorbar_title: StrOrNoneTypes = None,
-        colormap: (Colormap, NoneType) = None,
+        colormap: Colormap | None = None,
 
         #FIXME: Refactor this to be mandatory instead.
         layers: SequenceOrNoneTypes = None,
@@ -283,7 +284,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Initialize this plot's figure *AFTER* defining all attributes.
         self._init_figure()
 
-    # ..................{ INITIALIZERS ~ figure             }..................
+    # ..................{ INITIALIZERS ~ figure              }..................
     def _init_figure(self) -> None:
         '''
         Initialize this plot's figure.
@@ -372,7 +373,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Reinitialize these axes.
         self._init_figure_axes()
 
-    # ..................{ PREPARERS ~ figure                }..................
+    # ..................{ PREPARERS ~ figure                 }..................
     #FIXME: This method should no longer accept any parameters. All parameters
     #currently accepted by this method are obsolete and hence remain
     #undocumented. They should *ALL* be removed as soon as feasible.
@@ -391,7 +392,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         if 'color_data' in kwargs:
             self._prep_colors_obsolete(*args, **kwargs)
 
-    # ..................{ DEINITIALIZERS                    }..................
+    # ..................{ DEINITIALIZERS                     }..................
     def close(self) -> None:
         '''
         Deallocate all resources associated with this visual.
@@ -470,7 +471,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Explicitly garbage collect.
         # gc.collect()
 
-    # ..................{ PROPERTIES ~ read-only            }..................
+    # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from resetting these attributes.
 
     @property
@@ -501,7 +502,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         return self._kind
 
-    # ..................{ PROPERTIES ~ read-only : mpl      }..................
+    # ..................{ PROPERTIES ~ read-only : mpl       }..................
     @property
     def figure(self) -> Figure:
         '''
@@ -523,13 +524,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         return self._axes
 
-    # ..................{ PROPERTIES ~ read-only : color    }..................
+    # ..................{ PROPERTIES ~ read-only : color     }..................
     #FIXME: Obsolete. Remove after adopting layers everywhere.
     @property
-    def color_min(self) -> float:
+    def color_min(self) -> float | None:
         '''
-        Minimum color value displayed on this visual's colorbar if
-        this .
+        Minimum color value displayed on this visual's colorbar if this colorbar
+        is *not* autoscaling colors *or* :data:`None` otherwise (i.e., if this
+        colorbar is autoscaling colors).
         '''
 
         return self._color_min
@@ -537,9 +539,11 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
     #FIXME: Obsolete. Remove after adopting layers everywhere.
     @property
-    def color_max(self) -> float:
+    def color_max(self) -> float | None:
         '''
-        Maximum color value displayed on this visual's colorbar.
+        Maximum color value displayed on this visual's colorbar if this colorbar
+        is *not* autoscaling colors *or* :data:`None` otherwise (i.e., if this
+        colorbar is autoscaling colors).
         '''
 
         return self._color_max
@@ -547,16 +551,21 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
     #FIXME: Obsolete. Remove after adopting layers everywhere.
     @property
-    def colormap(self) -> Colormap:
+    def colormap(self) -> Colormap | None:
         '''
-        Matplotlib colormap, mapping all numeric data for one modelled variable
-        for this cell cluster into color values displayed on this plot or
-        animation's colorbar.
+        Non-default matplotlib colormap if the external caller previously passed
+        such a colormap via the optional ``colormap`` parameter to the
+        :meth:`.__init__` method at visualization instantiation time *or*
+        :data:`None` otherwise.
+
+        This colormap maps all numeric data for one modelled variable for this
+        cell cluster into color values displayed on this plot or animation's
+        colorbar.
         '''
 
         return self._colormap
 
-    # ..................{ MAKERS                            }..................
+    # ..................{ MAKERS                             }..................
     @type_check
     def make_colorbar(self, color_mappable: ScalarMappable) -> None:
         '''
@@ -577,7 +586,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         colorbar = self._figure.colorbar(color_mappable)
         colorbar.set_label(self._colorbar_title)
 
-    # ..................{ LAYERS                            }..................
+    # ..................{ LAYERS                             }..................
     @type_check
     def _append_layer(self, *layers: LayerCellsABC) -> None:
         '''
@@ -645,7 +654,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         for layer in self._layers:
             layer.layer()
 
-    # ..................{ COLORS                            }..................
+    # ..................{ COLORS                             }..................
     #FIXME: All methods in this subsection including this method are obsolete.
     #Remove after adopting layers everywhere. All other "FIXME:" comments below
     #are now ignorable, as this functionality should all go away.
@@ -830,7 +839,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             # Clip this mappable to the minimum and maximum colormap values.
             color_mappable.set_clim(self._color_min, self._color_max)
 
-    # ..................{ PLOTTERS                          }..................
+    # ..................{ PLOTTERS                           }..................
     #FIXME: For generality, rename this method to visualize_time_step().
     #FIXME: For "PlotAfterSolving"-style plots, the first frame is uselessly
     #plotted twice. Investigate up this insanity, please. We might consider
@@ -1081,7 +1090,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
                 'Finalizing animation "%s" saving...', self._kind)
             self._close_writers()
 
-    # ..................{ SUBCLASS                          }..................
+    # ..................{ SUBCLASS                           }..................
     def _plot_frame_figure(self) -> None:
         '''
         Update this visual's figure (and typically axes) content to reflect the
@@ -1094,7 +1103,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         pass
 
-    # ..................{ PLOTTERS ~ image                  }..................
+    # ..................{ PLOTTERS ~ image                   }..................
     #FIXME: Merge the useful docstring for this method into the
     #"betse.science.visual.layer.field.layerfieldsurface.LayerCellsFieldSurface"
     #class; then, excise this method.
