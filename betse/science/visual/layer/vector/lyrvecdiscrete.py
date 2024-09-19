@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -190,7 +191,7 @@ class LayerCellsVectorDiscreteMembranesDeformed(
     # cell by recalling _layer_first_color_mappables() each time step. To ensure
     # that these meshes are properly associated with the existing colorbar, the
     # _layer_next_color_mappables() rather than _layer_next() method is defined.
-    def _layer_next_color_mappables(self) -> None:
+    def _layer_next_color_mappables(self) -> IterableTypes:
 
         #FIXME: Submit a matplotlib issue concerning this, please.
         # Manually remove all triangulation meshes plotted for the prior time

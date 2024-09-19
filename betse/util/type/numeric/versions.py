@@ -29,6 +29,7 @@ from beartype.typing import Tuple
 from betse.exceptions import BetseVersionException
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import RegexCompiledType, VersionTypes
+from collections.abc import Collection as CollectionABC
 
 # ....................{ TESTERS ~ greater                  }....................
 def is_greater_than(version_1: VersionTypes, version_2: VersionTypes) -> bool:
@@ -226,9 +227,16 @@ def to_comparable(version: VersionTypes) -> Tuple[int, ...]:
        (2, 4, 14, 2, 1, 356, 23)
     '''
 
+    # ....................{ IMPORTS                        }....................
     # Avoid circular import dependencies.
     from betse.util.type.text.regexes import replace_substrs
 
+    # ....................{ LOCALS                         }....................
+    # Version passed to this function, preserved for subsequent embedding in
+    # human-readable exception messages.
+    version_old = version
+
+    # ....................{ STRING                         }....................
     # Note that there are *MANY* approaches for converting strings into
     # comparable versions, including:
     # * The packaging.version.parse() function, whose API resembles that of
@@ -260,40 +268,22 @@ def to_comparable(version: VersionTypes) -> Tuple[int, ...]:
         # List of one or more string-formatted version components split from
         # this sanitized version on "." delimiters. Note that this behaves as
         # expected when this version contains *NO* "." delimiters.
-        version_sanitized_list = version_sanitized.split('.')
+        version = version_sanitized.split('.')
+    assert isinstance(version, CollectionABC), (
+        f'{repr(version)} not version collection.')
 
-        # Attempt to...
-        try:
-            # Tuple of one or more integer-formatted version components, coerced
-            # from this list of strings.
-            version = tuple(
-                int(version_item)
-                for version_item in version_sanitized_list
-            )
-        except Exception as exception:
-            raise BetseVersionException(
-                f'PEP 440 version {repr(version)} invalid '
-                f'(i.e., contains one or more characters that are neither '
-                f'integers nor "." delimiters).'
-            ) from exception
-    # Else, this is *NOT* a string-formatted version.
-    #
-    # In either case, this is now a tuple-formatted version.
-    assert isinstance(version, tuple), f'{repr(version)} not version tuple.'
-
-    # If one or more items of this tuple are *NOT* integers, this tuple does
-    # *NOT* actually signify a valid version. In this case, raise an exception.
-    if not all(
-        isinstance(version_item, int)
-        for version_item in version
-    ):
+    # ....................{ TUPLE                          }....................
+    # Attempt to coerce this collection of possibly non-integer objects (e.g.,
+    # string-formatted version components) into a tuple of one or more
+    # integer-formatted version components.
+    try:
+        version = tuple(int(version_item) for version_item in version)
+    except Exception as exception:
         raise BetseVersionException(
-            f'PEP 440 version {repr(version)} invalid '
+            f'PEP 440 version {repr(version_old)} invalid '
             f'(i.e., contains one or more characters that are neither '
             f'integers nor "." delimiters).'
-        )
-    # Else, all items of this tuple are integers, implying that this tuple
-    # signifies a valid version.
+        ) from exception
 
     # Return this tuple-formatted version as is.
     return version
@@ -318,6 +308,7 @@ def _get_version_invalid_delimiter_regex() -> RegexCompiledType:
 
     # Create, return, and cache this expression.
     return compile_regex(
+        # One or more instances of an invalid delimiter, defined as...
         r'(?:'
         # Dismantled, this is:
         # * "a", a single character signifying an alpha pre-release.
@@ -328,5 +319,5 @@ def _get_version_invalid_delimiter_regex() -> RegexCompiledType:
         r'[ab~-]|'
         # Release candidate pre-release suffix.
         r'rc'
-        r')'
+        r')+'
     )

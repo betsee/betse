@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -12,14 +12,11 @@ sane dependency resolution *and* because of the inability of the
 submodule to maintain adequate (or, *any*) backward compatibility guarantees.
 '''
 
-# ....................{ IMPORTS                           }....................
-# import pytest
-
-# ....................{ TESTS ~ base 10                   }....................
+# ....................{ TESTS                              }....................
 def test_version_comparators() -> None:
     '''
-    Unit test the incestous family of
-    ``betse.util.type.numeric.version.is_*_than*`` comparators (e.g.,
+    Unit test the family of ``betse.util.type.numeric.version.is_*_than*``
+    comparators (e.g.,
     :func:`betse.util.type.numeric.version.is_less_than_or_equal_to`).
     '''
 
@@ -46,7 +43,6 @@ def test_version_converters() -> None:
     # notably, pre-release (i.e., "alpha candidate") version numbers for the
     # PySide2 dependency required by the BETSEE downstream consumer. For
     # unknown reasons:
-    #
     # * These numbers are suffixed by "~"-prefixed labels violating PEP 440
     #   compliance. The pkg_resources package underlying this converter creates
     #   and returns a unique class of objects to represent such versions.
