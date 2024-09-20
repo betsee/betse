@@ -16,8 +16,6 @@ This submodule is a thin wrapper intended to be:
 
 # ....................{ IMPORTS                            }....................
 from beartype.typing import Collection
-from betse.appmeta import BetseAppMeta
-from betse.cli.climain import BetseCLI
 from betse.util.os.command import cmdexit
 
 # ....................{ MAIN                               }....................
@@ -43,6 +41,10 @@ def main(arg_list: Collection[str] = None) -> int:
         Exit status of this interface and hence this process as an unsigned
         byte (i.e., integer in the range ``[0, 255]``).
     '''
+
+    # Defer function-specific imports.
+    from betse.appmeta import BetseAppMeta
+    from betse.cli.climain import BetseCLI
 
     # Initialize this application (excluding mandatory dependencies of this
     # application, which will be initialized later in the startup process) by

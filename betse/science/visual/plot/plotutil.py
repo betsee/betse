@@ -1391,7 +1391,10 @@ def env_mesh(data, ax, cells, p, clrmap, ignore_showCells=False):
 
 def cell_mosaic(
     data,
-    ax: 'matplotlib.axes._axes.Axes',
+    #FIXME: This matplotlib class is dynamically unimportable by @beartype for
+    #some reason -- probably a circular import dependency. *shrug*
+    # ax: 'matplotlib.axes._axes.Axes',
+    ax,
     cells: 'betse.science.cells.Cells',
     p: 'betse.science.parameters.Parameters',
     clrmap: 'matplotlib.colors.Colormap',

@@ -43,8 +43,6 @@ from betse.science.config.export.visual.confexpvisabc import (
     SimConfVisualCellsABC)
 from betse.science.math import mathunit
 from betse.science.phase.phasecls import SimPhase
-from betse.science.visual.layer.lyrabc import LayerCellsABC
-from betse.science.visual.layer.lyrtext import LayerCellsIndex
 from betse.util.io.log import logs
 from betse.util.py import pyref
 from betse.util.type import types
@@ -588,7 +586,13 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
     # ..................{ LAYERS                             }..................
     @type_check
-    def _append_layer(self, *layers: LayerCellsABC) -> None:
+    def _append_layer(
+        self,
+        #FIXME: This class is dynamically unimportable by @beartype for some
+        #reason -- probably a circular import dependency. *shrug*
+        # *layers: 'betse.science.visual.layer.lyrabc.LayerCellsABC',
+        *layers,
+    ) -> None:
         '''
         Append all passed layers to the current sequence of layers, ensuring
         the subsequently called :meth:`_visualize_layers` method will visualize
@@ -617,6 +621,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # If labelling each cell with its 0-based index, append a layer doing
         # so *AFTER* all lower layers (e.g., cell data) have been appended,
         if self._phase.p.visual.is_show_cell_indices:
+            # Avoid circular import dependencies.
+            from betse.science.visual.layer.lyrtext import LayerCellsIndex
             self._append_layer(LayerCellsIndex())
 
         # For the 0-based index of each layer and layer in the layer sequence

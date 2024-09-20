@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,13 +8,13 @@ High-level **application metadata singleton** (i.e., application-wide object
 synopsizing application metadata via read-only properties).
 '''
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: This subclass must *NOT* be accessed from the top-level "setup.py"
 # script of this or any other application. This application and hence this
 # subclass is *NOT* guaranteed to exist at setuptools-based installation-time
 # for downstream consumers (e.g., BETSEE).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import betse
 from betse import metadata, metadeps
@@ -23,7 +23,7 @@ from betse.util.app.meta.appmetaabc import AppMetaABC
 from betse.util.type.decorator.decmemo import property_cached
 from betse.util.type.types import type_check, ModuleType
 
-# ....................{ SUBCLASSES                        }....................
+# ....................{ SUBCLASSES                         }....................
 class BetseAppMeta(AppMetaABC):
     '''
     **Application metadata singleton** (i.e., application-wide object
@@ -37,16 +37,17 @@ class BetseAppMeta(AppMetaABC):
     for downstream consumers (e.g., BETSEE).
     '''
 
-    # ..................{ SUPERCLASS ~ properties           }..................
+    # ..................{ SUPERCLASS ~ properties            }..................
     @property
     def _module_metadata(self) -> ModuleType:
         return metadata
 
+    #FIXME: *THIS SHOULD NO LONGER BE CALLED ANYWHERE.* Excise, please.
     @property
     def _module_metadeps(self) -> ModuleType:
         return metadeps
 
-    # ..................{ PROPERTIES ~ dir                  }..................
+    # ..................{ PROPERTIES ~ dir                   }..................
     @property_cached
     def betse_data_dirname(self) -> str:
         '''
@@ -106,7 +107,7 @@ class BetseAppMeta(AppMetaABC):
         # Return this dirname if this directory exists or raise an exception.
         return dirs.join_or_die(self.betse_data_dirname, 'yaml')
 
-    # ..................{ PROPERTIES ~ file                 }..................
+    # ..................{ PROPERTIES ~ file                  }..................
     @property_cached
     def betse_sim_conf_default_filename(self) -> str:
         '''
@@ -128,7 +129,7 @@ class BetseAppMeta(AppMetaABC):
         return files.join_or_die(
             self.betse_data_yaml_dirname, 'sim_config.yaml')
 
-    # ..................{ GETTERS                           }..................
+    # ..................{ GETTERS                            }..................
     @type_check
     def get_repl_history_filename(self, repl_module_name: str) -> dict:
         '''

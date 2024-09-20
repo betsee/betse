@@ -130,20 +130,12 @@ jobs:
         #   selecting the Python 3.11 pre-release reduces to:
         #     python-version: "3.11.0-alpha - 3.11.0"
         include:
-          - tox-env: py39-coverage
-            python-version: "3.9"
           - tox-env: py310-coverage
             python-version: "3.10"
           - tox-env: py311-coverage
             python-version: "3.11"
           - tox-env: py312-coverage
             python-version: "3.12"
-          #FIXME: Reduce to simply "3.11" after Python 3.11 goes live.
-          # - tox-env: py311-coverage
-          #   python-version: "3.11.0-alpha - 3.11.0"
-          #FIXME: Uncomment after resolving macOS + PyPy 3.8 installation woes.
-          # - tox-env: pypy38-coverage
-          #   python-version: "pypy-3.8"
           #FIXME: Uncomment after PyPy 3.9 goes live.
           # - tox-env: pypy39-coverage
           #   python-version: "pypy-3.9"

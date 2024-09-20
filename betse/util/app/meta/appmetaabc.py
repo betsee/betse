@@ -352,6 +352,7 @@ class AppMetaABC(object, metaclass=ABCMeta):
         pass
 
 
+    #FIXME: *THIS SHOULD NO LONGER BE CALLED ANYWHERE.* Excise, please.
     @abstractproperty
     def _module_metadeps(self) -> ModuleType:
         '''

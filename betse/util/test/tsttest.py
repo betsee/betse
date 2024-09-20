@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,12 +9,10 @@ tests collectively exercising problematic features of this application)
 facilities.
 '''
 
-# ....................{ IMPORTS                           }....................
-# from betse.util.io.log import logs
-# from betse.util.type.types import type_check
+# ....................{ IMPORTS                            }....................
 from betse.util.type.decorator.decmemo import func_cached
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 @func_cached
 def is_testing() -> bool:
     '''

@@ -106,11 +106,10 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 
@@ -168,7 +167,7 @@ dynamic = ["version"]
 #   "vtk" and thus "pyvista" and thus this package currently *CANNOT* be
 #   installed under Python 3.10 using "pip". See also this unresolved VTK issue:
 #       https://gitlab.kitware.com/vtk/vtk/-/issues/18335
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 # List of all mandatory runtime dependencies.
 dependencies = [
@@ -180,11 +179,11 @@ dependencies = [
     # * Matplotlib 3.6.0, which first deprecated various APIs and then
     #   introduced newer replacements for those APIs (e.g., the new
     #   "matplotlib.colormaps" subpackage).
-    "Numpy >=2.0.0",
-    "Pillow >=5.3.0",
-    "SciPy >=1.14.0",
     "dill >=0.2.3",
     "matplotlib >=3.9.0",
+    "numpy >=2.0.0",
+    "pillow >=5.3.0",
+    "scipy >=1.14.0",
 
     # IO stack. Dismantled, this is:
     # * ruamel.yaml >= 0.15.24, which resolves a long-standing parser issue
@@ -211,8 +210,43 @@ dependencies = [
 # like "pip" and "conda" then permit to be installed via those names).
 [project.optional-dependencies]
 
-# List of all optional runtime dependencies.
-all = [
+# Read The Docs (RTD)-specific documentation-time package dependencies required
+# to automatically build documentation for this project from the third-party RTD
+# hosting service. For consistency, these dependencies are often constrained to
+# build documentation with a single well-tested configuration.
+doc = [
+    # Sphinx itself. Specifically, this project requires:
+    "sphinx",
+]
+
+# Tox-specific test-time dependencies required to test this package via
+# the third-party "tox" command at the command line.
+#
+# Note that:
+# * The "extras" key of the top-level "tox.ini" file explicitly references this
+#   extra.
+# * Failure to list *ALL* optional test-time dependencies here commonly results
+#   in errors from mypy, which raises false positives on parsing import
+#   statements for uninstalled third-party packages (e.g., "import numpy").
+test-tox = [
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # CAUTION: Avoid constraining optional test-time dependencies to version
+    # ranges, which commonly fail for edge-case test environments -- including:
+    # * The oldest Python version still supported by @beartype, which typically
+    #   is *NOT* supported by newer versions of these dependencies.
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    # ....................{ CORE                           }....................
+    # A relatively modern version of pytest is required. Specifically:
+    # * At least version 5.4.0 or newer, which refactored the previously
+    #   defined private _pytest.capture.CaptureManager._getcapture() method
+    #   into the newly defined private _pytest.capture._getmulticapture()
+    #   function, which the "betse.lib.setuptools.command.supcmdtest" submodule
+    #   necessarily monkey-patches at test time to sanitize captured output for
+    #   long-running tests.
+    "pytest >=5.4.0",
+
+    # ....................{ GRAPH                          }....................
     # A relatively modern version of NetworkX *EXCLUDING* 1.11, which critically
     # broke backwards compatibility by coercing use of the unofficial inactive
     # "pydotplus" PyDot fork rather than the official active "pydot" PyDot
@@ -223,29 +257,30 @@ all = [
     "pydot >=1.0.28",
 ]
 
-# List of all mandatory test-time dependencies.
-test = [
-    # For simplicity, pytest should remain the only hard dependency for testing
-    # on local machines. While our testing regime optionally leverages
-    # third-party py.test plugins (e.g., "pytest-xdist"), these plugins are
-    # *NOT* required for simple testing.
-    #
-    # A relatively modern version of pytest is required. Specifically:
-    # * At least version 5.4.0 or newer, which refactored the previously
-    #   defined private _pytest.capture.CaptureManager._getcapture() method
-    #   into the newly defined private _pytest.capture._getmulticapture()
-    #   function, which the "betse.lib.setuptools.command.supcmdtest" submodule
-    #   necessarily monkey-patches at test time to sanitize captured output for
-    #   long-running tests.
-    "pytest >=5.4.0",
-
-    # Mandatory test-time coverage package dependencies (i.e., dependencies
-    # required to measure test coverage for this package).
+# Tox-specific test-time coverage dependencies required to measure test coverage
+# for this package.
+#
+# Note that the "extras" key of the top-level "tox.ini" file explicitly
+# references this extra.
+test-tox-coverage = [
     "coverage >=5.5",
 ]
 
-# List of all mandatory documentation-time dependencies.
-doc = ["sphinx"]
+# Developer-specific test-time dependencies required to test this package via
+# the third-party "pytest" and "tox" commands at the command line.
+test = [
+    # Tox-specific test-time dependencies.
+    "betse[test-tox,test-tox-coverage]",
+
+    # A relatively modern version of "tox" is required. It's probably quite old
+    # by now. I feel depressed just reading comments like this...
+    'tox >=3.20.1',
+]
+
+# Developer-specific dependencies required to develop and contribute pull
+# requests (PRs) for this project. Notably, this includes *ALL* test- and
+# documentation-time dependencies.
+all = ["betse[doc,test]"]
 
 # ....................{ PEP 621 ~ urls                     }....................
 # Table (i.e., dictionary) mapping from the PyPI-recognized name of each
@@ -256,9 +291,8 @@ doc = ["sphinx"]
 # URL of this project's homepage.
 "Homepage" = "https://calculion.streamlit.app"
 
-#FIXME: Replace with a link to more suitable documentation, please.
 # URL of this project's documentation.
-"Documentation" = "https://github.com/betsee/betse/blob/main/README.rst"
+"Documentation" = "https://www.dropbox.com/s/3rsbrjq2ljal8dl/BETSE_Documentation_April10th2019.pdf?dl=0"
 
 # URL of this project's source code repository.
 "Repository" = "https://github.com/betsee/betse"
