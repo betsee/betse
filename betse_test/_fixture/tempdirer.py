@@ -16,7 +16,7 @@ from pytest import fixture
 def betse_temp_dir(
     request: '_pytest.python.FixtureRequest',
     tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
-) -> 'LocalPath':
+) -> 'py._path.local.LocalPath':
     '''
     Per-test fixture creating a temporary directory isolated to the test
     requesting this fixture and returning an object encapsulating this
@@ -45,7 +45,7 @@ def betse_temp_dir(
 
     Returns
     ----------
-    LocalPath
+    py._path.local.LocalPath
         Object encapsulating this temporary directory.
     '''
 

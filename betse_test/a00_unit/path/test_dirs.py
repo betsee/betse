@@ -40,7 +40,8 @@ from betse.util.test.pytest.mark.pytskip import (
 #  number of fractional digits. The above output suggests that HFS+ can reliably
 #  provide at most four fractional digits, for example.
 @skip_if_os_macos()
-def test_dirs_get_mtime_newest(betse_temp_dir: 'LocalPath') -> None:
+def test_dirs_get_mtime_newest(
+    betse_temp_dir: 'py._path.local.LocalPath') -> None:
     '''
     Unit test the :func:`betse.util.path.dirs.get_mtime_recursive_newest` and
     related :func:`betse.util.path.paths.get_mtime_recursive_newest` functions
@@ -48,7 +49,7 @@ def test_dirs_get_mtime_newest(betse_temp_dir: 'LocalPath') -> None:
 
     Parameters
     ----------
-    betse_temp_dir : LocalPath
+    betse_temp_dir : py._path.local.LocalPath
         Object encapsulating a temporary directory isolated to this test.
     '''
 

@@ -17,7 +17,6 @@ Fixture classes encapsulating test-related simulation configurations.
 from abc import ABCMeta
 from betse.util.type.decorator.deccls import abstractproperty
 from betse.util.type.types import type_check
-from py._path.local import LocalPath
 
 # ....................{ SUPERCLASSES                       }....................
 class SimConfTestABC(object, metaclass=ABCMeta):
@@ -121,7 +120,7 @@ class SimConfTestInternal(SimConfTestABC):
         desynchronized from those of this file. For efficiency, callers may
         modify this dictionary to suite test requirements *before*
         reserializing this dictionary back to this file.
-    conf_filepath : LocalPath
+    conf_filepath : py._path.local.LocalPath
         Absolute filename of a temporary simulation configuration file specific
         to the parent fixture as a :class:`py.path.local` instance, defining an
         object-oriented superset of the non-object-oriented :mod:`os.path`
@@ -138,7 +137,7 @@ class SimConfTestInternal(SimConfTestABC):
     def __init__(
         self,
         src_conf_filename: str,
-        trg_conf_filepath: LocalPath,
+        trg_conf_filepath: 'py._path.local.LocalPath',
     ) -> None:
         '''
         Initialize this context by copying the passed source to target
@@ -173,7 +172,7 @@ class SimConfTestInternal(SimConfTestABC):
             Absolute filename of the source simulation configuration file from
             which this method safely copies the passed target simulation
             configuration file to.
-        trg_conf_filepath : LocalPath
+        trg_conf_filepath : py._path.local.LocalPath
             Absolute filename of the target simulation configuration file to
             which this method safely copies both the passed source simulation
             configuration file *and* all external resources (e.g., image files)

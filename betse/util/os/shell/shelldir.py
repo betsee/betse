@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,13 +7,13 @@
 Low-level shell-specific directory facilities.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import os
+from beartype.typing import ContextManager
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, GeneratorType
 from contextlib import contextmanager
 
-# ....................{ GETTERS                           }....................
+# ....................{ GETTERS                            }....................
 def get_cwd_dirname() -> str:
     '''
     **Current working dirname** (i.e., absolute path of the current working
@@ -25,8 +25,7 @@ def get_cwd_dirname() -> str:
 
     return os.getcwd()
 
-# ....................{ SETTERS                           }....................
-@type_check
+# ....................{ SETTERS                            }....................
 def set_cwd(dirname: str) -> None:
     '''
     Set the **current working directory** (CWD) of the active Python process to
@@ -48,10 +47,9 @@ def set_cwd(dirname: str) -> None:
     # Change to this directory.
     os.chdir(dirname)
 
-# ....................{ CONTEXTS                          }....................
+# ....................{ CONTEXTS                           }....................
 @contextmanager
-@type_check
-def setting_cwd(dirname: str) -> GeneratorType:
+def setting_cwd(dirname: str) -> ContextManager:
     '''
     Context manager setting the **current working directory** (CWD) of the
     active Python process to the passed directory for the duration of this

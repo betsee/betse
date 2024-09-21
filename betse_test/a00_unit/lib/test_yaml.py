@@ -9,12 +9,11 @@ Unit tests for the :mod:`betse.lib.yaml` subpackage.
 
 # ....................{ IMPORTS                            }....................
 from betse_test._fixture.simconf.simconfclser import SimConfTestInternal
-from py._path.local import LocalPath
 
 # ....................{ TESTS                              }....................
 def test_yaml_copy(
     betse_sim_conf: SimConfTestInternal,
-    betse_temp_dir: LocalPath,
+    betse_temp_dir: 'py._path.local.LocalPath',
 ) -> None:
     '''
     Test the capacity of the :mod:`betse.lib.yaml.yamls` submodule to reliably
@@ -26,7 +25,7 @@ def test_yaml_copy(
     ----------
     betse_sim_conf : SimConfTestInternal
         Object encapsulating a temporary simulation configuration file.
-    betse_temp_dir : LocalPath
+    betse_temp_dir : py._path.local.LocalPath
         Object encapsulating a temporary directory isolated to this test.
     '''
 

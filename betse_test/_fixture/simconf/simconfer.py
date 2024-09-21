@@ -13,11 +13,11 @@ configurations so as to exercise specific feature sets and edge cases.
 from betse_test._fixture import initter
 from betse_test._fixture.simconf.simconfclser import SimConfTestInternal
 from pytest import fixture
-from py._path.local import LocalPath
 
 # ....................{ FIXTURES ~ default                 }....................
 @fixture
-def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
+def betse_sim_conf_default(
+    betse_temp_dir: 'py._path.local.LocalPath') -> SimConfTestInternal:
     '''
     Per-test fixture creating a temporary default simulation configuration file
     and returning a wrapper around this file.
@@ -33,7 +33,7 @@ def betse_sim_conf_default(betse_temp_dir: LocalPath) -> SimConfTestInternal:
 
     Parameters
     ----------
-    betse_temp_dir : LocalPath
+    betse_temp_dir : py._path.local.LocalPath
         Wrapper around a temporary directory isolated to the current test.
 
     Returns
@@ -132,7 +132,7 @@ def betse_sim_conf(
 # ....................{ FIXTURES ~ compatible              }....................
 @fixture
 def betse_sim_conf_compat(
-    betse_temp_dir: LocalPath) -> SimConfTestInternal:
+    betse_temp_dir: 'py._path.local.LocalPath') -> SimConfTestInternal:
     '''
     Per-test fixture creating and returning a wrapper around a temporary
     simulation configuration file (complete with a pickled seed, initialization,
@@ -149,7 +149,7 @@ def betse_sim_conf_compat(
 
     Parameters
     ----------
-    betse_temp_dir : LocalPath
+    betse_temp_dir : py._path.local.LocalPath
         Wrapper around a temporary directory isolated to the current test.
 
     Returns

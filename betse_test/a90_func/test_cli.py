@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,12 +8,12 @@ CLI-specific functional tests exercising all miscellaneous subcommands (e.g.,
 `betse info`), thus excluding those specific to networks and simulations.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import pytest
 from betse.util.test.pytest.mark.pytskip import (
     skip_unless_lib_runtime_optional)
 
-# ....................{ TESTS                             }....................
+# ....................{ TESTS                              }....................
 def test_cli_no_arg(betse_cli: 'CLITester') -> None:
     '''
     Test the ``betse`` command passed no arguments.
@@ -42,7 +42,7 @@ def test_cli_info(betse_cli: 'CLITester') -> None:
 
 def test_cli_config(
     betse_cli: 'CLITester',
-    betse_temp_dir: 'LocalPath',
+    betse_temp_dir: 'py._path.local.LocalPath',
 ) -> None:
     '''
     Test the ``betse config`` subcommand, creating a configuration in a
@@ -60,7 +60,7 @@ def test_cli_config(
     ----------
     betse_cli : CLITester
         Object encapsulating the BETSE CLI.
-    betse_temp_dir : LocalPath
+    betse_temp_dir : py._path.local.LocalPath
         Object encapsulating a temporary directory isolated to the current
         test.
     '''
@@ -75,7 +75,7 @@ def test_cli_config(
     # Assert this file to have been created.
     assert sim_config_filepath.check(file=1)
 
-# ....................{ TESTS ~ parametrized              }....................
+# ....................{ TESTS ~ parametrized               }....................
 @pytest.mark.parametrize(
     ('profile_type',), (
         # Profile types leveraging stdlib functionality guaranteed to exist.
@@ -89,7 +89,7 @@ def test_cli_config(
 )
 def test_cli_profile(
     betse_cli: 'CLITester',
-    betse_temp_dir: 'LocalPath',
+    betse_temp_dir: 'py._path.local.LocalPath',
     profile_type: str,
 ) -> None:
     '''
@@ -100,7 +100,7 @@ def test_cli_profile(
     ----------
     betse_cli : CLITester
         Object encapsulating the BETSE CLI.
-    betse_temp_dir : LocalPath
+    betse_temp_dir : py._path.local.LocalPath
         Object encapsulating a temporary directory isolated to the current
         test.
     profile_type : str

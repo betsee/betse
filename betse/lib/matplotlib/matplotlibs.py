@@ -54,15 +54,16 @@ Footnote descriptions are as follows:
 
 #FIXME: Consider contributing most or all of this submodule back to matplotlib.
 
-# ....................{ IMPORTS                           }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To allow matplotlib defaults (e.g., backend, logging) to be replaced
 # with application-specific preferences, no matplotlib module may be imported
 # until *AFTER* the MplConfig.init() method has been called -- including here
 # at the top-level.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
+from beartype.typing import ContextManager
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.error import errexception
 from betse.util.io.log import logs
@@ -83,7 +84,7 @@ from betse.util.type.types import (
 from contextlib import contextmanager
 from logging import Logger
 
-# ....................{ GLOBALS ~ str                     }....................
+# ....................{ GLOBALS ~ str                      }....................
 _BACKEND_NAME_HEADLESS = 'Agg'
 '''
 Name of the non-GUI-based matplotlib backend to fallback to in the event that
@@ -92,7 +93,7 @@ this backend is guaranteed to be usable on all platforms and systems regardless
 of matplotlib version.
 '''
 
-# ....................{ GLOBALS ~ dict                    }....................
+# ....................{ GLOBALS ~ dict                     }....................
 _LOG_LEVEL_TO_VERBOSITY_LEVEL_NAME = {
     LogLevel.NONE:     'silent',
     LogLevel.CRITICAL: 'silent',
@@ -136,14 +137,14 @@ the custom options specified by this dictionary override the default options
 defined by that file.
 '''
 
-# ....................{ CLASSES                           }....................
+# ....................{ CLASSES                            }....................
 class MplConfig(object):
     '''
     High-level wrapper simplifying low-level configuration and introspection of
     matplotlib.
     '''
 
-    # ..................{ INITIALIZERS                      }..................
+    # ..................{ INITIALIZERS                       }..................
     def init(self, backend_name: StrOrNoneTypes) -> None:
         '''
         Reconfigure matplotlib with sane defaults specific to the current
@@ -502,14 +503,14 @@ class MplConfig(object):
                 kernel_name,
                 strjoin.join_as_conjunction_double_quoted(*backend_names)))
 
-    # ..................{ PROPERTIES                        }..................
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # ..................{ PROPERTIES                         }..................
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # NOTE: To avoid desynchronization issues between low-level matplotlib
     # internals and the following high-level properties wrapping these
     # internals, most of these properties leverage the less efficient but safer
     # @property decorator rather than the more efficient but less safe
     # @property_cached decorator.
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     @property_cached
     def version(self) -> str:
@@ -550,7 +551,7 @@ class MplConfig(object):
         # Return this possibly munged version.
         return version_return
 
-    # ..................{ PROPERTIES ~ log                  }..................
+    # ..................{ PROPERTIES ~ log                   }..................
     @property
     def logger(self) -> Logger:
         '''
@@ -567,7 +568,7 @@ class MplConfig(object):
         # One-liners for the glory of flying spaghetti monsters.
         return logs.get_logger('matplotlib')
 
-    # ..................{ PROPERTIES ~ log : level          }..................
+    # ..................{ PROPERTIES ~ log : level           }..................
     @property
     def log_level(self) -> LogLevel:
         '''
@@ -644,7 +645,7 @@ class MplConfig(object):
             # Set this verbosity level.
             matplotlib_verbose.set_level(verbosity_level_name)
 
-    # ..................{ PROPERTIES ~ path                 }..................
+    # ..................{ PROPERTIES ~ path                  }..................
     @property
     def cache_dirname(self) -> str:
         '''
@@ -672,7 +673,7 @@ class MplConfig(object):
         # Return this path.
         return matplotlib.matplotlib_fname()
 
-    # ..................{ PROPERTIES ~ backend              }..................
+    # ..................{ PROPERTIES ~ backend               }..................
     @property
     def backend(self) -> type(sys):
         '''
@@ -766,7 +767,7 @@ class MplConfig(object):
         # Magic is magic. Do not question magic, for it is magical.
         return list(backend_canvas_class.filetypes.keys())
 
-    # ..................{ PROPERTIES ~ backend : name       }..................
+    # ..................{ PROPERTIES ~ backend : name        }..................
     @property
     def backend_name(self) -> str:
         '''
@@ -830,7 +831,7 @@ class MplConfig(object):
             # Re-raise this exception.
             raise
 
-    # ..................{ PROPERTIES ~ backend : names      }..................
+    # ..................{ PROPERTIES ~ backend : names       }..................
     @property_cached
     def backend_names(self) -> SequenceTypes:
         '''
@@ -868,7 +869,7 @@ class MplConfig(object):
         return itersort.sort_ascending(
             backend_name.lower() for backend_name in backend_names)
 
-    # ..................{ PROPERTIES ~ backend : names: pri }..................
+    # ..................{ PROPERTIES ~ backend : names: pri  }..................
     @property_cached
     def _backend_names_blacklist(self) -> SetType:
         '''
@@ -1026,7 +1027,7 @@ class MplConfig(object):
         # Return and cache this dictionary
         return kernel_name_to_backend_names_prefer
 
-    # ..................{ TESTERS ~ backend                 }..................
+    # ..................{ TESTERS ~ backend                  }..................
     def is_backend(self) -> bool:
         '''
         ``True`` only if a backend has been successfully enabled.
@@ -1121,7 +1122,7 @@ class MplConfig(object):
             # Report this backend to be unusable.
             return False
 
-    # ..................{ TESTERS ~ block                   }..................
+    # ..................{ TESTERS ~ block                    }..................
     def is_backend_current_nonblockable(self) -> bool:
         '''
         ``True`` only if the current backend supports true non-blocking display
@@ -1189,7 +1190,7 @@ class MplConfig(object):
         # *NOT* support this behavior.
         return backend_name == 'TkAgg'
 
-    # ..................{ GETTERS                           }..................
+    # ..................{ GETTERS                            }..................
     def get_rc_param(self, param_name) -> object:
         '''
         Value of the parameter with the passed ``.``-delimited name (e.g.,
@@ -1231,9 +1232,9 @@ class MplConfig(object):
         # Get this dictionary.
         return metadata
 
-    # ..................{ CONTEXTS                          }..................
+    # ..................{ CONTEXTS                           }..................
     @contextmanager
-    def reducing_log_level_to_debug_if_info(self):
+    def reducing_log_level_to_debug_if_info(self) -> ContextManager:
         '''
         Context manager setting the matplotlib-specific verbosity level to
         :attr:`LogLevel.DEBUG` if currently :attr:`LogLevel.INFO` for the
@@ -1283,7 +1284,7 @@ class MplConfig(object):
         else:
             yield
 
-    # ..................{ MAKERS                            }..................
+    # ..................{ MAKERS                             }..................
     #FIXME: Define a new make_backend_figure_manager() method as well. This
     #method is fine, for now. We might very well want to call this sometime.
     def make_backend_figure(self, *args, **kwargs):
@@ -1322,7 +1323,7 @@ class MplConfig(object):
         # Return this figure.
         return figure
 
-    # ..................{ PRIVATE                           }..................
+    # ..................{ PRIVATE                            }..................
     @type_check
     def _enable_backend(self, backend_name: str) -> None:
         '''
@@ -1512,7 +1513,7 @@ class MplConfig(object):
             # Re-raise this exception.
             raise
 
-# ....................{ SINGLETONS                        }....................
+# ....................{ SINGLETONS                         }....................
 mpl_config = MplConfig()
 '''
 Singleton matplotlib configuration wrapper.

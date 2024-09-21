@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -7,11 +7,11 @@
 Unit tests for the :mod:`betse.util.path.archives` submodule.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import pytest
 from betse.util.test.pytest.mark.pytskip import skip_unless_module
 
-# ....................{ CONSTANTS                         }....................
+# ....................{ CONSTANTS                          }....................
 # Ideally, the existing
 # "betse.util.path.archives._ARCHIVE_FILETYPE_TO_MODULE_NAME" dictionary would
 # be leveraged to populate this parametrization. Unfortunately, doing so would
@@ -58,10 +58,10 @@ ARCHIVE_BYTES = bytes(
 Arbitrary sequence of bytes to be archived.
 '''
 
-# ....................{ TESTS                             }....................
+# ....................{ TESTS                              }....................
 @pytest.mark.parametrize(('filetype',), ARCHIVE_FILETYPES,)
 def test_archives_read_write_bytes(
-    betse_temp_dir: 'LocalPath', filetype: str) -> None:
+    betse_temp_dir: 'py._path.local.LocalPath', filetype: str) -> None:
     '''
     Unit test both the :func:`reading_bytes` and :func:`writing_bytes`
     functions of the :mod:`betse.util.path.archives` submodule for the passed
@@ -70,7 +70,7 @@ def test_archives_read_write_bytes(
 
     Parameters
     ----------
-    betse_temp_dir : LocalPath
+    betse_temp_dir : py._path.local.LocalPath
         Object encapsulating a temporary directory isolated to the current
         test.
     filetype : str

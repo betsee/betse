@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -8,13 +8,14 @@ Low-level **warning** (i.e., non-fatal errors with associated types emitted by
 the standard :mod:`warnings` module) facilities.
 '''
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import sys, warnings
+from beartype.typing import ContextManager
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, ClassType, GeneratorType
 from contextlib import contextmanager
 
-# ....................{ INITIALIZERS                      }....................
+# ....................{ INITIALIZERS                       }....................
 def init() -> None:
     '''
     Initialize this submodule.
@@ -77,7 +78,7 @@ def init() -> None:
         else:
             logs.log_debug('Deferring to default warning policy.')
 
-# ....................{ MANAGERS                          }....................
+# ....................{ MANAGERS                           }....................
 def ignoring_deprecations() -> GeneratorType:
     '''
     Single-shot context manager temporarily ignoring all **deprecation
@@ -101,7 +102,7 @@ def ignoring_deprecations() -> GeneratorType:
 
 @contextmanager
 @type_check
-def ignoring_warnings(*warning_clses: ClassType) -> GeneratorType:
+def ignoring_warnings(*warning_clses: ClassType) -> ContextManager:
     '''
     Single-shot context manager temporarily ignoring *all* warnings of *all*
     passed warning types emitted by the :mod:`warnings` module for the duration

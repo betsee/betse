@@ -10,7 +10,6 @@ within a given scope of the current test session).
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type.types import GeneratorType
-from contextlib import contextmanager
 from pytest import fixture
 
 # ....................{ FIXTURES ~ package                 }....................

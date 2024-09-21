@@ -1789,16 +1789,6 @@ def is_matplotlib_trimesh(obj: object) -> bool:
     from matplotlib.collections import TriMesh
     return isinstance(obj, TriMesh)
 
-# ....................{ TESTERS ~ lib : py                 }....................
-def is_py_path_local(obj: object) -> bool:
-    '''
-    ``True`` only if the passed object is a `py.path.local` instance.
-    '''
-
-    # Avoid importing third-party packages at the top level.
-    from py._path.local import LocalPath
-    return isinstance(obj, LocalPath)
-
 # ....................{ TESTERS ~ lib : numpy              }....................
 def is_pytest_fixture(obj: object) -> bool:
     '''

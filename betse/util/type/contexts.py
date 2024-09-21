@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -9,13 +9,13 @@ protocol and hence the ``__enter__`` and ``__exit__`` special methods)
 facilities.
 '''
 
-# ....................{ IMPORTS                           }....................
-from betse.util.type.types import GeneratorType
+# ....................{ IMPORTS                            }....................
+from beartype.typing import ContextManager
 from contextlib import contextmanager
 
-# ....................{ MANAGERS                          }....................
+# ....................{ MANAGERS                           }....................
 @contextmanager
-def noop_context() -> GeneratorType:
+def noop_context() -> ContextManager:
     '''
     Empty context manager exiting immediately after being entered.
     '''
