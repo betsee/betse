@@ -104,7 +104,6 @@ jobs:
         # the "[tox]" subsection in "tox.ini") to be tested, which the
         # ${TOXENV} environment variable declared below exposes to "tox".
         tox-env:
-          - py39-coverage
           - py310-coverage
           - py311-coverage
           - py312-coverage

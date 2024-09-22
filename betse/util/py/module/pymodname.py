@@ -39,7 +39,9 @@ DEPENDENCY_TO_MODULE_NAME = DefaultDict(
     initial_mapping={
         'Numpy':  'numpy',
         'Pillow': 'PIL',
+        'pillow': 'PIL',
         'PyYAML': 'yaml',
+        'pyyaml': 'yaml',
         'SciPy':  'scipy',
     }
 )
