@@ -25,7 +25,6 @@ from betse.util.type.types import (
     NumericSimpleTypes,
     SequenceTypes,
 )
-from distutils import dir_util
 from os import path as os_path
 
 # ....................{ ENUMERATIONS                       }....................
@@ -654,47 +653,39 @@ def copy_dir(
     if ignore_basename_globs is not None:
         ignore_basename_func = shutil.ignore_patterns(*ignore_basename_globs)
 
-    # If raising a fatal exception if any target path already exists...
-    if overwrite_policy is DirOverwritePolicy.HALT_WITH_EXCEPTION:
+    # If either:
+    # * Raising a fatal exception if any target path already exists *OR*...
+    # * Overwriting this target directory with this source directory...
+    #
+    # Then the standard shutil.copytree() function applies to this use case.
+    if overwrite_policy in _DIR_OVERWRITE_POLICIES_COPYTREE:
         # Dictionary of all keyword arguments to pass to shutil.copytree(),
         # preserving symbolic links as is.
         copytree_kwargs = {
             'symlinks': True,
         }
 
+        # If raising a fatal exception if any target path already exists, do so.
+        # While we could defer to the exception raised by the shutil.copytree()
+        # function for this case, this exception's message erroneously refers to
+        # this directory as a file and is hence best avoided as unreadable:
+        #     [Errno 17] File exists: 'sample_sim'  # <-- lolbro! useless.
+        if overwrite_policy is DirOverwritePolicy.HALT_WITH_EXCEPTION:
+            die_if_dir(trg_dirname)
+        # Else, we are overwriting this target directory with this source
+        # directory. In this case, silently accept this target directory if this
+        # directory already exists.
+        else:
+            copytree_kwargs['dirs_exist_ok'] = True
+
         # If ignoring basenames, inform shutil.copytree() of these basenames.
         if ignore_basename_func is not None:
             copytree_kwargs['ignore'] = ignore_basename_func
-
-        # Raise an exception if this target directory already exists. While we
-        # could defer to the exception raised by the shutil.copytree() function
-        # for this case, this exception's message erroneously refers to this
-        # directory as a file and is hence best avoided as non-human-readable:
-        #
-        #     [Errno 17] File exists: 'sample_sim'
-        die_if_dir(trg_dirname)
 
         # Recursively copy this source to target directory. To avoid silently
         # overwriting all conflicting target paths, the shutil.copytree()
         # rather than dir_util.copy_tree() function is called.
         shutil.copytree(src=src_dirname, dst=trg_dirname, **copytree_kwargs)
-    # Else if overwriting this target directory with this source directory...
-    elif overwrite_policy is DirOverwritePolicy.OVERWRITE:
-        # If an iterable of shell-style globs matching ignorable basenames was
-        # passed, log a non-fatal warning. Since the dir_util.copy_tree()
-        # function fails to support this functionality and we are currently too
-        # lazy to do so, a warning is as much as we're willing to give.
-        if ignore_basename_globs is not None:
-            logs.log_warning(
-                'dirs.copy() parameter "ignore_basename_globs" '
-                'ignored when parameter "is_overwritable" enabled.')
-
-        # Recursively copy this source to target directory, preserving symbolic
-        # links as is. To silently overwrite all conflicting target paths, the
-        # dir_util.copy_tree() rather than shutil.copytree() function is
-        # called.
-        dir_util.copy_tree(
-            src_dirname, trg_dirname, preserve_symlinks=1)
 
     #FIXME: Given how awesomely flexible the manual approach implemented below
     #is, we should probably consider simply rewriting the above two approaches
@@ -1115,6 +1106,19 @@ def remove_dir(dirname: str) -> None:
     # Log this successful completion.
     logs.log_info('Directory removed.')
 
+# ....................{ PRIVATE ~ constants                }....................
+_DIR_OVERWRITE_POLICIES_COPYTREE = frozenset((
+    DirOverwritePolicy.HALT_WITH_EXCEPTION,
+    DirOverwritePolicy.OVERWRITE,
+))
+'''
+Frozen set of all **copytree-friendly directory overwrite policies** (i.e.,
+:class:`.DirOverwritePolicy` enumeration members suitable for passing as the
+``overwrite_policy`` parameter to the :func:`.copy_dir` function such that the
+resulting implementation reduces to a trivial call to the standard
+:func:`shutil.copytree` function).
+'''
+
 # ....................{ PRIVATE ~ raisers                  }....................
 @type_check
 def _raise_exception_dir(dirname: str) -> CallableTypes:
@@ -1207,3 +1211,5 @@ def _walk(top, *args, **kwargs) -> GeneratorType:
 
     # Wrap the standard variant of this generator.
     return os.walk(top, *args, **kwargs)
+
+
