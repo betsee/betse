@@ -28,6 +28,7 @@ from betse.exceptions import BetseLibException
 # from betse.util.io.log import logs
 # from betse.util.app.meta import appmetaone
 from betse.util.py.module.pymodname import (
+    DEPENDENCY_TO_COMMANDS,
     DEPENDENCY_TO_MODULE_NAME,
     import_module,
     is_module,
@@ -236,38 +237,50 @@ def die_unless_runtime_optional(*dependency_names: str) -> None:
 #                             dependency_command.name,
 #                             dependency_command.basename,
 #                         ))
-#
-# # ....................{ TESTERS                           }....................
-# @type_check
-# def is_command(*dependency_names: str) -> bool:
-#     '''
-#     ``True`` only if all external commands required by all application
-#     dependencies (of any type, including optional, mandatory, runtime, testing,
-#     or otherwise) with the passed :mod:`setuptools`-specific project names are
-#     **installed** (i.e., are executable files in the current ``${PATH}``).
-#
-#     Parameters
-#     ----------
-#     dependency_names : Tuple[str]
-#         Tuple of the names of all :mod:`setuptools`-specific projects
-#         corresponding to these dependencies (e.g., ``NetworkX``).
-#     '''
-#
-#     # Avoid circular import dependencies.
-#     from betse.util.os.command import cmdpath
-#
-#     # Return true only if...
-#     return all(
-#         # Each external command required by each dependency is in the ${PATH}.
-#         cmdpath.is_pathable(dependency_command.basename)
-#         # For the name of each passed dependency...
-#         for requirement_name in dependency_names
-#         # For each "RequirementCommand" instance describing an external command
-#         # required by this dependency...
-#         for dependency_command in _iter_requirement_commands(requirement_name)
-#     )
-#
-#
+
+# ....................{ TESTERS                           }....................
+def is_commands(*dependency_names: str) -> bool:
+    '''
+    ``True`` only if all external commands required by all application
+    dependencies (of any type, including optional, mandatory, runtime, testing,
+    or otherwise) with the passed :mod:`setuptools`-specific project names are
+    **installed** (i.e., are executable files in the current ``${PATH}``).
+
+    Parameters
+    ----------
+    dependency_names : Tuple[str]
+        Tuple of the names of all :mod:`setuptools`-specific projects
+        corresponding to these dependencies (e.g., ``NetworkX``).
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.os.command.cmdpath import is_pathable
+
+    # Return true only if...
+    return all(
+        # Each external command required by each dependency is in the ${PATH}.
+        is_pathable(dependency_command.basename)
+        # For the name of each passed dependency...
+        for dependency_name in dependency_names
+        # For each "RequirementCommand" instance describing an external command
+        # required by this dependency...
+        for dependency_command in DEPENDENCY_TO_COMMANDS.get(
+            dependency_name, ())
+    )
+
+    #FIXME: Resurrect this when refactoring to "importlib.metadata", please.
+    # # Return true only if...
+    # return all(
+    #     # Each external command required by each dependency is in the ${PATH}.
+    #     cmdpath.is_pathable(dependency_command.basename)
+    #     # For the name of each passed dependency...
+    #     for requirement_name in dependency_names
+    #     # For each "RequirementCommand" instance describing an external command
+    #     # required by this dependency...
+    #     for dependency_command in _iter_requirement_commands(requirement_name)
+    # )
+
+
 def is_runtime_optional(*dependency_names: str) -> bool:
     '''
     ``True`` only if all optional runtime dependencies of this application with
@@ -302,11 +315,19 @@ def is_runtime_optional(*dependency_names: str) -> bool:
         module_name = DEPENDENCY_TO_MODULE_NAME.get(
             dependency_name, dependency_name)
 
-        # If this dependency is unimportable, immediately return false.
-        if not is_module(module_name):
+        # If it is *NOT* the case that...
+        if not (
+            # This dependency is importable *AND*...
+            is_module(module_name) and
+            # All external commands required by this dependency are installed in
+            # the current "${PATH}"...
+            is_commands(dependency_name)
+        # Then immediately return false.
+        ):
             return False
-        # Else, this dependency is importable. Silently continue to the next.
-    # Else, all dependencies are importable.
+        # Else, this dependency is importable *AND* all external commands
+        # required by this dependency are installed in the current "${PATH}".
+        # Silently continue to the next dependency.
 
     # Return true.
     return True
@@ -495,46 +516,3 @@ def import_runtime_optional(*dependency_names: str) -> ModuleOrSequenceTypes:
 #     # Validate all external commands required by these dependencies.
 #     return setuptool.import_requirements_dict_keys(
 #         requirements_dict, *dependency_names)
-#
-# # ....................{ PRIVATE ~ iterators                }....................
-# @type_check
-# def _iter_requirement_commands(requirement_name: str) -> SequenceTypes:
-#     '''
-#     Sequence of zero or more ``RequirementCommand`` instances describing all
-#     external commands required by the application dependency with the passed
-#     :mod:`setuptools`-specific project name.
-#
-#     Parameters
-#     ----------
-#     requirement_name : str
-#         Name of the :mod:`setuptools`-specific project to be inspected.
-#
-#     Returns
-#     ----------
-#     SequenceTypes:
-#         Sequence of zero or more ``RequirementCommand`` instances describing all
-#         external commands required by this project.
-#     '''
-#
-#     # Application-wide dependency metadata submodule.
-#     metadeps = appmetaone.get_app_meta().module_metadeps
-#
-#     # Tuple of zero or more "RequirementCommand" instances describing
-#     # each external command required by this dependency if any *OR* the
-#     # empty tuple otherwise.
-#     dependency_commands = metadeps.REQUIREMENT_NAME_TO_COMMANDS.get(
-#         requirement_name, ())
-#
-#     #FIXME: Additionally validate that each "namedtuple" instance provides the
-#     #"name" and "basename" fields.
-#     # Validate this tuple to contain only "namedtuple" instances.
-#     #
-#     # Note that we intentionally do *NOT* validate this tuple to contain only
-#     # "betse.metadata.RequirementCommand" instances, as downstream consumers
-#     # (e.g., BETSEE) necessarily duplicate that type into their own codebases
-#     # (e.g., as "betsee.guimetadata.RequirementCommand").
-#     itertest.die_unless_items_instance_of(
-#         iterable=dependency_commands, cls=tuple)
-#
-#     # Return this tuple.
-#     return dependency_commands

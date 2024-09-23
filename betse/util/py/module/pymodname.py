@@ -24,16 +24,55 @@ See Also
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import importlib, sys
+from beartype.typing import (
+    Collection,
+    Dict,
+)
 from betse.exceptions import BetseModuleException
 from betse.util.io.log import logs
 from betse.util.type.iterable.mapping.mapcls import DefaultDict
 from betse.util.type.types import (
     type_check, MappingOrNoneTypes, ModuleType, StrOrNoneTypes)
-from collections import defaultdict
+from collections import (
+    defaultdict,
+    namedtuple,
+)
 from importlib import util as importlib_util
 from importlib.machinery import ModuleSpec
 
+# ....................{ CLASSES                            }....................
+DependencyCommand = namedtuple('DependencyCommand', ('name', 'basename',))
+DependencyCommand.__doc__ = '''
+    Lightweight metadata describing a single external command required by an
+    application dependency of arbitrary type (including optional, mandatory,
+    runtime, testing, and otherwise).
+
+    Attributes
+    ----------
+    name : str
+        Human-readable name associated with this command (e.g., ``Graphviz``).
+    basename : str
+        Basename of this command to be searched for in the current ``${PATH}``.
+    '''
+
 # ....................{ GLOBALS                            }....................
+DEPENDENCY_TO_COMMANDS: Dict[str, Collection[DependencyCommand]] = {
+    # "pydot" requires Graphviz (i.e., "dot") to be externally installed.
+    'pydot': (DependencyCommand(name='Graphviz', basename='dot'),),
+}
+'''
+Dictionary mapping each **runtime dependency name** (i.e., human-readable name
+of an open-source project hosted by the Python Packaging Index (PyPI), such as
+``"PyYAML"``, of a runtime dependency of this project) to a collection of one
+or more external commands required by that project.
+
+See Also
+--------
+:download:`/doc/md/INSTALL.md`
+    Human-readable list of these dependencies.
+'''
+
+
 DEPENDENCY_TO_MODULE_NAME = DefaultDict(
     missing_key_value=lambda self, missing_key: missing_key,
     initial_mapping={
@@ -46,10 +85,10 @@ DEPENDENCY_TO_MODULE_NAME = DefaultDict(
     }
 )
 '''
-Dictionary mapping the human-readable name of an open-source project hosted by
-the Python Packaging Index (PyPI) (e.g., ``PyYAML``) to the corresponding
-fully-qualified name of the corresponding module or package providing that
-project (e.g., ``yaml``).
+Dictionary mapping each **runtime dependency name** (i.e., human-readable name
+of an open-source project hosted by the Python Packaging Index (PyPI), such as
+``"PyYAML"``, of a runtime dependency of this project) to the fully-qualified
+name of the module or package providing that project (e.g., ``yaml``).
 
 All modules and packages explicitly unmapped by this dictionary default to the
 identity mapping -- that is, mapping the fully-qualified names of those modules
