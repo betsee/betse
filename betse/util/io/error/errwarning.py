@@ -10,9 +10,12 @@ the standard :mod:`warnings` module) facilities.
 
 # ....................{ IMPORTS                            }....................
 import sys, warnings
+from beartype.typing import (
+    ContextManager,
+    Iterator,
+)
 from betse.util.io.log import logs
 from betse.util.type.types import ClassType
-from betse.util.type.typehints import ContextManagerOrGenerator
 from contextlib import contextmanager
 
 # ....................{ INITIALIZERS                       }....................
@@ -79,7 +82,7 @@ def init() -> None:
             logs.log_debug('Deferring to default warning policy.')
 
 # ....................{ MANAGERS                           }....................
-def ignoring_deprecations() -> ContextManagerOrGenerator:
+def ignoring_deprecations() -> ContextManager:
     '''
     Single-shot context manager temporarily ignoring all **deprecation
     warnings** (i.e., instances of the :class:`DeprecationWarning`,
@@ -101,7 +104,7 @@ def ignoring_deprecations() -> ContextManagerOrGenerator:
 
 
 @contextmanager
-def ignoring_warnings(*warning_clses: ClassType) -> ContextManagerOrGenerator:
+def ignoring_warnings(*warning_clses: ClassType) -> Iterator:
     '''
     Single-shot context manager temporarily ignoring *all* warnings of *all*
     passed warning types emitted by the :mod:`warnings` module for the duration

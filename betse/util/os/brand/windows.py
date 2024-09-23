@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2025 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
@@ -81,13 +81,13 @@ necessary.
 #  module ala this unofficial, clever gist:
 #    https://gist.github.com/intco/6149781
 
-# ....................{ IMPORTS                           }....................
+# ....................{ IMPORTS                            }....................
 import platform, sys
 from betse.exceptions import BetseOSException
 from betse.util.type.decorator.decmemo import func_cached
 from betse.util.type.types import type_check, NoneType
 
-# ....................{ TYPES                             }....................
+# ....................{ TYPES                              }....................
 WindowsErrorType = NoneType
 '''
 Windows-specific :class:`WindowsError` class if the current platform is Windows
@@ -108,7 +108,7 @@ try:
 except:
     pass
 
-# ....................{ CONSTANTS ~ error codes           }....................
+# ....................{ CONSTANTS ~ error codes            }....................
 # For conformance, the names of all error code constants defined below are
 # exactly as specified by Microsoft itself. Sadly, Python fails to provide
 # these magic numbers for us.
@@ -123,7 +123,7 @@ https://msdn.microsoft.com/en-us/library/windows/desktop/ms681382%28v=vs.85%29.a
     Official listing of all such codes.
 '''
 
-# ....................{ EXCEPTIONS                        }....................
+# ....................{ EXCEPTIONS                         }....................
 def die_unless_windows() -> None:
     '''
     Raise an exception unless the current platform is Microsoft Windows.
@@ -142,7 +142,7 @@ def die_unless_windows() -> None:
         raise BetseOSException(
             'Current platform {} not Windows.'.format(oses.get_name()))
 
-# ....................{ TESTERS                           }....................
+# ....................{ TESTERS                            }....................
 @func_cached
 def is_windows() -> bool:
     '''
@@ -206,7 +206,7 @@ def is_windows_wsl() -> bool:
     # Return true only if this is a Microsoft-flavoured Linux kernel.
     return 'microsoft' in kernel_flavour
 
-# ....................{ TESTERS ~ path                    }....................
+# ....................{ TESTERS ~ path                     }....................
 @type_check
 def is_exception_pathname_invalid(exception: WindowsErrorType) -> bool:
     '''

@@ -9,7 +9,7 @@ Low-level shell-specific directory facilities.
 
 # ....................{ IMPORTS                            }....................
 import os
-from beartype.typing import ContextManager
+from beartype.typing import Iterator
 from betse.util.io.log import logs
 from contextlib import contextmanager
 
@@ -49,7 +49,7 @@ def set_cwd(dirname: str) -> None:
 
 # ....................{ CONTEXTS                           }....................
 @contextmanager
-def setting_cwd(dirname: str) -> ContextManager:
+def setting_cwd(dirname: str) -> Iterator:
     '''
     Context manager setting the **current working directory** (CWD) of the
     active Python process to the passed directory for the duration of this

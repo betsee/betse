@@ -342,6 +342,29 @@ def skip_if_os_macos():
     return skip_if(is_macos(), reason=(
         'Test or fixture currently incompatible with Apple macOS.'))
 
+
+def skip_if_os_windows_vanilla():
+    '''
+    Skip the decorated test if tests are currently running under an operating
+    system running the vanilla (i.e., neither Cygwin nor the Windows Subsystem
+    for Linux (WSL)) Microsoft Windows kernel.
+
+    Returns
+    ----------
+    pytest.skipif
+        Decorator describing these requirements if unmet *or* the identity
+        decorator successfully reducing to a noop otherwise.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.util.os.brand.windows import is_windows_vanilla
+
+    # Skip this test or fixture if tests are running under Windows.
+    return skip_if(is_windows_vanilla(), reason=(
+        'Test or fixture currently incompatible with '
+        'vanilla Microsoft Windows.'
+    ))
+
 # ....................{ SKIP ~ plugin                      }....................
 def skip_unless_plugin_xdist():
     '''

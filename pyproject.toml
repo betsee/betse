@@ -154,20 +154,10 @@ dynamic = ["version"]
 # Python interpreter versions required by this package.
 #
 # A relatively recent version of Python is required due to:
-# * PEP 585-compliant type hints (e.g., "list[str]"), now leveraged through the
-#   codebase due both to convenience and PEP 585's timely deprecation of PEP
-#   484-compliant type hints (e.g., "typing.list[str]") by 2026 -- which
-#   renders PEP 484-compliant type hints genuinely dangerous in 2021.
-# * "importlib.metadata", first introduced with Python 3.8.0.
-#
-# Note that:
-# * Our mandatory runtime dependency on "pyvista" transitively requires "vtk".
-#   For unknown reasons, "vtk" has yet to publish Python 3.10 wheels. Since
-#   "vtk" is *ONLY* installable via binary wheels, this effectively means that
-#   "vtk" and thus "pyvista" and thus this package currently *CANNOT* be
-#   installed under Python 3.10 using "pip". See also this unresolved VTK issue:
-#       https://gitlab.kitware.com/vtk/vtk/-/issues/18335
-requires-python = ">=3.10"
+# * @contextlib.contextmanager-decorated generator-based context managers, which
+#   are effectively *NOT* type-checkable by @beartype under Python <= 3.10 due
+#   to inadequaces of the low-level C-based code object API under older Pythons.
+requires-python = ">=3.11"
 
 # List of all mandatory runtime dependencies.
 dependencies = [

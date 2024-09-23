@@ -11,6 +11,7 @@ Unit tests for the :mod:`betse.util.path.dirs` submodule.
 from betse.util.test.pytest.mark.pytskip import (
     # skip_if_ci_gitlab,
     skip_if_os_macos,
+    skip_if_os_windows_vanilla,
 )
 
 # ....................{ TESTS                              }....................
@@ -109,6 +110,7 @@ def test_dirs_get_mtime_newest(
 #underlying culprit probably a recent change to GitLab's internal management of
 #git repositories - possibly governed by the ${GIT_STRATEGY} variable.)
 # @skip_if_ci_gitlab()
+@skip_if_os_windows_vanilla
 def test_packages_init() -> None:
     '''
     Unit test the :func:`betse.util.path.dirs.recurse_subdirnames` function by
@@ -118,7 +120,20 @@ def test_packages_init() -> None:
     ``__init__.py`` special file.
 
     Caveats
-    ----------
+    -------
+    **This test is currently incompatible with Microsoft Windows.** Why? Windows
+    filesystems are case-insensitive in such a way as to inhibit the sanity of
+    this test. Note the differing case in these two local variables of this test
+    under a recent GitHub Actions-based Windows test workflow:
+
+        # Note the "Lib" versus "lib" subdirectory basenames in these variables.
+        EXCLUDE_DIRNAMES = {
+            'D:\\a\\betse\\betse\\.tox\\py310-coverage\\Lib\\site-packages\\betse\\data',
+            'D:\\a\\betse\\betse\\betse_test\\_data'
+        }
+        package_subdirname = (
+            'D:\\a\\betse\\betse\\.tox\\py310-coverage\\lib\\site-packages\\betse\\data')
+
     **This test is currently incompatible with GitLab-CI's host environment.**
     GitLab-CI recently introduced a ``${GIT_STRATEGY}`` environment variable
     governing the tracking of git repositories. Previously, GitLab-CI appears

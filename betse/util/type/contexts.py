@@ -10,12 +10,12 @@ facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from beartype.typing import ContextManager
+from beartype.typing import Iterator
 from contextlib import contextmanager
 
 # ....................{ MANAGERS                           }....................
 @contextmanager
-def noop_context() -> ContextManager:
+def noop_context() -> Iterator:
     '''
     Empty context manager exiting immediately after being entered.
     '''
