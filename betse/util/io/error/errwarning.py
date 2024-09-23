@@ -104,7 +104,7 @@ def ignoring_deprecations() -> ContextManager:
 
 
 @contextmanager
-def ignoring_warnings(*warning_clses: ClassType) -> Iterator:
+def ignoring_warnings(*warning_clses: ClassType) -> Iterator[None]:
     '''
     Single-shot context manager temporarily ignoring *all* warnings of *all*
     passed warning types emitted by the :mod:`warnings` module for the duration

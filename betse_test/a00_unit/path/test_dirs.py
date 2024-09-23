@@ -110,7 +110,7 @@ def test_dirs_get_mtime_newest(
 #underlying culprit probably a recent change to GitLab's internal management of
 #git repositories - possibly governed by the ${GIT_STRATEGY} variable.)
 # @skip_if_ci_gitlab()
-@skip_if_os_windows_vanilla
+@skip_if_os_windows_vanilla()
 def test_packages_init() -> None:
     '''
     Unit test the :func:`betse.util.path.dirs.recurse_subdirnames` function by

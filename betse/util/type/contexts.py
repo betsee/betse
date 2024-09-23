@@ -15,7 +15,7 @@ from contextlib import contextmanager
 
 # ....................{ MANAGERS                           }....................
 @contextmanager
-def noop_context() -> Iterator:
+def noop_context() -> Iterator[None]:
     '''
     Empty context manager exiting immediately after being entered.
     '''
