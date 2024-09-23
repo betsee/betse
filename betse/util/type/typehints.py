@@ -11,12 +11,20 @@ interest throughout the codebase).
 # ....................{ IMPORTS                            }....................
 from beartype.typing import (
     Annotated,
+    ContextManager,
+    Generator,
 )
 from beartype.vale import (
     IsAttr,
     IsEqual,
 )
 from numpy import ndarray
+
+# ....................{ HINTS                              }....................
+ContextManagerOrGenerator = ContextManager | Generator
+'''
+PEP-compliant type hint matching either a context manager *or* generator.
+'''
 
 # ....................{ HINTS ~ lib : numpy : 1d           }....................
 NDArrayNdim1 = Annotated[ndarray, IsAttr['ndim', IsEqual[1]]]
