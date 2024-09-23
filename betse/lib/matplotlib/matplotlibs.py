@@ -63,7 +63,7 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-from beartype.typing import ContextManager
+from beartype.typing import Generator  # ContextManager
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.error import errexception
 from betse.util.io.log import logs
@@ -1234,7 +1234,7 @@ class MplConfig(object):
 
     # ..................{ CONTEXTS                           }..................
     @contextmanager
-    def reducing_log_level_to_debug_if_info(self) -> ContextManager:
+    def reducing_log_level_to_debug_if_info(self) -> Generator:
         '''
         Context manager setting the matplotlib-specific verbosity level to
         :attr:`LogLevel.DEBUG` if currently :attr:`LogLevel.INFO` for the

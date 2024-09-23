@@ -14,52 +14,6 @@ from betse.util.io.log.logs import log_warning
 from betse.util.type.decorator.decmemo import func_cached
 from ctypes import CDLL, byref, c_int
 
-# ....................{ CONSTANTS                          }....................
-_SECURITY_FRAMEWORK_DYLIB_FILENAME = (
-    '/System/Library/Frameworks/Security.framework/Security')
-'''
-Absolute path of the system-wide ``"Security.framework"`` Macho-O shared library
-providing the macOS-specific security context for the current process.
-
-This library is dynamically loadable into the address space of the current
-process with the :class:`ctypes.CDLL` class. Since all Macho-O shared libraries
-necessarily have the filetype ``".dylib"``, this filetype can be safely omitted.
-'''
-
-
-_SECURITY_SESSION_ID_CURRENT = -1
-'''
-Magic integer defined as `callerSecuritySession` by the macOS-specific
-`/System/Library/Frameworks/Security.Framework/Headers/AuthSession.h` C header
-suitable for passing to C functions accepting parameters of C type
-`SecuritySessionId` (e.g., `SessionGetInfo()`).
-
-When passed, this integer signifies the **current security session** (i.e., the
-the security session to which the current process belongs).
-
-See Also
-----------
-https://opensource.apple.com/source/libsecurity_authorization/libsecurity_authorization-32564/lib/AuthSession.h
-    C header defining this magic integer.
-'''
-
-
-_SECURITY_SESSION_HAS_GRAPHIC_ACCESS = 0x0010
-'''
-Bit flag defined as `sessionHasGraphicAccess` by the macOS-specific
-`/System/Library/Frameworks/Security.Framework/Headers/AuthSession.h` C header
-masking the attributes bit field returned by the `SessionGetInfo()` C function
-also declared by that header.
-
-When enabled, this bit signifies the current process to have access to the Aqua
-display server and hence be headfull (rather than headless).
-
-See Also
-----------
-https://opensource.apple.com/source/libsecurity_authorization/libsecurity_authorization-32564/lib/AuthSession.h
-    C header defining this bit flag.
-'''
-
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_macos() -> None:
     '''
@@ -167,7 +121,8 @@ def is_aqua() -> bool:
             session_errno == SUCCESS and
             # The session attributes bit field returned by this call has the
             # corresponding bit flag enabled.
-            session_attributes.value & _SECURITY_SESSION_HAS_GRAPHIC_ACCESS
+            bool(
+                session_attributes.value & _SECURITY_SESSION_HAS_GRAPHIC_ACCESS)
         )
     # If the above logic failed with any exception...
     except Exception as exception:
@@ -185,3 +140,49 @@ def is_aqua() -> bool:
 
     # Assume this process to *NOT* have access to the Aqua display server.
     return False
+
+# ....................{ PRIVATE ~ constants                }....................
+_SECURITY_FRAMEWORK_DYLIB_FILENAME = (
+    '/System/Library/Frameworks/Security.framework/Security')
+'''
+Absolute path of the system-wide ``"Security.framework"`` Macho-O shared library
+providing the macOS-specific security context for the current process.
+
+This library is dynamically loadable into the address space of the current
+process with the :class:`ctypes.CDLL` class. Since all Macho-O shared libraries
+necessarily have the filetype ``".dylib"``, this filetype can be safely omitted.
+'''
+
+
+_SECURITY_SESSION_ID_CURRENT = -1
+'''
+Magic integer defined as `callerSecuritySession` by the macOS-specific
+`/System/Library/Frameworks/Security.Framework/Headers/AuthSession.h` C header
+suitable for passing to C functions accepting parameters of C type
+`SecuritySessionId` (e.g., `SessionGetInfo()`).
+
+When passed, this integer signifies the **current security session** (i.e., the
+the security session to which the current process belongs).
+
+See Also
+----------
+https://opensource.apple.com/source/libsecurity_authorization/libsecurity_authorization-32564/lib/AuthSession.h
+    C header defining this magic integer.
+'''
+
+
+_SECURITY_SESSION_HAS_GRAPHIC_ACCESS = 0x0010
+'''
+Bit flag defined as `sessionHasGraphicAccess` by the macOS-specific
+`/System/Library/Frameworks/Security.Framework/Headers/AuthSession.h` C header
+masking the attributes bit field returned by the `SessionGetInfo()` C function
+also declared by that header.
+
+When enabled, this bit signifies the current process to have access to the Aqua
+display server and hence be headfull (rather than headless).
+
+See Also
+----------
+https://opensource.apple.com/source/libsecurity_authorization/libsecurity_authorization-32564/lib/AuthSession.h
+    C header defining this bit flag.
+'''
