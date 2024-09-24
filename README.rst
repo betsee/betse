@@ -1,4 +1,4 @@
-.. # ------------------( DIRECTIVES                         )------------------
+.. # ------------------( DIRECTIVES                          )------------------
 .. # Fallback language applied to all code blocks failing to specify an
 .. # explicit language. Since the majority of all code blocks in this document
 .. # are Bash one-liners intended to be run interactively, this is "console".
@@ -9,7 +9,7 @@
 .. # thus disabled until more widely supported. *collective shrug*
 .. # highlight:: console
 
-.. # ------------------( SYNOPSIS                           )------------------
+.. # ------------------( SYNOPSIS                            )------------------
 
 =====
 BETSE
@@ -27,7 +27,7 @@ BETSE is `portably implemented <codebase_>`__ in pure `Python 3`_,
 pytest_ **×** Codecov_, and `permissively distributed <license_>`__ under the
 `BSD 2-clause license`_.
 
-.. # ------------------( TABLE OF CONTENTS                  )------------------
+.. # ------------------( TABLE OF CONTENTS                   )------------------
 .. # Blank line. By default, Docutils appears to only separate the subsequent
 .. # table of contents heading from the prior paragraph by less than a single
 .. # blank line, hampering this table's readability and aesthetic comeliness.
@@ -42,7 +42,7 @@ pytest_ **×** Codecov_, and `permissively distributed <license_>`__ under the
 .. contents:: **Contents**
    :local:
 
-.. # ------------------( DESCRIPTION                        )------------------
+.. # ------------------( DESCRIPTION                         )------------------
 
 Installation
 ============
@@ -53,7 +53,7 @@ BETSE is universally installable with either:
 
   .. code-block:: console
 
-     pip3 install betse
+     pip install betse
 
 - Anaconda_, a third-party Python package manager:
 
