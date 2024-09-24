@@ -27,7 +27,7 @@ on:
     # Sequence of glob expressions matched against "refs/tags" pushed to the
     # branches above.
     tags:
-      - 'v*'   # Match "v"-prefixed tags (e.g., "v6.9.6").
+      - 'v**'   # Match "v"-prefixed tags (e.g., "v6.9.6").
 
 # ....................{ MAIN                               }....................
 jobs:
@@ -44,7 +44,7 @@ jobs:
       - name: "Publishing GitHub release..."
         uses: 'ncipollo/release-action@v1'
         with:
-          name: "betse ${{ github.ref }}"
+          name: "BETSE ${{ github.ref }}"
           body: ${{ github.event.commits[0].message }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -72,14 +72,11 @@ jobs:
           set -xe
           python -VV
           python -m site
-          python -m pip --quiet install --upgrade pip setuptools wheel
-      - name: 'Installing package dependencies...'
-        run: |
-          python -m pip --quiet install --upgrade twine
+          python -m pip --quiet install --upgrade pip hatch wheel
       - name: "Creating source tarball and binary wheel..."
         run: |
           set -xe
-          python setup.py sdist bdist_wheel
+          hatch build -t sdist -t wheel
       - name: "Publishing PyPI release from tag..."
         uses: 'pypa/gh-action-pypi-publish@release/v1'
         with:
