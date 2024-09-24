@@ -45,7 +45,7 @@ Human-readable name of the license this application is licensed under.
 '''
 
 # ....................{ PYTHON ~ version                   }....................
-PYTHON_VERSION_MIN = '3.9.0'
+PYTHON_VERSION_MIN = '3.11.0'
 '''
 Human-readable minimum version of Python required by this application as a
 ``.``-delimited string.
@@ -130,7 +130,7 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
             NAME, PYTHON_VERSION_MIN, PYTHON_VERSION))
 
 # ....................{ METADATA ~ version                 }....................
-VERSION = '1.4.0'
+VERSION = '1.4.1'
 '''
 Human-readable application version as a ``.``-delimited string.
 '''
