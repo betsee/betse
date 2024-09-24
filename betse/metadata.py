@@ -52,7 +52,7 @@ Human-readable minimum version of Python required by this application as a
 '''
 
 
-PYTHON_VERSION_MINOR_MAX = 13
+PYTHON_VERSION_MINOR_MAX = 14
 '''
 Maximum minor stable version of this major version of Python currently released
 (e.g., ``5`` if Python 3.5 is the most recent stable version of Python 3.x).
