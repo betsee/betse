@@ -272,6 +272,31 @@ test = [
 # documentation-time dependencies.
 all = ["betse[doc,test]"]
 
+# ....................{ PEP 621 ~ paths                    }....................
+# Entry points
+# https://peps.python.org/pep-0621/#entry-points
+# same as console_scripts entry point
+
+# PEP 621-compliant dictionary mapping from the unqualified basenames of all
+# terminal-oriented scripts to be installed in the antiquated format for Python
+# entry points of "{module_name}:{function_name}".
+#
+# Note that:
+# * This antiquated format ignores the implicit "__main__" standard supported by
+#   all Python interpreters. Instead, an explicit function name is required --
+#   even when that function resides in the "__main__" submodule of a package.
+# * PEP 621 merely standardizes the name of the "[project.scripts]"
+#   configuration group. The contents of this group conform to the antiquated
+#   entry points format standardized literally decades ago by "setuptools".
+#
+# See also:
+# * PEP 621 standardization of entry points:
+#      https://peps.python.org/pep-0621/#entry-points
+# * Entry points specification:
+#       https://packaging.python.org/en/latest/specifications/entry-points/
+[project.scripts]
+betse = "betse.__main__:main"
+
 # ....................{ PEP 621 ~ urls                     }....................
 # Table (i.e., dictionary) mapping from the PyPI-recognized name of each
 # relevant project URL to that URL.
