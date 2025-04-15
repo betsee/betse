@@ -245,7 +245,7 @@ def is_mtime_recursive_older_than_paths(
         path against.
 
     Returns
-    ----------
+    -------
     bool
         ``True`` only if this path's recursive mtime is strictly less than that
         of at least one path in this iterable.
@@ -308,8 +308,8 @@ def get_type_label(pathname: str) -> str:
 @type_check
 def get_mtime_nonrecursive(pathname: str) -> NumericSimpleTypes:
     '''
-    **Non-recursive mtime** (i.e., non-recursively retrieved modification time) in
-    in seconds of the passed path.
+    **Non-recursive mtime** (i.e., non-recursively retrieved modification time)
+    in in seconds of the passed path.
 
     If this path is:
 
@@ -332,7 +332,7 @@ def get_mtime_nonrecursive(pathname: str) -> NumericSimpleTypes:
         Relative or absolute path to inspect.
 
     Returns
-    -----------
+    -------
     NumericSimpleTypes
         Mtime in seconds of this path as either an integer or float, depending
         on the boolean returned by the platform-specific

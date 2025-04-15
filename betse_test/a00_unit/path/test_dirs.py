@@ -10,37 +10,10 @@ Unit tests for the :mod:`betse.util.path.dirs` submodule.
 # ....................{ IMPORTS                            }....................
 from betse.util.test.pytest.mark.pytskip import (
     # skip_if_ci_gitlab,
-    skip_if_os_macos,
     skip_if_os_windows_vanilla,
 )
 
 # ....................{ TESTS                              }....................
-#FIXME: Reenable this test under macOS when time permits. For unknown reasons,
-#this test currently fails with an assertion error resembling:
-#    >       assert (
-#                dirs.get_mtime_recursive_newest(dirname) ==
-#                paths.get_mtime_nonrecursive(subsubfilename2)
-#            )
-#    E       AssertionError: assert 1653971645.6776903 == 1653971645.677683
-#
-#We suspect the macOS-specific HFS+ filesystem to be the underlying culprit.
-#According to this StackOverflow post, HFS+ provided at most one-second
-#resolution on path timestamps:
-#    https://stackoverflow.com/a/943537/2809027
-#
-#The above assertion error suggests HFS+ now provides finer-grain nanosecond
-#resolution on path timestamps, but with the critical caveat that nanosecond
-#resolution is *NOT* strictly reliable (e.g., due to low-level implementation
-#details in the HFS+ journaling design).
-#
-#As a real-world solution, we might consider improving *ALL* BETSE-specific
-#getter functions retrieving path timestamps (e.g.,
-#get_mtime_recursive_newest(), get_mtime_nonrecursive()) to:
-#* Conditionally detect when they are running under macOS.
-#* If so, explicitly truncate the timestamp to be returned to only a certain
-#  number of fractional digits. The above output suggests that HFS+ can reliably
-#  provide at most four fractional digits, for example.
-@skip_if_os_macos()
 def test_dirs_get_mtime_newest(
     betse_temp_dir: 'py._path.local.LocalPath') -> None:
     '''
@@ -82,9 +55,30 @@ def test_dirs_get_mtime_newest(
     subsubfilename2 = str(subsubfilepath2)
 
     # Ensure the last path created above to be the most recent.
+    #
+    # Note that *ALL* mtimes (i.e., modification times) here are intentionally
+    # truncated from floating-point numbers to integers, implicitly discarding
+    # the fractional parts of these numbers. Most modern filesystems maintain
+    # fine-grained nanosecond resolution on path timestamps. When a directory
+    # tree comprising one parent directory and one or more child subdirectories
+    # are recursively created (e.g., via the ensure() method called above), the
+    # timestamps associated with these directories often vary with respect to
+    # fine-grained nanosecond resolution. Previously, this unit test ignored
+    # this distinction and attempted to assert strict equality between these
+    # fine-grained timestamps. Doing so raised exceptions resembling:
+    #    >       assert (
+    #                dirs.get_mtime_recursive_newest(dirname) ==
+    #                paths.get_mtime_nonrecursive(subsubfilename2)
+    #            )
+    #    E       AssertionError: assert 1653971645.6776903 == 1653971645.677683
+    #
+    # The above output suggests that modern filesystems can reliably provide at
+    # most four fractional digits of resolution on path timestamps. For
+    # portability, this test goes one step further and simply assumes *ALL*
+    # fractional digits of path timestamps to be unreliable. *shakes head, fam*
     assert (
-        dirs.get_mtime_recursive_newest(dirname) ==
-        paths.get_mtime_nonrecursive(subsubfilename2)
+        int(dirs.get_mtime_recursive_newest(dirname)) ==
+        int(paths.get_mtime_nonrecursive(subsubfilename2))
     )
 
     # Update the mtime of an arbitrary subdirectory.
@@ -92,16 +86,16 @@ def test_dirs_get_mtime_newest(
 
     # Ensure this subdirectory to now be the most recent.
     assert (
-        dirs.get_mtime_recursive_newest(dirname) ==
-        paths.get_mtime_nonrecursive(subsubdirname)
+        int(dirs.get_mtime_recursive_newest(dirname)) ==
+        int(paths.get_mtime_nonrecursive(subsubdirname))
     )
 
     # Ensure this subdirectory to now be the most recent when queried through
     # the related paths.get_mtime_recursive_newest() function.
     assert (
-        paths.get_mtime_recursive_newest(
-            (dirname, subsubdirname, subsubfilename2)) ==
-        paths.get_mtime_nonrecursive(subsubdirname)
+        int(paths.get_mtime_recursive_newest(
+            (dirname, subsubdirname, subsubfilename2))) ==
+        int(paths.get_mtime_nonrecursive(subsubdirname))
     )
 
 

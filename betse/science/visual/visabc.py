@@ -25,10 +25,14 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 #The core issue appears to be our use of the pyplot.pause() function, which we
 #will now need to globally replace across the entire codebase with calls to
 #fig.canvas.draw_idle() and fig.canvas.start_event_loop(0.001) instead.
+#FIXME: Actually, visuals now appear to be behave as expected again -- under
+#matplotlib >= 3.10.0 and Arch Linux + Wayland, anyway. Let's choose to
+#conveniently ignore this probably non-issue for the moment, please. \o/
 
 #FIXME: Refactor all procedural cell cluster-specific
 #"betse.science.visual.plot.plotutil" functions into subclasses of the
-#"LayerCellsABC" base class defined elsewhere. Ultimate power fights the dark deceit!
+#"LayerCellsABC" base class defined elsewhere. Ultimate power fights the dark
+#deceit!
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
@@ -429,16 +433,24 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # For each name and value of a field bound to this object...
         for field_name, field_value in objiter.iter_vars_custom_simple(self):
             # If this field itself contains a "figure" attribute, explicitly
-            # nullify the latter to break this figure's circular references in
-            # a manner ignoring "AttributeError: can't set attribute"
-            # exceptions.
+            # delete the latter to break this figure's circular references in a
+            # manner ignoring "AttributeError: can't set attribute" exceptions.
             #
-            # Note that this probably fails to break all such references, as
-            # doing so appears to be infeasible in a general-purpose manner.
-            # These references are baked into the low-level Matplotlib API!
+            # Note that:
+            # * This probably fails to break all such references, as doing so
+            #   appears to be infeasible in a general-purpose manner. These
+            #   references are baked into the low-level Matplotlib API!
+            # * We previously nullified (i.e., set to "None") rather than
+            #   deleted this attribute with logic resembling:
+            #       setattr(field_value, 'figure', None)
+            #
+            #   Sadly, matplotlib >= 3.10.0 broke backward compatibility with
+            #   that logic by raising a non-human-readable exception resembling:
+            #       RuntimeError: Can not put single artist in more than one
+            #       figure
             try:
                 if  hasattr(field_value, 'figure'):
-                    setattr(field_value, 'figure', None)
+                    delattr(field_value, 'figure')
             except AttributeError:
                 pass
 

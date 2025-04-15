@@ -498,14 +498,14 @@ get_mtime_recursive_newest.__doc__ = '''
         Absolute or relative path of the directory to inspect.
 
     Returns
-    -----------
+    -------
     NumericSimpleTypes
         Most recent mtime in seconds of this directory calculated recursively
         as either an integer or float, depending on the boolean returned by the
         platform-specific :func:`os.stat_float_times` function.
 
     Raises
-    -----------
+    ------
     OSError
         If either this directory *or* any file or subdirectory reachable from
         this directory is unreadable by the current user (e.g., due to

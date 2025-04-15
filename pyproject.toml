@@ -304,7 +304,7 @@ betse = "betse.__main__:main"
 
 #FIXME: Prefer a documentation-specific site, please.
 # URL of this project's homepage.
-"Homepage" = "https://calculion.streamlit.app"
+"Homepage" = "https://github.com/betsee/betse"
 
 # URL of this project's documentation.
 "Documentation" = "https://www.dropbox.com/s/3rsbrjq2ljal8dl/BETSE_Documentation_April10th2019.pdf?dl=0"
