@@ -44,7 +44,7 @@ jobs:
       - name: "Publishing GitHub release..."
         uses: 'ncipollo/release-action@v1'
         with:
-          name: "Cellnition ${{ github.ref }}"
+          name: "BETSE ${{ github.ref }}"
           body: ${{ github.event.commits[0].message }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
