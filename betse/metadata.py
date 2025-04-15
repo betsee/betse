@@ -7,7 +7,7 @@
 Metadata constants synopsizing high-level application behaviour.
 
 Design
-----------
+------
 Metadata constants defined by this submodule are intentionally *not* defined as
 metadata properties of the :class:`betse.util.app.meta.appmetaabc` abstract base
 class. Why? Because doing so would prevent their use from the top-level
@@ -49,13 +49,6 @@ PYTHON_VERSION_MIN = '3.11.0'
 '''
 Human-readable minimum version of Python required by this application as a
 ``.``-delimited string.
-'''
-
-
-PYTHON_VERSION_MINOR_MAX = 14
-'''
-Maximum minor stable version of this major version of Python currently released
-(e.g., ``5`` if Python 3.5 is the most recent stable version of Python 3.x).
 '''
 
 
@@ -130,7 +123,7 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
             NAME, PYTHON_VERSION_MIN, PYTHON_VERSION))
 
 # ....................{ METADATA ~ version                 }....................
-VERSION = '1.4.2'
+VERSION = '1.5.0'
 '''
 Human-readable application version as a ``.``-delimited string.
 '''
