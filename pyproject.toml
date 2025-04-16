@@ -367,6 +367,9 @@ include = [
     # subdirectory bundled with this project containing *ONLY* Python-agnostic
     # media files).
     "/betse/data/",
+
+    # Relative filenames of all requisite package-level installation-time files.
+    "/betse/py.typed",
 ]
 
 # PEP-noncompliant section declaring Hatch-specific build settings when
@@ -427,4 +430,7 @@ include = [
     # subdirectory bundled with this project containing *ONLY* Python-agnostic
     # media files).
     "/betse/data/",
+
+    # Relative filenames of all requisite package-level installation-time files.
+    "/betse/py.typed",
 ]
