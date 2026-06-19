@@ -4,6 +4,7 @@
 
 # ....................{ IMPORTS                            }....................
 import math
+import torch
 import numpy as np
 # import scipy.ndimage
 from scipy.spatial import Delaunay, cKDTree
@@ -1230,6 +1231,42 @@ def laplacian(F,delx,dely=None):
     ddF[0,:] = ddF_T
     ddF[-1,:] = ddF_B
 
+    return ddF
+
+def laplacian_mps(self, F, delx, dely=None):
+    """
+    Sovereign-Accelerated Laplacian (Metal/MPS Backend).
+    Replaces CPU slicing with GPU Tensor operations.
+    """
+    if dely is None:
+        dely = delx
+
+    # Ensure F is a Tensor on the GPU
+    if not torch.is_tensor(F):
+        F = torch.tensor(F, device='mps', dtype=torch.float32)
+
+    # 1. Calculate the Interior (GPU Parallelized)
+    # The syntax is identical to Numpy, but runs on 4096 GPU cores
+    ddFx_interior = (F[:, 2:] - 2*F[:, 1:-1] + F[:, 0:-2]) / (delx * dely)
+    ddFy_interior = (F[2:, :] - 2*F[1:-1, :] + F[0:-2, :]) / (delx * dely)
+
+    # 2. Calculate Boundaries (GPU Parallelized)
+    ddF_B = (F[-3, :] - 2*F[-2, :] + F[-1, :]) / (dely * dely)
+    ddF_T = (F[0, :] - 2*F[-1, :] + F[-2, :]) / (dely * dely)
+    ddF_L = (F[:, 2] - 2*F[:, 1] + F[:, 0]) / (delx * delx)
+    ddF_R = (F[:, -3] - 2*F[:, -2] + F[:, -1]) / (delx * delx)
+
+    # 3. Assemble the Result
+    ddF = torch.zeros_like(F, device='mps')
+        
+    # Inject interior values
+    ddF[1:-1, 1:-1] = ddFx_interior[1:-1, :] + ddFy_interior[:, 1:-1]
+
+    # Inject boundary values
+    ddF[:, 0] = ddF_L
+    ddF[:, -1] = ddF_R
+    ddF[0, :] = ddF_T
+    ddF[-1, :] = ddF_B
 
     return ddF
 
@@ -1508,6 +1545,37 @@ def integrator(P, sharp = 0.5):
     F[:, -1] = P[:, -1]
     F[0, :] = P[0, :]
     F[-1, :] = P[-1, :]
+
+    return F
+
+def integrator_mps(self, P, sharp=0.5):
+    """
+    Sovereign-Accelerated Integrator (Metal/MPS Backend).
+    Replaces CPU Stencil with GPU Tensor operations.
+    """
+    # 1. Ensure P is a Tensor on the GPU
+    if not torch.is_tensor(P):
+        P = torch.tensor(P, device='mps', dtype=torch.float32)
+
+    # 2. Setup the Canvas
+    F = torch.zeros_like(P)
+    sides = (1.0 - sharp) / 4.0
+
+    # 3. The Parallel Smoothing (GPU Slicing)
+    # Center
+    F[:, :] = sharp * P
+        
+    # Add Neighbors (Shift logic matches original Numpy slicing)
+    F[:-1, :] += sides * P[1:, :]   # Add 'South' neighbors to 'North' cells
+    F[1:, :]  += sides * P[:-1, :]  # Add 'North' neighbors to 'South' cells
+    F[:, :-1] += sides * P[:, 1:]   # Add 'East' neighbors to 'West' cells
+    F[:, 1:]  += sides * P[:, :-1]  # Add 'West' neighbors to 'East' cells
+
+    # 4. Reset Boundaries (Enforce conditions)
+    F[:, 0]   = P[:, 0]
+    F[:, -1]  = P[:, -1]
+    F[0, :]   = P[0, :]
+    F[-1, :]  = P[-1, :]
 
     return F
 

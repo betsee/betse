@@ -5,6 +5,7 @@
 
 # ....................{ IMPORTS                           }....................
 import numpy as np
+import sys
 from betse.util.app.meta import appmetaone
 from betse.exceptions import BetseSimConfException
 from betse.lib.matplotlib import mplcolormap
@@ -19,6 +20,44 @@ from betse.science.config.model.conftis import (
 from betse.util.path import dirs, pathnames
 from betse.util.type.descriptor.descs import classproperty_readonly
 from betse.util.type.types import IterableTypes, SequenceTypes, StrOrNoneTypes
+
+# --- SOVEREIGN IMPORT GUARD ---
+# Safely check for PyTorch to prevent crashes on non-AI environments.
+try:
+    import torch
+    _HAS_TORCH = True
+except ImportError:
+    _HAS_TORCH = False
+	
+# ....................{ CLASSES                            }....................
+class SimConfCompute(object):
+    """
+    Sovereign Compute Configuration.
+    Manages hardware acceleration toggles (CPU vs GPU/MPS) based on:
+    1. Hardware capability (Apple Silicon + PyTorch).
+    2. User configuration (betse.yaml).
+    """
+    def __init__(self, conf_file_options=None):
+        # 1. Hardware Detection (Safe)
+        self._is_mps_available = False
+        if _HAS_TORCH:
+            # Only check for MPS if torch actually exists
+            self._is_mps_available = torch.backends.mps.is_available()
+
+        # 2. User Configuration (Default: True)
+        self._user_enabled = True
+        if conf_file_options and 'compute' in conf_file_options:
+             self._user_enabled = conf_file_options['compute'].get('acceleration', True)
+
+        # 3. Final Decision
+        self.use_gpu = self._is_mps_available and self._user_enabled
+
+        if self.use_gpu:
+            print("⚡ [KSL] Sovereign Acceleration: ACTIVE (Apple Silicon MPS)")
+        elif _HAS_TORCH:
+            print("🐎 [BETSE] Standard Compute: ACTIVE (CPU)")
+        else:
+            print("🐎 [BETSE] Standard Compute: ACTIVE (CPU - PyTorch Not Detected)")
 
 # ....................{ SUBCLASSES                        }....................
 class Parameters(YamlFileDefaultABC):

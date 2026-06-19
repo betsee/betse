@@ -26,8 +26,14 @@ automation.
 # Subject all subsequent imports to @beartype-based hybrid runtime-static
 # type-checking *BEFORE* importing anything further.
 # from beartype import BeartypeConf
-from beartype.claw import beartype_this_package
-beartype_this_package()
+# --- SOVEREIGN TYPE SAFETY (The Claw) ---
+# As requested by maintainer @leycec, we globally enable beartype's import hook.
+# This eliminates the need for manual @beartype decorators on every function.
+try:
+    from beartype.claw import beartype_this_package
+    beartype_this_package()
+except ImportError:
+    pass  # Graceful fallback if beartype is not installed
 
 # For PEP 8 compliance, versions constants expected by external automation are
 # imported under their PEP 8-mandated names.

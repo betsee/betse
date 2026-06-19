@@ -86,3 +86,6 @@ __pycache__/
 *~
 *.log
 *.sw?
+
+# Ignore local virtual environments
+.venv/
