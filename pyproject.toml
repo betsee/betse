@@ -272,6 +272,21 @@ test = [
 # documentation-time dependencies.
 all = ["betse[doc,test]"]
 
+# ....................{ ACCELERATION                   }....................
+# Optional dependencies required for hardware-accelerated physics.
+#
+# Note that this dependency is strictly constrained to macOS ("darwin").
+# Why? Because PyTorch distribution on Linux/Windows is fragmented into
+# incompatible "flavors" (e.g., CUDA vs. ROCm vs. CPU-only), requiring
+# complex URL indices that cannot be easily expressed in standard metadata.
+#
+# On macOS, however, the standard PyTorch wheel includes Apple Metal (MPS)
+# support out-of-the-box. Thus, we enable the "God-Stack" here while
+# explicitly avoiding the complexity of universal cross-platform GPU support.
+acceleration = [
+    "torch >= 2.0.0; sys_platform == 'darwin'",
+]
+
 # ....................{ PEP 621 ~ paths                    }....................
 # PEP 621-compliant dictionary mapping from the unqualified basenames of all
 # terminal-oriented scripts to be installed in the antiquated format for Python

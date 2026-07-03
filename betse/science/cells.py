@@ -2437,6 +2437,22 @@ class Cells(object):
         fmemi          Interpolation of parameter between adjacent membranes
         """
 
+        # ....................{ ACCELERATION               }....................
+        try:
+            import torch
+            # Check for Metal availability
+            if torch.backends.mps.is_available():
+                # Trigger if:
+                # 1. We have ALREADY cached the matrix (Fast path), OR
+                # 2. The simulation is large enough (>5000 cells) to justify caching
+                if hasattr(self, '_M_sum_mems_mps') or f.size > 5000:
+                    import os
+                    os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+                    return self._integrator_mps(f, fmem)
+        except ImportError:
+            pass
+        # ....................{ END ACCELERATION           }....................
+
         # average the parameter between adjacent membranes:
         fmemi = (fmem[self.nn_i] + fmem[self.mem_i])/2
 
@@ -3015,3 +3031,41 @@ class Cells(object):
 
             # Return this output list converted back to an output array.
             return nparray.from_iterable(cells_centre_data_interpolated)
+
+    # ....................{ ACCELERATION : HELPERS         }....................
+    def _integrator_mps(self, f, fmem) -> tuple:
+        """
+        Private helper: Sovereign-Accelerated Integrator (Metal/MPS Backend).
+        Replaces CPU Dot Product with GPU Tensor Multiplication.
+        """
+        import torch
+
+        # 1. Sovereign Caching (Initialize once to avoid PCI-e overhead)
+        # We store the massive connectivity matrix on the VRAM permanently.
+        if not hasattr(self, '_M_sum_mems_mps'):
+            # Convert the geometry matrix to a GPU Tensor
+            # We use float32 for Metal performance (Double precision is slow/unsupported)
+            self._M_sum_mems_mps = torch.tensor(
+                self.M_sum_mems, device='mps', dtype=torch.float32
+            )
+            self._num_mems_mps = torch.tensor(
+                self.num_mems, device='mps', dtype=torch.float32
+            )
+        
+        # 2. CPU Pre-Processing (Fast enough on CPU)
+        # We calculate the membrane averages using Numpy fancy indexing
+        fmemi = (fmem[self.nn_i] + fmem[self.mem_i]) / 2.0
+        
+        # 3. Move Data to GPU
+        # Transfer only the computed vector, not the whole mesh
+        f_gpu = torch.as_tensor(f, device='mps', dtype=torch.float32)
+        fmemi_gpu = torch.as_tensor(fmemi, device='mps', dtype=torch.float32)
+
+        # 4. The Heavy Lift (GPU Matrix Multiplication)
+        # This is the line that used to choke the CPU
+        dot_product = torch.matmul(self._M_sum_mems_mps, fmemi_gpu)
+        
+        # 5. Assemble and Return to CPU
+        fcent_gpu = 0.5 * (f_gpu + (dot_product / self._num_mems_mps))
+        
+        return fcent_gpu.cpu().numpy(), fmemi
