@@ -1206,6 +1206,11 @@ def laplacian(F,delx,dely=None):
 
     """
 
+    # ....................{ ACCELERATION               }....................
+    if _is_metal_viable(F.size):
+        return _laplacian_mps(F, delx, dely)
+    # ....................{ END ACCELERATION           }....................
+
     if dely is None:
         dely = delx
 
@@ -1488,6 +1493,11 @@ def integrator(P, sharp = 0.5):
 
     """
 
+    # ....................{ ACCELERATION               }....................
+    if _is_metal_viable(P.size):
+        return _integrator_mps(P, sharp)
+    # ....................{ END ACCELERATION           }....................
+
     F = np.zeros(P.shape)
 
     eP = P[:,1:] # east midpoints
@@ -1542,4 +1552,92 @@ def flux_summer_sym(U,V):
 
     return F
 
+# ....................{ ACCELERATION : HELPERS         }....................
+def _is_metal_viable(array_size):
+    """
+    Gatekeeper: Checks if Apple Metal is available and worth using.
+    Returns True if we should proceed with GPU acceleration.
+    """
+    # 1. Size Threshold (Don't move tiny arrays to GPU)
+    if array_size < 10000:
+        return False
 
+    try:
+        import torch
+        if torch.backends.mps.is_available():
+            # 2. The Fallback Safety Net (Crucial for Future Proofing)
+            # Ensures unsupported operators degrade to CPU instead of crashing.
+            import os
+            os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+            return True
+    except ImportError:
+        pass
+        
+    return False
+
+def _laplacian_mps(F, delx, dely=None):
+    """
+    Private helper: Sovereign-Accelerated Laplacian (Metal/MPS Backend).
+    """
+    import torch
+    if dely is None:
+        dely = delx
+
+    # Move to GPU
+    if not torch.is_tensor(F):
+        F_gpu = torch.tensor(F, device='mps', dtype=torch.float32)
+    else:
+        F_gpu = F
+
+    # Calculations (Interior)
+    ddFx_interior = (F_gpu[:, 2:] - 2*F_gpu[:, 1:-1] + F_gpu[:, 0:-2]) / (delx * dely)
+    ddFy_interior = (F_gpu[2:, :] - 2*F_gpu[1:-1, :] + F_gpu[0:-2, :]) / (delx * dely)
+
+    # Calculations (Boundaries)
+    ddF_B = (F_gpu[-3, :] - 2*F_gpu[-2, :] + F_gpu[-1, :]) / (dely * dely)
+    ddF_T = (F_gpu[0, :] - 2*F_gpu[-1, :] + F_gpu[-2, :]) / (dely * dely)
+    ddF_L = (F_gpu[:, 2] - 2*F_gpu[:, 1] + F_gpu[:, 0]) / (delx * delx)
+    ddF_R = (F_gpu[:, -3] - 2*F_gpu[:, -2] + F_gpu[:, -1]) / (delx * delx)
+
+    # Assemble
+    ddF = torch.zeros_like(F_gpu, device='mps')
+    ddF[1:-1, 1:-1] = ddFx_interior[1:-1, :] + ddFy_interior[:, 1:-1]
+    ddF[:, 0] = ddF_L
+    ddF[:, -1] = ddF_R
+    ddF[0, :] = ddF_T
+    ddF[-1, :] = ddF_B
+
+    # Return to CPU (NumPy)
+    return ddF.cpu().numpy()
+
+def _integrator_mps(P, sharp=0.5):
+    """
+    Private helper: Sovereign-Accelerated Integrator (Metal/MPS Backend).
+    """
+    import torch
+    
+    # Move to GPU
+    if not torch.is_tensor(P):
+        P_gpu = torch.tensor(P, device='mps', dtype=torch.float32)
+    else:
+        P_gpu = P
+
+    # Setup
+    F = torch.zeros_like(P_gpu)
+    sides = (1.0 - sharp) / 4.0
+
+    # Parallel Smoothing
+    F[:, :] = sharp * P_gpu
+    F[:-1, :] += sides * P_gpu[1:, :]   # South
+    F[1:, :]  += sides * P_gpu[:-1, :]  # North
+    F[:, :-1] += sides * P_gpu[:, 1:]   # East
+    F[:, 1:]  += sides * P_gpu[:, :-1]  # West
+
+    # Reset Boundaries
+    F[:, 0]   = P_gpu[:, 0]
+    F[:, -1]  = P_gpu[:, -1]
+    F[0, :]   = P_gpu[0, :]
+    F[-1, :]  = P_gpu[-1, :]
+
+    # Return to CPU (NumPy)
+    return F.cpu().numpy()
