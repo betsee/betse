@@ -6,7 +6,7 @@
 # ....................{ IMPORTS                           }....................
 import numpy as np
 from betse.util.app.meta import appmetaone
-from betse.exceptions import BetseSimConfException
+from betse.exceptions import BetseFileException, BetseSimConfException
 from betse.lib.matplotlib import mplcolormap
 from betse.lib.yaml import yamls
 from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
@@ -16,7 +16,7 @@ from betse.science.enum.enumconf import (
 from betse.science.config.model.conftis import (
     SimConfCutListItem, SimConfTissueDefault, SimConfTissueListItem)
 # from betse.util.io.log import logs
-from betse.util.path import dirs, pathnames
+from betse.util.path import dirs, files, pathnames
 from betse.util.type.descriptor.descs import classproperty_readonly
 from betse.util.type.types import IterableTypes, SequenceTypes, StrOrNoneTypes
 
@@ -787,6 +787,15 @@ class Parameters(YamlFileDefaultABC):
                 self.expression_data_path = pathnames.join(
                     self.conf_dirname, self.expression_data_path_rel)
 
+                # If this file does *NOT* exist, raise a human-readable
+                # exception explaining how to resolve this.
+                self._die_unless_conf_file(
+                    filename=self.expression_data_path,
+                    filename_relative=self.expression_data_path_rel,
+                    setting_name='general network/expression data file',
+                    is_disableable=True,
+                )
+
                 # Load this file under the assumption this file complies with a
                 # sane version of the YAML specification.
                 self.expression_data = yamls.load(
@@ -803,6 +812,16 @@ class Parameters(YamlFileDefaultABC):
 
         # If a GRN is enabled...
         if self.grn_enabled:
+            # If this GRN file does *NOT* exist, raise a human-readable
+            # exception explaining how to resolve this.
+            self._die_unless_conf_file(
+                filename=self.grn_config_filename,
+                filename_relative=self.grn_config_filename_relative,
+                setting_name=(
+                    'gene regulatory network settings/'
+                    'gene regulatory network config'),
+            )
+
             # Load this GRN from this file under the assumption this file
             # complies with a sane version of the YAML specification.
             self.grn.load(
@@ -1260,6 +1279,105 @@ class Parameters(YamlFileDefaultABC):
             self.init_export_dirname, self.sim_export_dirname,
             self.grn_pickle_dirname,
         )
+
+
+    def _die_unless_conf_file(
+        self,
+        filename: str,
+        filename_relative: str,
+        setting_name: str,
+        is_disableable: bool = False,
+    ) -> None:
+        '''
+        Raise an exception explaining how to resolve this issue unless the
+        passed file referenced by a setting of this simulation configuration
+        exists.
+
+        The most common cause of this issue is an end user copying *only* the
+        top-level YAML file of this simulation configuration (e.g.,
+        ``sample_sim/sample_sim.yaml``) to another directory *without* also
+        copying the other files and subdirectories that file references (e.g.,
+        ``sample_sim/extra_configs/``). Since BETSE resolves relative paths in
+        settings against the directory containing that YAML file, those
+        references then refer to non-existent files. The resulting exception
+        message explains this and suggests how to resolve this.
+
+        Parameters
+        ----------
+        filename : str
+            Absolute filename of the file to be validated.
+        filename_relative : str
+            Filename of this file as specified by this setting, typically
+            relative to the directory containing this configuration file.
+        setting_name : str
+            Human-readable ``/``-delimited name of this setting (e.g.,
+            ``general network/expression data file``).
+        is_disableable : bool
+            ``True`` only if this setting may be set to ``None`` to disable the
+            feature requiring this file. Defaults to ``False``.
+
+        Raises
+        ----------
+        BetseFileException
+            If this file does *not* exist.
+        '''
+
+        # If this file exists, silently reduce to a noop.
+        if files.is_file(filename):
+            return
+        # Else, this file does *NOT* exist.
+
+        # Avoid circular import dependencies.
+        from betse.util.os.brand import windows
+
+        # Shell command copying an entire simulation directory and relative
+        # filename of a new simulation configuration file, both specific to the
+        # current platform. Since "betse config" requires its argument to
+        # contain a platform-specific directory separator (e.g., "\" under
+        # Windows), this filename is joined with that separator rather than
+        # hardcoding "/". Likewise, "cp -R" is unavailable under vanilla
+        # Windows, which provides "xcopy" instead.
+        copy_command = (
+            'xcopy /E /I sample_sim my_sim' if windows.is_windows_vanilla() else
+            'cp -R sample_sim my_sim')
+        conf_example_filename = pathnames.join('my_sim', 'my_sim.yaml')
+
+        # Human-readable advice on resolving this issue.
+        advice = [
+            'Copy the entire simulation directory (e.g., '
+            '"{}") rather than only its YAML file.'.format(copy_command),
+            'Create a new default simulation directory containing this file '
+            '(e.g., "betse config {}") and edit that.'.format(
+                conf_example_filename),
+            'Edit the "{}" setting in "{}" to name an existing file.'.format(
+                setting_name, self.conf_filename),
+        ]
+        if is_disableable:
+            advice.append(
+                'Set the "{}" setting to "None" if you do not need '
+                'this file.'.format(setting_name))
+
+        # Raise a human-readable exception.
+        raise BetseFileException(
+            'File "{filename}" not found or unreadable.\n'
+            '\n'
+            'This file is referenced by the "{setting_name}" setting '
+            '(i.e., "{filename_relative}") of '
+            'simulation configuration file "{conf_filename}". '
+            'Relative paths in this configuration are resolved against '
+            'the directory "{conf_dirname}" containing that file. '
+            'This usually means that file was copied or moved without '
+            'the other files and subdirectories it refers to. '
+            'To resolve this, do one of the following:\n'
+            '{advice}'.format(
+                filename=filename,
+                filename_relative=filename_relative,
+                setting_name=setting_name,
+                conf_filename=self.conf_filename,
+                conf_dirname=self.conf_dirname,
+                advice='\n'.join(
+                    '* {}'.format(advice_line) for advice_line in advice),
+            ))
 
 
     def _load_ion_profile(self) -> None:

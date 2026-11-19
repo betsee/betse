@@ -75,6 +75,65 @@ def test_cli_config(
     # Assert this file to have been created.
     assert sim_config_filepath.check(file=1)
 
+def test_cli_config_conf_file_missing_advice(
+    betse_cli: 'CLITester',
+    betse_temp_dir: 'py._path.local.LocalPath',
+    monkeypatch: 'pytest.MonkeyPatch',
+) -> None:
+    '''
+    Test that the ``betse config`` command suggested by the exception raised on
+    loading a simulation configuration whose top-level YAML file was copied
+    *without* the external files it references (i.e., issue #6) actually
+    succeeds when run as advised on the current platform *and* creates a
+    loadable simulation configuration.
+
+    Parameters
+    ----------
+    betse_cli : CLITester
+        Object encapsulating the BETSE CLI.
+    betse_temp_dir : py._path.local.LocalPath
+        Object encapsulating a temporary directory isolated to the current
+        test.
+    monkeypatch : pytest.MonkeyPatch
+        Builtin fixture changing the current working directory for this test.
+    '''
+
+    # Defer heavyweight imports.
+    import re
+    import shutil
+    from betse.exceptions import BetseFileException
+    from betse.science.parameters import Parameters
+    from betse.util.app.meta import appmetaone
+
+    # Initialize the application metadata singleton required to load
+    # configurations outside the CLI. (Functional tests otherwise leave this
+    # singleton to the CLI, which deinitializes it on each run.)
+    appmetaone.set_app_meta_betse_if_unset()
+
+    # Copy *ONLY* the default top-level YAML file into this directory.
+    conf_filename = str(betse_temp_dir.join('Defiant.yaml'))
+    shutil.copyfile(Parameters.conf_default_filename, conf_filename)
+
+    # Capture the advice raised on loading this incomplete configuration.
+    with pytest.raises(BetseFileException) as exception_info:
+        Parameters.make(conf_filename=conf_filename)
+
+    # Relative filename passed to the "betse config" command in this advice.
+    advice_match = re.search(
+        r'"betse config ([^"]+)"', str(exception_info.value))
+    assert advice_match is not None
+    advice_filename = advice_match.group(1)
+
+    # Run that command exactly as advised from this temporary directory.
+    monkeypatch.chdir(str(betse_temp_dir))
+    betse_cli.run('config', advice_filename)
+
+    # Assert that command to have created a configuration that now loads.
+    advice_filepath = betse_temp_dir.join(advice_filename)
+    assert advice_filepath.check(file=1)
+    appmetaone.set_app_meta_betse_if_unset()
+    Parameters.make(conf_filename=str(advice_filepath))
+
 # ....................{ TESTS ~ parametrized               }....................
 @pytest.mark.parametrize(
     ('profile_type',), (
