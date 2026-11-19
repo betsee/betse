@@ -52,6 +52,13 @@ def test_parameters_conf_file_missing(
     assert '"general network/expression data file"' in exception_message
     assert conf_filename in exception_message
 
-    # Assert this exception message to advise how to resolve this.
-    assert 'cp -R' in exception_message
-    assert 'betse config' in exception_message
+    # Assert this exception message to advise how to resolve this with
+    # commands valid on the current platform.
+    from betse.util.os.brand import windows
+    from betse.util.path import pathnames
+    if windows.is_windows_vanilla():
+        assert 'xcopy /E /I sample_sim my_sim' in exception_message
+    else:
+        assert 'cp -R sample_sim my_sim' in exception_message
+    assert 'betse config {}'.format(
+        pathnames.join('my_sim', 'my_sim.yaml')) in exception_message

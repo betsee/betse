@@ -81,6 +81,7 @@ def die_unless_file(*pathnames: str) -> None:
                     pathname, _get_file_missing_reason(pathname)))
 
 
+@type_check
 def _get_file_missing_reason(pathname: str) -> str:
     '''
     Human-readable sentence explaining why the passed path is *not* an existing

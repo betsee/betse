@@ -1327,12 +1327,28 @@ class Parameters(YamlFileDefaultABC):
             return
         # Else, this file does *NOT* exist.
 
+        # Avoid circular import dependencies.
+        from betse.util.os.brand import windows
+
+        # Shell command copying an entire simulation directory and relative
+        # filename of a new simulation configuration file, both specific to the
+        # current platform. Since "betse config" requires its argument to
+        # contain a platform-specific directory separator (e.g., "\" under
+        # Windows), this filename is joined with that separator rather than
+        # hardcoding "/". Likewise, "cp -R" is unavailable under vanilla
+        # Windows, which provides "xcopy" instead.
+        copy_command = (
+            'xcopy /E /I sample_sim my_sim' if windows.is_windows_vanilla() else
+            'cp -R sample_sim my_sim')
+        conf_example_filename = pathnames.join('my_sim', 'my_sim.yaml')
+
         # Human-readable advice on resolving this issue.
         advice = [
             'Copy the entire simulation directory (e.g., '
-            '"cp -R sample_sim my_sim") rather than only its YAML file.',
+            '"{}") rather than only its YAML file.'.format(copy_command),
             'Create a new default simulation directory containing this file '
-            '(e.g., "betse config my_sim/my_sim.yaml") and edit that.',
+            '(e.g., "betse config {}") and edit that.'.format(
+                conf_example_filename),
             'Edit the "{}" setting in "{}" to name an existing file.'.format(
                 setting_name, self.conf_filename),
         ]
