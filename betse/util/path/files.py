@@ -65,14 +65,77 @@ def die_unless_file(*pathnames: str) -> None:
         Further details.
     '''
 
-    # If at least one passed path is *NOT* an existing non-directory file...
-    if not is_file(*pathnames):
-        # For each such path...
-        for pathname in pathnames:
-            # If this path *NOT* such a file, raise an exception.
-            if not is_file(*pathnames):
-                raise BetseFileException(
-                    'File "{}" not found or unreadable.'.format(pathname))
+    # For each passed path...
+    for pathname in pathnames:
+        # If this path is *NOT* an existing non-directory file, raise an
+        # exception naming this path (rather than merely the first passed path)
+        # and explaining why this path is *NOT* such a file.
+        #
+        # Note that this path is intentionally tested in isolation. Since the
+        # is_file() tester returns true if *ANY* passed path is such a file,
+        # passing all paths to that tester at once would silently ignore all
+        # missing paths when at least one other passed path exists.
+        if not is_file(pathname):
+            raise BetseFileException(
+                'File "{}" not found or unreadable: {}'.format(
+                    pathname, _get_file_missing_reason(pathname)))
+
+
+def _get_file_missing_reason(pathname: str) -> str:
+    '''
+    Human-readable sentence explaining why the passed path is *not* an existing
+    non-directory file, intended to be embedded in exception messages.
+
+    Parameters
+    ----------
+    pathname : str
+        Absolute or relative pathname of a path that is *not* an existing
+        non-directory file.
+
+    Returns
+    ----------
+    str
+        Sentence explaining why this path is *not* such a file, naming the
+        absolute form of this path if this path is relative *and* the nearest
+        missing parent directory of this path if this directory is missing.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs
+
+    # If this path is an existing directory, say so.
+    if dirs.is_dir(pathname):
+        return 'path is a directory rather than a file.'
+
+    # Else, this path does *NOT* exist. Since relative paths are relative to
+    # the current working directory (which is rarely obvious to end users),
+    # resolve this path to its absolute form.
+    pathname_abs = os_path.abspath(pathname)
+
+    # Sentence explaining this path to *NOT* exist.
+    reason = 'no such file exists'
+    if pathname_abs != pathname:
+        reason += ' at "{}"'.format(pathname_abs)
+
+    # Absolute dirname of the parent directory of this path.
+    dirname = os_path.dirname(pathname_abs)
+
+    # If this directory exists, this path is simply missing.
+    if dirs.is_dir(dirname):
+        return reason + '.'
+
+    # Else, this directory does *NOT* exist either. In this case, find the
+    # highest parent directory of this path that does *NOT* exist. This is the
+    # directory the end user most likely forgot to create or copy.
+    while True:
+        dirname_parent = os_path.dirname(dirname)
+        if dirname_parent == dirname or dirs.is_dir(dirname_parent):
+            break
+        dirname = dirname_parent
+
+    # Return this sentence augmented by this missing directory.
+    return '{} (directory "{}" does not exist either).'.format(
+        reason, dirname)
 
 
 @type_check
